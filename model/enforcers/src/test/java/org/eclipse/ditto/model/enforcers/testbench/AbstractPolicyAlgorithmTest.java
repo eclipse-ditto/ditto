@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -21,6 +23,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.enforcers.EffectedSubjectIds;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.enforcers.testbench.algorithms.PolicyAlgorithm;
@@ -104,6 +107,7 @@ import org.eclipse.ditto.model.enforcers.tree.TreeBasedPolicyEnforcer;
 import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectId;
@@ -538,7 +542,8 @@ public abstract class AbstractPolicyAlgorithmTest {
     public void grantedPolicyTypeDoesNotGrantThingAccess() {
         final String SUBJECT_ALL_POLICY_GRANTED = "sid_policy_all";
 
-        final Policy POLICY = Policy.newBuilder(":" + UUID.randomUUID().toString().replace("-", ""))
+        final PolicyId policyId = PolicyId.of("org.eclipse.ditto", UUID.randomUUID().toString().replace("-", ""));
+        final Policy POLICY = Policy.newBuilder(policyId)
                 .forLabel("DEFAULT")
                 .setSubject(Subject.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ALL_POLICY_GRANTED))
                 .setGrantedPermissions(PoliciesResourceType.policyResource("/"),
@@ -549,9 +554,10 @@ public abstract class AbstractPolicyAlgorithmTest {
 
         final boolean actual = policyEnforcer
                 .hasPartialPermissions(PoliciesResourceType.thingResource("/"),
-                        AuthorizationContext.newInstance(AuthorizationSubject.newInstance(
-                                SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ALL_POLICY_GRANTED)
-                                        .toString())),
+                        AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                                AuthorizationSubject.newInstance(
+                                        SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ALL_POLICY_GRANTED)
+                                                .toString())),
                         "READ");
         assertThat(actual).isFalse();
     }

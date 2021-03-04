@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -28,7 +30,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ThingTagTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(ThingTag.JsonFields.ID, TestConstants.Thing.THING_ID)
+            .set(ThingTag.JsonFields.ID, TestConstants.Thing.THING_ID.toString())
             .set(ThingTag.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
             .build();
 
@@ -57,7 +59,7 @@ public final class ThingTagTest {
         final ThingTag underTest = ThingTag.fromJson(KNOWN_JSON);
 
         Assertions.assertThat(underTest).isNotNull();
-        Assertions.assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
+        Assertions.assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         Assertions.assertThat(underTest.getRevision()).isEqualTo(TestConstants.Thing.REVISION_NUMBER);
     }
 

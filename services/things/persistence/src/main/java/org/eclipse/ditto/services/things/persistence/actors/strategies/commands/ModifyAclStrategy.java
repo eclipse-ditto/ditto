@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -16,20 +18,26 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.common.Validator;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclValidator;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAcl;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAclResponse;
 import org.eclipse.ditto.signals.events.things.AclModified;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * This strategy handles the {@link ModifyAcl} command.
  */
 @Immutable
-public final class ModifyAclStrategy
-        extends AbstractConditionalHeadersCheckingCommandStrategy<ModifyAcl, AccessControlList> {
+final class ModifyAclStrategy extends AbstractThingCommandStrategy<ModifyAcl> {
 
     /**
      * Constructs a new {@code ModifyAclStrategy} object.
@@ -39,9 +47,13 @@ public final class ModifyAclStrategy
     }
 
     @Override
-    protected Result doApply(final Context context, @Nullable final Thing thing,
-            final long nextRevision, final ModifyAcl command) {
-        final String thingId = context.getThingId();
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
+            @Nullable final Thing thing,
+            final long nextRevision,
+            final ModifyAcl command,
+            @Nullable final Metadata metadata) {
+
+        final ThingId thingId = context.getState();
         final AccessControlList newAccessControlList = command.getAccessControlList();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
@@ -49,16 +61,25 @@ public final class ModifyAclStrategy
                 Thing.MIN_REQUIRED_PERMISSIONS);
         if (!aclValidator.isValid()) {
             return ResultFactory.newErrorResult(ExceptionFactory.aclInvalid(thingId, aclValidator.getReason(),
-                    dittoHeaders));
+                    dittoHeaders), command);
         }
 
-        return ResultFactory.newMutationResult(command, AclModified.of(thingId, newAccessControlList, nextRevision,
-                getEventTimestamp(), dittoHeaders),
-                ModifyAclResponse.modified(thingId, newAccessControlList, command.getDittoHeaders()), this);
+        final ThingEvent<?> event =
+                AclModified.of(thingId, newAccessControlList, nextRevision, getEventTimestamp(), dittoHeaders,
+                        metadata);
+        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
+                ModifyAclResponse.modified(thingId, newAccessControlList, command.getDittoHeaders()), thing);
+
+        return ResultFactory.newMutationResult(command, event, response);
     }
 
     @Override
-    public Optional<AccessControlList> determineETagEntity(final ModifyAcl command, @Nullable final Thing thing) {
-        return getThingOrThrow(thing).getAccessControlList();
+    public Optional<EntityTag> previousEntityTag(final ModifyAcl command, @Nullable final Thing previousEntity) {
+        return Optional.ofNullable(previousEntity).map(Thing::getAccessControlList).flatMap(EntityTag::fromEntity);
+    }
+
+    @Override
+    public Optional<EntityTag> nextEntityTag(final ModifyAcl command, @Nullable final Thing newEntity) {
+        return Optional.of(command.getAccessControlList()).flatMap(EntityTag::fromEntity);
     }
 }

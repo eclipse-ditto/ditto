@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -16,6 +18,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 /**
@@ -23,7 +26,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  *
  * @param <T> the type of the implementing class.
  */
-public interface SudoCommand<T extends SudoCommand> extends Command<T> {
+public interface SudoCommand<T extends SudoCommand<T>> extends Command<T>, WithIdButActuallyNot {
 
     /**
      * Type Prefix of Sudo commands.
@@ -53,16 +56,6 @@ public interface SudoCommand<T extends SudoCommand> extends Command<T> {
 
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);
-
-    /**
-     * Sudo commands do not have an ID. Thus this implementation always returns an empty string.
-     *
-     * @return an empty string.
-     */
-    @Override
-    default String getId() {
-        return "";
-    }
 
     /**
      * An enumeration of the known {@link org.eclipse.ditto.json.JsonField}s of a Thing command.

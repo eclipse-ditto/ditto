@@ -1,15 +1,18 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.model.thingsearch;
 
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
@@ -65,11 +68,18 @@ public interface SearchResult extends Iterable<JsonValue>, Jsonifiable.WithField
 
     /**
      * Get the offset of the next page if there are more matching results available or {@link #NO_NEXT_PAGE}, if there
-     * is no next page.
+     * is no next page. Superseded by {@code getCursor()}.
      *
      * @return the offset of the next page or {@link #NO_NEXT_PAGE}, if there is no next page.
      */
-    long getNextPageOffset();
+    Optional<Long> getNextPageOffset();
+
+    /**
+     * Get the cursor to the next page.
+     *
+     * @return the cursor to the next page.
+     */
+    Optional<String> getCursor();
 
     /**
      * Returns {@code true} if there is a next page and thus {@link #getNextPageOffset()} does not equal
@@ -140,6 +150,13 @@ public interface SearchResult extends Iterable<JsonValue>, Jsonifiable.WithField
          */
         public static final JsonFieldDefinition<Long> NEXT_PAGE_OFFSET =
                 JsonFactory.newLongFieldDefinition("nextPageOffset", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the cursor.
+         */
+        public static final JsonFieldDefinition<String> CURSOR =
+                JsonFactory.newStringFieldDefinition("cursor", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

@@ -1,0 +1,33 @@
+# Copyright (c) 2020 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+content:
+  application/json:
+    schema:
+      $ref: '../schemas/things/attributes.yml'
+    example: {
+      "manufacturer": {
+        "name": "ACME demo corp.",
+        "location": "Berlin, main floor"
+      },
+      "coffeemaker": {
+        "serialno": "42",
+        "model": "Speaking coffee machine"
+      }
+    }
+description: |-
+  JSON object of all attributes to be modified at once. Consider that the
+  value has to be a JSON object or `null`.
+
+  Examples:
+   * an empty object: `{}` - would just delete all old attributes
+   * a simple object: `{ "key": "value"}` - We strongly recommend to use a restricted set of characters for the key (identifier), as the key might be needed for the (URL) path later.<br> Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
+   * a nested object as shown in the example value
+required: true

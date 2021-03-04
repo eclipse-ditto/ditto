@@ -1,16 +1,17 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.json;
 
-import static org.assertj.core.api.Assertions.*;
 import static org.eclipse.ditto.json.JsonFactory.newValue;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -18,6 +19,8 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.lang.ref.SoftReference;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -28,7 +31,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.eclipse.ditto.json.ImmutableJsonArray.SoftReferencedValueList;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -53,7 +55,7 @@ public final class ImmutableJsonArrayTest {
     public void assertImmutability() {
         assertInstancesOf(ImmutableJsonArray.class,
                 areImmutable(),
-                provided(SoftReferencedValueList.class).isAlsoImmutable());
+                provided(ImmutableJsonArray.SoftReferencedValueList.class).isAlsoImmutable());
     }
 
     @Test
@@ -62,12 +64,14 @@ public final class ImmutableJsonArrayTest {
         final List<JsonValue> numberJsonValueList = toList(JsonValue.of(1), JsonValue.of(2), JsonValue.of(3));
         final ImmutableJsonArray redArray = ImmutableJsonArray.of(stringJsonValueList);
         final ImmutableJsonArray blackArray = ImmutableJsonArray.of(numberJsonValueList);
-        final SoftReferencedValueList redValueList = SoftReferencedValueList.of(stringJsonValueList);
-        final SoftReferencedValueList blackValueList = SoftReferencedValueList.of(numberJsonValueList);
+        final ImmutableJsonArray.SoftReferencedValueList
+                redValueList = ImmutableJsonArray.SoftReferencedValueList.of(stringJsonValueList);
+        final ImmutableJsonArray.SoftReferencedValueList
+                blackValueList = ImmutableJsonArray.SoftReferencedValueList.of(numberJsonValueList);
 
         EqualsVerifier.forClass(ImmutableJsonArray.class)
                 .withPrefabValues(ImmutableJsonArray.class, redArray, blackArray)
-                .withPrefabValues(SoftReferencedValueList.class, redValueList, blackValueList)
+                .withPrefabValues(ImmutableJsonArray.SoftReferencedValueList.class, redValueList, blackValueList)
                 .withNonnullFields("valueList")
                 .verify();
     }
@@ -411,4 +415,43 @@ public final class ImmutableJsonArrayTest {
         assertThat(jsonValue).contains(KNOWN_INT_VALUE_LIST.get(index));
     }
 
+    @Test
+    public void validateSoftReferenceStrategy() throws IllegalAccessException, NoSuchFieldException {
+        final ImmutableJsonArray jsonArray = ImmutableJsonArray.of(KNOWN_INT_VALUE_LIST);
+        assertInternalCachesAreAsExpected(jsonArray, true);
+
+        final Field valueListField = jsonArray.getClass().getDeclaredField("valueList");
+        valueListField.setAccessible(true);
+        final ImmutableJsonArray.SoftReferencedValueList
+                valueList = (ImmutableJsonArray.SoftReferencedValueList) valueListField.get(jsonArray);
+
+        final Field softReferenceField = valueList.getClass().getDeclaredField("valuesReference");
+        softReferenceField.setAccessible(true);
+        SoftReference softReference = (SoftReference) softReferenceField.get(valueList);
+
+        softReference.clear();
+
+        assertThat(jsonArray.get(0).isPresent()).isTrue();
+    }
+
+    private void assertInternalCachesAreAsExpected(final JsonArray jsonArray, final boolean jsonExpected) {
+        try {
+            final Field valueListField = jsonArray.getClass().getDeclaredField("valueList");
+            valueListField.setAccessible(true);
+            final ImmutableJsonArray.SoftReferencedValueList
+                    valueList = (ImmutableJsonArray.SoftReferencedValueList) valueListField.get(jsonArray);
+
+            final Field jsonStringField = valueList.getClass().getDeclaredField("jsonArrayStringRepresentation");
+            jsonStringField.setAccessible(true);
+            String jsonString = (String) jsonStringField.get(valueList);
+
+            assertThat(jsonString != null).isEqualTo(jsonExpected);
+        } catch (IllegalAccessException | NoSuchFieldException e) {
+            System.err.println(
+                    "Failed to access internal caching fields in JsonArray using reflection. " +
+                    "This might just be a bug in the test."
+            );
+            e.printStackTrace();
+        }
+    }
 }

@@ -1,0 +1,272 @@
+# Copyright (c) 2020 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+get:
+  summary: Retrieve the entries of a specific Label of a specific policy
+  description: |-
+    Returns all entries (subjects, resources, etc.) of the policy identified by the `policyId` path
+    parameter, and by the `label` path parameter.
+    Example label: DEFAULT.
+  tags:
+    - Policies
+  parameters:
+    - $ref: '../../parameters/policyIdPathParam.yml'
+    - $ref: '../../parameters/labelPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+  responses:
+    '200':
+      description: |-
+        The request successfully returned completed and returned is the
+        policy entry.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/policies/policyEntry.yml'
+    '304':
+      $ref: '../../responses/notModified.yml'
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+
+          * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The policy with the given ID or
+        the policy entry was not found in the context of the authenticated
+        user.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'
+put:
+  summary: Create or modify the entries of a specific Label of a specific policy
+  description: |-
+    Create or modify the policy entry identified by the
+    `policyId` path parameter and with the label identified by the `label`
+    path parameter.
+    * If you specify a new label, the respective policy entry will be created
+    * If you specify an existig label, the respective policy entry will be updated
+  tags:
+    - Policies
+  parameters:
+    - $ref: '../../parameters/policyIdPathParam.yml'
+    - $ref: '../../parameters/labelPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+    - $ref: '../../parameters/responseRequiredParam.yml'
+  responses:
+    '201':
+      description: The policy entry was successfully created.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+        Location:
+          description: The location of the created policy entry
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/policies/policyEntry.yml'
+    '204':
+      description: The policy entry was successfully updated.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+
+          * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+        * the JSON body of the policy entry to be created/modified is invalid
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the caller has insufficient permissions.
+            You need `WRITE` permission on the `policy:/entries/{label}` resource,
+            without any revoke in a deeper path of the policy resource.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The policy with the given ID was
+        not found in the context of the authenticated user.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'
+    '413':
+      $ref: '../../responses/entityTooLarge.yml'
+  requestBody:
+    content:
+      application/json:
+        schema:
+          $ref: '../../schemas/policies/policyEntry.yml'
+        example: {
+          "subjects": {
+            "{{ request:subjectId }}": {
+              "type": "the creator"
+            }
+          },
+          "resources": {
+            "policy:/": {
+              "grant": [
+                "READ",
+                "WRITE"
+              ],
+              "revoke": []
+            },
+            "thing:/": {
+              "grant": [
+                "READ",
+                "WRITE"
+              ],
+              "revoke": []
+            },
+            "message:/": {
+              "grant": [
+                "READ",
+                "WRITE"
+              ],
+              "revoke": []
+            }
+          }
+        }
+    description: |-
+      JSON representation of the policy entry.
+      Use the placeholder `{{ request:subjectId }}` in order to let the
+      backend insert the authenticated subjectId of the HTTP request.
+      ### Example
+      Given your policy "com.acme.coffeemaker:policy-01" only has the
+      DEFAULT entry, and you want to add a "Consumer" section which additionally allows USER-01
+      (managed within a Nginx reverse proxy) to
+      *read* the thing and to trigger a "makeCoffee" operation (i.e. POST such a message - see
+      POST /things/{thingId}/inbox/messages/{messageSubject}).
+      Set the label value to **Consumer** and the following request body:
+      ```
+      {
+        "subjects": {
+          "nginx:USER-01": {
+            "type": "pre authenticated user from nginx"
+          }
+        },
+        "resources": {
+          "thing:/": {
+            "grant": [
+              "READ"
+            ],
+            "revoke": []
+          },
+          "message:/": {
+            "grant": [
+              "WRITE"
+            ],
+            "revoke": []
+          }
+        }
+      }
+      ```
+    required: true
+delete:
+  summary: Delete the entries of a specific Label of a specific policy
+  description: |-
+    Deletes the entry of the policy identified by the `policyId` path
+    parameter and with the label identified by the `label` path parameter.
+  tags:
+    - Policies
+  parameters:
+    - $ref: '../../parameters/policyIdPathParam.yml'
+    - $ref: '../../parameters/labelPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+    - $ref: '../../parameters/responseRequiredParam.yml'
+  responses:
+    '204':
+      description: The policy entry was successfully deleted.
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+
+          * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+         * the caller has insufficient permissions.
+           You need `WRITE` permission on the `policy:/entries/{label}` resource,
+           without any revoke in a deeper path of the policy resource.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The policy with the given ID was
+        not found in the context of the authenticated user.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'

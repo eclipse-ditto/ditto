@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -17,6 +19,8 @@ import java.nio.ByteBuffer;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.json.JsonObject;
+
 /**
  * A mutable builder with a fluent API for an immutable {@link Message}.
  *
@@ -28,12 +32,14 @@ final class ImmutableMessageBuilder<T> implements MessageBuilder<T> {
     private final MessageHeaders headers;
     @Nullable private ByteBuffer rawPayload;
     @Nullable private T payload;
+    @Nullable private JsonObject extra;
     @Nullable private MessageResponseConsumer<?> responseConsumer;
 
     private ImmutableMessageBuilder(final MessageHeaders theHeaders) {
         headers = theHeaders;
         rawPayload = null;
         payload = null;
+        extra = null;
         responseConsumer = null;
     }
 
@@ -62,6 +68,12 @@ final class ImmutableMessageBuilder<T> implements MessageBuilder<T> {
     }
 
     @Override
+    public MessageBuilder<T> extra(@Nullable final JsonObject extra) {
+        this.extra = extra;
+        return this;
+    }
+
+    @Override
     public MessageBuilder<T> responseConsumer(@Nullable final MessageResponseConsumer<?> responseConsumer) {
         this.responseConsumer = responseConsumer;
         return this;
@@ -69,7 +81,7 @@ final class ImmutableMessageBuilder<T> implements MessageBuilder<T> {
 
     @Override
     public Message<T> build() {
-        return ImmutableMessage.of(headers, rawPayload, payload, responseConsumer);
+        return ImmutableMessage.of(headers, rawPayload, payload, extra, responseConsumer);
     }
 
 }

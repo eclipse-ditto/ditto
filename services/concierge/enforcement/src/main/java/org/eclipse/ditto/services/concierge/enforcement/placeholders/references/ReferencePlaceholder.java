@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -22,6 +24,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayPlaceholderReferenceNotSupportedException;
 
 /**
@@ -43,10 +47,10 @@ public final class ReferencePlaceholder {
                     fieldSelectorGroup + placeholderEnding);
 
     private final ReferencedEntityType referencedEntityType;
-    private final String referencedEntityId;
+    private final EntityId referencedEntityId;
     private final JsonPointer referencedField;
 
-    private ReferencePlaceholder(final ReferencedEntityType referencedEntityType, final String referencedEntityId,
+    private ReferencePlaceholder(final ReferencedEntityType referencedEntityType, final EntityId referencedEntityId,
             final JsonPointer referencedField) {
         this.referencedEntityType = referencedEntityType;
         this.referencedEntityId = referencedEntityId;
@@ -69,9 +73,10 @@ public final class ReferencePlaceholder {
 
         final Matcher matcher = referencePlaceholderPattern.matcher(input);
         if (matcher.find()) {
-            return Optional.of(
-                    new ReferencePlaceholder(ReferencedEntityType.fromString(matcher.group(1)), matcher.group(2),
-                            JsonPointer.of(matcher.group(3))));
+            final ReferencedEntityType referencedEntityType = ReferencedEntityType.fromString(matcher.group(1));
+            final EntityId entityId = DefaultEntityId.of(matcher.group(2));
+            final JsonPointer referencedField = JsonPointer.of(matcher.group(3));
+            return Optional.of(new ReferencePlaceholder(referencedEntityType, entityId, referencedField));
         }
 
         return Optional.empty();
@@ -82,7 +87,7 @@ public final class ReferencePlaceholder {
         return referencedEntityType;
     }
 
-    String getReferencedEntityId() {
+    EntityId getReferencedEntityId() {
         return referencedEntityId;
     }
 
@@ -112,7 +117,7 @@ public final class ReferencePlaceholder {
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                ", referencedEntityType=" + referencedEntityType +
+                "referencedEntityType=" + referencedEntityType +
                 ", referencedEntityId=" + referencedEntityId +
                 ", referencedField=" + referencedField +
                 "]";

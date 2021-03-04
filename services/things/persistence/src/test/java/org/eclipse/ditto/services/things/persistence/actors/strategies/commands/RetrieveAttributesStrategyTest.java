@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -20,6 +22,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributes;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributesResponse;
 import org.junit.Before;
@@ -44,10 +48,10 @@ public final class RetrieveAttributesStrategyTest extends AbstractCommandStrateg
 
     @Test
     public void retrieveAttributesWithoutSelectedFields() {
-        final CommandStrategy.Context context = getDefaultContext();
-        final RetrieveAttributes command = RetrieveAttributes.of(context.getThingId(), DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final RetrieveAttributes command = RetrieveAttributes.of(context.getState(), DittoHeaders.empty());
         final RetrieveAttributesResponse expectedResponse =
-                retrieveAttributesResponse(context.getThingId(), ATTRIBUTES,
+                retrieveAttributesResponse(context.getState(), ATTRIBUTES,
                         ATTRIBUTES.toJson(command.getImplementedSchemaVersion()), DittoHeaders.empty());
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
@@ -55,23 +59,23 @@ public final class RetrieveAttributesStrategyTest extends AbstractCommandStrateg
 
     @Test
     public void retrieveAttributesWithSelectedFields() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final JsonFieldSelector selectedFields = JsonFactory.newFieldSelector("maker");
         final RetrieveAttributes command =
-                RetrieveAttributes.of(context.getThingId(), selectedFields, DittoHeaders.empty());
+                RetrieveAttributes.of(context.getState(), selectedFields, DittoHeaders.empty());
         final RetrieveAttributesResponse expectedResponse =
-                retrieveAttributesResponse(context.getThingId(), ATTRIBUTES,
-                    ATTRIBUTES.toJson(command.getImplementedSchemaVersion(), selectedFields), DittoHeaders.empty());
+                retrieveAttributesResponse(context.getState(), ATTRIBUTES,
+                        ATTRIBUTES.toJson(command.getImplementedSchemaVersion(), selectedFields), DittoHeaders.empty());
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
     }
 
     @Test
     public void retrieveAttributesFromThingWithoutAttributes() {
-        final CommandStrategy.Context context = getDefaultContext();
-        final RetrieveAttributes command = RetrieveAttributes.of(context.getThingId(), DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final RetrieveAttributes command = RetrieveAttributes.of(context.getState(), DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.attributesNotFound(context.getThingId(), DittoHeaders.empty());
+                ExceptionFactory.attributesNotFound(context.getState(), DittoHeaders.empty());
 
         assertErrorResult(underTest, THING_V2.removeAttributes(), command, expectedException);
     }

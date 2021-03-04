@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -25,17 +27,22 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * Response to a {@link RetrieveFeatureProperty} command.
  */
 @Immutable
+@JsonParsableCommandResponse(type = RetrieveFeaturePropertyResponse.TYPE)
 public final class RetrieveFeaturePropertyResponse extends AbstractCommandResponse<RetrieveFeaturePropertyResponse>
         implements ThingQueryCommandResponse<RetrieveFeaturePropertyResponse> {
 
@@ -56,19 +63,28 @@ public final class RetrieveFeaturePropertyResponse extends AbstractCommandRespon
             JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final String featureId;
     private final JsonPointer propertyPointer;
     private final JsonValue propertyValue;
 
-    private RetrieveFeaturePropertyResponse(final String thingId, final String featureId,
-            final JsonPointer propertyPointer, final JsonValue propertyValue, final HttpStatusCode statusCode,
+    private RetrieveFeaturePropertyResponse(final ThingId thingId,
+            final String featureId,
+            final JsonPointer propertyPointer,
+            final JsonValue propertyValue,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
-        super(TYPE, statusCode, dittoHeaders);
+
+        super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thing ID");
         this.featureId = checkNotNull(featureId, "Feature ID");
-        this.propertyPointer = checkNotNull(propertyPointer, "Property Pointer");
+        this.propertyPointer = checkPropertyPointer(propertyPointer);
         this.propertyValue = checkNotNull(propertyValue, "Property Value");
+    }
+
+    private static JsonPointer checkPropertyPointer(final JsonPointer propertyPointer) {
+        checkNotNull(propertyPointer, "Property Pointer");
+        return ThingsModelFactory.validateFeaturePropertyPointer(propertyPointer);
     }
 
     /**
@@ -81,12 +97,48 @@ public final class RetrieveFeaturePropertyResponse extends AbstractCommandRespon
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code featurePropertyPointer} are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.json.JsonPointer,
+     * org.eclipse.ditto.json.JsonValue, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
-    public static RetrieveFeaturePropertyResponse of(final String thingId, final String featureId,
+    @Deprecated
+    public static RetrieveFeaturePropertyResponse of(final String thingId,
+            final String featureId,
             final JsonPointer featurePropertyPointer,
-            final JsonValue featurePropertyValue, final DittoHeaders dittoHeaders) {
-        return new RetrieveFeaturePropertyResponse(thingId, featureId, featurePropertyPointer, featurePropertyValue,
-                HttpStatusCode.OK, dittoHeaders);
+            final JsonValue featurePropertyValue,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), featureId, featurePropertyPointer, featurePropertyValue, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@link RetrieveFeatureProperty} command.
+     *
+     * @param thingId the Thing ID of the retrieved feature property.
+     * @param featureId the identifier of the Feature whose Property was retrieved.
+     * @param featurePropertyPointer the retrieved FeatureProperty JSON pointer.
+     * @param featurePropertyValue the retrieved FeatureProperty value.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code featurePropertyPointer} are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     */
+    public static RetrieveFeaturePropertyResponse of(final ThingId thingId,
+            final String featureId,
+            final JsonPointer featurePropertyPointer,
+            final JsonValue featurePropertyValue,
+            final DittoHeaders dittoHeaders) {
+
+        return new RetrieveFeaturePropertyResponse(thingId,
+                featureId,
+                featurePropertyPointer,
+                featurePropertyValue,
+                HttpStatus.OK,
+                dittoHeaders);
     }
 
     /**
@@ -95,13 +147,14 @@ public final class RetrieveFeaturePropertyResponse extends AbstractCommandRespon
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of property pointer are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
-    public static RetrieveFeaturePropertyResponse fromJson(final String jsonString,
-            final DittoHeaders dittoHeaders) {
+    public static RetrieveFeaturePropertyResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
@@ -111,28 +164,25 @@ public final class RetrieveFeaturePropertyResponse extends AbstractCommandRespon
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of property pointer are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static RetrieveFeaturePropertyResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
         return new CommandResponseJsonDeserializer<RetrieveFeaturePropertyResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String thingId =
-                            jsonObject.getValueOrThrow(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
-                    final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
-                    final String extractedPointerString = jsonObject.getValueOrThrow(JSON_PROPERTY);
-                    final JsonPointer extractedPointer = JsonFactory.newPointer(extractedPointerString);
-                    final JsonValue extractedFeatureProperty = jsonObject.getValueOrThrow(JSON_VALUE);
-
-                    return of(thingId, extractedFeatureId, extractedPointer, extractedFeatureProperty, dittoHeaders);
-                });
+                .deserialize(httpStatus -> of(
+                        ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
+                        jsonObject.getValueOrThrow(JSON_FEATURE_ID),
+                        JsonFactory.newPointer(jsonObject.getValueOrThrow(JSON_PROPERTY)),
+                        jsonObject.getValueOrThrow(JSON_VALUE), dittoHeaders));
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -188,8 +238,9 @@ public final class RetrieveFeaturePropertyResponse extends AbstractCommandRespon
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
         jsonObjectBuilder.set(JSON_PROPERTY, propertyPointer.toString(), predicate);
         jsonObjectBuilder.set(JSON_VALUE, propertyValue, predicate);
@@ -209,9 +260,12 @@ public final class RetrieveFeaturePropertyResponse extends AbstractCommandRespon
             return false;
         }
         final RetrieveFeaturePropertyResponse that = (RetrieveFeaturePropertyResponse) o;
-        return that.canEqual(this) && Objects.equals(thingId, that.thingId)
-                && Objects.equals(featureId, that.featureId) && Objects.equals(propertyPointer, that.propertyPointer)
-                && Objects.equals(propertyValue, that.propertyValue) && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(thingId, that.thingId) &&
+                Objects.equals(featureId, that.featureId) &&
+                Objects.equals(propertyPointer, that.propertyPointer) &&
+                Objects.equals(propertyValue, that.propertyValue) &&
+                super.equals(o);
     }
 
     @Override

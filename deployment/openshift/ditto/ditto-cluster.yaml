@@ -1,11 +1,17 @@
 ---
-apiVersion: extensions/v1beta1
+# Note:
+# According to the used k8s namespace the pod-reader-role have to be created in the same namespace.
+
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: concierge
   labels:
     app: concierge
 spec:
+  selector:
+    matchLabels:
+      app: concierge
   replicas: 1
   template:
     metadata:
@@ -16,36 +22,39 @@ spec:
       restartPolicy: Always
       containers:
       - name: concierge
-        image: docker-registry.default.svc:5000/ci-x-digitaltwins/eclipse-ditto-concierge:0.8.0
+        image: docker.io/eclipse/ditto-concierge:lastest
         imagePullPolicy: IfNotPresent
-        command: ["java"]
-        args: ["-jar", "/opt/ditto/starter.jar"]
+        args:
+          - "java"
+          - "-jar"
+          - "/opt/ditto/starter.jar"
         ports:
-        - name: akka-remoting
+        - name: remoting
           containerPort: 2551
           protocol: TCP
-        - name: akka-mgmt-http
+        - name: management
           containerPort: 8558
           protocol: TCP
         readinessProbe:
-          tcpSocket:
-            port: 8558
+          httpGet:
+            port: management
+            path: /ready
           initialDelaySeconds: 45
           periodSeconds: 10
         livenessProbe:
-          tcpSocket:
-            port: 2551
+          httpGet:
+            port: management
+            path: /alive
           initialDelaySeconds: 180
           periodSeconds: 10
           timeoutSeconds: 3
           failureThreshold: 4
         resources:
           requests:
-            cpu: "0.1"
-            memory: "250Mi"
+            memory: "512Mi"
           limits:
-            cpu: "1.0"
-            memory: "1Gi"
+            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            memory: "512Mi"
         env:
         - name: INSTANCE_INDEX
           valueFrom:
@@ -60,25 +69,26 @@ spec:
         - name: DISCOVERY_METHOD
           value: "kubernetes-api"
           # namespace in which the Ditto service is running according to this the pod-reader-role have to be created in the same namespace
-        - name: K8S_NAMESPACE
-          value: "default"
         - name: TZ
           value: "Europe/Berlin"
-        - name: IBM_JAVA_OPTIONS
-          value: "-Xtune:virtualized -XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
+        - name: OPENJ9_JAVA_OPTIONS
+          value: "-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
         - name: MONGO_DB_URI
           valueFrom:
             secretKeyRef:
               name: mongodb-uri
               key: mongodb-uri
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: connectivity
   labels:
     app: connectivity
 spec:
+  selector:
+    matchLabels:
+      app: connectivity
   replicas: 1
   template:
     metadata:
@@ -89,36 +99,39 @@ spec:
       restartPolicy: Always
       containers:
       - name: connectivity
-        image: docker-registry.default.svc:5000/ci-x-digitaltwins/eclipse-ditto-connectivity:0.8.0
+        image: docker.io/eclipse/ditto-connectivity:latest
         imagePullPolicy: IfNotPresent
-        command: ["java"]
-        args: ["-jar", "/opt/ditto/starter.jar"]
+        args:
+          - "java"
+          - "-jar"
+          - "/opt/ditto/starter.jar"
         ports:
-        - name: akka-remoting
+        - name: remoting
           containerPort: 2551
           protocol: TCP
-        - name: akka-mgmt-http
+        - name: management
           containerPort: 8558
           protocol: TCP
         readinessProbe:
-          tcpSocket:
-            port: 8558
+          httpGet:
+            port: management
+            path: /ready
           initialDelaySeconds: 45
           periodSeconds: 10
         livenessProbe:
-          tcpSocket:
-            port: 2551
+          httpGet:
+            port: management
+            path: /alive
           initialDelaySeconds: 180
           periodSeconds: 10
           timeoutSeconds: 3
           failureThreshold: 4
         resources:
           requests:
-            cpu: "0.1"
-            memory: "250Mi"
+            memory: "512Mi"
           limits:
-            cpu: "1.0"
-            memory: "1Gi"
+            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            memory: "512Mi"
         env:
         - name: INSTANCE_INDEX
           valueFrom:
@@ -133,25 +146,26 @@ spec:
         - name: DISCOVERY_METHOD
           value: "kubernetes-api"
           # namespace in which the Ditto service is running according to this the pod-reader-role have to be created in the same namespace
-        - name: K8S_NAMESPACE
-          value: "default"
         - name: TZ
           value: "Europe/Berlin"
-        - name: IBM_JAVA_OPTIONS
-          value: "-Xtune:virtualized -XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
+        - name: OPENJ9_JAVA_OPTIONS
+          value: "-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s -Dakka.cluster.distributed-data.durable.lmdb.dir=/var/tmp/ddata"
         - name: MONGO_DB_URI
           valueFrom:
             secretKeyRef:
               name: mongodb-uri
               key: mongodb-uri
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: things
   labels:
     app: things
 spec:
+  selector:
+    matchLabels:
+      app: things
   replicas: 1
   template:
     metadata:
@@ -162,36 +176,39 @@ spec:
       restartPolicy: Always
       containers:
       - name: things
-        image: docker-registry.default.svc:5000/ci-x-digitaltwins/eclipse-ditto-things:0.8.0
+        image: docker.io/eclipse/ditto-things:latest
         imagePullPolicy: IfNotPresent
-        command: ["java"]
-        args: ["-jar", "/opt/ditto/starter.jar"]
+        args:
+          - "java"
+          - "-jar"
+          - "/opt/ditto/starter.jar"
         ports:
-        - name: akka-remoting
+        - name: remoting
           containerPort: 2551
           protocol: TCP
-        - name: akka-mgmt-http
+        - name: management
           containerPort: 8558
           protocol: TCP
         readinessProbe:
-          tcpSocket:
-            port: 8558
+          httpGet:
+            port: management
+            path: /ready
           initialDelaySeconds: 45
           periodSeconds: 10
         livenessProbe:
-          tcpSocket:
-            port: 2551
+          httpGet:
+            port: management
+            path: /alive
           initialDelaySeconds: 180
           periodSeconds: 10
           timeoutSeconds: 3
           failureThreshold: 4
         resources:
           requests:
-            cpu: "0.1"
-            memory: "250Mi"
+            memory: "512Mi"
           limits:
-            cpu: "1.0"
-            memory: "1Gi"
+            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            memory: "512Mi"
         env:
         - name: INSTANCE_INDEX
           valueFrom:
@@ -206,25 +223,26 @@ spec:
         - name: DISCOVERY_METHOD
           value: "kubernetes-api"
           # namespace in which the Ditto service is running according to this the pod-reader-role have to be created in the same namespace
-        - name: K8S_NAMESPACE
-          value: "default"
         - name: TZ
           value: "Europe/Berlin"
-        - name: IBM_JAVA_OPTIONS
-          value: "-Xtune:virtualized -XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
+        - name: OPENJ9_JAVA_OPTIONS
+          value: "-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
         - name: MONGO_DB_URI
           valueFrom:
             secretKeyRef:
               name: mongodb-uri
               key: mongodb-uri
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: things-search
   labels:
     app: things-search
 spec:
+  selector:
+    matchLabels:
+      app: things-search
   replicas: 1
   template:
     metadata:
@@ -234,36 +252,39 @@ spec:
     spec:
       containers:
       - name: things-search
-        image: docker-registry.default.svc:5000/ci-x-digitaltwins/eclipse-ditto-things-search:0.8.0
+        image: docker.io/eclipse/ditto-things-search:latest
         imagePullPolicy: IfNotPresent
-        command: ["java"]
-        args: ["-jar", "/opt/ditto/starter.jar"]
+        args:
+          - "java"
+          - "-jar"
+          - "/opt/ditto/starter.jar"
         ports:
-        - name: akka-remoting
+        - name: remoting
           containerPort: 2551
           protocol: TCP
-        - name: akka-mgmt-http
+        - name: management
           containerPort: 8558
           protocol: TCP
         readinessProbe:
-          tcpSocket:
-            port: 8558
+          httpGet:
+            port: management
+            path: /ready
           initialDelaySeconds: 45
           periodSeconds: 10
         livenessProbe:
-          tcpSocket:
-            port: 2551
+          httpGet:
+            port: management
+            path: /alive
           initialDelaySeconds: 180
           periodSeconds: 10
           timeoutSeconds: 3
           failureThreshold: 4
         resources:
           requests:
-            cpu: "0.1"
-            memory: "250Mi"
+            memory: "512Mi"
           limits:
-            cpu: "1.0"
-            memory: "1Gi"
+            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            memory: "512Mi"
         env:
         - name: INSTANCE_INDEX
           valueFrom:
@@ -277,26 +298,26 @@ spec:
               fieldPath: status.podIP
         - name: DISCOVERY_METHOD
           value: "kubernetes-api"
-        # namespace in which the Ditto service is running according to this the pod-reader-role have to be created in the same namespace
-        - name: K8S_NAMESPACE
-          value: "default"
         - name: TZ
           value: "Europe/Berlin"
-        - name: IBM_JAVA_OPTIONS
-          value: "-Xtune:virtualized -XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
+        - name: OPENJ9_JAVA_OPTIONS
+          value: "-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
         - name: MONGO_DB_URI
           valueFrom:
             secretKeyRef:
               name: mongodb-uri
               key: mongodb-uri
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: policies
   labels:
     app: policies
 spec:
+  selector:
+    matchLabels:
+      app: policies
   replicas: 1
   template:
     metadata:
@@ -306,36 +327,39 @@ spec:
     spec:
       containers:
       - name: policies
-        image: docker-registry.default.svc:5000/ci-x-digitaltwins/eclipse-ditto-policies:0.8.0
+        image: docker.io/eclipse//eclipse-ditto-policies:latest
         imagePullPolicy: IfNotPresent
-        command: ["java"]
-        args: ["-jar", "/opt/ditto/starter.jar"]
+        args:
+          - "java"
+          - "-jar"
+          - "/opt/ditto/starter.jar"
         ports:
-        - name: akka-remoting
+        - name: remoting
           containerPort: 2551
           protocol: TCP
-        - name: akka-mgmt-http
+        - name: management
           containerPort: 8558
           protocol: TCP
         readinessProbe:
-          tcpSocket:
-            port: 8558
+          httpGet:
+            port: management
+            path: /ready
           initialDelaySeconds: 45
           periodSeconds: 10
         livenessProbe:
-          tcpSocket:
-            port: 2551
+          httpGet:
+            port: management
+            path: /alive
           initialDelaySeconds: 180
           periodSeconds: 10
           timeoutSeconds: 3
           failureThreshold: 4
         resources:
           requests:
-            cpu: "0.1"
-            memory: "250Mi"
+            memory: "512Mi"
           limits:
-            cpu: "1.0"
-            memory: "1Gi"
+            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            memory: "512Mi"
         env:
         - name: INSTANCE_INDEX
           valueFrom:
@@ -350,26 +374,27 @@ spec:
         - name: DISCOVERY_METHOD
           value: "kubernetes-api"
           # namespace in which the Ditto service is running according to this the pod-reader-role have to be created in the same namespace
-        - name: K8S_NAMESPACE
-          value: "default"
         - name: TZ
           value: "Europe/Berlin"
-        - name: IBM_JAVA_OPTIONS
-          value: "-Xtune:virtualized -XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
+        - name: OPENJ9_JAVA_OPTIONS
+          value: "-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
         - name: MONGO_DB_URI
           valueFrom:
             secretKeyRef:
               name: mongodb-uri
               key: mongodb-uri
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: gateway
-  namespace: digitaltwins
   labels:
     app: gateway
 spec:
+  selector:
+    matchLabels:
+      app: gateway
+  replicas: 1
   template:
     metadata:
       labels:
@@ -378,38 +403,41 @@ spec:
     spec:
       containers:
       - name: gateway
-        image: docker-registry.default.svc:5000/ci-x-digitaltwins/eclipse-ditto-gateway:0.8.0
+        image: docker.io/eclipse/ditto-gateway:latest
         imagePullPolicy: IfNotPresent
-        command: ["java"]
-        args: ["-jar", "/opt/ditto/starter.jar"]
+        args:
+          - "java"
+          - "-jar"
+          - "/opt/ditto/starter.jar"
         ports:
-        - name: akka-remoting
+        - name: remoting
           containerPort: 2551
           protocol: TCP
-        - name: akka-mgmt-http
+        - name: management
           containerPort: 8558
           protocol: TCP
         readinessProbe:
-          tcpSocket:
-            port: 8558
+          httpGet:
+            port: management
+            path: /ready
           initialDelaySeconds: 45
           periodSeconds: 10
         livenessProbe:
-          tcpSocket:
-            port: 2551
+          httpGet:
+            port: management
+            path: /alive
           initialDelaySeconds: 180
           periodSeconds: 10
           timeoutSeconds: 3
           failureThreshold: 4
         resources:
           requests:
-            cpu: "0.1"
-            memory: "250Mi"
+            memory: "512Mi"
           limits:
-            cpu: "1.0"
-            memory: "1Gi"
+            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            memory: "512Mi"
         env:
-        - name: ENABLE_DUMMY_AUTH
+          - name: ENABLE_PRE_AUTHENTICATION
           value: "true"
         - name: INSTANCE_INDEX
           valueFrom:
@@ -424,14 +452,12 @@ spec:
         - name: DISCOVERY_METHOD
           value: "kubernetes-api"
           # namespace in which the Ditto service is running according to this the pod-reader-role have to be created in the same namespace
-        - name: K8S_NAMESPACE
-          value: "default"
         - name: BIND_HOSTNAME
           value: 0.0.0.0
         - name: TZ
           value: "Europe/Berlin"
-        - name: IBM_JAVA_OPTIONS
-          value: "-Xtune:virtualized -XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
+        - name: OPENJ9_JAVA_OPTIONS
+          value: "-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
         - name: DEVOPS_PASSWORD
           value: "dittoPW1!"
 ---

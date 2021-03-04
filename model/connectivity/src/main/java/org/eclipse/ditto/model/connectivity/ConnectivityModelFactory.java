@@ -1,28 +1,40 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.model.connectivity;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.util.AbstractMap;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 
 /**
@@ -50,10 +62,11 @@ public final class ConnectivityModelFactory {
      * @return the ConnectionBuilder.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ConnectionBuilder newConnectionBuilder(final String id,
+    public static ConnectionBuilder newConnectionBuilder(final ConnectionId id,
             final ConnectionType connectionType,
-            final ConnectionStatus connectionStatus,
+            final ConnectivityStatus connectionStatus,
             final String uri) {
+
         return ImmutableConnection.getBuilder(id, connectionType, connectionStatus, uri);
     }
 
@@ -82,6 +95,23 @@ public final class ConnectivityModelFactory {
     }
 
     /**
+     * Creates a new {@code Measurement} with the provided parameters.
+     *
+     * @param metricType the type of the metric.
+     * @param success whether the measurement is a success or failure measurement.
+     * @param values the values of the measurement.
+     * @param lastMessageAt when the last message of this measurement was received.
+     * @return the created {@code Measurement}
+     */
+    public static Measurement newMeasurement(final MetricType metricType,
+            final boolean success,
+            final Map<Duration, Long> values,
+            @Nullable final Instant lastMessageAt) {
+
+        return new ImmutableMeasurement(metricType, success, values, lastMessageAt);
+    }
+
+    /**
      * Creates a new {@code ConnectionMetrics} object from the specified JSON object.
      *
      * @param jsonObject a JSON object which provides the data for the Connection to be created.
@@ -96,34 +126,39 @@ public final class ConnectivityModelFactory {
     /**
      * Returns a new {@code ConnectionMetrics}.
      *
-     * @param connectionStatus the ConnectionStatus of the metrics to create
-     * @param connectionStatusDetails the optional details about the connection status
-     * @param inConnectionStatusSince the instant since when the Client is in its current ConnectionStatus
-     * @param clientState the current state of the Client performing the connection
-     * @param sourcesMetrics the metrics of all sources of the Connection
-     * @param targetsMetrics the metrics of all targets of the Connection
-     * @return a new ConnectionMetrics which is initialised with the extracted data from {@code jsonObject}.
+     * @param inboundMetrics the overall inbound metrics.
+     * @param outboundMetrics the overall outbound metrics.
+     * @return a new ConnectionMetrics.
      * @throws NullPointerException if {@code connectionStatus} is {@code null}.
      */
-    public static ConnectionMetrics newConnectionMetrics(final ConnectionStatus connectionStatus,
-            final @Nullable String connectionStatusDetails, final Instant inConnectionStatusSince,
-            final String clientState,
-            final List<SourceMetrics> sourcesMetrics, final List<TargetMetrics> targetsMetrics) {
-        return ImmutableConnectionMetrics.of(connectionStatus, connectionStatusDetails, inConnectionStatusSince,
-                clientState, sourcesMetrics, targetsMetrics);
+    public static ConnectionMetrics newConnectionMetrics(final AddressMetric inboundMetrics,
+            final AddressMetric outboundMetrics) {
+        return ImmutableConnectionMetrics.of(inboundMetrics, outboundMetrics);
+    }
+
+    /**
+     * @return a new ConnectionMetrics which is empty
+     */
+    public static ConnectionMetrics emptyConnectionMetrics() {
+        return ImmutableConnectionMetrics.of(emptyAddressMetric(), emptyAddressMetric());
     }
 
     /**
      * Returns a new {@code SourceMetrics}.
      *
      * @param addressMetrics the AddressMetrics of all addresses in the source
-     * @param consumedMessages the amount of consumed messages
      * @return a new SourceMetrics which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if {@code connectionStatus} is {@code null}.
      */
-    public static SourceMetrics newSourceMetrics(final Map<String, AddressMetric> addressMetrics,
-            final long consumedMessages) {
-        return ImmutableSourceMetrics.of(addressMetrics, consumedMessages);
+    public static SourceMetrics newSourceMetrics(final Map<String, AddressMetric> addressMetrics) {
+        return ImmutableSourceMetrics.of(addressMetrics);
+    }
+
+    /**
+     * @return a new SourceMetrics which is empty
+     */
+    public static SourceMetrics emptySourceMetrics() {
+        return ImmutableSourceMetrics.of(Collections.emptyMap());
     }
 
     /**
@@ -142,13 +177,18 @@ public final class ConnectivityModelFactory {
      * Returns a new {@code TargetMetrics}.
      *
      * @param addressMetrics the AddressMetrics of all addresses in the target
-     * @param publishedMessages the amount of published messages
      * @return a new SourceMetrics which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if {@code connectionStatus} is {@code null}.
      */
-    public static TargetMetrics newTargetMetrics(final Map<String, AddressMetric> addressMetrics,
-            final long publishedMessages) {
-        return ImmutableTargetMetrics.of(addressMetrics, publishedMessages);
+    public static TargetMetrics newTargetMetrics(final Map<String, AddressMetric> addressMetrics) {
+        return ImmutableTargetMetrics.of(addressMetrics);
+    }
+
+    /**
+     * @return a new TargetMetrics which is empty
+     */
+    public static TargetMetrics emptyTargetMetrics() {
+        return ImmutableTargetMetrics.of(Collections.emptyMap());
     }
 
     /**
@@ -164,18 +204,161 @@ public final class ConnectivityModelFactory {
     }
 
     /**
-     * Returns a new {@code AddressMetric}.
+     * Returns a new client {@code ResourceStatus}.
      *
+     * @param client a client identifier e.g. on which node this client is running
      * @param status the ConnectionStatus of the source metrics to create
      * @param statusDetails the optional details about the connection status
-     * @param messageCount the amount of totally consumed/published messages
-     * @param lastMessageAt the timestamp when the last message was consumed/published
      * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if any parameter is {@code null}.
      */
-    public static AddressMetric newAddressMetric(final ConnectionStatus status, @Nullable final String statusDetails,
-            final long messageCount, @Nullable final Instant lastMessageAt) {
-        return ImmutableAddressMetric.of(status, statusDetails, messageCount, lastMessageAt);
+    public static ResourceStatus newClientStatus(final String client, final ConnectivityStatus status,
+            @Nullable final String statusDetails) {
+
+        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.CLIENT, client, status, null, statusDetails);
+    }
+
+    /**
+     * Returns a new source {@code ResourceStatus}.
+     *
+     * @param client a client identifier e.g. on which node this client is running
+     * @param status the ConnectionStatus of the source metrics to create
+     * @param statusDetails the optional details about the connection status
+     * @param inStateSince the instant since the resource is in the given state
+     * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if any parameter is {@code null}.
+     */
+    public static ResourceStatus newClientStatus(final String client,
+            final ConnectivityStatus status,
+            @Nullable final String statusDetails,
+            final Instant inStateSince) {
+
+        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.CLIENT, client, status, null, statusDetails,
+                inStateSince);
+    }
+
+    /**
+     * Returns a new source {@code ResourceStatus}.
+     *
+     * @param client a client identifier e.g. on which node this client is running
+     * @param status the ConnectionStatus of the source metrics to create
+     * @param address the address identifier
+     * @param statusDetails the optional details about the connection status
+     * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if any parameter is {@code null}.
+     */
+    public static ResourceStatus newSourceStatus(final String client,
+            final ConnectivityStatus status,
+            @Nullable final String address,
+            @Nullable final String statusDetails) {
+
+        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.SOURCE, client, status, address, statusDetails);
+    }
+
+    /**
+     * Returns a new target {@code ResourceStatus}.
+     *
+     * @param client a client identifier e.g. on which node this client is running
+     * @param status the ConnectionStatus of the source metrics to create
+     * @param address the address identifier
+     * @param statusDetails the optional details about the connection status
+     * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if any parameter is {@code null}.
+     */
+    public static ResourceStatus newTargetStatus(final String client,
+            final ConnectivityStatus status,
+            @Nullable final String address,
+            @Nullable final String statusDetails) {
+
+        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.TARGET, client, status, address,
+                statusDetails);
+    }
+
+    /**
+     * Returns a new generic {@code ResourceStatus} update.
+     *
+     * @param client a client identifier e.g. on which node this client is running
+     * @param status the ConnectionStatus of the source metrics to create
+     * @param address the address identifier
+     * @param statusDetails the optional details about the connection status
+     * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if any parameter is {@code null}.
+     */
+    public static ResourceStatus newStatusUpdate(final String client,
+            final ConnectivityStatus status,
+            @Nullable final String address,
+            @Nullable final String statusDetails) {
+
+        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.UNKNOWN, client, status, address, statusDetails);
+    }
+
+    /**
+     * Returns a new target {@code ResourceStatus}.
+     *
+     * @param client a client identifier e.g. on which node this client is running
+     * @param status the ConnectionStatus of the source metrics to create
+     * @param address the address identifier
+     * @param statusDetails the optional details about the connection status
+     * @param inStatusSince the instant since the resource is in the described status
+     * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if any parameter is {@code null}.
+     */
+    public static ResourceStatus newStatusUpdate(final String client, final ConnectivityStatus status,
+            @Nullable final String address,
+            @Nullable final String statusDetails,
+            final Instant inStatusSince) {
+
+        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.UNKNOWN, client, status, address,
+                statusDetails, inStatusSince);
+    }
+
+    /**
+     * Creates a new {@code ResourceStatus} object from the specified JSON object.
+     *
+     * @param jsonObject a JSON object which provides the data for the ResourceStatus to be created.
+     * @return a new ResourceStatus which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
+     */
+    public static ResourceStatus resourceStatusFromJson(final JsonObject jsonObject) {
+        return ImmutableResourceStatus.fromJson(jsonObject);
+    }
+
+    /**
+     * Returns a new {@code AddressMetric}.
+     *
+     * @param measurements set of measurements for this address
+     * @return a new AddressMetric which is initialised with the given measurements.
+     * @throws NullPointerException if any parameter is {@code null}.
+     */
+    public static AddressMetric newAddressMetric(final Set<Measurement> measurements) {
+        return ImmutableAddressMetric.of(measurements);
+    }
+
+    /**
+     * Merges an existing {@code AddressMetric} with additional measurements to a new {@code AddressMetric}.
+     *
+     * @param addressMetric the existing address metric
+     * @param additionalMeasurements the additional measurements
+     * @return a new AddressMetric with the existing and additional measurements merged.
+     * @throws NullPointerException if any parameter is {@code null}.
+     */
+    public static AddressMetric newAddressMetric(final AddressMetric addressMetric,
+            final Collection<Measurement> additionalMeasurements) {
+
+        final Set<Measurement> set = new HashSet<>(addressMetric.getMeasurements());
+        set.addAll(additionalMeasurements);
+        return ImmutableAddressMetric.of(set);
+    }
+
+    /**
+     * Returns a new empty {@code AddressMetric}.
+     *
+     * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if any parameter is {@code null}.
+     */
+    public static AddressMetric emptyAddressMetric() {
+        return ImmutableAddressMetric.of(Collections.emptySet());
     }
 
     /**
@@ -193,13 +376,62 @@ public final class ConnectivityModelFactory {
     /**
      * Returns a new {@code MappingContext}.
      *
-     * @param mappingEngine fully qualified classname of a mapping engine
-     * @param options the mapping options required to instantiate a mapper
+     * @param mappingEngine fully qualified classname of a mapping engine.
+     * @param options the mapping options required to instantiate a mapper.
+     * @return the created MappingContext.
+     * @throws NullPointerException if any argument is {@code null}.
+     *
+     * @since 1.3.0
+     */
+    public static MappingContextBuilder newMappingContextBuilder(final String mappingEngine,
+            final JsonObject options) {
+        return new ImmutableMappingContext.Builder(mappingEngine, options);
+    }
+
+    /**
+     * Returns a new {@code MappingContext}.
+     *
+     * @param mappingEngine fully qualified classname of a mapping engine.
+     * @param options the mapping options required to instantiate a mapper.
      * @return the created MappingContext.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static MappingContext newMappingContext(final String mappingEngine, final Map<String, String> options) {
+        return newMappingContextBuilder(mappingEngine, options.entrySet()
+                .stream()
+                .map(entry -> JsonField.newInstance(entry.getKey(), JsonValue.of(entry.getValue())))
+                .collect(JsonCollectors.fieldsToObject())).build();
+    }
+
+    /**
+     * Returns a new {@code MappingContext}.
+     *
+     * @param mappingEngine fully qualified classname of a mapping engine
+     * @param options the mapping options required to instantiate a mapper
+     * @return the created MappingContext.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.3.0
+     */
+    public static MappingContext newMappingContext(final String mappingEngine, final JsonObject options) {
         return ImmutableMappingContext.of(mappingEngine, options);
+    }
+
+    /**
+     * Returns a new {@code MappingContext}.
+     *
+     * @param mappingEngine fully qualified classname of a mapping engine.
+     * @param options the mapping options required to instantiate a mapper.
+     * @param incomingConditions the conditions to be checked before mapping incoming messages.
+     * @param outgoingConditions the conditions to be checked before mapping outgoing messages.
+     * @return the created MappingContext.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.3.0
+     */
+    public static MappingContext newMappingContext(final String mappingEngine, final JsonObject options,
+            final Map<String, String> incomingConditions, final Map<String, String> outgoingConditions) {
+        return newMappingContextBuilder(mappingEngine, options).incomingConditions(incomingConditions)
+                .outgoingConditions(outgoingConditions)
+                .build();
     }
 
     /**
@@ -215,21 +447,107 @@ public final class ConnectivityModelFactory {
     }
 
     /**
+     * Creates a new {@code Map<String, MappingContext>} object from the specified JSON object.
+     *
+     * @param jsonObject a JSON object which provides the data for the MappingContext to be created.
+     * @return a new map which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
+     */
+    static Map<String, MappingContext> mappingsFromJson(final JsonObject jsonObject) {
+        return jsonObject.stream()
+                .filter(f -> f.getValue().isObject())
+                .map(field -> {
+                    final String id = field.getKeyName();
+                    final MappingContext context = ImmutableMappingContext.fromJson(field.getValue().asObject());
+                    return new AbstractMap.SimpleImmutableEntry<>(id, context);
+                }).collect(fromEntries());
+    }
+
+    private static <K, V> Collector<Map.Entry<K, V>, ?, Map<K, V>> fromEntries() {
+        return Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue);
+    }
+
+    /**
+     * @return new empty {@link PayloadMappingDefinition}
+     */
+    public static PayloadMappingDefinition emptyPayloadMappingDefinition() {
+        return ImmutablePayloadMappingDefinition.empty();
+    }
+
+    /**
+     * @param definitions the existing definitions
+     * @return new instance of {@link PayloadMappingDefinition} initialized with the given definitions
+     */
+    public static PayloadMappingDefinition newPayloadMappingDefinition(final Map<String, MappingContext> definitions) {
+        return ImmutablePayloadMappingDefinition.from(definitions);
+    }
+
+    /**
+     * @param id ID of the mapping
+     * @param mappingContext config of the mapping
+     * @return new instance of {@link PayloadMappingDefinition} initialized with the given definition
+     */
+    public static PayloadMappingDefinition newPayloadMappingDefinition(final String id,
+            final MappingContext mappingContext) {
+        final Map<String, MappingContext> definitions = new HashMap<>();
+        definitions.put(id, mappingContext);
+        return ImmutablePayloadMappingDefinition.from(definitions);
+    }
+
+    /**
+     * @return new instance of empty {@link PayloadMapping}
+     */
+    public static PayloadMapping emptyPayloadMapping() {
+        return ImmutablePayloadMapping.empty();
+    }
+
+    /**
+     * @return new instance of {@link PayloadMapping} initialized with the given mappings
+     */
+    public static PayloadMapping newPayloadMapping(final List<String> mappings) {
+        return ImmutablePayloadMapping.from(mappings);
+    }
+
+    /**
+     * @return new instance of {@link PayloadMapping} initialized with the given mappings
+     */
+    public static PayloadMapping newPayloadMapping(@Nullable final String... mappings) {
+        if (mappings == null || mappings.length == 0) {
+            return emptyPayloadMapping();
+        } else {
+            return ImmutablePayloadMapping.from(Arrays.asList(mappings));
+        }
+    }
+
+    /**
+     * Creates a new {@code PayloadMapping} object from the specified JSON object.
+     *
+     * @param jsonArray a JSON array which provides the data for the PayloadMapping to be created.
+     * @return a new PayloadMapping which is initialised with the extracted data from {@code jsonArray}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
+     */
+    public static PayloadMapping newPayloadMapping(final JsonArray jsonArray) {
+        return ImmutablePayloadMapping.fromJson(jsonArray);
+    }
+
+    /**
      * Creates a new {@link SourceBuilder} for building {@link Source}s.
      *
      * @return new {@link Source} builder
      */
-    public static SourceBuilder newSourceBuilder() {
+    public static SourceBuilder<?> newSourceBuilder() {
         return new ImmutableSource.Builder();
     }
 
     /**
-     * Creates a new {@link MqttSourceBuilder} for building {@link MqttSource}s.
+     * Creates a new {@link SourceBuilder} for building {@link Source}s.
      *
-     * @return new {@link MqttSource} builder
+     * @return new {@link Source} builder
      */
-    public static MqttSourceBuilder newMqttSourceBuilder() {
-        return new ImmutableMqttSource.Builder();
+    public static SourceBuilder<?> newSourceBuilder(final Source source) {
+        return new ImmutableSource.Builder(source);
     }
 
     /**
@@ -253,6 +571,7 @@ public final class ConnectivityModelFactory {
      */
     public static Source newSource(final AuthorizationContext authorizationContext, final String address,
             final int index) {
+
         return newSourceBuilder().address(address).authorizationContext(authorizationContext).index(index).build();
     }
 
@@ -266,15 +585,54 @@ public final class ConnectivityModelFactory {
     }
 
     /**
+     * Creates a new {@link TargetBuilder} for building {@link Target}s.
+     *
+     * @return new {@link Target} builder
+     */
+    public static TargetBuilder newTargetBuilder(final Target target) {
+        return new ImmutableTarget.Builder(target);
+    }
+
+    /**
      * Creates a new {@link Target} from existing target but different address.
      *
      * @param target the target
      * @param address the address where the signals will be published
+     * @param qos the qos of the new Target (e.g. for MQTT targets)
      * @return the created {@link Target}
      */
-    public static Target newTarget(final Target target, final String address) {
-        return newTarget(address, target.getAuthorizationContext(), target.getHeaderMapping().orElse(null),
-                target.getTopics());
+    public static Target newTarget(final Target target, final String address, @Nullable final Integer qos) {
+        return newTargetBuilder()
+                .address(address)
+                .originalAddress(target.getOriginalAddress())
+                .authorizationContext(target.getAuthorizationContext())
+                .headerMapping(target.getHeaderMapping().orElse(null))
+                .qos(qos)
+                .topics(target.getTopics())
+                .build();
+    }
+
+    /**
+     * Creates a new {@link Target} from existing target but different address and acknowledgement.
+     *
+     * @param target the target
+     * @param address the address where the signals will be published
+     * @param qos the qos of the new Target (e.g. for MQTT targets)
+     * @param label the {@link AcknowledgementLabel} of the new Target
+     * @return the created {@link Target}
+     * @since 1.2.0
+     */
+    public static Target newTarget(final Target target, final String address, @Nullable final Integer qos, final
+    AcknowledgementLabel label) {
+        return newTargetBuilder()
+                .address(address)
+                .originalAddress(target.getOriginalAddress())
+                .authorizationContext(target.getAuthorizationContext())
+                .headerMapping(target.getHeaderMapping().orElse(null))
+                .qos(qos)
+                .issuedAcknowledgementLabel(label)
+                .topics(target.getTopics())
+                .build();
     }
 
     /**
@@ -284,11 +642,21 @@ public final class ConnectivityModelFactory {
      * @param authorizationContext the authorization context of the new {@link Target}
      * @param headerMapping the {@link HeaderMapping} of the new Target
      * @param topics the FilteredTopics for which this target will receive signals
+     * @param qos the qos of the new Target (e.g. for MQTT targets)
      * @return the created {@link Target}
+     * @deprecated please use {@link #newTargetBuilder()} instead.
      */
-    public static Target newTarget(final String address, final AuthorizationContext authorizationContext,
-            @Nullable final HeaderMapping headerMapping, final Set<FilteredTopic> topics) {
-        return new ImmutableTarget.Builder().address(address)
+    @Deprecated
+    public static Target newTarget(final String address,
+            final AuthorizationContext authorizationContext,
+            @Nullable final HeaderMapping headerMapping,
+            @Nullable final Integer qos,
+            final Set<FilteredTopic> topics) {
+
+        return newTargetBuilder()
+                .address(address)
+                .originalAddress(address) // addresses are the same before placeholders are resolved
+                .qos(qos)
                 .authorizationContext(authorizationContext)
                 .topics(topics)
                 .headerMapping(headerMapping)
@@ -299,18 +667,30 @@ public final class ConnectivityModelFactory {
      * Creates a new {@link Target}.
      *
      * @param address the address where the signals will be published
+     * @param originalAddress address the address before placeholders were resolved
      * @param authorizationContext the authorization context of the new {@link Target}
      * @param headerMapping the {@link HeaderMapping} of the new Target
-     * @param requiredTopic the required FilteredTopic that should be published via this target
-     * @param additionalTopics additional set of FilteredTopics that should be published via this target
+     * @param qos the qos of the new Target (e.g. for MQTT targets)
+     * @param topics the FilteredTopics for which this target will receive signals
      * @return the created {@link Target}
+     * @deprecated please use {@link #newTargetBuilder()} instead.
      */
-    public static Target newTarget(final String address, final AuthorizationContext authorizationContext,
-            @Nullable final HeaderMapping headerMapping, final FilteredTopic requiredTopic,
-            final FilteredTopic... additionalTopics) {
-        final HashSet<FilteredTopic> topics = new HashSet<>(Collections.singletonList(requiredTopic));
-        topics.addAll(Arrays.asList(additionalTopics));
-        return newTarget(address, authorizationContext, headerMapping, topics);
+    @Deprecated
+    public static Target newTarget(final String address,
+            final String originalAddress,
+            final AuthorizationContext authorizationContext,
+            @Nullable final HeaderMapping headerMapping,
+            @Nullable final Integer qos,
+            final Set<FilteredTopic> topics) {
+
+        return newTargetBuilder()
+                .address(address)
+                .originalAddress(originalAddress) // addresses are the same before placeholders are resolved
+                .headerMapping(headerMapping)
+                .qos(qos)
+                .authorizationContext(authorizationContext)
+                .topics(topics)
+                .build();
     }
 
     /**
@@ -319,52 +699,56 @@ public final class ConnectivityModelFactory {
      * @param address the address where the signals will be published
      * @param authorizationContext the authorization context of the new {@link Target}
      * @param headerMapping the {@link HeaderMapping} of the new Target
-     * @param requiredTopic the required topic that should be published via this target
-     * @param additionalTopics additional set of topics that should be published via this target
+     * @param qos the qos of the new Target (e.g. for MQTT targets)
+     * @param requiredTopic the required FilteredTopic that should be published via this target
+     * @param additionalTopics additional set of FilteredTopics that should be published via this target
      * @return the created {@link Target}
+     * @deprecated please use ]{@link #newTargetBuilder()} instead.
      */
-    public static Target newTarget(final String address, final AuthorizationContext authorizationContext,
-            @Nullable final HeaderMapping headerMapping, final Topic requiredTopic, final Topic... additionalTopics) {
-        final HashSet<Topic> topics = new HashSet<>(Collections.singletonList(requiredTopic));
-        topics.addAll(Arrays.asList(additionalTopics));
-        return newTarget(address, authorizationContext, headerMapping, topics.stream()
-                .map(ConnectivityModelFactory::newFilteredTopic)
-                .collect(Collectors.toSet())
-        );
+    @Deprecated
+    public static Target newTarget(final String address,
+            final AuthorizationContext authorizationContext,
+            @Nullable final HeaderMapping headerMapping,
+            @Nullable final Integer qos,
+            final FilteredTopic requiredTopic,
+            final FilteredTopic... additionalTopics) {
+
+        return newTargetBuilder()
+                .address(address)
+                .authorizationContext(authorizationContext)
+                .headerMapping(headerMapping)
+                .qos(qos)
+                .topics(requiredTopic, additionalTopics)
+                .build();
     }
 
     /**
-     * Creates a new {@link MqttTarget} with MQTT specific configuration.
+     * Creates a new {@link Target}.
      *
      * @param address the address where the signals will be published
      * @param authorizationContext the authorization context of the new {@link Target}
-     * @param qos the target qos value
+     * @param headerMapping the {@link HeaderMapping} of the new Target
+     * @param qos the qos of the new Target (e.g. for MQTT targets)
      * @param requiredTopic the required topic that should be published via this target
      * @param additionalTopics additional set of topics that should be published via this target
      * @return the created {@link Target}
+     * @deprecated please use {@link #newTargetBuilder()} instead.
      */
-    public static MqttTarget newMqttTarget(final String address,
+    @Deprecated
+    public static Target newTarget(final String address,
             final AuthorizationContext authorizationContext,
-            final int qos,
+            @Nullable final HeaderMapping headerMapping,
+            @Nullable final Integer qos,
             final Topic requiredTopic,
             final Topic... additionalTopics) {
-        final HashSet<Topic> topics = new HashSet<>(Collections.singletonList(requiredTopic));
-        topics.addAll(Arrays.asList(additionalTopics));
-        final Target target = newTarget(address, authorizationContext, null, topics.stream()
-                .map(ConnectivityModelFactory::newFilteredTopic)
-                .collect(Collectors.toSet()));
-        return new ImmutableMqttTarget(target, qos);
-    }
 
-    /**
-     * Creates a new {@link MqttTarget} with MQTT specific configuration.
-     *
-     * @param target the delegate target
-     * @param qos the target qos value
-     * @return the created {@link Target}
-     */
-    public static MqttTarget newMqttTarget(final Target target, final int qos) {
-        return new ImmutableMqttTarget(target, qos);
+        return newTargetBuilder()
+                .address(address)
+                .authorizationContext(authorizationContext)
+                .headerMapping(headerMapping)
+                .qos(qos)
+                .topics(requiredTopic, additionalTopics)
+                .build();
     }
 
     /**
@@ -373,23 +757,12 @@ public final class ConnectivityModelFactory {
      *
      * @param jsonObject a JSON object which provides the data for the Source to be created.
      * @param index the index to distinguish between sources that would otherwise be different
-     * @param type the connection type required to decide which iplementation of {@link Source} to choose
      * @return a new Source which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
-    public static Source sourceFromJson(final JsonObject jsonObject, final int index, final ConnectionType type) {
-        switch (type) {
-            case AMQP_091:
-            case AMQP_10:
-                return ImmutableSource.fromJson(jsonObject, index);
-            case MQTT:
-                return ImmutableMqttSource.fromJson(jsonObject, index);
-            default:
-                throw ConnectionConfigurationInvalidException
-                        .newBuilder("Unexpected connection type <" + type + ">")
-                        .build();
-        }
+    public static Source sourceFromJson(final JsonObject jsonObject, final int index) {
+        return ImmutableSource.fromJson(jsonObject, index);
     }
 
     /**
@@ -397,23 +770,12 @@ public final class ConnectivityModelFactory {
      * implementation to choose depending on the given {@link ConnectionType}.
      *
      * @param jsonObject a JSON object which provides the data for the Target to be created.
-     * @param type the connection type required to decide which iplementation of {@link Source} to choose
-     * @return a new Source Target is initialised with the extracted data from {@code jsonObject}.
+     * @return a new Target is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
-    public static Target targetFromJson(final JsonObject jsonObject, final ConnectionType type) {
-        switch (type) {
-            case AMQP_091:
-            case AMQP_10:
-                return ImmutableTarget.fromJson(jsonObject);
-            case MQTT:
-                return ImmutableMqttTarget.fromJson(jsonObject);
-            default:
-                throw ConnectionConfigurationInvalidException
-                        .newBuilder("Unexpected connection type <" + type + ">")
-                        .build();
-        }
+    public static Target targetFromJson(final JsonObject jsonObject) {
+        return ImmutableTarget.fromJson(jsonObject);
     }
 
     /**
@@ -421,9 +783,11 @@ public final class ConnectivityModelFactory {
      *
      * @param topic the {@code Topic} of the FilteredTopic
      * @return the created FilteredTopic
+     * @deprecated please use {@link #newFilteredTopicBuilder(Topic)} instead.
      */
+    @Deprecated
     public static FilteredTopic newFilteredTopic(final Topic topic) {
-        return ImmutableFilteredTopic.of(topic, Collections.emptyList(), null);
+        return newFilteredTopicBuilder(topic).build();
     }
 
     /**
@@ -432,38 +796,54 @@ public final class ConnectivityModelFactory {
      * @param topic the {@code Topic} of the FilteredTopic
      * @param filter the filter String to apply for the FilteredTopic
      * @return the created FilteredTopic
+     * @deprecated please use {@link #newFilteredTopicBuilder(Topic)} instead.
      */
+    @Deprecated
     public static FilteredTopic newFilteredTopic(final Topic topic, @Nullable final String filter) {
-        return ImmutableFilteredTopic.of(topic, Collections.emptyList(), filter);
+        return newFilteredTopicBuilder(topic)
+                .withFilter(filter)
+                .build();
     }
 
     /**
      * Creates a new {@code FilteredTopic} with the passed {@code namespaces}.
      *
      * @param topic the {@code Topic} of the FilteredTopic
-     * @param namespaces the namespaces for which the filter should be applied - if empty, all namespaces are considered
+     * @param namespaces the namespaces for which the filter should be applied - if empty, all namespaces are
+     * considered
      * @return the created FilteredTopic
+     * @deprecated please use {@link #newFilteredTopicBuilder(Topic)} instead.
      */
+    @Deprecated
     public static FilteredTopic newFilteredTopic(final Topic topic, final List<String> namespaces) {
-        return ImmutableFilteredTopic.of(topic, namespaces, null);
+        return newFilteredTopicBuilder(topic)
+                .withNamespaces(namespaces)
+                .build();
     }
 
     /**
      * Creates a new {@code FilteredTopic} with the passed {@code namespaces} and the optional {@code filter} String.
      *
      * @param topic the {@code Topic} of the FilteredTopic
-     * @param namespaces the namespaces for which the filter should be applied - if empty, all namespaces are considered
+     * @param namespaces the namespaces for which the filter should be applied - if empty, all namespaces are
+     * considered
      * @param filter the filter String to apply for the FilteredTopic
      * @return the created FilteredTopic
+     * @deprecated please use {@link #newFilteredTopicBuilder(Topic)} instead.
      */
+    @Deprecated
     public static FilteredTopic newFilteredTopic(final Topic topic, final List<String> namespaces,
             @Nullable final String filter) {
-        return ImmutableFilteredTopic.of(topic, namespaces, filter);
+
+        return newFilteredTopicBuilder(topic)
+                .withNamespaces(namespaces)
+                .withFilter(filter)
+                .build();
     }
 
     /**
-     * Creates a new {@code FilteredTopic} from the passed {@code topicString} which consists of a {@code Topic}
-     * and an optional filter string supplied with {@code ?filter=...}.
+     * Creates a new {@code FilteredTopic} from the passed {@code topicString} which consists of a {@code Topic} and an
+     * optional filter string supplied with {@code ?filter=...}.
      *
      * @param topicString the {@code FilteredTopic} String representation
      * @return the created FilteredTopic
@@ -473,11 +853,22 @@ public final class ConnectivityModelFactory {
     }
 
     /**
+     * Returns a builder for a {@link FilteredTopic}.
+     *
+     * @param topic the topic of the FilteredTopic to be built.
+     * @return the builder.
+     * @throws NullPointerException if {@code topic} is {@code null}.
+     */
+    public static FilteredTopicBuilder newFilteredTopicBuilder(final Topic topic) {
+        return ImmutableFilteredTopic.getBuilder(topic);
+    }
+
+    /**
      * New instance of {@link Enforcement} options.
      *
-     * @param input the input that is compared against the filters
-     * @param filters additional filters
-     * @return the enforcement instance
+     * @param input the input that is compared against the filters.
+     * @param filters additional filters.
+     * @return the enforcement instance.
      */
     public static Enforcement newEnforcement(final String input, final Set<String> filters) {
         return ImmutableEnforcement.of(input, filters);
@@ -486,15 +877,18 @@ public final class ConnectivityModelFactory {
     /**
      * New instance of {@link Enforcement} options.
      *
-     * @param input the input that is compared with the filters
-     * @param requiredFilter the required filter
-     * @param additionalFilters additional filters
-     * @return the enforcement instance
+     * @param input the input that is compared with the filters.
+     * @param requiredFilter the required filter.
+     * @param additionalFilters additional filters.
+     * @return the enforcement instance.
      */
     public static Enforcement newEnforcement(final String input, final String requiredFilter,
             final String... additionalFilters) {
-        final HashSet<String> filters = new HashSet<>(Collections.singletonList(requiredFilter));
-        filters.addAll(Arrays.asList(additionalFilters));
+
+        final Set<String> filters = new HashSet<>(1 + additionalFilters.length);
+        filters.add(requiredFilter);
+        Collections.addAll(filters, additionalFilters);
+
         return newEnforcement(input, filters);
     }
 
@@ -502,8 +896,8 @@ public final class ConnectivityModelFactory {
      * New instance of {@link Enforcement} options to be used with connections supporting filtering on their
      * {@link Source} {@code address}.
      *
-     * @param filters the filters
-     * @return the enforcement instance
+     * @param filters the filters.
+     * @return the enforcement instance.
      */
     public static Enforcement newSourceAddressEnforcement(final Set<String> filters) {
         return newEnforcement(SOURCE_ADDRESS_ENFORCEMENT, filters);
@@ -513,19 +907,20 @@ public final class ConnectivityModelFactory {
      * New instance of {@link Enforcement} options to be used with connections supporting filtering on their
      * {@link Source} {@code address}.
      *
-     * @param requiredFilter the required filter
-     * @param additionalFilters additional filters
-     * @return the enforcement instance
+     * @param requiredFilter the required filter.
+     * @param additionalFilters additional filters.
+     * @return the enforcement instance.
      */
     public static Enforcement newSourceAddressEnforcement(final String requiredFilter,
             final String... additionalFilters) {
+
         return newEnforcement(SOURCE_ADDRESS_ENFORCEMENT, requiredFilter, additionalFilters);
     }
 
     /**
      * Create a copy of this object with error message set.
      *
-     * @param enforcement the enforcement options
+     * @param enforcement the enforcement options.
      * @return a copy of this object.
      */
     public static Enforcement newEnforcement(final Enforcement enforcement) {
@@ -534,10 +929,57 @@ public final class ConnectivityModelFactory {
 
     /**
      * Creates a new instance of a {@link HeaderMapping}.
-     * @param mapping the mapping definition
-     * @return the new instance of {@link HeaderMapping}
+     *
+     * @param mapping the mapping definition.
+     * @return the new instance of {@link HeaderMapping}.
      */
-    public static HeaderMapping newHeaderMapping(Map<String, String> mapping) {
+    public static HeaderMapping newHeaderMapping(final Map<String, String> mapping) {
         return new ImmutableHeaderMapping(mapping);
     }
+
+    /**
+     * Creates a new {@code HeaderMapping} object from the specified JSON object.
+     *
+     * @param jsonObject a JSON object which provides the data for the HeaderMapping to be created.
+     * @return a new HeaderMapping which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
+     */
+    public static HeaderMapping newHeaderMapping(final JsonObject jsonObject) {
+        return ImmutableHeaderMapping.fromJson(jsonObject);
+    }
+
+    /**
+     * Creates a new {@link org.eclipse.ditto.model.connectivity.LogEntry} object from the specified JSON object.
+     *
+     * @param jsonObject a JSON object which provides the data for the LogEntry to be created.
+     * @return a new LogEntry which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
+     */
+    public static LogEntry logEntryFromJson(final JsonObject jsonObject) {
+        return ImmutableLogEntry.fromJson(jsonObject);
+    }
+
+    /**
+     * Creates a new {@link org.eclipse.ditto.model.connectivity.LogEntryBuilder} with the given parameters.
+     *
+     * @param correlationId the correlation ID.
+     * @param timestamp the timestamp of the log entry.
+     * @param logCategory the category.
+     * @param logType the type.
+     * @param logLevel the level.
+     * @param message the message.
+     * @return a new builder.
+     */
+    public static LogEntryBuilder newLogEntryBuilder(final String correlationId,
+            final Instant timestamp,
+            final LogCategory logCategory,
+            final LogType logType,
+            final LogLevel logLevel,
+            final String message) {
+
+        return ImmutableLogEntry.getBuilder(correlationId, timestamp, logCategory, logType, logLevel, message);
+    }
+
 }

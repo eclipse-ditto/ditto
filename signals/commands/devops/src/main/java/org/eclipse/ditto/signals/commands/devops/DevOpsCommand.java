@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -18,6 +20,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 /**
@@ -25,7 +28,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  *
  * @param <T> the type of the implementing class.
  */
-public interface DevOpsCommand<T extends DevOpsCommand> extends Command<T> {
+public interface DevOpsCommand<T extends DevOpsCommand<T>> extends Command<T>, WithIdButActuallyNot {
 
     /**
      * Type Prefix of DevOps commands.
@@ -46,11 +49,6 @@ public interface DevOpsCommand<T extends DevOpsCommand> extends Command<T> {
 
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);
-
-    @Override
-    default String getId() {
-        return ""; // empty ID for DevOps commands
-    }
 
     @Override
     default String getTypePrefix() {
@@ -75,7 +73,7 @@ public interface DevOpsCommand<T extends DevOpsCommand> extends Command<T> {
     /**
      * @return the instance index of the serviceName to which to send the DevOpsCommand.
      */
-    Optional<Integer> getInstance();
+    Optional<String> getInstance();
 
     /**
      * An enumeration of the known {@link org.eclipse.ditto.json.JsonField}s of a DevOpsCommand.
@@ -92,8 +90,8 @@ public interface DevOpsCommand<T extends DevOpsCommand> extends Command<T> {
         /**
          * JSON field containing the instance index of the serviceName serviceName to which to send the DevOpsCommand.
          */
-        public static final JsonFieldDefinition<Integer> JSON_INSTANCE =
-                JsonFactory.newIntFieldDefinition("instance", FieldType.REGULAR, JsonSchemaVersion.V_1,
+        public static final JsonFieldDefinition<String> JSON_INSTANCE =
+                JsonFactory.newStringFieldDefinition("instance", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
     }

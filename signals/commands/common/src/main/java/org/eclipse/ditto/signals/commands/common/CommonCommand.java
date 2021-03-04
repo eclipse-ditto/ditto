@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -20,11 +22,15 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 
 /**
  * <p>
  * Abstract base implementation of common commands.
+ * </p>
+ * <p>
+ * Allows to define a custom category.
  * </p>
  * <p>
  * <em>Note: Implementations of this class are required to be immutable.</em>
@@ -33,10 +39,11 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommand;
  * @param <T> the type of the implementing class.
  */
 @Immutable
-public abstract class CommonCommand<T extends CommonCommand> extends AbstractCommand<T> {
+public abstract class CommonCommand<T extends CommonCommand<T>> extends AbstractCommand<T>
+        implements WithIdButActuallyNot {
 
     /**
-     * Type prefix of namespace commands.
+     * Type prefix of common commands.
      */
     protected static final String TYPE_PREFIX = "common." + TYPE_QUALIFIER + ":";
 
@@ -63,11 +70,6 @@ public abstract class CommonCommand<T extends CommonCommand> extends AbstractCom
     @Override
     public Category getCategory() {
         return category;
-    }
-
-    @Override
-    public String getId() {
-        return "";
     }
 
     @Override

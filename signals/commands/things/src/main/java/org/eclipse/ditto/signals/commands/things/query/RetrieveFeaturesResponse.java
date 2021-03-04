@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -25,19 +27,23 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Features;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * Response to a {@link RetrieveFeatures} command.
  */
 @Immutable
+@JsonParsableCommandResponse(type = RetrieveFeaturesResponse.TYPE)
 public final class RetrieveFeaturesResponse extends AbstractCommandResponse<RetrieveFeaturesResponse>
         implements ThingQueryCommandResponse<RetrieveFeaturesResponse> {
 
@@ -50,11 +56,11 @@ public final class RetrieveFeaturesResponse extends AbstractCommandResponse<Retr
             JsonFactory.newJsonObjectFieldDefinition("features", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final Features features;
 
-    private RetrieveFeaturesResponse(final String thingId, final Features features, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatusCode.OK, dittoHeaders);
+    private RetrieveFeaturesResponse(final ThingId thingId, final Features features, final DittoHeaders dittoHeaders) {
+        super(TYPE, HttpStatus.OK, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thing ID");
         this.features = features;
     }
@@ -67,8 +73,27 @@ public final class RetrieveFeaturesResponse extends AbstractCommandResponse<Retr
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.Features, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static RetrieveFeaturesResponse of(final String thingId, final Features features,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), features, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@link RetrieveFeatures} command.
+     *
+     * @param thingId the Thing ID of the retrieved features.
+     * @param features the retrieved Features.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static RetrieveFeaturesResponse of(final ThingId thingId, final Features features,
             final DittoHeaders dittoHeaders) {
 
         return new RetrieveFeaturesResponse(thingId, checkNotNull(features, "retrieved Features"), dittoHeaders);
@@ -82,11 +107,30 @@ public final class RetrieveFeaturesResponse extends AbstractCommandResponse<Retr
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonObject, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static RetrieveFeaturesResponse of(final String thingId, @Nullable final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
-        final Features features = (null != jsonObject)
+        return of(ThingId.of(thingId), jsonObject, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@link RetrieveFeatures} command.
+     *
+     * @param thingId the Thing ID of the retrieved features.
+     * @param jsonObject the retrieved Features.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     */
+    public static RetrieveFeaturesResponse of(final ThingId thingId, @Nullable final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
+
+        final Features features = null != jsonObject
                 ? ThingsModelFactory.newFeatures(jsonObject)
                 : ThingsModelFactory.nullFeatures();
 
@@ -119,22 +163,19 @@ public final class RetrieveFeaturesResponse extends AbstractCommandResponse<Retr
      * format.
      */
     public static RetrieveFeaturesResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<RetrieveFeaturesResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String thingId =
-                            jsonObject.getValueOrThrow(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
-                    final JsonObject featuresJsonObject = jsonObject.getValueOrThrow(JSON_FEATURES);
-
-                    final Features features = (null != featuresJsonObject)
-                            ? ThingsModelFactory.newFeatures(featuresJsonObject)
-                            : ThingsModelFactory.nullFeatures();
+        return new CommandResponseJsonDeserializer<RetrieveFeaturesResponse>(TYPE, jsonObject).deserialize(
+                httpStatus -> {
+                    final String extractedThingId =
+                            jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
+                    final Features features = ThingsModelFactory.newFeatures(jsonObject.getValueOrThrow(JSON_FEATURES));
 
                     return of(thingId, features, dittoHeaders);
                 });
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -173,13 +214,13 @@ public final class RetrieveFeaturesResponse extends AbstractCommandResponse<Retr
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURES, getEntity(schemaVersion), predicate);
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof RetrieveFeaturesResponse);
+        return other instanceof RetrieveFeaturesResponse;
     }
 
     @Override
@@ -191,8 +232,10 @@ public final class RetrieveFeaturesResponse extends AbstractCommandResponse<Retr
             return false;
         }
         final RetrieveFeaturesResponse that = (RetrieveFeaturesResponse) o;
-        return that.canEqual(this) && Objects.equals(thingId, that.thingId)
-                && Objects.equals(features, that.features) && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(thingId, that.thingId) &&
+                Objects.equals(features, that.features) &&
+                super.equals(o);
     }
 
     @Override

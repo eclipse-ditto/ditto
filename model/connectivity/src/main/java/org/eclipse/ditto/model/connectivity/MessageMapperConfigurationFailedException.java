@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -18,17 +20,19 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown if the the configuration of a Message Mapper failed.
  */
 @Immutable
-public final class MessageMapperConfigurationFailedException extends DittoRuntimeException implements
-        ConnectivityException {
+@JsonParsableException(errorCode = MessageMapperConfigurationFailedException.ERROR_CODE)
+public final class MessageMapperConfigurationFailedException extends DittoRuntimeException
+        implements ConnectivityException {
 
     /**
      * Error code of this exception.
@@ -46,7 +50,8 @@ public final class MessageMapperConfigurationFailedException extends DittoRuntim
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-        super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
+
+        super(ERROR_CODE, HttpStatus.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
     /**
@@ -65,12 +70,12 @@ public final class MessageMapperConfigurationFailedException extends DittoRuntim
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new MessageMapperConfigurationFailedException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static MessageMapperConfigurationFailedException fromMessage(final String message, final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+    public static MessageMapperConfigurationFailedException fromMessage(@Nullable final String message,
+            final DittoHeaders dittoHeaders) {
+
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
@@ -80,15 +85,25 @@ public final class MessageMapperConfigurationFailedException extends DittoRuntim
      * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new MessageMapperConfigurationFailedException.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
-     * JsonFields#MESSAGE} field.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
-    public static MessageMapperConfigurationFailedException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+    public static MessageMapperConfigurationFailedException fromJson(final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
+
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
+    }
+
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new Builder()
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
                 .dittoHeaders(dittoHeaders)
-                .message(readMessage(jsonObject))
-                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
-                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 
@@ -113,8 +128,10 @@ public final class MessageMapperConfigurationFailedException extends DittoRuntim
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
+
             return new MessageMapperConfigurationFailedException(dittoHeaders, message, description, cause, href);
         }
+
     }
 
 }

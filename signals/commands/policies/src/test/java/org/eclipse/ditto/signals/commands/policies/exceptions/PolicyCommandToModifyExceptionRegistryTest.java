@@ -1,15 +1,16 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.policies.exceptions;
-
 
 import static org.eclipse.ditto.model.base.assertions.DittoBaseAssertions.assertThat;
 
@@ -19,6 +20,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyResource;
 import org.junit.Before;
@@ -38,16 +40,17 @@ public final class PolicyCommandToModifyExceptionRegistryTest {
 
     @Test
     public void mapModifyResourceToResourceNotModifiable() {
-        final ModifyResource modifyResource = ModifyResource.of("ns:policyId", Label.of("myLabel"),
+        final ModifyResource modifyResource = ModifyResource.of(PolicyId.of("ns", "policyId"),
+                Label.of("myLabel"),
                 Resource.newInstance("thing", "/", EffectedPermissions.newInstance(new HashSet<>(), new HashSet<>())),
-                DittoHeaders.empty());
+                DittoHeaders.newBuilder().randomCorrelationId().build());
 
-        final DittoRuntimeException mappedException = registryUnderTest.exceptionFrom(modifyResource);
-        final DittoRuntimeException expectedException =
-                ResourceNotModifiableException.newBuilder("ns:policyId", "myLabel", "/")
-                        .build();
+        final DittoRuntimeException expectedException = ResourceNotModifiableException
+                .newBuilder(modifyResource.getEntityId(), modifyResource.getLabel(), modifyResource.getResourcePath())
+                .dittoHeaders(modifyResource.getDittoHeaders())
+                .build();
 
-        assertThat(mappedException).isEqualTo(expectedException);
+        assertThat(registryUnderTest.exceptionFrom(modifyResource)).isEqualTo(expectedException);
     }
 
 }

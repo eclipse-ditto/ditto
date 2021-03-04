@@ -1,16 +1,17 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.json;
 
-import static org.assertj.core.api.Assertions.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
@@ -19,6 +20,8 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.lang.ref.SoftReference;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -30,7 +33,6 @@ import java.util.Optional;
 import java.util.function.Function;
 
 import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.json.ImmutableJsonObject.SoftReferencedFieldMap;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -72,20 +74,23 @@ public final class ImmutableJsonObjectTest {
     public void assertImmutability() {
         assertInstancesOf(ImmutableJsonObject.class,
                 areImmutable(),
-                provided(SoftReferencedFieldMap.class).isAlsoImmutable());
+                provided(ImmutableJsonObject.SoftReferencedFieldMap.class).isAlsoImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
         final Map<String, JsonField> jsonFieldsRed = toMap("foo", JsonValue.of(1));
         final Map<String, JsonField> jsonFieldsBlack = toMap("foo", JsonValue.of(2));
-        final SoftReferencedFieldMap redFieldMap = SoftReferencedFieldMap.of(jsonFieldsRed);
-        final SoftReferencedFieldMap blackFieldMap = SoftReferencedFieldMap.of(jsonFieldsBlack);
+        final ImmutableJsonObject.SoftReferencedFieldMap
+                redFieldMap = ImmutableJsonObject.SoftReferencedFieldMap.of(jsonFieldsRed);
+        final ImmutableJsonObject.SoftReferencedFieldMap
+                blackFieldMap = ImmutableJsonObject.SoftReferencedFieldMap
+                .of(jsonFieldsBlack);
         final ImmutableJsonObject redObject = ImmutableJsonObject.of(jsonFieldsRed);
         final ImmutableJsonObject blackObject = ImmutableJsonObject.of(jsonFieldsBlack);
 
         EqualsVerifier.forClass(ImmutableJsonObject.class)
-                .withPrefabValues(SoftReferencedFieldMap.class, redFieldMap, blackFieldMap)
+                .withPrefabValues(ImmutableJsonObject.SoftReferencedFieldMap.class, redFieldMap, blackFieldMap)
                 .withPrefabValues(ImmutableJsonObject.class, redObject, blackObject)
                 .withNonnullFields("fieldMap")
                 .verify();
@@ -984,6 +989,16 @@ public final class ImmutableJsonObjectTest {
         assertThat(underTest.contains(jsonPointer)).isTrue();
     }
 
+    @Test
+    public void containsShouldReturnFalseOnPointerDeeperThanObject() {
+        // When JsonObject
+        final ImmutableJsonObject underTest = ImmutableJsonObject.of(toMap(KNOWN_KEY_FOO, KNOWN_VALUE_BAR));
+        // pointer that goes deeper
+        final JsonPointer deeperThanObject = KNOWN_KEY_FOO.asPointer().append(JsonPointer.of("/foo/not/known/path"));
+
+        assertThat(underTest.contains(deeperThanObject)).isFalse();
+    }
+
     @Test(expected = NullPointerException.class)
     public void tryToGetJsonObjectWithNullJsonPointer() {
         final JsonObject underTest = ImmutableJsonObject.empty();
@@ -1179,7 +1194,34 @@ public final class ImmutableJsonObjectTest {
         final JsonObject expected =
                 JsonObject.newBuilder().set("foo", fooJsonObject).set("thingId", "0x1337").build();
 
+        // all fields should be equal.
         assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void jsonFieldSelectorPutsFieldsInIdenticalOrder() {
+        final JsonObject underTest = JsonFactory.newObject(
+                "{\"the\":1,\"quick\":2,\"brown\":3,\"fox\":{\"jumps\":5,\"over\":{\"the\":6,\"lazy\":7}},\"dog\":8}");
+
+        assertThat(underTest.get(selector("the,quick,dog")).toString())
+                .isEqualTo("{\"the\":1,\"quick\":2,\"dog\":8}");
+
+        assertThat(underTest.get(selector("dog,quick,the")).toString())
+                .isEqualTo("{\"dog\":8,\"quick\":2,\"the\":1}");
+
+        assertThat(underTest.get(selector("dog,fox/over/lazy,quick,fox/jumps,brown,fox/over/the,the")).toString())
+                .isEqualTo("{\"dog\":8,\"fox\":{\"over\":{\"lazy\":7,\"the\":6},\"jumps\":5}," +
+                        "\"quick\":2,\"brown\":3,\"the\":1}");
+
+        assertThat(underTest.get(selector("the,fox/jumps,brown,fox/over/the,quick,fox/over/lazy,dog")).toString())
+                .isEqualTo("{\"the\":1,\"fox\":{\"jumps\":5,\"over\":{\"the\":6,\"lazy\":7}}," +
+                        "\"brown\":3,\"quick\":2,\"dog\":8}");
+
+        assertThat(underTest.get(selector("fox/(jumps,over/(the,lazy))")).toString())
+                .isEqualTo("{\"fox\":{\"jumps\":5,\"over\":{\"the\":6,\"lazy\":7}}}");
+
+        assertThat(underTest.get(selector("fox/(over/(lazy,the),jumps)")).toString())
+                .isEqualTo("{\"fox\":{\"over\":{\"lazy\":7,\"the\":6},\"jumps\":5}}");
     }
 
     @Test
@@ -1345,4 +1387,47 @@ public final class ImmutableJsonObjectTest {
         return JsonField.newInstance(JsonKey.of(key), value);
     }
 
+    private static JsonFieldSelector selector(final String s) {
+        return JsonFactory.newFieldSelector(s, JsonParseOptions.newBuilder().withoutUrlDecoding().build());
+    }
+
+    @Test
+    public void validateSoftReferenceStrategy() throws IllegalAccessException, NoSuchFieldException {
+        final ImmutableJsonObject jsonObject = ImmutableJsonObject.of(KNOWN_FIELDS);
+        assertInternalCachesAreAsExpected(jsonObject, true);
+
+        final Field valueListField = jsonObject.getClass().getDeclaredField("fieldMap");
+        valueListField.setAccessible(true);
+        final ImmutableJsonObject.SoftReferencedFieldMap
+                valueList = (ImmutableJsonObject.SoftReferencedFieldMap) valueListField.get(jsonObject);
+
+        final Field softReferenceField = valueList.getClass().getDeclaredField("fieldsReference");
+        softReferenceField.setAccessible(true);
+        SoftReference softReference = (SoftReference) softReferenceField.get(valueList);
+
+        softReference.clear();
+
+        assertThat(jsonObject.getValue(KNOWN_KEY_FOO).isPresent()).isTrue();
+    }
+
+    private void assertInternalCachesAreAsExpected(final JsonObject jsonObject, final boolean jsonExpected) {
+        try {
+            final Field valueListField = jsonObject.getClass().getDeclaredField("fieldMap");
+            valueListField.setAccessible(true);
+            final ImmutableJsonObject.SoftReferencedFieldMap
+                    fieldMap = (ImmutableJsonObject.SoftReferencedFieldMap) valueListField.get(jsonObject);
+
+            final Field jsonStringField = fieldMap.getClass().getDeclaredField("jsonObjectStringRepresentation");
+            jsonStringField.setAccessible(true);
+            String jsonString = (String) jsonStringField.get(fieldMap);
+
+            assertThat(jsonString != null).isEqualTo(jsonExpected);
+        } catch (IllegalAccessException | NoSuchFieldException e) {
+            System.err.println(
+                    "Failed to access internal caching fields in JsonObject using reflection. " +
+                            "This might just be a bug in the test."
+            );
+            e.printStackTrace();
+        }
+    }
 }

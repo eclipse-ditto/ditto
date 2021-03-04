@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -20,6 +22,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.events.base.Event;
 
 /**
@@ -27,7 +30,7 @@ import org.eclipse.ditto.signals.events.base.Event;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ConnectivityEvent<T extends ConnectivityEvent> extends Event<T> {
+public interface ConnectivityEvent<T extends ConnectivityEvent<T>> extends Event<T> {
 
     /**
      * Type Prefix of Connectivity events.
@@ -43,12 +46,18 @@ public interface ConnectivityEvent<T extends ConnectivityEvent> extends Event<T>
      * Returns the identifier of the modified {@code Connection}.
      *
      * @return the identifier.
+     * @deprecated entity IDs are now typed. Use {@link #getConnectionEntityId()} instead.
      */
-    String getConnectionId();
+    @Deprecated
+    default String getConnectionId() {
+        return String.valueOf(getConnectionEntityId());
+    }
+
+    ConnectionId getConnectionEntityId();
 
     @Override
-    default String getId() {
-        return getConnectionId();
+    default ConnectionId getEntityId() {
+        return getConnectionEntityId();
     }
 
     @Override

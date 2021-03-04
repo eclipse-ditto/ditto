@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -24,11 +26,12 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
-import org.eclipse.ditto.model.policies.PolicyIdValidator;
 import org.eclipse.ditto.model.policies.SubjectId;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -37,6 +40,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * org.eclipse.ditto.model.policies.PolicyEntry}'s {@link org.eclipse.ditto.model.policies.Subjects}.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = DeleteSubject.TYPE_PREFIX, name = DeleteSubject.NAME)
 public final class DeleteSubject extends AbstractCommand<DeleteSubject> implements PolicyModifyCommand<DeleteSubject> {
 
     /**
@@ -55,16 +59,15 @@ public final class DeleteSubject extends AbstractCommand<DeleteSubject> implemen
     static final JsonFieldDefinition<String> JSON_SUBJECT_ID =
             JsonFactory.newStringFieldDefinition("subjectId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final String policyId;
+    private final PolicyId policyId;
     private final Label label;
     private final SubjectId subjectId;
 
-    private DeleteSubject(final String policyId,
+    private DeleteSubject(final PolicyId policyId,
             final Label label,
             final SubjectId subjectId,
             final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
-        PolicyIdValidator.getInstance().accept(policyId, dittoHeaders);
         this.policyId = policyId;
         this.label = label;
         this.subjectId = subjectId;
@@ -79,8 +82,30 @@ public final class DeleteSubject extends AbstractCommand<DeleteSubject> implemen
      * @param dittoHeaders the headers of the command.
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.SubjectId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static DeleteSubject of(final String policyId,
+            final Label label,
+            final SubjectId subjectId,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), label, subjectId, dittoHeaders);
+    }
+
+    /**
+     * Creates a command for deleting a {@code Subject} of a {@code Policy}'s {@code PolicyEntry}.
+     *
+     * @param policyId the identifier of the Policy.
+     * @param label the Label of the PolicyEntry.
+     * @param subjectId the identifier of the Subject to delete.
+     * @param dittoHeaders the headers of the command.
+     * @return the command.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static DeleteSubject of(final PolicyId policyId,
             final Label label,
             final SubjectId subjectId,
             final DittoHeaders dittoHeaders) {
@@ -118,7 +143,8 @@ public final class DeleteSubject extends AbstractCommand<DeleteSubject> implemen
      */
     public static DeleteSubject fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<DeleteSubject>(TYPE, jsonObject).deserialize(() -> {
-            final String policyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+            final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
             final String stringSubjectId = jsonObject.getValueOrThrow(JSON_SUBJECT_ID);
             final SubjectId subjectId = PoliciesModelFactory.newSubjectId(stringSubjectId);
@@ -151,7 +177,7 @@ public final class DeleteSubject extends AbstractCommand<DeleteSubject> implemen
      * @return the identifier of the Policy whose PolicyEntry to delete.
      */
     @Override
-    public String getId() {
+    public PolicyId getEntityId() {
         return policyId;
     }
 
@@ -166,7 +192,7 @@ public final class DeleteSubject extends AbstractCommand<DeleteSubject> implemen
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
         jsonObjectBuilder.set(JSON_SUBJECT_ID, subjectId.toString(), predicate);
     }

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -20,16 +22,22 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.services.models.streaming.StreamingType;
+import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 
 /**
  * Send for acknowledging that a subscription in the cluster for a {@link StreamingType} was either subscribed to
  * ({@link #subscribed} is {@code true}) or unsubscribed from ({@link #subscribed} is {@code false}).
  */
-public final class StreamingAck implements Jsonifiable.WithPredicate<JsonObject, JsonField> {
+@JsonParsableCommandResponse(type = StreamingAck.TYPE)
+public final class StreamingAck implements Jsonifiable.WithPredicate<JsonObject, JsonField>, StreamControlMessage {
+
+    static final String TYPE = "gateway:streaming.ack";
 
     private static final JsonFieldDefinition<String> JSON_STREAMING_TYPE =
             JsonFactory.newStringFieldDefinition("streamingType", FieldType.REGULAR, JsonSchemaVersion.V_1,
@@ -72,12 +80,13 @@ public final class StreamingAck implements Jsonifiable.WithPredicate<JsonObject,
      * Creates a new {@code StreamingAck} message from a JSON object.
      *
      * @param jsonObject the JSON object of which the StreamingAck is to be created.
+     * @param dittoHeaders will be ignored
      * @return the StreamingAck message.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static StreamingAck fromJson(final JsonObject jsonObject) {
+    public static StreamingAck fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         final String streamingType = jsonObject.getValueOrThrow(JSON_STREAMING_TYPE);
         final boolean subscribed = jsonObject.getValueOrThrow(JSON_SUBSCRIBED);
 

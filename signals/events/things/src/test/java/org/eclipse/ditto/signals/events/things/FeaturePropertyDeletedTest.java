@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -20,6 +22,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.TestConstants.Thing;
 import org.junit.Test;
@@ -37,7 +41,8 @@ public class FeaturePropertyDeletedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, FeaturePropertyDeleted.TYPE)
             .set(Event.JsonFields.REVISION, Thing.REVISION_NUMBER)
-            .set(ThingEvent.JsonFields.THING_ID, Thing.THING_ID)
+            .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
+            .set(ThingEvent.JsonFields.THING_ID, Thing.THING_ID.toString())
             .set(ThingEvent.JsonFields.FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(FeaturePropertyDeleted.JSON_PROPERTY, PROPERTY_JSON_POINTER.toString())
             .build();
@@ -58,10 +63,15 @@ public class FeaturePropertyDeletedTest {
                 .verify();
     }
 
+    @Test(expected = ThingIdInvalidException.class)
+    public void tryToCreateInstanceWithNullThingIdString() {
+        FeaturePropertyDeleted.of((String) null, TestConstants.Feature.FLUX_CAPACITOR_ID, PROPERTY_JSON_POINTER,
+                Thing.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS);
+    }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        FeaturePropertyDeleted.of(null, TestConstants.Feature.FLUX_CAPACITOR_ID, PROPERTY_JSON_POINTER,
+        FeaturePropertyDeleted.of((ThingId) null, TestConstants.Feature.FLUX_CAPACITOR_ID, PROPERTY_JSON_POINTER,
                 Thing.REVISION_NUMBER,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
@@ -86,7 +96,7 @@ public class FeaturePropertyDeletedTest {
         final FeaturePropertyDeleted underTest =
                 FeaturePropertyDeleted.of(Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
                         PROPERTY_JSON_POINTER, Thing.REVISION_NUMBER, TestConstants.TIMESTAMP,
-                        TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
@@ -99,7 +109,7 @@ public class FeaturePropertyDeletedTest {
                 FeaturePropertyDeleted.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getThingId()).isEqualTo(Thing.THING_ID);
+        assertThat((CharSequence) underTest.getThingEntityId()).isEqualTo(Thing.THING_ID);
         assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
         assertThat(underTest.getPropertyPointer()).isEqualTo(PROPERTY_JSON_POINTER);
     }

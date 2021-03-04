@@ -1,0 +1,64 @@
+# Copyright (c) 2020 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+get:
+  summary: Count things
+  description: |-
+    This resource can be used to count things.
+
+    The query parameter `filter` is not mandatory. If it is not set there is
+    returned the total amount of things which the logged in user is allowed
+    to read.
+
+    To search for nested properties, we use JSON Pointer notation
+    (RFC-6901). See the following example how to search for the sub property
+    `location` of the parent property `attributes` with a forward slash as
+    separator:
+
+    ```eq(attributes/location,"kitchen")```
+  parameters:
+    - $ref: '../../parameters/searchFilter.yml'
+    - $ref: '../../parameters/namespacesFilter.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+  tags:
+    - Things-Search
+  responses:
+    '200':
+      description: A number indicating the amount of matched things
+      content:
+        application/json:
+          schema:
+            type: integer
+    '400':
+      description: |-
+        The request could not be completed. A provided parameter is in a
+        wrong format.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '403':
+      description: The request could not be completed due to an invalid authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '504':
+      description: The request ran out of time to execute on the the back-end. Optimize your query and try again.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'

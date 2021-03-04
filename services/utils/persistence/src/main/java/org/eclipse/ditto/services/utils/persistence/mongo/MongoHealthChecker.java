@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -19,21 +21,22 @@ import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 
 import org.bson.Document;
-import org.eclipse.ditto.services.utils.config.MongoConfig;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.health.AbstractHealthCheckingActor;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
-import org.eclipse.ditto.services.utils.health.mongo.RetrieveMongoStatusResponse;
+import org.eclipse.ditto.services.utils.health.mongo.CurrentMongoStatus;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
 
+import com.mongodb.ReadConcern;
 import com.mongodb.ReadPreference;
+import com.mongodb.WriteConcern;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.reactivestreams.client.MongoCollection;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
-import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 
@@ -46,30 +49,28 @@ public final class MongoHealthChecker extends AbstractHealthCheckingActor {
     private static final String ID_FIELD = "_id";
     private static final int HEALTH_CHECK_MAX_POOL_SIZE = 2;
 
-    private final MongoClientWrapper mongoClient;
+    private final DittoMongoClient mongoClient;
     private final MongoCollection<Document> collection;
-    private final ActorMaterializer materializer;
+    private final Materializer materializer;
 
-    /**
-     * Constructs a {@code MongoClientActor}.
-     */
     private MongoHealthChecker() {
 
-        final Config config = getContext().system().settings().config();
-        final Config configWithLimitedMaxPoolSize = config
-                .withValue(MongoConfig.POOL_MAX_SIZE, ConfigValueFactory.fromAnyRef(HEALTH_CHECK_MAX_POOL_SIZE));
-
-        mongoClient = MongoClientWrapper.newInstance(configWithLimitedMaxPoolSize);
+        final DefaultMongoDbConfig mongoDbConfig = DefaultMongoDbConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()));
+        mongoClient = MongoClientWrapper.getBuilder(mongoDbConfig)
+                .connectionPoolMaxSize(HEALTH_CHECK_MAX_POOL_SIZE)
+                .build();
 
         /*
          * It's important to have the read preferences to primary preferred because the replication is to slow to retrieve
          * the inserted document from a secondary directly after inserting it on the primary.
          */
-        collection = mongoClient.getDatabase()
-                .getCollection(TEST_COLLECTION_NAME)
-                .withReadPreference(ReadPreference.primaryPreferred());
+        collection = mongoClient.getCollection(TEST_COLLECTION_NAME)
+                .withReadPreference(ReadPreference.primary())
+                .withReadConcern(ReadConcern.LOCAL)
+                .withWriteConcern(WriteConcern.ACKNOWLEDGED);
 
-        materializer = ActorMaterializer.create(getContext());
+        materializer = Materializer.createMaterializer(this::getContext);
     }
 
     /**
@@ -86,30 +87,32 @@ public final class MongoHealthChecker extends AbstractHealthCheckingActor {
      * Creates Akka configuration object Props for this MongoClientActor.
      *
      * @return the Akka configuration Props object
+     * @throws NullPointerException if {@code mongoDbConfig} is {@code null}.
      */
     public static Props props() {
-        return Props.create(MongoHealthChecker.class, MongoHealthChecker::new);
+        return Props.create(MongoHealthChecker.class);
     }
 
     @Override
     protected Receive matchCustomMessages() {
         return ReceiveBuilder.create()
-                .match(RetrieveMongoStatusResponse.class, this::applyMongoStatus)
+                .match(CurrentMongoStatus.class, this::applyMongoStatus)
                 .build();
     }
 
     @Override
     protected void triggerHealthRetrieval() {
         generateStatusResponse().thenAccept(errorOpt -> {
-            final RetrieveMongoStatusResponse response;
+            final CurrentMongoStatus mongoStatus;
             if (errorOpt.isPresent()) {
                 final Throwable error = errorOpt.get();
-                response = new RetrieveMongoStatusResponse(false,
+                mongoStatus = new CurrentMongoStatus(false,
                         error.getClass().getCanonicalName() + ": " + error.getMessage());
+                log.error(error, error.getMessage());
             } else {
-                response = new RetrieveMongoStatusResponse(true);
+                mongoStatus = new CurrentMongoStatus(true);
             }
-            getSelf().tell(response, ActorRef.noSender());
+            getSelf().tell(mongoStatus, ActorRef.noSender());
         });
     }
 
@@ -130,6 +133,7 @@ public final class MongoHealthChecker extends AbstractHealthCheckingActor {
                         return Optional.of(error);
                     } else if (!Objects.equals(result, Collections.singletonList(1L))) {
                         final String message = "Expect 1 document inserted and deleted. Found: " + result;
+                        log.error(message);
                         return Optional.of(new IllegalStateException(message));
                     } else {
                         return Optional.empty();
@@ -137,10 +141,11 @@ public final class MongoHealthChecker extends AbstractHealthCheckingActor {
                 });
     }
 
-    private void applyMongoStatus(final RetrieveMongoStatusResponse statusResponse) {
+    private void applyMongoStatus(final CurrentMongoStatus status) {
         final StatusInfo persistenceStatus = StatusInfo.fromStatus(
-                statusResponse.isAlive() ? StatusInfo.Status.UP : StatusInfo.Status.DOWN,
-                statusResponse.getDescription().orElse(null));
+                status.isAlive() ? StatusInfo.Status.UP : StatusInfo.Status.DOWN,
+                status.getDescription().orElse(null));
         updateHealth(persistenceStatus);
     }
+
 }

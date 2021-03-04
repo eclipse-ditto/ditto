@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -31,15 +33,18 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyEntry;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
 /**
  * This event is emitted after all {@link PolicyEntry}s were modified at once.
  */
 @Immutable
+@JsonParsableEvent(name = PolicyEntriesModified.NAME, typePrefix= PolicyEntriesModified.TYPE_PREFIX)
 public final class PolicyEntriesModified extends AbstractPolicyEvent<PolicyEntriesModified> implements
         PolicyEvent<PolicyEntriesModified> {
 
@@ -53,12 +58,12 @@ public final class PolicyEntriesModified extends AbstractPolicyEvent<PolicyEntri
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition<JsonObject> JSON_POLICY_ENTRIES =
+    public static final JsonFieldDefinition<JsonObject> JSON_POLICY_ENTRIES =
             JsonFactory.newJsonObjectFieldDefinition("policyEntries", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final Iterable<PolicyEntry> policyEntries;
 
-    private PolicyEntriesModified(final String policyId,
+    private PolicyEntriesModified(final PolicyId policyId,
             final Iterable<PolicyEntry> policyEntries,
             final long revision,
             @Nullable final Instant timestamp,
@@ -77,8 +82,30 @@ public final class PolicyEntriesModified extends AbstractPolicyEvent<PolicyEntri
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created PolicyEntriesModified.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, Iterable, long, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static PolicyEntriesModified of(final String policyId,
+            final Iterable<PolicyEntry> policyEntries,
+            final long revision,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), policyEntries, revision, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code PolicyEntriesModified} object indicating the modification of the entries.
+     *
+     * @param policyId the identifier of the Policy to which the modified entry belongs
+     * @param policyEntries the modified {@link PolicyEntry}s.
+     * @param revision the revision of the Policy.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the created PolicyEntriesModified.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static PolicyEntriesModified of(final PolicyId policyId,
             final Iterable<PolicyEntry> policyEntries,
             final long revision,
             final DittoHeaders dittoHeaders) {
@@ -96,8 +123,32 @@ public final class PolicyEntriesModified extends AbstractPolicyEvent<PolicyEntri
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created PolicyEntriesModified.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, Iterable, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static PolicyEntriesModified of(final String policyId,
+            final Iterable<PolicyEntry> policyEntries,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), policyEntries, revision, timestamp, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code PolicyEntriesModified} object indicating the modification of the entries.
+     *
+     * @param policyId the identifier of the Policy to which the modified entry belongs
+     * @param policyEntries the modified {@link PolicyEntry}s.
+     * @param revision the revision of the Policy.
+     * @param timestamp the timestamp of this event.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the created PolicyEntriesModified.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     */
+    public static PolicyEntriesModified of(final PolicyId policyId,
             final Iterable<PolicyEntry> policyEntries,
             final long revision,
             @Nullable final Instant timestamp,
@@ -132,8 +183,9 @@ public final class PolicyEntriesModified extends AbstractPolicyEvent<PolicyEntri
      */
     public static PolicyEntriesModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<PolicyEntriesModified>(TYPE, jsonObject)
-                .deserialize((revision, timestamp) -> {
-                    final String policyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+                .deserialize((revision, timestamp, metadata) -> {
+                    final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+                    final PolicyId policyId = PolicyId.of(extractedPolicyId);
                     final JsonObject policyEntriesJsonObject = jsonObject.getValueOrThrow(JSON_POLICY_ENTRIES);
                     final Iterable<PolicyEntry> extractedModifiedPolicyEntry =
                             PoliciesModelFactory.newPolicyEntries(policyEntriesJsonObject);
@@ -170,12 +222,12 @@ public final class PolicyEntriesModified extends AbstractPolicyEvent<PolicyEntri
 
     @Override
     public PolicyEntriesModified setRevision(final long revision) {
-        return of(getPolicyId(), policyEntries, revision, getTimestamp().orElse(null), getDittoHeaders());
+        return of(getPolicyEntityId(), policyEntries, revision, getTimestamp().orElse(null), getDittoHeaders());
     }
 
     @Override
     public PolicyEntriesModified setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getPolicyId(), policyEntries, getRevision(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getPolicyEntityId(), policyEntries, getRevision(), getTimestamp().orElse(null), dittoHeaders);
     }
 
     @Override

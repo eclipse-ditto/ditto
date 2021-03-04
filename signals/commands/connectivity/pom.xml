@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+  ~ Copyright (c) 2017 Contributors to the Eclipse Foundation
   ~
-  ~ All rights reserved. This program and the accompanying materials
-  ~ are made available under the terms of the Eclipse Public License v2.0
-  ~ which accompanies this distribution, and is available at
-  ~ https://www.eclipse.org/org/documents/epl-2.0/index.php
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
   ~
   ~ SPDX-License-Identifier: EPL-2.0
   -->
@@ -22,6 +24,11 @@
     <artifactId>ditto-signals-commands-connectivity</artifactId>
     <packaging>bundle</packaging>
     <name>Eclipse Ditto :: Signals :: Commands :: Connectivity</name>
+
+    <properties>
+        <!-- deactivate binary comp check for this module only for now -->
+        <binary-compatibility-check.version>${revision}</binary-compatibility-check.version>
+    </properties>
 
     <dependencies>
         <!-- ### Compile ### -->
@@ -47,6 +54,35 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>com.github.siom79.japicmp</groupId>
+                <artifactId>japicmp-maven-plugin</artifactId>
+                <configuration>
+                    <parameter>
+                        <excludes>
+                            <!-- Don't add excludes here before checking with the whole Ditto team -->
+                            <!--<exclude></exclude>-->
+                        </excludes>
+                    </parameter>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>org/eclipse/ditto/signals/commands/connectivity/*</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
                 <extensions>true</extensions>
@@ -63,11 +99,6 @@
                         <Bundle-RequiredExecutionEnvironment>JavaSE-1.8</Bundle-RequiredExecutionEnvironment>
                     </instructions>
                 </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>com.github.siom79.japicmp</groupId>
-                <artifactId>japicmp-maven-plugin</artifactId>
             </plugin>
 
             <plugin>

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -17,8 +19,10 @@ import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyBuilder;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.things.AccessControlList;
+import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Thing;
 
 /**
@@ -47,10 +51,10 @@ public final class PoliciesAclMigrations {
      * @return the Policy.
      */
     public static Policy accessControlListToPolicyEntries(final AccessControlList accessControlList,
-            final String policyId, final List<SubjectIssuer> subjectIssuers) {
+            final PolicyId policyId, final List<SubjectIssuer> subjectIssuers) {
         final PolicyBuilder policyBuilder = PoliciesModelFactory.newPolicyBuilder(policyId);
         accessControlList.getEntriesSet().forEach(aclEntry -> {
-            final String sid = aclEntry.getAuthorizationSubject().getId();
+            final String sid = getSubjectWithoutIssuer(aclEntry);
             final PolicyBuilder.LabelScoped labelScoped = policyBuilder.forLabel(ACL_LABEL_PREFIX + sid);
 
             subjectIssuers.forEach(
@@ -89,4 +93,11 @@ public final class PoliciesAclMigrations {
         return policyBuilder.build();
     }
 
+    private static String getSubjectWithoutIssuer(final AclEntry aclEntry) {
+        final String sid = aclEntry.getAuthorizationSubject().getId();
+        if (sid.contains(":")) {
+            return sid.split(":", 2)[1];
+        }
+        return sid;
+    }
 }

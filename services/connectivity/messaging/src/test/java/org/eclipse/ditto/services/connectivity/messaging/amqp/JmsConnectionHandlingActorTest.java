@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -12,30 +14,35 @@ package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import javax.jms.JMSException;
 import javax.jms.Session;
 
 import org.apache.qpid.jms.JmsConnection;
+import org.apache.qpid.jms.JmsSession;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.WithMockServers;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import akka.actor.ActorRef;
@@ -50,19 +57,20 @@ import akka.testkit.javadsl.TestKit;
 @RunWith(MockitoJUnitRunner.class)
 public class JmsConnectionHandlingActorTest extends WithMockServers {
 
-    @SuppressWarnings("NullableProblems") private static ActorSystem actorSystem;
+    private static ActorSystem actorSystem;
 
-    private static final String connectionId = TestConstants.createRandomConnectionId();
+    private static final ConnectionId connectionId = TestConstants.createRandomConnectionId();
     private static Connection connection;
 
-    @Mock private final Session mockSession = Mockito.mock(Session.class);
-    @Mock private final JmsConnection mockConnection = Mockito.mock(JmsConnection.class);
-    private final JmsConnectionFactory jmsConnectionFactory = (connection1, exceptionListener) -> mockConnection;
+    @Mock private final Session mockSession = mock(Session.class);
+    @Mock private final JmsConnection mockConnection = mock(JmsConnection.class);
+    @Mock private final ConnectionLogger connectionLogger = mock(ConnectionLogger.class);
+    private final JmsConnectionFactory jmsConnectionFactory = (c, e, l, i) -> mockConnection;
 
     @BeforeClass
     public static void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
-        connection = TestConstants.createConnection(connectionId, actorSystem);
+        connection = TestConstants.createConnection(connectionId);
     }
 
     @AfterClass
@@ -73,7 +81,7 @@ public class JmsConnectionHandlingActorTest extends WithMockServers {
 
     @Before
     public void init() throws JMSException {
-        when(mockConnection.createSession(Session.CLIENT_ACKNOWLEDGE)).thenReturn(mockSession);
+        when(mockConnection.createSession(anyInt())).thenReturn(mockSession);
     }
 
     @Test
@@ -83,12 +91,13 @@ public class JmsConnectionHandlingActorTest extends WithMockServers {
             final IllegalStateException exception = new IllegalStateException("failureOnJmsConnect");
             doThrow(exception).when(mockConnection).start();
 
-            final Props props = JMSConnectionHandlingActor.props(connection, e -> {}, jmsConnectionFactory);
+            final Props props =
+                    JMSConnectionHandlingActor.props(connection, e -> {}, jmsConnectionFactory, connectionLogger);
             final ActorRef connectionHandlingActor = watch(actorSystem.actorOf(props));
 
             final TestProbe origin = TestProbe.apply(actorSystem);
-
-            connectionHandlingActor.tell(new AmqpClientActor.JmsConnect(origin.ref()), getRef());
+            final String clientId = UUID.randomUUID().toString();
+            connectionHandlingActor.tell(new AmqpClientActor.JmsConnect(origin.ref(), clientId), getRef());
 
             final ConnectionFailure connectionFailure1 = expectMsgClass(ConnectionFailure.class);
             assertThat(connectionFailure1.getOrigin()).contains(origin.ref());
@@ -103,12 +112,13 @@ public class JmsConnectionHandlingActorTest extends WithMockServers {
             final IllegalStateException exception = new IllegalStateException("failureOnCreateConsumer");
             doThrow(exception).when(mockSession).createConsumer(any());
 
-            final Props props = JMSConnectionHandlingActor.props(connection, e -> {}, jmsConnectionFactory);
+            final Props props =
+                    JMSConnectionHandlingActor.props(connection, e -> {}, jmsConnectionFactory, connectionLogger);
             final ActorRef connectionHandlingActor = watch(actorSystem.actorOf(props));
 
             final TestProbe origin = TestProbe.apply(actorSystem);
-
-            connectionHandlingActor.tell(new AmqpClientActor.JmsConnect(origin.ref()), getRef());
+            final String clientId = UUID.randomUUID().toString();
+            connectionHandlingActor.tell(new AmqpClientActor.JmsConnect(origin.ref(), clientId), getRef());
 
             final ConnectionFailure connectionFailure1 = expectMsgClass(ConnectionFailure.class);
             assertThat(connectionFailure1.getOrigin()).contains(origin.ref());
@@ -120,12 +130,13 @@ public class JmsConnectionHandlingActorTest extends WithMockServers {
     public void handleJmsConnect() throws JMSException {
         new TestKit(actorSystem) {{
 
-            final Props props = JMSConnectionHandlingActor.props(connection, e -> {}, jmsConnectionFactory);
+            final Props props =
+                    JMSConnectionHandlingActor.props(connection, e -> {}, jmsConnectionFactory, connectionLogger);
             final ActorRef connectionHandlingActor = watch(actorSystem.actorOf(props));
 
             final TestProbe origin = TestProbe.apply(actorSystem);
-
-            connectionHandlingActor.tell(new AmqpClientActor.JmsConnect(origin.ref()), getRef());
+            final String clientId = UUID.randomUUID().toString();
+            connectionHandlingActor.tell(new AmqpClientActor.JmsConnect(origin.ref(), clientId), getRef());
 
             final ClientConnected connected = expectMsgClass(ClientConnected.class);
             assertThat(connected.getOrigin()).contains(origin.ref());
@@ -138,15 +149,66 @@ public class JmsConnectionHandlingActorTest extends WithMockServers {
         }};
     }
 
+
     @Test
-    public void handleJmsDisconnect() throws JMSException {
+    public void handleRecoverSession() throws JMSException {
         new TestKit(actorSystem) {{
 
-            final Props props = JMSConnectionHandlingActor.props(connection, e -> {}, jmsConnectionFactory);
+            final Props props =
+                    JMSConnectionHandlingActor.props(connection, e -> {}, jmsConnectionFactory, connectionLogger);
             final ActorRef connectionHandlingActor = watch(actorSystem.actorOf(props));
 
             final TestProbe origin = TestProbe.apply(actorSystem);
 
+            final JmsSession existingSession = mock(JmsSession.class);
+            connectionHandlingActor.tell(
+                    new AmqpClientActor.JmsRecoverSession(origin.ref(), mockConnection, existingSession),
+                    getRef());
+
+            final AmqpClientActor.JmsSessionRecovered recovered =
+                    expectMsgClass(AmqpClientActor.JmsSessionRecovered.class);
+            assertThat(recovered.getOrigin()).contains(origin.ref());
+            assertThat(recovered.getSession()).isSameAs(mockSession);
+
+            verify(existingSession).close();
+            verify(mockConnection).createSession(anyInt());
+            verify(mockSession, times(connection.getSources()
+                    .stream()
+                    .mapToInt(s -> s.getAddresses().size() * s.getConsumerCount())
+                    .sum())).createConsumer(any());
+        }};
+    }
+
+
+    @Test
+    public void handleRecoverSessionFails() throws JMSException {
+        new TestKit(actorSystem) {{
+
+            final JmsConnection failsToCreateSession = mock(JmsConnection.class);
+            when(failsToCreateSession.createSession(anyInt())).thenThrow(new JMSException("failed to create session"));
+
+            final Props props =
+                    JMSConnectionHandlingActor.props(connection, e -> {}, jmsConnectionFactory, connectionLogger);
+            final ActorRef connectionHandlingActor = watch(actorSystem.actorOf(props));
+            connectionHandlingActor.tell(
+                    new AmqpClientActor.JmsRecoverSession(getRef(), failsToCreateSession, mockSession),
+                    getRef());
+
+            expectMsgClass(ConnectionFailure.class);
+            verify(mockSession).close();
+            verify(failsToCreateSession).createSession(anyInt());
+        }};
+    }
+
+    @Test
+    public void handleJmsDisconnect() throws JMSException {
+        new TestKit(actorSystem) {{
+
+            final Props props =
+                    JMSConnectionHandlingActor.props(connection, e -> {}, jmsConnectionFactory, connectionLogger);
+            final ActorRef connectionHandlingActor = watch(actorSystem.actorOf(props));
+
+            final TestProbe origin = TestProbe.apply(actorSystem);
             connectionHandlingActor.tell(new AmqpClientActor.JmsDisconnect(origin.ref(), mockConnection), getRef());
 
             final ClientDisconnected disconnected = expectMsgClass(ClientDisconnected.class);
@@ -163,11 +225,11 @@ public class JmsConnectionHandlingActorTest extends WithMockServers {
             final JMSException exception = new JMSException("failureOnJmsConnect");
             doThrow(exception).when(mockConnection).stop();
 
-            final Props props = JMSConnectionHandlingActor.props(connection, e -> {}, jmsConnectionFactory);
+            final Props props =
+                    JMSConnectionHandlingActor.props(connection, e -> {}, jmsConnectionFactory, connectionLogger);
             final ActorRef connectionHandlingActor = watch(actorSystem.actorOf(props));
 
             final TestProbe origin = TestProbe.apply(actorSystem);
-
             connectionHandlingActor.tell(new AmqpClientActor.JmsDisconnect(origin.ref(), mockConnection), getRef());
 
             final ClientDisconnected disconnected = expectMsgClass(ClientDisconnected.class);

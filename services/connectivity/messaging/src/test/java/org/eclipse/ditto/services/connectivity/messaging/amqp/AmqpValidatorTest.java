@@ -1,15 +1,19 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
+import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTargetBuilder;
+import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -22,7 +26,9 @@ import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidExcept
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.SourceBuilder;
-import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
+import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.junit.Test;
 
@@ -94,10 +100,32 @@ public final class AmqpValidatorTest {
                 .withCauseInstanceOf(UnresolvedPlaceholderException.class);
     }
 
+    @Test
+    public void testValidMatchers() {
+        final Source source = newSourceBuilder()
+                .enforcement(ConnectivityModelFactory.newEnforcement(
+                        "{{ header:device_id }}", "{{ policy:id }}",
+                        "{{ thing:id }}", "{{ entity:id }}"))
+                .build();
+
+        UNDER_TEST.validateSource(source, DittoHeaders.empty(), () -> "testSource");
+    }
+
+    @Test
+    public void testValidPlaceholdersInTargetAddress() {
+        final Target target = newTargetBuilder()
+                .address("some.address.{{ topic:action-subject }}.{{ thing:id }}.{{ feature:id }}.{{ header:correlation-id }}")
+                .authorizationContext(AUTHORIZATION_CONTEXT)
+                .topics(Topic.LIVE_COMMANDS)
+                .build();
+
+        UNDER_TEST.validateTarget(target, DittoHeaders.empty(), () -> "testTarget");
+    }
+
     private static SourceBuilder newSourceBuilder() {
         return ConnectivityModelFactory.newSourceBuilder()
                 .address("telemetry/device")
                 .authorizationContext(
-                        TestConstants.Authorization.AUTHORIZATION_CONTEXT);
+                        AUTHORIZATION_CONTEXT);
     }
 }

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -17,6 +19,8 @@ import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.assertions.AbstractJsonifiableAssert;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.base.assertions.WithDittoHeadersChecker;
@@ -54,9 +58,20 @@ public abstract class AbstractEventAssert<S extends AbstractJsonifiableAssert<S,
     }
 
     public S hasId(final CharSequence expectedId) {
+
         isNotNull();
-        final String actualId = actual.getId();
-        Assertions.assertThat(actualId)
+        final EntityId actualId = actual.getEntityId();
+        Assertions.assertThat((CharSequence) actualId)
+                .overridingErrorMessage("Expected Event to have ID\n<%s> but it had\n<%s>",
+                        DefaultEntityId.of(String.valueOf(expectedId)), actualId)
+                .isEqualTo(expectedId.toString());
+        return myself;
+    }
+
+    public S hasId(final EntityId expectedId) {
+        isNotNull();
+        final EntityId actualId = actual.getEntityId();
+        Assertions.assertThat(actualId.toString())
                 .overridingErrorMessage("Expected Event to have ID\n<%s> but it had\n<%s>", expectedId, actualId)
                 .isEqualTo(expectedId.toString());
         return myself;

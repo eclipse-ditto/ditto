@@ -1,17 +1,18 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.model.base.assertions;
 
 import java.text.MessageFormat;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -72,14 +73,6 @@ public final class DittoHeadersAssert extends AbstractJsonifiableAssert<DittoHea
         return myself;
     }
 
-    public DittoHeadersAssert hasSource(final CharSequence expectedSource) {
-        return assertContains(actual.getSource(), String.valueOf(expectedSource), "source");
-    }
-
-    public DittoHeadersAssert hasNoSource() {
-        return assertIsEmpty(actual.getSource(), "source");
-    }
-
     public DittoHeadersAssert hasSchemaVersion(final JsonSchemaVersion expectedSchemaVersion) {
         return assertContains(actual.getSchemaVersion(), expectedSchemaVersion, "schema version");
     }
@@ -90,21 +83,11 @@ public final class DittoHeadersAssert extends AbstractJsonifiableAssert<DittoHea
 
     public DittoHeadersAssert hasNoAuthorizationSubjects() {
         isNotNull();
-        final List<String> actualAuthorizationSubjects = actual.getAuthorizationSubjects();
-        Assertions.assertThat(actualAuthorizationSubjects)
+        final AuthorizationContext authorizationContext = actual.getAuthorizationContext();
+        Assertions.assertThat(authorizationContext)
                 .overridingErrorMessage("Expected DittoHeaders not to have authorization subjects but it had <%s>",
-                        actualAuthorizationSubjects)
+                        authorizationContext)
                 .isEmpty();
-        return myself;
-    }
-
-    public DittoHeadersAssert hasAuthorizationSubject(final String expectedAuthorizationSubject,
-            final String... furtherExpectedAuthorizationSubjects) {
-        isNotNull();
-        final List<String> actualAuthorizationSubjects = actual.getAuthorizationSubjects();
-        Assertions.assertThat(actualAuthorizationSubjects)
-                .contains(expectedAuthorizationSubject)
-                .contains(furtherExpectedAuthorizationSubjects);
         return myself;
     }
 
@@ -118,8 +101,13 @@ public final class DittoHeadersAssert extends AbstractJsonifiableAssert<DittoHea
         return myself;
     }
 
+    /**
+     * @deprecated as of 1.1.0 {@link DittoHeaders#getReadSubjects()} is deprecated.
+     */
+    @Deprecated
     public DittoHeadersAssert hasReadSubject(final String expectedReadSubject,
             final String... furtherExpectedReadSubjects) {
+
         isNotNull();
         final Set<String> actualReadSubjects = actual.getReadSubjects();
         Assertions.assertThat(actualReadSubjects)
@@ -128,6 +116,10 @@ public final class DittoHeadersAssert extends AbstractJsonifiableAssert<DittoHea
         return myself;
     }
 
+    /**
+     * @deprecated as of 1.1.0 {@link DittoHeaders#getReadSubjects()} is deprecated.
+     */
+    @Deprecated
     public DittoHeadersAssert hasNoReadSubjects() {
         isNotNull();
         final Set<String> actualReadSubjects = actual.getReadSubjects();
@@ -141,6 +133,11 @@ public final class DittoHeadersAssert extends AbstractJsonifiableAssert<DittoHea
     public DittoHeadersAssert hasIsResponseRequired(final boolean expected) {
         return assertContains(Optional.of(actual.isResponseRequired()), expected,
                 "flag indicating if a response is required");
+    }
+
+    public DittoHeadersAssert hasAllowPolicyLockout(final boolean expected) {
+        return assertContains(Optional.of(actual.isAllowPolicyLockout()), expected,
+                "flag indicating if policy lockout is allowed");
     }
 
 }

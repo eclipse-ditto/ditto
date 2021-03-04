@@ -1,16 +1,16 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.protocoladapter;
-
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -18,6 +18,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -25,7 +26,9 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
+import org.eclipse.ditto.model.base.common.HttpStatusCodeOutOfRangeException;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 
 /**
  * Immutable implementation of {@link Payload}.
@@ -35,66 +38,32 @@ final class ImmutablePayload implements Payload {
 
     private final MessagePath path;
     @Nullable private final JsonValue value;
-    @Nullable private final HttpStatusCode status;
+    @Nullable private final JsonObject extra;
+    @Nullable private final HttpStatus status;
     @Nullable private final Long revision;
     @Nullable private final Instant timestamp;
+    @Nullable private final Metadata metadata;
     @Nullable private final JsonFieldSelector fields;
 
-    private ImmutablePayload(final MessagePath path,
-            @Nullable final JsonValue value,
-            @Nullable final HttpStatusCode status,
-            @Nullable final Long revision,
-            @Nullable final Instant timestamp,
-            @Nullable final JsonFieldSelector fields) {
-
-        this.path = checkNotNull(path, "path");
-        this.value = value;
-        this.status = status;
-        this.revision = revision;
-        this.timestamp = timestamp;
-        this.fields = fields;
+    private ImmutablePayload(final ImmutablePayloadBuilder builder) {
+        path = builder.path;
+        value = builder.value;
+        extra = builder.extra;
+        status = builder.status;
+        revision = builder.revision;
+        timestamp = builder.timestamp;
+        metadata = builder.metadata;
+        fields = builder.fields;
     }
 
     /**
-     * Returns a new ImmutablePayload for the specified {@code path}, {@code value}, {@code status}, {@code revision}
-     * and {@code fields}.
+     * Returns a mutable builder with a fluent API for creating an ImmutablePayload.
      *
-     * @param path the path.
-     * @param value the optional value.
-     * @param status the optional status.
-     * @param revision the optional revision.
-     * @param fields the optional fields.
-     * @return the payload.
-     * @throws NullPointerException if {@code path} is {@code null}.
+     * @param path the path of the payload to be built.
+     * @return the builder.
      */
-    public static ImmutablePayload of(final JsonPointer path,
-            @Nullable final JsonValue value,
-            @Nullable final HttpStatusCode status,
-            @Nullable final Long revision,
-            @Nullable final JsonFieldSelector fields) {
-        return of(ImmutableMessagePath.of(path), value, status, revision, null, fields);
-    }
-
-    /**
-     * Returns a new ImmutablePayload for the specified {@code path}, {@code value}, {@code status}, {@code revision},
-     * {@code timestamp} and {@code fields}.
-     *
-     * @param path the path.
-     * @param value the optional value.
-     * @param status the optional status.
-     * @param revision the optional revision.
-     * @param timestamp the optional timestamp.
-     * @param fields the optional fields.
-     * @return the payload.
-     * @throws NullPointerException if {@code path} is {@code null}.
-     */
-    public static ImmutablePayload of(final JsonPointer path,
-            @Nullable final JsonValue value,
-            @Nullable final HttpStatusCode status,
-            @Nullable final Long revision,
-            @Nullable final Instant timestamp,
-            @Nullable final JsonFieldSelector fields) {
-        return new ImmutablePayload(ImmutableMessagePath.of(path), value, status, revision, timestamp, fields);
+    public static ImmutablePayloadBuilder getBuilder(@Nullable final JsonPointer path) {
+        return new ImmutablePayloadBuilder(path);
     }
 
     /**
@@ -105,23 +74,21 @@ final class ImmutablePayload implements Payload {
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} is missing required JSON fields.
      */
     public static ImmutablePayload fromJson(final JsonObject jsonObject) {
+        final String readPath = jsonObject.getValueOrThrow(JsonFields.PATH);
 
-        final JsonPointer path = JsonFactory.newPointer(jsonObject.getValueOrThrow(JsonFields.PATH));
+        final ImmutablePayloadBuilder payloadBuilder = getBuilder(JsonFactory.newPointer(readPath))
+                .withValue(jsonObject.getValue(JsonFields.VALUE).orElse(null))
+                .withExtra(jsonObject.getValue(JsonFields.EXTRA).orElse(null))
+                .withStatus(jsonObject.getValue(JsonFields.STATUS).flatMap(HttpStatus::tryGetInstance).orElse(null))
+                .withTimestamp(jsonObject.getValue(JsonFields.TIMESTAMP).map(Instant::parse).orElse(null))
+                .withMetadata(jsonObject.getValue(JsonFields.METADATA).map(Metadata::newMetadata).orElse(null))
+                .withFields(jsonObject.getValue(JsonFields.FIELDS)
+                        .map(JsonFactory::parseJsonFieldSelector)
+                        .orElse(null));
 
-        final JsonValue value = jsonObject.getValue(JsonFields.VALUE).orElse(null);
+        jsonObject.getValue(JsonFields.REVISION).ifPresent(payloadBuilder::withRevision);
 
-        final HttpStatusCode status = jsonObject.getValue(JsonFields.STATUS)
-                .flatMap(HttpStatusCode::forInt)
-                .orElse(null);
-
-        final Long revision = jsonObject.getValue(JsonFields.REVISION).orElse(null);
-        final Instant timestamp = jsonObject.getValue(JsonFields.TIMESTAMP).map(Instant::parse).orElse(null);
-
-        final JsonFieldSelector fields = jsonObject.getValue(JsonFields.FIELDS)
-                .map(JsonFieldSelector::newInstance)
-                .orElse(null);
-
-        return of(path, value, status, revision, timestamp, fields);
+        return payloadBuilder.build();
     }
 
     @Override
@@ -135,7 +102,12 @@ final class ImmutablePayload implements Payload {
     }
 
     @Override
-    public Optional<HttpStatusCode> getStatus() {
+    public Optional<JsonObject> getExtra() {
+        return Optional.ofNullable(extra);
+    }
+
+    @Override
+    public Optional<HttpStatus> getHttpStatus() {
         return Optional.ofNullable(status);
     }
 
@@ -147,6 +119,11 @@ final class ImmutablePayload implements Payload {
     @Override
     public Optional<Instant> getTimestamp() {
         return Optional.ofNullable(timestamp);
+    }
+
+    @Override
+    public Optional<Metadata> getMetadata() {
+        return Optional.ofNullable(metadata);
     }
 
     @Override
@@ -162,19 +139,21 @@ final class ImmutablePayload implements Payload {
         if (null != value) {
             jsonObjectBuilder.set(JsonFields.VALUE, value);
         }
-
-        if (null != status) {
-            jsonObjectBuilder.set(JsonFields.STATUS, status.toInt());
+        if (null != extra) {
+            jsonObjectBuilder.set(JsonFields.EXTRA, extra);
         }
-
+        if (null != status) {
+            jsonObjectBuilder.set(JsonFields.STATUS, status.getCode());
+        }
         if (null != revision) {
             jsonObjectBuilder.set(JsonFields.REVISION, revision);
         }
-
         if (null != timestamp) {
             jsonObjectBuilder.set(JsonFields.TIMESTAMP, timestamp.toString());
         }
-
+        if (null != metadata) {
+            jsonObjectBuilder.set(JsonFields.METADATA, metadata.toJson());
+        }
         if (null != fields) {
             jsonObjectBuilder.set(JsonFields.FIELDS, fields.toString());
         }
@@ -182,9 +161,8 @@ final class ImmutablePayload implements Payload {
         return jsonObjectBuilder.build();
     }
 
-    @SuppressWarnings("OverlyComplexMethod")
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
@@ -192,20 +170,130 @@ final class ImmutablePayload implements Payload {
             return false;
         }
         final ImmutablePayload that = (ImmutablePayload) o;
-        return Objects.equals(path, that.path) && Objects.equals(value, that.value) && status == that.status
-                && Objects.equals(revision, that.revision) && Objects.equals(timestamp, that.timestamp)
+        return Objects.equals(path, that.path)
+                && Objects.equals(value, that.value)
+                && Objects.equals(extra, that.extra)
+                && Objects.equals(status, that.status)
+                && Objects.equals(revision, that.revision)
+                && Objects.equals(timestamp, that.timestamp)
+                && Objects.equals(metadata, that.metadata)
                 && Objects.equals(fields, that.fields);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(path, value, status, revision, timestamp, fields);
+        return Objects.hash(path, value, extra, status, revision, timestamp, metadata, fields);
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [" + "path=" + path + ", value=" + value + ", status=" + status
-                + ", revision=" + revision + ", timestamp=" + timestamp + ", fields=" + fields + ']';
+        return getClass().getSimpleName() + " [" +
+                "path=" + path +
+                ", value=" + value +
+                ", extra=" + extra +
+                ", status=" + status +
+                ", revision=" + revision +
+                ", timestamp=" + timestamp +
+                ", metadata=" + metadata +
+                ", fields=" + fields +
+                "]";
+    }
+
+    /**
+     * Mutable implementation of {@link PayloadBuilder} for building immutable {@link Payload} instances.
+     */
+    @NotThreadSafe
+    static final class ImmutablePayloadBuilder implements PayloadBuilder {
+
+        @Nullable private final MessagePath path;
+
+        @Nullable private JsonValue value;
+        @Nullable private JsonObject extra;
+        @Nullable private HttpStatus status;
+        @Nullable private Long revision;
+        @Nullable private Instant timestamp;
+        @Nullable private Metadata metadata;
+        @Nullable private JsonFieldSelector fields;
+
+        private ImmutablePayloadBuilder(@Nullable final JsonPointer path) {
+            if (path instanceof MessagePath) {
+                this.path = (MessagePath) path;
+            } else if (null != path) {
+                this.path = ImmutableMessagePath.of(path);
+            } else {
+                this.path = null;
+            }
+            value = null;
+            extra = null;
+            status = null;
+            timestamp = null;
+            metadata = null;
+            fields = null;
+        }
+
+        @Override
+        public ImmutablePayloadBuilder withValue(final JsonValue value) {
+            this.value = value;
+            return this;
+        }
+
+        @Override
+        public ImmutablePayloadBuilder withExtra(@Nullable final JsonObject extra) {
+            this.extra = extra;
+            return this;
+        }
+
+        @Override
+        public ImmutablePayloadBuilder withStatus(@Nullable final HttpStatus status) {
+            this.status = status;
+            return this;
+        }
+
+        @Override
+        public ImmutablePayloadBuilder withStatus(final int status) {
+            try {
+                this.status = HttpStatus.getInstance(status);
+            } catch (final HttpStatusCodeOutOfRangeException e) {
+                throw new IllegalArgumentException(e.getMessage(), e);
+            }
+            return this;
+        }
+
+        @Override
+        public ImmutablePayloadBuilder withRevision(final long revision) {
+            this.revision = revision;
+            return this;
+        }
+
+        @Override
+        public ImmutablePayloadBuilder withTimestamp(@Nullable final Instant timestamp) {
+            this.timestamp = timestamp;
+            return this;
+        }
+
+        @Override
+        public ImmutablePayloadBuilder withMetadata(@Nullable final Metadata metadata) {
+            this.metadata = metadata;
+            return this;
+        }
+
+        @Override
+        public ImmutablePayloadBuilder withFields(final JsonFieldSelector fields) {
+            this.fields = fields;
+            return this;
+        }
+
+        @Override
+        public ImmutablePayloadBuilder withFields(final String fields) {
+            this.fields = JsonFieldSelector.newInstance(fields);
+            return this;
+        }
+
+        @Override
+        public ImmutablePayload build() {
+            return new ImmutablePayload(this);
+        }
+
     }
 
 }

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -27,9 +29,11 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.FeatureIdInvalidException;
 import org.eclipse.ditto.model.messages.Message;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -39,7 +43,8 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * @param <T> the type of the message's payload.
  */
 @Immutable
-public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendFeatureMessage>
+@JsonParsableCommand(typePrefix = SendFeatureMessage.TYPE_PREFIX, name = SendFeatureMessage.NAME)
+public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendFeatureMessage<T>>
         implements WithFeatureId {
 
     /**
@@ -58,7 +63,7 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
 
     private final String featureId;
 
-    private SendFeatureMessage(final String thingId,
+    private SendFeatureMessage(final ThingId thingId,
             final String featureId,
             final Message<T> message,
             final DittoHeaders dittoHeaders) {
@@ -99,8 +104,31 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
      * @param <T> the type of the message's payload.
      * @return new instance of {@code SendFeatureMessage}.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.messages.Message, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static <T> SendFeatureMessage<T> of(final String thingId,
+            final String featureId,
+            final Message<T> message,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), featureId, message, dittoHeaders);
+    }
+
+    /**
+     * Creates a new instance of {@code SendFeatureMessage}.
+     *
+     * @param thingId the ID of the Thing to which the Feature belongs
+     * @param featureId the ID of the Feature to send the message to
+     * @param message the message to send to the Feature
+     * @param dittoHeaders the DittoHeaders of this message.
+     * @param <T> the type of the message's payload.
+     * @return new instance of {@code SendFeatureMessage}.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static <T> SendFeatureMessage<T> of(final ThingId thingId,
             final String featureId,
             final Message<T> message,
             final DittoHeaders dittoHeaders) {
@@ -113,7 +141,6 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
      *
      * @param jsonString the JSON string of which the SendFeatureMessage is to be created.
      * @param dittoHeaders the headers.
-     * @param <T> the type of the message's payload
      * @return the command.
      * @throws NullPointerException if {@code jsonString} is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
@@ -126,7 +153,7 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
      *     <li>{@link MessageCommand.JsonFields#JSON_MESSAGE}</li>
      * </ul>
      */
-    public static <T> SendFeatureMessage<T> fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
+    public static SendFeatureMessage<?> fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
@@ -135,7 +162,6 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
      *
      * @param jsonObject the JSON object of which the SendFeatureMessage is to be created.
      * @param dittoHeaders the headers.
-     * @param <T> the type of the message's payload
      * @return the command.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
@@ -147,11 +173,12 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
      *     <li>{@link MessageCommand.JsonFields#JSON_MESSAGE}</li>
      * </ul>
      */
-    public static <T> SendFeatureMessage<T> fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<SendFeatureMessage<T>>(TYPE, jsonObject).deserialize(() -> {
-            final String thingId = jsonObject.getValueOrThrow(MessageCommand.JsonFields.JSON_THING_ID);
+    public static SendFeatureMessage<?> fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandJsonDeserializer<SendFeatureMessage<?>>(TYPE, jsonObject).deserialize(() -> {
+            final String extractedThingId = jsonObject.getValueOrThrow(MessageCommand.JsonFields.JSON_THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
             final String featureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
-            final Message<T> message = deserializeMessageFromJson(jsonObject);
+            final Message<?> message = deserializeMessageFromJson(jsonObject);
 
             return of(thingId, featureId, message, dittoHeaders);
         });
@@ -164,7 +191,7 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
 
     @Override
     public SendFeatureMessage setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingId(), featureId, getMessage(), dittoHeaders);
+        return of(getThingEntityId(), featureId, getMessage(), dittoHeaders);
     }
 
     @Override
@@ -176,7 +203,7 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
         jsonObjectBuilder.remove(MessageCommand.JsonFields.JSON_THING_ID);
         final JsonObject superBuild = jsonObjectBuilder.build();
         jsonObjectBuilder.removeAll();
-        jsonObjectBuilder.set(MessageCommand.JsonFields.JSON_THING_ID, getThingId());
+        jsonObjectBuilder.set(MessageCommand.JsonFields.JSON_THING_ID, getThingEntityId().toString());
         jsonObjectBuilder.set(JSON_FEATURE_ID, getFeatureId());
         jsonObjectBuilder.setAll(superBuild);
     }

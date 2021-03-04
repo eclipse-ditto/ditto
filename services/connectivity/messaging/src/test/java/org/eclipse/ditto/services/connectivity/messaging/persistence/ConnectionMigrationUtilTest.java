@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -18,7 +20,6 @@ import static org.eclipse.ditto.model.connectivity.Topic.TWIN_EVENTS;
 
 import java.util.Collections;
 import java.util.Set;
-import java.util.UUID;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
@@ -28,10 +29,14 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Enforcement;
+import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionMigrationUtil.MigrateAuthorizationContexts;
@@ -42,18 +47,18 @@ import org.junit.Test;
  */
 public class ConnectionMigrationUtilTest {
 
-    private static final String ID = UUID.randomUUID().toString();
+    private static final ConnectionId ID = ConnectionId.generateRandom();
     private static final String NAME = "my-connection";
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
-    private static final ConnectionStatus STATUS = ConnectionStatus.OPEN;
+    private static final ConnectivityStatus STATUS = ConnectivityStatus.OPEN;
     private static final String URI = "amqps://foo:bar@example.com:443";
     private static final String LEGACY_FIELD_FILTERS = "filters";
 
     private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
-            AuthorizationSubject.newInstance("mySolutionId:mySubject"));
+            DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION, AuthorizationSubject.newInstance("myIssuer:mySubject"));
 
     private static final AuthorizationContext ALT_AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
-            AuthorizationSubject.newInstance("altSolution:customSubject"));
+            DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION, AuthorizationSubject.newInstance("myAltIssuer:customSubject"));
 
     private static final JsonArray FILTERS =
             JsonFactory.newArrayBuilder().add("{{thing:id}}").add("{{thing:name}}").build();
@@ -67,6 +72,13 @@ public class ConnectionMigrationUtilTest {
             .newBuilder()
             .set(Source.JsonFields.ADDRESSES, JsonFactory.newArrayBuilder().add("amqp/source2").build())
             .set(Source.JsonFields.CONSUMER_COUNT, 1)
+            .set(Source.JsonFields.HEADER_MAPPING, JsonObject.newBuilder()
+                    .set("source-action", JsonValue.of("source/{{ topic:action }}"))
+                    .set("source-subject", JsonValue.of("source/{{topic:action|subject }}"))
+                    .set("source-subject-next-gen", JsonValue.of("source/{{    topic:action-subject }}"))
+                    .set("source-some-header", JsonValue.of("source/{{ topic:full | fn:substring-before('/') }}"))
+                    .build()
+            )
             .build();
     private static final JsonArray OLD_SOURCES_JSON = JsonArray.newBuilder().add(SOURCE1_JSON, SOURCE2_JSON).build();
 
@@ -88,6 +100,13 @@ public class ConnectionMigrationUtilTest {
                     .build()
             )
             .set(Target.JsonFields.ADDRESS, "amqp/target2")
+            .set(Target.JsonFields.HEADER_MAPPING, JsonObject.newBuilder()
+                    .set("target-action", JsonValue.of("target/{{ topic:action }}"))
+                    .set("target-subject", JsonValue.of("target/{{topic:action|subject }}"))
+                    .set("target-subject-next-gen", JsonValue.of("target/{{    topic:action-subject }}"))
+                    .set("target-some-header", JsonValue.of("target/{{ topic:full | fn:substring-before('/') }}"))
+                    .build()
+            )
             .build();
     private static final JsonObject TARGET3_JSON = JsonObject
             .newBuilder()
@@ -97,7 +116,7 @@ public class ConnectionMigrationUtilTest {
                     .add(LIVE_COMMANDS.getName())
                     .build()
             )
-            .set(Target.JsonFields.ADDRESS, "amqp/target3")
+            .set(Target.JsonFields.ADDRESS, "amqp/target3/{{topic:action|subject}}")
             .build();
     private static final JsonArray OLD_TARGETS_JSON =
             JsonArray.newBuilder().add(TARGET1_JSON, TARGET2_JSON, TARGET3_JSON).build();
@@ -105,7 +124,7 @@ public class ConnectionMigrationUtilTest {
     private static final Set<String> KNOWN_TAGS = Collections.singleton("HONO");
 
     private static final JsonObject KNOWN_CONNECTION_JSON = JsonObject.newBuilder()
-            .set(Connection.JsonFields.ID, ID)
+            .set(Connection.JsonFields.ID, ID.toString())
             .set(Connection.JsonFields.NAME, NAME)
             .set(ConnectionMigrationUtil.AUTHORIZATION_CONTEXT, AUTHORIZATION_CONTEXT.getAuthorizationSubjects()
                     .stream()
@@ -126,13 +145,19 @@ public class ConnectionMigrationUtilTest {
                     .map(JsonFactory::newValue)
                     .collect(JsonCollectors.valuesToArray()))
             .build();
+    private static final HeaderMapping LEGACY_TARGET_HEADER_MAPPING =
+            ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
+                    .set("content-type", "{{header:content-type}}")
+                    .set("correlation-id", "{{header:correlation-id}}")
+                    .set("reply-to", "{{header:reply-to}}")
+                    .build());
 
     @Test
     public void migrateConnectionWithGlobalAuthorizationContext() {
 
         final Connection migratedConnection =
                 ConnectionMigrationUtil.connectionFromJsonWithMigration(KNOWN_CONNECTION_JSON);
-        assertThat(migratedConnection.getId()).isEqualTo(ID);
+        assertThat((CharSequence) migratedConnection.getId()).isEqualTo(ID);
         assertThat(migratedConnection.getName()).contains(NAME);
         assertThat((Object) migratedConnection.getConnectionType()).isEqualTo(TYPE);
         assertThat(migratedConnection.getUri()).isEqualTo(URI);
@@ -160,7 +185,7 @@ public class ConnectionMigrationUtilTest {
                         .collect(JsonCollectors.valuesToArray())).get());
         final Connection migratedConnection = ConnectionMigrationUtil.connectionFromJsonWithMigration(builder.build());
 
-        assertThat(migratedConnection.getId()).isEqualTo(ID);
+        assertThat((CharSequence) migratedConnection.getId()).isEqualTo(ID);
         assertThat(migratedConnection.getName()).contains(NAME);
         assertThat((Object) migratedConnection.getConnectionType()).isEqualTo(TYPE);
         assertThat(migratedConnection.getUri()).isEqualTo(URI);
@@ -192,4 +217,51 @@ public class ConnectionMigrationUtilTest {
                         SOURCE2_JSON).build()).build();
         assertThat(ConnectionMigrationUtil.MigrateSourceFilters.migrateSourceFilters(noFilters)).isSameAs(noFilters);
     }
+
+    @Test
+    public void migratePlaceholderTopicActionSubject() {
+        final Connection migratedConnection =
+                ConnectionMigrationUtil.connectionFromJsonWithMigration(KNOWN_CONNECTION_JSON);
+
+        assertThat(migratedConnection.getSources().get(1).getHeaderMapping()).isPresent();
+        final HeaderMapping sourceHeaderMapping = migratedConnection.getSources().get(1).getHeaderMapping().get();
+        assertThat(sourceHeaderMapping.getMapping().get("source-action"))
+                .isEqualTo("source/{{ topic:action }}");
+        assertThat(sourceHeaderMapping.getMapping().get("source-subject"))
+                .isEqualTo("source/{{topic:action-subject }}");
+        assertThat(sourceHeaderMapping.getMapping().get("source-subject-next-gen"))
+                .isEqualTo("source/{{    topic:action-subject }}");
+        assertThat(sourceHeaderMapping.getMapping().get("source-some-header"))
+                .isEqualTo("source/{{ topic:full | fn:substring-before('/') }}");
+
+        assertThat(migratedConnection.getTargets().get(1).getHeaderMapping()).isPresent();
+        final HeaderMapping targetHeaderMapping = migratedConnection.getTargets().get(1).getHeaderMapping().get();
+        assertThat(targetHeaderMapping.getMapping().get("target-action"))
+                .isEqualTo("target/{{ topic:action }}");
+        assertThat(targetHeaderMapping.getMapping().get("target-subject"))
+                .isEqualTo("target/{{topic:action-subject }}");
+        assertThat(targetHeaderMapping.getMapping().get("target-subject-next-gen"))
+                .isEqualTo("target/{{    topic:action-subject }}");
+        assertThat(targetHeaderMapping.getMapping().get("target-some-header"))
+                .isEqualTo("target/{{ topic:full | fn:substring-before('/') }}");
+
+        assertThat(migratedConnection.getTargets().get(2).getAddress())
+                .isEqualTo("amqp/target3/{{topic:action-subject}}");
+    }
+
+    @Test
+    public void migrateMissingHeaderMappingForTargets() {
+        final JsonObject connectionJsonWithoutHeaderMapping = KNOWN_CONNECTION_JSON.toBuilder()
+                .set(Connection.JsonFields.TARGETS, JsonArray.of(
+                        TARGET1_JSON.remove(Target.JsonFields.HEADER_MAPPING.getPointer())
+                ))
+                .build();
+        final Connection migratedConnection =
+                ConnectionMigrationUtil.connectionFromJsonWithMigration(connectionJsonWithoutHeaderMapping);
+
+        migratedConnection.getTargets()
+                .forEach(target -> assertThat(target.getHeaderMapping()).contains(LEGACY_TARGET_HEADER_MAPPING));
+
+    }
+
 }

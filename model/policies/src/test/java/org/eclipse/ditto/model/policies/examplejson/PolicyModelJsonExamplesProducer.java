@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -25,9 +27,11 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.model.policies.TestConstants;
@@ -46,7 +50,9 @@ public final class PolicyModelJsonExamplesProducer {
         final Collection<AuthorizationSubject> authorizationSubjects = new ArrayList<>();
         authorizationSubjects.add(newAuthSubject("the_firstSubject"));
         authorizationSubjects.add(newAuthSubject("the_anotherSubject"));
-        final AuthorizationContext authContext = AuthorizationModelFactory.newAuthContext(authorizationSubjects);
+        final AuthorizationContext authContext =
+                AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                        authorizationSubjects);
 
         final Path authorizationDir = rootPath.resolve(Paths.get("authorization"));
         Files.createDirectories(authorizationDir);
@@ -59,7 +65,7 @@ public final class PolicyModelJsonExamplesProducer {
         final Path modelDir = rootPath.resolve(Paths.get("model"));
         Files.createDirectories(modelDir);
 
-        final String policyId = "org.eclipse.ditto.example:the_thingId";
+        final PolicyId policyId = PolicyId.of("org.eclipse.ditto.example", "the_thingId");
 
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .forLabel("EndUser")

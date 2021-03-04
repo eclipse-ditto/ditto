@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -16,7 +18,6 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -27,10 +28,12 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.model.base.headers.AbstractDittoHeadersBuilder;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * A mutable builder with a fluent API for an immutable {@link MessageHeaders} object.
@@ -38,12 +41,46 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 @NotThreadSafe
 public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<MessageHeadersBuilder, MessageHeaders> {
 
-    private static final Set<MessageHeaderDefinition> MANDATORY_HEADERS = Collections.unmodifiableSet(
+    static final Set<MessageHeaderDefinition> MANDATORY_HEADERS = Collections.unmodifiableSet(
             EnumSet.of(MessageHeaderDefinition.DIRECTION, MessageHeaderDefinition.THING_ID,
                     MessageHeaderDefinition.SUBJECT));
+    private static final Set<MessageHeaderDefinition> DEFINITIONS = determineMessageHeaderDefinitions();
 
     private MessageHeadersBuilder(final Map<String, String> headers) {
-        super(headers, Arrays.asList(MessageHeaderDefinition.values()), MessageHeadersBuilder.class);
+        super(headers, DEFINITIONS, MessageHeadersBuilder.class);
+    }
+
+    private MessageHeadersBuilder(final MessageHeaders dittoHeaders) {
+        super(dittoHeaders, DEFINITIONS, MessageHeadersBuilder.class);
+    }
+
+    private static Set<MessageHeaderDefinition> determineMessageHeaderDefinitions() {
+        final Set<MessageHeaderDefinition> result = EnumSet.allOf(MessageHeaderDefinition.class);
+
+        // remove deprecated timeout entry as this is now defined in DittoHeaderDefinitions
+        result.remove(MessageHeaderDefinition.TIMEOUT);
+        return result;
+    }
+
+    /**
+     * Returns a new instance of {@code MessageHeadersBuilder}.
+     *
+     * @param direction the direction of the message.
+     * @param thingId the thing ID of the message.
+     * @param subject the subject of the message.
+     * @return the instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code thingId} or {@code subject} is empty.
+     * @throws SubjectInvalidException if {@code subject} is invalid.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #newInstance(MessageDirection, org.eclipse.ditto.model.things.ThingId, CharSequence)}
+     * instead.
+     */
+    @Deprecated
+    public static MessageHeadersBuilder newInstance(final MessageDirection direction, final CharSequence thingId,
+            final CharSequence subject) {
+
+        return newInstance(direction, ThingId.of(thingId), subject);
     }
 
     /**
@@ -57,12 +94,12 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
      * @throws IllegalArgumentException if {@code thingId} or {@code subject} is empty.
      * @throws SubjectInvalidException if {@code subject} is invalid.
      */
-    public static MessageHeadersBuilder newInstance(final MessageDirection direction, final CharSequence thingId,
+    public static MessageHeadersBuilder newInstance(final MessageDirection direction, final ThingId thingId,
             final CharSequence subject) {
 
-        checkNotNull(direction, MessageHeaderDefinition.DIRECTION.getKey());
-        argumentNotEmpty(thingId, MessageHeaderDefinition.THING_ID.getKey());
-        argumentNotEmpty(subject, MessageHeaderDefinition.SUBJECT.getKey());
+        checkNotNull(direction, "direction");
+        checkNotNull(thingId, "thing-id");
+        argumentNotEmpty(subject, "subject");
 
         final Map<String, String> initialHeaders = new HashMap<>();
         initialHeaders.put(MessageHeaderDefinition.DIRECTION.getKey(), direction.toString());
@@ -84,16 +121,41 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
      * {@link MessageHeaderDefinition#SUBJECT}.
      */
     public static MessageHeadersBuilder of(final Map<String, String> headers) {
+        if (headers instanceof MessageHeaders) {
+            return new MessageHeadersBuilder((MessageHeaders) headers);
+        }
         validateMandatoryHeaders(headers);
         return new MessageHeadersBuilder(headers);
     }
 
     private static void validateMandatoryHeaders(final Map<String, String> headers) {
+        // check all mandatory headers are non-null
         for (final MessageHeaderDefinition mandatoryHeader : MANDATORY_HEADERS) {
-            if (!headers.containsKey(mandatoryHeader.getKey())) {
+            final String mandatoryHeaderValue = headers.get(mandatoryHeader.getKey());
+            if (mandatoryHeaderValue == null) {
                 final String msgTemplate = "The headers did not contain a value for mandatory header with key <{0}>!";
                 throw new IllegalArgumentException(MessageFormat.format(msgTemplate, mandatoryHeader.getKey()));
             }
+        }
+        // check non-emptiness of subject
+        final String subjectHeaderKey = MessageHeaderDefinition.SUBJECT.getKey();
+        if (headers.get(subjectHeaderKey).isEmpty()) {
+            final String msgTemplate = "Message subject may not be empty!";
+            throw new IllegalArgumentException(MessageFormat.format(msgTemplate, subjectHeaderKey));
+        }
+        // validate thing ID header against its model
+        ThingId.of(headers.get(MessageHeaderDefinition.THING_ID.getKey()));
+
+        // validate direction header against its enum
+        final String directionHeaderValue = headers.get(MessageHeaderDefinition.DIRECTION.getKey());
+        if (!MessageDirection.FROM.name().equals(directionHeaderValue) &&
+                !MessageDirection.TO.name().equals(directionHeaderValue)) {
+            final String msgTemplate = "Message direction must be one of: <{1}>, <{2}>!";
+            throw new IllegalArgumentException(MessageFormat.format(msgTemplate,
+                    MessageHeaderDefinition.DIRECTION.getKey(),
+                    MessageDirection.FROM,
+                    MessageDirection.TO
+            ));
         }
     }
 
@@ -132,25 +194,14 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
      * @return this builder to allow method chaining.
      * @throws IllegalArgumentException if {@code contentType} is empty.
      */
+    @Override
     public MessageHeadersBuilder contentType(@Nullable final CharSequence contentType) {
-        putCharSequence(DittoHeaderDefinition.CONTENT_TYPE, contentType);
-        return myself;
+        return super.contentType(contentType);
     }
 
-    /**
-     * Sets the timeout of the Message to build.
-     *
-     * @param timeout the duration of the Message to time out.
-     * @return this builder to allow method chaining.
-     */
+    @Override
     public MessageHeadersBuilder timeout(@Nullable final Duration timeout) {
-        final MessageHeaderDefinition definition = MessageHeaderDefinition.TIMEOUT;
-        if (null != timeout) {
-            putCharSequence(definition, String.valueOf(timeout.getSeconds()));
-        } else {
-            removeHeader(definition.getKey());
-        }
-        return myself;
+        return super.timeout(timeout);
     }
 
     /**
@@ -158,7 +209,11 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
      *
      * @param timeoutInSeconds the seconds of the Message to time out.
      * @return this builder to allow method chaining.
+     * @deprecated as of 1.1.0 please use
+     * {@link org.eclipse.ditto.model.base.headers.DittoHeadersBuilder#timeout(CharSequence)} instead.
+     * This method will be removed in version 2.0.
      */
+    @Deprecated
     public MessageHeadersBuilder timeout(final long timeoutInSeconds) {
         return timeout(Duration.ofSeconds(timeoutInSeconds));
     }
@@ -179,6 +234,17 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
         return myself;
     }
 
+    @Override
+    public MessageHeadersBuilder removeHeader(final CharSequence key) {
+        MessageHeaderDefinition.forKey(key).ifPresent(definition -> {
+            if (MANDATORY_HEADERS.contains(definition)) {
+                final String msgTemplate = "Mandatory header with key <{0}> cannot be removed!";
+                throw new IllegalArgumentException(MessageFormat.format(msgTemplate, key));
+            }
+        });
+        return super.removeHeader(key);
+    }
+
     /**
      * Sets the timestamp of the Message to build.
      *
@@ -195,11 +261,24 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
      *
      * @param statusCode the status code.
      * @return this builder to allow method chaining.
+     * @deprecated as of 2.0.0 please use {@link #httpStatus(HttpStatus)} instead.
      */
+    @Deprecated
     public MessageHeadersBuilder statusCode(@Nullable final HttpStatusCode statusCode) {
+        return httpStatus(null != statusCode ? statusCode.getAsHttpStatus() : null);
+    }
+
+    /**
+     * Sets the Http status of the Message to build.
+     *
+     * @param httpStatus the HTTP status.
+     * @return this builder to allow method chaining.
+     * @since 2.0.0
+     */
+    public MessageHeadersBuilder httpStatus(@Nullable final HttpStatus httpStatus) {
         final MessageHeaderDefinition definition = MessageHeaderDefinition.STATUS_CODE;
-        if (null != statusCode) {
-            putCharSequence(definition, String.valueOf(statusCode.toInt()));
+        if (null != httpStatus) {
+            putCharSequence(definition, String.valueOf(httpStatus.getCode()));
         } else {
             removeHeader(definition.getKey());
         }
@@ -212,41 +291,19 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
      * @param statusCode the status code.
      * @return this builder to allow method chaining.
      * @throws IllegalArgumentException if {@code statusCode} is unknown.
+     * @deprecated as of 2.0.0 please use {@link #httpStatus(HttpStatus)} instead.
      */
+    @Deprecated
     public MessageHeadersBuilder statusCode(final int statusCode) {
-        return statusCode(HttpStatusCode.forInt(statusCode).orElseThrow(() -> {
-            final String msg = MessageFormat.format("HTTP status code <{0}> is unknown!", statusCode);
-            return new IllegalArgumentException(msg);
-        }));
+        return httpStatus(getHttpStatus(statusCode));
     }
 
-    /**
-     * Sets the specified URL which is used for message validation.
-     *
-     * @param validationUrl the validation URL to be set.
-     * @return this builder to allow method chaining.
-     * @throws IllegalArgumentException if {@code validationUrl} is empty.
-     */
-    public MessageHeadersBuilder validationUrl(@Nullable final CharSequence validationUrl) {
-        final MessageHeaderDefinition definition = MessageHeaderDefinition.VALIDATION_URL;
-        if (null != validationUrl) {
-            putCharSequence(definition, validationUrl);
-        } else {
-            removeHeader(definition.getKey());
+    private static HttpStatus getHttpStatus(final int statusCode) {
+        try {
+            return HttpStatus.getInstance(statusCode);
+        } catch (final HttpStatusCodeOutOfRangeException e) {
+            throw new IllegalArgumentException(e.getMessage(), e);
         }
-        return myself;
-    }
-
-    @Override
-    protected void validateValueType(final CharSequence key, final CharSequence value) {
-        super.validateValueType(key, value);
-        MessageHeaderDefinition.forKey(key).ifPresent(definition -> {
-            if (MANDATORY_HEADERS.contains(definition)) {
-                final String msgTemplate = "Value for mandatory header with key <{0}> cannot be overwritten!";
-                throw new IllegalArgumentException(MessageFormat.format(msgTemplate, key));
-            }
-            definition.validateValue(value);
-        });
     }
 
     @Override

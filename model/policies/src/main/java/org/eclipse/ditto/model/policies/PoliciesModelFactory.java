@@ -1,23 +1,28 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.model.policies;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -28,6 +33,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.common.Validator;
+import org.eclipse.ditto.model.base.entity.validation.NoControlCharactersValidator;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 
 /**
@@ -115,6 +122,32 @@ public final class PoliciesModelFactory {
         return ImmutableSubjectType.of(subjectType);
     }
 
+    /**
+     * Returns a new {@link SubjectExpiry} with the specified {@code expiry} CharSequence interpreted as
+     * ISO-8601 timestamp.
+     *
+     * @param expiry the expiration timestamp as ISO-8601 formatted CharSequence.
+     * @return the new {@link SubjectExpiry}.
+     * @throws NullPointerException if {@code expiry} is {@code null}.
+     * @throws SubjectExpiryInvalidException if the provided {@code expiry} could not be parsed.
+     * @since 2.0.0
+     */
+    public static SubjectExpiry newSubjectExpiry(final CharSequence expiry) {
+        return ImmutableSubjectExpiry.of(expiry);
+    }
+
+    /**
+     * Returns a new {@link SubjectExpiry} with the specified {@code expiry} Instant.
+     *
+     * @param expiry the expiration timestamp.
+     * @return the new {@link SubjectExpiry}.
+     * @throws NullPointerException if {@code expiry} is {@code null}.
+     * @since 2.0.0
+     */
+    public static SubjectExpiry newSubjectExpiry(final Instant expiry) {
+        return ImmutableSubjectExpiry.of(expiry);
+    }
+
 
     /**
      * Returns a new {@code Subject} object with the given {@code subjectId} and
@@ -141,6 +174,21 @@ public final class PoliciesModelFactory {
     }
 
     /**
+     * Returns a new {@link Subject} with the specified {@code subjectId} and {@code subjectType}.
+     *
+     * @param subjectId the ID of the new Subject to create.
+     * @param subjectType the SubjectType of the new Subject to create.
+     * @param subjectExpiry the expiry timestamp of the new Subject.
+     * @return the new {@link Subject}.
+     * @throws NullPointerException if the {@code subjectId} or {@code subjectType} argument is {@code null}.
+     * @since 2.0.0
+     */
+    public static Subject newSubject(final SubjectId subjectId, final SubjectType subjectType,
+            @Nullable final SubjectExpiry subjectExpiry) {
+        return ImmutableSubject.of(subjectId, subjectType, subjectExpiry);
+    }
+
+    /**
      * Returns a new immutable {@link Subject} based on the given JSON object.
      *
      * @param subjectIssuerWithId the Subject issuer + Subject ID (separated with a "{@value
@@ -149,6 +197,7 @@ public final class PoliciesModelFactory {
      * @return the new Subject.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code jsonObject} cannot be parsed.
+     * @throws SubjectExpiryInvalidException if the provided {@code expiry} could not be parsed as ISO-8601 timestamp.
      */
     public static Subject newSubject(final CharSequence subjectIssuerWithId, final JsonObject jsonObject) {
         return ImmutableSubject.fromJson(subjectIssuerWithId, jsonObject);
@@ -224,6 +273,14 @@ public final class PoliciesModelFactory {
 
         argumentNotEmpty(typeWithPath, "typeWithPath");
 
+        final Validator validator = NoControlCharactersValidator.getInstance(typeWithPath);
+        if (!validator.isValid()) {
+            throw PolicyEntryInvalidException.newBuilder()
+                    .message("The Policy Resource " + typeWithPath + " is invalid")
+                    .description(validator.getReason().orElse(null))
+                    .build();
+        }
+
         final String[] typeWithPathSplit = splitTypeWithPath(typeWithPath.toString());
         return ImmutableResourceKey.newInstance(typeWithPathSplit[0], JsonPointer.of(typeWithPathSplit[1]));
     }
@@ -250,6 +307,22 @@ public final class PoliciesModelFactory {
     public static ResourceKey newResourceKey(final CharSequence resourceType, final CharSequence resourcePath) {
         checkNotNull(resourcePath, "resource path");
         return ImmutableResourceKey.newInstance(resourceType, JsonPointer.of(resourcePath));
+    }
+
+    /**
+     * Returns a {@link ResourceKey} for the given {@link JsonPointer}.
+     *
+     * @param pointer the json pointer representing a resource key e.g. /thing:/path1/path2/...
+     * @return a new ResourceKey.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code pointer} is empty.
+     */
+    public static ResourceKey newResourceKey(final JsonPointer pointer) {
+        checkNotNull(pointer, "pointer");
+        checkNotEmpty(pointer, "pointer");
+        // omit leading slash
+        final String typeWithPath = pointer.toString().substring(1);
+        return newResourceKey(typeWithPath);
     }
 
     /**
@@ -419,7 +492,8 @@ public final class PoliciesModelFactory {
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code label} is empty.
      */
-    public static PolicyEntry newPolicyEntry(final CharSequence label, final Iterable<Subject> subjects, final Iterable<Resource> resources) {
+    public static PolicyEntry newPolicyEntry(final CharSequence label, final Iterable<Subject> subjects,
+            final Iterable<Resource> resources) {
         return ImmutablePolicyEntry.of(Label.of(label), newSubjects(subjects), newResources(resources));
     }
 
@@ -445,7 +519,8 @@ public final class PoliciesModelFactory {
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code label} is empty.
      * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code jsonObject} cannot be parsed.
-     * @throws PolicyIdInvalidException if the parsed policy ID did not comply to {@link Policy#ID_REGEX}.
+     * @throws PolicyIdInvalidException if the parsed policy ID did not comply to
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static PolicyEntry newPolicyEntry(final CharSequence label, final JsonValue jsonValue) {
         final JsonObject jsonObject = wrapJsonRuntimeException(jsonValue::asObject);
@@ -479,7 +554,7 @@ public final class PoliciesModelFactory {
         checkNotNull(jsonObject, "JSON object");
         return jsonObject.stream()
                 .map(jsonField -> newPolicyEntry(jsonField.getKey(), jsonField.getValue()))
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     /**
@@ -498,11 +573,32 @@ public final class PoliciesModelFactory {
     /**
      * Returns a mutable builder with a fluent API for an immutable {@link Policy}.
      *
+     * @return the new builder.
+     */
+    public static PolicyBuilder newPolicyBuilder() {
+        return ImmutablePolicyBuilder.newInstance();
+    }
+
+    /**
+     * Returns a mutable builder with a fluent API for an immutable {@link Policy}.
+     *
      * @param id the ID of the new Policy.
      * @return the new builder.
      * @throws PolicyIdInvalidException if {@code id} is invalid.
+     * @deprecated policy ID is now typed. Use {@link #newPolicyBuilder(PolicyId)} instead.
      */
+    @Deprecated
     public static PolicyBuilder newPolicyBuilder(final CharSequence id) {
+        return ImmutablePolicyBuilder.of(PolicyId.of(id));
+    }
+
+    /**
+     * Returns a mutable builder with a fluent API for an immutable {@link Policy}.
+     *
+     * @param id the ID of the new Policy.
+     * @return the new builder.
+     */
+    public static PolicyBuilder newPolicyBuilder(final PolicyId id) {
         return ImmutablePolicyBuilder.of(id);
     }
 
@@ -525,8 +621,23 @@ public final class PoliciesModelFactory {
      * @return the new builder.
      * @throws NullPointerException if {@code policyEntries} is {@code null}.
      * @throws org.eclipse.ditto.model.policies.PolicyIdInvalidException if {@code id} is invalid.
+     * @deprecated Policy ID is now typed. Use {@link #newPolicyBuilder(PolicyId, Iterable)} )} instead.
      */
+    @Deprecated
     public static PolicyBuilder newPolicyBuilder(final CharSequence id, final Iterable<PolicyEntry> policyEntries) {
+        return ImmutablePolicyBuilder.of(PolicyId.of(id), policyEntries);
+    }
+
+    /**
+     * Returns a mutable builder with a fluent API for an immutable {@link Policy}. The builder is initialised
+     * with the given Policy entries.
+     *
+     * @param id the ID of the new Policy.
+     * @param policyEntries the initial entries of the new builder.
+     * @return the new builder.
+     * @throws NullPointerException if {@code policyEntries} is {@code null}.
+     */
+    public static PolicyBuilder newPolicyBuilder(final PolicyId id, final Iterable<PolicyEntry> policyEntries) {
         return ImmutablePolicyBuilder.of(id, policyEntries);
     }
 
@@ -538,7 +649,9 @@ public final class PoliciesModelFactory {
      * @param furtherEntries additional entries of the Policy.
      * @return the new initialised Policy.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use {@link #newPolicy(PolicyId, PolicyEntry, PolicyEntry...)} instead.
      */
+    @Deprecated
     public static Policy newPolicy(final CharSequence id, final PolicyEntry entry,
             final PolicyEntry... furtherEntries) {
 
@@ -549,7 +662,45 @@ public final class PoliciesModelFactory {
         allEntries.add(entry);
         Collections.addAll(allEntries, furtherEntries);
 
-        return ImmutablePolicy.of(id, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null, allEntries);
+        return ImmutablePolicy.of(PolicyId.of(id), PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null,
+                allEntries);
+    }
+
+    /**
+     * Returns a new immutable Policy which is initialised with the specified entries.
+     *
+     * @param id the ID of the new Policy.
+     * @param entry the mandatory entry of the Policy.
+     * @param furtherEntries additional entries of the Policy.
+     * @return the new initialised Policy.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static Policy newPolicy(final PolicyId id, final PolicyEntry entry,
+            final PolicyEntry... furtherEntries) {
+
+        checkNotNull(entry, "mandatory entry");
+        checkNotNull(furtherEntries, "additional policy entries");
+
+        final Collection<PolicyEntry> allEntries = new HashSet<>(1 + furtherEntries.length);
+        allEntries.add(entry);
+        Collections.addAll(allEntries, furtherEntries);
+
+        return ImmutablePolicy.of(id, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null, null, allEntries);
+    }
+
+    /**
+     * Returns a new immutable Policy which is initialised with the specified entries.
+     *
+     * @param id the ID of the new Policy.
+     * @param entries the entries of the Policy.
+     * @return the new initialised Policy.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use {@link #newPolicy(PolicyId, Iterable)} instead.
+     */
+    @Deprecated
+    public static Policy newPolicy(final CharSequence id, final Iterable<PolicyEntry> entries) {
+        return ImmutablePolicy.of(PolicyId.of(id), PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null,
+                entries);
     }
 
     /**
@@ -560,8 +711,8 @@ public final class PoliciesModelFactory {
      * @return the new initialised Policy.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static Policy newPolicy(final CharSequence id, final Iterable<PolicyEntry> entries) {
-        return ImmutablePolicy.of(id, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null, entries);
+    public static Policy newPolicy(final PolicyId id, final Iterable<PolicyEntry> entries) {
+        return ImmutablePolicy.of(id, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null, null, entries);
     }
 
     /**

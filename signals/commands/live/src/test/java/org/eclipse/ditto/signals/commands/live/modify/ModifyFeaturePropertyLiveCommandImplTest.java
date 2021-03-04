@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -82,8 +84,8 @@ public final class ModifyFeaturePropertyLiveCommandImplTest {
 
         assertThatExceptionOfType(ClassCastException.class)
                 .isThrownBy(() -> ModifyFeaturePropertyLiveCommandImpl.of(commandMock))
-                .withMessageEndingWith(
-                        MessageFormat.format("cannot be cast to {0}", ModifyFeatureProperty.class.getName()))
+                .withMessageContaining(
+                        ModifyFeatureProperty.class.getName())
                 .withNoCause();
     }
 
@@ -93,7 +95,7 @@ public final class ModifyFeaturePropertyLiveCommandImplTest {
         assertThat(underTest)
                 .withType(twinCommand.getType())
                 .withDittoHeaders(twinCommand.getDittoHeaders())
-                .withId(twinCommand.getThingId())
+                .withId(twinCommand.getThingEntityId())
                 .withManifest(twinCommand.getManifest())
                 .withResourcePath(twinCommand.getResourcePath());
         assertThat(underTest.getFeatureId()).isEqualTo(twinCommand.getFeatureId());

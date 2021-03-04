@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -25,22 +27,29 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AccessControlListModelFactory;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * Response to a {@link RetrieveAcl} command.
+ *
+ * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
  */
+@Deprecated
 @Immutable
-public final class RetrieveAclResponse extends AbstractCommandResponse<RetrieveAclResponse> implements
-        ThingQueryCommandResponse<RetrieveAclResponse> {
+@JsonParsableCommandResponse(type = RetrieveAclResponse.TYPE)
+public final class RetrieveAclResponse extends AbstractCommandResponse<RetrieveAclResponse>
+        implements ThingQueryCommandResponse<RetrieveAclResponse> {
 
     /**
      * Type of this response.
@@ -50,12 +59,15 @@ public final class RetrieveAclResponse extends AbstractCommandResponse<RetrieveA
     static final JsonFieldDefinition<JsonObject> JSON_ACL =
             JsonFactory.newJsonObjectFieldDefinition("acl", FieldType.REGULAR, JsonSchemaVersion.V_1);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final JsonObject acl;
 
-    private RetrieveAclResponse(final String thingId, final HttpStatusCode statusCode, final JsonObject acl,
+    private RetrieveAclResponse(final ThingId thingId,
+            final HttpStatus httpStatus,
+            final JsonObject acl,
             final DittoHeaders dittoHeaders) {
-        super(TYPE, statusCode, dittoHeaders);
+
+        super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thing ID");
         this.acl = checkNotNull(acl, "AccessControlList");
     }
@@ -68,10 +80,13 @@ public final class RetrieveAclResponse extends AbstractCommandResponse<RetrieveA
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonObject, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
-    public static RetrieveAclResponse of(final String thingId, final JsonObject acl,
-            final DittoHeaders dittoHeaders) {
-        return new RetrieveAclResponse(thingId, HttpStatusCode.OK, acl, dittoHeaders);
+    @Deprecated
+    public static RetrieveAclResponse of(final String thingId, final JsonObject acl, final DittoHeaders dittoHeaders) {
+        return of(ThingId.of(thingId), acl, dittoHeaders);
     }
 
     /**
@@ -83,11 +98,45 @@ public final class RetrieveAclResponse extends AbstractCommandResponse<RetrieveA
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
+    public static RetrieveAclResponse of(final ThingId thingId, final JsonObject acl, final DittoHeaders dittoHeaders) {
+        return new RetrieveAclResponse(thingId, HttpStatus.OK, acl, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@link RetrieveAcl} command.
+     *
+     * @param thingId the Thing ID of the retrieved Acl.
+     * @param acl the retrieved AccessControlList.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.AccessControlList, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
     public static RetrieveAclResponse of(final String thingId, final AccessControlList acl,
             final DittoHeaders dittoHeaders) {
-        return new RetrieveAclResponse(thingId, HttpStatusCode.OK,
-                checkNotNull(acl, "AccessControlList")
-                        .toJson(dittoHeaders.getSchemaVersion().orElse(acl.getLatestSchemaVersion())),
+
+        return of(ThingId.of(thingId), acl, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@link RetrieveAcl} command.
+     *
+     * @param thingId the Thing ID of the retrieved Acl.
+     * @param acl the retrieved AccessControlList.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static RetrieveAclResponse of(final ThingId thingId, final AccessControlList acl,
+            final DittoHeaders dittoHeaders) {
+
+        return new RetrieveAclResponse(thingId,
+                HttpStatus.OK,
+                checkNotNull(acl, "AccessControlList").toJson(dittoHeaders.getSchemaVersion()
+                        .orElse(acl.getLatestSchemaVersion())),
                 dittoHeaders);
     }
 
@@ -97,7 +146,7 @@ public final class RetrieveAclResponse extends AbstractCommandResponse<RetrieveA
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
@@ -112,15 +161,16 @@ public final class RetrieveAclResponse extends AbstractCommandResponse<RetrieveA
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
     public static RetrieveAclResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrieveAclResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String thingId =
-                            jsonObject.getValueOrThrow(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
+                .deserialize(httpStatus -> {
+                    final String extractedThingId =
+                            jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
                     final JsonObject aclJsonObject = jsonObject.getValueOrThrow(JSON_ACL);
                     final AccessControlList extractedAcl = ThingsModelFactory.newAcl(aclJsonObject);
 
@@ -129,7 +179,7 @@ public final class RetrieveAclResponse extends AbstractCommandResponse<RetrieveA
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -166,8 +216,9 @@ public final class RetrieveAclResponse extends AbstractCommandResponse<RetrieveA
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_ACL, acl, predicate);
     }
 

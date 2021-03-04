@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+  ~ Copyright (c) 2017 Contributors to the Eclipse Foundation
   ~
-  ~ All rights reserved. This program and the accompanying materials
-  ~ are made available under the terms of the Eclipse Public License v2.0
-  ~ which accompanies this distribution, and is available at
-  ~ https://www.eclipse.org/org/documents/epl-2.0/index.php
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
   ~
   ~ SPDX-License-Identifier: EPL-2.0
   -->
@@ -67,8 +69,12 @@
                 <groupId>com.github.siom79.japicmp</groupId>
                 <artifactId>japicmp-maven-plugin</artifactId>
                 <configuration>
-                    <!-- TODO enable after initial release -->
-                    <skip>true</skip>
+                    <parameter>
+                        <excludes>
+                            <!-- Don't add excludes here before checking with the whole Ditto team -->
+                            <!--<exclude></exclude>-->
+                        </excludes>
+                    </parameter>
                 </configuration>
             </plugin>
 
@@ -77,7 +83,6 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <systemPropertyVariables>
-                        <ditto.limits.namespaces.max-size.bytes>102400</ditto.limits.namespaces.max-size.bytes> <!--  100 KiB -->
                     </systemPropertyVariables>
                 </configuration>
             </plugin>

@@ -1,20 +1,25 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.utils.metrics.instruments.timer;
 
-import java.util.ArrayList;
+import java.time.Duration;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
@@ -22,31 +27,67 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import kamon.Kamon;
-import kamon.metric.AtomicHdrHistogram;
-import kamon.metric.Bucket;
-import kamon.metric.Histogram;
-import kamon.metric.MetricDistribution;
+import kamon.metric.Distribution;
 import kamon.metric.Timer;
-import kamon.metric.TimerImpl;
-import scala.collection.Seq;
+import kamon.tag.TagSet;
 
 /**
  * Kamon based implementation of {@link PreparedTimer}.
  */
-public class PreparedKamonTimer implements PreparedTimer {
+final class PreparedKamonTimer implements PreparedTimer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PreparedKamonTimer.class);
+    private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     private final String name;
     private final Map<String, String> tags;
+    private final Duration maximumDuration;
+    private final Consumer<StartedTimer> additionalExpirationHandling;
 
     private PreparedKamonTimer(final String name) {
+        this(name, new HashMap<>(), Duration.ofMinutes(5), startedTimer -> {});
+    }
+
+    private PreparedKamonTimer(final String name, final Map<String, String> tags, final Duration maximumDuration,
+            final Consumer<StartedTimer> additionalExpirationHandling) {
+
         this.name = name;
-        this.tags = new HashMap<>();
+        this.tags = tags;
+        this.maximumDuration = maximumDuration;
+        this.additionalExpirationHandling = additionalExpirationHandling;
     }
 
     static PreparedTimer newTimer(final String name) {
         return new PreparedKamonTimer(name);
+    }
+
+    private static void defaultExpirationHandling(final String tracingFilter, final StartedTimer timer,
+            @Nullable Consumer<StartedTimer> additionalExpirationHandling) {
+        LOGGER.trace("Trace for {} stopped. Cause: Timer expired", tracingFilter);
+
+        if (additionalExpirationHandling != null) {
+            try {
+                additionalExpirationHandling.accept(timer);
+            } finally {
+                if (timer.isRunning()) {
+                    timer.stop();
+                }
+            }
+        } else {
+            if (timer.isRunning()) {
+                timer.stop();
+            }
+        }
+    }
+
+    private static void cancelScheduledExpiration(final StoppedTimer timer, final ScheduledFuture<?> expirationFuture) {
+        if (!expirationFuture.isDone()) {
+            final boolean canceled = expirationFuture.cancel(false);
+            if (canceled) {
+                LOGGER.trace("Canceled expiration handling of MutableKamonTimer <{}> because it has been stopped " +
+                        "before timeout", timer.getName());
+            }
+        }
     }
 
     @Override
@@ -73,13 +114,18 @@ public class PreparedKamonTimer implements PreparedTimer {
     }
 
     /**
-     * Starts the Timer. This method is package private so only {@link DefaultTimerBuilder} can start
+     * Starts the Timer. This method is package private so only {@link Timers} can start
      * this timer.
      *
      * @return The started {@link StartedTimer}
      */
     public StartedTimer start() {
-        return StartedKamonTimer.fromPreparedTimer(this);
+        final StartedTimer timer = StartedKamonTimer.fromPreparedTimer(this);
+        final ScheduledFuture<?> expirationFuture = scheduler.schedule(
+                () -> defaultExpirationHandling(timer.getName(), timer, additionalExpirationHandling),
+                maximumDuration.toMillis(), TimeUnit.MILLISECONDS);
+        timer.onStop(new OnStopHandler(stoppedTimer -> cancelScheduledExpiration(stoppedTimer, expirationFuture)));
+        return timer;
     }
 
     @Override
@@ -89,16 +135,23 @@ public class PreparedKamonTimer implements PreparedTimer {
     }
 
     @Override
-    public Long[] getRecords() {
-        final List<Long> values = new ArrayList<>();
-        final Seq<Bucket> buckets = getSnapshot(false).distribution().buckets();
-        buckets.toStream().foreach(bucket -> addBucketValuesToList(bucket, values));
-        return values.toArray(new Long[0]);
+    public Long getTotalTime() {
+        return getSnapshot(false).sum();
     }
 
     @Override
     public Long getNumberOfRecords() {
-        return getSnapshot(false).distribution().count();
+        return getSnapshot(false).count();
+    }
+
+    @Override
+    public PreparedTimer maximumDuration(final Duration maximumDuration) {
+        return new PreparedKamonTimer(name, tags, maximumDuration, additionalExpirationHandling);
+    }
+
+    @Override
+    public PreparedTimer onExpiration(final Consumer<StartedTimer> additionalExpirationHandling) {
+        return new PreparedKamonTimer(name, tags, maximumDuration, additionalExpirationHandling);
     }
 
     @Override
@@ -118,30 +171,17 @@ public class PreparedKamonTimer implements PreparedTimer {
         return true;
     }
 
-    private MetricDistribution getSnapshot(boolean reset) {
+    private Distribution getSnapshot(boolean reset) {
         final Timer kamonInternalTimer = getKamonInternalTimer();
-        Histogram histogram;
-        if (kamonInternalTimer instanceof TimerImpl) {
-            histogram = ((TimerImpl) kamonInternalTimer).histogram();
+        if (kamonInternalTimer instanceof Timer.Atomic) {
+            return ((Timer.Atomic) kamonInternalTimer).snapshot(reset);
         } else {
             throw new IllegalStateException("Could not get snapshot of kamon timer");
         }
-
-        if (histogram instanceof AtomicHdrHistogram) {
-            return ((AtomicHdrHistogram) histogram).snapshot(reset);
-        }
-        throw new IllegalStateException("Could not get snapshot of kamon timer");
     }
 
     private kamon.metric.Timer getKamonInternalTimer() {
-        return Kamon.timer(name).refine(this.tags);
-    }
-
-    private List<Long> addBucketValuesToList(Bucket bucket, List<Long> values) {
-        for (int i = 0; i < bucket.frequency(); i++) {
-            values.add(bucket.value());
-        }
-        return values;
+        return Kamon.timer(name).withTags(TagSet.from(new HashMap<>(this.tags)));
     }
 
 

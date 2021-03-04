@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -17,11 +19,14 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.services.models.policies.TestConstants;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -33,8 +38,8 @@ public final class SudoRetrievePolicyResponseTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder() //
             .set(SudoCommandResponse.JsonFields.TYPE, SudoRetrievePolicyResponse.TYPE) //
-            .set(SudoCommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt()) //
-            .set(SudoCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID) //
+            .set(SudoCommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode()) //
+            .set(SudoCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString()) //
             .set(SudoRetrievePolicyResponse.JSON_POLICY,
                     TestConstants.Policy.POLICY.toJson(FieldType.regularOrSpecial())) //
             .build();
@@ -45,7 +50,7 @@ public final class SudoRetrievePolicyResponseTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(SudoRetrievePolicyResponse.class, areImmutable(),
-                provided(JsonObject.class).isAlsoImmutable());
+                provided(JsonObject.class, PolicyId.class).isAlsoImmutable());
     }
 
     /** */
@@ -95,10 +100,10 @@ public final class SudoRetrievePolicyResponseTest {
         final SudoRetrievePolicyResponse sudoRetrieveThingResponse =
                 SudoRetrievePolicyResponse.fromJson(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
 
-        final SudoCommandResponse sudoCommandResponse =
-                SudoCommandResponseRegistry.newInstance().parse(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
+        final CommandResponse commandResponse =
+                GlobalCommandResponseRegistry.getInstance().parse(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
 
-        assertThat(sudoRetrieveThingResponse).isEqualTo(sudoCommandResponse);
+        assertThat(sudoRetrieveThingResponse).isEqualTo(commandResponse);
     }
 
 }

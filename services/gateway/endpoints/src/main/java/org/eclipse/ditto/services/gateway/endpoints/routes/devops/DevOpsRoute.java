@@ -1,28 +1,21 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.devops;
 
-import static akka.http.javadsl.server.Directives.extractDataBytes;
-import static akka.http.javadsl.server.Directives.get;
-import static akka.http.javadsl.server.Directives.parameterOptional;
-import static akka.http.javadsl.server.Directives.post;
-import static akka.http.javadsl.server.Directives.put;
-import static akka.http.javadsl.server.Directives.rawPathPrefix;
-import static akka.http.javadsl.server.Directives.route;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.REALM_DEVOPS;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.authenticateDevopsBasic;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevOpsOAuth2AuthenticationDirective.REALM_DEVOPS;
 
-import java.util.Optional;
-import java.util.UUID;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 
@@ -30,11 +23,20 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.devops.ImmutableLoggerConfig;
+import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevopsAuthenticationDirective;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
+import org.eclipse.ditto.services.gateway.endpoints.routes.QueryParametersToHeadersMap;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
+import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
+import org.eclipse.ditto.signals.commands.common.RetrieveConfig;
 import org.eclipse.ditto.signals.commands.devops.ChangeLogLevel;
+import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
 import org.eclipse.ditto.signals.commands.devops.ExecutePiggybackCommand;
 import org.eclipse.ditto.signals.commands.devops.RetrieveLoggerConfig;
 
@@ -43,7 +45,6 @@ import akka.actor.ActorSystem;
 import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
-import akka.http.javadsl.unmarshalling.Unmarshaller;
 import akka.japi.function.Function;
 
 /**
@@ -52,46 +53,75 @@ import akka.japi.function.Function;
 public final class DevOpsRoute extends AbstractRoute {
 
     /**
-     * Public endpoint of devops.
+     * Public endpoint of DevOps.
      */
-    public static final String PATH_DEVOPS = "devops";
+    private static final String PATH_DEVOPS = "devops";
+
+    /**
+     * Actor path of DevOpsCommandsActor for ALL services. Not starting DevOpsCommandsActor at this path results
+     * in the service not getting any RetrieveConfig commands.
+     */
+    public static final String DEVOPS_COMMANDS_ACTOR_SELECTION = "/user/devOpsCommandsActor";
 
     private static final String PATH_LOGGING = "logging";
     private static final String PATH_PIGGYBACK = "piggyback";
+    private static final String PATH_CONFIG = "config";
 
     /**
-     * Timeout in milliseconds of how long to wait for all responses before returning.
+     * Path parameter for retrieving config.
      */
-    private static final String TIMEOUT_PARAMETER = "timeout";
+    private static final String PATH_PARAMETER = "path";
+
+    private final HttpConfig httpConfig;
+    private final DevopsAuthenticationDirective devOpsAuthenticationDirective;
 
     /**
      * Constructs the {@code /devops} route builder.
      *
      * @param actorSystem the Actor System.
+     * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
+     * @param commandConfig the configuration settings of the Gateway service's incoming command processing.
+     * @param headerTranslator translates headers from external sources or to external sources.
+     * @param devOpsAuthenticationDirective the authentication handler for the Devops directive.
+     * @throws NullPointerException if any argument is {@code null}.
      */
-    public DevOpsRoute(final ActorRef proxyActor, final ActorSystem actorSystem) {
-        super(proxyActor, actorSystem);
+    public DevOpsRoute(final ActorRef proxyActor,
+            final ActorSystem actorSystem,
+            final HttpConfig httpConfig,
+            final CommandConfig commandConfig,
+            final HeaderTranslator headerTranslator,
+            final DevopsAuthenticationDirective devOpsAuthenticationDirective) {
+
+        super(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator);
+        this.httpConfig = httpConfig;
+        this.devOpsAuthenticationDirective = devOpsAuthenticationDirective;
     }
 
     /**
      * @return the {@code /devops} route.
+     * @throws NullPointerException if any argument is {@code null}.
      */
-    public Route buildDevopsRoute(final RequestContext ctx) {
-        return rawPathPrefix(mergeDoubleSlashes().concat(PATH_DEVOPS), () -> // /devops
-                authenticateDevopsBasic(REALM_DEVOPS,
-                        parameterOptional(Unmarshaller.sync(Long::parseLong), TIMEOUT_PARAMETER, optionalTimeout ->
-                                route(
-                                        rawPathPrefix(mergeDoubleSlashes().concat(PATH_LOGGING),
-                                                () -> // /devops/logging
-                                                        logging(ctx, createHeaders(optionalTimeout))
-                                        ),
-                                        rawPathPrefix(mergeDoubleSlashes().concat(PATH_PIGGYBACK),
-                                                () -> // /devops/piggyback
-                                                        piggyback(ctx, createHeaders(optionalTimeout))
-                                        )
-                                )
-                        )
-                ));
+    public Route buildDevOpsRoute(final RequestContext ctx, final Map<String, String> queryParameters) {
+        checkNotNull(ctx, "ctx");
+        checkNotNull(queryParameters, "queryParameters");
+
+        return rawPathPrefix(PathMatchers.slash().concat(PATH_DEVOPS), () -> {// /devops
+            return devOpsAuthenticationDirective.authenticateDevOps(REALM_DEVOPS,
+                    concat(
+                            rawPathPrefix(PathMatchers.slash().concat(PATH_LOGGING),
+                                    () -> // /devops/logging
+                                            logging(ctx, createHeaders(queryParameters))
+                            ),
+                            rawPathPrefix(PathMatchers.slash().concat(PATH_PIGGYBACK),
+                                    () -> // /devops/piggyback
+                                            piggyback(ctx, createHeaders(queryParameters))
+                            ),
+                            rawPathPrefix(PathMatchers.slash().concat(PATH_CONFIG),
+                                    () -> // /devops/config
+                                            config(ctx, createHeaders(queryParameters)))
+                    )
+            );
+        });
     }
 
     /*
@@ -109,13 +139,19 @@ public final class DevOpsRoute extends AbstractRoute {
     }
 
     /*
+     * @return {@code /devops/config} route.
+     */
+    private Route config(final RequestContext ctx, final DittoHeaders dittoHeaders) {
+        return buildRouteWithOptionalServiceNameAndInstance(ctx, dittoHeaders, this::routeConfig);
+    }
+
+    /*
      * @return {@code /devops/<logging|piggyback>/} route.
      */
-    private static Route buildRouteWithOptionalServiceNameAndInstance(final RequestContext ctx,
-            final DittoHeaders dittoHeaders,
-            final RouteBuilderWithOptionalServiceNameAndInstance routeBuilder) {
+    private Route buildRouteWithOptionalServiceNameAndInstance(final RequestContext ctx,
+            final DittoHeaders dittoHeaders, final RouteBuilderWithOptionalServiceNameAndInstance routeBuilder) {
 
-        return route(
+        return concat(
                 // /devops/<logging|piggyback>/<serviceName>
                 buildRouteWithServiceNameAndOptionalInstance(ctx, dittoHeaders, routeBuilder),
                 // /devops/<logging|piggyback>/
@@ -126,12 +162,11 @@ public final class DevOpsRoute extends AbstractRoute {
     /*
      * @return {@code /devops/<logging|piggyback>/<serviceName>} route.
      */
-    private static Route buildRouteWithServiceNameAndOptionalInstance(final RequestContext ctx,
-            final DittoHeaders dittoHeaders,
-            final RouteBuilderWithOptionalServiceNameAndInstance routeBuilder) {
+    private Route buildRouteWithServiceNameAndOptionalInstance(final RequestContext ctx,
+            final DittoHeaders dittoHeaders, final RouteBuilderWithOptionalServiceNameAndInstance routeBuilder) {
 
-        return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), serviceName ->
-                route(
+        return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), serviceName ->
+                concat(
                         // /devops/<logging|piggyback>/<serviceName>/<instance>
                         buildRouteWithServiceNameAndInstance(ctx, serviceName, dittoHeaders, routeBuilder),
                         // /devops/<logging|piggyback>/<serviceName>
@@ -143,21 +178,23 @@ public final class DevOpsRoute extends AbstractRoute {
     /*
      * @return {@code /devops/<logging|piggyback>/<serviceName>/<instance>} route.
      */
-    private static Route buildRouteWithServiceNameAndInstance(final RequestContext ctx,
+    private Route buildRouteWithServiceNameAndInstance(final RequestContext ctx,
             final String serviceName,
             final DittoHeaders dittoHeaders,
             final RouteBuilderWithOptionalServiceNameAndInstance routeBuilder) {
 
-        return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), instance ->
+        return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), instance ->
                 // /devops/<logging|piggyback>/<serviceName>/<instance>
-                routeBuilder.build(ctx, serviceName, Integer.parseInt(instance), dittoHeaders)
+                routeBuilder.build(ctx, serviceName, instance, dittoHeaders)
         );
     }
 
-    private Route routeLogging(final RequestContext ctx, final String serviceName, final Integer instance,
+    private Route routeLogging(final RequestContext ctx,
+            final String serviceName,
+            final String instance,
             final DittoHeaders dittoHeaders) {
 
-        return route(
+        return concat(
                 get(() ->
                         handlePerRequest(ctx,
                                 RetrieveLoggerConfig.ofAllKnownLoggers(serviceName, instance, dittoHeaders),
@@ -177,16 +214,37 @@ public final class DevOpsRoute extends AbstractRoute {
         );
     }
 
-    private Route routePiggyback(final RequestContext ctx, @Nullable final String serviceName,
-            @Nullable final Integer instance, final DittoHeaders dittoHeaders) {
+    private Route routePiggyback(final RequestContext ctx,
+            @Nullable final String serviceName,
+            @Nullable final String instance,
+            final DittoHeaders dittoHeaders) {
+
         return post(() ->
                 extractDataBytes(payloadSource ->
                         handlePerRequest(ctx, dittoHeaders, payloadSource,
                                 piggybackCommandJson -> {
-                                    final JsonObject parsedJson =
-                                            JsonFactory.readFrom(piggybackCommandJson).asObject();
+                                    final JsonObject parsedJson = DittoJsonException.wrapJsonRuntimeException(() ->
+                                            JsonFactory.readFrom(piggybackCommandJson).asObject());
 
-                                    return ExecutePiggybackCommand.of(serviceName, instance,
+                                    final String serviceName1;
+                                    final String instance1;
+
+                                    // serviceName and instance from URL are preferred
+                                    if (serviceName == null) {
+                                        serviceName1 = parsedJson.getValue(DevOpsCommand.JsonFields.JSON_SERVICE_NAME)
+                                                .orElse(serviceName);
+                                    } else {
+                                        serviceName1 = serviceName;
+                                    }
+
+                                    if (instance == null) {
+                                        instance1 = parsedJson.getValue(DevOpsCommand.JsonFields.JSON_INSTANCE)
+                                                .orElse(instance);
+                                    } else {
+                                        instance1 = instance;
+                                    }
+
+                                    return ExecutePiggybackCommand.of(serviceName1, instance1,
                                             parsedJson.getValueOrThrow(
                                                     ExecutePiggybackCommand.JSON_TARGET_ACTORSELECTION),
                                             parsedJson.getValueOrThrow(
@@ -196,7 +254,8 @@ public final class DevOpsRoute extends AbstractRoute {
                                                     .map(JsonValue::asObject)
                                                     .map(DittoHeaders::newBuilder)
                                                     .map(head -> head.putHeaders(dittoHeaders))
-                                                    .map(DittoHeadersBuilder::build)
+                                                    .map((java.util.function.Function<DittoHeadersBuilder, DittoHeaders>)
+                                                            DittoHeadersBuilder::build)
                                                     .orElse(dittoHeaders));
                                 }
                         )
@@ -204,41 +263,64 @@ public final class DevOpsRoute extends AbstractRoute {
         );
     }
 
-    private static Function<JsonValue, JsonValue> transformResponse(final String serviceName, final Integer instance) {
+    private Route routeConfig(final RequestContext ctx,
+            final String serviceName,
+            final String instance,
+            final DittoHeaders dittoHeaders) {
+
+        final DittoHeaders headersWithAggregate = dittoHeaders.toBuilder()
+                .putHeader(DevOpsCommandsActor.AGGREGATE_HEADER,
+                        String.valueOf(serviceName == null || instance == null))
+                .build();
+
+        return get(() -> parameterOptional(PATH_PARAMETER, path ->
+                handlePerRequest(ctx,
+                        ExecutePiggybackCommand.of(serviceName,
+                                instance,
+                                DEVOPS_COMMANDS_ACTOR_SELECTION,
+                                RetrieveConfig.of(path.orElse(null), headersWithAggregate).toJson(),
+                                headersWithAggregate))));
+    }
+
+    private static Function<JsonValue, JsonValue> transformResponse(final CharSequence serviceName,
+            final CharSequence instance) {
+
         final JsonPointer transformerPointer = transformerPointer(serviceName, instance);
         if (transformerPointer.isEmpty()) {
             return resp -> resp;
-        } else {
-            return resp -> resp.asObject()
-                    .getValue(transformerPointer)
-                    .orElse(JsonFactory.nullObject());
         }
+        return resp -> resp.asObject()
+                .getValue(transformerPointer)
+                .orElse(JsonFactory.nullObject());
     }
 
-    private static JsonPointer transformerPointer(@Nullable final String serviceName,
-            @Nullable final Integer instance) {
+    private static JsonPointer transformerPointer(@Nullable final CharSequence serviceName,
+            @Nullable final CharSequence instance) {
+
         JsonPointer newPointer = JsonPointer.empty();
         if (serviceName != null) {
             newPointer = newPointer.append(JsonPointer.of(serviceName));
         }
         if (instance != null) {
-            newPointer = newPointer.append(JsonPointer.of(instance.toString()));
+            newPointer = newPointer.append(JsonPointer.of(instance));
         }
         return newPointer;
     }
 
-    private static DittoHeaders createHeaders(final Optional<Long> optionalTimeout) {
-        final DittoHeadersBuilder headersBuilder =
-                DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString());
-        optionalTimeout.ifPresent(t -> headersBuilder.putHeader(TIMEOUT_PARAMETER, Long.toString(t)));
-        return headersBuilder.build();
+    private DittoHeaders createHeaders(final Map<String, String> queryParameters) {
+        final QueryParametersToHeadersMap queryParamsToHeaders = QueryParametersToHeadersMap.getInstance(httpConfig);
+
+        return DittoHeaders.newBuilder()
+                .randomCorrelationId()
+                .putHeaders(queryParamsToHeaders.apply(queryParameters))
+                .build();
     }
 
     @FunctionalInterface
     private interface RouteBuilderWithOptionalServiceNameAndInstance {
 
-        Route build(final RequestContext ctx, final String serviceName, final Integer instance,
-                final DittoHeaders dittoHeaders);
+        Route build(RequestContext ctx, String serviceName, String instance, DittoHeaders dittoHeaders);
+
     }
 
 }

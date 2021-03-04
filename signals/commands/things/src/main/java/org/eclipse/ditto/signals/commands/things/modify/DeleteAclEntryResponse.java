@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -26,19 +28,26 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * Response to a {@link DeleteAclEntry} command.
+ *
+ * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
  */
+@Deprecated
 @Immutable
-public final class DeleteAclEntryResponse extends AbstractCommandResponse<DeleteAclEntryResponse> implements
-        ThingModifyCommandResponse<DeleteAclEntryResponse> {
+@JsonParsableCommandResponse(type = DeleteAclEntryResponse.TYPE)
+public final class DeleteAclEntryResponse extends AbstractCommandResponse<DeleteAclEntryResponse>
+        implements ThingModifyCommandResponse<DeleteAclEntryResponse> {
 
     /**
      * Type of this response.
@@ -48,13 +57,13 @@ public final class DeleteAclEntryResponse extends AbstractCommandResponse<Delete
     static final JsonFieldDefinition<String> JSON_AUTHORIZATION_SUBJECT =
             JsonFactory.newStringFieldDefinition("authorizationSubject", FieldType.REGULAR, JsonSchemaVersion.V_1);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final AuthorizationSubject authorizationSubject;
 
-    private DeleteAclEntryResponse(final String thingId, final AuthorizationSubject authorizationSubject,
+    private DeleteAclEntryResponse(final ThingId thingId, final AuthorizationSubject authorizationSubject,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, HttpStatusCode.NO_CONTENT, dittoHeaders);
+        super(TYPE, HttpStatus.NO_CONTENT, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thing ID");
         this.authorizationSubject = checkNotNull(authorizationSubject, "authorization subject");
     }
@@ -67,8 +76,27 @@ public final class DeleteAclEntryResponse extends AbstractCommandResponse<Delete
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.auth.AuthorizationSubject, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static DeleteAclEntryResponse of(final String thingId, final AuthorizationSubject authorizationSubject,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), authorizationSubject, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@link DeleteAclEntry} command.
+     *
+     * @param thingId the Thing ID of the deleted ACL entry.
+     * @param authorizationSubject the deleted authorization subject.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static DeleteAclEntryResponse of(final ThingId thingId, final AuthorizationSubject authorizationSubject,
             final DittoHeaders dittoHeaders) {
 
         return new DeleteAclEntryResponse(thingId, authorizationSubject, dittoHeaders);
@@ -100,20 +128,18 @@ public final class DeleteAclEntryResponse extends AbstractCommandResponse<Delete
      * format.
      */
     public static DeleteAclEntryResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<DeleteAclEntryResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String thingId =
-                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
-                    final String authSubjectId = jsonObject.getValueOrThrow(JSON_AUTHORIZATION_SUBJECT);
-                    final AuthorizationSubject extractedAuthSubject =
-                            AuthorizationModelFactory.newAuthSubject(authSubjectId);
+        return new CommandResponseJsonDeserializer<DeleteAclEntryResponse>(TYPE, jsonObject).deserialize(httpStatus -> {
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
+            final String authSubjectId = jsonObject.getValueOrThrow(JSON_AUTHORIZATION_SUBJECT);
+            final AuthorizationSubject extractedAuthSubject = AuthorizationModelFactory.newAuthSubject(authSubjectId);
 
-                    return of(thingId, extractedAuthSubject, dittoHeaders);
-                });
+            return of(thingId, extractedAuthSubject, dittoHeaders);
+        });
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -134,8 +160,9 @@ public final class DeleteAclEntryResponse extends AbstractCommandResponse<Delete
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_AUTHORIZATION_SUBJECT, authorizationSubject.getId(), predicate);
     }
 
@@ -163,13 +190,15 @@ public final class DeleteAclEntryResponse extends AbstractCommandResponse<Delete
             return false;
         }
         final DeleteAclEntryResponse that = (DeleteAclEntryResponse) o;
-        return that.canEqual(this) && super.equals(o) && Objects.equals(thingId, that.thingId) &&
+        return that.canEqual(this) &&
+                super.equals(o) &&
+                Objects.equals(thingId, that.thingId) &&
                 Objects.equals(authorizationSubject, that.authorizationSubject);
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof DeleteAclEntryResponse);
+        return other instanceof DeleteAclEntryResponse;
     }
 
     @Override

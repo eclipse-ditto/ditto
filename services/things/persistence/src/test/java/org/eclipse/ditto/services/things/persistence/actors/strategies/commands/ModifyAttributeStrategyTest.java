@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -19,6 +21,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.events.things.AttributeCreated;
 import org.eclipse.ditto.signals.events.things.AttributeModified;
@@ -54,25 +58,25 @@ public final class ModifyAttributeStrategyTest extends AbstractCommandStrategyTe
 
     @Test
     public void modifyAttributeOfThingWithoutAttributes() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyAttribute command =
-                ModifyAttribute.of(context.getThingId(), attributePointer, attributeValue, DittoHeaders.empty());
+                ModifyAttribute.of(context.getState(), attributePointer, attributeValue, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2.removeAttributes(), command,
                 AttributeCreated.class,
-                modifyAttributeResponse(context.getThingId(), attributePointer, attributeValue,
+                modifyAttributeResponse(context.getState(), attributePointer, attributeValue,
                         command.getDittoHeaders(), true));
     }
 
     @Test
     public void modifyAttributeOfThingWithoutThatAttribute() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyAttribute command =
-                ModifyAttribute.of(context.getThingId(), attributePointer, attributeValue, DittoHeaders.empty());
+                ModifyAttribute.of(context.getState(), attributePointer, attributeValue, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
                 AttributeCreated.class,
-                modifyAttributeResponse(context.getThingId(), attributePointer, attributeValue,
+                modifyAttributeResponse(context.getState(), attributePointer, attributeValue,
                         command.getDittoHeaders(), true));
     }
 
@@ -81,14 +85,14 @@ public final class ModifyAttributeStrategyTest extends AbstractCommandStrategyTe
         final JsonPointer existingAttributePointer = JsonFactory.newPointer("/location/latitude");
         final JsonValue newAttributeValue = JsonFactory.newValue(42.0D);
 
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyAttribute command =
-                ModifyAttribute.of(context.getThingId(), existingAttributePointer, newAttributeValue,
+                ModifyAttribute.of(context.getState(), existingAttributePointer, newAttributeValue,
                         DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
                 AttributeModified.class,
-                modifyAttributeResponse(context.getThingId(), existingAttributePointer, newAttributeValue,
+                modifyAttributeResponse(context.getState(), existingAttributePointer, newAttributeValue,
                         command.getDittoHeaders(), false));
     }
 

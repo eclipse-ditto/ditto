@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -16,10 +18,12 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
@@ -33,10 +37,12 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DeleteFeaturePropertyTest {
 
     private static final JsonPointer PROPERTY_JSON_POINTER = JsonFactory.newPointer("properties/target_year_1");
+    private static final JsonPointer INVALID_PROPERTY_JSON_POINTER = JsonFactory.newPointer("properties/target_year_1" +
+            "/füü/bar");
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, DeleteFeatureProperty.TYPE)
-            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(DeleteFeatureProperty.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(DeleteFeatureProperty.JSON_PROPERTY, PROPERTY_JSON_POINTER.toString())
             .build();
@@ -46,7 +52,7 @@ public final class DeleteFeaturePropertyTest {
     public void assertImmutability() {
         assertInstancesOf(DeleteFeatureProperty.class,
                 areImmutable(),
-                provided(JsonPointer.class, JsonValue.class).areAlsoImmutable());
+                provided(JsonPointer.class, JsonValue.class, ThingId.class).areAlsoImmutable());
     }
 
 
@@ -59,11 +65,16 @@ public final class DeleteFeaturePropertyTest {
 
 
     @Test(expected = ThingIdInvalidException.class)
-    public void tryToCreateInstanceWithNullThingId() {
-        DeleteFeatureProperty.of(null, TestConstants.Feature.FLUX_CAPACITOR_ID, PROPERTY_JSON_POINTER,
+    public void tryToCreateInstanceWithNullThingIdString() {
+        DeleteFeatureProperty.of((String) null, TestConstants.Feature.FLUX_CAPACITOR_ID, PROPERTY_JSON_POINTER,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
+    @Test(expected = NullPointerException.class)
+    public void tryToCreateInstanceWithNullThingId() {
+        DeleteFeatureProperty.of((ThingId) null, TestConstants.Feature.FLUX_CAPACITOR_ID, PROPERTY_JSON_POINTER,
+                TestConstants.EMPTY_DITTO_HEADERS);
+    }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullFeatureId() {
@@ -78,7 +89,6 @@ public final class DeleteFeaturePropertyTest {
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
-
     @Test
     public void createInstanceWithValidArguments() {
         final DeleteFeatureProperty underTest = DeleteFeatureProperty.of(TestConstants.Thing.THING_ID,
@@ -87,6 +97,12 @@ public final class DeleteFeaturePropertyTest {
         assertThat(underTest).isNotNull();
     }
 
+    @Test(expected = JsonKeyInvalidException.class)
+    public void createInstanceWithInvalidArgument() {
+        DeleteFeatureProperty.of(TestConstants.Thing.THING_ID,
+                TestConstants.Feature.FLUX_CAPACITOR_ID, INVALID_PROPERTY_JSON_POINTER,
+                TestConstants.EMPTY_DITTO_HEADERS);
+    }
 
     @Test
     public void toJsonReturnsExpected() {
@@ -97,14 +113,13 @@ public final class DeleteFeaturePropertyTest {
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
 
-
     @Test
     public void createInstanceFromValidJson() {
         final DeleteFeatureProperty underTest =
                 DeleteFeatureProperty.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
         assertThat(underTest.getPropertyPointer()).isEqualTo(PROPERTY_JSON_POINTER);
     }

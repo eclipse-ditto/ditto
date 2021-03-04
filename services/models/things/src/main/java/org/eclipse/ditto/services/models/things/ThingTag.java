@@ -1,32 +1,33 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.models.things;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.streaming.AbstractEntityIdWithRevision;
 
 /**
  * Represents the ID and revision of a Thing.
  */
 @Immutable
-public final class ThingTag extends AbstractEntityIdWithRevision {
+public final class ThingTag extends AbstractEntityIdWithRevision<ThingId> {
 
-    private ThingTag(final String id, final long revision) {
+    private ThingTag(final ThingId id, final long revision) {
         super(id, revision);
-    }
-
-    private ThingTag(final JsonObject jsonObject) {
-        super(jsonObject);
     }
 
     /**
@@ -36,7 +37,7 @@ public final class ThingTag extends AbstractEntityIdWithRevision {
      * @param revision the revision of the modified Thing.
      * @return a new {@link ThingTag}.
      */
-    public static ThingTag of(final String id, final long revision) {
+    public static ThingTag of(final ThingId id, final long revision) {
         return new ThingTag(id, revision);
     }
 
@@ -52,7 +53,11 @@ public final class ThingTag extends AbstractEntityIdWithRevision {
      * expected format.
      */
     public static ThingTag fromJson(final JsonObject jsonObject) {
-        return new ThingTag(jsonObject);
+        checkNotNull(jsonObject, "JSON object");
+        final ThingId thingId = ThingId.of(jsonObject.getValueOrThrow(JsonFields.ID));
+        final Long revision = jsonObject.getValueOrThrow(JsonFields.REVISION);
+
+        return new ThingTag(thingId, revision);
     }
 
 }

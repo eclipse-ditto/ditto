@@ -1,15 +1,18 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.base;
 
+import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
@@ -18,7 +21,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ErrorResponse<T extends ErrorResponse> extends CommandResponse<T> {
+public interface ErrorResponse<T extends ErrorResponse<T>> extends CommandResponse<T> {
 
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);
@@ -29,4 +32,10 @@ public interface ErrorResponse<T extends ErrorResponse> extends CommandResponse<
      * @return the wrapped exception.
      */
     DittoRuntimeException getDittoRuntimeException();
+
+    @Override
+    default ResponseType getResponseType() {
+        return ResponseType.ERROR;
+    }
+
 }

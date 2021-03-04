@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -19,6 +21,8 @@ import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.services.models.caching.EntityId;
 import org.eclipse.ditto.services.models.caching.Entry;
 import org.eclipse.ditto.services.utils.cache.Cache;
+import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
+import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
@@ -40,19 +44,19 @@ final class PolicyOrAclEnforcerRetrieverFactory {
      * @param aclEnforcerCache the acl-enforcer-cache.
      * @return the instance.
      */
-    public static EnforcerRetriever create(
-            final Cache<EntityId, Entry<EntityId>> idCache,
-            final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
-            final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache) {
+    public static EnforcerRetriever<Enforcer> create(
+            final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> idCache,
+            final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache,
+            final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache) {
         requireNonNull(idCache);
         requireNonNull(policyEnforcerCache);
         requireNonNull(aclEnforcerCache);
 
-        final Map<String, Cache<EntityId, Entry<Enforcer>>> mapping = new HashMap<>();
+        final Map<String, Cache<EntityIdWithResourceType, Entry<Enforcer>>> mapping = new HashMap<>();
         mapping.put(PolicyCommand.RESOURCE_TYPE, policyEnforcerCache);
         mapping.put(ThingCommand.RESOURCE_TYPE, aclEnforcerCache);
 
-        return new EnforcerRetriever(idCache, mapping);
+        return new EnforcerRetriever<>(idCache, mapping);
     }
 
 }

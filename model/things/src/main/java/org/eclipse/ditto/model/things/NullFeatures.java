@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -47,7 +49,7 @@ final class NullFeatures implements Features {
         return new NullFeatures();
     }
 
-    private static void checkFeatureId(final String featureId) {
+    private static void checkFeatureId(final CharSequence featureId) {
         ConditionChecker.checkNotNull(featureId, "Feature ID");
     }
 
@@ -116,6 +118,41 @@ final class NullFeatures implements Features {
     public Features removeProperty(final String featureId, final JsonPointer propertyPath) {
         checkFeatureId(featureId);
         ConditionChecker.checkNotNull(propertyPath, "JSON pointer to the property to be removed");
+
+        return this;
+    }
+
+    @Override
+    public Features setDesiredProperties(final CharSequence featureId, final FeatureProperties desiredProperties) {
+        checkFeatureId(featureId);
+        ConditionChecker.checkNotNull(desiredProperties, "desiredProperties");
+
+        return this;
+    }
+
+    @Override
+    @SuppressWarnings("squid:S4144")
+    public Features removeDesiredProperties(final CharSequence featureId) {
+        checkFeatureId(featureId);
+
+        return this;
+    }
+
+    @Override
+    public Features setDesiredProperty(final CharSequence featureId, final JsonPointer desiredPropertyPath,
+            final JsonValue desiredPropertyValue) {
+
+        checkFeatureId(featureId);
+        ConditionChecker.checkNotNull(desiredPropertyPath, "desiredPropertyPath");
+        ConditionChecker.checkNotNull(desiredPropertyValue, "desiredPropertyValue");
+
+        return this;
+    }
+
+    @Override
+    public Features removeDesiredProperty(final CharSequence featureId, final JsonPointer desiredPropertyPath) {
+        checkFeatureId(featureId);
+        ConditionChecker.checkNotNull(desiredPropertyPath, "desiredPropertyPath");
 
         return this;
     }

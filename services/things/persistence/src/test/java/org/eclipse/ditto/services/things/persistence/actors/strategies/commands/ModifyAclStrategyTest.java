@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -18,7 +20,9 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.TestConstants;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAcl;
 import org.eclipse.ditto.signals.events.things.AclModified;
 import org.junit.Before;
@@ -43,12 +47,12 @@ public final class ModifyAclStrategyTest extends AbstractCommandStrategyTest {
 
     @Test
     public void modifyExistingAclEntryToProduceInvalidAcl() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final AccessControlList acl = ThingsModelFactory.newAcl(TestConstants.Authorization.ACL_ENTRY_OLDMAN);
-        final ModifyAcl modifyAcl = ModifyAcl.of(context.getThingId(), acl, DittoHeaders.empty());
+        final ModifyAcl modifyAcl = ModifyAcl.of(context.getState(), acl, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V1, modifyAcl,
                 AclModified.class,
-                modifyAclResponse(context.getThingId(), acl, modifyAcl.getDittoHeaders(), false));
+                modifyAclResponse(context.getState(), acl, modifyAcl.getDittoHeaders(), false));
     }
 }

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -22,8 +24,9 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Label;
-import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.model.policies.ResourceKey;
+import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.TestConstants;
 import org.junit.Test;
@@ -37,7 +40,7 @@ public final class RetrieveResourceTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(PolicyCommand.JsonFields.TYPE, RetrieveResource.TYPE)
-            .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(RetrieveResource.JSON_LABEL, TestConstants.Policy.LABEL.toString())
             .set(RetrieveResource.JSON_RESOURCE_KEY, TestConstants.Policy.RESOURCE.getFullQualifiedPath())
             .build();
@@ -48,7 +51,7 @@ public final class RetrieveResourceTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(RetrieveResource.class, areImmutable(),
-                provided(Label.class, ResourceKey.class, JsonPointer.class).isAlsoImmutable());
+                provided(Label.class, ResourceKey.class, JsonPointer.class, PolicyId.class).isAlsoImmutable());
     }
 
 
@@ -62,10 +65,17 @@ public final class RetrieveResourceTest {
 
     @Test
     public void tryToCreateInstanceWithNullPolicyId() {
+        assertThatExceptionOfType(NullPointerException.class)
+                .isThrownBy(() -> RetrieveResource.of((PolicyId) null, TestConstants.Policy.LABEL,
+                        TestConstants.Policy.RESOURCE.getResourceKey(), EMPTY_DITTO_HEADERS));
+    }
+
+
+    @Test
+    public void tryToCreateInstanceWithNullPolicyIdString() {
         assertThatExceptionOfType(PolicyIdInvalidException.class)
-                .isThrownBy(() -> RetrieveResource.of(null, TestConstants.Policy.LABEL,
-                        TestConstants.Policy.RESOURCE.getResourceKey(), EMPTY_DITTO_HEADERS))
-                .withNoCause();
+                .isThrownBy(() -> RetrieveResource.of((String) null, TestConstants.Policy.LABEL,
+                        TestConstants.Policy.RESOURCE.getResourceKey(), EMPTY_DITTO_HEADERS));
     }
 
 
@@ -73,8 +83,7 @@ public final class RetrieveResourceTest {
     public void tryToCreateInstanceWithInvalidPolicyId() {
         assertThatExceptionOfType(PolicyIdInvalidException.class)
                 .isThrownBy(() -> RetrieveResource.of("undefined", TestConstants.Policy.LABEL,
-                        TestConstants.Policy.RESOURCE.getResourceKey(), EMPTY_DITTO_HEADERS))
-                .withNoCause();
+                        TestConstants.Policy.RESOURCE.getResourceKey(), EMPTY_DITTO_HEADERS));
     }
 
 
@@ -109,7 +118,7 @@ public final class RetrieveResourceTest {
         final RetrieveResource underTest = RetrieveResource.fromJson(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Policy.POLICY_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Policy.POLICY_ID);
         assertThat(underTest.getLabel()).isEqualTo(TestConstants.Policy.LABEL);
     }
 

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -14,6 +16,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.junit.Test;
 
@@ -24,29 +28,28 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class ShardedMessageEnvelopeTest {
 
-    private static final String THING_ID = "org.eclipse.ditto.test:thingId";
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.empty();
 
-    private static final String MESSAGE_ID = THING_ID;
+    private static final EntityId MESSAGE_ID = DefaultEntityId.of("org.eclipse.ditto.test:thingId");
     private static final String TYPE = "message-type";
     private static final JsonObject MESSAGE = JsonFactory.newObjectBuilder().set("hello", "world").build();
 
     private static final ShardedMessageEnvelope SHARDED_MESSAGE_ENVELOPE =
             ShardedMessageEnvelope.of(MESSAGE_ID, TYPE, MESSAGE, DITTO_HEADERS);
 
-    private static final JsonObject SHARDED_MESSAGE_ENVELOPE_JSON = JsonObject.newBuilder() //
-            .set(ShardedMessageEnvelope.JSON_ID, MESSAGE_ID) //
-            .set(ShardedMessageEnvelope.JSON_TYPE, TYPE) //
-            .set(ShardedMessageEnvelope.JSON_MESSAGE, MESSAGE) //
-            .set(ShardedMessageEnvelope.JSON_DITTO_HEADERS, DITTO_HEADERS.toJson()) //
+    private static final JsonObject SHARDED_MESSAGE_ENVELOPE_JSON = JsonObject.newBuilder()
+            .set(ShardedMessageEnvelope.JSON_ID, String.valueOf(MESSAGE_ID))
+            .set(ShardedMessageEnvelope.JSON_TYPE, TYPE)
+            .set(ShardedMessageEnvelope.JSON_MESSAGE, MESSAGE)
+            .set(ShardedMessageEnvelope.JSON_DITTO_HEADERS, DITTO_HEADERS.toJson())
             .build();
 
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ShardedMessageEnvelope.class) //
-                .usingGetClass() //
-                .withRedefinedSuperclass() //
+        EqualsVerifier.forClass(ShardedMessageEnvelope.class)
+                .usingGetClass()
+                .withRedefinedSuperclass()
                 .verify();
     }
 

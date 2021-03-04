@@ -7,7 +7,7 @@ permalink: basic-policy.html
 
 A Policy enables developers to configure fine-grained access control for Things and other entities in an easy way.
 
-  {% include note.html content="The policy concept is only supported for Ditto **HTTP API version 2**. <br/>
+{% include note.html content="The policy concept is only supported for Ditto **HTTP API version 2**. <br/>
   Find the HTTP API reference at [Policies resources](http-api-doc.html?urls.primaryName=api2#/Policies)." %}
 
 
@@ -15,23 +15,141 @@ A Policy enables developers to configure fine-grained access control for Things 
 
 A specific policy provides someone (called subject), permission to read and/or write a given resource.
  
-  {% include tip.html content="The write permission at the policy root resource (i.e. `policy:/`) allows to manage the
-  policy itself.<br/>Find an [example](basic-policy.html#example) at the end of the page." %}
+{% include tip.html content="The write permission at the policy root resource (i.e. `policy:/`) allows to manage the
+  policy itself.<br/>Find an [example](#example) at the end of the page." %}
 
 Please note, that in most cases it makes sense to grant read permission in addition to a write permission, because
 *write does not imply read.*
 
+## Model specification
 
-## Who can be addressed?
+{% include docson.html schema="jsonschema/policy.json" %}
 
-A Subject ID must conform to one of the following rules:
+## Subjects
 
-* The ID of a User defined in the nginx reverse proxy prefixed with `nginx`.
-* Different JWT providers with their JWT “iss” fields - the currently supported are listed in the table below.
+Subjects in a policy define **who** gets permissions granted/revoked on the [resources](#which-resources-can-be-controlled)
+of a policy entry.  
+Each subject ID contains a prefix defining the subject "issuer" (so which party issued the authentication) and an actual 
+subject, separated with a colon:
+```
+<subject-issuer>:<subject>
+```
 
-| Prefix    | Type  | Description   |
-|-----------|-------|---------------|
-| google | jwt | A <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.jwt}}">JWT</a> issued by Google |
+The subject can be one of the following ones:
+* `nginx:<nginx-username>` - when using nginx as 
+  [pre-authentication provider](installation-operating.html#pre-authentication) - by default enabled in the Ditto 
+  installation's nginx
+* `<other-pre-auth-provider>:<username>` - when using another custom provider as 
+  [pre-authentication provider](installation-operating.html#pre-authentication) which sets the 
+  `x-ditto-pre-authenticated` HTTP header
+* `google:<google-user-id>` - in general different 
+  <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.jwt}}">JWT</a> - the currently supported 
+  are listed in the table:
+  
+  | Prefix    | Type  | Description   |
+  |-----------|-------|---------------|
+  | google | jwt | A <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.jwt}}">JWT</a> issued by Google |
+* `<custom-openid-connect-provider>:<jwt-sub-claim>` -
+  custom OpenID Connect compliant providers - supported providers are listed at
+  [OpenID Connect - Certified OpenID Provider Servers and Services](https://openid.net/developers/certified/) -
+  [can be configured](installation-operating.html#openid-connect) in Ditto defining the prefix in Ditto's config file.  
+  The `sub` claim from the JWT and the configured provider name are used in the form `<provider>:<jwt-sub-claim>`.
+
+
+### Expiring Policy subjects
+
+When a Policy subject contains an `"expiry"` timestamp (formatted as ISO-8601 string), this subject will get 
+automatically deleted once this timestamp was reached.
+
+When providing an `"expiry"` for a Policy subject, this timestamp is rounded up:
+* by default to the next full hour
+* this is configurable via the environment variable `POLICY_SUBJECT_EXPIRY_GRANULARITY` of the 
+  [policies](architecture-services-policies.html) service which takes a 
+  [HOCON duration](https://github.com/lightbend/config/blob/master/HOCON.md#duration-format), e.g.:
+   * configured to "1s": a received "expiry" is rounded up to the next full second
+   * configured to "30s": a received "expiry" is rounded up to the next half minute
+   * configured to "1h": a received "expiry" is rounded up to the next full hour (**default**)
+   * configured to "12h": a received "expiry" is rounded up to the next half day
+   * configured to "1d": a received "expiry" is rounded up to the next full day
+   * configured to "15d": a received "expiry" is rounded up to the next half month
+
+Once an expired subject is deleted, it will immediately no longer have access to the resources protected by the policy
+it was deleted from.
+
+## Actions
+
+Policy actions are available via Ditto's [HTTP API](httpapi-overview.html) and can be invoked for certain 
+[policy entries](#model-specification) or for complete policies.
+
+They require neither `READ` nor `WRITE` permission, but instead a granted `EXECUTE` permission on the specific action
+name, e.g. for a single policy entry:
+* `policy:/entries/{label}/actions/{actionName}`
+
+### Action activateTokenIntegration
+
+{% include tip.html content="
+  Make use of this action in order to copy your existing permissions for a pre-configured connection 
+  (e.g. invoking an HTTP webhook) until the expiration time of the JWT the user authenticated 
+  with passes.
+" %}
+
+When authenticated using OpenID Connect, it is possible to inject a subject into policies that expires when
+the <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.jwt}}">JWT</a> expires. 
+The form of the injected subject (the token integration subject) is configurable globally in the Ditto installation.
+
+A user is authorized to inject the token integration subject when granted the `EXECUTE` permission on a policy entry.  
+The `WRITE` permission is not necessary. To activate or deactivate a token integration subject, send a `POST` 
+request to the following HTTP routes:
+
+- [POST /api/2/policies/{policyId}/actions/activateTokenIntegration](/http-api-doc.html#/Policies/post_policies__policyId__actions_activateTokenIntegration)<br/>
+  Injects a new subject **into all matched policy entries** calculated with information extracted from the authenticated 
+  JWT. 
+   - the authenticated token must be granted the `EXECUTE` permission to perform the `activateTokenIntegration` action
+   - one of the subject IDs must be contained in the authenticated token
+   - at least one `READ` permission to a `thing:/` resource path must be granted
+- [POST /api/2/policies/{policyId}/actions/deactivateTokenIntegration](/http-api-doc.html#/Policies/post_policies__policyId__actions_deactivateTokenIntegration)<br/>
+  Removes the calculated subject with information extracted from the authenticated JWT **from all matched policy entries**. 
+   - the authenticated token must be granted the `EXECUTE` permission to perform the `deactivateTokenIntegration` action
+   - one of the subject IDs must be contained in the authenticated token 
+- [POST /api/2/policies/{policyId}/entries/{label}/actions/activateTokenIntegration](/http-api-doc.html#/Policies/post_policies__policyId__entries__label__actions_activateTokenIntegration)<br/>
+  Injects the calculated subject **into the policy entry** calculated with information extracted from the authenticated JWT.
+   - the authenticated token must be granted the `EXECUTE` permission to perform the `activateTokenIntegration` action
+   - one of the subject IDs must be contained in the authenticated token
+   - at least one `READ` permission to a `thing:/` resource path must be granted
+- [POST /api/2/policies/{policyId}/entries/{label}/actions/deactivateTokenIntegration](/http-api-doc.html#/Policies/post_policies__policyId__entries__label__actions_deactivateTokenIntegration)<br/>
+  Removes the calculated subject with information extracted from the authenticated JWT **from the policy entry**.
+   - the authenticated token must be granted the `EXECUTE` permission to perform the `deactivateTokenIntegration` action
+   - one of the subject IDs must be contained in the authenticated token
+
+The injected subject pattern is configurable in Ditto and is by default:
+```
+{%raw%}
+integration:{{policy-entry:label}}:{{jwt:aud}}
+{%endraw%}
+```
+
+To configure the token integration subject, set the path
+```
+ditto.gateway.authentication.oauth.token-integration-subject
+```
+in `gateway-extension.conf`, or set the environment variable `OAUTH_TOKEN_INTEGRATION_SUBJECT` for Gateway Service.
+```
+{%raw%}
+ditto.gateway.authentication.oauth.token-integration-subject =
+  "my-token-integration-issuer:{{policy-entry:label}}:{{jwt:sub}}"
+
+ditto.gateway.authentication.oauth.token-integration-subject =
+  ${?OAUTH_TOKEN_INTEGRATION_SUBJECT}
+{%endraw%}
+```
+
+The [placeholders](basic-placeholders.html) below are usable as a part of the `activateTokenIntegration` configuration:
+
+| Placeholder    |  Description   |
+|----------------|----------------|
+| `{%raw%}{{ header:<header-name> }}{%endraw%}` | HTTP header values passed along the HTTP action request |
+| `{%raw%}{{ jwt:<jwt-body-claim> }}{%endraw%}` | any standard or custom claims in the body of the JWT - e.g., `jwt:sub` for the JWT "subject" |
+| `{%raw%}{{ policy-entry:label }}{%endraw%}` | label of the policy entry in which the token integration subject is injected |
 
 
 ## Which Resources can be controlled?
@@ -49,7 +167,7 @@ A Policy can contain access control definitions for several resources:
       part only (and the Thing ID).
 
 
-## Policy
+### Policy
 
 The Policy resource (addressable as `policy:/`) defines the access control for the Policy itself.
 
@@ -71,7 +189,7 @@ The [Things example at the end of the page](basic-policy.html#example) also defi
 resource.
 
 
-## Thing
+### Thing
 
 The Thing resource (addressable as `thing:/`) defines the access control for Things.
 
@@ -92,7 +210,7 @@ Policy.
 Find a [Things example at the end of the page.](basic-policy.html#example)
 
 
-## Feature
+### Feature
 
 | Resource    | Addressed data, description  |
 |-------------|------------------------------|
@@ -100,11 +218,13 @@ Find a [Things example at the end of the page.](basic-policy.html#example)
 | thing:/features/X                 | Applies to the Feature with ID X and all its sub-paths. |
 | thing:/features/X/properties      | Applies to all properties of the Feature X. |
 | thing:/features/X/properties/Y    | Applies to the property with path Y (and its sub-paths) of the Feature with ID X. <br />Y may be a nested path such as tire/pressure. |
+| thing:/features/X/desiredProperties      | Applies to all desired properties of the Feature X. |
+| thing:/features/X/desiredProperties/Y    | Applies to the desired property with path Y (and its sub-paths) of the Feature with ID X. <br />Y may be a nested path such as tire/pressure. |
 
 Find a [Things example at the end of the page.](basic-policy.html#example)
 
 
-## Message
+### Message
 
 The Message resource (addressable as `message:/`) defines the access control for Messages.
 
@@ -139,10 +259,12 @@ The [Things example at the end of the page](basic-policy.html#example) also defi
 
 | Change | Permission | Description |
 |--------|------------|-------------|
-| grant  | READ       | All subjects named in the section are granted read permission on the resources specified in the path, and all subsequent paths, except they are revoked at a subsequent policy label. |
-| grant  | WRITE      | All subjects named in the section are granted write permission on the resources specified in the path, and all subsequent paths, except they are revoked at a subsequent policy label. |
-| revoke | READ       | All subjects named in the section are prohibited to read on the resources specified in the path, and all subsequent paths, except they are granted again such permission at a subsequent policy label. |
-| revoke | WRITE      | All subjects named in the section are prohibited to write on the resources specified in the path, and all subsequent paths, except they are granted again such permission at a subsequent policy label. |
+| grant  | READ       | All subjects named in the section are granted _read_ permission on the resources specified in the path, and all nested paths, except they are revoked at a deeper level, or another policy entry (label). |
+| grant  | WRITE      | All subjects named in the section are granted _write_ permission on the resources specified in the path, and all nested paths, except they are revoked at a deeper level, or another policy entry (label). |
+| grant  | EXECUTE    | All subjects named in the section are granted _execute_ permission on the resources specified in the path, and all nested paths, except they are revoked at a deeper level, or another policy entry (label). |
+| revoke | READ       | All subjects named in the section are _prohibited to read_ on the resources specified in the path, and all nested paths, except they are granted again such permission at a deeper level, or another policy entry (label). |
+| revoke | WRITE      | All subjects named in the section are _prohibited to write_ on the resources specified in the path, and all nested paths, except they are granted again such permission at a deeper level, or another policy entry (label). |
+| revoke | EXECUTE    | All subjects named in the section are _prohibited to execute_ on the resources specified in the path, and all nested paths, except they are granted again such permission at a deeper level, or another policy entry (label). |
 
 
 ## Tools for editing a Policy
@@ -184,65 +306,65 @@ Your Policy then might look like the following:
 The correct Policy JSON object notation would be as shown in the following code block.
 
 ```json
-  {
-    "policyId": "my.namespace:policy-a",
-    "entries": {
-      "owner": {
-        "subjects": {
-          "nginx:ditto": {
-            "type": "nginx basic auth user"
-          }
-        },
-        "resources": {
-          "thing:/": {
-            "grant": ["READ", "WRITE"],
-            "revoke": []
-          },
-          "policy:/": {
-            "grant": ["READ", "WRITE"],
-            "revoke": []
-          },
-          "message:/": {
-            "grant": ["READ", "WRITE"],
-            "revoke": []
-          }
+{
+  "policyId": "my.namespace:policy-a",
+  "entries": {
+    "owner": {
+      "subjects": {
+        "nginx:ditto": {
+          "type": "nginx basic auth user"
         }
       },
-      "observer": {
-        "subjects": {
-          "nginx:observer-client": {
-            "type": "technical client"
-          },
-          "nginx:some-users": {
-            "type": "a group of users"
-          }
+      "resources": {
+        "thing:/": {
+          "grant": ["READ", "WRITE"],
+          "revoke": []
         },
-        "resources": {
-          "thing:/features/featureX": {
-            "grant": ["READ"],
-            "revoke": []
-          },
-          "thing:/features/featureY": {
-            "grant": ["READ"],
-            "revoke": []
-          }
+        "policy:/": {
+          "grant": ["READ", "WRITE"],
+          "revoke": []
+        },
+        "message:/": {
+          "grant": ["READ", "WRITE"],
+          "revoke": []
+        }
+      }
+    },
+    "observer": {
+      "subjects": {
+        "nginx:observer-client": {
+          "type": "technical client"
+        },
+        "nginx:some-users": {
+          "type": "a group of users"
         }
       },
-      "private": {
-        "subjects": {
-          "nginx:some-users": {
-            "type": "a group of users"
-          },
-          "resources": {
-            "thing:/features/featureX/properties/location/city": {
-              "grant": [],
-              "revoke": ["READ"]
-            }
+      "resources": {
+        "thing:/features/featureX": {
+          "grant": ["READ"],
+          "revoke": []
+        },
+        "thing:/features/featureY": {
+          "grant": ["READ"],
+          "revoke": []
+        }
+      }
+    },
+    "private": {
+      "subjects": {
+        "nginx:some-users": {
+          "type": "a group of users"
+        },
+        "resources": {
+          "thing:/features/featureX/properties/location/city": {
+            "grant": [],
+            "revoke": ["READ"]
           }
         }
       }
     }
   }
+}
 ```
 
 The Policy can be found:

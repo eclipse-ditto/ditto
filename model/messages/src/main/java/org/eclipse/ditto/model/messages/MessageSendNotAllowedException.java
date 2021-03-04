@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -18,15 +20,18 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * Thrown if a message cannot be send because the affected thing does not exist or because of a missing permission.
  */
 @Immutable
+@JsonParsableException(errorCode = MessageSendNotAllowedException.ERROR_CODE)
 public final class MessageSendNotAllowedException extends DittoRuntimeException implements MessageException {
 
     /**
@@ -56,7 +61,21 @@ public final class MessageSendNotAllowedException extends DittoRuntimeException 
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-        super(ERROR_CODE, HttpStatusCode.FORBIDDEN, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, HttpStatus.FORBIDDEN, dittoHeaders, message, description, cause, href);
+    }
+
+    /**
+     * A mutable builder for a {@code MessageNotSendableException}.
+     *
+     * @param thingId the ID of the Thing for which a message should be sent.
+     * @return the builder.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #newBuilder(org.eclipse.ditto.model.things.ThingId)}
+     * instead.
+     */
+    @Deprecated
+    public static Builder newBuilder(@Nullable final String thingId) {
+        return newBuilder(ThingId.of(thingId));
     }
 
     /**
@@ -65,7 +84,7 @@ public final class MessageSendNotAllowedException extends DittoRuntimeException 
      * @param thingId the ID of the Thing for which a message should be sent.
      * @return the builder.
      */
-    public static Builder newBuilder(@Nullable final String thingId) {
+    public static Builder newBuilder(@Nullable final ThingId thingId) {
         return new Builder(thingId);
     }
 
@@ -74,11 +93,26 @@ public final class MessageSendNotAllowedException extends DittoRuntimeException 
      *
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @return the new SubjectInvalidException.
+     * @deprecated since DittoHeaders are required for the builder. Use {@code #fromMessage(String, DittoHeaders)} instead.
      */
+    @Deprecated
     public static MessageSendNotAllowedException fromMessage(@Nullable final String message) {
         return new Builder()
                 .message(message)
                 .build();
+    }
+
+    /**
+     * Constructs a new {@code MessageSendNotAllowedException} object with given message.
+     *
+     * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
+     * @param dittoHeaders the headers of the command which resulted in this exception.
+     * @return the new MessageSendNotAllowedException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     */
+    public static MessageSendNotAllowedException fromMessage(@Nullable final String message,
+            final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
@@ -88,21 +122,28 @@ public final class MessageSendNotAllowedException extends DittoRuntimeException 
      * @param dittoHeaders the headers.
      * @return an instance of this class.
      * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static MessageSendNotAllowedException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
+    }
+
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new Builder()
-                .loadJson(jsonObject)
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
                 .dittoHeaders(dittoHeaders)
-                .message(readMessage(jsonObject))
-                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
-                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 
     /**
      * A mutable builder with a fluent API for a {@link MessageSendNotAllowedException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<MessageSendNotAllowedException> {
@@ -111,9 +152,9 @@ public final class MessageSendNotAllowedException extends DittoRuntimeException 
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(@Nullable final String subject) {
+        private Builder(@Nullable final ThingId thingId) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, subject));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, thingId));
         }
 
         @Override

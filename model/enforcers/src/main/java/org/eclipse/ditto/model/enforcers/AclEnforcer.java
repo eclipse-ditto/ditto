@@ -1,16 +1,19 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.model.enforcers;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -89,37 +92,32 @@ public final class AclEnforcer implements Enforcer {
     @Override
     public EffectedSubjectIds getSubjectIdsWithPermission(final ResourceKey resourceKey,
             final Permissions permissions) {
+
         final Set<String> grantedSubjects = getSubjectIdsWithPartialPermission(resourceKey, permissions);
-        final Set<String> revokedSubjects = getComplementSet(grantedSubjects);
-        return ImmutableEffectedSubjectIds.of(grantedSubjects, revokedSubjects);
+        return ImmutableEffectedSubjectIds.ofGranted(grantedSubjects);
+    }
+
+    @Override
+    public EffectedSubjects getSubjectsWithPermission(final ResourceKey resourceKey, final Permissions permissions) {
+        final Set<AuthorizationSubject> grantedSubjects = getSubjectsWithPartialPermission(resourceKey, permissions);
+        return DefaultEffectedSubjects.of(grantedSubjects, Collections.emptySet());
     }
 
     @Override
     public Set<String> getSubjectIdsWithPartialPermission(final ResourceKey resourceKey,
             final Permissions permissions) {
+
         return acl.getAuthorizedSubjectsFor(mapPermissions(permissions))
                 .stream()
                 .map(AuthorizationSubject::getId)
                 .collect(Collectors.toSet());
     }
 
-    /**
-     * Compute the complement set of a set of subject IDs with respect to subject IDs mentioned in the ACL.
-     *
-     * @param excludedSet a set of subject IDs.
-     * @return complement of {@code excludedSet}.
-     */
-    private Set<String> getComplementSet(final Set<String> excludedSet) {
-        return acl.stream()
-                .flatMap(aclEntry -> {
-                    final String subjectId = aclEntry.getAuthorizationSubject().getId();
-                    if (excludedSet.contains(subjectId)) {
-                        return Stream.empty();
-                    } else {
-                        return Stream.of(subjectId);
-                    }
-                })
-                .collect(Collectors.toSet());
+    @Override
+    public Set<AuthorizationSubject> getSubjectsWithPartialPermission(final ResourceKey resourceKey,
+            final Permissions permissions) {
+
+        return acl.getAuthorizedSubjectsFor(mapPermissions(permissions));
     }
 
     /**

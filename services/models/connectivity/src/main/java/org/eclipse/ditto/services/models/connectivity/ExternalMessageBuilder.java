@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -16,10 +18,13 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Enforcement;
+import org.eclipse.ditto.model.connectivity.EnforcementFilter;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
+import org.eclipse.ditto.model.connectivity.PayloadMapping;
+import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilter;
 
 /**
  * Builder for building instances of {@link ExternalMessage}.
@@ -52,15 +57,9 @@ public interface ExternalMessageBuilder {
     ExternalMessageBuilder withHeaders(Map<String, String> headers);
 
     /**
-     * Clears existing message headers for this builder. Existing headers are removed!
-     *
-     * @return this builder in order to enable method chaining
-     */
-    ExternalMessageBuilder clearHeaders();
-
-    /**
      * Sets the passed {@code text} to the builder and also changing the
      * {@link ExternalMessage.PayloadType PayloadType} to {@code TEXT}.
+     * NOT for use in consumer actors! They should set both the text and the byte payload.
      *
      * @param text the text payload to set
      * @return this builder in order to enable method chaining
@@ -86,6 +85,26 @@ public interface ExternalMessageBuilder {
     ExternalMessageBuilder withBytes(@Nullable ByteBuffer bytes);
 
     /**
+     * Sets the passed {@code text} and {@code bytes} to the builder and also changing the
+     * {@link ExternalMessage.PayloadType PayloadType} to {@code TEXT_AND_BYTES}.
+     *
+     * @param text the text payload to set
+     * @param bytes the bytes payload to set
+     * @return this builder in order to enable method chaining
+     */
+    ExternalMessageBuilder withTextAndBytes(@Nullable String text, @Nullable byte[] bytes);
+
+    /**
+     * Sets the passed {@code text} and {@code bytes} to the builder and also changing the
+     * {@link ExternalMessage.PayloadType PayloadType} to {@code TEXT_AND_BYTES}.
+     *
+     * @param text the text payload to set
+     * @param bytes the bytes payload to set
+     * @return this builder in order to enable method chaining
+     */
+    ExternalMessageBuilder withTextAndBytes(@Nullable String text, @Nullable ByteBuffer bytes);
+
+    /**
      * Associates an {@link AuthorizationContext} with the message.
      *
      * @param authorizationContext the {@link AuthorizationContext} assigned to the message
@@ -108,7 +127,7 @@ public interface ExternalMessageBuilder {
      * @param enforcement enforcement data
      * @return this builder in order to enable method chaining
      */
-    <F extends EnforcementFilter<String>> ExternalMessageBuilder withEnforcement(@Nullable F enforcement);
+    <F extends EnforcementFilter<CharSequence>> ExternalMessageBuilder withEnforcement(@Nullable F enforcement);
 
     /**
      * Associates {@link HeaderMapping} data with the message. Pass {@code null} to disable headerMapping.
@@ -117,6 +136,23 @@ public interface ExternalMessageBuilder {
      * @return this builder in order to enable method chaining
      */
     ExternalMessageBuilder withHeaderMapping(@Nullable HeaderMapping headerMapping);
+
+    /**
+     * Adds the source address to this message, where this messages was received.
+     *
+     * @param sourceAddress the source address
+     * @return this builder in order to enable method chaining
+     */
+    ExternalMessageBuilder withSourceAddress(@Nullable String sourceAddress);
+
+    /**
+     * Adds the source to this message, where this messages was received.
+     *
+     * @param source the source
+     * @return this builder in order to enable method chaining
+     * @since 1.2.0
+     */
+    ExternalMessageBuilder withSource(@Nullable Source source);
 
     /**
      * Marks the message as a response message.
@@ -133,6 +169,23 @@ public interface ExternalMessageBuilder {
      * @return this builder in order to enable method chaining
      */
     ExternalMessageBuilder asError(boolean error);
+
+    /**
+     * Attach headers of the signal that created the external message for generation of errors to send back
+     * into the Ditto cluster.
+     *
+     * @param internalHeaders headers of the signal.
+     * @return this builder.
+     */
+    ExternalMessageBuilder withInternalHeaders(DittoHeaders internalHeaders);
+
+    /**
+     * Defines which mappings are applied for this {@link ExternalMessage}.
+     *
+     * @param payloadMapping the payloadMapping that is applied for this message
+     * @return this builder.
+     */
+    ExternalMessageBuilder withPayloadMapping(PayloadMapping payloadMapping);
 
     /**
      * Builds the ExternalMessage.

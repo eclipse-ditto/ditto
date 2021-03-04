@@ -1,22 +1,19 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.model.connectivity;
 
-import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
-
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -27,42 +24,20 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
- * Connection Metrics represent the current (and not the persisted/desired) connection status and information of this
- * connection like amount of consumed/published messages, etc.
+ * Connection Metrics represent the aggregated metrics for all sources/targets.
  */
 @Immutable
 public interface ConnectionMetrics extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
-     * @return the current ConnectionStatus of the related {@link Connection}.
+     * @return the inbound {@link AddressMetric}s for the connection
      */
-    ConnectionStatus getConnectionStatus();
+    AddressMetric getInboundMetrics();
 
     /**
-     * @return the optional details of the ConnectionStatus of the related {@link Connection}.
+     * @return the outbound {@link AddressMetric}s for the connection
      */
-    Optional<String> getConnectionStatusDetails();
-
-    /**
-     * @return the Instant since when the connection is in its current {@link #getConnectionStatus()}.
-     */
-    Instant getInConnectionStatusSince();
-
-    /**
-     * @return in which state the client handling the {@link Connection} currently is.
-     */
-    String getClientState();
-
-    /**
-     * @return the metrics of all Connection {@link Source}s.
-     */
-    List<SourceMetrics> getSourcesMetrics();
-
-    /**
-     *
-     * @return the metrics of all Connection {@link Target}s.
-     */
-    List<TargetMetrics> getTargetsMetrics();
+    AddressMetric getOutboundMetrics();
 
     /**
      * Returns all non hidden marked fields of this {@code Connection}.
@@ -86,45 +61,17 @@ public interface ConnectionMetrics extends Jsonifiable.WithFieldSelectorAndPredi
     final class JsonFields {
 
         /**
-         * JSON field containing the {@code ConnectionStatus} value.
+         * JSON field containing the inbound metrics.
          */
-        public static final JsonFieldDefinition<String> CONNECTION_STATUS =
-                JsonFactory.newStringFieldDefinition("connectionStatus", FieldType.REGULAR, JsonSchemaVersion.V_1,
+        public static final JsonFieldDefinition<JsonObject> INBOUND_METRICS =
+                JsonFactory.newJsonObjectFieldDefinition("inbound", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the {@code ConnectionStatus} details.
+         * JSON field containing the inbound metrics.
          */
-        public static final JsonFieldDefinition<String> CONNECTION_STATUS_DETAILS =
-                JsonFactory.newStringFieldDefinition("connectionStatusDetails", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
-
-        /**
-         * JSON field containing the client state.
-         */
-        public static final JsonFieldDefinition<String> CLIENT_STATE =
-                JsonFactory.newStringFieldDefinition("clientState", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
-
-        /**
-         * JSON field containing since when the client is in its current state.
-         */
-        public static final JsonFieldDefinition<String> IN_CONNECTION_STATUS_SINCE =
-                JsonFactory.newStringFieldDefinition("inConnectionStatusSince", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
-
-        /**
-         * JSON field containing the sources metrics.
-         */
-        public static final JsonFieldDefinition<JsonArray> SOURCES_METRICS =
-                JsonFactory.newJsonArrayFieldDefinition("sourcesMetrics", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
-
-        /**
-         * JSON field containing the targets metrics.
-         */
-        public static final JsonFieldDefinition<JsonArray> TARGETS_METRICS =
-                JsonFactory.newJsonArrayFieldDefinition("targetsMetrics", FieldType.REGULAR, JsonSchemaVersion.V_1,
+        public static final JsonFieldDefinition<JsonObject> OUTBOUND_METRICS =
+                JsonFactory.newJsonObjectFieldDefinition("outbound", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

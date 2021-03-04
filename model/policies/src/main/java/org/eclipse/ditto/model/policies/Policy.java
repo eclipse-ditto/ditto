@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -42,33 +44,36 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
     String INLINED_FIELD_NAME = "_policy";
 
     /**
-     * The regex pattern a Policy Namespace has to conform to.
-     */
-    String NAMESPACE_PREFIX_REGEX = "(?<ns>|(?:(?:[a-zA-Z]\\w*+)(?:\\.[a-zA-Z]\\w*+)*+))";
-
-    /**
-     * The regex pattern a Policy ID has to conform to. Defined by
-     * <a href="http://www.ietf.org/rfc/rfc2396.txt">RFC-2396</a>.
-     */
-    String ID_NON_NAMESPACE_REGEX =
-            "(?<id>(?:[-\\w:@&=+,.!~*'_;]|%\\p{XDigit}{2})(?:[-\\w:@&=+,.!~*'$_;]|%\\p{XDigit}{2})*+)";
-
-    /**
-     * The regex pattern a Policy ID has to conform to. Combines "namespace" pattern (java package notation + a
-     * semicolon)
-     * and "non namespace" (Defined by <a href="http://www.ietf.org/rfc/rfc2396.txt">RFC-2396</a>) pattern.
-     */
-    String ID_REGEX = NAMESPACE_PREFIX_REGEX + "\\:" + ID_NON_NAMESPACE_REGEX;
-
-    /**
      * Returns a mutable builder with a fluent API for an immutable {@code Policy}.
      *
      * @param id the ID of the new Policy.
      * @return the new builder.
      * @throws PolicyIdInvalidException if {@code id} is invalid.
+     * @deprecated policy ID is now typed. Use {@link #newBuilder(PolicyId)} instead.
      */
+    @Deprecated
     static PolicyBuilder newBuilder(final CharSequence id) {
-        return PoliciesModelFactory.newPolicyBuilder(id);
+        return newBuilder(PolicyId.of(id));
+    }
+
+    /**
+     * Returns a mutable builder with a fluent API for an immutable {@code Policy}.
+     *
+     * @param policyId the ID of the new Policy.
+     * @return the new builder.
+     * @throws PolicyIdInvalidException if {@code id} is invalid.
+     */
+    static PolicyBuilder newBuilder(final PolicyId policyId) {
+        return PoliciesModelFactory.newPolicyBuilder(policyId);
+    }
+
+    /**
+     * Returns a mutable builder with a fluent API for an immutable {@code Policy}.
+     *
+     * @return the new builder.
+     */
+    static PolicyBuilder newBuilder() {
+        return PoliciesModelFactory.newPolicyBuilder();
     }
 
     /**
@@ -79,6 +84,18 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
      */
     default PolicyBuilder toBuilder() {
         return PoliciesModelFactory.newPolicyBuilder(this);
+    }
+
+    @Override
+    Optional<PolicyId> getEntityId();
+
+    /**
+     * @deprecated
+     */
+    @Deprecated
+    @Override
+    default Optional<String> getId() {
+        return getEntityId().map(String::valueOf);
     }
 
     /**
@@ -454,6 +471,15 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
          */
         public static final JsonFieldDefinition<String> MODIFIED =
                 JsonFactory.newStringFieldDefinition("_modified", FieldType.SPECIAL, FieldType.HIDDEN,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the Policy's created timestamp in ISO-8601 format.
+         *
+         * @since 1.2.0
+         */
+        public static final JsonFieldDefinition<String> CREATED =
+                JsonFactory.newStringFieldDefinition("_created", FieldType.SPECIAL, FieldType.HIDDEN,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**

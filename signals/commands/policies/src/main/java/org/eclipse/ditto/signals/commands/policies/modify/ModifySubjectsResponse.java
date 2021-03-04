@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -24,21 +26,25 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
 
 /**
  * Response to a {@link ModifySubjects} command.
  */
 @Immutable
-public final class ModifySubjectsResponse extends AbstractCommandResponse<ModifySubjectsResponse> implements
-        PolicyModifyCommandResponse<ModifySubjectsResponse> {
+@JsonParsableCommandResponse(type = ModifySubjectsResponse.TYPE)
+public final class ModifySubjectsResponse extends AbstractCommandResponse<ModifySubjectsResponse>
+        implements PolicyModifyCommandResponse<ModifySubjectsResponse> {
 
     /**
      * Type of this response.
@@ -48,15 +54,15 @@ public final class ModifySubjectsResponse extends AbstractCommandResponse<Modify
     static final JsonFieldDefinition<String> JSON_LABEL =
             JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final String policyId;
+    private final PolicyId policyId;
     private final Label label;
 
-    private ModifySubjectsResponse(final String policyId,
+    private ModifySubjectsResponse(final PolicyId policyId,
             final Label label,
-            final HttpStatusCode statusCode,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, statusCode, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
         this.label = checkNotNull(label, "Label");
     }
@@ -69,11 +75,28 @@ public final class ModifySubjectsResponse extends AbstractCommandResponse<Modify
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label,
+     * org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
-    public static ModifySubjectsResponse of(final String policyId, final Label label,
-            final DittoHeaders dittoHeaders) {
+    @Deprecated
+    public static ModifySubjectsResponse of(final String policyId, final Label label, final DittoHeaders dittoHeaders) {
+        return of(PolicyId.of(policyId), label, dittoHeaders);
+    }
 
-        return new ModifySubjectsResponse(policyId, label, HttpStatusCode.NO_CONTENT, dittoHeaders);
+    /**
+     * Creates a response to a {@code ModifySubjects} command.
+     *
+     * @param policyId the Policy ID of the modified subjects.
+     * @param label the Label of the PolicyEntry.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static ModifySubjectsResponse of(final PolicyId policyId, final Label label,
+            final DittoHeaders dittoHeaders) {
+        return new ModifySubjectsResponse(policyId, label, HttpStatus.NO_CONTENT, dittoHeaders);
     }
 
     /**
@@ -82,7 +105,7 @@ public final class ModifySubjectsResponse extends AbstractCommandResponse<Modify
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
@@ -97,23 +120,23 @@ public final class ModifySubjectsResponse extends AbstractCommandResponse<Modify
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
     public static ModifySubjectsResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<ModifySubjectsResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String policyId =
-                            jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
-                    final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
+        return new CommandResponseJsonDeserializer<ModifySubjectsResponse>(TYPE, jsonObject).deserialize(httpStatus -> {
+            final String extractedPolicyId =
+                    jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID);
+            final PolicyId policyId = PolicyId.of(extractedPolicyId);
+            final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
 
-                    return new ModifySubjectsResponse(policyId, label, statusCode, dittoHeaders);
-                });
+            return new ModifySubjectsResponse(policyId, label, httpStatus, dittoHeaders);
+        });
     }
 
     @Override
-    public String getId() {
+    public PolicyId getEntityId() {
         return policyId;
     }
 
@@ -137,7 +160,7 @@ public final class ModifySubjectsResponse extends AbstractCommandResponse<Modify
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
     }
 
@@ -163,8 +186,10 @@ public final class ModifySubjectsResponse extends AbstractCommandResponse<Modify
             return false;
         }
         final ModifySubjectsResponse that = (ModifySubjectsResponse) o;
-        return that.canEqual(this) && Objects.equals(policyId, that.policyId) && Objects.equals(label, that.label)
-                && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(policyId, that.policyId) &&
+                Objects.equals(label, that.label) &&
+                super.equals(o);
     }
 
     @Override

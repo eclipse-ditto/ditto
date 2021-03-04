@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -72,7 +74,7 @@ final class ModifyFeatureDefinitionLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ModifyFeatureDefinitionResponse created() {
-            return ModifyFeatureDefinitionResponse.created(command.getThingId(), command.getFeatureId(),
+            return ModifyFeatureDefinitionResponse.created(command.getThingEntityId(), command.getFeatureId(),
                     command.getDefinition(),
                     command.getDittoHeaders());
         }
@@ -80,15 +82,15 @@ final class ModifyFeatureDefinitionLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ModifyFeatureDefinitionResponse modified() {
-            return ModifyFeatureDefinitionResponse.modified(command.getThingId(), command.getFeatureId(),
+            return ModifyFeatureDefinitionResponse.modified(command.getThingEntityId(), command.getFeatureId(),
                     command.getDittoHeaders());
         }
 
         @Nonnull
         @Override
         public ThingErrorResponse featureDefinitionNotAccessibleError() {
-            return errorResponse(command.getThingId(),
-                    FeatureDefinitionNotAccessibleException.newBuilder(command.getThingId(),
+            return errorResponse(command.getThingEntityId(),
+                    FeatureDefinitionNotAccessibleException.newBuilder(command.getThingEntityId(),
                             command.getFeatureId())
                             .dittoHeaders(command.getDittoHeaders())
                             .build());
@@ -97,8 +99,8 @@ final class ModifyFeatureDefinitionLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ThingErrorResponse featureDefinitionNotModifiableError() {
-            return errorResponse(command.getThingId(),
-                    FeatureDefinitionNotModifiableException.newBuilder(command.getThingId(),
+            return errorResponse(command.getThingEntityId(),
+                    FeatureDefinitionNotModifiableException.newBuilder(command.getThingEntityId(),
                             command.getFeatureId())
                             .dittoHeaders(command.getDittoHeaders())
                             .build());
@@ -112,15 +114,15 @@ final class ModifyFeatureDefinitionLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public FeatureDefinitionCreated created() {
-            return FeatureDefinitionCreated.of(command.getThingId(), command.getFeatureId(),
-                    command.getDefinition(), -1, Instant.now(), command.getDittoHeaders());
+            return FeatureDefinitionCreated.of(command.getThingEntityId(), command.getFeatureId(),
+                    command.getDefinition(), -1, Instant.now(), command.getDittoHeaders(), null);
         }
 
         @Nonnull
         @Override
         public FeatureDefinitionModified modified() {
-            return FeatureDefinitionModified.of(command.getThingId(), command.getFeatureId(),
-                    command.getDefinition(), -1, Instant.now(), command.getDittoHeaders());
+            return FeatureDefinitionModified.of(command.getThingEntityId(), command.getFeatureId(),
+                    command.getDefinition(), -1, Instant.now(), command.getDittoHeaders(), null);
         }
 
     }

@@ -6,7 +6,7 @@
   "properties": {
     "thingId": {
       "type": "string",
-      "description": "Unique identifier representing the Thing - has to:\n * contain the mandatory namespace prefix (java package notation + `:` colon) - periods (`.`) may be used in namespace but not as first or last character\n * conform to [RFC-2396 (URI)](https://www.ietf.org/rfc/rfc2396.txt).\n\nExamples for a valid Thing ID:\n * `org.eclipse.ditto:xdk_53`\n * `foo:xdk_53`\n * `org.eclipse.vorto_42:xdk_thing`"
+      "description": "Unique identifier representing the Thing, has to conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).\n\nExamples for a valid Thing ID:\n * `org.eclipse.ditto:xdk_53`\n * `foo:xdk_53`\n * `org.eclipse.vorto_42:xdk_thing`"
     },
     "acl": {
       "title": "ACL",
@@ -45,7 +45,7 @@
     "features": {
       "title": "Features",
       "type": "object",
-      "description": "The Features belonging to this Thing. A Thing can handle any number of Features.\n The key of this object represents the `featureId`. Due to the fact that a Feature ID often needs to be set in the path of a HTTP request, we strongly recommend to use a restricted the set of characters (e.g. those for [Uniform Resource Identifiers (URI)](http://www.ietf.org/rfc/rfc2396.txt)).",
+      "description": "The Features belonging to this Thing. A Thing can handle any number of Features.\n The key of this object represents the `featureId`. Due to the fact that a Feature ID often needs to be set in the path of a HTTP request, we strongly recommend to use a restricted the set of characters (e.g. those for [Uniform Resource Identifiers (URI)](http://www.ietf.org/rfc/rfc3986.txt)).",
       "additionalProperties": {
         "title": "Feature",
         "type": "object",
@@ -83,9 +83,15 @@
       "type": "integer",
       "description": "_(read-only)_ The revision is a counter which is incremented on each modification of a Thing."
     },
+    "_created": {
+      "type": "string",
+      "description": "_(read-only)_ The created timestamp of the Thing in ISO-8601 UTC format. The timestamp is set on creation of a Thing.",
+      "format": "date-time"
+    },
     "_modified": {
       "type": "string",
-      "description": "_(read-only)_ The modified timestamp of the Thing in ISO-8601 UTC format. The timestamp is set on each modification of a Thing."
+      "description": "_(read-only)_ The modified timestamp of the Thing in ISO-8601 UTC format. The timestamp is set on each modification of a Thing.",
+      "format": "date-time"
     }
   },
   "required": [

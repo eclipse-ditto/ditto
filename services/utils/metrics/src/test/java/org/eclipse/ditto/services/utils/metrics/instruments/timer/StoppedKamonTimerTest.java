@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -12,8 +14,13 @@ package org.eclipse.ditto.services.utils.metrics.instruments.timer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
 import org.junit.Before;
 import org.junit.Test;
+
+import kamon.metric.Timer;
 
 public class StoppedKamonTimerTest {
 
@@ -42,5 +49,19 @@ public class StoppedKamonTimerTest {
     @Test
     public void getTags() {
         assertThat(sut.getTags().keySet()).hasSize(1);
+    }
+
+    @Test
+    public void reportDurationCorrectly() throws Exception {
+        // GIVEN: 1250ms passes between timer start and timer end
+        final StartedTimer startedTimer = PreparedKamonTimer.newTimer(UUID.randomUUID().toString()).start();
+        TimeUnit.MILLISECONDS.sleep(1250);
+
+        // WHEN: timer records the elapsed nanoseconds
+        final StoppedKamonTimer stoppedTimer = (StoppedKamonTimer) startedTimer.stop();
+        final kamon.metric.Timer.Atomic internalTimer = (Timer.Atomic) stoppedTimer.getKamonInternalTimer();
+
+        // THEN: the recorded value is at least 1s
+        assertThat(internalTimer.getMaxValueAsDouble()).isGreaterThan(1e9);
     }
 }

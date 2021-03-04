@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -19,14 +21,15 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 
 /**
  * This class helps to deserialize JSON to a sub-class of {@link CommandResponse}. Hereby this class extracts the
- * values which are common for all command responses. All remaining required values have to be extracted in {@link
- * FactoryMethodFunction#create(HttpStatusCode)}. There the actual command response object is
- * created, too.
+ * values which are common for all command responses. All remaining required values have to be extracted in
+ * {@link FactoryMethodFunction#create(HttpStatus)}. There the actual command response object is created, too.
  */
 @Immutable
 public final class CommandResponseJsonDeserializer<T extends CommandResponse> {
@@ -74,14 +77,7 @@ public final class CommandResponseJsonDeserializer<T extends CommandResponse> {
     public T deserialize(final FactoryMethodFunction<T> factoryMethodFunction) {
         checkNotNull(factoryMethodFunction, "method for creating a command response object");
         validateCommandResponseType();
-
-        final int statusCode = jsonObject.getValueOrThrow(CommandResponse.JsonFields.STATUS);
-        final HttpStatusCode httpStatusCode = HttpStatusCode.forInt(statusCode).orElseThrow(() -> {
-            final String msgPattern = "HTTP status code <{0}> of JSON Object is not supported!";
-            return new JsonParseException(MessageFormat.format(msgPattern, statusCode));
-        });
-
-        return factoryMethodFunction.create(httpStatusCode);
+        return factoryMethodFunction.create(getHttpStatusOrThrow(jsonObject));
     }
 
     private void validateCommandResponseType() {
@@ -92,6 +88,26 @@ public final class CommandResponseJsonDeserializer<T extends CommandResponse> {
             final String msg = MessageFormat.format(msgPattern, expectedCommandResponseType, actualCommandResponseType);
 
             throw new DittoJsonException(new JsonParseException(msg));
+        }
+    }
+
+    private static HttpStatus getHttpStatusOrThrow(final JsonObject jsonObject) {
+        return getHttpStatusOrThrow(getHttpStatusCodeOrThrow(jsonObject));
+    }
+
+    private static int getHttpStatusCodeOrThrow(final JsonObject jsonObject) {
+        return jsonObject.getValueOrThrow(CommandResponse.JsonFields.STATUS);
+    }
+
+    private static HttpStatus getHttpStatusOrThrow(final int statusCode) {
+        try {
+            return HttpStatus.getInstance(statusCode);
+        } catch (final HttpStatusCodeOutOfRangeException e) {
+            throw new DittoJsonException(JsonParseException.newBuilder()
+                    .message(() -> MessageFormat.format("HTTP status code <{0}> of JSON Object is not supported!",
+                            statusCode))
+                    .cause(e)
+                    .build());
         }
     }
 
@@ -109,8 +125,22 @@ public final class CommandResponseJsonDeserializer<T extends CommandResponse> {
          *
          * @param statusCode the status of the response.
          * @return the command response.
+         * @deprecated as of 2.0.0 please use {@link #create(HttpStatus)} instead.
          */
-        T create(HttpStatusCode statusCode);
+        @Deprecated
+        default T create(final HttpStatusCode statusCode) {
+            return create(statusCode.getAsHttpStatus());
+        }
+
+        /**
+         * Creates a {@code CommandResponse} with the help of the given arguments.
+         *
+         * @param httpStatus the HTTP status of the response.
+         * @return the command response.
+         * @since 2.0.0
+         */
+        T create(HttpStatus httpStatus);
+
     }
 
 }

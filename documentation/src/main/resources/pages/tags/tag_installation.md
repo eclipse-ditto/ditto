@@ -1,5 +1,5 @@
 ---
-title: "Installation"
+title: "Installation topics"
 tagName: installation
 search: exclude
 permalink: tag_installation.html

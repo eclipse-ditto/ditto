@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -18,10 +20,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.concurrent.Immutable;
+
 import akka.actor.ActorRef;
 import akka.actor.Cancellable;
 import akka.actor.Props;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -43,6 +46,7 @@ public final class CompositeCachingHealthCheckingActor extends AbstractHealthChe
     /**
      * Constructs a {@link CompositeCachingHealthCheckingActor}.
      */
+    @SuppressWarnings("unused")
     private CompositeCachingHealthCheckingActor(final Map<String, Props> childActorProps, final Duration updateInterval,
             final boolean enabled) {
         this.labelsToChildActors = new LinkedHashMap<>();
@@ -71,14 +75,8 @@ public final class CompositeCachingHealthCheckingActor extends AbstractHealthChe
      */
     public static Props props(final Map<String, Props> childActorProps, final Duration updateInterval,
             final boolean enabled) {
-        return Props.create(CompositeCachingHealthCheckingActor.class, new Creator<CompositeCachingHealthCheckingActor>() {
-            private static final long serialVersionUID = 1L;
 
-            @Override
-            public CompositeCachingHealthCheckingActor create() {
-                return new CompositeCachingHealthCheckingActor(childActorProps, updateInterval, enabled);
-            }
-        });
+        return Props.create(CompositeCachingHealthCheckingActor.class, childActorProps, updateInterval, enabled);
     }
 
     @Override
@@ -155,4 +153,22 @@ public final class CompositeCachingHealthCheckingActor extends AbstractHealthChe
                         childActor.tell(RetrieveHealth.newInstance(), getSelf()));
     }
 
+    /**
+     * Internal command to check the health of underlying systems.
+     */
+    @Immutable
+    private static final class CheckHealth {
+
+        private CheckHealth() {
+        }
+
+        /**
+         * Returns a new {@code CheckHealth} instance.
+         *
+         * @return the new CheckHealth instance.
+         */
+        public static CheckHealth newInstance() {
+            return new CheckHealth();
+        }
+    }
 }

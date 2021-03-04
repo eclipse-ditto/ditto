@@ -1,25 +1,30 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
- *  
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.connectivity.modify;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.TestConstants;
@@ -34,9 +39,9 @@ public final class ModifyConnectionResponseTest {
 
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(CommandResponse.JsonFields.TYPE, ModifyConnectionResponse.TYPE)
-            .set(CommandResponse.JsonFields.STATUS, HttpStatusCode.CREATED.toInt())
-            .set(ConnectivityModifyCommandResponse.JsonFields.JSON_CONNECTION_ID, TestConstants.CONNECTION.getId())
-            .set(ModifyConnectionResponse.JSON_CONNECTION, TestConstants.CONNECTION.toJson())
+            .set(CommandResponse.JsonFields.STATUS, HttpStatus.NO_CONTENT.getCode())
+            .set(ConnectivityModifyCommandResponse.JsonFields.JSON_CONNECTION_ID,
+                    TestConstants.CONNECTION.getId().toString())
             .build();
 
     @Test
@@ -48,23 +53,15 @@ public final class ModifyConnectionResponseTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ModifyConnectionResponse.class, areImmutable(), provided(Connection.class,
-                MappingContext.class)
-                .isAlsoImmutable());
-    }
-
-    @Test
-    public void createInstanceWithNullConnection() {
-        assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ModifyConnectionResponse.created(null, DittoHeaders.empty()))
-                .withMessage("The %s must not be null!", "Connection")
-                .withNoCause();
+        assertInstancesOf(ModifyConnectionResponse.class,
+                areImmutable(),
+                provided(Connection.class, MappingContext.class, ConnectionId.class).isAlsoImmutable());
     }
 
     @Test
     public void fromJsonReturnsExpected() {
         final ModifyConnectionResponse expected =
-                ModifyConnectionResponse.created(TestConstants.CONNECTION, DittoHeaders.empty());
+                ModifyConnectionResponse.of(TestConstants.CONNECTION.getId(), DittoHeaders.empty());
 
         final ModifyConnectionResponse actual =
                 ModifyConnectionResponse.fromJson(KNOWN_JSON, DittoHeaders.empty());
@@ -75,9 +72,20 @@ public final class ModifyConnectionResponseTest {
     @Test
     public void toJsonReturnsExpected() {
         final JsonObject actual =
-                ModifyConnectionResponse.created(TestConstants.CONNECTION, DittoHeaders.empty()).toJson();
+                ModifyConnectionResponse.of(TestConstants.CONNECTION.getId(), DittoHeaders.empty()).toJson();
 
         assertThat(actual).isEqualTo(KNOWN_JSON);
     }
+
+    @Test
+    public void getResourcePathReturnsExpected() {
+        final JsonPointer expectedResourcePath = JsonFactory.emptyPointer();
+
+        final ModifyConnectionResponse underTest =
+                ModifyConnectionResponse.of(TestConstants.CONNECTION.getId(), DittoHeaders.empty());
+
+        DittoJsonAssertions.assertThat(underTest.getResourcePath()).isEqualTo(expectedResourcePath);
+    }
+
 
 }

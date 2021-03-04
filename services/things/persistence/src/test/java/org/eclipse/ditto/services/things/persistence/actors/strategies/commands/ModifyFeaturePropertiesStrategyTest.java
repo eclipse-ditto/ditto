@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -23,7 +25,9 @@ import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.TestConstants;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperties;
@@ -64,12 +68,12 @@ public final class ModifyFeaturePropertiesStrategyTest extends AbstractCommandSt
 
     @Test
     public void modifyFeaturePropertiesOfThingWithoutFeatures() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatureProperties command =
-                ModifyFeatureProperties.of(context.getThingId(), featureId, modifiedFeatureProperties,
+                ModifyFeatureProperties.of(context.getState(), featureId, modifiedFeatureProperties,
                         DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featureNotFound(context.getThingId(), command.getFeatureId(),
+                ExceptionFactory.featureNotFound(context.getState(), command.getFeatureId(),
                         command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.removeFeatures(), command, expectedException);
@@ -77,12 +81,12 @@ public final class ModifyFeaturePropertiesStrategyTest extends AbstractCommandSt
 
     @Test
     public void modifyFeaturePropertiesOfThingWithoutThatFeature() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatureProperties command =
-                ModifyFeatureProperties.of(context.getThingId(), featureId, modifiedFeatureProperties,
+                ModifyFeatureProperties.of(context.getState(), featureId, modifiedFeatureProperties,
                         DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featureNotFound(context.getThingId(), command.getFeatureId(),
+                ExceptionFactory.featureNotFound(context.getState(), command.getFeatureId(),
                         command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.removeFeature(featureId), command, expectedException);
@@ -91,33 +95,33 @@ public final class ModifyFeaturePropertiesStrategyTest extends AbstractCommandSt
     @Test
     public void modifyFeaturePropertiesOfFeatureWithoutProperties() {
         final Feature featureWithoutProperties = TestConstants.Feature.FLUX_CAPACITOR.removeProperties();
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatureProperties command =
-                ModifyFeatureProperties.of(context.getThingId(), featureId, modifiedFeatureProperties,
+                ModifyFeatureProperties.of(context.getState(), featureId, modifiedFeatureProperties,
                         DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2.setFeature(featureWithoutProperties), command,
                 FeaturePropertiesCreated.class,
-                modifyFeaturePropertiesResponse(context.getThingId(), command.getFeatureId(),
+                modifyFeaturePropertiesResponse(context.getState(), command.getFeatureId(),
                         command.getProperties(), command.getDittoHeaders(), true));
     }
 
     @Test
     public void modifyExistingFeatureProperties() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatureProperties command =
-                ModifyFeatureProperties.of(context.getThingId(), featureId, modifiedFeatureProperties,
+                ModifyFeatureProperties.of(context.getState(), featureId, modifiedFeatureProperties,
                         DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
                 FeaturePropertiesModified.class,
-                modifyFeaturePropertiesResponse(context.getThingId(), command.getFeatureId(),
+                modifyFeaturePropertiesResponse(context.getState(), command.getFeatureId(),
                         modifiedFeatureProperties, command.getDittoHeaders(), false));
     }
 
     @Test
     public void modifyFeaturePropertiesSoThatThingGetsTooLarge() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
 
         final Feature feature = Feature.newBuilder()
                 .properties(JsonObject.newBuilder().set("foo", false).set("bar", 42).build())
@@ -132,7 +136,7 @@ public final class ModifyFeaturePropertiesStrategyTest extends AbstractCommandSt
         final JsonObject largeAttributes = JsonObject.newBuilder()
                 .set("a", sb.toString())
                 .build();
-        final String thingId = "foo:bar";
+        final ThingId thingId = ThingId.of("foo","bar");
         final Thing thing = Thing.newBuilder()
                 .setId(thingId)
                 .setAttributes(largeAttributes)
@@ -146,7 +150,7 @@ public final class ModifyFeaturePropertiesStrategyTest extends AbstractCommandSt
                         DittoHeaders.empty());
 
         // but modifying the feature properties which would cause the Thing to exceed the limit should not be allowed:
-        assertThatThrownBy(() -> underTest.doApply(context, thing, NEXT_REVISION, command))
+        assertThatThrownBy(() -> underTest.doApply(context, thing, NEXT_REVISION, command, null))
                 .isInstanceOf(ThingTooLargeException.class);
     }
 

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -15,10 +17,8 @@ import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -37,7 +37,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.signals.events.base.Event;
-import org.eclipse.ditto.signals.events.base.EventRegistry;
+import org.eclipse.ditto.signals.events.base.GlobalEventRegistry;
 import org.eclipse.ditto.signals.events.things.AclEntryCreated;
 import org.eclipse.ditto.signals.events.things.AttributeCreated;
 import org.eclipse.ditto.signals.events.things.AttributesCreated;
@@ -51,14 +51,12 @@ import org.eclipse.ditto.signals.events.things.FeaturePropertyModified;
 import org.eclipse.ditto.signals.events.things.FeaturesCreated;
 import org.eclipse.ditto.signals.events.things.FeaturesModified;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
-import org.eclipse.ditto.signals.events.things.ThingEventRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import akka.actor.ExtendedActorSystem;
 import akka.persistence.journal.EventAdapter;
 import akka.persistence.journal.EventSeq;
-import akka.persistence.journal.Tagged;
 
 /**
  * EventAdapter for {@link Event}s persisted into akka-persistence event-journal. Converts Event to MongoDB
@@ -92,11 +90,11 @@ public final class ThingMongoEventAdapter implements EventAdapter {
 
     private final Map<String, Function<JsonObject, JsonObject>> migrationMappings;
     private final ExtendedActorSystem system;
-    private final EventRegistry<ThingEvent> eventRegistry;
+    private final GlobalEventRegistry eventRegistry;
 
     public ThingMongoEventAdapter(@Nullable final ExtendedActorSystem system) {
         this.system = system;
-        eventRegistry = ThingEventRegistry.newInstance();
+        eventRegistry = GlobalEventRegistry.getInstance();
 
         migrationMappings = new HashMap<>();
         migrationMappings.put(FeatureModified.NAME,
@@ -147,18 +145,10 @@ public final class ThingMongoEventAdapter implements EventAdapter {
                             // remove the policy entries from thing event payload
                             .remove(POLICY_IN_THING_EVENT_PAYLOAD);
             final DittoBsonJson dittoBsonJson = DittoBsonJson.getInstance();
-            final Object bson = dittoBsonJson.parse(jsonObject);
-            final Set<String> readSubjects = calculateReadSubjects(theEvent);
-            return new Tagged(bson, readSubjects);
+            return dittoBsonJson.parse(jsonObject);
         } else {
             throw new IllegalArgumentException("Unable to toJournal a non-'Event' object! Was: " + event.getClass());
         }
-    }
-
-    private Set<String> calculateReadSubjects(final Event<?> theEvent) {
-        return theEvent.getDittoHeaders().getReadSubjects().stream()
-                .map(rs -> "rs:" + rs)
-                .collect(Collectors.toSet());
     }
 
     @Override

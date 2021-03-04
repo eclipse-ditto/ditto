@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -28,7 +30,7 @@ final class ImmutableSortOptionEntry implements SortOptionEntry {
     private final JsonPointer propertyPath;
     private final SortOrder sortOrder;
 
-    ImmutableSortOptionEntry(final SortOrder sortOrder, final CharSequence propertyPath) {
+    ImmutableSortOptionEntry(final CharSequence propertyPath, final SortOrder sortOrder) {
         this.propertyPath = JsonFactory.newPointer(checkNotNull(propertyPath, "property path"));
         this.sortOrder = sortOrder;
     }
@@ -36,13 +38,13 @@ final class ImmutableSortOptionEntry implements SortOptionEntry {
     /**
      * Constructs new SortOptionEntry.
      *
-     * @param sortOrder the sortOrder.
      * @param propertyPath the propertyPath.
+     * @param sortOrder the sortOrder.
      * @return the SortOptionEntry.
      * @throws NullPointerException if {@code propertyPath} is {@code null}.
      */
-    public static ImmutableSortOptionEntry of(final SortOrder sortOrder, final CharSequence propertyPath) {
-        return new ImmutableSortOptionEntry(sortOrder, propertyPath);
+    public static ImmutableSortOptionEntry of(final CharSequence propertyPath, final SortOrder sortOrder) {
+        return new ImmutableSortOptionEntry(propertyPath, sortOrder);
     }
 
     /**
@@ -53,7 +55,7 @@ final class ImmutableSortOptionEntry implements SortOptionEntry {
      * @throws NullPointerException if {@code propertyPath} is {@code null}.
      */
     public static ImmutableSortOptionEntry asc(final CharSequence propertyPath) {
-        return new ImmutableSortOptionEntry(SortOrder.ASC, propertyPath);
+        return new ImmutableSortOptionEntry(propertyPath, SortOrder.ASC);
     }
 
     /**
@@ -64,7 +66,7 @@ final class ImmutableSortOptionEntry implements SortOptionEntry {
      * @throws NullPointerException if {@code propertyPath} is {@code null}.
      */
     public static ImmutableSortOptionEntry desc(final CharSequence propertyPath) {
-        return new ImmutableSortOptionEntry(SortOrder.DESC, propertyPath);
+        return new ImmutableSortOptionEntry(propertyPath, SortOrder.DESC);
     }
 
     @Override

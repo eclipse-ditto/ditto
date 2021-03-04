@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -30,8 +32,9 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.ThingIdValidator;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -39,6 +42,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * Command which retrieves one {@link org.eclipse.ditto.model.things.Thing} based on the the passed in Thing ID.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = RetrieveThing.TYPE_PREFIX, name = RetrieveThing.NAME)
 public final class RetrieveThing extends AbstractCommand<RetrieveThing> implements ThingQueryCommand<RetrieveThing> {
 
     /**
@@ -61,13 +65,13 @@ public final class RetrieveThing extends AbstractCommand<RetrieveThing> implemen
 
     private static final long NULL_SNAPSHOT_REVISION = -1L;
 
-    private final String thingId;
+    private final ThingId thingId;
     @Nullable private final JsonFieldSelector selectedFields;
     private final long snapshotRevision;
 
     private RetrieveThing(final Builder builder) {
         super(TYPE, builder.dittoHeaders);
-        thingId = builder.thingId;
+        thingId = checkNotNull(builder.thingId, "Thing ID");
         selectedFields = builder.selectedFields;
         snapshotRevision = builder.snapshotRevision;
     }
@@ -80,10 +84,25 @@ public final class RetrieveThing extends AbstractCommand<RetrieveThing> implemen
      * @return a Command for retrieving the Thing with the {@code thingId} as its ID which is readable from the passed
      * authorization context.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static RetrieveThing of(final CharSequence thingId, final DittoHeaders dittoHeaders) {
+        return of(ThingId.of(thingId), dittoHeaders);
+    }
+
+    /**
+     * Returns a Command for retrieving the Thing with the given ID.
+     *
+     * @param thingId the ID of a single Thing to be retrieved by this command.
+     * @param dittoHeaders the headers of the command.
+     * @return a Command for retrieving the Thing with the {@code thingId} as its ID which is readable from the passed
+     * authorization context.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     */
+    public static RetrieveThing of(final ThingId thingId, final DittoHeaders dittoHeaders) {
         return getBuilder(thingId, dittoHeaders).build();
     }
 
@@ -94,12 +113,25 @@ public final class RetrieveThing extends AbstractCommand<RetrieveThing> implemen
      * @param dittoHeaders the headers of the command.
      * @return the builder.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #getBuilder(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static Builder getBuilder(final CharSequence thingId, final DittoHeaders dittoHeaders) {
-        ThingIdValidator.getInstance().accept(thingId, dittoHeaders);
-        return new Builder(thingId.toString(), checkNotNull(dittoHeaders, "command headers"));
+        return getBuilder(ThingId.of(thingId), dittoHeaders);
+    }
+
+    /**
+     * Returns a builder with a fluent API for an immutable {@code RetrieveThing} instance.
+     *
+     * @param thingId the ID of a single Thing to be retrieved by this command.
+     * @param dittoHeaders the headers of the command.
+     * @return the builder.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     */
+    public static Builder getBuilder(final ThingId thingId, final DittoHeaders dittoHeaders) {
+        return new Builder(thingId, checkNotNull(dittoHeaders, "command headers"));
     }
 
     /**
@@ -129,7 +161,8 @@ public final class RetrieveThing extends AbstractCommand<RetrieveThing> implemen
      */
     public static RetrieveThing fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveThing>(TYPE, jsonObject).deserialize(() -> {
-            final String thingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
             final Builder builder = getBuilder(thingId, dittoHeaders);
 
             jsonObject.getValue(JSON_SELECTED_FIELDS)
@@ -150,7 +183,7 @@ public final class RetrieveThing extends AbstractCommand<RetrieveThing> implemen
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -163,7 +196,7 @@ public final class RetrieveThing extends AbstractCommand<RetrieveThing> implemen
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommand.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingQueryCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         if (null != selectedFields) {
             jsonObjectBuilder.set(JSON_SELECTED_FIELDS, selectedFields.toString(), predicate);
         }
@@ -233,13 +266,13 @@ public final class RetrieveThing extends AbstractCommand<RetrieveThing> implemen
     @NotThreadSafe
     public static final class Builder {
 
-        private final String thingId;
+        private final ThingId thingId;
         private final DittoHeaders dittoHeaders;
         @Nullable private JsonFieldSelector selectedFields;
         private long snapshotRevision;
 
-        private Builder(final String theThingId, final DittoHeaders theDittoHeaders) {
-            thingId = theThingId;
+        private Builder(final ThingId theThingId, final DittoHeaders theDittoHeaders) {
+            thingId = checkNotNull(theThingId, "Thing ID");
             dittoHeaders = theDittoHeaders;
             selectedFields = null;
             snapshotRevision = NULL_SNAPSHOT_REVISION;

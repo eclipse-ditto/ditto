@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -29,6 +31,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AccessControlListModelFactory;
 import org.eclipse.ditto.model.things.AclNotAllowedException;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
@@ -47,7 +50,7 @@ public final class ModifyThingTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, ModifyThing.TYPE)
-            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ModifyThing.JSON_THING, TestConstants.Thing.THING.toJson(FieldType.regularOrSpecial()))
             .build();
 
@@ -55,7 +58,7 @@ public final class ModifyThingTest {
     public void assertImmutability() {
         assertInstancesOf(ModifyThing.class,
                 areImmutable(),
-                provided(Thing.class, JsonObject.class).isAlsoImmutable());
+                provided(Thing.class, JsonObject.class, ThingId.class).isAlsoImmutable());
     }
 
 
@@ -199,11 +202,11 @@ public final class ModifyThingTest {
                 .set("a", sb.toString())
                 .build();
         final Thing thing = Thing.newBuilder()
-                .setId("foo:bar")
+                .setId(ThingId.of("foo", "bar"))
                 .setAttributes(largeAttributes)
                 .build();
 
-        assertThatThrownBy(() -> ModifyThing.of(thing.getId().get(), thing, null, DittoHeaders.empty()))
+        assertThatThrownBy(() -> ModifyThing.of(thing.getEntityId().get(), thing, null, DittoHeaders.empty()))
                 .isInstanceOf(ThingTooLargeException.class);
     }
 

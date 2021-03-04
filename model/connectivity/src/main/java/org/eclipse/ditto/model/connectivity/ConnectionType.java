@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -31,9 +33,24 @@ public enum ConnectionType implements CharSequence {
     AMQP_10("amqp-10"),
 
     /**
-     * Indicates an MQTT connection.
+     * Indicates a MQTT connection.
      */
-    MQTT("mqtt");
+    MQTT("mqtt"),
+
+    /**
+     * Indicates a Kafka connection.
+     */
+    KAFKA("kafka"),
+
+    /**
+     * Indicates an HTTP-connection with targets only.
+     */
+    HTTP_PUSH("http-push"),
+    
+    /**
+     * Indicates a MQTT 5 connection.
+     */
+    MQTT_5("mqtt-5");
 
     private final String name;
 
@@ -82,6 +99,16 @@ public enum ConnectionType implements CharSequence {
     @Override
     public String toString() {
         return name;
+    }
+
+    /**
+     * Whether the passed in {@code connectionType} supports headers on the protocol level or not.
+     *
+     * @param connectionType the connection type to check for header support.
+     * @return {@code true} when headers are supported by the passed in {@code connectionType}, {@code false} if not.
+     */
+    static boolean supportsHeaders(final ConnectionType connectionType) {
+        return connectionType != MQTT;
     }
 
 }

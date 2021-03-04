@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -18,6 +20,12 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Objects;
+import java.util.Optional;
+
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.json.JsonArray;
 
 /**
  * Immutable implementation of {@link ResultList}.
@@ -28,16 +36,30 @@ public final class ResultListImpl<E> implements ResultList<E> {
 
     private final List<E> items;
     private final long nextPageOffset;
+    @Nullable private final JsonArray lastResultSortValues;
 
     /**
      * Constructor.
      *
      * @param items the items
-     * @param nextPageOffset the offset of the next page or {@link ResultList#NO_NEXT_PAGE}
+     * @param nextPageOffset the offset of the next page or {@link org.eclipse.ditto.services.thingsearch.common.model.ResultList#NO_NEXT_PAGE}
      */
     public ResultListImpl(final List<E> items, final long nextPageOffset) {
+        this(items, nextPageOffset, null);
+    }
+
+    /**
+     * Constructor.
+     *
+     * @param items the items
+     * @param nextPageOffset the offset of the next page or {@link org.eclipse.ditto.services.thingsearch.common.model.ResultList#NO_NEXT_PAGE}
+     * @param lastResultSortValues sort values of the last result.
+     */
+    public ResultListImpl(final List<E> items, final long nextPageOffset,
+            @Nullable final JsonArray lastResultSortValues) {
         this.items = Collections.unmodifiableList(new ArrayList<>(requireNonNull(items)));
         this.nextPageOffset = nextPageOffset;
+        this.lastResultSortValues = lastResultSortValues;
     }
 
     @Override
@@ -160,50 +182,34 @@ public final class ResultListImpl<E> implements ResultList<E> {
         return nextPageOffset;
     }
 
-    // CS:OFF
-    @SuppressWarnings("squid:S109")
+    @Override
+    public Optional<JsonArray> lastResultSortValues() {
+        return Optional.ofNullable(lastResultSortValues);
+    }
+
     @Override
     public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = (prime * result) + ((items == null) ? 0 : items.hashCode());
-        result = (prime * result) + (int) (nextPageOffset ^ (nextPageOffset >>> 32));
-        return result;
-    } // CS:ON
+        return Objects.hash(items, nextPageOffset, lastResultSortValues);
+    }
 
-    // CS:OFF
-    @SuppressWarnings("squid:MethodCyclomaticComplexity")
     @Override
-    public boolean equals(final Object obj)
-    // CS:ON
-    {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
+    public boolean equals(final Object obj) {
+        if (!(obj instanceof ResultListImpl)) {
             return false;
+        } else {
+            final ResultListImpl<?> that = (ResultListImpl<?>) obj;
+            return Objects.equals(items, that.items) &&
+                    Objects.equals(nextPageOffset, that.nextPageOffset) &&
+                    Objects.equals(lastResultSortValues, that.lastResultSortValues);
         }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        @SuppressWarnings("rawtypes")
-        final ResultListImpl other = (ResultListImpl) obj;
-        if (items == null) {
-            if (other.items != null) {
-                return false;
-            }
-        } else if (!items.equals(other.items)) {
-            return false;
-        }
-        if (nextPageOffset != other.nextPageOffset) {
-            return false;
-        }
-        return true;
     }
 
     @Override
     public String toString() {
-        return "ResultListImpl [items=" + items + ", nextPageOffset=" + nextPageOffset + "]";
+        return "ResultListImpl [items=" + items +
+                ", nextPageOffset=" + nextPageOffset +
+                ", lastResultSortValues=" + lastResultSortValues +
+                "]";
     }
 
 }

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -15,7 +17,8 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.signals.base.WithThingId;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 /**
@@ -23,7 +26,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ThingCommandResponse<T extends ThingCommandResponse> extends CommandResponse<T>, WithThingId {
+public interface ThingCommandResponse<T extends ThingCommandResponse<T>> extends CommandResponse<T>, WithThingId {
 
     /**
      * Type Prefix of Thing command responses.
@@ -31,8 +34,8 @@ public interface ThingCommandResponse<T extends ThingCommandResponse> extends Co
     String TYPE_PREFIX = "things." + TYPE_QUALIFIER + ":";
 
     @Override
-    default String getId() {
-        return getThingId();
+    default ThingId getEntityId() {
+        return getThingEntityId();
     }
 
     @Override

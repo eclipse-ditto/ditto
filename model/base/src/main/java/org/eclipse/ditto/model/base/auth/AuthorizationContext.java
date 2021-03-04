@@ -1,15 +1,18 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.model.base.auth;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -38,16 +41,59 @@ public interface AuthorizationContext
     /**
      * Returns a new immutable {@code AuthorizationContext} with the given authorization subjects.
      *
+     * @param type the type of the authorization context to create, predefined in {@link DittoAuthorizationContextType}.
      * @param authorizationSubject the mandatory authorization subject of the new authorization context.
      * @param furtherAuthorizationSubjects additional authorization subjects of the new authorization context.
      * @return the new {@code AuthorizationContext}.
      * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.1.0
      */
+    static AuthorizationContext newInstance(final AuthorizationContextType type,
+            final AuthorizationSubject authorizationSubject,
+            final AuthorizationSubject... furtherAuthorizationSubjects) {
+
+        return AuthorizationModelFactory.newAuthContext(type, authorizationSubject, furtherAuthorizationSubjects);
+    }
+
+    /**
+     * Returns a new immutable {@code AuthorizationContext} with the given authorization subjects.
+     *
+     * @param type the type of the authorization context to create, predefined in {@link DittoAuthorizationContextType}.
+     * @param authorizationSubjects the authorization subjects of the new authorization context.
+     * @return the new {@code AuthorizationContext}.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.1.0
+     */
+    static AuthorizationContext newInstance(final AuthorizationContextType type,
+            final Iterable<AuthorizationSubject> authorizationSubjects) {
+
+        return AuthorizationModelFactory.newAuthContext(type, authorizationSubjects);
+    }
+
+    /**
+     * Returns a new immutable {@code AuthorizationContext} with the given authorization subjects.
+     *
+     * @param authorizationSubject the mandatory authorization subject of the new authorization context.
+     * @param furtherAuthorizationSubjects additional authorization subjects of the new authorization context.
+     * @return the new {@code AuthorizationContext}.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated as of 1.1.0, please use
+     * {@link #newInstance(AuthorizationContextType, AuthorizationSubject, AuthorizationSubject...)} instead
+     */
+    @Deprecated
     static AuthorizationContext newInstance(final AuthorizationSubject authorizationSubject,
             final AuthorizationSubject... furtherAuthorizationSubjects) {
 
         return AuthorizationModelFactory.newAuthContext(authorizationSubject, furtherAuthorizationSubjects);
     }
+
+    /**
+     * Returns the type the authorization context was created with, specifying its "kind".
+     *
+     * @return the type of this authorization context.
+     * @since 1.1.0
+     */
+    AuthorizationContextType getType();
 
     /**
      * Returns all authorization subjects of this context.
@@ -61,6 +107,7 @@ public interface AuthorizationContext
      *
      * @param authorizationSubjects the authorization subjects to be added
      * @return a new authorization context with the given {@code authorizationSubjects} added at the beginning.
+     * @throws NullPointerException if {@code authorizationSubjects} is {@code null}.
      */
     AuthorizationContext addHead(List<AuthorizationSubject> authorizationSubjects);
 
@@ -69,6 +116,7 @@ public interface AuthorizationContext
      *
      * @param authorizationSubjects the authorization subjects to be added
      * @return a new authorization context with the given {@code authorizationSubjects} added at the end.
+     * @throws NullPointerException if {@code authorizationSubjects} is {@code null}.
      */
     AuthorizationContext addTail(List<AuthorizationSubject> authorizationSubjects);
 
@@ -115,6 +163,21 @@ public interface AuthorizationContext
     Stream<AuthorizationSubject> stream();
 
     /**
+     * Checks if this authorization context is authorized for a certain operation by evaluating the given granted and
+     * revoked authorization subjects.
+     * In evaluation revoked subjects weigh more than granted subjects, i. e. if the revoked and the granted set contain
+     * a common subject the subject is regarded to be revoked.
+     *
+     * @param granted the authorization subjects which are granted to perform the operation.
+     * @param revoked the authorization subjects which are revoked to perform the operation.
+     * @return {@code true} if the authorization subjects of this authorization context are regarded as authorized to
+     * perform a certain operation when the given granted and revoked subjects are taken into account.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.1.0
+     */
+    boolean isAuthorized(Collection<AuthorizationSubject> granted, Collection<AuthorizationSubject> revoked);
+
+    /**
      * Returns all non hidden marked fields of this authorization context.
      *
      * @return a JSON object representation of this authorization context including only {@link FieldType#REGULAR}
@@ -133,16 +196,27 @@ public interface AuthorizationContext
 
         /**
          * JSON field containing the {@link JsonSchemaVersion}.
+         * @deprecated as of 1.1.0 this field is no longer in use.
          */
+        @Deprecated
         public static final JsonFieldDefinition<Integer> JSON_SCHEMA_VERSION =
                 JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
+         * JSON field containing the authorization context's type.
+         *
+         * @since 1.1.0
+         */
+        public static final JsonFieldDefinition<String> TYPE =
+                JsonFactory.newStringFieldDefinition("type", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
          * JSON field containing the authorized subjects as JSON array.
          */
         public static final JsonFieldDefinition<JsonArray> AUTH_SUBJECTS =
-                JsonFactory.newJsonArrayFieldDefinition("authorizedSubjects", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonArrayFieldDefinition("subjects", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

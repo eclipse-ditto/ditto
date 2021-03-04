@@ -1,27 +1,33 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.things.modify;
 
+import static org.eclipse.ditto.signals.commands.things.TestConstants.Pointer.EMPTY_JSON_POINTER;
 import static org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -31,18 +37,17 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class DeleteAttributeTest {
 
-    private static final JsonPointer KNOWN_JSON_POINTER = JsonFactory.newPointer("key1");
-
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, DeleteAttribute.TYPE)
-            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
-            .set(DeleteAttribute.JSON_ATTRIBUTE, KNOWN_JSON_POINTER.toString())
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
+            .set(DeleteAttribute.JSON_ATTRIBUTE, TestConstants.Pointer.VALID_JSON_POINTER.toString())
             .build();
 
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DeleteAttribute.class, areImmutable(), provided(JsonPointer.class).isAlsoImmutable());
+        assertInstancesOf(DeleteAttribute.class, areImmutable(),
+                provided(JsonPointer.class, ThingId.class).isAlsoImmutable());
     }
 
 
@@ -53,10 +58,14 @@ public final class DeleteAttributeTest {
                 .verify();
     }
 
-
     @Test(expected = ThingIdInvalidException.class)
+    public void tryToCreateInstanceWithNullThingIdString() {
+        DeleteAttribute.of((String) null, TestConstants.Pointer.VALID_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+    @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        DeleteAttribute.of(null, KNOWN_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
+        DeleteAttribute.of((ThingId) null, TestConstants.Pointer.VALID_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
 
@@ -65,26 +74,34 @@ public final class DeleteAttributeTest {
         DeleteAttribute.of(TestConstants.Thing.THING_ID, null, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
-
     @Test
     public void createInstanceWithValidArguments() {
         final DeleteAttribute underTest = DeleteAttribute.of(TestConstants.Thing.THING_ID,
-                KNOWN_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
+                TestConstants.Pointer.VALID_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getAttributePointer()).isEqualTo(KNOWN_JSON_POINTER);
+        assertThat(underTest.getAttributePointer()).isEqualTo(TestConstants.Pointer.VALID_JSON_POINTER);
     }
 
+    @Test(expected = JsonKeyInvalidException.class)
+    public void createInstanceWithInvalidArguments() {
+        DeleteAttribute.of(TestConstants.Thing.THING_ID, TestConstants.Pointer.INVALID_JSON_POINTER,
+                TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+    @Test(expected = AttributePointerInvalidException.class)
+    public void createInstanceWithEmptyPointer() {
+        DeleteAttribute.of(TestConstants.Thing.THING_ID, EMPTY_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
+    }
 
     @Test
     public void toJsonReturnsExpected() {
         final DeleteAttribute underTest = DeleteAttribute.of(TestConstants.Thing.THING_ID,
-                KNOWN_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
+                TestConstants.Pointer.VALID_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {
@@ -92,8 +109,8 @@ public final class DeleteAttributeTest {
                 DeleteAttribute.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(underTest.getAttributePointer()).isEqualTo(KNOWN_JSON_POINTER);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat(underTest.getAttributePointer()).isEqualTo(TestConstants.Pointer.VALID_JSON_POINTER);
     }
 
 }

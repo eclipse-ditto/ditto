@@ -1,0 +1,404 @@
+<!--
+  ~ Copyright (c) 2019 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+
+  <title>EclipseCon 2019 Ludwigsburg - Eclipse Ditto status</title>
+
+  <meta name="description" content="EclipseCon 2019 Ludwigsburg - Eclipse Ditto status">
+  <meta name="author" content="Thomas Jäckle">
+  <meta name="date" content="2018-10-22">
+  <meta http-equiv="content-language" content="en">
+
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+  <link rel="icon" type="image/png" href="../../images/favicon-16x16.png" sizes="16x16">
+  <link rel="icon" type="image/png" href="../../images/favicon-32x32.png" sizes="32x32">
+  <link rel="icon" type="image/png" href="../../images/favicon-96x96.png" sizes="96x96">
+
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=News+Cycle">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.13/css/all.css"
+        integrity="sha384-DNOHZ68U8hZfKXOrtjWvjxusGo9WQnrNx2sqG0tfsghAvtVlRW3tvkXWZh58N9jp" crossorigin="anonymous">
+
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/css/reveal.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/css/theme/simple.min.css"
+        id="theme">
+
+  <!-- Theme used for syntax highlighting of code -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/lib/css/zenburn.min.css">
+
+  <style>
+    @font-face {
+      font-family: "News Cycle";
+    }
+
+    #header-left {
+      position: absolute;
+      top: 0%;
+      left: 0%;
+    }
+
+    #header-right {
+      position: absolute;
+      top: 0%;
+      right: 0%;
+    }
+
+    .reveal section img {
+      background: none;
+      border: none;
+      box-shadow: none;
+    }
+
+    .dim-background .slide-background {
+      opacity: 0.3 !important;
+      /*background: none !important;*/ /* for printing ! */
+      /* print with: file:///C:/...../index.html?print-pdf */
+    }
+
+    .chapter-background .slide-background {
+      opacity: 0.7 !important;
+      /*background: none !important;*/ /* for printing ! */
+    }
+
+    .print-pdf .reveal .slide-background {
+      opacity: 0.7 !important;
+    }
+
+    .dim-background .slide-background.past {
+      display: none !important;
+    }
+
+    .dim-background .slide-background.future {
+      display: none !important;
+    }
+
+    .chapter-background .slide-background.past {
+      display: none !important;
+    }
+
+    .chapter-background .slide-background.future {
+      display: none !important;
+    }
+
+    /*.new-chapter h3 { color: #586e75; }*/
+    .introlink a:link {
+      font-weight: bold;
+      color: #000000
+    }
+
+    /* unvisited links */
+    .introlink a:visited {
+      font-weight: bold;
+      color: #000000
+    }
+
+    /* visited links   */
+    .introlink a:hover {
+      font-weight: bold;
+      color: #000000
+    }
+
+    /* user hovers     */
+    .introlink a:active {
+      font-weight: bold;
+      color: #000000
+    }
+
+    ul {
+      list-style: none !important;
+    }
+
+    ul li {
+      padding-left: 1.3em;
+    }
+
+    ul li:before {
+      list-style: none;
+      content: "→";
+      display: inline-block;
+      margin-left: -1.3em; /* same as padding-left set on li */
+      width: 1.3em; /* same as padding-left set on li */
+    }
+
+    .footer {
+      font-size: 12px !Important;
+      font-family: "News Cycle", Impact, sans-serif;
+      color: #687175;
+      position: absolute;
+      bottom: 15px;
+      left: 15px;
+      margin-bottom: 10px
+    }
+
+    .footer a {
+      color: #003b6a;
+      text-decoration: none;
+    }
+
+    /* active links    */
+  </style>
+
+  <!-- Printing and PDF exports -->
+  <script>
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.type = 'text/css';
+    link.href =
+      window.location.search.match(/print-pdf/gi)
+      ? 'https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/css/print/pdf.min.css'
+      : 'https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/css/print/paper.min.css';
+    document.getElementsByTagName('head')[0].appendChild(link);
+  </script>
+
+  <!--[if lt IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/lib/js/html5shiv.js"></script>
+  <![endif]-->
+</head>
+
+<body>
+
+<div class="reveal">
+
+  <!-- 2. Create hidden header/footer <div> -->
+  <div id="hidden" style="display:none;">
+    <div id="header">
+      <div id="header-left"><img src="../../images/ditto.svg" style="width: 80px; padding-top: 10px; padding-left: 10px"
+                                 alt="Ditto logo"></div>
+      <div id="header-right"><img src="../images/eclipse_iot_logo.png"
+                                  style="width: 150px; padding-top: 10px; padding-right: 10px" alt="Eclipse IoT logo">
+      </div>
+    </div>
+  </div>
+
+  <!-- Any section element inside of this container is displayed as a slide -->
+  <div class="slides">
+    <!-- Section: Intro -->
+    <section>
+      <section id="title" class="new-chapter" data-background="../bg-images/background-eagle-small.jpg"
+               data-state="chapter-background">
+        <!-- background source: https://unsplash.com/photos/OjE4RtaibFc -->
+        <br/>
+        <div style="margin-left: -10%; float: left; width: 60%">
+          <h1 style="font: 2.0em Helvetica, sans-serif;"><img src="../../images/ditto.svg" style="width: 30%; padding-top: 0.5em;" alt="Eclipse Ditto"></h1>
+          <br/>
+          <h2 style="font-size: 1.0em">Status @ EclipseCon 2019 Ludwigsburg</h2>
+          <h2 style="font-size: 1.0em">21.10.2019</h2>
+        </div>
+
+        <br style="clear: both"/>
+
+      </section>
+    </section>
+
+    <!-- Section: Status -->
+    <section style="clear: both;">
+      <section id="status-0" style="clear: both;">
+        <h2>Project overview</h2>
+        <br/>
+        <div style="margin-left: -5%; float: left; width: 55%">
+          <img src="../images/ditto-in-action-2019.png" style="width: 100%" alt="Ditto in action"/>
+        </div>
+        <div style="margin-top: -5%;text-align: left; float: right; width: 50%">
+          <br />
+          <ul style="font-size: 0.9em;">
+            <li class="fragment">utilizing <b>digital twin</b> pattern in between IoT solutions and their devices
+            </li>
+            <li class="fragment" style="margin-top: 0.5em;">Device-as-a-Service</li>
+            <li class="fragment" style="margin-top: 0.5em;">features: authorization, search capabilities, notifications (+filtering), integrations, payload mapping, ...</li>
+          </ul>
+        </div>
+      </section>
+      <section id="status-1" style="clear: both;">
+        <h2>Stats</h2>
+        <br/>
+        <table style="font-size: 0.9em;">
+          <tr>
+            <td></td>
+            <th>2018</th>
+            <th>2019</th>
+          </tr>
+          <tr>
+            <td>Github stars</td>
+            <td>65</td>
+            <td>117</td>
+          </tr>
+          <tr>
+            <td>Docker image pulls</td>
+            <td><a href="https://hub.docker.com/search/?isAutomated=0&isOfficial=0&page=1&pullCount=0&q=eclipse%2Fditto-&starCount=0">~ 1.200</a></td>
+            <td><a href="https://hub.docker.com/search/?isAutomated=0&isOfficial=0&page=1&pullCount=0&q=eclipse%2Fditto-&starCount=0">~ 3.200</a></td>
+          </tr>
+          <tr>
+            <td>Active committers</td>
+            <td>8</td>
+            <td>9</td>
+          </tr>
+          <tr>
+            <td>Adopters</td>
+            <td>1</td>
+            <td>3</td>
+          </tr>
+          <tr>
+            <td>Contributors</td>
+            <td>-</td>
+            <td>~ 3</td>
+          </tr>
+        </table>
+        <h4 class="fragment" style="margin-top: 1em;">More and more questions raised via <a href="https://stackoverflow.com/questions/tagged/eclipse-ditto">Stackoverflow</a>, Gitter.im</h4>
+      </section>
+      <section id="status-2" style="clear: both;">
+        <h2>Achievements last year</h2>
+        <h4 style="text-align: left">releases:</h4>
+        <ul>
+          <li class="fragment" style="font-size: 0.9em; margin-top: 0.5em;"><a href="https://projects.eclipse.org/projects/iot.ditto/releases/0.8.0">0.8.0</a>:
+            Initial release - digital twin framework connectivity to Eclipse Hono + MQTT brokers
+          </li>
+          <li class="fragment" style="font-size: 0.9em; margin-top: 0.5em;"><a href="https://projects.eclipse.org/projects/iot.ditto/releases/0.9.0">0.9.0</a>:
+            Apache Kafka integration, memory/performance improvements, Helm template</li>
+        </ul>
+        <h4 class="fragment" style="text-align: left; margin-top: 0.8em;">scalability successfully tested (tbd: share in blogpost)</h4>
+        <h4 class="fragment" style="text-align: left;">we learned the Eclipse processes</h4>
+      </section>
+      <section id="status-3" style="clear: both;">
+        <h2>Plan</h2>
+        <h4 style="text-align: left">graduation and release of <a href="https://projects.eclipse.org/projects/iot.ditto/releases/1.0.0">1.0.0</a>:</h4>
+        <ul>
+          <li class="fragment" style="font-size: 0.9em; margin-top: 0.5em;">using OpenID connect auth providers via config</li>
+          <li class="fragment" style="font-size: 0.9em; margin-top: 0.5em;">Ditto Java and JavaScript client</li>
+          <li class="fragment" style="font-size: 0.9em; margin-top: 0.5em;">improvements on scalability</li>
+          <li class="fragment" style="font-size: 0.9em; margin-top: 0.5em;">improvements on Eclipse Hono integration (e.g. reflect connection state in device twins)</li>
+        </ul>
+        <h4 class="fragment" style="text-align: left; margin-top: 0.5em;">Eclipse IoT Packages: contributing Ditto Helm
+          templates and pre-defined connection to Hono for "Package Zero"</h4>
+      </section>
+      <section id="status-4" style="clear: both;">
+        <h2>Challenges</h2>
+        <br/>
+        <ul>
+          <li>adoption gaining only slowly, difficult to attract users who don't yet know they would benefit from "digital twin" framework</li>
+          <li class="fragment" style="margin-top: 0.5em;">contribution of new functionality has high barrier (huge codebase, async programming pattern, used actor framework)</li>
+        </ul>
+      </section>
+    </section>
+  </div>
+
+</div>
+
+<div class="footer">
+  Copyright ©2018
+  <a href="https://www.bosch-si.com" target="_blank">Bosch Software Innovations GmbH</a> All rights reserved. |
+  <a href="https://www.bosch.com/terms-of-use/terms-of-use/provider/" target="_blank">Imprint</a> |
+  <a href="https://www.eclipse.org/ditto/intro-overview.html" target="_blank">Documentation</a> |
+  <a href="https://github.com/eclipse/ditto" target="_blank">GitHub</a> |
+  <a href="https://ditto.eclipseprojects.io" target="_blank">Sandbox</a>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/lib/js/head.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/js/reveal.min.js"></script>
+
+<script>
+  function getParameterByName(name, url) {
+    if (!url) {
+      url = window.location.href;
+    }
+    name = name.replace(/[\[\]]/g, "\\$&");
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+      results = regex.exec(url);
+    if (!results) {
+      return null;
+    }
+    if (!results[2]) {
+      return '';
+    }
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+  }
+
+  // More info https://github.com/hakimel/reveal.js#configuration
+  Reveal.initialize({
+                      controls: true,
+                      progress: true,
+                      history: true,
+                      center: true,
+                      fragments: getParameterByName('fragments') === '', // only use "fragments" feature if queryParam 'fragments' is present
+                      slideNumber: 'h.v',
+
+                      transition: 'convex', // none/fade/cube/slide/convex/concave/zoom
+
+                      // More info https://github.com/hakimel/reveal.js#dependencies
+                      dependencies: [
+                        {
+                          src: 'https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/lib/js/classList.js',
+                          condition: function () {
+                            return !document.body.classList;
+                          }
+                        },
+                        {
+                          src: 'https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/plugin/markdown/marked.js',
+                          condition: function () {
+                            return !!document.querySelector('[data-markdown]');
+                          }
+                        },
+                        {
+                          src: 'https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/plugin/markdown/markdown.min.js',
+                          condition: function () {
+                            return !!document.querySelector('[data-markdown]');
+                          }
+                        },
+                        {
+                          src: 'https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/plugin/highlight/highlight.min.js',
+                          async: true,
+                          callback: function () {
+                            hljs.initHighlightingOnLoad();
+                          }
+                        },
+                        {
+                          src: 'https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/plugin/zoom-js/zoom.min.js',
+                          async: true
+                        },
+                        {
+                          src: 'https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/plugin/notes/notes.min.js',
+                          async: true
+                        }
+                      ],
+                      keyboard: { // for hama remote presenter:
+                        38: 'next',
+                        40: 'prev'
+                      }
+                    });
+
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+<script type="text/javascript">
+  // 3. On Reveal.js ready event, copy header/footer <div> into each `.slide-background` <div>
+  var header = $('#header').html();
+  if (window.location.search.match(/print-pdf/gi)) {
+    Reveal.addEventListener('ready', function (event) {
+      $('.slide-background').append(header);
+    });
+  }
+  else {
+    $('div.reveal').append(header);
+  }
+</script>
+
+</body>
+</html>

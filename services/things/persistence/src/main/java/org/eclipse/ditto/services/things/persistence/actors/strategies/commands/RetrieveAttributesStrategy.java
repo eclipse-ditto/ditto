@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -16,18 +18,23 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributes;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributesResponse;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * This strategy handles the {@link RetrieveAttributes} command.
  */
 @Immutable
-final class RetrieveAttributesStrategy
-        extends AbstractConditionalHeadersCheckingCommandStrategy<RetrieveAttributes, Attributes> {
+final class RetrieveAttributesStrategy extends AbstractThingCommandStrategy<RetrieveAttributes> {
 
     /**
      * Constructs a new {@code RetrieveAttributesStrategy} object.
@@ -37,20 +44,29 @@ final class RetrieveAttributesStrategy
     }
 
     @Override
-    protected Result doApply(final Context context, @Nullable final Thing thing,
-            final long nextRevision, final RetrieveAttributes command) {
-        final String thingId = context.getThingId();
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
+            @Nullable final Thing thing,
+            final long nextRevision,
+            final RetrieveAttributes command,
+            @Nullable final Metadata metadata) {
+
+        final ThingId thingId = context.getState();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return extractAttributes(thing)
                 .map(attributes -> getAttributesJson(attributes, command))
                 .map(attributesJson -> RetrieveAttributesResponse.of(thingId, attributesJson, dittoHeaders))
-                .map(response -> ResultFactory.newQueryResult(command, thing, response, this))
-                .orElseGet(() -> ResultFactory.newErrorResult(ExceptionFactory.attributesNotFound(thingId, dittoHeaders)));
+                .<Result<ThingEvent<?>>>map(response ->
+                        ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing))
+                )
+                .orElseGet(() ->
+                        ResultFactory.newErrorResult(ExceptionFactory.attributesNotFound(thingId, dittoHeaders),
+                                command)
+                );
     }
 
     private Optional<Attributes> extractAttributes(final @Nullable Thing thing) {
-        return getThingOrThrow(thing).getAttributes();
+        return getEntityOrThrow(thing).getAttributes();
     }
 
     private static JsonObject getAttributesJson(final Attributes attributes, final RetrieveAttributes command) {
@@ -61,7 +77,12 @@ final class RetrieveAttributesStrategy
 
 
     @Override
-    public Optional<Attributes> determineETagEntity(final RetrieveAttributes command, @Nullable final Thing thing) {
-        return extractAttributes(thing);
+    public Optional<EntityTag> previousEntityTag(final RetrieveAttributes command, @Nullable final Thing previousEntity) {
+        return nextEntityTag(command, previousEntity);
+    }
+
+    @Override
+    public Optional<EntityTag> nextEntityTag(final RetrieveAttributes command, @Nullable final Thing newEntity) {
+        return extractAttributes(newEntity).flatMap(EntityTag::fromEntity);
     }
 }

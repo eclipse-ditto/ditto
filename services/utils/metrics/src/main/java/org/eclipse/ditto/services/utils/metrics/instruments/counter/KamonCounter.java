@@ -1,55 +1,78 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.utils.metrics.instruments.counter;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import kamon.Kamon;
-import kamon.metric.LongAdderCounter;
-import kamon.metric.MetricValue;
+import kamon.tag.TagSet;
 
 /**
  * Kamon based implementation of {@link Counter}.
  */
-public class KamonCounter implements Counter {
+@Immutable
+public final class KamonCounter implements Counter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KamonCounter.class);
+
     private final String name;
     private final Map<String, String> tags;
 
-    private KamonCounter(final String name) {
-        this.name = name;
-        this.tags = new HashMap<>();
+    private KamonCounter(final String name, final Map<String, String> tags) {
+        this.name = argumentNotEmpty(name, "name");
+        this.tags = Collections.unmodifiableMap(new HashMap<>(checkNotNull(tags, "tags")));
     }
 
-    public static Counter newCounter(final String name) {
-        return new KamonCounter(name);
+    public static KamonCounter newCounter(final String name) {
+        return newCounter(name, Collections.emptyMap());
+    }
+
+    /**
+     * Returns a new instance of {@code KamonCounter}
+     *
+     * @param name the name of the returned counter.
+     * @param tags tags of the returned counter.
+     * @return the instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code name} is empty.
+     */
+    public static KamonCounter newCounter(final String name, final Map<String, String> tags) {
+        return new KamonCounter(name, tags);
     }
 
     @Override
-    public Counter tag(final String key, final String value) {
-        this.tags.put(key, value);
-        return this;
+    public KamonCounter tag(final String key, final String value) {
+        final HashMap<String, String> newMap = new HashMap<>(tags);
+        newMap.put(key, value);
+        return new KamonCounter(name, newMap);
     }
 
     @Override
-    public Counter tags(final Map<String, String> tags) {
-        this.tags.putAll(tags);
-        return this;
+    public KamonCounter tags(final Map<String, String> tags) {
+        final HashMap<String, String> newMap = new HashMap<>(this.tags);
+        newMap.putAll(tags);
+        return new KamonCounter(name, newMap);
     }
 
     @Nullable
@@ -60,51 +83,54 @@ public class KamonCounter implements Counter {
 
     @Override
     public Map<String, String> getTags() {
-        return new HashMap<>(tags);
+        return tags;
     }
 
     @Override
-    public Counter increment() {
+    public KamonCounter increment() {
         getKamonInternalCounter().increment();
         return this;
     }
 
     @Override
-    public Counter increment(final long times) {
+    public KamonCounter increment(final long times) {
         getKamonInternalCounter().increment(times);
         return this;
     }
 
     @Override
     public long getCount() {
-        return getSnapshot(false).value();
+        return getSnapshot();
+    }
+
+    private long getSnapshot() {
+        final kamon.metric.Counter kamonInternalCounter = getKamonInternalCounter();
+        if (kamonInternalCounter instanceof kamon.metric.Counter.LongAdder) {
+            return ((kamon.metric.Counter.LongAdder) kamonInternalCounter).snapshot(false);
+        }
+        throw new IllegalStateException(String.format("Could not get snapshot of Kamon counter with name <%s>!", name));
     }
 
     private kamon.metric.Counter getKamonInternalCounter() {
-        return Kamon.counter(name).refine(this.tags);
+        return Kamon.counter(name).withTags(TagSet.from(new HashMap<>(tags)));
     }
 
     @Override
     public boolean reset() {
         try {
-            getSnapshot(true);
-            LOGGER.trace("Reset histogram with name <{}>.", name);
-            return true;
-        } catch (IllegalStateException e) {
-            LOGGER.warn("Could not reset histogram with name <{}>.", name);
+            final kamon.metric.Counter kamonInternalCounter = getKamonInternalCounter();
+            if (kamonInternalCounter instanceof kamon.metric.Counter.LongAdder) {
+                ((kamon.metric.Counter.LongAdder) kamonInternalCounter).snapshot(true);
+                LOGGER.trace("Reset counter with name <{}>.", name);
+                return true;
+            }
+            LOGGER.warn("Could not reset counter with name <{}>.", name);
+            return false;
+        } catch (final IllegalStateException e) {
+            LOGGER.warn("Could not reset counter with name <{}>.", name);
             return false;
         }
     }
-
-    private MetricValue getSnapshot(final boolean reset) {
-        final kamon.metric.Counter kamonInternalCounter = getKamonInternalCounter();
-        if (kamonInternalCounter instanceof LongAdderCounter) {
-            return ((LongAdderCounter) kamonInternalCounter).snapshot(reset);
-        }
-
-        throw new IllegalStateException(String.format("Could not get snapshot of Kamon counter with name <%s>", name));
-    }
-
 
     @Override
     public String toString() {
@@ -113,4 +139,5 @@ public class KamonCounter implements Counter {
                 ", tags=" + tags +
                 "]";
     }
+
 }

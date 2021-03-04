@@ -1,0 +1,46 @@
+# Copyright (c) 2020 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+type: object
+properties:
+  thingId:
+    type: string
+    description: Unique identifier representing the thing
+  policyId:
+    type: string
+    description: The ID of the policy which controls the access to this thing. policies are managed by resource `/policies/{policyId}`
+  definition:
+    $ref: 'definition.yml'
+  attributes:
+    $ref: 'attributes.yml'
+  features:
+    $ref: '../features/features.yml'
+  _revision:
+    type: string
+    description: |-
+      _(read-only)_ The revision is a counter which is incremented on each modification of a Thing. This field
+      is not returned by default but must be selected explicitly.
+  _created:
+    type: string
+    description: |-
+      _(read-only)_ The created timestamp of the Thing in ISO-8601 UTC format. The timestamp is set on creation
+      of a Thing. This field is not returned by default but must be selected explicitly.
+  _modified:
+    type: string
+    description: |-
+      _(read-only)_ The modified timestamp of the Thing in ISO-8601 UTC format. The timestamp is set on each
+      modification of a Thing. This field is not returned by default but must be selected explicitly.
+  _metadata:
+    type: object
+    description: |-
+      _(read-only)_ The Metadata of the Thing. This field is not returned by default but must be selected explicitly.
+required:
+  - thingId
+  - policyId

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -13,22 +15,18 @@ package org.eclipse.ditto.services.utils.cache;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executor;
+import java.util.function.BiFunction;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.github.benmanes.caffeine.cache.AsyncCache;
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
-import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
-import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.github.benmanes.caffeine.cache.RemovalCause;
-import com.github.benmanes.caffeine.cache.RemovalListener;
+import com.github.benmanes.caffeine.cache.Policy;
 
 
 /**
@@ -37,36 +35,48 @@ import com.github.benmanes.caffeine.cache.RemovalListener;
  * @param <K> the type of the key.
  * @param <V> the type of the value.
  */
-public class CaffeineCache<K, V> implements Cache<K, V>, RemovalListener<K, V> {
+public class CaffeineCache<K, V> implements Cache<K, V> {
 
-    private static final AsyncCacheLoader<?, ?> NULL_CACHE_LOADER =
-            (k, executor) -> CompletableFuture.completedFuture(null);
-    @Nullable
-    private final MetricsStatsCounter metricStatsCounter;
-    private final Set<CacheInvalidationListener<K, V>> invalidationListeners;
-    private AsyncLoadingCache<K, V> asyncLoadingCache;
-    private LoadingCache<K, V> synchronousCacheView;
+    @Nullable private final MetricsStatsCounter metricStatsCounter;
+    private final BiFunction<? super K, Executor, CompletableFuture<V>> asyncLoad;
+    private final AsyncCache<K, V> asyncCache;
+    private final com.github.benmanes.caffeine.cache.Cache<K, V> synchronousCacheView;
 
 
     private CaffeineCache(final Caffeine<? super K, ? super V> caffeine,
-            final AsyncCacheLoader<K, V> loader,
+            @Nullable final AsyncCacheLoader<K, V> loader,
             @Nullable final String cacheName) {
 
-        invalidationListeners = new HashSet<>();
-
-        @SuppressWarnings("unchecked") final Caffeine<K, V> typedCaffeine = (Caffeine<K, V>) caffeine;
-        final Caffeine<K, V> withRemovalListener = typedCaffeine.removalListener(this);
         if (cacheName != null) {
-            this.metricStatsCounter = MetricsStatsCounter.of(cacheName);
+            this.metricStatsCounter =
+                    MetricsStatsCounter.of(cacheName, this::getMaxCacheSize, this::getCurrentCacheSize);
             caffeine.recordStats(() -> metricStatsCounter);
-            this.asyncLoadingCache = withRemovalListener.buildAsync(loader);
-            this.synchronousCacheView = asyncLoadingCache.synchronous();
-            metricStatsCounter.configureCache(this.synchronousCacheView);
         } else {
-            this.asyncLoadingCache = withRemovalListener.buildAsync(loader);
-            this.synchronousCacheView = asyncLoadingCache.synchronous();
             this.metricStatsCounter = null;
         }
+        asyncLoad = loader != null ? loader::asyncLoad : (k, e) -> CompletableFuture.completedFuture(null);
+        this.asyncCache = loader != null ? caffeine.buildAsync(loader) : caffeine.buildAsync();
+        this.synchronousCacheView = asyncCache.synchronous();
+    }
+
+    @SuppressWarnings({"squid:S2583", "ConstantConditions"})
+    private Long getCurrentCacheSize() {
+        if (synchronousCacheView == null) {
+            // This can occur if this method is called by metricStatsCounter before the cache has been initialized.
+            return 0L;
+        }
+
+        return synchronousCacheView.estimatedSize();
+    }
+
+    @SuppressWarnings({"squid:S2583", "ConstantConditions"})
+    private Long getMaxCacheSize() {
+        if (synchronousCacheView == null) {
+            // This can occur if this method is called by metricStatsCounter before the cache has been initialized.
+            return 0L;
+        }
+
+        return synchronousCacheView.policy().eviction().map(Policy.Eviction::getMaximum).orElse(0L);
     }
 
     /**
@@ -87,23 +97,6 @@ public class CaffeineCache<K, V> implements Cache<K, V>, RemovalListener<K, V> {
     }
 
     /**
-     * Creates a new instance based on a {@link CacheLoader}.
-     *
-     * @param caffeine a (pre-configured) caffeine instance.
-     * @param loader the algorithm used for loading values.
-     * @param <K> the type of the key.
-     * @param <V> the type of the value.
-     * @return the created instance
-     */
-    public static <K, V> CaffeineCache<K, V> of(final Caffeine<? super K, ? super V> caffeine,
-            final CacheLoader<K, V> loader) {
-        requireNonNull(caffeine);
-        requireNonNull(loader);
-
-        return new CaffeineCache<>(caffeine, loader, null);
-    }
-
-    /**
      * Creates a new instance based with a Null-Cache-Loader. This is useful if the cache is populated manually.
      *
      * @param caffeine a (pre-configured) caffeine instance.
@@ -114,8 +107,7 @@ public class CaffeineCache<K, V> implements Cache<K, V>, RemovalListener<K, V> {
     public static <K, V> CaffeineCache<K, V> of(final Caffeine<? super K, ? super V> caffeine) {
         requireNonNull(caffeine);
 
-        final AsyncCacheLoader<K, V> cacheLoader = getTypedNullCacheLoader();
-        return new CaffeineCache<>(caffeine, cacheLoader, null);
+        return new CaffeineCache<>(caffeine, null, null);
     }
 
     /**
@@ -131,8 +123,7 @@ public class CaffeineCache<K, V> implements Cache<K, V>, RemovalListener<K, V> {
             @Nullable final String cacheName) {
         requireNonNull(caffeine);
 
-        final AsyncCacheLoader<K, V> cacheLoader = getTypedNullCacheLoader();
-        return new CaffeineCache<>(caffeine, cacheLoader, cacheName);
+        return new CaffeineCache<>(caffeine, null, cacheName);
     }
 
     /**
@@ -140,7 +131,7 @@ public class CaffeineCache<K, V> implements Cache<K, V>, RemovalListener<K, V> {
      *
      * @param caffeine a (pre-configured) caffeine instance.
      * @param loader the algorithm used for loading values asynchronously.
-     * @param cacheName The name of the cache {@code null}. Will be used for metrics.
+     * @param cacheName The name of the cache or {@code null} if metrics should be disabled. Will be used for metrics.
      * @param <K> the type of the key.
      * @param <V> the type of the value.
      * @return the created instance
@@ -154,37 +145,32 @@ public class CaffeineCache<K, V> implements Cache<K, V>, RemovalListener<K, V> {
         return new CaffeineCache<>(caffeine, loader, cacheName);
     }
 
-    /**
-     * Creates a new instance based on a {@link CacheLoader} which may report metrics for cache statistics.
-     *
-     * @param caffeine a (pre-configured) caffeine instance.
-     * @param loader the algorithm used for loading values.
-     * @param cacheName The name of the cache {@code null}. Will be used for metrics.
-     * @param <K> the type of the key.
-     * @param <V> the type of the value.
-     * @return the created instance
-     */
-    public static <K, V> CaffeineCache<K, V> of(final Caffeine<? super K, ? super V> caffeine,
-            final CacheLoader<K, V> loader,
-            @Nullable final String cacheName) {
-        requireNonNull(caffeine);
-        requireNonNull(loader);
-
-        return new CaffeineCache<>(caffeine, loader, cacheName);
-    }
-
     @Override
     public CompletableFuture<Optional<V>> get(final K key) {
         requireNonNull(key);
 
-        return asyncLoadingCache.get(key).thenApply(Optional::ofNullable);
+        return asyncCache.get(key, asyncLoad).thenApply(Optional::ofNullable);
+    }
+
+    /**
+     * Lookup a value in cache, or create it via {@code mappingFunction} and store it if the value was not cached.
+     * Only available for Caffeine caches.
+     *
+     * @param key key associated with the value in cache.
+     * @param mappingFunction function to create the value in case of absence.
+     * @return future value under normal circumstances, or a failed future if the mapping function fails.
+     */
+    public CompletableFuture<V> get(final K key,
+            final BiFunction<K, Executor, CompletableFuture<V>> mappingFunction) {
+
+        return asyncCache.get(key, mappingFunction);
     }
 
     @Override
     public CompletableFuture<Optional<V>> getIfPresent(final K key) {
         requireNonNull(key);
 
-        final CompletableFuture<V> future = asyncLoadingCache.getIfPresent(key);
+        final CompletableFuture<V> future = asyncCache.getIfPresent(key);
 
         return future == null
                 ? CompletableFuture.completedFuture(Optional.empty())
@@ -195,15 +181,14 @@ public class CaffeineCache<K, V> implements Cache<K, V>, RemovalListener<K, V> {
     public Optional<V> getBlocking(final K key) {
         requireNonNull(key);
 
-        final V value = synchronousCacheView.get(key);
-        return Optional.ofNullable(value);
+        return get(key).join();
     }
 
     @Override
     public boolean invalidate(final K key) {
         requireNonNull(key);
 
-        final boolean currentlyExisting = asyncLoadingCache.getIfPresent(key) != null;
+        final boolean currentlyExisting = asyncCache.getIfPresent(key) != null;
         synchronousCacheView.invalidate(key);
 
         if (metricStatsCounter != null) {
@@ -214,26 +199,6 @@ public class CaffeineCache<K, V> implements Cache<K, V>, RemovalListener<K, V> {
             }
         }
         return currentlyExisting;
-    }
-
-    @Override
-    public void subscribeForInvalidation(final CacheInvalidationListener<K, V> invalidationListener) {
-        invalidationListeners.add(invalidationListener);
-    }
-
-    @Override
-    public void onRemoval(@Nullable final K key, @Nullable final V value, @Nonnull final RemovalCause cause) {
-        switch (cause) {
-            case EXPLICIT:
-            case REPLACED:
-                if (key != null) {
-                    invalidationListeners.forEach(listener ->
-                            listener.onCacheEntryInvalidated(key, value));
-                }
-                break;
-            default:
-                // this was not a intended removal - don't report to invalidation listeners
-        }
     }
 
     // optimized batch invalidation method for caffeine
@@ -249,19 +214,12 @@ public class CaffeineCache<K, V> implements Cache<K, V>, RemovalListener<K, V> {
 
         // non-blocking.
         // synchronousCacheView.put has same implementation with extra null check on value.
-        asyncLoadingCache.put(key, CompletableFuture.completedFuture(value));
+        asyncCache.put(key, CompletableFuture.completedFuture(value));
     }
 
     @Override
     public ConcurrentMap<K, V> asMap() {
         return synchronousCacheView.asMap();
-    }
-
-    // TODO: replace uses of this method by AsyncCache without loader once Caffeine releases it.
-    private static <K, V> AsyncCacheLoader<K, V> getTypedNullCacheLoader() {
-        @SuppressWarnings("unchecked") final AsyncCacheLoader<K, V> nullCacheLoader =
-                (AsyncCacheLoader<K, V>) NULL_CACHE_LOADER;
-        return nullCacheLoader;
     }
 
 }

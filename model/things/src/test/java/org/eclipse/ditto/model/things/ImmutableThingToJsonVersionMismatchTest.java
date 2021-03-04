@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -16,6 +18,7 @@ import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.junit.Test;
@@ -59,6 +62,9 @@ public final class ImmutableThingToJsonVersionMismatchTest {
         final JsonObject expectedJsonV1 = jsonV2.toBuilder()
                 .set(Thing.JsonFields.ACL, EMPTY_ACL_JSON)
                 .remove(Thing.JsonFields.POLICY_ID)
+                .remove(Thing.JsonFields.DEFINITION)
+                .remove(JsonPointer.of(Thing.JsonFields.FEATURES.getPointer().toString() + "/" + TestConstants.Feature.FLUX_CAPACITOR_ID +
+                Feature.JsonFields.DESIRED_PROPERTIES.getPointer().toString()))
                 .build();
 
         final JsonObject actualJsonV1 = THING_V2.toJson(JsonSchemaVersion.V_1);
@@ -72,6 +78,9 @@ public final class ImmutableThingToJsonVersionMismatchTest {
         final JsonObject expectedJsonV1WithAllFields = jsonV2WithAllFields.toBuilder()
                 .set(Thing.JsonFields.ACL, EMPTY_ACL_JSON)
                 .remove(Thing.JsonFields.POLICY_ID)
+                .remove(Thing.JsonFields.DEFINITION)
+                .remove(JsonPointer.of(Thing.JsonFields.FEATURES.getPointer().toString() + "/" + TestConstants.Feature.FLUX_CAPACITOR_ID +
+                        Feature.JsonFields.DESIRED_PROPERTIES.getPointer().toString()))
                 .set(Thing.JsonFields.SCHEMA_VERSION, JsonSchemaVersion.V_1.toInt())
                 .build();
 

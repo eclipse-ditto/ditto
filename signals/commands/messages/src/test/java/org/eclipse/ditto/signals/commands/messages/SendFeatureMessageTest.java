@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -14,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
+import java.nio.ByteBuffer;
 import java.util.UUID;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -26,6 +29,7 @@ import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.messages.MessagesModelFactory;
 import org.eclipse.ditto.model.messages.ThingIdInvalidException;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -41,7 +45,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 @RunWith(MockitoJUnitRunner.class)
 public final class SendFeatureMessageTest {
 
-    private static final String THING_ID = "test.ns:theThingId";
+    private static final ThingId THING_ID = ThingId.of("test.ns", "theThingId");
     private static final String FEATURE_ID = "theFeatureId";
     private static final String SUBJECT = "theSubject";
     private static final String CONTENT_TYPE = "application/json";
@@ -64,6 +68,7 @@ public final class SendFeatureMessageTest {
                     .featureId(FEATURE_ID)
                     .build())
             .payload(JsonFactory.newObject(KNOWN_RAW_PAYLOAD_STR))
+            .rawPayload(ByteBuffer.wrap(KNOWN_RAW_PAYLOAD_STR.getBytes()))
             .build();
 
     private static final JsonObject KNOWN_MESSAGE_AS_JSON = JsonFactory.newObjectBuilder()
@@ -73,7 +78,7 @@ public final class SendFeatureMessageTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(Command.JsonFields.TYPE, SendFeatureMessage.TYPE)
-            .set(MessageCommand.JsonFields.JSON_THING_ID, THING_ID)
+            .set(MessageCommand.JsonFields.JSON_THING_ID, THING_ID.toString())
             .set(SendFeatureMessage.JSON_FEATURE_ID, FEATURE_ID)
             .set(MessageCommand.JsonFields.JSON_MESSAGE, KNOWN_MESSAGE_AS_JSON)
             .build();
@@ -91,9 +96,14 @@ public final class SendFeatureMessageTest {
                 .verify();
     }
 
+    @Test(expected = org.eclipse.ditto.model.things.ThingIdInvalidException.class)
+    public void tryCreateWithNullThingIdString() {
+        SendFeatureMessage.of((String) null, FEATURE_ID, MESSAGE, DITTO_HEADERS);
+    }
+
     @Test(expected = NullPointerException.class)
     public void tryCreateWithNullThingId() {
-        SendFeatureMessage.of(null, FEATURE_ID, MESSAGE, DITTO_HEADERS);
+        SendFeatureMessage.of((ThingId) null, FEATURE_ID, MESSAGE, DITTO_HEADERS);
     }
 
     @Test(expected = NullPointerException.class)
@@ -111,15 +121,11 @@ public final class SendFeatureMessageTest {
         SendFeatureMessage.of(THING_ID, FEATURE_ID, MESSAGE, null);
     }
 
-    @Test(expected = ThingIdInvalidException.class)
-    public void tryCreateWithInvalidThingId() {
-        SendFeatureMessage.of("foobar", FEATURE_ID, MESSAGE, DITTO_HEADERS);
-    }
-
     @Test
     public void tryToCreateInstanceWithNonMatchingThingId() {
+        final ThingId notMatchingThingId = ThingId.of(THING_ID.getNamespace(), THING_ID.getName() + "-nomatch");
         assertThatExceptionOfType(ThingIdInvalidException.class)
-                .isThrownBy(() -> SendFeatureMessage.of(THING_ID + "-nomatch", FEATURE_ID, MESSAGE, DITTO_HEADERS))
+                .isThrownBy(() -> SendFeatureMessage.of(notMatchingThingId, FEATURE_ID, MESSAGE, DITTO_HEADERS))
                 .withMessageContaining("-nomatch")
                 .withNoCause();
     }
@@ -171,7 +177,7 @@ public final class SendFeatureMessageTest {
                 SendFeatureMessage.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getThingId()).isEqualTo(THING_ID);
+        assertThat((CharSequence) underTest.getThingEntityId()).isEqualTo(THING_ID);
         assertThat(underTest.getFeatureId()).isEqualTo(FEATURE_ID);
         assertThat(underTest.getMessageType()).isEqualTo(SendFeatureMessage.NAME);
         assertThat(underTest.getMessage()).isEqualTo(DESERIALIZED_MESSAGE);

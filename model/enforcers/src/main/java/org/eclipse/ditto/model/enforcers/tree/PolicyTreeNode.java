@@ -1,17 +1,22 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.model.enforcers.tree;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 
 import javax.annotation.Nonnull;
 
@@ -52,6 +57,26 @@ interface PolicyTreeNode {
      * @return an optional containing the child or empty.
      */
     Optional<PolicyTreeNode> getChild(String resourceName);
+
+    /**
+     * Returns the child for the sub resource with the given name.
+     * If the child is not yet known the given function is used to added to the children of this node.
+     *
+     * @param resourceName the sub resource name of the child to be retrieved.
+     * @param mappingFunction the mapping function to compute the child.
+     * @return the existing or computed child associated with {@code resourceName}.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.1.0
+     */
+    default PolicyTreeNode computeIfAbsent(final String resourceName,
+            final Function<String, PolicyTreeNode> mappingFunction) {
+
+        checkNotNull(resourceName, "resourceName");
+        checkNotNull(mappingFunction, "mappingFunction");
+
+        final Map<String, PolicyTreeNode> children = getChildren();
+        return children.computeIfAbsent(resourceName, mappingFunction);
+    }
 
     /**
      * Returns all children of this node.

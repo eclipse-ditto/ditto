@@ -10,12 +10,14 @@ sidebar: false
 toc: true
 ---
 
+{% include warning.html content="This guide does no longer work with the latest (1.x) versions of Ditto + Hono. Please take a look and make use of the [Eclipse IoT Packages \"cloud2edge\" package](https://www.eclipse.org/packages/packages/cloud2edge/) in order to setup and automatically connect Ditto + Hono." %}
+
 With the recently released Ditto milestone [0.3.0-M1](2018-04-26-milestone-announcement-030-M1.html) the `connectivity`
 to AMQP 1.0 endpoints can now be established in a durable and stable way (including failovers, etc.).
 
 That means Ditto now is ready to be connected to [Eclipse Hono's](https://www.eclipse.org/hono/) "northbound" API which
 is provided via AMQP 1.0.<br />
-By doing so it is for example possible to receive [Hono telemetry](https://www.eclipse.org/hono/api/telemetry-api/) 
+By doing so it is for example possible to receive Hono telemetry 
 messages (see heading "Northbound Operations") which a device `demo-device` connected to the "southbound" of Hono sends 
 via HTTP or MQTT (the currently available protocol adapters of Hono) in Ditto.<br />
 When received, the payload can be translated into a format Ditto understands in order to update the 
@@ -26,7 +28,7 @@ This blog post walks through the steps required to connect Ditto and Hono by add
 Ditto sandboxes at
 
 * [hono.eclipse.org](http://hono.eclipse.org) 
-* [ditto.eclipse.org](https://ditto.eclipse.org)
+* [ditto.eclipseprojects.io](https://ditto.eclipseprojects.io)
 
 
 ## Scenario
@@ -160,13 +162,13 @@ $ curl -X PUT -i -u demo5:demo -H 'Content-Type: application/json' -d '{
             }
         }
     }
-}' https://ditto.eclipse.org/api/2/things/org.eclipse.ditto:demo-device
+}' https://ditto.eclipseprojects.io/api/2/things/org.eclipse.ditto:demo-device
 ```
 
 Make sure the digital twin was created:
 
 ```bash
-$ curl -i -u demo5:demo https://ditto.eclipse.org/api/2/things/org.eclipse.ditto:demo-device
+$ curl -i -u demo5:demo https://ditto.eclipseprojects.io/api/2/things/org.eclipse.ditto:demo-device
 ```
 
 ### Create a connection to Hono
@@ -212,7 +214,7 @@ $ curl -X POST -i -u devops:devopsPw1! -H 'Content-Type: application/json' -d '{
             }]
         }
     }
-}' https://ditto.eclipse.org/devops/piggyback/connectivity?timeout=8000
+}' https://ditto.eclipseprojects.io/devops/piggyback/connectivity?timeout=8s
 ```
 
 The result should be:
@@ -344,14 +346,14 @@ $ curl -X POST -i -u devops:devopsPw1! -H 'Content-Type: application/json' -d '{
             "id": "hono-sandbox-connection-1",
             "connectionType": "amqp-10",
             "connectionStatus": "open",
-            "uri": "amqp://consumer@HONO:verysecret@hono.eclipse.org:15672",
+            "uri": "amqp://consumer%40HONO:verysecret@hono.eclipse.org:15672",
             "failoverEnabled": true,
             "sources": [{
                 "addresses": [
                     "telemetry/org.eclipse.ditto",
                     "event/org.eclipse.ditto"
                 ],
-                "authorizationContext": ["nginx:demo5"],
+                "authorizationContext": ["nginx:demo5"]
             }],
             "mappingContext": {
                 "mappingEngine": "JavaScript",
@@ -361,7 +363,7 @@ $ curl -X POST -i -u devops:devopsPw1! -H 'Content-Type: application/json' -d '{
             }
         }
     }
-}' https://ditto.eclipse.org/devops/piggyback/connectivity?timeout=8000
+}' https://ditto.eclipseprojects.io/devops/piggyback/connectivity?timeout=8s
 ```
 
 When establishing the connection + parsing the JavaScript worked, we get a success result as HTTP response again, 
@@ -384,53 +386,349 @@ $ curl -X POST -i -u devops:devopsPw1! -H 'Content-Type: application/json' -d '{
         "type": "connectivity.commands:retrieveConnectionMetrics",
         "connectionId": "hono-sandbox-connection-1"
     }
-}' https://ditto.eclipse.org/devops/piggyback/connectivity?timeout=8000
+}' https://ditto.eclipseprojects.io/devops/piggyback/connectivity?timeout=8s
 ```
 
 The result looks like this:
 
 ```json
 {
+  "?": {
     "?": {
-        "-1": {
-            "type": "connectivity.responses:aggregatedResponse",
-            "status": 200,
-            "connectionId": "hono-sandbox-connection-1",
-            "responsesType": "connectivity.responses:retrieveConnectionMetrics",
-            "responses": {
-                "1": {
-                    "type": "connectivity.responses:retrieveConnectionMetrics",
-                    "status": 200,
-                    "connectionId": "hono-sandbox-connection-1",
-                    "connectionMetrics": {
-                        "connectionStatus": "open",
-                        "connectionStatusDetails": "Connected at 2018-04-30T12:43:13.050Z",
-                        "inConnectionStatusSince": "2018-04-30T12:43:13.050Z",
-                        "clientState": "CONNECTED",
-                        "sourcesMetrics": [
-                            {
-                                "addressMetrics": {
-                                    "event/org.eclipse.ditto-0": {
-                                        "status": "open",
-                                        "statusDetails": "Started at 2018-04-30T12:43:13.038Z",
-                                        "messageCount": 0
-                                    },
-                                    "telemetry/org.eclipse.ditto-0": {
-                                        "status": "open",
-                                        "statusDetails": "Started at 2018-04-30T12:43:13.039Z",
-                                        "messageCount": 2,
-                                        "lastMessageAt": "2018-04-30T12:51:12.537Z"
-                                    }
-                                },
-                                "consumedMessages": 2
-                            }
-                        ],
-                        "targetsMetrics": []
-                    }
-                }
+      "type": "connectivity.responses:retrieveConnectionMetrics",
+      "status": 200,
+      "connectionId": "hono-sandbox-connection-1",
+      "containsFailures": false,
+      "connectionMetrics": {
+        "inbound": {
+          "consumed": {
+            "success": {
+              "PT1M": 2,
+              "PT1H": 2,
+              "PT24H": 2,
+              "lastMessageAt": "2019-02-06T09:37:28.416Z"
+            },
+            "failure": {
+              "PT1M": 0,
+              "PT1H": 0,
+              "PT24H": 0,
+              "lastMessageAt": null
             }
+          },
+          "mapped": {
+            "success": {
+              "PT1M": 2,
+              "PT1H": 2,
+              "PT24H": 2,
+              "lastMessageAt": "2019-02-06T09:37:28.422Z"
+            },
+            "failure": {
+              "PT1M": 0,
+              "PT1H": 0,
+              "PT24H": 0,
+              "lastMessageAt": null
+            }
+          },
+          "dropped": {
+            "success": {
+              "PT1M": 0,
+              "PT1H": 0,
+              "PT24H": 0,
+              "lastMessageAt": null
+            },
+            "failure": {
+              "PT1M": 0,
+              "PT1H": 0,
+              "PT24H": 0,
+              "lastMessageAt": null
+            }
+          },
+          "enforced": {
+            "success": {
+              "PT1M": 2,
+              "PT1H": 2,
+              "PT24H": 2,
+              "lastMessageAt": "2019-02-06T09:37:28.422Z"
+            },
+            "failure": {
+              "PT1M": 0,
+              "PT1H": 0,
+              "PT24H": 0,
+              "lastMessageAt": null
+            }
+          }
+        },
+        "outbound": {
+          "dispatched": {
+            "success": {
+              "PT1M": 0,
+              "PT1H": 0,
+              "PT24H": 0,
+              "lastMessageAt": null
+            },
+            "failure": {
+              "PT1M": 2,
+              "PT1H": 2,
+              "PT24H": 2,
+              "lastMessageAt": "2019-02-06T09:37:28.439Z"
+            }
+          },
+          "filtered": {
+            "success": {
+              "PT1M": 0,
+              "PT1H": 0,
+              "PT24H": 0,
+              "lastMessageAt": null
+            },
+            "failure": {
+              "PT1M": 0,
+              "PT1H": 0,
+              "PT24H": 0,
+              "lastMessageAt": null
+            }
+          },
+          "mapped": {
+            "success": {
+              "PT1M": 2,
+              "PT1H": 2,
+              "PT24H": 2,
+              "lastMessageAt": "2019-02-06T09:37:28.443Z"
+            },
+            "failure": {
+              "PT1M": 0,
+              "PT1H": 0,
+              "PT24H": 0,
+              "lastMessageAt": null
+            }
+          },
+          "dropped": {
+            "success": {
+              "PT1M": 0,
+              "PT1H": 0,
+              "PT24H": 0,
+              "lastMessageAt": null
+            },
+            "failure": {
+              "PT1M": 0,
+              "PT1H": 0,
+              "PT24H": 0,
+              "lastMessageAt": null
+            }
+          },
+          "published": {
+            "success": {
+              "PT1M": 0,
+              "PT1H": 0,
+              "PT24H": 0,
+              "lastMessageAt": null
+            },
+            "failure": {
+              "PT1M": 0,
+              "PT1H": 0,
+              "PT24H": 0,
+              "lastMessageAt": null
+            }
+          }
         }
+      },
+      "sourceMetrics": {
+        "addressMetrics": {
+          "event/org.eclipse.ditto": {
+            "consumed": {
+              "success": {
+                "PT1M": 0,
+                "PT1H": 0,
+                "PT24H": 0,
+                "lastMessageAt": null
+              },
+              "failure": {
+                "PT1M": 0,
+                "PT1H": 0,
+                "PT24H": 0,
+                "lastMessageAt": null
+              }
+            },
+            "mapped": {
+              "success": {
+                "PT1M": 0,
+                "PT1H": 0,
+                "PT24H": 0,
+                "lastMessageAt": null
+              },
+              "failure": {
+                "PT1M": 0,
+                "PT1H": 0,
+                "PT24H": 0,
+                "lastMessageAt": null
+              }
+            },
+            "dropped": {
+              "success": {
+                "PT1M": 0,
+                "PT1H": 0,
+                "PT24H": 0,
+                "lastMessageAt": null
+              },
+              "failure": {
+                "PT1M": 0,
+                "PT1H": 0,
+                "PT24H": 0,
+                "lastMessageAt": null
+              }
+            },
+            "enforced": {
+              "success": {
+                "PT1M": 0,
+                "PT1H": 0,
+                "PT24H": 0,
+                "lastMessageAt": null
+              },
+              "failure": {
+                "PT1M": 0,
+                "PT1H": 0,
+                "PT24H": 0,
+                "lastMessageAt": null
+              }
+            }
+          },
+          "telemetry/org.eclipse.ditto": {
+            "consumed": {
+              "success": {
+                "PT1M": 2,
+                "PT1H": 2,
+                "PT24H": 2,
+                "lastMessageAt": "2019-02-06T09:37:28.416Z"
+              },
+              "failure": {
+                "PT1M": 0,
+                "PT1H": 0,
+                "PT24H": 0,
+                "lastMessageAt": null
+              }
+            },
+            "mapped": {
+              "success": {
+                "PT1M": 2,
+                "PT1H": 2,
+                "PT24H": 2,
+                "lastMessageAt": "2019-02-06T09:37:28.422Z"
+              },
+              "failure": {
+                "PT1M": 0,
+                "PT1H": 0,
+                "PT24H": 0,
+                "lastMessageAt": null
+              }
+            },
+            "dropped": {
+              "success": {
+                "PT1M": 0,
+                "PT1H": 0,
+                "PT24H": 0,
+                "lastMessageAt": null
+              },
+              "failure": {
+                "PT1M": 0,
+                "PT1H": 0,
+                "PT24H": 0,
+                "lastMessageAt": null
+              }
+            },
+            "enforced": {
+              "success": {
+                "PT1M": 2,
+                "PT1H": 2,
+                "PT24H": 2,
+                "lastMessageAt": "2019-02-06T09:37:28.422Z"
+              },
+              "failure": {
+                "PT1M": 0,
+                "PT1H": 0,
+                "PT24H": 0,
+                "lastMessageAt": null
+              }
+            }
+          }
+        }
+      },
+      "targetMetrics": {
+        "addressMetrics": {
+          "_responses": {
+            "dispatched": {
+              "success": {
+                "PT1M": 0,
+                "PT1H": 0,
+                "PT24H": 0,
+                "lastMessageAt": null
+              },
+              "failure": {
+                "PT1M": 2,
+                "PT1H": 2,
+                "PT24H": 2,
+                "lastMessageAt": "2019-02-06T09:37:28.439Z"
+              }
+            },
+            "filtered": {
+              "success": {
+                "PT1M": 0,
+                "PT1H": 0,
+                "PT24H": 0,
+                "lastMessageAt": null
+              },
+              "failure": {
+                "PT1M": 0,
+                "PT1H": 0,
+                "PT24H": 0,
+                "lastMessageAt": null
+              }
+            },
+            "mapped": {
+              "success": {
+                "PT1M": 2,
+                "PT1H": 2,
+                "PT24H": 2,
+                "lastMessageAt": "2019-02-06T09:37:28.443Z"
+              },
+              "failure": {
+                "PT1M": 0,
+                "PT1H": 0,
+                "PT24H": 0,
+                "lastMessageAt": null
+              }
+            },
+            "dropped": {
+              "success": {
+                "PT1M": 0,
+                "PT1H": 0,
+                "PT24H": 0,
+                "lastMessageAt": null
+              },
+              "failure": {
+                "PT1M": 0,
+                "PT1H": 0,
+                "PT24H": 0,
+                "lastMessageAt": null
+              }
+            },
+            "published": {
+              "success": {
+                "PT1M": 0,
+                "PT1H": 0,
+                "PT24H": 0,
+                "lastMessageAt": null
+              },
+              "failure": {
+                "PT1M": 0,
+                "PT1H": 0,
+                "PT24H": 0,
+                "lastMessageAt": null
+              }
+            }
+          }
+        }
+      }
     }
+  }
 }
 ```
 
@@ -441,7 +739,7 @@ Whenever the device now sends telemetry in its own JSON format
 * the message count of the [connection metrics in Ditto](#retrieve-connection-metrics) should be increased by one
 * the digital twin with the `Thing` ID `org.eclipse.ditto:demo-device` should receive the updated value which is also
   reflected at the twin's HTTP endpoint 
-  [https://ditto.eclipse.org/api/2/things/org.eclipse.ditto:demo-device](https://demo5:demo@ditto.eclipse.org/api/2/things/org.eclipse.ditto:demo-device)
+  [https://ditto.eclipseprojects.io/api/2/things/org.eclipse.ditto:demo-device](https://demo5:demo@ditto.eclipseprojects.io/api/2/things/org.eclipse.ditto:demo-device)
 
 Verify that by simulate sending telemetry using the Hono HTTP adapter:
 

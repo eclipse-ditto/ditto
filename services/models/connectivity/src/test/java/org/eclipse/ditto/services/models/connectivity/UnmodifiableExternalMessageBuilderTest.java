@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -28,15 +30,20 @@ public class UnmodifiableExternalMessageBuilderTest {
 
     @Test
     public void testBuildExternalMessageWithTextPayload() {
-        testBuildExternalMessage(false);
+        testBuildExternalMessage(true, false);
     }
 
     @Test
     public void testBuildExternalMessageWithBytePayload() {
-        testBuildExternalMessage(true);
+        testBuildExternalMessage(false, true);
     }
 
-    private void testBuildExternalMessage(final boolean bytePayload) {
+    @Test
+    public void testBuildExternalMessageWithTextAndBytePayload() {
+        testBuildExternalMessage(true, true);
+    }
+
+    private void testBuildExternalMessage(final boolean textPayload, final boolean bytePayload) {
         final AuthorizationContext authorizationContext = Mockito.mock(AuthorizationContext.class);
         final TopicPath topicPath = Mockito.mock(TopicPath.class);
         final Map<String, String> headers = new HashMap<>();
@@ -48,7 +55,9 @@ public class UnmodifiableExternalMessageBuilderTest {
         messageBuilder.withAdditionalHeaders("ditto", "eclipse");
         messageBuilder.withAuthorizationContext(authorizationContext);
         messageBuilder.withTopicPath(topicPath);
-        if (bytePayload) {
+        if (textPayload && bytePayload) {
+            messageBuilder.withTextAndBytes(PAYLOAD, BYTES);
+        } else if (bytePayload) {
             messageBuilder.withBytes(BYTES);
         } else {
             messageBuilder.withText(PAYLOAD);
@@ -63,10 +72,19 @@ public class UnmodifiableExternalMessageBuilderTest {
         Assertions.assertThat(externalMessage.isError()).isFalse();
         Assertions.assertThat(externalMessage.isResponse()).isFalse();
 
-        if (bytePayload) {
+        if (textPayload && bytePayload) {
+            Assertions.assertThat(externalMessage.isBytesMessage()).isTrue();
+            Assertions.assertThat(externalMessage.isTextMessage()).isTrue();
+            Assertions.assertThat(externalMessage.getTextPayload()).contains(PAYLOAD);
+            Assertions.assertThat(externalMessage.getBytePayload()).contains(ByteBuffer.wrap(BYTES));
+        } else if (bytePayload) {
+            Assertions.assertThat(externalMessage.isBytesMessage()).isTrue();
+            Assertions.assertThat(externalMessage.isTextMessage()).isFalse();
             Assertions.assertThat(externalMessage.getTextPayload()).isEmpty();
             Assertions.assertThat(externalMessage.getBytePayload()).contains(ByteBuffer.wrap(BYTES));
         } else {
+            Assertions.assertThat(externalMessage.isBytesMessage()).isFalse();
+            Assertions.assertThat(externalMessage.isTextMessage()).isTrue();
             Assertions.assertThat(externalMessage.getTextPayload()).contains(PAYLOAD);
             Assertions.assertThat(externalMessage.getBytePayload()).isEmpty();
         }

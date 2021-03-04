@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -12,6 +14,7 @@ package org.eclipse.ditto.model.connectivity;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -26,7 +29,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.model.connectivity.credentials.Credentials;
 
 /**
  * Represents a connection within the Connectivity service.
@@ -39,7 +41,7 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
      *
      * @return the identifier.
      */
-    String getId();
+    ConnectionId getId();
 
     /**
      * Returns the name of this {@code Connection}.
@@ -60,7 +62,7 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
      *
      * @return the persisted ConnectionStatus
      */
-    ConnectionStatus getConnectionStatus();
+    ConnectivityStatus getConnectionStatus();
 
     /**
      * Returns a list of the sources of this {@code Connection}.
@@ -70,11 +72,11 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
     List<Source> getSources();
 
     /**
-     * Returns a set of targets of this {@code Connection}.
+     * Returns a list of targets of this {@code Connection}.
      *
      * @return the targets
      */
-    Set<Target> getTargets();
+    List<Target> getTargets();
 
     /**
      * Returns how many clients on different cluster nodes should establish the {@code Connection}.
@@ -178,12 +180,11 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
     Map<String, String> getSpecificConfig();
 
     /**
-     * Returns the MappingContext to apply in this connection containing either JavaScript scripts or a custom
-     * implementation in Java mapping from external messages to internal Ditto Protocol messages.
+     * Returns the payload mapping definitions for this connection.
      *
-     * @return the MappingContext to apply for this connection
+     * @return the payload mapping definitions for this connection
      */
-    Optional<MappingContext> getMappingContext();
+    PayloadMappingDefinition getPayloadMappingDefinition();
 
     /**
      * Returns the tags of this {@code Connection}.
@@ -191,6 +192,25 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
      * @return the tags.
      */
     Set<String> getTags();
+
+    /**
+     * Returns the current lifecycle of this Connection.
+     *
+     * @return the current lifecycle of this Connection.
+     */
+    Optional<ConnectionLifecycle> getLifecycle();
+
+    /**
+     * Indicates whether this Connection has the given lifecycle.
+     *
+     * @param lifecycle the lifecycle to be checked for.
+     * @return {@code true} if this Connection has {@code lifecycle} as its lifecycle, {@code false} else.
+     */
+    default boolean hasLifecycle(final ConnectionLifecycle lifecycle) {
+        return getLifecycle()
+                .filter(actualLifecycle -> Objects.equals(actualLifecycle, lifecycle))
+                .isPresent();
+    }
 
     /**
      * Returns a mutable builder with a fluent API for immutable {@code Connection}. The builder is initialised with the
@@ -228,6 +248,13 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
          */
         public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
                 JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the Connection's lifecycle.
+         */
+        public static final JsonFieldDefinition<String> LIFECYCLE =
+                JsonFactory.newStringFieldDefinition("__lifecycle", FieldType.SPECIAL, FieldType.HIDDEN,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
@@ -322,9 +349,18 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
 
         /**
          * JSON field containing the {@code Connection} {@link MappingContext} to apply.
+         * @deprecated MAPPING_CONTEXT is deprecated, use MAPPING_DEFINITIONS instead
          */
+        @Deprecated
         public static final JsonFieldDefinition<JsonObject> MAPPING_CONTEXT =
                 JsonFactory.newJsonObjectFieldDefinition("mappingContext", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the definitions of {@code Connection} mappings.
+         */
+        public static final JsonFieldDefinition<JsonObject> MAPPING_DEFINITIONS =
+                JsonFactory.newJsonObjectFieldDefinition("mappingDefinitions", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -17,16 +19,19 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.things.ThingException;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * Indicates that the feature cannot be modified.
  */
 @Immutable
+@JsonParsableException(errorCode = FeatureNotModifiableException.ERROR_CODE)
 public class FeatureNotModifiableException extends DittoRuntimeException implements ThingException {
 
     /**
@@ -48,7 +53,7 @@ public class FeatureNotModifiableException extends DittoRuntimeException impleme
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-        super(ERROR_CODE, HttpStatusCode.FORBIDDEN, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, HttpStatus.FORBIDDEN, dittoHeaders, message, description, cause, href);
     }
 
     /**
@@ -59,7 +64,7 @@ public class FeatureNotModifiableException extends DittoRuntimeException impleme
      * access permissions.
      * @return the builder.
      */
-    public static FeatureNotModifiableException.Builder newBuilder(final String thingId, final String featureId) {
+    public static FeatureNotModifiableException.Builder newBuilder(final ThingId thingId, final String featureId) {
         return new FeatureNotModifiableException.Builder(thingId, featureId);
     }
 
@@ -69,12 +74,11 @@ public class FeatureNotModifiableException extends DittoRuntimeException impleme
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new FeatureNotModifiableException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static FeatureNotModifiableException fromMessage(final String message, final DittoHeaders dittoHeaders) {
-        return new FeatureNotModifiableException.Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+    public static FeatureNotModifiableException fromMessage(@Nullable final String message,
+            final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
@@ -84,22 +88,29 @@ public class FeatureNotModifiableException extends DittoRuntimeException impleme
      * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new FeatureNotModifiableException.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
-     * JsonFields#MESSAGE} field.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static FeatureNotModifiableException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
+    }
+
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new Builder()
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
                 .dittoHeaders(dittoHeaders)
-                .message(readMessage(jsonObject))
-                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
-                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 
     /**
      * A mutable builder with a fluent API for a {@link FeatureNotModifiableException}.
-     *
      */
     public static final class Builder extends DittoRuntimeExceptionBuilder<FeatureNotModifiableException> {
 
@@ -107,9 +118,9 @@ public class FeatureNotModifiableException extends DittoRuntimeException impleme
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String thingId, final String featureId) {
+        private Builder(final ThingId thingId, final String featureId) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, featureId, thingId));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, featureId, String.valueOf(thingId)));
         }
 
         @Override

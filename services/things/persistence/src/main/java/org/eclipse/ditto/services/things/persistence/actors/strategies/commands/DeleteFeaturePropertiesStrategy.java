@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -15,20 +17,25 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Feature;
-import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeaturePropertiesResponse;
 import org.eclipse.ditto.signals.events.things.FeaturePropertiesDeleted;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperties} command.
  */
 @Immutable
-final class DeleteFeaturePropertiesStrategy extends
-        AbstractConditionalHeadersCheckingCommandStrategy<DeleteFeatureProperties, FeatureProperties> {
+final class DeleteFeaturePropertiesStrategy extends AbstractThingCommandStrategy<DeleteFeatureProperties> {
 
     /**
      * Constructs a new {@code DeleteFeaturePropertiesStrategy} object.
@@ -38,48 +45,58 @@ final class DeleteFeaturePropertiesStrategy extends
     }
 
     @Override
-    protected Result doApply(final Context context, @Nullable final Thing thing,
-            final long nextRevision, final DeleteFeatureProperties command) {
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
+            @Nullable final Thing thing,
+            final long nextRevision,
+            final DeleteFeatureProperties command,
+            @Nullable final Metadata metadata) {
 
         return extractFeature(command, thing)
-                .map(feature -> getDeleteFeaturePropertiesResult(feature, context, nextRevision, command))
+                .map(feature -> getDeleteFeaturePropertiesResult(feature, context, nextRevision, command, thing,
+                        metadata))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featureNotFound(context.getThingId(), command.getFeatureId(),
-                                command.getDittoHeaders())));
+                        ExceptionFactory.featureNotFound(context.getState(), command.getFeatureId(),
+                                command.getDittoHeaders()), command));
     }
 
     private Optional<Feature> extractFeature(final DeleteFeatureProperties command,
             final @Nullable Thing thing) {
 
-        return getThingOrThrow(thing).getFeatures()
+        return getEntityOrThrow(thing).getFeatures()
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
-    private Result getDeleteFeaturePropertiesResult(final Feature feature, final Context context,
-            final long nextRevision, final DeleteFeatureProperties command) {
+    private Result<ThingEvent<?>> getDeleteFeaturePropertiesResult(final Feature feature,
+            final Context<ThingId> context,
+            final long nextRevision, final DeleteFeatureProperties command, @Nullable final Thing thing,
+            @Nullable final Metadata metadata) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final String thingId = context.getThingId();
+        final ThingId thingId = context.getState();
         final String featureId = feature.getId();
 
         return feature.getProperties()
-                .map(featureProperties -> ResultFactory.newMutationResult(command,
-                        FeaturePropertiesDeleted.of(thingId, featureId, nextRevision, getEventTimestamp(),
-                                dittoHeaders), DeleteFeaturePropertiesResponse.of(thingId, featureId, dittoHeaders),
-                        this))
+                .map(featureProperties -> {
+                    final ThingEvent<?> event =
+                            FeaturePropertiesDeleted.of(thingId, featureId, nextRevision, getEventTimestamp(),
+                                    dittoHeaders, metadata);
+                    final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
+                            DeleteFeaturePropertiesResponse.of(thingId, featureId, dittoHeaders), thing);
+                    return ResultFactory.<ThingEvent<?>>newMutationResult(command, event, response);
+                })
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featurePropertiesNotFound(thingId, featureId, dittoHeaders)));
+                        ExceptionFactory.featurePropertiesNotFound(thingId, featureId, dittoHeaders), command));
     }
 
     @Override
-    public Optional<FeatureProperties> determineETagEntity(final DeleteFeatureProperties command, @Nullable final Thing thing) {
-        return extractFeatureProperties(command, thing);
+    public Optional<EntityTag> previousEntityTag(final DeleteFeatureProperties command,
+            @Nullable final Thing previousEntity) {
+        return extractFeature(command, previousEntity).flatMap(Feature::getProperties).flatMap(EntityTag::fromEntity);
     }
 
-    private Optional<FeatureProperties> extractFeatureProperties(final DeleteFeatureProperties command,
-            final @Nullable Thing thing) {
-
-        return extractFeature(command, thing)
-                .flatMap(Feature::getProperties);
+    @Override
+    public Optional<EntityTag> nextEntityTag(final DeleteFeatureProperties command, @Nullable final Thing newEntity) {
+        return Optional.empty();
     }
+
 }

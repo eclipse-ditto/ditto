@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -21,9 +23,11 @@ import org.eclipse.ditto.model.query.SortDirection;
 import org.eclipse.ditto.model.query.SortOption;
 import org.eclipse.ditto.model.query.expression.FieldExpressionFactory;
 import org.eclipse.ditto.model.query.expression.SortFieldExpression;
+import org.eclipse.ditto.model.thingsearch.CursorOption;
 import org.eclipse.ditto.model.thingsearch.LimitOption;
 import org.eclipse.ditto.model.thingsearch.Option;
 import org.eclipse.ditto.model.thingsearch.OptionVisitor;
+import org.eclipse.ditto.model.thingsearch.SizeOption;
 import org.eclipse.ditto.model.thingsearch.SortOptionEntry;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
@@ -44,7 +48,8 @@ public final class ParameterOptionVisitor implements OptionVisitor {
      * @param queryBuilder the query builder to be used.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public ParameterOptionVisitor(final FieldExpressionFactory fieldExpressionFactory, final QueryBuilder queryBuilder) {
+    public ParameterOptionVisitor(final FieldExpressionFactory fieldExpressionFactory,
+            final QueryBuilder queryBuilder) {
         this.fieldExpressionFactory = checkNotNull(fieldExpressionFactory, "field expression factory");
         this.queryBuilder = checkNotNull(queryBuilder, "query builder");
     }
@@ -79,8 +84,13 @@ public final class ParameterOptionVisitor implements OptionVisitor {
     }
 
     @Override
-    public void visit(final Option option) {
-        // not required yet
+    public void visit(final CursorOption cursorOption) {
+        // do nothing; cursor is processed elsewhere
+    }
+
+    @Override
+    public void visit(final SizeOption sizeOption) {
+        queryBuilder.skip(0L).size(sizeOption.getSize());
     }
 
     private SortOption mapSort(final SortOptionEntry entry) {
@@ -88,8 +98,7 @@ public final class ParameterOptionVisitor implements OptionVisitor {
     }
 
     private SortFieldExpression determineSortField(final JsonPointer key) {
-        final String name = key.toString().replaceFirst("/", "");
-        return fieldExpressionFactory.sortBy(name);
+        return fieldExpressionFactory.sortBy(key.toString());
     }
 
     private static SortDirection determineSortDirection(final SortOptionEntry.SortOrder order) {

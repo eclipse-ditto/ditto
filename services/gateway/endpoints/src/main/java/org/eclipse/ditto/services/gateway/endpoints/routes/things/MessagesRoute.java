@@ -1,48 +1,45 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.things;
-
-import static akka.http.javadsl.server.Directives.completeWithFuture;
-import static akka.http.javadsl.server.Directives.extractDataBytes;
-import static akka.http.javadsl.server.Directives.extractUnmatchedPath;
-import static akka.http.javadsl.server.Directives.parameterOptional;
-import static akka.http.javadsl.server.Directives.pathEndOrSingleSlash;
-import static akka.http.javadsl.server.Directives.post;
-import static akka.http.javadsl.server.Directives.rawPathPrefix;
-import static akka.http.javadsl.server.Directives.route;
-import static akka.http.javadsl.server.Directives.withRequestTimeout;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.model.base.exceptions.TimeoutInvalidException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.messages.MessageBuilder;
 import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.messages.MessagesModelFactory;
 import org.eclipse.ditto.model.messages.SubjectInvalidException;
-import org.eclipse.ditto.model.messages.TimeoutInvalidException;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.services.gateway.endpoints.HttpRequestActor;
+import org.eclipse.ditto.services.gateway.endpoints.actors.AbstractHttpRequestActor;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.MessageConfig;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.commands.messages.MessageCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessage;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
@@ -52,13 +49,12 @@ import akka.actor.ActorSystem;
 import akka.http.javadsl.model.ContentType;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpCharset;
-import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
+import akka.http.javadsl.model.RequestEntity;
 import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
-import akka.http.javadsl.unmarshalling.Unmarshaller;
 import akka.japi.function.Function;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -76,9 +72,6 @@ final class MessagesRoute extends AbstractRoute {
 
     private static final Pattern INBOX_OUTBOX_PATTERN = Pattern.compile(PATH_INBOX + "|" + PATH_OUTBOX);
 
-    static final String TIMEOUT_PARAMETER = "timeout";
-    private static final String X_DITTO_VALIDATION_URL = "x-ditto-validation-url";
-
     private final Duration defaultMessageTimeout;
     private final Duration maxMessageTimeout;
     private final Duration defaultClaimTimeout;
@@ -89,25 +82,27 @@ final class MessagesRoute extends AbstractRoute {
      *
      * @param proxyActor an actor selection of the command delegating actor.
      * @param actorSystem the ActorSystem.
-     * @param defaultMessageTimeout the duration of the default message timeout.
-     * @param maxMessageTimeout the max duration of the message timeout.
-     * @param defaultClaimTimeout the duration of the default claim timeout.
-     * @param maxClaimTimeout the max duration of the claim timeout.
+     * @param commandConfig the configuration settings of the Gateway service's incoming command processing.
+     * @param messageConfig the MessageConfig.
+     * @param claimMessageConfig the MessageConfig for claim messages.
+     * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
+     * @param headerTranslator translates headers from external sources or to external sources.
      * @throws NullPointerException if any argument is {@code null}.
      */
     MessagesRoute(final ActorRef proxyActor,
             final ActorSystem actorSystem,
-            final Duration defaultMessageTimeout,
-            final Duration maxMessageTimeout,
-            final Duration defaultClaimTimeout,
-            final Duration maxClaimTimeout) {
+            final HttpConfig httpConfig,
+            final CommandConfig commandConfig,
+            final MessageConfig messageConfig,
+            final MessageConfig claimMessageConfig,
+            final HeaderTranslator headerTranslator) {
 
-        super(proxyActor, actorSystem);
+        super(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator);
 
-        this.defaultMessageTimeout = defaultMessageTimeout;
-        this.maxMessageTimeout = maxMessageTimeout;
-        this.defaultClaimTimeout = defaultClaimTimeout;
-        this.maxClaimTimeout = maxClaimTimeout;
+        defaultMessageTimeout = messageConfig.getDefaultTimeout();
+        maxMessageTimeout = messageConfig.getMaxTimeout();
+        defaultClaimTimeout = claimMessageConfig.getDefaultTimeout();
+        maxClaimTimeout = claimMessageConfig.getMaxTimeout();
     }
 
     /**
@@ -116,10 +111,11 @@ final class MessagesRoute extends AbstractRoute {
      * @return the {@code /{inbox|outbox}} route.
      */
     public Route buildThingsInboxOutboxRoute(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final String thingId) {
-        return route(
+            final ThingId thingId) {
+
+        return concat(
                 claimMessages(ctx, dittoHeaders, thingId), // /inbox/claim
-                rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment(INBOX_OUTBOX_PATTERN)),
+                rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment(INBOX_OUTBOX_PATTERN)),
                         inboxOutbox -> // /<inbox|outbox>
                                 post(() -> thingMessages(ctx, dittoHeaders, thingId, inboxOutbox))
                 )
@@ -131,9 +127,12 @@ final class MessagesRoute extends AbstractRoute {
      *
      * @return the {@code /{inbox|outbox}} route.
      */
-    public Route buildFeaturesInboxOutboxRoute(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final String thingId, final String featureId) {
-        return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment(INBOX_OUTBOX_PATTERN)),
+    public Route buildFeaturesInboxOutboxRoute(final RequestContext ctx,
+            final DittoHeaders dittoHeaders,
+            final ThingId thingId,
+            final String featureId) {
+
+        return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment(INBOX_OUTBOX_PATTERN)),
                 inboxOutbox -> // /<inbox|outbox>
                         post(() -> featureMessages(ctx, dittoHeaders, thingId, featureId, inboxOutbox))
         );
@@ -144,27 +143,24 @@ final class MessagesRoute extends AbstractRoute {
      *
      * @return route for claim messages resource.
      */
-    private Route claimMessages(final RequestContext ctx, final DittoHeaders dittoHeaders, final String thingId) {
-        return rawPathPrefix(mergeDoubleSlashes().concat(PATH_INBOX), () -> // /inbox
-                rawPathPrefix(mergeDoubleSlashes().concat(PATH_CLAIM), () -> // /inbox/claim
+    private Route claimMessages(final RequestContext ctx, final DittoHeaders dittoHeaders, final ThingId thingId) {
+        return rawPathPrefix(PathMatchers.slash().concat(PATH_INBOX), () -> // /inbox
+                rawPathPrefix(PathMatchers.slash().concat(PATH_CLAIM), () -> // /inbox/claim
                         post(() ->
                                 pathEndOrSingleSlash(() ->
-                                        parameterOptional(Unmarshaller.sync(Long::parseLong), TIMEOUT_PARAMETER,
-                                                optionalTimeout ->
-                                                        withCustomRequestTimeout(optionalTimeout,
-                                                                this::checkClaimTimeout,
-                                                                defaultClaimTimeout,
-                                                                timeout ->
-                                                                        extractDataBytes(payloadSource ->
-                                                                                handleMessage(ctx, payloadSource,
-                                                                                        buildSendClaimMessage(
-                                                                                                ctx,
-                                                                                                dittoHeaders,
-                                                                                                thingId,
-                                                                                                timeout
-                                                                                        )
-                                                                                )
+                                        withCustomRequestTimeout(dittoHeaders.getTimeout().orElse(null),
+                                                this::checkClaimTimeout,
+                                                defaultClaimTimeout,
+                                                timeout ->
+                                                        extractDataBytes(payloadSource ->
+                                                                handleMessage(ctx, payloadSource,
+                                                                        buildSendClaimMessage(
+                                                                                ctx,
+                                                                                dittoHeaders,
+                                                                                thingId,
+                                                                                timeout
                                                                         )
+                                                                )
                                                         )
                                         )
                                 )
@@ -179,36 +175,38 @@ final class MessagesRoute extends AbstractRoute {
      *
      * @return the sub route for things messages resource.
      */
-    private Route thingMessages(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final String thingId, final String inboxOutbox) {
-        final MessageDirection direction = PATH_INBOX.equalsIgnoreCase(inboxOutbox) ? MessageDirection.TO :
-                MessageDirection.FROM;
-        return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment(PATH_MESSAGES).slash()),
+    private Route thingMessages(final RequestContext ctx,
+            final DittoHeaders dittoHeaders,
+            final ThingId thingId,
+            final String inboxOutbox) {
+
+        return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment(PATH_MESSAGES).slash()),
                 () -> // /messages
                         extractUnmatchedPath(msgSubject -> // <msgSubject/with/slashes>
-                                parameterOptional(Unmarshaller.sync(Long::parseLong), TIMEOUT_PARAMETER,
-                                        optionalTimeout ->
-                                                withCustomRequestTimeout(optionalTimeout,
-                                                        this::checkMessageTimeout,
-                                                        defaultMessageTimeout,
-                                                        timeout ->
-                                                                extractDataBytes(payloadSource ->
-                                                                        handleMessage(ctx, payloadSource,
-                                                                                buildSendThingMessage(
-                                                                                        direction,
-                                                                                        ctx,
-                                                                                        dittoHeaders,
-                                                                                        thingId,
-                                                                                        msgSubject,
-                                                                                        timeout
-                                                                                )
-                                                                        )
+                                withCustomRequestTimeout(dittoHeaders.getTimeout().orElse(null),
+                                        this::checkMessageTimeout,
+                                        defaultMessageTimeout,
+                                        timeout ->
+                                                extractDataBytes(payloadSource ->
+                                                        handleMessage(ctx, payloadSource,
+                                                                buildSendThingMessage(
+                                                                        getMessageDirection(inboxOutbox),
+                                                                        ctx,
+                                                                        dittoHeaders,
+                                                                        thingId,
+                                                                        msgSubject,
+                                                                        timeout
                                                                 )
+                                                        )
                                                 )
                                 )
                         )
 
         );
+    }
+
+    private static MessageDirection getMessageDirection(final String inboxOutbox) {
+        return PATH_INBOX.equalsIgnoreCase(inboxOutbox) ? MessageDirection.TO : MessageDirection.FROM;
     }
 
     /*
@@ -217,55 +215,41 @@ final class MessagesRoute extends AbstractRoute {
      *
      * @return the sub route for feature messages resource.
      */
-    private Route featureMessages(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final String thingId, final String featureId, final String inboxOutbox) {
-        final MessageDirection direction = PATH_INBOX.equalsIgnoreCase(inboxOutbox) ? MessageDirection.TO :
-                MessageDirection.FROM;
-        return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment(PATH_MESSAGES).slash()),
+    private Route featureMessages(final RequestContext ctx,
+            final DittoHeaders dittoHeaders,
+            final ThingId thingId,
+            final String featureId,
+            final String inboxOutbox) {
+
+        return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment(PATH_MESSAGES).slash()),
                 () -> // /messages
                         extractUnmatchedPath(msgSubject -> // /messages/<msgSubject/with/slashes>
-                                parameterOptional(Unmarshaller.sync(Long::parseLong), TIMEOUT_PARAMETER,
-                                        optionalTimeout ->
-                                                withCustomRequestTimeout(optionalTimeout,
-                                                        this::checkMessageTimeout,
-                                                        defaultMessageTimeout,
-                                                        timeout ->
-                                                                extractDataBytes(payloadSource ->
-                                                                        handleMessage(ctx, payloadSource,
-                                                                                buildSendFeatureMessage(
-                                                                                        direction,
-                                                                                        ctx,
-                                                                                        dittoHeaders,
-                                                                                        thingId,
-                                                                                        featureId,
-                                                                                        msgSubject,
-                                                                                        timeout
-                                                                                )
-                                                                        )
+                                withCustomRequestTimeout(dittoHeaders.getTimeout().orElse(null),
+                                        this::checkMessageTimeout,
+                                        defaultMessageTimeout,
+                                        timeout ->
+                                                extractDataBytes(payloadSource ->
+                                                        handleMessage(ctx, payloadSource,
+                                                                buildSendFeatureMessage(
+                                                                        getMessageDirection(inboxOutbox),
+                                                                        ctx,
+                                                                        dittoHeaders,
+                                                                        thingId,
+                                                                        featureId,
+                                                                        msgSubject,
+                                                                        timeout
                                                                 )
+                                                        )
                                                 )
                                 )
                         )
         );
     }
 
-    private Route withCustomRequestTimeout(final Optional<Long> optionalTimeout,
-            final java.util.function.Function<Long, Duration> checkTimeoutFunction, final Duration defaultTimeout,
-            final java.util.function.Function<Duration, Route> inner) {
-        final Duration customRequestTimeout = optionalTimeout.map(checkTimeoutFunction).orElse(defaultTimeout);
-
-        // adds 1 second in order to avoid race conditions with internal receiveTimeouts which shall return "408"
-        // in case of message timeouts:
-        final scala.concurrent.duration.Duration duration =
-                scala.concurrent.duration.Duration.create(customRequestTimeout.getSeconds(), TimeUnit.SECONDS)
-                        .plus(scala.concurrent.duration.Duration.create(1, TimeUnit.SECONDS));
-        return withRequestTimeout(duration, () -> inner.apply(customRequestTimeout));
-    }
-
-    private Function<ByteBuffer, MessageCommand<?, ?>> buildSendThingMessage(final MessageDirection direction,
+    private static Function<ByteBuffer, MessageCommand<?, ?>> buildSendThingMessage(final MessageDirection direction,
             final RequestContext ctx,
             final DittoHeaders dittoHeaders,
-            final String thingId,
+            final ThingId thingId,
             final String msgSubject,
             final Duration timeout) {
 
@@ -276,20 +260,18 @@ final class MessagesRoute extends AbstractRoute {
             final MessageHeaders headers = MessageHeaders.newBuilder(direction, thingId, normalizeSubject(msgSubject))
                     .correlationId(dittoHeaders.getCorrelationId().orElse(null))
                     .contentType(contentType.toString())
-                    .timeout(timeout)
                     .timestamp(OffsetDateTime.now())
-                    .putHeaders(dittoHeaders)
                     .build();
 
-            final MessageBuilder<Object> messageBuilder = initMessageBuilder(payload, contentType, headers);
-            return SendThingMessage.of(thingId, messageBuilder.build(), enhanceHeaders(dittoHeaders));
+            final MessageBuilder<Object> messageBuilder = initMessageBuilder(payload, contentType, headers, httpRequest);
+            return SendThingMessage.of(thingId, messageBuilder.build(), enhanceHeaders(dittoHeaders, timeout));
         };
     }
 
-    private Function<ByteBuffer, MessageCommand<?, ?>> buildSendFeatureMessage(final MessageDirection direction,
+    private static Function<ByteBuffer, MessageCommand<?, ?>> buildSendFeatureMessage(final MessageDirection direction,
             final RequestContext ctx,
             final DittoHeaders dittoHeaders,
-            final String thingId,
+            final ThingId thingId,
             final String featureId,
             final String msgSubject,
             final Duration timeout) {
@@ -303,18 +285,13 @@ final class MessagesRoute extends AbstractRoute {
             final MessageHeaders headers = MessageHeaders.newBuilder(direction, thingId, normalizeSubject(msgSubject))
                     .featureId(featureId)
                     .correlationId(dittoHeaders.getCorrelationId().orElse(null))
-                    .contentType(contentType
-                            .toString())
-                    .timeout(timeout)
+                    .contentType(contentType.toString())
                     .timestamp(OffsetDateTime.now())
-                    .validationUrl(httpRequest.getHeader(X_DITTO_VALIDATION_URL)
-                            .map(HttpHeader::value)
-                            .orElse(null))
-                    .putHeaders(dittoHeaders)
                     .build();
 
-            final MessageBuilder<Object> messageBuilder = initMessageBuilder(payload, contentType, headers);
-            return SendFeatureMessage.of(thingId, featureId, messageBuilder.build(), enhanceHeaders(dittoHeaders));
+            final MessageBuilder<Object> messageBuilder = initMessageBuilder(payload, contentType, headers, httpRequest);
+            return SendFeatureMessage.of(thingId, featureId, messageBuilder.build(),
+                    enhanceHeaders(dittoHeaders, timeout));
         };
     }
 
@@ -325,9 +302,9 @@ final class MessagesRoute extends AbstractRoute {
         return msgSubject.charAt(0) == '/' ? msgSubject.substring(1) : msgSubject;
     }
 
-    private Function<ByteBuffer, MessageCommand<?, ?>> buildSendClaimMessage(final RequestContext ctx,
+    private static Function<ByteBuffer, MessageCommand<?, ?>> buildSendClaimMessage(final RequestContext ctx,
             final DittoHeaders dittoHeaders,
-            final String thingId,
+            final ThingId thingId,
             final Duration timeout) {
 
         return payload -> {
@@ -338,25 +315,47 @@ final class MessagesRoute extends AbstractRoute {
             final MessageHeaders headers = MessageHeaders.newBuilderForClaiming(thingId)
                     .correlationId(dittoHeaders.getCorrelationId().orElse(null))
                     .contentType(contentType.toString())
-                    .timeout(timeout)
                     .timestamp(OffsetDateTime.now())
-                    .putHeaders(dittoHeaders)
                     .build();
 
-            final MessageBuilder<Object> messageBuilder = initMessageBuilder(payload, contentType, headers);
-            return SendClaimMessage.of(thingId, messageBuilder.build(), enhanceHeaders(dittoHeaders));
+            final MessageBuilder<Object> messageBuilder = initMessageBuilder(payload, contentType, headers, ctx.getRequest());
+            return SendClaimMessage.of(thingId, messageBuilder.build(), enhanceHeaders(dittoHeaders, timeout));
         };
     }
 
-    private DittoHeaders enhanceHeaders(final DittoHeaders dittoHeaders) {
-        return dittoHeaders.toBuilder().channel(TopicPath.Channel.LIVE.getName()).build();
+    private static DittoHeaders enhanceHeaders(final DittoHeaders dittoHeaders, final Duration timeout) {
+
+        final DittoHeadersBuilder<?, ?> headersBuilder = dittoHeaders.toBuilder()
+                .channel(TopicPath.Channel.LIVE.getName());
+        if (timeout.toMillis() % 1000 == 0) {
+            // omit the milliseconds, required for backwards compatibility - not sending the unit along
+            headersBuilder.timeout(String.valueOf(timeout.getSeconds()));
+        } else {
+            headersBuilder.timeout(timeout);
+        }
+        return headersBuilder.build();
     }
 
     private static MessageBuilder<Object> initMessageBuilder(final ByteBuffer payload, final ContentType contentType,
-            final MessageHeaders headers) {
+            final MessageHeaders headers, final HttpRequest request) {
 
-        // reset bytebuffer offset, otherwise payload will not be appended
+        if (hasZeroContentLength(request)) {
+            // don't define any payload if a message has explicit content-length of 0.
+            return createMessageBuilderWithoutPayload(headers);
+        }
+
+        return createMessageBuilderWithPayload(payload, contentType, headers);
+    }
+
+    private static MessageBuilder<Object> createMessageBuilderWithoutPayload(final MessageHeaders headers) {
+        return MessagesModelFactory.newMessageBuilder(headers);
+    }
+
+    private static MessageBuilder<Object> createMessageBuilderWithPayload(final ByteBuffer payload, final ContentType contentType,  final MessageHeaders headers) {
         final ByteBuffer payloadWithoutOffset = ByteBuffer.wrap(payload.array());
+
+        MessageCommandSizeValidator.getInstance().ensureValidSize(() ->
+                payloadWithoutOffset.array().length, () -> headers);
 
         final MessageBuilder<Object> messageBuilder = MessagesModelFactory.newMessageBuilder(headers)
                 .rawPayload(payloadWithoutOffset);
@@ -378,33 +377,46 @@ final class MessagesRoute extends AbstractRoute {
             final Function<ByteBuffer, MessageCommand<?, ?>> requestPayloadToCommandFunction) {
 
         final CompletableFuture<HttpResponse> httpResponseFuture = new CompletableFuture<>();
-        payloadSource.fold(ByteString.empty(), ByteString::concat)
+        runWithSupervisionStrategy(payloadSource.fold(ByteString.emptyByteString(), ByteString::concat)
                 .map(ByteString::toArray)
                 .map(ByteBuffer::wrap)
                 .map(requestPayloadToCommandFunction)
                 .to(Sink.actorRef(createHttpPerRequestActor(ctx, httpResponseFuture),
-                        HttpRequestActor.COMPLETE_MESSAGE))
-                .run(materializer);
+                        AbstractHttpRequestActor.COMPLETE_MESSAGE))
+        );
 
         return completeWithFuture(preprocessResponse(httpResponseFuture));
     }
 
-    private Duration checkMessageTimeout(final long timeoutInSeconds) {
+    private Duration checkMessageTimeout(final Duration timeout) {
         // check if the timeout is smaller than the maximum possible message-timeout and > 0:
-        if ((timeoutInSeconds < 0) || (timeoutInSeconds > maxMessageTimeout.getSeconds())) {
-            throw new TimeoutInvalidException(timeoutInSeconds, maxMessageTimeout.getSeconds());
-        } else {
-            return Duration.ofSeconds(timeoutInSeconds);
+        if (timeout.isNegative() || timeout.getSeconds() > maxMessageTimeout.getSeconds()) {
+            throw TimeoutInvalidException.newBuilder(timeout, maxMessageTimeout).build();
         }
+        return timeout;
     }
 
-    private Duration checkClaimTimeout(final long timeoutInSeconds) {
+    private Duration checkClaimTimeout(final Duration timeout) {
         // check if the timeout is smaller than the maximum possible claim-timeout and > 0:
-        if ((timeoutInSeconds < 0) || (timeoutInSeconds > maxClaimTimeout.getSeconds())) {
-            throw new TimeoutInvalidException(timeoutInSeconds, maxClaimTimeout.getSeconds());
-        } else {
-            return Duration.ofSeconds(timeoutInSeconds);
+        if (timeout.isNegative() || timeout.getSeconds() > maxClaimTimeout.getSeconds()) {
+            throw TimeoutInvalidException.newBuilder(timeout, maxClaimTimeout).build();
         }
+        return timeout;
+    }
+
+    /**
+     * Check if the request has a Content-Length of {@code 0}, indicating it has no payload. The non-existence of
+     * Content-Length in a message will return {@code false}, as the akka documentation states that "in many cases
+     * it's dangerous to rely on the (non-)existence of a content-length" (see {@link RequestEntity#getContentLengthOption()}).
+     *
+     * @param request The request.
+     * @return {@code true} if the message contains Content-Length {@code 0}; {@code false} if no Content-Length is found or
+     * it isn't {@code 0}.
+     * @see RequestEntity#getContentLengthOption()
+     */
+    private static boolean hasZeroContentLength(final HttpRequest request) {
+        final OptionalLong contentLengthOption = request.entity().getContentLengthOption();
+        return contentLengthOption.isPresent() && 0 == contentLengthOption.getAsLong();
     }
 
 }

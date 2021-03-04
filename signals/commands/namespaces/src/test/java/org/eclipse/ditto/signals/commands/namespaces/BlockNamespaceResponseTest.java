@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -16,9 +18,10 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.util.UUID;
 
+import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -40,7 +43,7 @@ public final class BlockNamespaceResponseTest {
     public static void initTestConstants() {
         knownJsonRepresentation = JsonFactory.newObjectBuilder()
                 .set(NamespaceCommandResponse.JsonFields.TYPE, BlockNamespaceResponse.TYPE)
-                .set(NamespaceCommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
+                .set(NamespaceCommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode())
                 .set(NamespaceCommandResponse.JsonFields.NAMESPACE, NAMESPACE)
                 .set(NamespaceCommandResponse.JsonFields.RESOURCE_TYPE, RESOURCE_TYPE)
                 .build();
@@ -86,6 +89,13 @@ public final class BlockNamespaceResponseTest {
                 BlockNamespaceResponse.getInstance(NAMESPACE, RESOURCE_TYPE, dittoHeaders);
 
         assertThat(underTest.getId()).isEqualTo(underTest.getNamespace());
+    }
+
+    @Test
+    public void getEntityIdReturnsNamespace() {
+        final BlockNamespaceResponse underTest =
+                BlockNamespaceResponse.getInstance(NAMESPACE, RESOURCE_TYPE, dittoHeaders);
+        Assertions.assertThat(underTest.getEntityId().toString()).isEqualTo(underTest.getNamespace());
     }
 
     @Test

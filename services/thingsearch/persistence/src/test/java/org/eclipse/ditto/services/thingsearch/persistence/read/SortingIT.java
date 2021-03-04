@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -12,7 +14,6 @@ package org.eclipse.ditto.services.thingsearch.persistence.read;
 
 import static org.eclipse.ditto.model.base.assertions.DittoBaseAssertions.assertThat;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -29,6 +30,7 @@ import org.eclipse.ditto.model.query.SortOption;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.expression.AttributeExpressionImpl;
+import org.eclipse.ditto.model.query.expression.FeatureIdDesiredPropertyExpressionImpl;
 import org.eclipse.ditto.model.query.expression.FeatureIdPropertyExpressionImpl;
 import org.eclipse.ditto.model.query.expression.FieldExpression;
 import org.eclipse.ditto.model.query.expression.SimpleFieldExpressionImpl;
@@ -38,6 +40,7 @@ import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultListImpl;
 import org.junit.Test;
@@ -48,82 +51,61 @@ import org.junit.runners.Parameterized;
  * Tests for sorting functionality of search persistence.
  */
 @RunWith(Parameterized.class)
-public final class SortingIT extends AbstractVersionedThingSearchPersistenceITBase {
+public final class SortingIT extends AbstractReadPersistenceITBase {
 
     private static final List<SortDirection> SORT_DIRECTIONS = Arrays.asList(SortDirection.values());
     private static final Random RANDOM = new Random();
 
     private static final ThingsFieldExpressionFactory EFT = new ThingsFieldExpressionFactoryImpl();
 
-    private static final List<String> THING_IDS =
-            Arrays.asList("thingsearch.read:thingId1a", "thingsearch.read:thingId1b", "thingsearch.read:thingId1c");
+    public static final String NAMESPACE = "thingsearch.read";
+    private static final List<ThingId> THING_IDS = Arrays.asList(
+            ThingId.of(NAMESPACE, "thingId1a"),
+            ThingId.of(NAMESPACE, "thingId1b"),
+            ThingId.of(NAMESPACE, "thingId1c"));
     private static final List<String> ATTRIBUTE_SORT_STRING_VALUES =
             Arrays.asList("valA", "valB", "valC", "valD", "valE");
     private static final List<Long> ATTRIBUTE_SORT_LONG_VALUES = Arrays.asList(1L, 2L, 3L, 4L, 5L);
     private static final String ATTRIBUTE_SORT_KEY = "myAttr1";
-    private static final String ATTRIBUTE_SORT_KEY_WITH_DOTS = "myAttr.with.dots";
-    private static final String FEATURE_ID_WITH_DOTS = "myFeatureId.with.dots";
+    private static final String ATTRIBUTE_SORT_KEY_WITH_DOTS = "$myAttr.with.dots";
+    private static final String FEATURE_ID_WITH_DOTS = "~myFeatureId.with.dots";
     private static final String PROPERTY_SORT_KEY_WITH_DOTS = "myProperty.with.dots";
+    private static final String DESIRED_PROPERTY_SORT_KEY_WITH_DOTS = "myDesiredProperty.with.dots";
 
-    @Parameterized.Parameters(name = "v{0} - {1} - {2}")
-    public static List<Object[]> parameters() {
-        final List<Object[]> versionsWithQueryClass = versionAndQueryClassParameters();
-        final Object[] sortDirections = SORT_DIRECTIONS.toArray();
-        final List<Object[]> parameters = new ArrayList<>();
-        for (final Object[] versionAndQueryClass : versionsWithQueryClass) {
-            for (final Object sortDirection : sortDirections) {
-                final List<Object> singleParamList = new ArrayList<>(Arrays.asList(versionAndQueryClass));
-                singleParamList.add(sortDirection);
-                parameters.add(singleParamList.toArray());
-            }
-        }
-        return parameters;
+    @Parameterized.Parameters(name = "direction={0}")
+    public static List<Object> parameters() {
+        return Arrays.asList(SORT_DIRECTIONS.toArray());
     }
 
     private final CriteriaFactory cf = new CriteriaFactoryImpl();
 
-    @Parameterized.Parameter(2)
+    @Parameterized.Parameter(0)
     public SortDirection testedSortDirection;
 
-
-    @Override
-    void createTestDataV1() {
-        // test data is created in the tests
-    }
-
-    @Override
-    void createTestDataV2() {
-        // test data is created in the tests
-    }
-
-    /** */
     @Test
     public void sortPerDefaultByThingIdAsc() {
         final SortOption DEFAULT_SORT_OPTION = new SortOption(EFT.sortByThingId(), SortDirection.ASC);
         final List<Thing> things = createAndPersistThings(THING_IDS, this::createThing);
 
         // find without any ordering
-        final PolicyRestrictedSearchAggregation aggregation = abf.newBuilder(cf.any())
-                .authorizationSubjects(KNOWN_SUBJECTS)
-                .build();
-        final ResultList<String> result = findAll(aggregation);
+        final Query query = qbf.newBuilder(cf.any()).build();
+        final ResultList<ThingId> result = findAll(query);
 
         final Comparator<Thing> ascendingComparator =
                 Comparator.comparing(extractStringField(DEFAULT_SORT_OPTION.getSortExpression()));
 
-        final List<String> expectedResult = createExpectedResult(things, DEFAULT_SORT_OPTION, ascendingComparator);
+        final List<ThingId> expectedResult = createExpectedResult(things, DEFAULT_SORT_OPTION, ascendingComparator);
 
         assertThat(result).isEqualTo(expectedResult);
     }
 
-    /** */
     @Test
     public void sortByThingId() {
         runTestWithStringValues(
-                new SortOption(EFT.sortByThingId(), testedSortDirection), this::createThing, THING_IDS);
+                new SortOption(EFT.sortByThingId(), testedSortDirection), this::createThing,
+                THING_IDS.stream().map(String::valueOf).collect(Collectors.toList()));
     }
 
-    /** */
     @Test
     public void sortByStringAttribute() {
         runTestWithStringValues(
@@ -132,8 +114,6 @@ public final class SortingIT extends AbstractVersionedThingSearchPersistenceITBa
                 ATTRIBUTE_SORT_STRING_VALUES);
     }
 
-
-    /** */
     @Test
     public void sortByStringAttributeWithDots() {
         runTestWithStringValues(
@@ -142,7 +122,6 @@ public final class SortingIT extends AbstractVersionedThingSearchPersistenceITBa
                 ATTRIBUTE_SORT_STRING_VALUES);
     }
 
-    /** */
     @Test
     public void sortByLongAttribute() {
         runTestWithLongValues(
@@ -151,13 +130,21 @@ public final class SortingIT extends AbstractVersionedThingSearchPersistenceITBa
         );
     }
 
-
-    /** */
     @Test
     public void sortByLongPropertyWithDots() {
         runTestWithLongValues(
                 new SortOption(
                         EFT.sortByFeatureProperty(FEATURE_ID_WITH_DOTS, PROPERTY_SORT_KEY_WITH_DOTS),
+                        testedSortDirection),
+                getLongPropertyWithDotsThingBuilder()
+        );
+    }
+
+    @Test
+    public void sortByLongDesiredPropertyWithDots() {
+        runTestWithLongValues(
+                new SortOption(
+                        EFT.sortByFeatureDesiredProperty(FEATURE_ID_WITH_DOTS, DESIRED_PROPERTY_SORT_KEY_WITH_DOTS),
                         testedSortDirection),
                 getLongPropertyWithDotsThingBuilder()
         );
@@ -188,21 +175,11 @@ public final class SortingIT extends AbstractVersionedThingSearchPersistenceITBa
             final Collection<Thing> things,
             final Comparator<Thing> ascendingComparator) {
 
-        final List<String> expectedResult = createExpectedResult(things, sortOption, ascendingComparator);
+        final List<ThingId> expectedResult = createExpectedResult(things, sortOption, ascendingComparator);
 
-        final ResultList<String> result;
-        if (queryClass.equals(Query.class.getSimpleName())) {
-            final Query query = qbf.newBuilder(cf.any()).sort(Collections.singletonList(sortOption)).build();
-            result = findAll(query);
-        } else if (queryClass.equals(PolicyRestrictedSearchAggregation.class.getSimpleName())) {
-            final PolicyRestrictedSearchAggregation aggregation = abf.newBuilder(cf.any())
-                    .authorizationSubjects(KNOWN_SUBJECTS)
-                    .sortOptions(Collections.singletonList(sortOption))
-                    .build();
-            result = findAll(aggregation);
-        } else {
-            throw new IllegalStateException("should never end up here");
-        }
+        final Query query = qbf.newBuilder(cf.any()).sort(Collections.singletonList(sortOption)).build();
+        final ResultList<ThingId> result = findAll(query);
+
         assertThat(result).isEqualTo(expectedResult);
     }
 
@@ -235,6 +212,11 @@ public final class SortingIT extends AbstractVersionedThingSearchPersistenceITBa
                                     FeatureProperties.newBuilder()
                                             .set(PROPERTY_SORT_KEY_WITH_DOTS, value)
                                             .build())
+                            .desiredProperties(
+                                    FeatureProperties.newBuilder()
+                                            .set(DESIRED_PROPERTY_SORT_KEY_WITH_DOTS, value)
+                                            .build()
+                            )
                             .withId(FEATURE_ID_WITH_DOTS)
                             .build())
                     .build();
@@ -261,7 +243,7 @@ public final class SortingIT extends AbstractVersionedThingSearchPersistenceITBa
     private Function<Thing, String> extractStringField(final FieldExpression sortField) {
         return (thing) -> {
             if (sortField instanceof SimpleFieldExpressionImpl) {
-                return thing.getId().orElseThrow(IllegalStateException::new);
+                return thing.getEntityId().orElseThrow(IllegalStateException::new).toString();
             } else {
                 return thing.getAttributes()
                         .orElseThrow(IllegalStateException::new)
@@ -288,13 +270,21 @@ public final class SortingIT extends AbstractVersionedThingSearchPersistenceITBa
                         .getProperty(((FeatureIdPropertyExpressionImpl) sortField).getProperty())
                         .orElseThrow(IllegalStateException::new)
                         .asLong();
+            } else if (sortField instanceof FeatureIdDesiredPropertyExpressionImpl) {
+                return thing.getFeatures()
+                        .orElseThrow(IllegalStateException::new)
+                        .getFeature(((FeatureIdDesiredPropertyExpressionImpl) sortField).getFeatureId())
+                        .orElseThrow(IllegalStateException::new)
+                        .getDesiredProperty(((FeatureIdDesiredPropertyExpressionImpl) sortField).getDesiredProperty())
+                        .orElseThrow(IllegalStateException::new)
+                        .asLong();
             } else {
                 throw new UnsupportedOperationException(sortField.getClass().getName() + " not supported");
             }
         };
     }
 
-    private List<String> createExpectedResult(final Collection<Thing> things,
+    private List<ThingId> createExpectedResult(final Collection<Thing> things,
             final SortOption sortOption, final Comparator<Thing> ascendingComparator) {
         final Comparator<Thing> comparator;
         if (SortDirection.ASC == sortOption.getSortDirection()) {
@@ -303,15 +293,14 @@ public final class SortingIT extends AbstractVersionedThingSearchPersistenceITBa
             comparator = ascendingComparator.reversed();
         }
 
-        final List<String> simpleList = things.stream()
+        final List<ThingId> simpleList = things.stream()
                 .sorted(comparator)
-                .map(thing -> thing.getId().orElseThrow(IllegalStateException::new))
+                .map(thing -> thing.getEntityId().orElseThrow(IllegalStateException::new))
                 .collect(Collectors.toList());
         return new ResultListImpl<>(simpleList, ResultList.NO_NEXT_PAGE);
     }
 
-    private static String randomThingId() {
-        return "thingsearch.read:" + UUID.randomUUID().toString();
+    private static ThingId randomThingId() {
+        return ThingId.of(NAMESPACE, UUID.randomUUID().toString());
     }
-
 }

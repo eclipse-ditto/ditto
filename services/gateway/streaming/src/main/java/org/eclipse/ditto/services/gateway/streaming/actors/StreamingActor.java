@@ -1,80 +1,125 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.gateway.streaming.actors;
 
-import java.util.Optional;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.stream.StreamSupport;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationResultProvider;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtValidator;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
-import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
-import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.services.gateway.util.config.streaming.DefaultStreamingConfig;
+import org.eclipse.ditto.services.gateway.util.config.streaming.StreamingConfig;
+import org.eclipse.ditto.services.utils.akka.actors.ModifyConfigBehavior;
+import org.eclipse.ditto.services.utils.akka.actors.RetrieveConfigBehavior;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
+import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
+import org.eclipse.ditto.services.utils.search.SubscriptionManager;
 
-import akka.actor.AbstractActor;
+import com.typesafe.config.Config;
+
+import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
-import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
+import akka.stream.Materializer;
 
 /**
  * Parent Actor for {@link StreamingSessionActor}s delegating most of the messages to a specific session.
+ * Manages WebSocket configuration.
  */
-public final class StreamingActor extends AbstractActor {
+public final class StreamingActor extends AbstractActorWithTimers implements RetrieveConfigBehavior,
+        ModifyConfigBehavior {
 
     /**
      * The name of this Actor.
      */
     public static final String ACTOR_NAME = "streaming";
 
-    private final DiagnosticLoggingAdapter logger = LogUtil.obtain(this);
-
-    private final ActorRef pubSubMediator;
+    private final DittoProtocolSub dittoProtocolSub;
     private final ActorRef commandRouter;
+    private final Gauge streamingSessionsCounter;
+    private final JwtValidator jwtValidator;
+    private final JwtAuthenticationResultProvider jwtAuthenticationResultProvider;
+    private final Props subscriptionManagerProps;
+    private final DittoDiagnosticLoggingAdapter logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
+    private final HeaderTranslator headerTranslator;
+    private int childCounter = -1;
+
+    private StreamingConfig streamingConfig;
 
     private final SupervisorStrategy strategy = new OneForOneStrategy(true, DeciderBuilder
             .match(Throwable.class, e -> {
                 logger.error(e, "Escalating above actor!");
-                return SupervisorStrategy.escalate();
+                return (SupervisorStrategy.Directive) SupervisorStrategy.escalate();
             }).matchAny(e -> {
                 logger.error("Unknown message:'{}'! Escalating above actor!", e);
-                return SupervisorStrategy.escalate();
+                return (SupervisorStrategy.Directive) SupervisorStrategy.escalate();
             }).build());
 
-    private StreamingActor(final ActorRef pubSubMediator, final ActorRef commandRouter) {
-        this.pubSubMediator = pubSubMediator;
+    @SuppressWarnings("unused")
+    private StreamingActor(final DittoProtocolSub dittoProtocolSub,
+            final ActorRef commandRouter,
+            final JwtValidator jwtValidator,
+            final JwtAuthenticationResultProvider jwtAuthenticationResultProvider,
+            final StreamingConfig streamingConfig,
+            final HeaderTranslator headerTranslator,
+            final ActorRef pubSubMediator,
+            final ActorRef conciergeForwarder) {
+
+        this.dittoProtocolSub = dittoProtocolSub;
         this.commandRouter = commandRouter;
+        this.jwtValidator = jwtValidator;
+        this.jwtAuthenticationResultProvider = jwtAuthenticationResultProvider;
+        this.streamingConfig = streamingConfig;
+        this.headerTranslator = headerTranslator;
+        streamingSessionsCounter = DittoMetrics.gauge("streaming_sessions_count");
+        final ActorSelection conciergeForwarderSelection = ActorSelection.apply(conciergeForwarder, "");
+        subscriptionManagerProps =
+                SubscriptionManager.props(streamingConfig.getSearchIdleTimeout(), pubSubMediator,
+                        conciergeForwarderSelection, Materializer.createMaterializer(getContext()));
+        scheduleScrapeStreamSessionsCounter();
     }
 
     /**
      * Creates Akka configuration object Props for this StreamingActor.
      *
-     * @param pubSubMediator the PubSub mediator actor
-     * @param commandRouter the command router used to send signals into the cluster
+     * @param dittoProtocolSub the Ditto protocol sub access.
+     * @param commandRouter the command router used to send signals into the cluster.
+     * @param streamingConfig the streaming config.
+     * @param headerTranslator translates headers from external sources or to external sources.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ActorRef pubSubMediator, final ActorRef commandRouter) {
-        return Props.create(StreamingActor.class, new Creator<StreamingActor>() {
-            private static final long serialVersionUID = 1L;
+    public static Props props(final DittoProtocolSub dittoProtocolSub,
+            final ActorRef commandRouter,
+            final JwtValidator jwtValidator,
+            final JwtAuthenticationResultProvider jwtAuthenticationResultProvider,
+            final StreamingConfig streamingConfig,
+            final HeaderTranslator headerTranslator,
+            final ActorRef pubSubMediator,
+            final ActorRef conciergeForwarder) {
 
-            @Override
-            public StreamingActor create() {
-                return new StreamingActor(pubSubMediator, commandRouter);
-            }
-        });
+        return Props.create(StreamingActor.class, dittoProtocolSub, commandRouter, jwtValidator,
+                jwtAuthenticationResultProvider, streamingConfig, headerTranslator, pubSubMediator, conciergeForwarder);
     }
 
     @Override
@@ -84,58 +129,79 @@ public final class StreamingActor extends AbstractActor {
 
     @Override
     public Receive createReceive() {
-        return ReceiveBuilder.create()
-                // Handle internal connect/streaming commands
-                .match(Connect.class, connect -> {
-                    final ActorRef eventAndResponsePublisher = connect.getEventAndResponsePublisher();
-                    eventAndResponsePublisher.forward(connect, getContext());
-                    final String connectionCorrelationId = connect.getConnectionCorrelationId();
-                    getContext().actorOf(
-                            StreamingSessionActor.props(connectionCorrelationId, connect.getType(), pubSubMediator,
-                                    eventAndResponsePublisher), connectionCorrelationId);
-                })
-                .match(StartStreaming.class,
-                        startStreaming -> forwardToSessionActor(startStreaming.getConnectionCorrelationId(),
-                                startStreaming)
-                )
-                .match(StopStreaming.class,
-                        stopStreaming -> forwardToSessionActor(stopStreaming.getConnectionCorrelationId(),
-                                stopStreaming)
-                )
-                .match(Signal.class, signal -> {
-                    final Optional<String> originOpt = signal.getDittoHeaders().getOrigin();
-                    if (originOpt.isPresent()) {
-                        final String origin = originOpt.get();
-                        final ActorRef sessionActor = getContext().getChild(origin);
-                        if (sessionActor != null) {
-                            commandRouter.tell(signal, sessionActor);
-                        } else {
-                            logger.debug("No session actor found for origin: {}", origin);
-                        }
-                    } else {
-                        logger.warning("Signal is missing the required origin header: {}",
-                                signal.getDittoHeaders().getCorrelationId());
-                    }
-                })
-                .match(DittoRuntimeException.class, cre -> {
-                    final Optional<String> originOpt = cre.getDittoHeaders().getOrigin();
-                    if (originOpt.isPresent()) {
-                        forwardToSessionActor(originOpt.get(), cre);
-                    } else {
-                        logger.warning("Unhandled DittoRuntimeException: <{}: {}>", cre.getClass().getSimpleName(),
-                                cre.getMessage());
-                    }
-                })
-                .matchAny(any -> logger.warning("Got unknown message: '{}'", any)).build();
+        return retrieveConfigBehavior()
+                .orElse(modifyConfigBehavior())
+                .orElse(createConnectAndMetricsBehavior())
+                .orElse(ReceiveBuilder.create()
+                        .matchAny(any -> logger.warning("Got unknown message: '{}'", any))
+                        .build());
     }
 
-    private void forwardToSessionActor(final String connectionCorrelationId, final Object object) {
-        if (object instanceof WithDittoHeaders) {
-            LogUtil.enhanceLogWithCorrelationId(logger, (WithDittoHeaders<?>) object);
-        } else {
-            LogUtil.enhanceLogWithCorrelationId(logger, (String) null);
-        }
-        logger.debug("Forwarding to session actor '{}': {}", connectionCorrelationId, object);
-        getContext().actorSelection(connectionCorrelationId).forward(object, getContext());
+    private Receive createConnectAndMetricsBehavior() {
+        return ReceiveBuilder.create()
+                .match(Connect.class, connect -> {
+                    final String sessionActorName = getUniqueChildActorName(connect.getConnectionCorrelationId());
+                    final ActorRef streamingSessionActor = getContext().actorOf(
+                            StreamingSessionActor.props(connect, dittoProtocolSub,
+                                    commandRouter, streamingConfig.getAcknowledgementConfig(), headerTranslator,
+                                    subscriptionManagerProps, jwtValidator, jwtAuthenticationResultProvider),
+                            sessionActorName);
+                    getSender().tell(streamingSessionActor, ActorRef.noSender());
+                })
+                .matchEquals(Control.RETRIEVE_WEBSOCKET_CONFIG, this::replyWebSocketConfig)
+                .matchEquals(Control.SCRAPE_STREAM_COUNTER, this::updateStreamingSessionsCounter)
+                .build();
     }
+
+    @Override
+    public Config getConfig() {
+        return streamingConfig.render().getConfig(StreamingConfig.CONFIG_PATH);
+    }
+
+    @Override
+    public Config setConfig(final Config config) {
+        streamingConfig = DefaultStreamingConfig.of(
+                config.atKey(StreamingConfig.CONFIG_PATH).withFallback(streamingConfig.render()));
+        // reschedule scrapes: interval may have changed.
+        scheduleScrapeStreamSessionsCounter();
+        return streamingConfig.render();
+    }
+
+    private String getUniqueChildActorName(final String suffix) {
+        final int counter = ++childCounter;
+        return String.format("%x-%s", counter, URLEncoder.encode(suffix, StandardCharsets.UTF_8));
+    }
+
+    private void scheduleScrapeStreamSessionsCounter() {
+        getTimers().startPeriodicTimer(Control.SCRAPE_STREAM_COUNTER, Control.SCRAPE_STREAM_COUNTER,
+                streamingConfig.getSessionCounterScrapeInterval());
+    }
+
+    private void replyWebSocketConfig(final Control trigger) {
+        getSender().tell(streamingConfig.getWebsocketConfig(), getSelf());
+    }
+
+    private void updateStreamingSessionsCounter(final Control trigger) {
+        if (getContext() != null) {
+            streamingSessionsCounter.set(
+                    StreamSupport.stream(getContext().getChildren().spliterator(), false).count());
+        }
+    }
+
+    /**
+     * Control messages to send in the same actor system.
+     */
+    public enum Control {
+
+        /**
+         * Tell streaming actor to set the stream counter to its current number of child actors.
+         */
+        SCRAPE_STREAM_COUNTER,
+
+        /**
+         * Request the current WebSocket config.
+         */
+        RETRIEVE_WEBSOCKET_CONFIG
+    }
+
 }

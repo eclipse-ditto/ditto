@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -15,9 +17,9 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -50,7 +52,7 @@ final class ImmutableSubjects implements Subjects {
 
     private ImmutableSubjects(final Map<SubjectId, Subject> theSubjects) {
         requireNonNull(theSubjects, "The Subjects must not be null!");
-        subjects = Collections.unmodifiableMap(new HashMap<>(theSubjects));
+        subjects = Collections.unmodifiableMap(new LinkedHashMap<>(theSubjects));
     }
 
     /**
@@ -63,7 +65,7 @@ final class ImmutableSubjects implements Subjects {
     public static ImmutableSubjects of(final Iterable<Subject> subjects) {
         checkNotNull(subjects, "subjects");
 
-        final Map<SubjectId, Subject> subjectsMap = new HashMap<>();
+        final Map<SubjectId, Subject> subjectsMap = new LinkedHashMap<>();
         subjects.forEach(subject -> {
             final Subject existingSubject = subjectsMap.put(subject.getId(), subject);
             if (null != existingSubject) {
@@ -128,7 +130,7 @@ final class ImmutableSubjects implements Subjects {
     }
 
     private Map<SubjectId, Subject> copySubjects() {
-        return new HashMap<>(subjects);
+        return new LinkedHashMap<>(subjects);
     }
 
     @Override
@@ -182,7 +184,7 @@ final class ImmutableSubjects implements Subjects {
 
     @Override
     public Iterator<Subject> iterator() {
-        return new HashSet<>(subjects.values()).iterator();
+        return new LinkedHashSet<>(subjects.values()).iterator();
     }
 
     @Override

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -12,6 +14,7 @@ package org.eclipse.ditto.signals.commands.things.modify;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -24,13 +27,16 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
@@ -39,8 +45,9 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  * Response to a {@link CreateThing} command.
  */
 @Immutable
-public final class CreateThingResponse extends AbstractCommandResponse<CreateThingResponse> implements
-        ThingModifyCommandResponse<CreateThingResponse> {
+@JsonParsableCommandResponse(type = CreateThingResponse.TYPE)
+public final class CreateThingResponse extends AbstractCommandResponse<CreateThingResponse>
+        implements ThingModifyCommandResponse<CreateThingResponse> {
 
     /**
      * Type of this response.
@@ -54,13 +61,13 @@ public final class CreateThingResponse extends AbstractCommandResponse<CreateThi
     private final Thing createdThing;
 
     private CreateThingResponse(final Thing createdThing, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatusCode.CREATED, dittoHeaders);
+        super(TYPE, HttpStatus.CREATED, dittoHeaders);
         this.createdThing = checkNotNull(createdThing, "created Thing");
     }
 
     /**
-     * Returns a new {@code CreateThingResponse} for a created Thing. This corresponds to the HTTP status code
-     * {@link HttpStatusCode#CREATED}.
+     * Returns a new {@code CreateThingResponse} for a created Thing. This corresponds to the HTTP status
+     * {@link HttpStatus#CREATED}.
      *
      * @param thing the created Thing.
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
@@ -98,11 +105,13 @@ public final class CreateThingResponse extends AbstractCommandResponse<CreateThi
      */
     public static CreateThingResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<CreateThingResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
+                .deserialize(httpStatus -> {
                     final Thing extractedCreatedThing = jsonObject.getValue(JSON_THING)
                             .map(JsonValue::asObject)
                             .map(ThingsModelFactory::newThing)
-                            .orElse(null);
+                            .orElseThrow(() -> new JsonParseException(MessageFormat.format(
+                                    "JSON object <{0}> does not represent a Thing!",
+                                    jsonObject)));
                     return of(extractedCreatedThing, dittoHeaders);
                 });
     }
@@ -117,8 +126,8 @@ public final class CreateThingResponse extends AbstractCommandResponse<CreateThi
     }
 
     @Override
-    public String getThingId() {
-        return createdThing.getId()
+    public ThingId getThingEntityId() {
+        return createdThing.getEntityId()
                 .orElseThrow(() -> new IllegalStateException("Thing ID was not present in created Thing"));
     }
 
@@ -159,7 +168,7 @@ public final class CreateThingResponse extends AbstractCommandResponse<CreateThi
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof CreateThingResponse);
+        return other instanceof CreateThingResponse;
     }
 
     @Override

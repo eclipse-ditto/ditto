@@ -1,11 +1,13 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
- *  
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.connectivity.modify;
@@ -25,12 +27,12 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
@@ -39,6 +41,7 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandRespon
  * Response to a {@link ModifyConnection} command.
  */
 @Immutable
+@JsonParsableCommandResponse(type = ModifyConnectionResponse.TYPE)
 public final class ModifyConnectionResponse extends AbstractCommandResponse<ModifyConnectionResponse>
         implements ConnectivityModifyCommandResponse<ModifyConnectionResponse> {
 
@@ -51,44 +54,24 @@ public final class ModifyConnectionResponse extends AbstractCommandResponse<Modi
             JsonFactory.newJsonObjectFieldDefinition("connection", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final String connectionId;
-    @Nullable private final Connection connectionCreated;
+    private final ConnectionId connectionId;
 
-    private ModifyConnectionResponse(final String connectionId,
-            final HttpStatusCode statusCode,
-            @Nullable final Connection connectionCreated,
-            final DittoHeaders dittoHeaders) {
-
-        super(TYPE, statusCode, dittoHeaders);
+    private ModifyConnectionResponse(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
+        super(TYPE, HttpStatus.NO_CONTENT, dittoHeaders);
         this.connectionId = checkNotNull(connectionId, "Connection ID");
-        this.connectionCreated = connectionCreated;
     }
 
     /**
-     * Returns a new {@code ModifyConnectionResponse} for a created Thing. This corresponds to the HTTP status code
-     * {@link HttpStatusCode#CREATED}.
-     *
-     * @param connection the connection which was created.
-     * @param dittoHeaders the headers of the request.
-     * @return a new ModifyConnectionResponse.
-     * @throws NullPointerException if any argument is {@code null}.
-     */
-    public static ModifyConnectionResponse created(final Connection connection, final DittoHeaders dittoHeaders) {
-        checkNotNull(connection, "Connection");
-        return new ModifyConnectionResponse(connection.getId(), HttpStatusCode.CREATED, connection, dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code ModifyConnectionResponse} for a modified Thing. This corresponds to the HTTP status code
-     * {@link HttpStatusCode#NO_CONTENT}.
+     * Returns a new {@code ModifyConnectionResponse}. This corresponds to the HTTP status
+     * {@link HttpStatus#NO_CONTENT}.
      *
      * @param connectionId the ID of the connection which was modified.
      * @param dittoHeaders the headers of the request.
      * @return a new ModifyConnectionResponse.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ModifyConnectionResponse modified(final String connectionId, final DittoHeaders dittoHeaders) {
-        return new ModifyConnectionResponse(connectionId, HttpStatusCode.NO_CONTENT, null, dittoHeaders);
+    public static ModifyConnectionResponse of(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
+        return new ModifyConnectionResponse(connectionId, dittoHeaders);
     }
 
     /**
@@ -97,7 +80,7 @@ public final class ModifyConnectionResponse extends AbstractCommandResponse<Modi
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the response.
      * @return the response.
-     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
@@ -112,63 +95,47 @@ public final class ModifyConnectionResponse extends AbstractCommandResponse<Modi
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the response.
      * @return the response.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
     public static ModifyConnectionResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyConnectionResponse>(TYPE, jsonObject).deserialize(
-                statusCode -> {
+                httpStatus -> {
                     final String readConnectionId =
                             jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
-                    final Connection readConnection= jsonObject.getValue(JSON_CONNECTION)
-                            .map(ConnectivityModelFactory::connectionFromJson)
-                            .orElse(null);
-
-                    return new ModifyConnectionResponse(readConnectionId, statusCode, readConnection, dittoHeaders);
+                    return new ModifyConnectionResponse(ConnectionId.of(readConnectionId), dittoHeaders);
                 });
-    }
-
-    /**
-     * Returns the created {@code Connection}.
-     *
-     * @return the created Connection.
-     */
-    public Optional<Connection> getConnectionCreated() {
-        return Optional.ofNullable(connectionCreated);
     }
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
 
-        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, connectionId, predicate);
-        if (connectionCreated != null) {
-            jsonObjectBuilder.set(JSON_CONNECTION, connectionCreated.toJson(schemaVersion, thePredicate), predicate);
-        }
+        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId),
+                predicate);
     }
 
     @Override
-    public String getConnectionId() {
+    public ConnectionId getConnectionEntityId() {
         return connectionId;
     }
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(connectionCreated).map(connection ->
-                connection.toJson(schemaVersion, FieldType.notHidden()));
+        return Optional.empty();
     }
 
     @Override
     public ModifyConnectionResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return connectionCreated != null ? created(connectionCreated, dittoHeaders) :
-                modified(connectionId, dittoHeaders);
+        return of(connectionId, dittoHeaders);
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof ModifyConnectionResponse);
+        return other instanceof ModifyConnectionResponse;
     }
 
     @Override
@@ -183,13 +150,12 @@ public final class ModifyConnectionResponse extends AbstractCommandResponse<Modi
             return false;
         }
         final ModifyConnectionResponse that = (ModifyConnectionResponse) o;
-        return Objects.equals(connectionId, that.connectionId) &&
-                Objects.equals(connectionCreated, that.connectionCreated);
+        return Objects.equals(connectionId, that.connectionId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), connectionId, connectionCreated);
+        return Objects.hash(super.hashCode(), connectionId);
     }
 
     @Override
@@ -197,7 +163,7 @@ public final class ModifyConnectionResponse extends AbstractCommandResponse<Modi
         return getClass().getSimpleName() + " [" +
                 super.toString() +
                 ", connectionId=" + connectionId +
-                ", connectionCreated=" + connectionCreated +
                 "]";
     }
+
 }

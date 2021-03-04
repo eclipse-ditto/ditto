@@ -5,12 +5,13 @@
 # Eclipse Ditto
 
 [![Join the chat at https://gitter.im/eclipse/ditto](https://badges.gitter.im/eclipse/ditto.svg)](https://gitter.im/eclipse/ditto?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Build Status](https://travis-ci.org/eclipse/ditto.svg?branch=master)](https://travis-ci.org/eclipse/ditto)
-[![Maven Central](https://img.shields.io/maven-metadata/v/http/central.maven.org/maven2/org/eclipse/ditto/ditto/maven-metadata.xml.svg)](http://search.maven.org/#search|ga|1|org.eclipse.ditto)
+[![Build Status](https://github.com/eclipse/ditto/workflows/build/badge.svg)](https://github.com/eclipse/ditto/actions?query=workflow%3Abuild)
+[![Maven Central](https://img.shields.io/maven-central/v/org.eclipse.ditto/ditto?label=maven)](https://search.maven.org/search?q=g:org.eclipse.ditto)
 [![License](https://img.shields.io/badge/License-EPL%202.0-green.svg)](https://opensource.org/licenses/EPL-2.0)
 [![Lines of code](https://img.shields.io/badge/dynamic/xml.svg?label=Lines%20of%20code&url=https%3A%2F%2Fwww.openhub.net%2Fprojects%2Feclipse-ditto.xml%3Fapi_key%3D11ac3aa12a364fd87b461559a7eedcc53e18fb5a4cf1e43e02cb7a615f1f3d4f&query=%2Fresponse%2Fresult%2Fproject%2Fanalysis%2Ftotal_code_lines&colorB=lightgrey)](https://www.openhub.net/p/eclipse-ditto)
 
-[Eclipse Ditto](https://eclipse.org/ditto/) is the open-source project of Eclipse IoT that provides a ready-to-use functionality to manage the state of Digital Twins. It provides access to them and mediates between the physical world and this digital representation.
+[Eclipse Ditto](https://eclipse.org/ditto/) is an open-source project in scope of Eclipse IoT that provides a ready-to-use functionality to manage the state of Digital Twins. It provides access to them and mediates between the physical world and this digital representation.  
+An ever growing list of [adopters](https://iot.eclipse.org/adopters/?#iot.ditto) makes use of Ditto as part of their IoT platforms - if you're as well using it, it would be super nice to show your [adoption here](https://iot.eclipse.org/adopters/how-to-be-listed-as-an-adopter/).
 
 ## Documentation
 
@@ -18,9 +19,11 @@ Find the documentation on the project site: [https://eclipse.org/ditto/](https:/
 
 ## Getting started
 
-In order to start up Ditto, you'll need
-* a running Docker daemon (at least version 18.06 CE)
-* Docker Compose installed (at least version 1.22)
+In order to start up Ditto via *Docker Compose*, you'll need:
+* a running Docker daemon
+* Docker Compose installed
+
+You also have other possibilities to run Ditto, please have a look [here](https://github.com/eclipse/ditto/tree/master/deployment) to explore them.
 
 ### Start Ditto
 
@@ -39,21 +42,33 @@ docker-compose logs -f
 Open following URL to get started: [http://localhost:8080](http://localhost:8080)<br/>
 Or have a look at the ["Hello World"](https://eclipse.org/ditto/intro-hello-world.html)
 
-### Build and start Ditto
+### Build and start Ditto locally
 
 In order to build Ditto, you'll need
-* JDK 8 >= 1.8.0_92 (due to a bug in older versions of the JDK you'll get a compile error)
-* Apache Maven 3.x installed
+* JDK 11 >= 11.0.5 and
+* Apache Maven 3.x installed.
 
-In order to first build Ditto and then start the built Docker images
+In order to first build Ditto and then start the built Docker images.
 
+#### 1. Build Ditto with Maven
 ```bash
-# if you have the docker daemon running with remote access enabled (e.g. in a Vagrant box or on localhost):
-mvn clean install -Pdocker-build-image -Ddocker.daemon.hostname=<ip/host of your docker daemon>
-# if you have the docker daemon running on your machine and you are running on Unix, you can also connect against the docker socket:
-mvn clean install -Pdocker-build-image -Ddocker.daemon.url=unix:///var/run/docker.sock
+mvn clean install
+```
 
-cd deployment/docker/
+#### 2. Build local Ditto Docker snapshot images
+```bash
+cd services/
+./build-images.sh
+```
+If your infrastructure requires a proxy, its host and port can be set using the `-p` option like for example:
+```bash
+./build-images.sh -p 172.17.0.1:3128
+```
+Please note that the given host and port automatically applies for HTTP and HTTPS.
+
+#### 3. Start Ditto with local snapshot images
+```bash
+cd ../deployment/docker/
 # the "dev.env" file contains the SNAPSHOT number of Ditto, copy it to ".env" so that docker compose uses it:
 cp dev.env .env
 docker-compose up -d
@@ -69,7 +84,7 @@ You have now running:
 * Ditto microservices:
    * Policies
    * Things
-   * Thing-Search
+   * Things-Search
    * Gateway
    * Connectivity
    * Concierge

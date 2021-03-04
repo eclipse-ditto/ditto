@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -18,15 +20,17 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown when a namespace is blocked.
  */
 @Immutable
+@JsonParsableException(errorCode = NamespaceBlockedException.ERROR_CODE)
 public final class NamespaceBlockedException extends DittoRuntimeException {
 
     /**
@@ -48,7 +52,7 @@ public final class NamespaceBlockedException extends DittoRuntimeException {
             @Nullable final Throwable cause,
             @Nullable final URI href) {
 
-        super(ERROR_CODE, HttpStatusCode.CONFLICT, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, HttpStatus.CONFLICT, dittoHeaders, message, description, cause, href);
     }
 
     /**
@@ -69,14 +73,14 @@ public final class NamespaceBlockedException extends DittoRuntimeException {
      * @param jsonObject This exception in JSON format.
      * @param dittoHeaders Ditto headers.
      * @return Deserialized exception.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static NamespaceBlockedException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         // deserialize message and description for delivery to client.
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(jsonObject.getValue(JsonFields.MESSAGE).orElse(DEFAULT_MESSAGE))
-                .description(jsonObject.getValue(JsonFields.DESCRIPTION).orElse(DEFAULT_DESCRIPTION))
-                .build();
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
     /**
@@ -93,13 +97,24 @@ public final class NamespaceBlockedException extends DittoRuntimeException {
                 .href(getHref().orElse(null));
     }
 
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new Builder()
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
+                .dittoHeaders(dittoHeaders)
+                .build();
+    }
+
     /**
      * A mutable builder with a fluent API.
      */
     @NotThreadSafe
     private static final class Builder extends DittoRuntimeExceptionBuilder<NamespaceBlockedException> {
 
-        private Builder() {}
+        private Builder() {message(DEFAULT_MESSAGE).description(DEFAULT_DESCRIPTION);}
 
         @Override
         protected NamespaceBlockedException doBuild(final DittoHeaders dittoHeaders,

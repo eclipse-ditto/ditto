@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -23,28 +25,32 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * Response to a {@link DeleteAttributes} command.
  */
 @Immutable
-public final class DeleteAttributesResponse extends AbstractCommandResponse<DeleteAttributesResponse> implements
-        ThingModifyCommandResponse<DeleteAttributesResponse> {
+@JsonParsableCommandResponse(type = DeleteAttributesResponse.TYPE)
+public final class DeleteAttributesResponse extends AbstractCommandResponse<DeleteAttributesResponse>
+        implements ThingModifyCommandResponse<DeleteAttributesResponse> {
 
     /**
      * Type of this response.
      */
     public static final String TYPE = TYPE_PREFIX + DeleteAttributes.NAME;
 
-    private final String thingId;
+    private final ThingId thingId;
 
-    private DeleteAttributesResponse(final String thingId, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatusCode.NO_CONTENT, dittoHeaders);
+    private DeleteAttributesResponse(final ThingId thingId, final DittoHeaders dittoHeaders) {
+        super(TYPE, HttpStatus.NO_CONTENT, dittoHeaders);
         this.thingId = requireNonNull(thingId, "thing ID");
     }
 
@@ -55,8 +61,24 @@ public final class DeleteAttributesResponse extends AbstractCommandResponse<Dele
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static DeleteAttributesResponse of(final String thingId, final DittoHeaders dittoHeaders) {
+        return of(ThingId.of(thingId), dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@link DeleteAttributes} command.
+     *
+     * @param thingId the Thing ID of the deleted attributes.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     */
+    public static DeleteAttributesResponse of(final ThingId thingId, final DittoHeaders dittoHeaders) {
         return new DeleteAttributesResponse(thingId, dittoHeaders);
     }
 
@@ -86,16 +108,17 @@ public final class DeleteAttributesResponse extends AbstractCommandResponse<Dele
      * format.
      */
     public static DeleteAttributesResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<DeleteAttributesResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String thingId =
-                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+        return new CommandResponseJsonDeserializer<DeleteAttributesResponse>(TYPE, jsonObject).deserialize(
+                httpStatus -> {
+                    final String extractedThingId =
+                            jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
                     return of(thingId, dittoHeaders);
                 });
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -107,8 +130,9 @@ public final class DeleteAttributesResponse extends AbstractCommandResponse<Dele
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
     }
 
     @Override
@@ -130,7 +154,7 @@ public final class DeleteAttributesResponse extends AbstractCommandResponse<Dele
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof DeleteAttributesResponse);
+        return other instanceof DeleteAttributesResponse;
     }
 
     @Override

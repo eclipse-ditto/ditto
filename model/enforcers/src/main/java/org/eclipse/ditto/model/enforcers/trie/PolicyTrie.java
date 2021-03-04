@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -19,7 +21,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -30,7 +31,6 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
@@ -228,8 +228,7 @@ final class PolicyTrie {
         return children.containsKey(childKey);
     }
 
-    @SuppressWarnings("unchecked")
-    JsonObject buildJsonView(final Iterable<JsonField> jsonFields, final Set<String> subjectIds,
+    JsonObject buildJsonView(final Iterable<JsonField> jsonFields, final Collection<String> subjectIds,
             final Permissions permissions) {
 
         final PolicyTrie defaultPolicyTrie = new PolicyTrie(grantRevokeIndex, Collections.emptyMap());
@@ -242,12 +241,7 @@ final class PolicyTrie {
         for (final JsonField field : jsonFields) {
             final JsonValue jsonView = getViewForJsonFieldOrNull(field, defaultPolicyTrie, subjectIds, permissions);
             if (null != jsonView) {
-                final Optional<JsonFieldDefinition> definitionOptional = field.getDefinition();
-                if (definitionOptional.isPresent()) {
-                    outputObjectBuilder.set(definitionOptional.get(), jsonView);
-                } else {
-                    outputObjectBuilder.set(field.getKey(), jsonView);
-                }
+                outputObjectBuilder.set(field.getKey(), jsonView);
             }
         }
 
@@ -257,7 +251,7 @@ final class PolicyTrie {
     @Nullable
     private JsonValue getViewForJsonFieldOrNull(final JsonField jsonField,
             final PolicyTrie defaultPolicyTrie,
-            final Set<String> subjectIds,
+            final Collection<String> subjectIds,
             final Permissions permissions) {
 
         final PolicyTrie relevantTrie = children.getOrDefault(jsonField.getKey(), defaultPolicyTrie);
@@ -265,7 +259,7 @@ final class PolicyTrie {
     }
 
     @Nullable
-    private JsonValue getViewForJsonValueOrNull(final JsonValue jsonValue, final Set<String> subjectIds,
+    private JsonValue getViewForJsonValueOrNull(final JsonValue jsonValue, final Collection<String> subjectIds,
             final Permissions permissions) {
 
         final JsonValue result;
@@ -283,15 +277,15 @@ final class PolicyTrie {
     }
 
     @Nullable
-    private JsonValue getViewForJsonObjectOrNull(final Iterable<JsonField> jsonObject, final Set<String> subjectIds,
-            final Permissions permissions) {
+    private JsonValue getViewForJsonObjectOrNull(final Iterable<JsonField> jsonObject,
+            final Collection<String> subjectIds, final Permissions permissions) {
 
         return filterCandidate(buildJsonView(jsonObject, subjectIds, permissions), subjectIds, permissions);
     }
 
     @Nullable
     private <T extends JsonValue & JsonValueContainer> T filterCandidate(final T candidate,
-            final Set<String> subjectIds, final Collection<String> permissions) {
+            final Collection<String> subjectIds, final Collection<String> permissions) {
 
         if (!candidate.isEmpty() || grantRevokeIndex.hasPermissions(subjectIds, permissions)) {
             return candidate;
@@ -301,7 +295,7 @@ final class PolicyTrie {
 
     @Nullable
     private JsonValue getViewForJsonArrayOrNull(final JsonValueContainer<JsonValue> jsonArray,
-            final Set<String> subjectIds, final Permissions permissions) {
+            final Collection<String> subjectIds, final Permissions permissions) {
 
         final JsonArray candidate = jsonArray.stream()
                 .map(value -> getViewForJsonValueOrNull(value, subjectIds, permissions))

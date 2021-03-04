@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -19,16 +21,19 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.things.ThingException;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * This exception indicates, that the requested Property does not exist or the request has insufficient rights.
  */
 @Immutable
+@JsonParsableException(errorCode = FeaturePropertyNotAccessibleException.ERROR_CODE)
 public final class FeaturePropertyNotAccessibleException extends DittoRuntimeException implements ThingException {
 
     /**
@@ -52,7 +57,7 @@ public final class FeaturePropertyNotAccessibleException extends DittoRuntimeExc
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-        super(ERROR_CODE, HttpStatusCode.NOT_FOUND, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, HttpStatus.NOT_FOUND, dittoHeaders, message, description, cause, href);
     }
 
     /**
@@ -63,7 +68,7 @@ public final class FeaturePropertyNotAccessibleException extends DittoRuntimeExc
      * @param jsonPointer the JSON Pointer of the Property.
      * @return the builder.
      */
-    public static Builder newBuilder(final String thingId, final String featureId, final JsonPointer jsonPointer) {
+    public static Builder newBuilder(final ThingId thingId, final String featureId, final JsonPointer jsonPointer) {
         return new Builder(thingId, featureId, jsonPointer);
     }
 
@@ -73,13 +78,11 @@ public final class FeaturePropertyNotAccessibleException extends DittoRuntimeExc
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new FeaturePropertyNotAccessibleException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static FeaturePropertyNotAccessibleException fromMessage(final String message,
+    public static FeaturePropertyNotAccessibleException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
@@ -89,22 +92,29 @@ public final class FeaturePropertyNotAccessibleException extends DittoRuntimeExc
      * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new FeaturePropertyNotAccessibleException.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
-     * JsonFields#MESSAGE} field.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static FeaturePropertyNotAccessibleException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
+    }
+
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new Builder()
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
                 .dittoHeaders(dittoHeaders)
-                .message(readMessage(jsonObject))
-                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
-                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 
     /**
      * A mutable builder with a fluent API for a {@link FeaturePropertyNotAccessibleException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<FeaturePropertyNotAccessibleException> {
@@ -113,9 +123,9 @@ public final class FeaturePropertyNotAccessibleException extends DittoRuntimeExc
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String thingId, final String featureId, final JsonPointer jsonPointer) {
+        private Builder(final ThingId thingId, final String featureId, final JsonPointer jsonPointer) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, jsonPointer, featureId, thingId));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, jsonPointer, featureId, String.valueOf(thingId)));
         }
 
         @Override

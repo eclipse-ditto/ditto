@@ -1,11 +1,13 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
- *  
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.things.modify;
@@ -21,6 +23,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.FeatureDefinition;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
@@ -35,7 +38,7 @@ public final class ModifyFeatureDefinitionTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, ModifyFeatureDefinition.TYPE)
-            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ModifyFeatureDefinition.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(ModifyFeatureDefinition.JSON_DEFINITION, TestConstants.Feature.FLUX_CAPACITOR_DEFINITION.toJson())
             .build();
@@ -44,7 +47,7 @@ public final class ModifyFeatureDefinitionTest {
     public void assertImmutability() {
         assertInstancesOf(ModifyFeatureDefinition.class,
                 areImmutable(),
-                provided(FeatureDefinition.class).isAlsoImmutable());
+                provided(FeatureDefinition.class, ThingId.class).isAlsoImmutable());
     }
 
     @Test
@@ -55,11 +58,17 @@ public final class ModifyFeatureDefinitionTest {
     }
 
     @Test
-    public void tryToCreateInstanceWithNullThingId() {
+    public void tryToCreateInstanceWithNullThingIdString() {
         assertThatExceptionOfType(ThingIdInvalidException.class)
-                .isThrownBy(() -> ModifyFeatureDefinition.of(null, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                .isThrownBy(() -> ModifyFeatureDefinition.of((String) null, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                        TestConstants.Feature.FLUX_CAPACITOR_DEFINITION, TestConstants.EMPTY_DITTO_HEADERS));
+    }
+
+    @Test
+    public void tryToCreateInstanceWithNullThingId() {
+        assertThatExceptionOfType(NullPointerException.class)
+                .isThrownBy(() -> ModifyFeatureDefinition.of((ThingId) null, TestConstants.Feature.FLUX_CAPACITOR_ID,
                         TestConstants.Feature.FLUX_CAPACITOR_DEFINITION, TestConstants.EMPTY_DITTO_HEADERS))
-                .withMessage("The ID is not valid because it was 'null'!")
                 .withNoCause();
     }
 
@@ -97,7 +106,7 @@ public final class ModifyFeatureDefinitionTest {
                 ModifyFeatureDefinition.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
         assertThat(underTest.getDefinition()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_DEFINITION);
     }

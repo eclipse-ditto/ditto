@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -467,9 +469,20 @@ public interface PolicyBuilder {
      *
      * @param id the Policy ID to set.
      * @return this builder to allow method chaining.
-     * @throws PolicyIdInvalidException if {@code policyId} did not comply to {@link Policy#ID_REGEX}.
+     * @throws PolicyIdInvalidException if {@code policyId} did not comply to
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
+     * @deprecated policy ID is now typed. Use {@link #setId(PolicyId)} instead.
      */
+    @Deprecated
     PolicyBuilder setId(CharSequence id);
+
+    /**
+     * Sets the Policy ID. The previous ID is overwritten.
+     *
+     * @param id the Policy ID to set.
+     * @return this builder to allow method chaining.
+     */
+    PolicyBuilder setId(PolicyId id);
 
     /**
      * Sets the given lifecycle to this builder.
@@ -504,6 +517,15 @@ public interface PolicyBuilder {
      * @return this builder to allow method chaining.
      */
     PolicyBuilder setModified(@Nullable Instant modified);
+
+    /**
+     * Sets the given created timestamp to this builder.
+     *
+     * @param created the created timestamp to be set.
+     * @return this builder to allow method chaining.
+     * @since 1.2.0
+     */
+    PolicyBuilder setCreated(@Nullable Instant created);
 
     /**
      * Sets the PolicyImports to this builder.

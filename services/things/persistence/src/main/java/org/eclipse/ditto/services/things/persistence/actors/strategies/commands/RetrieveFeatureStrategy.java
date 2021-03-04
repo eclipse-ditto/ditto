@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -16,19 +18,24 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.query.RetrieveFeature} command.
  */
 @Immutable
-final class RetrieveFeatureStrategy
-        extends AbstractConditionalHeadersCheckingCommandStrategy<RetrieveFeature, Feature> {
+final class RetrieveFeatureStrategy extends AbstractThingCommandStrategy<RetrieveFeature> {
 
     /**
      * Constructs a new {@code RetrieveFeatureStrategy} object.
@@ -38,21 +45,25 @@ final class RetrieveFeatureStrategy
     }
 
     @Override
-    protected Result doApply(final Context context, @Nullable final Thing thing,
-            final long nextRevision, final RetrieveFeature command) {
-        final String thingId = context.getThingId();
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
+            @Nullable final Thing thing,
+            final long nextRevision,
+            final RetrieveFeature command,
+            @Nullable final Metadata metadata) {
+
+        final ThingId thingId = context.getState();
 
         return extractFeatures(thing)
                 .map(features -> getFeatureResult(features, thingId, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(ExceptionFactory.featureNotFound(thingId,
-                        command.getFeatureId(), command.getDittoHeaders())));
+                        command.getFeatureId(), command.getDittoHeaders()), command));
     }
 
     private Optional<Features> extractFeatures(final @Nullable Thing thing) {
-        return getThingOrThrow(thing).getFeatures();
+        return getEntityOrThrow(thing).getFeatures();
     }
 
-    private Result getFeatureResult(final Features features, final String thingId,
+    private Result<ThingEvent<?>> getFeatureResult(final Features features, final ThingId thingId,
             final RetrieveFeature command, @Nullable final Thing thing) {
 
         final String featureId = command.getFeatureId();
@@ -61,9 +72,10 @@ final class RetrieveFeatureStrategy
         return features.getFeature(featureId)
                 .map(feature -> getFeatureJson(feature, command))
                 .map(featureJson -> RetrieveFeatureResponse.of(thingId, featureId, featureJson, dittoHeaders))
-                .map(response -> ResultFactory.newQueryResult(command, thing, response, this))
+                .<Result<ThingEvent<?>>>map(response ->
+                        ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featureNotFound(thingId, featureId, dittoHeaders)));
+                        ExceptionFactory.featureNotFound(thingId, featureId, dittoHeaders), command));
     }
 
     private static JsonObject getFeatureJson(final Feature feature, final RetrieveFeature command) {
@@ -73,8 +85,14 @@ final class RetrieveFeatureStrategy
     }
 
     @Override
-    public Optional<Feature> determineETagEntity(final RetrieveFeature command, @Nullable final Thing thing) {
-        return extractFeatures(thing)
-                .flatMap(features -> features.getFeature(command.getFeatureId()));
+    public Optional<EntityTag> previousEntityTag(final RetrieveFeature command, @Nullable final Thing previousEntity) {
+        return nextEntityTag(command, previousEntity);
+    }
+
+    @Override
+    public Optional<EntityTag> nextEntityTag(final RetrieveFeature command, @Nullable final Thing newEntity) {
+        return extractFeatures(newEntity)
+                .flatMap(features -> features.getFeature(command.getFeatureId()))
+                .flatMap(EntityTag::fromEntity);
     }
 }

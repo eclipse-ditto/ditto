@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -17,19 +19,17 @@ import static org.eclipse.ditto.model.things.Permission.READ;
 import static org.eclipse.ditto.model.things.Permission.WRITE;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.SUBJECT;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.THING_SUDO;
+import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.fishForMsgClass;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.newThing;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.readCommand;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.writeCommand;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.function.Function;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
@@ -40,9 +40,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.typesafe.config.ConfigFactory;
+
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.event.Logging;
+import akka.stream.Attributes;
 import akka.testkit.TestActorRef;
 import akka.testkit.javadsl.TestKit;
 
@@ -55,7 +57,7 @@ public final class PreEnforcementTest {
 
     @Before
     public void init() {
-        system = ActorSystem.create();
+        system = ActorSystem.create("test", ConfigFactory.load("test"));
         final TestActorRef<MockEntitiesActor> testActorRef =
                 new TestActorRef<>(system, MockEntitiesActor.props(), system.guardian(), UUID
                         .randomUUID().toString());
@@ -73,8 +75,7 @@ public final class PreEnforcementTest {
     @Test
     public void acceptWhenPreEnforcementIsSuccessful() {
         final JsonObject thingWithAcl = newThing()
-                .setPermissions(
-                        AclEntry.newInstance(SUBJECT, READ, WRITE, ADMINISTRATE))
+                .setPermissions(AclEntry.newInstance(SUBJECT, READ, WRITE, ADMINISTRATE))
                 .build()
                 .toJson(V_1, FieldType.all());
         final SudoRetrieveThingResponse response =
@@ -87,12 +88,14 @@ public final class PreEnforcementTest {
             final ThingCommand read = readCommand();
             mockEntitiesActorInstance.setReply(read);
             underTest.tell(read, getRef());
-            assertThat(expectMsgClass(read.getClass()).getId()).isEqualTo(read.getId());
+            assertThat((CharSequence) fishForMsgClass(this, read.getClass()).getEntityId()).isEqualTo(
+                    read.getEntityId());
 
             final ThingCommand write = writeCommand();
             mockEntitiesActorInstance.setReply(write);
             underTest.tell(write, getRef());
-            assertThat(expectMsgClass(write.getClass()).getId()).isEqualTo(write.getId());
+            assertThat((CharSequence) fishForMsgClass(this, write.getClass()).getEntityId())
+                    .isEqualTo(write.getEntityId());
         }};
     }
 
@@ -119,14 +122,13 @@ public final class PreEnforcementTest {
             }));
             final ThingCommand read = readCommand();
             underTest.tell(read, getRef());
-            assertThat(expectMsgClass(mockedEx.getClass())).isEqualTo(mockedEx);
+            assertThat(fishForMsgClass(this, mockedEx.getClass())).isEqualTo(mockedEx);
 
             final ThingCommand write = writeCommand();
             underTest.tell(write, getRef());
-            assertThat(expectMsgClass(mockedEx.getClass())).isEqualTo(mockedEx);
+            assertThat(fishForMsgClass(this, mockedEx.getClass())).isEqualTo(mockedEx);
         }};
     }
-
 
     @Test
     public void rejectWhenPreEnforcementReturnsUnexpectedException() {
@@ -152,16 +154,15 @@ public final class PreEnforcementTest {
             }));
             final ThingCommand read = readCommand();
             underTest.tell(read, getRef());
-            expectMsgClass(unexpectedExceptionResultClass);
+            fishForMsgClass(this, unexpectedExceptionResultClass);
 
             final ThingCommand write = writeCommand();
             underTest.tell(write, getRef());
-            expectMsgClass(unexpectedExceptionResultClass);
+            fishForMsgClass(this, unexpectedExceptionResultClass);
         }};
     }
 
-    private ActorRef newEnforcerActor(final ActorRef testActorRef,
-            final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer) {
+    private ActorRef newEnforcerActor(final ActorRef testActorRef, final PreEnforcer preEnforcer) {
         return TestSetup.newEnforcerActor(system, testActorRef, mockEntitiesActor, preEnforcer);
     }
 
@@ -169,6 +170,6 @@ public final class PreEnforcementTest {
      * Disable logging for 1 test to hide stacktrace or other logs on level ERROR. Comment out to debug the test.
      */
     private void disableLogging() {
-        system.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
+        system.eventStream().setLogLevel(Attributes.logLevelOff());
     }
 }

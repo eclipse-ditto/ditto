@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -71,25 +73,27 @@ final class DeleteAttributesLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public DeleteAttributesResponse deleted() {
-            return DeleteAttributesResponse.of(command.getThingId(), command.getDittoHeaders());
+            return DeleteAttributesResponse.of(command.getThingEntityId(), command.getDittoHeaders());
         }
 
         @Nonnull
         @Override
         public ThingErrorResponse attributesNotAccessibleError() {
-            final DittoRuntimeException exception = AttributesNotAccessibleException.newBuilder(command.getThingId())
+            final DittoRuntimeException exception =
+                    AttributesNotAccessibleException.newBuilder(command.getThingEntityId())
                     .dittoHeaders(command.getDittoHeaders())
                     .build();
-            return errorResponse(command.getThingId(), exception);
+            return errorResponse(command.getThingEntityId(), exception);
         }
 
         @Nonnull
         @Override
         public ThingErrorResponse attributesNotModifiableError() {
-            final DittoRuntimeException exception = AttributesNotModifiableException.newBuilder(command.getThingId())
+            final DittoRuntimeException exception =
+                    AttributesNotModifiableException.newBuilder(command.getThingEntityId())
                     .dittoHeaders(command.getDittoHeaders())
                     .build();
-            return errorResponse(command.getThingId(), exception);
+            return errorResponse(command.getThingEntityId(), exception);
         }
     }
 
@@ -99,7 +103,8 @@ final class DeleteAttributesLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public AttributesDeleted deleted() {
-            return AttributesDeleted.of(command.getThingId(), -1, Instant.now(), command.getDittoHeaders());
+            return AttributesDeleted.of(command.getThingEntityId(), -1, Instant.now(), command.getDittoHeaders(),
+                    null);
         }
     }
 

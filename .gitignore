@@ -15,3 +15,9 @@ dependencies.txt
 /deployment/docker/sandbox/postgres
 /deployment/docker/sandbox/graphite/storage
 ajcore.*.txt
+*.mdb
+.env
+.DS_Store
+deployment/helm/eclipse-ditto/requirements.lock
+deployment/helm/eclipse-ditto/charts/*
+.factorypath

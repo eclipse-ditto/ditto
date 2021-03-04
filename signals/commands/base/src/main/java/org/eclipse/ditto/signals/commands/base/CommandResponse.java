@@ -1,25 +1,31 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.base;
 
+import java.text.MessageFormat;
 import java.util.function.Predicate;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.atteo.classindex.IndexSubclasses;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -30,7 +36,8 @@ import org.eclipse.ditto.signals.base.Signal;
  *
  * @param <T> the type of the implementing class.
  */
-public interface CommandResponse<T extends CommandResponse> extends Signal<T> {
+@IndexSubclasses
+public interface CommandResponse<T extends CommandResponse<T>> extends Signal<T> {
 
     /**
      * Type qualifier of command responses.
@@ -46,23 +53,63 @@ public interface CommandResponse<T extends CommandResponse> extends Signal<T> {
     }
 
     /**
+     * Indicates whether this response is of a type contained in
+     * {@link org.eclipse.ditto.model.base.headers.DittoHeaderDefinition#EXPECTED_RESPONSE_TYPES} header.
+     *
+     * @return true if this response is expected, false if not.
+     * @since 1.2.0
+     */
+    default boolean isOfExpectedResponseType() {
+        return getDittoHeaders().getExpectedResponseTypes().contains(getResponseType());
+    }
+
+    /**
+     * @return the type of this response.
+     * @since 1.2.0
+     */
+    default ResponseType getResponseType() {
+        return ResponseType.RESPONSE;
+    }
+
+    /**
      * Returns the status code of the issued {@code CommandType}. The semantics of the codes is the one of HTTP Status
      * Codes (e.g.: {@literal 200} for "OK", {@literal 409} for "Conflict").
      *
      * @return the status code of the issued CommandType.
+     * @deprecated as of 2.0.0 please use {@link #getHttpStatus()} instead.
      */
-    HttpStatusCode getStatusCode();
+    @Deprecated
+    default HttpStatusCode getStatusCode() {
+        final HttpStatus httpStatus = getHttpStatus();
+        return HttpStatusCode.forInt(httpStatus.getCode()).orElseThrow(() -> {
+
+            // This might happen at runtime when httpStatus has a code which is
+            // not reflected as constant in HttpStatusCode.
+            final String msgPattern = "Found no HttpStatusCode for int <{0}>!";
+            return new IllegalStateException(MessageFormat.format(msgPattern, httpStatus.getCode()));
+        });
+    }
+
+    /**
+     * Returns the HTTP status of the issued command.
+     *
+     * @return the HTTP status.
+     * @since 2.0.0
+     */
+    HttpStatus getHttpStatus();
 
     /**
      * This convenience method returns the status code value of the issued {@link Command}. The semantics of the codes
      * is the one of HTTP Status Codes (e.g.: {@literal 200} for "OK", {@literal 409} for "Conflict").
      *
      * @return the status code value of the issued CommandType.
-     * @see #getStatusCode()
+     * @see #getHttpStatus()
+     * @deprecated as of 2.0.0 please use {@link #getHttpStatus()}{@link HttpStatus#getCode() .getCode()} instead.
      */
+    @Deprecated
     default int getStatusCodeValue() {
-        final HttpStatusCode statusCode = getStatusCode();
-        return statusCode.toInt();
+        final HttpStatus httpStatus = getHttpStatus();
+        return httpStatus.getCode();
     }
 
     /**
@@ -81,7 +128,6 @@ public interface CommandResponse<T extends CommandResponse> extends Signal<T> {
     /**
      * This class contains common definitions for all fields of a {@code CommandResponse}'s JSON representation.
      * Implementation of {@code CommandResponse} may add additional fields by extending this class.
-     *
      */
     @Immutable
     abstract class JsonFields {

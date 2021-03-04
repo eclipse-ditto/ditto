@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -19,7 +21,7 @@ import javax.annotation.concurrent.NotThreadSafe;
  * A mutable builder with a fluent API for an immutable {@link FeatureDefinition}.
  */
 @NotThreadSafe
-public interface FeatureDefinitionBuilder extends Iterable<FeatureDefinition.Identifier> {
+public interface FeatureDefinitionBuilder extends Iterable<DefinitionIdentifier> {
 
     /**
      * Adds the specified Identifier to this builder if it is not already present.
@@ -27,7 +29,7 @@ public interface FeatureDefinitionBuilder extends Iterable<FeatureDefinition.Ide
      * @param identifier the Identifier to be added.
      * @return this builder instance to allow method chaining.
      * @throws NullPointerException if {@code identifier} is {@code null}.
-     * @throws FeatureDefinitionIdentifierInvalidException if {@code identifier} is invalid.
+     * @throws DefinitionIdentifierInvalidException if {@code identifier} is invalid.
      */
     FeatureDefinitionBuilder add(CharSequence identifier);
 
@@ -37,7 +39,7 @@ public interface FeatureDefinitionBuilder extends Iterable<FeatureDefinition.Ide
      * @param identifiers the Identifiers to be added.
      * @return this builder instance to allow method chaining.
      * @throws NullPointerException if {@code identifiers} is {@code null}.
-     * @throws FeatureDefinitionIdentifierInvalidException if any Identifier of {@code identifiers} is invalid.
+     * @throws DefinitionIdentifierInvalidException if any Identifier of {@code identifiers} is invalid.
      */
     <T extends CharSequence> FeatureDefinitionBuilder addAll(Iterable<T> identifiers);
 
@@ -47,7 +49,7 @@ public interface FeatureDefinitionBuilder extends Iterable<FeatureDefinition.Ide
      * @param identifier the Identifier to be removed.
      * @return this builder instance to allow method chaining.
      * @throws NullPointerException if {@code identifier} is {@code null}.
-     * @throws FeatureDefinitionIdentifierInvalidException if {@code identifier} is invalid.
+     * @throws DefinitionIdentifierInvalidException if {@code identifier} is invalid.
      */
     FeatureDefinitionBuilder remove(CharSequence identifier);
 
@@ -57,7 +59,7 @@ public interface FeatureDefinitionBuilder extends Iterable<FeatureDefinition.Ide
      * @param identifiers the Identifiers to be removed.
      * @return this builder instance to allow method chaining.
      * @throws NullPointerException if {@code identifiers} is {@code null}.
-     * @throws FeatureDefinitionIdentifierInvalidException if any Identifier of {@code identifiers} is invalid.
+     * @throws DefinitionIdentifierInvalidException if any Identifier of {@code identifiers} is invalid.
      */
     <T extends CharSequence> FeatureDefinitionBuilder removeAll(Iterable<T> identifiers);
 
@@ -68,7 +70,7 @@ public interface FeatureDefinitionBuilder extends Iterable<FeatureDefinition.Ide
      * @return the Identifier or {@code null}.
      */
     @Nullable
-    FeatureDefinition.Identifier getFirstIdentifier();
+    DefinitionIdentifier getFirstIdentifier();
 
     /**
      * Returns the count of Identifiers of this builder. The size is guaranteed to be at least one.
@@ -82,7 +84,7 @@ public interface FeatureDefinitionBuilder extends Iterable<FeatureDefinition.Ide
      *
      * @return a sequential stream of the Identifiers of this builder.
      */
-    Stream<FeatureDefinition.Identifier> stream();
+    Stream<DefinitionIdentifier> stream();
 
     /**
      * Returns an immutable instance of {@link FeatureDefinition} containing the Identifiers which were provided to

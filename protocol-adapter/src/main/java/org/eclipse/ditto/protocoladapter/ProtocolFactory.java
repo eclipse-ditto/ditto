@@ -1,36 +1,46 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.protocoladapter;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.common.DittoConstants;
+import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
+import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * Factory for the Protocol Adapter library. Provides many static helper methods.
  */
 public final class ProtocolFactory {
 
-
     private ProtocolFactory() {
         throw new AssertionError();
     }
-
 
     /**
      * Returns a new {@code AdaptableBuilder} for the specified {@code topicPath}.
@@ -49,7 +59,9 @@ public final class ProtocolFactory {
      * @return the builder.
      */
     public static AdaptableBuilder newAdaptableBuilder(final Adaptable existingAdaptable) {
-        return newAdaptableBuilder(existingAdaptable, existingAdaptable.getTopicPath());
+        return ImmutableAdaptableBuilder.of(existingAdaptable.getTopicPath())
+                .withPayload(existingAdaptable.getPayload())
+                .withHeaders(existingAdaptable.getDittoHeaders());
     }
 
     /**
@@ -59,11 +71,28 @@ public final class ProtocolFactory {
      * @param existingAdaptable the existingAdaptable to initialize the AdaptableBuilder with.
      * @param overwriteTopicPath the specific {@code TopicPath} to set as overwrite.
      * @return the builder.
+     * @deprecated since 1.1.0, please use {@link #newAdaptableBuilder(Adaptable)} instead.
      */
+    @Deprecated
     public static AdaptableBuilder newAdaptableBuilder(final Adaptable existingAdaptable,
             final TopicPath overwriteTopicPath) {
         return ImmutableAdaptableBuilder.of(overwriteTopicPath).withPayload(existingAdaptable.getPayload())
-                .withHeaders(existingAdaptable.getHeaders().orElse(null));
+                .withHeaders(existingAdaptable.getDittoHeaders());
+    }
+
+    /**
+     * Returns a new {@code Adaptable} with the {@code extra} field set in the payload.
+     *
+     * @param existingAdaptable the existing adaptable.
+     * @param extra the extra fields.
+     * @return the new adaptable.
+     */
+    public static Adaptable setExtra(final Adaptable existingAdaptable, final JsonObject extra) {
+        return newAdaptableBuilder(existingAdaptable)
+                .withPayload(Payload.newBuilder(existingAdaptable.getPayload())
+                        .withExtra(extra)
+                        .build())
+                .build();
     }
 
     /**
@@ -85,19 +114,31 @@ public final class ProtocolFactory {
      */
     @SuppressWarnings({"squid:S1166"})
     public static TopicPath newTopicPath(final String path) {
-        final String[] parts = path.split("/");
+        checkNotNull(path, "path");
+        final LinkedList<String> parts = new LinkedList<>(Arrays.asList(path.split(TopicPath.PATH_DELIMITER)));
 
         try {
-            final String namespace = parts[0];
-            final String id = parts[1];
+            final String namespace = parts.pop(); // parts[0]
+            final String id = parts.pop(); // parts[1]
             final TopicPath.Group group =
-                    TopicPath.Group.forName(parts[2])
+                    TopicPath.Group.forName(parts.pop()) // parts[2]
                             .orElseThrow(() -> UnknownTopicPathException.newBuilder(path).build());
-            final TopicPath.Channel channel =
-                    TopicPath.Channel.forName(parts[3])
+
+            final TopicPath.Channel channel;
+            switch (group) {
+                case POLICIES:
+                    channel = TopicPath.Channel.NONE;
+                    break;
+                case THINGS:
+                    channel = TopicPath.Channel.forName(parts.pop()) // parts[3]
                             .orElseThrow(() -> UnknownTopicPathException.newBuilder(path).build());
+                    break;
+                default:
+                    throw UnknownTopicPathException.newBuilder(path).build();
+            }
+
             final TopicPath.Criterion criterion =
-                    TopicPath.Criterion.forName(parts[4])
+                    TopicPath.Criterion.forName(parts.pop())
                             .orElseThrow(() -> UnknownTopicPathException.newBuilder(path).build());
 
             switch (criterion) {
@@ -105,21 +146,31 @@ public final class ProtocolFactory {
                 case EVENTS:
                     // commands and events Path always contain an ID:
                     final TopicPath.Action action =
-                            TopicPath.Action.forName(parts[5])
+                            TopicPath.Action.forName(parts.pop())
                                     .orElseThrow(() -> UnknownTopicPathException.newBuilder(path).build());
                     return ImmutableTopicPath.of(namespace, id, group, channel, criterion, action);
+                case SEARCH:
+                    final TopicPath.SearchAction searchAction =
+                            TopicPath.SearchAction.forName(parts.pop())
+                                    .orElseThrow(() -> UnknownTopicPathException.newBuilder(path).build());
+                    return ImmutableTopicPath.of(namespace, id, group, channel, criterion, searchAction);
                 case ERRORS:
                     // errors Path does neither contain an "action":
                     return ImmutableTopicPath.of(namespace, id, group, channel, criterion);
                 case MESSAGES:
-                    // messages Path always contain a subject:
-                    final String[] subjectParts = Arrays.copyOfRange(parts, 5, parts.length);
-                    final String subject = String.join("/", (CharSequence[]) subjectParts);
-                    return ImmutableTopicPath.of(namespace, id, group, channel, criterion, subject);
+                case ACKS:
+                    // messages should always contain a non-empty subject:
+                    // ACK Paths contain a custom acknowledgement label or an empty subject for aggregated ACKs:
+                    final String subject = String.join(TopicPath.PATH_DELIMITER, parts);
+                    if (subject.isEmpty()) {
+                        return ImmutableTopicPath.of(namespace, id, group, channel, criterion);
+                    } else {
+                        return ImmutableTopicPath.of(namespace, id, group, channel, criterion, subject);
+                    }
                 default:
                     throw UnknownTopicPathException.newBuilder(path).build();
             }
-        } catch (final ArrayIndexOutOfBoundsException e) {
+        } catch (final NoSuchElementException e) {
             throw UnknownTopicPathException.newBuilder(path).build();
         }
     }
@@ -132,9 +183,54 @@ public final class ProtocolFactory {
      * @return the builder.
      * @throws NullPointerException if {@code thingId} is {@code null}.
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if {@code thingId} is not in the expected format.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #newTopicPathBuilder(org.eclipse.ditto.model.things.ThingId)}
+     * instead.
      */
+    @Deprecated
     public static TopicPathBuilder newTopicPathBuilder(final String thingId) {
+        return newTopicPathBuilder(ThingId.of(thingId));
+    }
+
+    /**
+     * Returns a new {@code TopicPathBuilder} for the specified {@code thingId}. The {@code namespace} and {@code id}
+     * part of the {@code TopicPath} will pe parsed from the {@code thingId} and set in the builder.
+     *
+     * @param thingId the id.
+     * @return the builder.
+     * @throws NullPointerException if {@code thingId} is {@code null}.
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if {@code thingId} is not in the expected format.
+     */
+    public static TopicPathBuilder newTopicPathBuilder(final ThingId thingId) {
         return ImmutableTopicPathBuilder.of(thingId).things();
+    }
+
+    /**
+     * Returns a new {@code TopicPathBuilder} for the specified {@code entityId}. The {@code namespace} and {@code id}
+     * part of the {@code TopicPath} will pe parsed from the {@code entityId} and set in the builder.
+     *
+     * @param entityId the id.
+     * @return the builder.
+     * @throws NullPointerException if {@code entityId} is {@code null}.
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if {@code entityIdId} is not in the expected
+     * format.
+     */
+    public static TopicPathBuilder newTopicPathBuilder(final NamespacedEntityId entityId) {
+        return ImmutableTopicPathBuilder.of(entityId).things();
+    }
+
+    /**
+     * Returns a new {@code TopicPathBuilder} for the specified {@code policyId}. The {@code namespace} and {@code id}
+     * part of the {@code TopicPath} will pe parsed from the {@code policyId} and set in the builder.
+     *
+     * @param policyId the id.
+     * @return the builder.
+     * @throws NullPointerException if {@code policyId} is {@code null}.
+     * @throws org.eclipse.ditto.model.policies.PolicyIdInvalidException if {@code policyId} is not in the expected
+     * format.
+     */
+    public static TopicPathBuilder newTopicPathBuilder(final PolicyId policyId) {
+        return ImmutableTopicPathBuilder.of(policyId).policies();
     }
 
     /**
@@ -148,7 +244,6 @@ public final class ProtocolFactory {
     public static TopicPathBuilder newTopicPathBuilderFromNamespace(final String namespace) {
         return ImmutableTopicPathBuilder.of(namespace, TopicPath.ID_PLACEHOLDER).things();
     }
-
 
     /**
      * Returns a new {@code Payload} from the specified {@code jsonString}.
@@ -181,7 +276,7 @@ public final class ProtocolFactory {
      * @return the builder.
      */
     public static PayloadBuilder newPayloadBuilder() {
-        return ImmutablePayloadBuilder.of();
+        return newPayloadBuilder(null);
     }
 
     /**
@@ -190,10 +285,9 @@ public final class ProtocolFactory {
      * @param path the path.
      * @return the builder.
      */
-    public static PayloadBuilder newPayloadBuilder(final JsonPointer path) {
-        return ImmutablePayloadBuilder.of(path);
+    public static PayloadBuilder newPayloadBuilder(@Nullable final JsonPointer path) {
+        return ImmutablePayload.getBuilder(path);
     }
-
 
     /**
      * Returns new empty {@code Headers}.
@@ -211,7 +305,21 @@ public final class ProtocolFactory {
      * @return the headers.
      */
     public static DittoHeaders newHeadersWithDittoContentType(final Map<String, String> headers) {
-        return DittoHeaders.of(headers).toBuilder().contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE).build();
+        return DittoHeaders.newBuilder(headers)
+                .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
+                .build();
+    }
+
+    /**
+     * Returns new {@code Headers} for the specified {@code headers} map with Json merge patch content-type.
+     *
+     * @param headers the headers map.
+     * @return the headers.
+     */
+    public static DittoHeaders newHeadersWithJsonMergePatchContentType(final Map<String, String> headers) {
+        return DittoHeaders.newBuilder(headers)
+                .contentType(ContentType.APPLICATION_MERGE_PATCH_JSON)
+                .build();
     }
 
     /**

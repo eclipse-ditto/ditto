@@ -1,17 +1,22 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.gateway.security;
 
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * An enumeration of HTTP headers.
@@ -21,33 +26,7 @@ public enum HttpHeader {
     /**
      * Authorization HTTP header.
      */
-    AUTHORIZATION("Authorization"),
-
-    /**
-     * WWW-Authenticate HTTP header.
-     */
-    WWW_AUTHENTICATE("WWW-Authenticate"),
-
-    /**
-     * Date HTTP header.
-     */
-    DATE("Date"),
-
-    /**
-     * Host HTTP header.
-     */
-    HOST("Host"),
-
-    /**
-     * Location HTTP header.
-     */
-    LOCATION("Location"),
-
-    /**
-     * Origin HTTP header.
-     */
-    ORIGIN("Origin"),
-
+    AUTHORIZATION("authorization"),
 
     /**
      * x-correlation-id HTTP header.
@@ -56,8 +35,18 @@ public enum HttpHeader {
 
     /**
      * HTTP header for dummy authentication (for dev purposes).
+     * @deprecated as of 1.1.0, please use {@link #X_DITTO_PRE_AUTH} instead.
      */
-    X_DITTO_DUMMY_AUTH("x-ditto-dummy-auth");
+    @Deprecated
+    X_DITTO_DUMMY_AUTH("x-ditto-dummy-auth"),
+
+    /**
+     * HTTP header for authentication already done by e.g. a reverse proxy in front of Ditto (e.g. a nginx).
+     */
+    X_DITTO_PRE_AUTH("x-ditto-pre-authenticated");
+
+    private static final Map<String, HttpHeader> BY_NAME =
+            Arrays.stream(values()).collect(Collectors.toMap(HttpHeader::getName, Function.identity()));
 
     private final String name;
 
@@ -72,7 +61,7 @@ public enum HttpHeader {
      * @return the HttpHeader.
      */
     public static Optional<HttpHeader> fromName(final String name) {
-        return Arrays.stream(values()).filter(header -> name.equals(header.toString())).findFirst();
+        return Optional.ofNullable(BY_NAME.get(name));
     }
 
     /**

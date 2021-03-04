@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -35,7 +37,7 @@ final class EntityTagBuilder {
      * @param entity The entity you want to get an {@link EntityTag} for.
      * @return An optional of the generated {@link EntityTag}. If no value could be generated the optional is empty.
      */
-    static Optional<EntityTag> buildFromEntity(@Nullable Object entity) {
+    static Optional<EntityTag> buildFromEntity(@Nullable final Object entity) {
         if (entity == null) {
             return Optional.empty();
         }

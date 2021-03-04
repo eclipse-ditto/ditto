@@ -4,17 +4,20 @@ tags: [getting_started]
 permalink: intro-hello-world.html
 ---
 
-After [starting Ditto](installation-running.html), we have a HTTP and WebSocket API for your [Digital Twins](intro-digitaltwins.html) at our hands.
+After [starting Ditto](installation-running.html), we have a HTTP and WebSocket API for your [digital twins](intro-digitaltwins.html) at our hands.
 
 ## Example
 
-Assume we want to create a Digital Twin for a car. The twin should hold static metadata and dynamic state data. The state data should change as often as its real world counterpart does.
+Assume we want to create a digital twin for a car. The twin should hold static metadata and dynamic state data. The state data should change as often as its real world counterpart does.
 
-Those static and dynamic types of data are mapped in the Ditto model to "attributes" (for static metadata) and "features" (for dynamic state data).
+Those static and dynamic types of data are mapped in the Ditto model to "attributes" (for static metadata), "features" 
+(for dynamic state data) and "definition" (to link a model the thing follows, 
+e.g. an [Eclipse Vorto](https://www.eclipse.org/vorto/) "information model").
 A JSON representation of some metadata and state data could for example look like this:
 
 ```json
 {
+  "definition": "digitaltwin:DigitaltwinExample:1.0.0",
   "attributes": {
     "manufacturer": "ACME",
     "VIN": "0815666337"
@@ -44,12 +47,14 @@ A JSON representation of some metadata and state data could for example look lik
 }
 ```
 
-Background: Ditto only knows about "attributes" and "features".
+Background: Ditto only knows about "attributes", "features" and the "definition".
 
 Inside "attributes" (the metadata) we can add as much JSON keys as we like with any JSON value we need.
 
 Inside "features" (the state data) we can add as much features as we like - but each feature needs to have a "properties" JSON object.
 Inside that JSON object we can add as much JSON keys as we like with any JSON value we need. 
+
+Inside "definition" we can add one JSON string value. 
 
 ## Creating your first Thing
 
@@ -59,6 +64,7 @@ Those credentials have been created by default in the [nginx](https://github.com
 
 ```bash
 curl -u ditto:ditto -X PUT -d '{
+   "definition": "digitaltwin:DigitaltwinExample:1.0.0",
    "attributes": {
      "manufacturer": "ACME",
      "VIN": "0815666337"
@@ -88,12 +94,12 @@ curl -u ditto:ditto -X PUT -d '{
  }' 'http://localhost:8080/api/1/things/org.eclipse.ditto:fancy-car'
 ```
 
-The result is a Digital Twin in Thing notation. The Thing ID is `org.eclipse.ditto:fancy-car`. An ID must always contain a 
+The result is a digital twin in Thing notation. The Thing ID is `org.eclipse.ditto:fancy-car`. An ID must always contain a 
 namespace before the `:`. That way Things are easier to organize.
 
 ## Querying an existing Thing
 
-By creating the Digital Twin as a Thing with the specified JSON format, Ditto implicitly provides an API for
+By creating the digital twin as a Thing with the specified JSON format, Ditto implicitly provides an API for
 our Thing.
 
 For Things we know the ID of, we can simply query them by their ID:

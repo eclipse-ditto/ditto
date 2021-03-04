@@ -1,17 +1,19 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import static org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ResultFactory.newErrorResult;
-import static org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ResultFactory.newMutationResult;
+import static org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory.newErrorResult;
+import static org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory.newMutationResult;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -23,9 +25,13 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.Validator;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclInvalidException;
 import org.eclipse.ditto.model.things.AclNotAllowedException;
@@ -33,18 +39,20 @@ import org.eclipse.ditto.model.things.AclValidator;
 import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
 import org.eclipse.ditto.signals.events.things.ThingCreated;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * This strategy handles the {@link CreateThingStrategy} command.
  */
 @Immutable
-public final class CreateThingStrategy
-        extends AbstractConditionalHeadersCheckingCommandStrategy<CreateThing, Thing> {
+final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing> {
 
     private static final CreateThingStrategy INSTANCE = new CreateThingStrategy();
 
@@ -61,21 +69,25 @@ public final class CreateThingStrategy
 
     @Override
     public boolean isDefined(final CreateThing command) {
-        return CreateThing.class.isAssignableFrom(command.getClass());
+        return true;
     }
 
     @Override
-    public boolean isDefined(final Context context, @Nullable final Thing thing, final CreateThing command) {
+    public boolean isDefined(final Context<ThingId> context, @Nullable final Thing thing, final CreateThing command) {
         final boolean thingExists = Optional.ofNullable(thing)
                 .map(t -> !t.isDeleted())
                 .orElse(false);
 
-        return !thingExists && Objects.equals(context.getThingId(), command.getId());
+        return !thingExists && Objects.equals(context.getState(), command.getEntityId());
     }
 
     @Override
-    protected Result doApply(final Context context, @Nullable final Thing thing,
-            final long nextRevision, final CreateThing command) {
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
+            @Nullable final Thing thing,
+            final long nextRevision,
+            final CreateThing command,
+            @Nullable final Metadata metadata) {
+
         final DittoHeaders commandHeaders = command.getDittoHeaders();
 
         // Thing not yet created - do so ..
@@ -85,37 +97,40 @@ public final class CreateThingStrategy
                     handleCommandVersion(context, command.getImplementedSchemaVersion(), command.getThing(),
                             commandHeaders);
         } catch (final DittoRuntimeException e) {
-            return newErrorResult(e);
+            return newErrorResult(e, command);
         }
 
         // before persisting, check if the Thing is valid and reject if not:
-        final Result validateThingError =
-                validateThing(context, command.getImplementedSchemaVersion(), newThing, commandHeaders);
+        final Result<ThingEvent<?>> validateThingError =
+                validateThing(context, command.getImplementedSchemaVersion(), newThing, command);
         if (validateThingError != null) {
             return validateThingError;
         }
 
         // for v2 upwards, set the policy-id to the thing-id if none is specified:
         final boolean isV2Upwards = !JsonSchemaVersion.V_1.equals(command.getImplementedSchemaVersion());
-        if (isV2Upwards && !newThing.getPolicyId().isPresent()) {
-                newThing = newThing.setPolicyId(context.getThingId());
+        if (isV2Upwards && newThing.getPolicyEntityId().isEmpty()) {
+            newThing = newThing.setPolicyId(PolicyId.of(context.getState()));
         }
 
-        final Instant modified = Instant.now();
-        // provide modified and revision only in the response, not in the event (it is defined by the persistence)
-        final Thing newThingWithModifiedAndRevision = newThing.toBuilder()
-                .setModified(modified)
+        final Instant now = Instant.now();
+        final Thing newThingWithImplicits = newThing.toBuilder()
+                .setModified(now)
+                .setCreated(now)
                 .setRevision(nextRevision)
+                .setMetadata(metadata)
                 .build();
-        final ThingCreated thingCreated = ThingCreated.of(newThing, nextRevision, modified, commandHeaders);
-        final CreateThingResponse createThingResponse =
-                CreateThingResponse.of(newThingWithModifiedAndRevision, commandHeaders);
+        final ThingCreated thingCreated = ThingCreated.of(newThingWithImplicits, nextRevision, now, commandHeaders,
+                metadata);
+        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
+                CreateThingResponse.of(newThingWithImplicits, commandHeaders),
+                newThingWithImplicits);
 
-        return newMutationResult(command, thingCreated, createThingResponse, true, false, this);
+        return newMutationResult(command, thingCreated, response, true, false);
     }
 
-
-    private Thing handleCommandVersion(final Context context, final JsonSchemaVersion version, final Thing thing,
+    private Thing handleCommandVersion(final Context<ThingId> context, final JsonSchemaVersion version,
+            final Thing thing,
             final DittoHeaders dittoHeaders) {
 
         if (JsonSchemaVersion.V_1.equals(version)) {
@@ -126,12 +141,12 @@ public final class CreateThingStrategy
         else {
             //acl is not allowed to be set in v2
             if (thing.getAccessControlList().isPresent()) {
-                throw AclNotAllowedException.newBuilder(context.getThingId()).dittoHeaders(dittoHeaders).build();
+                throw AclNotAllowedException.newBuilder(context.getState()).dittoHeaders(dittoHeaders).build();
             }
 
             // policyId is required for v2
-            if (!thing.getPolicyId().isPresent()) {
-                throw PolicyIdMissingException.fromThingIdOnCreate(context.getThingId(), dittoHeaders);
+            if (thing.getPolicyEntityId().isEmpty()) {
+                throw PolicyIdMissingException.fromThingIdOnCreate(context.getState(), dittoHeaders);
             }
 
             return setLifecycleActive(thing);
@@ -173,8 +188,9 @@ public final class CreateThingStrategy
     }
 
     @Nullable
-    private Result validateThing(final Context context, final JsonSchemaVersion version, final Thing thing,
-            final DittoHeaders headers) {
+    private Result<ThingEvent<?>> validateThing(final Context<ThingId> context, final JsonSchemaVersion version,
+            final Thing thing, final CreateThing command) {
+        final DittoHeaders headers = command.getDittoHeaders();
         final Optional<AccessControlList> accessControlList = thing.getAccessControlList();
         if (JsonSchemaVersion.V_1.equals(version)) {
             if (accessControlList.isPresent()) {
@@ -183,24 +199,29 @@ public final class CreateThingStrategy
                 // before persisting, check if the ACL is valid and reject if not:
                 if (!aclValidator.isValid()) {
                     final AclInvalidException aclInvalidException =
-                            AclInvalidException.newBuilder(context.getThingId())
-                                .dittoHeaders(headers)
-                                .build();
-                    return newErrorResult(aclInvalidException);
+                            AclInvalidException.newBuilder(context.getState())
+                                    .dittoHeaders(headers)
+                                    .build();
+                    return newErrorResult(aclInvalidException, command);
                 }
             } else {
                 final AclInvalidException aclInvalidException =
-                        AclInvalidException.newBuilder(context.getThingId())
+                        AclInvalidException.newBuilder(context.getState())
                                 .dittoHeaders(headers)
                                 .build();
-                return newErrorResult(aclInvalidException);
+                return newErrorResult(aclInvalidException, command);
             }
         }
         return null;
     }
 
     @Override
-    public Optional<Thing> determineETagEntity(final CreateThing command, @Nullable final Thing thing) {
-        return Optional.ofNullable(thing);
+    public Optional<EntityTag> previousEntityTag(final CreateThing command, @Nullable final Thing previousEntity) {
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<EntityTag> nextEntityTag(final CreateThing command, @Nullable final Thing newEntity) {
+        return Optional.ofNullable(newEntity).flatMap(EntityTag::fromEntity);
     }
 }

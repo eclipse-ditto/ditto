@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -18,11 +20,15 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyEntry;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyRevision;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.ResourceKey;
@@ -48,7 +54,10 @@ final class TestConstants {
      */
     public static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder()
             .correlationId(CORRELATION_ID)
-            .authorizationSubjects("the_subject", "another_subject").build();
+            .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                    AuthorizationSubject.newInstance("the_subject"),
+                    AuthorizationSubject.newInstance("another_subject")))
+            .build();
 
     /**
      * Empty command headers.
@@ -59,21 +68,25 @@ final class TestConstants {
      * A known timestamp.
      */
     public static final Instant TIMESTAMP = Instant.EPOCH;
+
     /**
      * Known JSON parse options.
      */
     public static final JsonParseOptions JSON_PARSE_OPTIONS =
             JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build();
+
     /**
      * A known JSON field selector.
      */
     public static final JsonFieldSelector JSON_FIELD_SELECTOR_ATTRIBUTES =
             JsonFactory.newFieldSelector("attributes(location,maker)", JSON_PARSE_OPTIONS);
+
     /**
      * A known JSON field selector.
      */
     public static final JsonFieldSelector JSON_FIELD_SELECTOR_ATTRIBUTES_WITH_THING_ID =
             JsonFactory.newFieldSelector("thingId,attributes(location,maker)", JSON_PARSE_OPTIONS);
+
     /**
      * A known JSON field selector.
      */
@@ -83,7 +96,6 @@ final class TestConstants {
     private TestConstants() {
         throw new AssertionError();
     }
-
 
     /**
      * Policy related test constants.
@@ -115,8 +127,9 @@ final class TestConstants {
         /**
          * Known {@code EffectedPermissions} for a {@code PolicyEntry}.
          */
-        public static final EffectedPermissions EFFECTED_PERMISSIONS = PoliciesModelFactory
-                .newEffectedPermissions(Arrays.asList("READ", "WRITE"), PoliciesModelFactory.noPermissions());
+        public static final EffectedPermissions EFFECTED_PERMISSIONS =
+                PoliciesModelFactory.newEffectedPermissions(Arrays.asList("READ", "WRITE"),
+                        PoliciesModelFactory.noPermissions());
 
         /**
          * A known type for a {@code Resource}.
@@ -160,7 +173,7 @@ final class TestConstants {
         /**
          * A known identifier for a {@code Policy}.
          */
-        public static final String POLICY_ID = "org.eclipse.ditto.example:myPolicy";
+        public static final PolicyId POLICY_ID = PolicyId.of("org.eclipse.ditto.example", "myPolicy");
 
         /**
          * A known revision number of a Policy.
@@ -183,6 +196,7 @@ final class TestConstants {
         private Policy() {
             throw new AssertionError();
         }
+
     }
 
 }

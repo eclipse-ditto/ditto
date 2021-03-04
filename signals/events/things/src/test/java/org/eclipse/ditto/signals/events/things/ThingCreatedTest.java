@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -22,6 +24,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.GlobalEventRegistry;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -35,7 +38,8 @@ public final class ThingCreatedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, ThingCreated.TYPE)
             .set(Event.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
-            .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID)
+            .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
+            .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ThingEvent.JsonFields.THING, TestConstants.Thing.THING.toJson(FieldType.regularOrSpecial()))
             .build();
 
@@ -69,7 +73,7 @@ public final class ThingCreatedTest {
     public void toJsonReturnsExpected() {
         final ThingCreated underTest =
                 ThingCreated.of(TestConstants.Thing.THING, TestConstants.Thing.REVISION_NUMBER, TestConstants.TIMESTAMP,
-                        TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
@@ -89,6 +93,19 @@ public final class ThingCreatedTest {
     public void retrieveEventName() {
         final String name = ThingCreated.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS).getName();
         assertThat(name).isEqualTo(ThingCreated.NAME);
+    }
+
+    @Test
+    public void parseThingCreatedEvent() {
+        final GlobalEventRegistry eventRegistry = GlobalEventRegistry.getInstance();
+
+        final ThingCreated event = ThingCreated.of(TestConstants.Thing.THING, TestConstants.Thing.REVISION_NUMBER,
+                TestConstants.TIMESTAMP, TestConstants.DITTO_HEADERS, TestConstants.METADATA);
+        final JsonObject jsonObject = event.toJson(FieldType.regularOrSpecial());
+
+        final Event parsedEvent = eventRegistry.parse(jsonObject, TestConstants.DITTO_HEADERS);
+
+        assertThat(parsedEvent).isEqualTo(event);
     }
 
 }

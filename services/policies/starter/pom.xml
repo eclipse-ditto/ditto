@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+  ~ Copyright (c) 2017 Contributors to the Eclipse Foundation
   ~
-  ~ All rights reserved. This program and the accompanying materials
-  ~ are made available under the terms of the Eclipse Public License v2.0
-  ~ which accompanies this distribution, and is available at
-  ~ https://www.eclipse.org/org/documents/epl-2.0/index.php
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
   ~
   ~ SPDX-License-Identifier: EPL-2.0
   -->
@@ -32,15 +34,18 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-base</artifactId>
         </dependency>
+
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>ditto-services-policies-persistence</artifactId>
-            <version>${project.version}</version>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-policies-config</artifactId>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>ditto-services-policies-util</artifactId>
-            <version>${project.version}</version>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-policies-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-policies-persistence</artifactId>
         </dependency>
 
         <dependency>
@@ -94,14 +99,6 @@
         </dependency>
 
         <dependency>
-            <groupId>com.lightbend.akka.management</groupId>
-            <artifactId>akka-management-cluster-bootstrap_${scala.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.lightbend.akka.discovery</groupId>
-            <artifactId>akka-discovery-dns_${scala.version}</artifactId>
-        </dependency>
-        <dependency>
             <groupId>com.lightbend.akka.discovery</groupId>
             <artifactId>akka-discovery-kubernetes-api_${scala.version}</artifactId>
         </dependency>
@@ -118,11 +115,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>de.flapdoodle.embed</groupId>
-            <artifactId>de.flapdoodle.embed.mongo</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-test</artifactId>
             <scope>test</scope>
@@ -130,9 +122,9 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-persistence</artifactId>
-            <scope>test</scope>
+            <artifactId>ditto-services-base</artifactId>
             <type>test-jar</type>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -192,9 +184,14 @@
                                 </filter>
                             </filters>
                             <transformers>
+                                <transformer implementation="org.atteo.classindex.ClassIndexTransformer"/>
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
                                     <resource>reference.conf</resource>
+                                </transformer>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>ditto-service-extension.conf</resource>
                                 </transformer>
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
@@ -207,50 +204,13 @@
                         </configuration>
                     </execution>
                 </executions>
-            </plugin>
-
-            <plugin>
-                <groupId>io.fabric8</groupId>
-                <artifactId>docker-maven-plugin</artifactId>
-                <configuration>
-                    <autoPull>always</autoPull> <!-- always pull latest BaseImage -->
-                    <images>
-                        <image>
-                            <alias>${policies.docker.image.name}</alias>
-                            <name>
-                                ${docker.repository}/${policies.docker.image.name}:${project.version}
-                            </name>
-                            <build>
-                                <from>${docker.image.jdk}</from>
-                                <tags>
-                                    <tag>${docker.image.additional.tag}</tag>
-                                </tags>
-                                <ports>
-                                    <port>${docker.image.port}</port>
-                                </ports>
-                                <env>
-                                    <HTTP_PORT>${docker.image.port}</HTTP_PORT>
-                                    <HOSTING_ENVIRONMENT>Docker</HOSTING_ENVIRONMENT>
-                                </env>
-                                <workdir>/opt/ditto</workdir>
-                                <entryPoint>
-                                    <exec>
-                                        <arg>java</arg>
-                                        <arg>-jar</arg>
-                                        <arg>/opt/ditto/starter.jar</arg>
-                                    </exec>
-                                </entryPoint>
-                                <assembly>
-                                    <basedir>/</basedir>
-                                    <descriptor>assembly.xml</descriptor>
-                                </assembly>
-                                <runCmds>
-                                    <runCmd>ln -s /opt/ditto/${project.build.finalName}-allinone.jar /opt/ditto/starter.jar</runCmd>
-                                </runCmds>
-                            </build>
-                        </image>
-                    </images>
-                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.atteo.classindex</groupId>
+                        <artifactId>classindex-transformer</artifactId>
+                        <version>${classindex.version}</version>
+                    </dependency>
+                </dependencies>
             </plugin>
         </plugins>
     </build>

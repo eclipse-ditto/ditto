@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -20,6 +22,8 @@ import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.common.Placeholders;
+import org.eclipse.ditto.model.base.common.Validator;
+import org.eclipse.ditto.model.base.entity.validation.NoControlCharactersValidator;
 
 /**
  * An immutable implementation of {@link SubjectId}.
@@ -54,6 +58,15 @@ final class ImmutableSubjectId implements SubjectId {
     public static SubjectId of(final SubjectIssuer issuer, final CharSequence subject) {
         checkNotNull(issuer, "issuer");
         argumentNotEmpty(subject, "subject");
+
+        final String subjectIdAsString = issuer.toString() + ":" + subject.toString();
+        final Validator validator = NoControlCharactersValidator.getInstance(subjectIdAsString);
+        if (!validator.isValid()) {
+            throw SubjectIdInvalidException.newBuilder(subjectIdAsString)
+                    .description(validator.getReason().orElse(null))
+                    .build();
+        }
+
         return new ImmutableSubjectId(issuer, subject.toString());
     }
 
@@ -71,6 +84,8 @@ final class ImmutableSubjectId implements SubjectId {
 
         if (Placeholders.containsAnyPlaceholder(subjectIssuerWithId)) {
             // in case of placeholders, just use the whole input as subject, use an empty issuer
+            //  reason: the placeholder contains a ":" which would conflict with the ISSUE_DELIMITER separating the
+            //  issuer fom the subject
             return of(EMPTY_ISSUER, subjectIssuerWithId);
         }
 

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -23,30 +25,34 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
 
 /**
  * Response to a {@link ModifyPolicyEntries} command.
  */
 @Immutable
-public final class ModifyPolicyEntriesResponse extends AbstractCommandResponse<ModifyPolicyEntriesResponse> implements
-        PolicyModifyCommandResponse<ModifyPolicyEntriesResponse> {
+@JsonParsableCommandResponse(type = ModifyPolicyEntriesResponse.TYPE)
+public final class ModifyPolicyEntriesResponse extends AbstractCommandResponse<ModifyPolicyEntriesResponse>
+        implements PolicyModifyCommandResponse<ModifyPolicyEntriesResponse> {
 
     /**
      * Type of this response.
      */
     public static final String TYPE = TYPE_PREFIX + ModifyPolicyEntries.NAME;
 
-    private final String policyId;
+    private final PolicyId policyId;
 
-    private ModifyPolicyEntriesResponse(final String policyId, final HttpStatusCode statusCode,
+    private ModifyPolicyEntriesResponse(final PolicyId policyId, final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, statusCode, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
     }
 
@@ -57,9 +63,24 @@ public final class ModifyPolicyEntriesResponse extends AbstractCommandResponse<M
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy Id is now typed. use {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static ModifyPolicyEntriesResponse of(final String policyId, final DittoHeaders dittoHeaders) {
-        return new ModifyPolicyEntriesResponse(policyId, HttpStatusCode.NO_CONTENT, dittoHeaders);
+        return of(PolicyId.of(policyId), dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@code ModifyPolicyEntries} command.
+     *
+     * @param policyId the Policy ID of the modified policy entries.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static ModifyPolicyEntriesResponse of(final PolicyId policyId, final DittoHeaders dittoHeaders) {
+        return new ModifyPolicyEntriesResponse(policyId, HttpStatus.NO_CONTENT, dittoHeaders);
     }
 
     /**
@@ -68,7 +89,7 @@ public final class ModifyPolicyEntriesResponse extends AbstractCommandResponse<M
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
@@ -83,24 +104,23 @@ public final class ModifyPolicyEntriesResponse extends AbstractCommandResponse<M
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static ModifyPolicyEntriesResponse fromJson(final JsonObject jsonObject,
-            final DittoHeaders dittoHeaders) {
-
+    public static ModifyPolicyEntriesResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyPolicyEntriesResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String policyId =
-                            jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
+                .deserialize(httpStatus -> {
+                    final String extractedPolicyId =
+                            jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID);
+                    final PolicyId policyId = PolicyId.of(extractedPolicyId);
 
                     return of(policyId, dittoHeaders);
                 });
     }
 
     @Override
-    public String getId() {
+    public PolicyId getEntityId() {
         return policyId;
     }
 
@@ -112,8 +132,9 @@ public final class ModifyPolicyEntriesResponse extends AbstractCommandResponse<M
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
     }
 
     @Override

@@ -1,18 +1,20 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.connectivity.mapping.javascript;
 
-import java.nio.ByteBuffer;
-import java.util.Optional;
-import java.util.function.Function;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import javax.annotation.Nullable;
 
@@ -24,7 +26,9 @@ import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextFactory;
+import org.mozilla.javascript.NativeArray;
 import org.mozilla.javascript.NativeJSON;
 import org.mozilla.javascript.NativeObject;
 import org.mozilla.javascript.RhinoException;
@@ -34,7 +38,7 @@ import org.mozilla.javascript.typedarrays.NativeArrayBuffer;
 /**
  * Mapping function for incoming messages based on JavaScript.
  */
-public class ScriptedIncomingMapping implements MappingFunction<ExternalMessage, Optional<Adaptable>> {
+public class ScriptedIncomingMapping implements MappingFunction<ExternalMessage, List<Adaptable>> {
 
     private static final String EXTERNAL_MESSAGE_HEADERS = "headers";
     private static final String EXTERNAL_MESSAGE_CONTENT_TYPE = "contentType";
@@ -54,49 +58,34 @@ public class ScriptedIncomingMapping implements MappingFunction<ExternalMessage,
     }
 
     @Override
-    public Optional<Adaptable> apply(final ExternalMessage message) {
+    public List<Adaptable> apply(final ExternalMessage message) {
         try {
-            return Optional.ofNullable((Adaptable) contextFactory.call(cx -> {
-                final NativeObject headersObj = new NativeObject();
-                message.getHeaders().forEach((key, value) -> headersObj.put(key, headersObj, value));
-
-                final NativeArrayBuffer bytePayload;
-                if (message.getBytePayload().isPresent()) {
-                    final ByteBuffer byteBuffer = message.getBytePayload().get();
-                    final byte[] array = byteBuffer.array();
-                    bytePayload = new NativeArrayBuffer(array.length);
-                    for (int a = 0; a < array.length; a++) {
-                        bytePayload.getBuffer()[a] = array[a];
-                    }
-                } else {
-                    bytePayload = null;
-                }
-
-                final String contentType = message.getHeaders().get(ExternalMessage.CONTENT_TYPE_HEADER);
-                final String textPayload = message.getTextPayload().orElse(null);
-
-                final NativeObject externalMessage = new NativeObject();
-                externalMessage.put(EXTERNAL_MESSAGE_HEADERS, externalMessage, headersObj);
-                externalMessage.put(EXTERNAL_MESSAGE_TEXT_PAYLOAD, externalMessage, textPayload);
-                externalMessage.put(EXTERNAL_MESSAGE_BYTE_PAYLOAD, externalMessage, bytePayload);
-                externalMessage.put(EXTERNAL_MESSAGE_CONTENT_TYPE, externalMessage, contentType);
+            return contextFactory.call(cx -> {
+                final NativeObject externalMessage = mapExternalMessageToNativeObject(message);
 
                 final org.mozilla.javascript.Function
-                        mapToDittoProtocolMsgWrapper = (org.mozilla.javascript.Function) scope.get(INCOMING_FUNCTION_NAME, scope);
-                final Object result = mapToDittoProtocolMsgWrapper.call(cx, scope, scope, new Object[] {externalMessage});
+                        mapToDittoProtocolMsgWrapper =
+                        (org.mozilla.javascript.Function) scope.get(INCOMING_FUNCTION_NAME, scope);
+                final Object result =
+                        mapToDittoProtocolMsgWrapper.call(cx, scope, scope, new Object[]{externalMessage});
 
                 if (result == null) {
-                    // return null if result is null causing the wrapping Optional to be empty
-                    return null;
+                    // return empty list if result is null
+                    return Collections.emptyList();
+                } else if (result instanceof NativeArray) {
+                    // array handling
+                    final NativeArray jsArray = (NativeArray) result;
+                    final List<Adaptable> list = new ArrayList<>();
+                    for (Object idxObj : jsArray.getIds()) {
+                        int index = (Integer) idxObj;
+                        final Object element = jsArray.get(index, null);
+                        list.add(getAdaptableFromObject(cx, element));
+                    }
+                    return list;
                 }
 
-                final String dittoProtocolJsonStr = (String) NativeJSON.stringify(cx, scope, result, null, null);
-
-                return DittoJsonException.wrapJsonRuntimeException(() -> {
-                    final JsonObject jsonObject = JsonFactory.readFrom(dittoProtocolJsonStr).asObject();
-                    return ProtocolFactory.jsonifiableAdaptableFromJson(jsonObject);
-                });
-            }));
+                return Collections.singletonList(getAdaptableFromObject(cx, result));
+            });
         } catch (final RhinoException e) {
             throw buildMessageMappingFailedException(e, message.findContentType().orElse(""),
                     DittoHeaders.of(message.getHeaders()));
@@ -107,5 +96,38 @@ public class ScriptedIncomingMapping implements MappingFunction<ExternalMessage,
                     .cause(e)
                     .build();
         }
+    }
+
+    static NativeObject mapExternalMessageToNativeObject(final ExternalMessage message) {
+        final NativeObject headersObj = new NativeObject();
+        message.getHeaders().forEach((key, value) -> headersObj.put(key, headersObj, value));
+
+        final NativeArrayBuffer bytePayload =
+                message.getBytePayload()
+                        .map(bb -> {
+                            final NativeArrayBuffer nativeArrayBuffer = new NativeArrayBuffer(bb.remaining());
+                            bb.get(nativeArrayBuffer.getBuffer());
+                            return nativeArrayBuffer;
+                        })
+                        .orElse(null);
+
+        final String contentType = message.getHeaders().get(ExternalMessage.CONTENT_TYPE_HEADER);
+        final String textPayload = message.getTextPayload().orElse(null);
+
+        final NativeObject externalMessage = new NativeObject();
+        externalMessage.put(EXTERNAL_MESSAGE_HEADERS, externalMessage, headersObj);
+        externalMessage.put(EXTERNAL_MESSAGE_TEXT_PAYLOAD, externalMessage, textPayload);
+        externalMessage.put(EXTERNAL_MESSAGE_BYTE_PAYLOAD, externalMessage, bytePayload);
+        externalMessage.put(EXTERNAL_MESSAGE_CONTENT_TYPE, externalMessage, contentType);
+        return externalMessage;
+    }
+
+    private Adaptable getAdaptableFromObject(final Context cx, final Object result) {
+        final String dittoProtocolJsonStr = (String) NativeJSON.stringify(cx, scope, result, null, null);
+
+        return DittoJsonException.wrapJsonRuntimeException(() -> {
+            final JsonObject jsonObject = JsonFactory.readFrom(dittoProtocolJsonStr).asObject();
+            return ProtocolFactory.jsonifiableAdaptableFromJson(jsonObject);
+        });
     }
 }

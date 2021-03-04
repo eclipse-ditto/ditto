@@ -1,16 +1,19 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.things.modify;
 
 import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -28,9 +31,11 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingIdValidator;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -38,6 +43,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * This command modifies the Policy ID of a Thing.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = ModifyPolicyId.TYPE_PREFIX, name = ModifyPolicyId.NAME)
 public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
         implements ThingModifyCommand<ModifyPolicyId> {
 
@@ -54,13 +60,12 @@ public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
     static final JsonFieldDefinition<String> JSON_POLICY_ID =
             JsonFactory.newStringFieldDefinition("policyId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final String thingId;
-    private final String policyId;
+    private final ThingId thingId;
+    private final PolicyId policyId;
 
-    private ModifyPolicyId(final String thingId, final String policyId, final DittoHeaders dittoHeaders) {
+    private ModifyPolicyId(final ThingId thingId, final PolicyId policyId, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
-        ThingIdValidator.getInstance().accept(thingId, dittoHeaders);
-        this.thingId = thingId;
+        this.thingId = checkNotNull(thingId, "Thing ID");
         this.policyId = requireNonNull(policyId, "The policy ID must not be null!");
     }
 
@@ -75,17 +80,33 @@ public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
     }
 
     /**
-     * Returns a command for modifying an attribute which is passed as argument.
+     * Returns a command for modifying a Policy ID which is passed as argument.
      *
      * @param thingId the ID of the thing on which to modify the Policy ID.
      * @param policyId the Policy ID to set.
      * @param dittoHeaders the headers of the command.
-     * @return a command for modifying the provided new attribute.
+     * @return a command for modifying the provided new Policy ID.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(ThingId, PolicyId, DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static ModifyPolicyId of(final String thingId, final String policyId, final DittoHeaders dittoHeaders) {
+        return of(ThingId.of(thingId), PolicyId.of(policyId), dittoHeaders);
+    }
+
+    /**
+     * Returns a command for modifying a Policy ID which is passed as argument.
+     *
+     * @param thingId the ID of the thing on which to modify the Policy ID.
+     * @param policyId the Policy ID to set.
+     * @param dittoHeaders the headers of the command.
+     * @return a command for modifying the provided new Policy ID.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     */
+    public static ModifyPolicyId of(final ThingId thingId, final PolicyId policyId,
+            final DittoHeaders dittoHeaders) {
         return new ModifyPolicyId(thingId, policyId, dittoHeaders);
     }
 
@@ -100,7 +121,7 @@ public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static ModifyPolicyId fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -116,12 +137,14 @@ public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static ModifyPolicyId fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifyPolicyId>(TYPE, jsonObject).deserialize(() -> {
-            final String thingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
-            final String policyId = jsonObject.getValueOrThrow(JSON_POLICY_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
+            final String readPolicyId = jsonObject.getValueOrThrow(JSON_POLICY_ID);
+            final PolicyId policyId = PolicyId.of(readPolicyId);
 
             return of(thingId, policyId, dittoHeaders);
         });
@@ -131,13 +154,24 @@ public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
      * Returns the new Policy ID.
      *
      * @return the new Policy ID.
+     * @deprecated Policy ID of the Thing is now typed. Use {@link #getPolicyEntityId()} instead.
      */
+    @Deprecated
     public String getPolicyId() {
+        return String.valueOf(getPolicyEntityId());
+    }
+
+    /**
+     * Returns the new Policy ID.
+     *
+     * @return the new Policy ID.
+     */
+    public PolicyId getPolicyEntityId() {
         return policyId;
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -156,8 +190,8 @@ public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId, predicate);
-        jsonObjectBuilder.set(JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(JSON_POLICY_ID, String.valueOf(policyId), predicate);
     }
 
     @Override

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -13,7 +15,7 @@ package org.eclipse.ditto.signals.commands.base.assertions;
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.assertions.AbstractJsonifiableAssert;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.base.assertions.WithDittoHeadersChecker;
@@ -90,12 +92,16 @@ public abstract class AbstractCommandResponseAssert<S extends AbstractCommandRes
         return myself;
     }
 
-    public S hasStatus(final HttpStatusCode expectedStatusCode) {
-        return assertThatEquals(actual.getStatusCode(), expectedStatusCode, "HTTP status");
+    /**
+     * @since 2.0.0
+     */
+    public S hasStatus(final HttpStatus expectedHttpStatus) {
+        return assertThatEquals(actual.getHttpStatus(), expectedHttpStatus, "HTTP status");
     }
 
     public S hasStatusCode(final int expectedStatusCodeValue) {
-        return assertThatEquals(actual.getStatusCodeValue(), expectedStatusCodeValue, "HTTP status code");
+        final HttpStatus actualHttpStatus = actual.getHttpStatus();
+        return assertThatEquals(actualHttpStatus.getCode(), expectedStatusCodeValue, "HTTP status code");
     }
 
     private <T> S assertThatEquals(final T actual, final T expected, final String propertyName) {

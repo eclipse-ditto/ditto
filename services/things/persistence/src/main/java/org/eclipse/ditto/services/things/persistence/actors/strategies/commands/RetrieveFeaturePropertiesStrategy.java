@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -15,19 +17,25 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturePropertiesResponse;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * This strategy handles the {@link RetrieveFeatureProperties} command.
  */
 @Immutable
-final class RetrieveFeaturePropertiesStrategy extends
-        AbstractConditionalHeadersCheckingCommandStrategy<RetrieveFeatureProperties, FeatureProperties> {
+final class RetrieveFeaturePropertiesStrategy extends AbstractThingCommandStrategy<RetrieveFeatureProperties> {
 
     /**
      * Constructs a new {@code RetrieveFeaturePropertiesStrategy} object.
@@ -37,41 +45,58 @@ final class RetrieveFeaturePropertiesStrategy extends
     }
 
     @Override
-    protected Result doApply(final Context context, @Nullable final Thing thing,
-            final long nextRevision, final RetrieveFeatureProperties command) {
-        final String thingId = context.getThingId();
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
+            @Nullable final Thing thing,
+            final long nextRevision,
+            final RetrieveFeatureProperties command,
+            @Nullable final Metadata metadata) {
+
+        final ThingId thingId = context.getState();
         final String featureId = command.getFeatureId();
 
         return extractFeature(command, thing)
                 .map(feature -> getFeatureProperties(feature, thingId, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featureNotFound(thingId, featureId, command.getDittoHeaders())));
+                        ExceptionFactory.featureNotFound(thingId, featureId, command.getDittoHeaders()), command));
     }
 
     private Optional<Feature> extractFeature(final RetrieveFeatureProperties command, final @Nullable Thing thing) {
-        return getThingOrThrow(thing).getFeatures()
+        return getEntityOrThrow(thing).getFeatures()
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
-    private Result getFeatureProperties(final Feature feature, final String thingId,
+    private Result<ThingEvent<?>> getFeatureProperties(final Feature feature, final ThingId thingId,
             final RetrieveFeatureProperties command, @Nullable final Thing thing) {
 
         final String featureId = feature.getId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return feature.getProperties()
-                .map(featureProperties -> RetrieveFeaturePropertiesResponse.of(thingId, featureId,
-                        featureProperties, dittoHeaders))
-                .map(response -> ResultFactory.newQueryResult(command, thing, response, this))
+                .map(featureProperties -> getFeaturePropertiesJson(featureProperties, command))
+                .map(featurePropertiesJson -> RetrieveFeaturePropertiesResponse.of(thingId, featureId,
+                        featurePropertiesJson, dittoHeaders))
+                .<Result<ThingEvent<?>>>map(response ->
+                        ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featurePropertiesNotFound(thingId, featureId, dittoHeaders)));
+                        ExceptionFactory.featurePropertiesNotFound(thingId, featureId, dittoHeaders), command));
+    }
+
+    private static JsonObject getFeaturePropertiesJson(final FeatureProperties featureProperties,
+            final RetrieveFeatureProperties command) {
+        return command.getSelectedFields()
+                .map(selectedFields -> featureProperties.toJson(command.getImplementedSchemaVersion(), selectedFields))
+                .orElseGet(() -> featureProperties.toJson(command.getImplementedSchemaVersion()));
     }
 
     @Override
-    public Optional<FeatureProperties> determineETagEntity(final RetrieveFeatureProperties command,
-            @Nullable final Thing thing) {
+    public Optional<EntityTag> previousEntityTag(final RetrieveFeatureProperties command,
+            @Nullable final Thing previousEntity) {
+        return nextEntityTag(command, previousEntity);
+    }
 
-        return extractFeature(command, thing)
-                .flatMap(Feature::getProperties);
+    @Override
+    public Optional<EntityTag> nextEntityTag(final RetrieveFeatureProperties command, @Nullable final Thing newEntity) {
+
+        return extractFeature(command, newEntity).flatMap(Feature::getProperties).flatMap(EntityTag::fromEntity);
     }
 }

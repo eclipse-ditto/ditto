@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -24,12 +26,14 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -37,8 +41,9 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  * Response to a {@link SudoRetrievePolicyResponse} command.
  */
 @Immutable
-public final class SudoRetrievePolicyResponse extends AbstractCommandResponse<SudoRetrievePolicyResponse> implements
-        SudoCommandResponse<SudoRetrievePolicyResponse> {
+@JsonParsableCommandResponse(type = SudoRetrievePolicyResponse.TYPE)
+public final class SudoRetrievePolicyResponse extends AbstractCommandResponse<SudoRetrievePolicyResponse>
+        implements SudoCommandResponse<SudoRetrievePolicyResponse> {
 
     /**
      * Type of this response.
@@ -48,15 +53,15 @@ public final class SudoRetrievePolicyResponse extends AbstractCommandResponse<Su
     static final JsonFieldDefinition<JsonObject> JSON_POLICY =
             JsonFactory.newJsonObjectFieldDefinition("payload/policy", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final String policyId;
+    private final PolicyId policyId;
     private final JsonObject policy;
 
-    private SudoRetrievePolicyResponse(final String policyId,
-            final HttpStatusCode statusCode,
+    private SudoRetrievePolicyResponse(final PolicyId policyId,
+            final HttpStatus httpStatus,
             final JsonObject policy,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, statusCode, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
         this.policy = checkNotNull(policy, "Policy");
     }
@@ -70,10 +75,11 @@ public final class SudoRetrievePolicyResponse extends AbstractCommandResponse<Su
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static SudoRetrievePolicyResponse of(final String policyId, final Policy policy,
+    public static SudoRetrievePolicyResponse of(final PolicyId policyId, final Policy policy,
             final DittoHeaders dittoHeaders) {
-        return new SudoRetrievePolicyResponse(policyId, HttpStatusCode.OK, //
-                checkNotNull(policy, "Policy") //
+
+        return new SudoRetrievePolicyResponse(policyId, HttpStatus.OK,
+                checkNotNull(policy, "Policy")
                         .toJson(dittoHeaders.getSchemaVersion().orElse(policy.getLatestSchemaVersion()),
                                 FieldType.regularOrSpecial()),
                 dittoHeaders);
@@ -88,9 +94,10 @@ public final class SudoRetrievePolicyResponse extends AbstractCommandResponse<Su
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static SudoRetrievePolicyResponse of(final String policyId, final JsonObject policy,
+    public static SudoRetrievePolicyResponse of(final PolicyId policyId, final JsonObject policy,
             final DittoHeaders dittoHeaders) {
-        return new SudoRetrievePolicyResponse(policyId, HttpStatusCode.OK, policy, dittoHeaders);
+
+        return new SudoRetrievePolicyResponse(policyId, HttpStatus.OK, policy, dittoHeaders);
     }
 
     /**
@@ -99,7 +106,7 @@ public final class SudoRetrievePolicyResponse extends AbstractCommandResponse<Su
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
@@ -114,23 +121,24 @@ public final class SudoRetrievePolicyResponse extends AbstractCommandResponse<Su
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static SudoRetrievePolicyResponse fromJson(final JsonObject jsonObject,
-            final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<SudoRetrievePolicyResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String policyId = jsonObject.getValueOrThrow(SudoCommandResponse.JsonFields.JSON_POLICY_ID);
-                    final JsonObject extractedPolicy = jsonObject.getValueOrThrow(JSON_POLICY);
+    public static SudoRetrievePolicyResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandResponseJsonDeserializer<SudoRetrievePolicyResponse>(TYPE, jsonObject).deserialize(
+                httpStatus -> {
+                    final var extractedPolicyId =
+                            jsonObject.getValueOrThrow(SudoCommandResponse.JsonFields.JSON_POLICY_ID);
+                    final var policyId = PolicyId.of(extractedPolicyId);
+                    final var extractedPolicy = jsonObject.getValueOrThrow(JSON_POLICY);
 
                     return of(policyId, extractedPolicy, dittoHeaders);
                 });
     }
 
     @Override
-    public String getId() {
+    public PolicyId getEntityId() {
         return policyId;
     }
 
@@ -162,8 +170,9 @@ public final class SudoRetrievePolicyResponse extends AbstractCommandResponse<Su
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(SudoCommandResponse.JsonFields.JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(SudoCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_POLICY, policy, predicate);
     }
 
@@ -181,7 +190,9 @@ public final class SudoRetrievePolicyResponse extends AbstractCommandResponse<Su
             return false;
         }
         final SudoRetrievePolicyResponse that = (SudoRetrievePolicyResponse) o;
-        return that.canEqual(this) && Objects.equals(policyId, that.policyId) && Objects.equals(policy, that.policy) &&
+        return that.canEqual(this) &&
+                Objects.equals(policyId, that.policyId) &&
+                Objects.equals(policy, that.policy) &&
                 super.equals(o);
     }
 

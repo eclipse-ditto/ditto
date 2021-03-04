@@ -1,0 +1,215 @@
+# Copyright (c) 2020 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+get:
+  summary: Retrieve one specific Resource for a specific Label of a specific policy
+  description: |-
+    Returns the resource with path `resourcePath` of the policy identified
+    by the `policyId` path parameter, and
+    by the `label` path parameter.
+  tags:
+    - Policies
+  parameters:
+    - $ref: '../../parameters/policyIdPathParam.yml'
+    - $ref: '../../parameters/labelPathParam.yml'
+    - $ref: '../../parameters/resourcePathPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+  responses:
+    '200':
+      description: |-
+        The request successfully returned completed and returned is the
+        Resource.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/policies/resourceEntry.yml'
+    '304':
+      $ref: '../../responses/notModified.yml'
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+
+          * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The policy with the given ID,
+        the policy entry or the Resource was not found in the context of the
+        authenticated user.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'
+put:
+  summary: Create or modify one specific Resource for a specific Label of a specific policy
+  description: |-
+    Create or modify the Resource with path `resourcePath` of the policy
+    entry identified by the `label` path parameter belonging to the policy
+    identified by the `policyId` path parameter.
+  tags:
+    - Policies
+  parameters:
+    - $ref: '../../parameters/policyIdPathParam.yml'
+    - $ref: '../../parameters/labelPathParam.yml'
+    - $ref: '../../parameters/resourcePathPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+    - $ref: '../../parameters/responseRequiredParam.yml'
+  responses:
+    '201':
+      description: The Resource was successfully created.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+        Location:
+          description: The location of the created Resource
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/policies/resourceEntry.yml'
+    '204':
+      description: The Resource was successfully updated.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+    '304':
+      $ref: '../../responses/notModified.yml'
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+
+         * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+          * the JSON is invalid, or no valid Resource JSON object.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the caller has insufficient permissions.
+            You need `WRITE` permission on the `policy:/entries/{label}/resources/{resourcePath}` resource,
+            without any revoke in a deeper path of the policy resource.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The policy with the given ID or
+        the policy entry was not found in the context of the authenticated
+        user.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'
+    '413':
+      $ref: '../../responses/entityTooLarge.yml'
+  requestBody:
+    content:
+      application/json:
+        schema:
+          $ref: '../../schemas/policies/resourceEntry.yml'
+    description: JSON representation of the Resource
+    required: true
+delete:
+  summary: Delete one specific Resource for a specific Label of a specific policy
+  description: |-
+    Deletes the resource with path `resourcePath` from the policy
+    identified by the the `policyId` path parameter, and by the
+    `label` path parameter.
+  tags:
+    - Policies
+  parameters:
+    - $ref: '../../parameters/policyIdPathParam.yml'
+    - $ref: '../../parameters/labelPathParam.yml'
+    - $ref: '../../parameters/resourcePathPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+    - $ref: '../../parameters/responseRequiredParam.yml'
+  responses:
+    '204':
+      description: The Resource was successfully deleted.
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+
+          * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the caller has insufficient permissions.
+            You need `WRITE` permission on the `policy:/entries/{label}/resources/{resourcePath}` resource,
+            without any revoke in a deeper path of the policy resource.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The policy with the given ID,
+        the policy entry or the Resource was not found in the context of the
+        authenticated user.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'

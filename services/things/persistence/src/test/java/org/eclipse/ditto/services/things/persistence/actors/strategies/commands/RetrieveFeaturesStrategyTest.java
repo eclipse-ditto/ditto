@@ -1,16 +1,19 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FEATURES;
+import static org.eclipse.ditto.model.things.TestConstants.Feature.FEATURES_V2;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
 import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.retrieveFeaturesResponse;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -20,6 +23,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatures;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturesResponse;
 import org.junit.Before;
@@ -44,32 +49,32 @@ public final class RetrieveFeaturesStrategyTest extends AbstractCommandStrategyT
 
     @Test
     public void retrieveFeaturesWithoutSelectedFields() {
-        final CommandStrategy.Context context = getDefaultContext();
-        final RetrieveFeatures command = RetrieveFeatures.of(context.getThingId(), DittoHeaders.empty());
-        final RetrieveFeaturesResponse expectedResponse = retrieveFeaturesResponse(command.getThingId(), FEATURES,
-                FEATURES.toJson(command.getImplementedSchemaVersion()), command.getDittoHeaders());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final RetrieveFeatures command = RetrieveFeatures.of(context.getState(), DittoHeaders.empty());
+        final RetrieveFeaturesResponse expectedResponse = retrieveFeaturesResponse(command.getThingEntityId(), FEATURES_V2,
+                FEATURES_V2.toJson(command.getImplementedSchemaVersion()), command.getDittoHeaders());
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
     }
 
     @Test
     public void retrieveFeaturesWithSelectedFields() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final JsonFieldSelector selectedFields = JsonFactory.newFieldSelector("maker");
         final RetrieveFeatures command =
-                RetrieveFeatures.of(context.getThingId(), selectedFields, DittoHeaders.empty());
-        final RetrieveFeaturesResponse expectedResponse = retrieveFeaturesResponse(command.getThingId(), FEATURES,
-                FEATURES.toJson(command.getImplementedSchemaVersion(), selectedFields), command.getDittoHeaders());
+                RetrieveFeatures.of(context.getState(), selectedFields, DittoHeaders.empty());
+        final RetrieveFeaturesResponse expectedResponse = retrieveFeaturesResponse(command.getThingEntityId(), FEATURES_V2,
+                FEATURES_V2.toJson(command.getImplementedSchemaVersion(), selectedFields), command.getDittoHeaders());
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
     }
 
     @Test
     public void retrieveFeaturesFromThingWithoutFeatures() {
-        final CommandStrategy.Context context = getDefaultContext();
-        final RetrieveFeatures command = RetrieveFeatures.of(context.getThingId(), DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final RetrieveFeatures command = RetrieveFeatures.of(context.getState(), DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featuresNotFound(command.getThingId(), command.getDittoHeaders());
+                ExceptionFactory.featuresNotFound(command.getThingEntityId(), command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.removeFeatures(), command, expectedException);
     }

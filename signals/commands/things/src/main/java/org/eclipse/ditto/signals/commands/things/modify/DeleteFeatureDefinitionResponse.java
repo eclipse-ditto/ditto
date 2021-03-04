@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -24,18 +26,21 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.ThingIdValidator;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * Response to a {@link DeleteFeatureDefinition} command.
  */
 @Immutable
+@JsonParsableCommandResponse(type = DeleteFeatureDefinitionResponse.TYPE)
 public final class DeleteFeatureDefinitionResponse extends AbstractCommandResponse<DeleteFeatureDefinitionResponse>
         implements ThingModifyCommandResponse<DeleteFeatureDefinitionResponse> {
 
@@ -48,14 +53,13 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
             JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final String featureId;
 
-    private DeleteFeatureDefinitionResponse(final String thingId, final String featureId,
+    private DeleteFeatureDefinitionResponse(final ThingId thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, HttpStatusCode.NO_CONTENT, dittoHeaders);
-        ThingIdValidator.getInstance().accept(thingId, dittoHeaders);
+        super(TYPE, HttpStatus.NO_CONTENT, dittoHeaders);
         this.thingId = thingId;
         this.featureId = checkNotNull(featureId, "Feature ID");
     }
@@ -67,11 +71,28 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
      * @param featureId the {@code Feature}'s ID whose Definition were deleted.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if {@code thingId} did not comply to
-     * {@link org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static DeleteFeatureDefinitionResponse of(final String thingId, final String featureId,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), featureId, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@link DeleteFeatureDefinition} command.
+     *
+     * @param thingId the Thing ID of the deleted Feature Definition.
+     * @param featureId the {@code Feature}'s ID whose Definition were deleted.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static DeleteFeatureDefinitionResponse of(final String thingId, final String featureId,
+    public static DeleteFeatureDefinitionResponse of(final ThingId thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
 
         return new DeleteFeatureDefinitionResponse(thingId, featureId, dittoHeaders);
@@ -90,11 +111,11 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the parsed {@code jsonString} did not contain any of
      * the required fields
      * <ul>
-     *     <li>{@link ThingModifyCommandResponse.JsonFields#JSON_THING_ID} or</li>
+     *     <li>{@link ThingCommandResponse.JsonFields#JSON_THING_ID} or</li>
      *     <li>{@link #JSON_FEATURE_ID}.</li>
      * </ul>
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to
-     * {@link org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static DeleteFeatureDefinitionResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -112,27 +133,28 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain any of the
      * required fields
      * <ul>
-     *     <li>{@link ThingModifyCommandResponse.JsonFields#JSON_THING_ID} or</li>
+     *     <li>{@link ThingCommandResponse.JsonFields#JSON_THING_ID} or</li>
      *     <li>{@link #JSON_FEATURE_ID}.</li>
      * </ul>
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to
-     * {@link org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static DeleteFeatureDefinitionResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
         return new CommandResponseJsonDeserializer<DeleteFeatureDefinitionResponse>(TYPE, jsonObject).deserialize(
-                statusCode -> {
+                httpStatus -> {
                     final String extractedThingId =
-                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+                            jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
                     final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
 
-                    return of(extractedThingId, extractedFeatureId, dittoHeaders);
+                    return of(thingId, extractedFeatureId, dittoHeaders);
                 });
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -155,7 +177,7 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
     }
 
@@ -173,8 +195,10 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
             return false;
         }
         final DeleteFeatureDefinitionResponse that = (DeleteFeatureDefinitionResponse) o;
-        return that.canEqual(this) && Objects.equals(thingId, that.thingId)
-                && Objects.equals(featureId, that.featureId) && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(thingId, that.thingId) &&
+                Objects.equals(featureId, that.featureId) &&
+                super.equals(o);
     }
 
     @Override

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -30,15 +32,20 @@ import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.ThingIdValidator;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
 /**
  * Command which retrieves the ACL entry of a {@code Thing} based on the passed in ID and Authorization Subject.
+ *
+ * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
  */
+@Deprecated
 @Immutable
+@JsonParsableCommand(typePrefix = RetrieveAclEntry.TYPE_PREFIX, name = RetrieveAclEntry.NAME)
 public final class RetrieveAclEntry extends AbstractCommand<RetrieveAclEntry>
         implements ThingQueryCommand<RetrieveAclEntry> {
 
@@ -55,19 +62,18 @@ public final class RetrieveAclEntry extends AbstractCommand<RetrieveAclEntry>
     static final JsonFieldDefinition<String> JSON_AUTHORIZATION_SUBJECT =
             JsonFactory.newStringFieldDefinition("authorizationSubject", FieldType.REGULAR, JsonSchemaVersion.V_1);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final AuthorizationSubject authorizationSubject;
     @Nullable
     private final JsonFieldSelector selectedFields;
 
     private RetrieveAclEntry(final AuthorizationSubject authorizationSubject,
             @Nullable final JsonFieldSelector selectedFields,
-            final String thingId,
+            final ThingId thingId,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, dittoHeaders);
-        ThingIdValidator.getInstance().accept(thingId, dittoHeaders);
-        this.thingId = thingId;
+        this.thingId = checkNotNull(thingId, "Thing ID");
         this.authorizationSubject =
                 checkNotNull(authorizationSubject, "Authorization Subject whose ACL Entry to retrieve");
         this.selectedFields = selectedFields;
@@ -82,10 +88,28 @@ public final class RetrieveAclEntry extends AbstractCommand<RetrieveAclEntry>
      * @return a Command for retrieving one ACL entry of the Thing with the {@code thingId} as its ID which is readable
      * from the passed authorization context.
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.auth.AuthorizationSubject, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static RetrieveAclEntry of(final String thingId, final AuthorizationSubject authorizationSubject,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), authorizationSubject, dittoHeaders);
+    }
+
+    /**
+     * Returns a command for retrieving a specific ACL entry of a Thing with the given ID.
+     *
+     * @param thingId the ID of a single Thing whose ACL entry will be retrieved by this command.
+     * @param authorizationSubject the specified subject for which to retrieve the ACL entry for.
+     * @param dittoHeaders the headers of the command.
+     * @return a Command for retrieving one ACL entry of the Thing with the {@code thingId} as its ID which is readable
+     * from the passed authorization context.
+     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
+     */
+    public static RetrieveAclEntry of(final ThingId thingId, final AuthorizationSubject authorizationSubject,
             final DittoHeaders dittoHeaders) {
 
         return new RetrieveAclEntry(authorizationSubject, null, thingId, dittoHeaders);
@@ -101,10 +125,31 @@ public final class RetrieveAclEntry extends AbstractCommand<RetrieveAclEntry>
      * @return a Command for retrieving one ACL entry of the Thing with the {@code thingId} as its ID which is readable
      * from the passed authorization context.
      * @throws NullPointerException if {@code authorizationSubject} or {@code dittoHeaders} is {@code null}.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.auth.AuthorizationSubject, org.eclipse.ditto.json.JsonFieldSelector, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static RetrieveAclEntry of(final String thingId,
+            final AuthorizationSubject authorizationSubject,
+            @Nullable final JsonFieldSelector selectedFields,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), authorizationSubject, selectedFields, dittoHeaders);
+    }
+
+    /**
+     * Returns a command for retrieving a specific ACL entry of a Thing with the given ID.
+     *
+     * @param thingId the ID of a single Thing whose ACL entry will be retrieved by this command.
+     * @param authorizationSubject the specified subject for which to retrieve the ACL entry for.
+     * @param selectedFields defines the fields of the JSON representation of the ACL entry to retrieve.
+     * @param dittoHeaders the headers of the command.
+     * @return a Command for retrieving one ACL entry of the Thing with the {@code thingId} as its ID which is readable
+     * from the passed authorization context.
+     * @throws NullPointerException if {@code authorizationSubject} or {@code dittoHeaders} is {@code null}.
+     */
+    public static RetrieveAclEntry of(final ThingId thingId,
             final AuthorizationSubject authorizationSubject,
             @Nullable final JsonFieldSelector selectedFields,
             final DittoHeaders dittoHeaders) {
@@ -123,7 +168,7 @@ public final class RetrieveAclEntry extends AbstractCommand<RetrieveAclEntry>
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static RetrieveAclEntry fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -139,11 +184,12 @@ public final class RetrieveAclEntry extends AbstractCommand<RetrieveAclEntry>
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static RetrieveAclEntry fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveAclEntry>(TYPE, jsonObject).deserialize(() -> {
-            final String thingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
             final String authSubjectId = jsonObject.getValueOrThrow(JSON_AUTHORIZATION_SUBJECT);
             final AuthorizationSubject extractedAuthSubject = AuthorizationModelFactory.newAuthSubject(authSubjectId);
 
@@ -176,7 +222,7 @@ public final class RetrieveAclEntry extends AbstractCommand<RetrieveAclEntry>
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -190,7 +236,7 @@ public final class RetrieveAclEntry extends AbstractCommand<RetrieveAclEntry>
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommand.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingQueryCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_AUTHORIZATION_SUBJECT, authorizationSubject.getId(), predicate);
     }
 

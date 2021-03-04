@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -20,6 +22,8 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinition;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinitionResponse;
 import org.junit.Before;
@@ -44,11 +48,11 @@ public final class RetrieveFeatureDefinitionStrategyTest extends AbstractCommand
 
     @Test
     public void getDefinition() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeatureDefinition command =
-                RetrieveFeatureDefinition.of(context.getThingId(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
+                RetrieveFeatureDefinition.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
         final RetrieveFeatureDefinitionResponse expectedResponse =
-                retrieveFeatureDefinitionResponse(command.getThingId(), command.getFeatureId(),
+                retrieveFeatureDefinitionResponse(command.getThingEntityId(), command.getFeatureId(),
                         FLUX_CAPACITOR_DEFINITION, command.getDittoHeaders());
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
@@ -56,11 +60,11 @@ public final class RetrieveFeatureDefinitionStrategyTest extends AbstractCommand
 
     @Test
     public void getDefinitionFromThingWithoutFeatures() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeatureDefinition command =
-                RetrieveFeatureDefinition.of(context.getThingId(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
+                RetrieveFeatureDefinition.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featureNotFound(command.getThingId(), command.getFeatureId(),
+                ExceptionFactory.featureNotFound(command.getThingEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.removeFeatures(), command, expectedException);
@@ -68,14 +72,15 @@ public final class RetrieveFeatureDefinitionStrategyTest extends AbstractCommand
 
     @Test
     public void getNonExistingDefinition() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeatureDefinition command =
-                RetrieveFeatureDefinition.of(context.getThingId(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
+                RetrieveFeatureDefinition.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featureDefinitionNotFound(command.getThingId(), command.getFeatureId(),
+                ExceptionFactory.featureDefinitionNotFound(command.getThingEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
 
-        assertErrorResult(underTest, THING_V2.setFeature(FLUX_CAPACITOR.removeDefinition()), command, expectedException);
+        assertErrorResult(underTest, THING_V2.setFeature(FLUX_CAPACITOR.removeDefinition()), command,
+                expectedException);
     }
 
 }

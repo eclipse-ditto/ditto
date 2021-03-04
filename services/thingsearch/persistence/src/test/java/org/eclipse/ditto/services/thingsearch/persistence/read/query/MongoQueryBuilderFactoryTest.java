@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -14,11 +16,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import org.eclipse.ditto.model.query.QueryBuilder;
-import org.eclipse.ditto.model.query.QueryBuilderFactory;
 import org.eclipse.ditto.model.query.criteria.Criteria;
-import org.eclipse.ditto.services.base.config.DittoLimitsConfigReader;
+import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
+import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
+import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 /**
@@ -26,39 +31,43 @@ import com.typesafe.config.ConfigFactory;
  */
 public final class MongoQueryBuilderFactoryTest {
 
-    private final QueryBuilderFactory fac = new MongoQueryBuilderFactory
-            (DittoLimitsConfigReader.fromRawConfig(ConfigFactory.load("test")));
+    private static LimitsConfig limitsConfig;
 
-    /** */
+    private MongoQueryBuilderFactory underTest;
+
+    @BeforeClass
+    public static void initLimitsConfig() {
+        final Config rawTestConfig = ConfigFactory.load("test");
+        limitsConfig = DefaultLimitsConfig.of(rawTestConfig.getConfig("ditto"));
+    }
+
+    @Before
+    public void setUp() {
+        underTest = new MongoQueryBuilderFactory(limitsConfig);
+    }
+
     @Test
     public void newBuilderWithValidCriteria() {
-        final Criteria crit = mock(Criteria.class);
-
-        final QueryBuilder builder = fac.newBuilder(crit);
+        final QueryBuilder builder = underTest.newBuilder(mock(Criteria.class));
 
         assertThat(builder).isInstanceOf(MongoQueryBuilder.class);
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void newBuilderWithNullCriteria() {
-        fac.newBuilder(null);
+        underTest.newBuilder(null);
     }
 
-    /** */
     @Test
     public void newUnlimitedBuilderWithValidCriteria() {
-        final Criteria crit = mock(Criteria.class);
-
-        final QueryBuilder builder = fac.newUnlimitedBuilder(crit);
+        final QueryBuilder builder = underTest.newUnlimitedBuilder(mock(Criteria.class));
 
         assertThat(builder).isInstanceOf(MongoQueryBuilder.class);
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void newUnlimitedBuilderWithNullCriteria() {
-        fac.newUnlimitedBuilder(null);
+        underTest.newUnlimitedBuilder(null);
     }
 
 }

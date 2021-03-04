@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -34,6 +36,7 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatures;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
+import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
@@ -86,6 +89,7 @@ public final class LiveCommandFactory {
         result.put(ModifyFeatureProperty.TYPE, ModifyLiveCommandFactory::modifyFeatureProperty);
         result.put(ModifyFeatures.TYPE, ModifyLiveCommandFactory::modifyFeatures);
         result.put(ModifyThing.TYPE, ModifyLiveCommandFactory::modifyThing);
+        result.put(MergeThing.TYPE, ModifyLiveCommandFactory::mergeThing);
 
         result.put(RetrieveAttribute.TYPE, QueryLiveCommandFactory::retrieveAttribute);
         result.put(RetrieveAttributes.TYPE, QueryLiveCommandFactory::retrieveAttributes);

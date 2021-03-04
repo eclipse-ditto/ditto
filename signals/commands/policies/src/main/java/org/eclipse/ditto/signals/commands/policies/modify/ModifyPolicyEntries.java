@@ -1,14 +1,18 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.policies.modify;
+
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -18,6 +22,7 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -28,10 +33,11 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyEntry;
-import org.eclipse.ditto.model.policies.PolicyIdValidator;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
@@ -40,8 +46,9 @@ import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
  * This command modifies {@link PolicyEntry}s.
  */
 @Immutable
-public final class ModifyPolicyEntries extends AbstractCommand<ModifyPolicyEntries> implements
-        PolicyModifyCommand<ModifyPolicyEntries> {
+@JsonParsableCommand(typePrefix = ModifyPolicyEntries.TYPE_PREFIX, name = ModifyPolicyEntries.NAME)
+public final class ModifyPolicyEntries extends AbstractCommand<ModifyPolicyEntries>
+        implements PolicyModifyCommand<ModifyPolicyEntries> {
 
     /**
      * Name of this command.
@@ -56,22 +63,23 @@ public final class ModifyPolicyEntries extends AbstractCommand<ModifyPolicyEntri
     static final JsonFieldDefinition<JsonObject> JSON_POLICY_ENTRIES =
             JsonFactory.newJsonObjectFieldDefinition("policyEntries", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final String policyId;
+    private final PolicyId policyId;
     private final Iterable<PolicyEntry> policyEntries;
 
-    private ModifyPolicyEntries(final String policyId, final Iterable<PolicyEntry> policyEntries,
+    private ModifyPolicyEntries(final PolicyId policyId, final Iterable<PolicyEntry> policyEntries,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, dittoHeaders);
-        PolicyIdValidator.getInstance().accept(policyId, dittoHeaders);
         this.policyId = policyId;
         this.policyEntries = policyEntries;
 
-        PolicyCommandSizeValidator.getInstance().ensureValidSize(() ->
-                        StreamSupport.stream(policyEntries.spliterator(), false)
-                                .map(PolicyEntry::toJson)
-                                .collect(JsonCollectors.valuesToArray())
-                                .toString()
-                                .length(),
+        final JsonArray policyEntriesJsonArray = StreamSupport.stream(policyEntries.spliterator(), false)
+                .map(PolicyEntry::toJson)
+                .collect(JsonCollectors.valuesToArray());
+
+        PolicyCommandSizeValidator.getInstance().ensureValidSize(
+                policyEntriesJsonArray::getUpperBoundForStringSize,
+                () -> policyEntriesJsonArray.toString().length(),
                 () -> dittoHeaders);
     }
 
@@ -83,12 +91,31 @@ public final class ModifyPolicyEntries extends AbstractCommand<ModifyPolicyEntri
      * @param dittoHeaders the headers of the command.
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, Iterable, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static ModifyPolicyEntries of(final String policyId, final Iterable<PolicyEntry> policyEntries,
             final DittoHeaders dittoHeaders) {
 
-        Objects.requireNonNull(policyId, "The Policy identifier must not be null!");
-        Objects.requireNonNull(policyEntries, "The PolicyEntries must not be null!");
+        return of(PolicyId.of(policyId), policyEntries, dittoHeaders);
+    }
+
+    /**
+     * Creates a command for modifying {@code PolicyEntry}s.
+     *
+     * @param policyId the identifier of the Policy.
+     * @param policyEntries the new PolicyEntries.
+     * @param dittoHeaders the headers of the command.
+     * @return the command.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static ModifyPolicyEntries of(final PolicyId policyId, final Iterable<PolicyEntry> policyEntries,
+            final DittoHeaders dittoHeaders) {
+
+        checkNotNull(policyId, "Policy identifier");
+        checkNotNull(policyEntries, "PolicyEntries");
         return new ModifyPolicyEntries(policyId, policyEntries, dittoHeaders);
     }
 
@@ -119,7 +146,8 @@ public final class ModifyPolicyEntries extends AbstractCommand<ModifyPolicyEntri
      */
     public static ModifyPolicyEntries fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifyPolicyEntries>(TYPE, jsonObject).deserialize(() -> {
-            final String policyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+            final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final JsonObject policyEntriesJsonObject = jsonObject.getValueOrThrow(JSON_POLICY_ENTRIES);
             final Iterable<PolicyEntry> policyEntries = PoliciesModelFactory.newPolicyEntries(policyEntriesJsonObject);
 
@@ -142,7 +170,7 @@ public final class ModifyPolicyEntries extends AbstractCommand<ModifyPolicyEntri
      * @return the identifier of the Policy whose PolicyEntrys to modify.
      */
     @Override
-    public String getId() {
+    public PolicyId getEntityId() {
         return policyId;
     }
 
@@ -165,8 +193,9 @@ public final class ModifyPolicyEntries extends AbstractCommand<ModifyPolicyEntri
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_POLICY_ENTRIES, StreamSupport.stream(policyEntries.spliterator(), false)
                         .map(entry -> JsonFactory.newObjectBuilder()
                                 .set(entry.getLabel().getJsonFieldDefinition(),

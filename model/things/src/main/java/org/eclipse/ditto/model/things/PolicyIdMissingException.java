@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -18,10 +20,11 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -29,6 +32,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  * {@link org.eclipse.ditto.model.base.json.JsonSchemaVersion} requires a policyId.
  */
 @Immutable
+@JsonParsableException(errorCode = PolicyIdMissingException.ERROR_CODE)
 public final class PolicyIdMissingException extends DittoRuntimeException implements ThingException {
 
     /**
@@ -65,7 +69,7 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-        super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, HttpStatus.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
     /**
@@ -75,7 +79,7 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new PolicyIdMissingException.
      */
-    public static PolicyIdMissingException fromThingIdOnUpdate(final String thingId, final DittoHeaders dittoHeaders) {
+    public static PolicyIdMissingException fromThingIdOnUpdate(final ThingId thingId, final DittoHeaders dittoHeaders) {
         final JsonSchemaVersion schemaVersion = dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST);
         return new Builder(thingId, schemaVersion, MESSAGE_TEMPLATE_UPDATE, DEFAULT_DESCRIPTION_UPDATE)
                 .dittoHeaders(dittoHeaders)
@@ -89,7 +93,7 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new PolicyIdMissingException.
      */
-    public static PolicyIdMissingException fromThingIdOnCreate(final String thingId, final DittoHeaders dittoHeaders) {
+    public static PolicyIdMissingException fromThingIdOnCreate(final ThingId thingId, final DittoHeaders dittoHeaders) {
         final JsonSchemaVersion schemaVersion = dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST);
         return new Builder(thingId, schemaVersion, MESSAGE_TEMPLATE_CREATE, DEFAULT_DESCRIPTION_CREATE)
                 .dittoHeaders(dittoHeaders)
@@ -104,21 +108,29 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
      * {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new PolicyIdMissingException.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the
-     * {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static PolicyIdMissingException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(readMessage(jsonObject))
-                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION_GENERIC))
-                .href(readHRef(jsonObject).orElse(null))
-                .build();
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
     @Override
     public JsonSchemaVersion[] getSupportedSchemaVersions() {
         return new JsonSchemaVersion[]{JsonSchemaVersion.V_1};
+    }
+
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new Builder()
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
+                .dittoHeaders(dittoHeaders)
+                .build();
     }
 
     /**
@@ -131,11 +143,11 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
             description(DEFAULT_DESCRIPTION_GENERIC);
         }
 
-        private Builder(final String thingId, final JsonSchemaVersion version, final String messageTemplate,
+        private Builder(final ThingId thingId, final JsonSchemaVersion version, final String messageTemplate,
                 final String description) {
 
             this();
-            message(MessageFormat.format(messageTemplate, thingId, version.toInt()));
+            message(MessageFormat.format(messageTemplate, String.valueOf(thingId), version.toInt()));
             description(description);
         }
 

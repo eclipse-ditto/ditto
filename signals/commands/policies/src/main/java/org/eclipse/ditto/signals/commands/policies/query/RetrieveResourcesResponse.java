@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -25,22 +27,26 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Resources;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
 
 /**
  * Response to a {@link RetrieveResources} command.
  */
 @Immutable
-public final class RetrieveResourcesResponse extends AbstractCommandResponse<RetrieveResourcesResponse> implements
-        PolicyQueryCommandResponse<RetrieveResourcesResponse> {
+@JsonParsableCommandResponse(type = RetrieveResourcesResponse.TYPE)
+public final class RetrieveResourcesResponse extends AbstractCommandResponse<RetrieveResourcesResponse>
+        implements PolicyQueryCommandResponse<RetrieveResourcesResponse> {
 
     /**
      * Type of this response.
@@ -53,17 +59,17 @@ public final class RetrieveResourcesResponse extends AbstractCommandResponse<Ret
     static final JsonFieldDefinition<JsonObject> JSON_RESOURCES =
             JsonFactory.newJsonObjectFieldDefinition("resources", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final String policyId;
+    private final PolicyId policyId;
     private final Label label;
     private final JsonObject resources;
 
-    private RetrieveResourcesResponse(final String policyId,
+    private RetrieveResourcesResponse(final PolicyId policyId,
             final Label label,
             final JsonObject resources,
-            final HttpStatusCode statusCode,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, statusCode, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
         this.label = checkNotNull(label, "Label");
         this.resources = checkNotNull(resources, "Resources");
@@ -78,15 +84,17 @@ public final class RetrieveResourcesResponse extends AbstractCommandResponse<Ret
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.Resources, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static RetrieveResourcesResponse of(final String policyId,
             final Label label,
             final Resources resources,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrieveResourcesResponse(policyId, label, checkNotNull(resources, "Resources").toJson(
-                dittoHeaders.getSchemaVersion().orElse(resources.getLatestSchemaVersion())), HttpStatusCode.OK,
-                dittoHeaders);
+        return of(PolicyId.of(policyId), label, resources, dittoHeaders);
     }
 
     /**
@@ -99,12 +107,55 @@ public final class RetrieveResourcesResponse extends AbstractCommandResponse<Ret
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
+    public static RetrieveResourcesResponse of(final PolicyId policyId,
+            final Label label,
+            final Resources resources,
+            final DittoHeaders dittoHeaders) {
+
+        final JsonObject jsonResources = checkNotNull(resources, "Resources")
+                .toJson(dittoHeaders.getSchemaVersion().orElse(resources.getLatestSchemaVersion()));
+
+        return of(policyId, label, jsonResources, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@code RetrieveResources} command.
+     *
+     * @param policyId the Policy ID of the retrieved resources.
+     * @param label the Label of the PolicyEntry.
+     * @param resources the retrieved Resources.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.json.JsonObject, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
     public static RetrieveResourcesResponse of(final String policyId,
             final Label label,
             final JsonObject resources,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrieveResourcesResponse(policyId, label, resources, HttpStatusCode.OK, dittoHeaders);
+        return of(PolicyId.of(policyId), label, resources, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@code RetrieveResources} command.
+     *
+     * @param policyId the Policy ID of the retrieved resources.
+     * @param label the Label of the PolicyEntry.
+     * @param resources the retrieved Resources.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static RetrieveResourcesResponse of(final PolicyId policyId,
+            final Label label,
+            final JsonObject resources,
+            final DittoHeaders dittoHeaders) {
+
+        return new RetrieveResourcesResponse(policyId, label, resources, HttpStatus.OK, dittoHeaders);
     }
 
     /**
@@ -113,7 +164,7 @@ public final class RetrieveResourcesResponse extends AbstractCommandResponse<Ret
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
@@ -128,15 +179,16 @@ public final class RetrieveResourcesResponse extends AbstractCommandResponse<Ret
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
     public static RetrieveResourcesResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<RetrieveResourcesResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String policyId =
-                            jsonObject.getValueOrThrow(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID);
+        return new CommandResponseJsonDeserializer<RetrieveResourcesResponse>(TYPE, jsonObject).deserialize(
+                httpStatus -> {
+                    final String extractedPolicyId =
+                            jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID);
+                    final PolicyId policyId = PolicyId.of(extractedPolicyId);
                     final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
                     final JsonObject extractedResources = jsonObject.getValueOrThrow(JSON_RESOURCES);
 
@@ -145,7 +197,7 @@ public final class RetrieveResourcesResponse extends AbstractCommandResponse<Ret
     }
 
     @Override
-    public String getId() {
+    public PolicyId getEntityId() {
         return policyId;
     }
 
@@ -194,7 +246,7 @@ public final class RetrieveResourcesResponse extends AbstractCommandResponse<Ret
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
         jsonObjectBuilder.set(JSON_RESOURCES, resources, predicate);
     }
@@ -213,8 +265,11 @@ public final class RetrieveResourcesResponse extends AbstractCommandResponse<Ret
             return false;
         }
         final RetrieveResourcesResponse that = (RetrieveResourcesResponse) o;
-        return that.canEqual(this) && Objects.equals(policyId, that.policyId)
-                && Objects.equals(label, that.label) && Objects.equals(resources, that.resources) && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(policyId, that.policyId) &&
+                Objects.equals(label, that.label) &&
+                Objects.equals(resources, that.resources) &&
+                super.equals(o);
     }
 
     @Override

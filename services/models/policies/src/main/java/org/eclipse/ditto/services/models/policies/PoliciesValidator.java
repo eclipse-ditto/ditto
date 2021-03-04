@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -23,6 +25,8 @@ import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.ResourceKey;
+import org.eclipse.ditto.model.policies.Subject;
+import org.eclipse.ditto.model.policies.SubjectExpiry;
 import org.eclipse.ditto.model.policies.Subjects;
 
 /**
@@ -34,7 +38,7 @@ public final class PoliciesValidator implements Validator {
     private static final ResourceKey ROOT_RESOURCE = PoliciesResourceType.policyResource("/");
 
     private static final String NO_AUTH_SUBJECT_PATTERN =
-            "It must contain at least one Subject with permission(s) <{0}> on resource <{1}>!";
+            "It must contain at least one permanent Subject with permission(s) <{0}> on resource <{1}>!";
 
     private final Iterable<PolicyEntry> policyEntries;
     private final boolean containsPolicyImport;
@@ -53,7 +57,7 @@ public final class PoliciesValidator implements Validator {
      * Creates a new {@code PoliciesValidator} instance.
      *
      * @param policyEntries the policyEntries to be validated.
-     * @return a new {@code AclValidator} object.
+     * @return a new {@code PoliciesValidator} object.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static PoliciesValidator newInstance(final Iterable<PolicyEntry> policyEntries) {
@@ -78,14 +82,18 @@ public final class PoliciesValidator implements Validator {
             // ---> but then it would be possible to lock out myself when modifying the policy
             return true;
         } else {
-            final Set<Subjects> withPermissionGranted = StreamSupport.stream(policyEntries.spliterator(), false)
+            // Disregard expiring subjects when testing for permissions granted because those are deleted after some time.
+            final Set<Subject> withPermissionGranted = StreamSupport.stream(policyEntries.spliterator(), false)
                     .filter(this::hasPermissionGranted)
                     .map(PolicyEntry::getSubjects)
+                    .flatMap(Subjects::stream)
+                    .filter(subject -> subject.getExpiry().isEmpty())
                     .collect(Collectors.toSet());
 
-            final Set<Subjects> withPermissionRevoked = StreamSupport.stream(policyEntries.spliterator(), false)
+            final Set<Subject> withPermissionRevoked = StreamSupport.stream(policyEntries.spliterator(), false)
                     .filter(this::hasPermissionRevoked)
                     .map(PolicyEntry::getSubjects)
+                    .flatMap(Subjects::stream)
                     .collect(Collectors.toSet());
 
             withPermissionGranted.removeAll(withPermissionRevoked);
@@ -102,7 +110,7 @@ public final class PoliciesValidator implements Validator {
     }
 
     private boolean hasPermissionGranted(final PolicyEntry policyEntry) {
-        return policyEntry.getResources().stream() //
+        return policyEntry.getResources().stream()
                 .anyMatch(resource -> {
                     final boolean isRootResource = ROOT_RESOURCE.equals(resource.getResourceKey());
                     final boolean containsGrantedPermissions = resource.getEffectedPermissions()
@@ -114,7 +122,7 @@ public final class PoliciesValidator implements Validator {
     }
 
     private boolean hasPermissionRevoked(final PolicyEntry policyEntry) {
-        return policyEntry.getResources().stream() //
+        return policyEntry.getResources().stream()
                 .anyMatch(resource -> {
                     final boolean isRootResource = ROOT_RESOURCE.equals(resource.getResourceKey());
                     final boolean containsRevokedPermissions = resource.getEffectedPermissions()

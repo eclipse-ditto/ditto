@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -13,17 +15,18 @@ package org.eclipse.ditto.model.messages;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
-import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.AbstractDittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * Immutable implementation of {@code MessageHeaders}.
@@ -50,6 +53,7 @@ final class ImmutableMessageHeaders extends AbstractDittoHeaders implements Mess
     public MessageDirection getDirection() {
         final HeaderDefinition definition = MessageHeaderDefinition.DIRECTION;
         return getStringForDefinition(definition)
+                .map(String::toUpperCase)
                 .map(MessageDirection::valueOf)
                 .orElseThrow(() -> newIllegalStateException(definition));
     }
@@ -66,9 +70,11 @@ final class ImmutableMessageHeaders extends AbstractDittoHeaders implements Mess
     }
 
     @Override
-    public String getThingId() {
-        final HeaderDefinition definition = MessageHeaderDefinition.THING_ID;
-        return getStringForDefinition(definition).orElseThrow(() -> newIllegalStateException(definition));
+    public ThingId getThingEntityId() {
+        final String thingId = getStringForDefinition(MessageHeaderDefinition.THING_ID)
+                .orElseThrow(() -> newIllegalStateException(MessageHeaderDefinition.THING_ID));
+
+        return ThingId.of(thingId);
     }
 
     @Override
@@ -77,32 +83,25 @@ final class ImmutableMessageHeaders extends AbstractDittoHeaders implements Mess
     }
 
     @Override
-    public Optional<Duration> getTimeout() {
-        return getStringForDefinition(MessageHeaderDefinition.TIMEOUT)
-                .map(Long::parseLong)
-                .map(Duration::ofSeconds);
-    }
-
-    @Override
     public Optional<OffsetDateTime> getTimestamp() {
         return getStringForDefinition(MessageHeaderDefinition.TIMESTAMP).map(OffsetDateTime::parse);
     }
 
     @Override
-    public Optional<HttpStatusCode> getStatusCode() {
+    public Optional<HttpStatus> getHttpStatus() {
         return getStringForDefinition(MessageHeaderDefinition.STATUS_CODE)
                 .map(Integer::parseInt)
-                .flatMap(HttpStatusCode::forInt);
-    }
-
-    @Override
-    public Optional<String> getValidationUrl() {
-        return getStringForDefinition(MessageHeaderDefinition.VALIDATION_URL);
+                .flatMap(HttpStatus::tryGetInstance);
     }
 
     @Override
     protected Optional<HeaderDefinition> getSpecificDefinitionByKey(final CharSequence key) {
-        return MessageHeaderDefinition.forKey(key);
+        // keep the order to guarantee proper result because of timeout definitions
+        Optional<HeaderDefinition> result = DittoHeaderDefinition.forKey(key);
+        if (!result.isPresent()) {
+            result = MessageHeaderDefinition.forKey(key);
+        }
+        return result;
     }
 
     @Override

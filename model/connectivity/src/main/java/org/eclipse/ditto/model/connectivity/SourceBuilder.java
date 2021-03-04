@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -14,6 +16,9 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 
 /**
@@ -21,7 +26,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
  *
  * @param <T> the type that is returned by builder methods
  */
-public interface SourceBuilder<T extends SourceBuilder> {
+public interface SourceBuilder<T extends SourceBuilder<?>> {
 
     /**
      * Sets the addresses.
@@ -56,6 +61,14 @@ public interface SourceBuilder<T extends SourceBuilder> {
     T index(int index);
 
     /**
+     * Sets the qos of the source inside a connection.
+     *
+     * @param qos the qos
+     * @return this builder
+     */
+    T qos(@Nullable Integer qos);
+
+    /**
      * Sets the {@link AuthorizationContext}.
      *
      * @param authorizationContext the authorization context
@@ -72,12 +85,56 @@ public interface SourceBuilder<T extends SourceBuilder> {
     T enforcement(@Nullable Enforcement enforcement);
 
     /**
+     * Sets the {@link AcknowledgementRequest}s that are requested from messages consumed
+     * in the built source with an optionally applied filter.
+     *
+     * @param acknowledgementRequests the acknowledgement requests with an optional filter
+     * @return this builder
+     * @since 1.2.0
+     */
+    T acknowledgementRequests(@Nullable FilteredAcknowledgementRequest acknowledgementRequests);
+
+
+    /**
      * Sets the {@link HeaderMapping}, may be null if headerMapping is not enabled.
      *
      * @param headerMapping the headerMapping
      * @return this builder
      */
     T headerMapping(@Nullable HeaderMapping headerMapping);
+
+    /**
+     * Sets the payload mappings for this source.
+     *
+     * @param payloadMapping the payload mappings for this source
+     * @return this builder
+     */
+    T payloadMapping(PayloadMapping payloadMapping);
+
+    /**
+     * Set the reply target.
+     *
+     * @param replyTarget the new reply-target, or null to remove the current reply-target.
+     * @return this builder.
+     */
+    T replyTarget(@Nullable ReplyTarget replyTarget);
+
+    /**
+     * Set whether the reply-target is enabled.
+     *
+     * @param replyTargetEnabled whether the reply-target is enabled.
+     * @return this builder.
+     */
+    T replyTargetEnabled(boolean replyTargetEnabled);
+
+    /**
+     * Set what labels are allowed for incoming acknowledgements to this source.
+     *
+     * @param acknowledgementLabels acknowledgement labels to declare.
+     * @return this builder.
+     * @since 1.4.0
+     */
+    T declaredAcknowledgementLabels(Set<AcknowledgementLabel> acknowledgementLabels);
 
     /**
      * Build the source instance.

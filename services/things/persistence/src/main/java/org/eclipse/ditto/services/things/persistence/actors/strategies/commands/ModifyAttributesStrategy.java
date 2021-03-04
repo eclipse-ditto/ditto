@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -15,21 +17,28 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributesResponse;
 import org.eclipse.ditto.signals.events.things.AttributesCreated;
 import org.eclipse.ditto.signals.events.things.AttributesModified;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * This strategy handles the {@link ModifyAttributes} command.
  */
 @Immutable
-public final class ModifyAttributesStrategy extends
-        AbstractConditionalHeadersCheckingCommandStrategy<ModifyAttributes, Attributes> {
+final class ModifyAttributesStrategy extends AbstractThingCommandStrategy<ModifyAttributes> {
 
     /**
      * Constructs a new {@code ModifyAttributesStrategy} object.
@@ -39,46 +48,72 @@ public final class ModifyAttributesStrategy extends
     }
 
     @Override
-    protected Result doApply(final Context context, @Nullable final Thing thing,
-            final long nextRevision, final ModifyAttributes command) {
-        final Thing nonNullThing = getThingOrThrow(thing);
-        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> {
-            final long lengthWithOutAttributes = nonNullThing.removeAttributes()
-                    .toJsonString()
-                    .length();
-            final long attributesLength = command.getAttributes().toJsonString().length()
-                    + "attributes".length() + 5L;
-            return lengthWithOutAttributes + attributesLength;
-        }, command::getDittoHeaders);
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
+            @Nullable final Thing thing,
+            final long nextRevision,
+            final ModifyAttributes command,
+            @Nullable final Metadata metadata) {
+
+        final Thing nonNullThing = getEntityOrThrow(thing);
+
+        final JsonObject thingWithoutAttributesJsonObject = nonNullThing.removeAttributes().toJson();
+        final JsonObject attributesJsonObject = command.getAttributes().toJson();
+
+        ThingCommandSizeValidator.getInstance().ensureValidSize(
+                () -> {
+                    final long lengthWithOutAttributes = thingWithoutAttributesJsonObject.getUpperBoundForStringSize();
+                    final long attributesLength = attributesJsonObject.getUpperBoundForStringSize()
+                            + "attributes".length() + 5L;
+                    return lengthWithOutAttributes + attributesLength;
+                },
+                () -> {
+                    final long lengthWithOutAttributes = thingWithoutAttributesJsonObject.toString().length();
+                    final long attributesLength = attributesJsonObject.toString().length()
+                            + "attributes".length() + 5L;
+                    return lengthWithOutAttributes + attributesLength;
+                },
+                command::getDittoHeaders);
 
         return nonNullThing.getAttributes()
-                .map(attributes -> getModifyResult(context, nextRevision, command))
-                .orElseGet(() -> getCreateResult(context, nextRevision, command));
+                .map(attributes -> getModifyResult(context, nextRevision, command, thing, metadata))
+                .orElseGet(() -> getCreateResult(context, nextRevision, command, thing, metadata));
     }
 
-    private Result getModifyResult(final Context context, final long nextRevision,
-            final ModifyAttributes command) {
-        final String thingId = context.getThingId();
+    private Result<ThingEvent<?>> getModifyResult(final Context<ThingId> context, final long nextRevision,
+            final ModifyAttributes command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
+        final ThingId thingId = context.getState();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        return ResultFactory.newMutationResult(command,
+        final ThingEvent<?> event =
                 AttributesModified.of(thingId, command.getAttributes(), nextRevision, getEventTimestamp(),
-                        dittoHeaders), ModifyAttributesResponse.modified(thingId, dittoHeaders), this);
+                        dittoHeaders, metadata);
+        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
+                ModifyAttributesResponse.modified(thingId, dittoHeaders), thing);
+
+        return ResultFactory.newMutationResult(command, event, response);
     }
 
-    private Result getCreateResult(final Context context, final long nextRevision,
-            final ModifyAttributes command) {
-        final String thingId = context.getThingId();
+    private Result<ThingEvent<?>> getCreateResult(final Context<ThingId> context, final long nextRevision,
+            final ModifyAttributes command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
+        final ThingId thingId = context.getState();
         final Attributes attributes = command.getAttributes();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        return ResultFactory.newMutationResult(command,
-                AttributesCreated.of(thingId, attributes, nextRevision, getEventTimestamp(), dittoHeaders),
-                ModifyAttributesResponse.created(thingId, attributes, dittoHeaders), this);
+        final ThingEvent<?> event =
+                AttributesCreated.of(thingId, attributes, nextRevision, getEventTimestamp(), dittoHeaders, metadata);
+        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
+                ModifyAttributesResponse.created(thingId, attributes, dittoHeaders), thing);
+
+        return ResultFactory.newMutationResult(command, event, response);
     }
 
     @Override
-    public Optional<Attributes> determineETagEntity(final ModifyAttributes command, @Nullable final Thing thing) {
-        return getThingOrThrow(thing).getAttributes();
+    public Optional<EntityTag> previousEntityTag(final ModifyAttributes command, @Nullable final Thing previousEntity) {
+        return Optional.ofNullable(previousEntity).flatMap(Thing::getAttributes).flatMap(EntityTag::fromEntity);
+    }
+
+    @Override
+    public Optional<EntityTag> nextEntityTag(final ModifyAttributes command, @Nullable final Thing newEntity) {
+        return Optional.of(command.getAttributes()).flatMap(EntityTag::fromEntity);
     }
 }

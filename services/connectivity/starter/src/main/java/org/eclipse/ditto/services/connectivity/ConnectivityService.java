@@ -1,28 +1,30 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.connectivity;
 
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.eclipse.ditto.services.base.DittoService;
-import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
-import org.eclipse.ditto.services.base.config.ServiceConfigReader;
-import org.eclipse.ditto.services.connectivity.actors.ConnectivityRootActor;
+import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.messaging.DefaultClientActorPropsFactory;
+import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.stream.ActorMaterializer;
 
 /**
  * Entry point of the Connectivity service.
@@ -32,7 +34,7 @@ import akka.stream.ActorMaterializer;
  * </ul>
  */
 @AllParametersAndReturnValuesAreNonnullByDefault
-public final class ConnectivityService extends DittoService<ServiceConfigReader> {
+public final class ConnectivityService extends DittoService<ConnectivityConfig> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ConnectivityService.class);
 
@@ -42,7 +44,7 @@ public final class ConnectivityService extends DittoService<ServiceConfigReader>
     private static final String SERVICE_NAME = "connectivity";
 
     private ConnectivityService() {
-        super(LOGGER, SERVICE_NAME, ConnectivityRootActor.ACTOR_NAME, DittoServiceConfigReader.from(SERVICE_NAME));
+        super(LOGGER, SERVICE_NAME, ConnectivityRootActor.ACTOR_NAME);
     }
 
     /**
@@ -56,10 +58,15 @@ public final class ConnectivityService extends DittoService<ServiceConfigReader>
     }
 
     @Override
-    protected Props getMainRootActorProps(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
-            final ActorMaterializer materializer) {
+    protected ConnectivityConfig getServiceSpecificConfig(final ScopedConfig dittoConfig) {
+        return DittoConnectivityConfig.of(dittoConfig);
+    }
 
-        return ConnectivityRootActor.props(configReader, pubSubMediator, materializer, Function.identity());
+    @Override
+    protected Props getMainRootActorProps(final ConnectivityConfig connectivityConfig, final ActorRef pubSubMediator) {
+
+        return ConnectivityRootActor.props(connectivityConfig, pubSubMediator, UnaryOperator.identity(),
+                DefaultClientActorPropsFactory.getInstance());
     }
 
 }

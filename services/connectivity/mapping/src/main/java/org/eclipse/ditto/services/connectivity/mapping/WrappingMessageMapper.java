@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -12,30 +14,30 @@ package org.eclipse.ditto.services.connectivity.mapping;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
-import org.eclipse.ditto.protocoladapter.ProtocolFactory;
+import org.eclipse.ditto.services.connectivity.config.mapping.MapperLimitsConfig;
+import org.eclipse.ditto.services.connectivity.config.mapping.MappingConfig;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
-import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 
-import com.typesafe.config.Config;
-
 /**
- * Does wrap any {@link MessageMapper}.
- * <p>
- * adds headers to ExternalMessage and Adaptable in mappings even when the wrapped {@link MessageMapper} does
- * forget to do so by himself.
- * </p>
+ * Enforce message size limits on a {@link MessageMapper} and adds random correlation IDs should they not be present
+ * in the mapped message.
  */
 final class WrappingMessageMapper implements MessageMapper {
 
+    private int inboundMessageLimit;
+    private int outboundMessageLimit;
 
     private final MessageMapper delegate;
 
@@ -53,6 +55,31 @@ final class WrappingMessageMapper implements MessageMapper {
         return new WrappingMessageMapper(mapper);
     }
 
+    @Override
+    public String getId() {
+        return delegate.getId();
+    }
+
+    @Override
+    public Collection<String> getContentTypeBlocklist() {
+        return delegate.getContentTypeBlocklist();
+    }
+
+    @Override
+    public JsonObject getDefaultOptions() {
+        return delegate.getDefaultOptions();
+    }
+
+    @Override
+    public Map<String, String> getIncomingConditions() {
+        return delegate.getIncomingConditions();
+    }
+
+    @Override
+    public Map<String, String> getOutgoingConditions() {
+        return delegate.getOutgoingConditions();
+    }
+
     /**
      * @return the MessageMapper delegate this instance wraps.
      */
@@ -61,60 +88,52 @@ final class WrappingMessageMapper implements MessageMapper {
     }
 
     @Override
-    public void configure(final Config mappingConfig, final MessageMapperConfiguration configuration) {
+    public void configure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
+        final MapperLimitsConfig mapperLimitsConfig = mappingConfig.getMapperLimitsConfig();
+        inboundMessageLimit = mapperLimitsConfig.getMaxMappedInboundMessages();
+        outboundMessageLimit = mapperLimitsConfig.getMaxMappedOutboundMessages();
         delegate.configure(mappingConfig, configuration);
     }
 
     @Override
-    public Optional<Adaptable> map(final ExternalMessage message) {
-
-        final ExternalMessage enhancedMessage;
-        final String correlationId;
-        if (!message.getHeaders().containsKey(DittoHeaderDefinition.CORRELATION_ID.getKey())) {
-            // if no correlation-id was provided in the ExternalMessage, generate one here:
-            correlationId = UUID.randomUUID().toString();
-            enhancedMessage = ExternalMessageFactory.newExternalMessageBuilder(message)
-                    .withAdditionalHeaders(DittoHeaderDefinition.CORRELATION_ID.getKey(),
-                            correlationId)
-                    .build();
-        } else {
-            correlationId = message.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
-            enhancedMessage = message;
-        }
-
-        final Optional<Adaptable> mappedOpt = delegate.map(enhancedMessage);
-
-        return mappedOpt.map(mapped -> {
-            final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder();
-            headersBuilder.correlationId(correlationId);
-
-            Optional.ofNullable(message.getHeaders().get(ExternalMessage.REPLY_TO_HEADER)).ifPresent(replyTo ->
-                    headersBuilder.putHeader(ExternalMessage.REPLY_TO_HEADER, replyTo)
-            );
-
-            final Optional<DittoHeaders> headersOpt = mapped.getHeaders();
-            headersOpt.ifPresent(headersBuilder::putHeaders); // overwrite with mapped headers (if any)
-
-            return ProtocolFactory.newAdaptableBuilder(mapped)
-                    .withHeaders(headersBuilder.build())
-                    .build();
-        });
+    public List<Adaptable> map(final ExternalMessage message) {
+        return checkMaxMappedMessagesLimit(delegate.map(message), inboundMessageLimit, message.getInternalHeaders());
     }
 
     @Override
-    public Optional<ExternalMessage> map(final Adaptable adaptable) {
+    public List<ExternalMessage> map(final Adaptable adaptable) {
+        final var externalMessages = delegate.map(adaptable);
+        checkMaxMappedMessagesLimit(externalMessages, outboundMessageLimit, adaptable.getDittoHeaders());
 
-        final Optional<ExternalMessage> mappedOpt = delegate.map(adaptable);
+        final var isResponse = isResponse(adaptable);
+        final UnaryOperator<ExternalMessage> markAsResponse =
+                externalMessage -> ExternalMessageFactory.newExternalMessageBuilder(externalMessage)
+                        .asResponse(isResponse)
+                        .build();
 
-        return mappedOpt.map(mapped -> {
-            final ExternalMessageBuilder messageBuilder = ExternalMessageFactory.newExternalMessageBuilder(mapped);
-            messageBuilder.asResponse(adaptable.getPayload().getStatus().isPresent());
-            adaptable.getHeaders()
-                    .map(h -> h.get(ExternalMessage.REPLY_TO_HEADER))
-                    .ifPresent(
-                            replyTo -> messageBuilder.withAdditionalHeaders(ExternalMessage.REPLY_TO_HEADER, replyTo));
-            return messageBuilder.build();
-        });
+        return externalMessages.stream()
+                .map(markAsResponse)
+                .collect(Collectors.toList());
+    }
+
+    private <T> List<T> checkMaxMappedMessagesLimit(final List<T> mappingResult, final int maxMappedMessages,
+            final DittoHeaders dittoHeaders) {
+
+        if (mappingResult.size() > maxMappedMessages) {
+            final var descFormat = "The payload mapping '%s' produced %d messages, which exceeds the limit of %d.";
+            throw MessageMappingFailedException.newBuilder((String) null)
+                    .message("The number of messages produced by the payload mapping exceeded the limits.")
+                    .dittoHeaders(dittoHeaders)
+                    .description(String.format(descFormat, getId(), mappingResult.size(), maxMappedMessages))
+                    .build();
+        }
+        return mappingResult;
+    }
+
+    private static boolean isResponse(final Adaptable adaptable) {
+        final var payload = adaptable.getPayload();
+        final var httpStatus = payload.getHttpStatus();
+        return httpStatus.isPresent();
     }
 
     @Override
@@ -140,4 +159,5 @@ final class WrappingMessageMapper implements MessageMapper {
                 "delegate=" + delegate +
                 "]";
     }
+
 }

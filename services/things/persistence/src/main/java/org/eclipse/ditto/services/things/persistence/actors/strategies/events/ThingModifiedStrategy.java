@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -21,7 +23,11 @@ import org.eclipse.ditto.signals.events.things.ThingModified;
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.ThingModified} event.
  */
 @Immutable
-final class ThingModifiedStrategy extends AbstractEventStrategy<ThingModified> {
+final class ThingModifiedStrategy extends AbstractThingEventStrategy<ThingModified> {
+
+    protected ThingModifiedStrategy() {
+        super();
+    }
 
     /**
      * Merges the modifications from {@code thingWithModifications} to {@code thingBuilder}.
@@ -37,9 +43,10 @@ final class ThingModifiedStrategy extends AbstractEventStrategy<ThingModified> {
         thingBuilder.setLifecycle(ThingLifecycle.ACTIVE);
 
         final Thing thingWithModifications = event.getThing();
-        thingWithModifications.getPolicyId().ifPresent(thingBuilder::setPolicyId);
+        thingWithModifications.getPolicyEntityId().ifPresent(thingBuilder::setPolicyId);
         thingWithModifications.getAccessControlList().ifPresent(thingBuilder::setPermissions);
         thingWithModifications.getAttributes().ifPresent(thingBuilder::setAttributes);
+        thingWithModifications.getDefinition().ifPresent(thingBuilder::setDefinition);
         thingWithModifications.getFeatures().ifPresent(thingBuilder::setFeatures);
 
         return thingBuilder;

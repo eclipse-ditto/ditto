@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -13,12 +15,10 @@ package org.eclipse.ditto.model.connectivity;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.connectivity.credentials.Credentials;
 
 /**
  * A mutable builder for a {@link Connection} with a fluent API.
@@ -32,7 +32,7 @@ public interface ConnectionBuilder {
      * @return this builder to allow method chaining.
      * @throws NullPointerException if {@code id} is {@code null}.
      */
-    ConnectionBuilder id(String id);
+    ConnectionBuilder id(ConnectionId id);
 
     /**
      * Sets the name to use in the {@code Connection}.
@@ -84,7 +84,7 @@ public interface ConnectionBuilder {
      * @return this builder to allow method chaining.
      * @throws NullPointerException if {@code connectionStatus} is {@code null}.
      */
-    ConnectionBuilder connectionStatus(ConnectionStatus connectionStatus);
+    ConnectionBuilder connectionStatus(ConnectivityStatus connectionStatus);
 
     /**
      * Enable/disable fail-over for the {@code Connection}.
@@ -127,7 +127,25 @@ public interface ConnectionBuilder {
      * @return this builder to allow method chaining.
      * @throws NullPointerException if {@code targets} is {@code null}.
      */
-    ConnectionBuilder targets(Set<Target> targets);
+    ConnectionBuilder targets(List<Target> targets);
+
+    /**
+     * Set sources of connection.
+     *
+     * @param sources the new sources.
+     * @return this builder to allow method chaining.
+     * @throws NullPointerException if {@code sources} is {@code null}.
+     */
+    ConnectionBuilder setSources(List<Source> sources);
+
+    /**
+     * Set targets to the connection.
+     *
+     * @param targets the new targets.
+     * @return this builder to allow method chaining.
+     * @throws NullPointerException if {@code targets} is {@code null}.
+     */
+    ConnectionBuilder setTargets(List<Target> targets);
 
     /**
      * Sets how many clients on different cluster nodes should establish the {@code Connection}.
@@ -176,6 +194,22 @@ public interface ConnectionBuilder {
      * @throws NullPointerException if {@code tag} is {@code null}.
      */
     ConnectionBuilder tag(String tag);
+
+    /**
+     * Sets the {@link ConnectionLifecycle} of the connection.
+     *
+     * @param lifecycle the connection lifecycle
+     * @return this builder
+     */
+    ConnectionBuilder lifecycle(@Nullable ConnectionLifecycle lifecycle);
+
+    /**
+     * Sets the payload mapping definition of the connection.
+     *
+     * @param payloadMappingDefinition the payload mapping definition.
+     * @return this builder
+     */
+    ConnectionBuilder payloadMappingDefinition(PayloadMappingDefinition payloadMappingDefinition);
 
     /**
      * Builds a new {@link Connection}.

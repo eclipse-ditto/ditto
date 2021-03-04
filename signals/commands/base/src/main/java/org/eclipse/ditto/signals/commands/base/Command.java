@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -14,6 +16,7 @@ import java.util.function.Predicate;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.atteo.classindex.IndexSubclasses;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -28,7 +31,8 @@ import org.eclipse.ditto.signals.base.Signal;
  *
  * @param <T> the type of the implementing class.
  */
-public interface Command<T extends Command> extends Signal<T> {
+@IndexSubclasses
+public interface Command<T extends Command<T>> extends Signal<T> {
 
     /**
      * Type qualifier of commands.
@@ -71,6 +75,38 @@ public interface Command<T extends Command> extends Signal<T> {
     JsonObject toJson(JsonSchemaVersion schemaVersion, Predicate<JsonField> predicate);
 
     /**
+     * Categories every command is classified into.
+     */
+    @Immutable
+    enum Category {
+        /**
+         * Category of commands that do not change the state of any entity.
+         */
+        QUERY,
+
+        /**
+         * Category of commands that change the state of entities.
+         */
+        MODIFY,
+
+        /**
+         * Category of commands that change the state of entities.
+         */
+        MERGE,
+
+        /**
+         * Category of commands that delete entities.
+         */
+        DELETE,
+
+        /**
+         * Category of commands that are neither of the above 3 (query, modify, delete) but perform an action on the
+         * entity.
+         */
+        ACTION
+    }
+
+    /**
      * This class contains common definitions for all fields of a {@code Command}'s JSON representation.
      * Implementation of {@code Command} may add additional fields by extending this class.
      */
@@ -79,7 +115,10 @@ public interface Command<T extends Command> extends Signal<T> {
 
         /**
          * JSON field containing the command's identification as String.
+         *
+         * @deprecated Command ID belongs to deprecated API 1. Use API 2 with {@link #TYPE} instead
          */
+        @Deprecated
         public static final JsonFieldDefinition<String> ID =
                 JsonFactory.newStringFieldDefinition("command", FieldType.REGULAR, JsonSchemaVersion.V_1);
 
@@ -96,27 +135,6 @@ public interface Command<T extends Command> extends Signal<T> {
             super();
         }
 
-    }
-
-    /**
-     * Categories every command is classified into.
-     */
-    @Immutable
-    enum Category {
-        /**
-         * Category of commands that do not change the state of any entity.
-         */
-        QUERY,
-
-        /**
-         * Category of commands that change the state of entities.
-         */
-        MODIFY,
-
-        /**
-         * Category of commands that delete entities.
-         */
-        DELETE
     }
 
 }

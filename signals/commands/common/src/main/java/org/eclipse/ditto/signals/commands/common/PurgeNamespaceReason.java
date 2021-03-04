@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -13,13 +15,16 @@ package org.eclipse.ditto.signals.commands.common;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
 
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -29,10 +34,11 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 @Immutable
 final class PurgeNamespaceReason implements ShutdownReason {
 
-    private final ShutdownReason reason;
+    private static final ShutdownReasonType type = ShutdownReasonType.Known.PURGE_NAMESPACE;
+    private final String namespaceToPurge;
 
-    private PurgeNamespaceReason(final ShutdownReason theReason) {
-        reason = theReason;
+    private PurgeNamespaceReason(final String namespaceToPurge) {
+        this.namespaceToPurge = namespaceToPurge;
     }
 
     /**
@@ -44,34 +50,37 @@ final class PurgeNamespaceReason implements ShutdownReason {
      * @throws IllegalArgumentException if {@code namespace} is empty.
      */
     public static PurgeNamespaceReason of(final CharSequence namespace) {
-        return new PurgeNamespaceReason(
-                ShutdownReasonFactory.getShutdownReason(ShutdownReasonType.Known.PURGE_NAMESPACE,
-                        argumentNotEmpty(namespace, "namespace").toString()));
+        return new PurgeNamespaceReason(argumentNotEmpty(namespace, "namespace").toString());
+    }
+
+    static PurgeNamespaceReason fromJson(final JsonObject jsonObject) {
+        return new PurgeNamespaceReason(jsonObject.getValueOrThrow(JsonFields.DETAILS).asString());
     }
 
     @Override
     public ShutdownReasonType getType() {
-        return reason.getType();
+        return type;
     }
 
     @Override
-    public Optional<String> getDetails() {
-        return reason.getDetails();
+    public boolean isRelevantFor(final Object value) {
+        return namespaceToPurge.equals(value);
     }
 
     @Override
-    public String getDetailsOrThrow() {
-        return reason.getDetailsOrThrow();
+    public JsonObject toJson() {
+        return toJson(FieldType.REGULAR.and(FieldType.notHidden()));
     }
 
-    /**
-     * Returns the namespace to be purged.
-     *
-     * @return the namespace.
-     */
-    @SuppressWarnings({"OptionalGetWithoutIsPresent", "squid:S3655"})
-    public String getNamespace() {
-        return getDetails().get();
+    @Override
+    public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> predicate) {
+        final Predicate<JsonField> extendedPredicate = schemaVersion.and(predicate);
+
+        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder()
+                .set(JsonFields.TYPE, getType().toString(), extendedPredicate);
+        jsonObjectBuilder.set(JsonFields.DETAILS, JsonValue.of(namespaceToPurge), extendedPredicate);
+
+        return jsonObjectBuilder.build();
     }
 
     @Override
@@ -83,28 +92,18 @@ final class PurgeNamespaceReason implements ShutdownReason {
             return false;
         }
         final PurgeNamespaceReason that = (PurgeNamespaceReason) o;
-        return Objects.equals(reason, that.reason);
+        return Objects.equals(namespaceToPurge, that.namespaceToPurge);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(reason);
-    }
-
-    @Override
-    public JsonObject toJson() {
-        return reason.toJson();
-    }
-
-    @Override
-    public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> predicate) {
-        return reason.toJson(schemaVersion, predicate);
+        return Objects.hash(namespaceToPurge);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "reason=" + reason +
+                "namespaceToPurge=" + namespaceToPurge +
                 "]";
     }
 

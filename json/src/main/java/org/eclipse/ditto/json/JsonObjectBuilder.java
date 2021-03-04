@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -17,6 +19,7 @@ import javax.annotation.Nullable;
 /**
  * A mutable builder for a {@link JsonObject}. Implementations of this interface are normally not thread safe and not
  * reusable.
+ * The order in which the key-value-pairs are set is preserved in the resulting JSON object.
  */
 public interface JsonObjectBuilder extends JsonValueContainer<JsonField> {
 
@@ -142,7 +145,7 @@ public interface JsonObjectBuilder extends JsonValueContainer<JsonField> {
      * @throws IllegalArgumentException if {@code key} is empty or if {@code key} is an empty JsonPointer. Setting a
      * value with slash as JsonKey object explicitly works.
      */
-    JsonObjectBuilder set(CharSequence key, String value, Predicate<JsonField> predicate);
+    JsonObjectBuilder set(CharSequence key, @Nullable String value, Predicate<JsonField> predicate);
 
     /**
      * Sets a new string value field to the JSON object to be built.
@@ -154,7 +157,7 @@ public interface JsonObjectBuilder extends JsonValueContainer<JsonField> {
      * @throws IllegalArgumentException if {@code key} is empty or if {@code key} is an empty JsonPointer. Setting a
      * value with slash as JsonKey object explicitly works.
      */
-    default JsonObjectBuilder set(final CharSequence key, final String value) {
+    default JsonObjectBuilder set(final CharSequence key, @Nullable final String value) {
         return set(key, value, field -> true);
     }
 

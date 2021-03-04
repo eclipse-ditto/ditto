@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -28,9 +30,10 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.devops.ImmutableLoggerConfig;
 import org.eclipse.ditto.model.devops.LoggerConfig;
@@ -41,6 +44,7 @@ import org.eclipse.ditto.signals.commands.base.WithEntity;
  * Response to the {@link RetrieveLoggerConfig} command.
  */
 @Immutable
+@JsonParsableCommandResponse(type = RetrieveLoggerConfigResponse.TYPE)
 public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandResponse<RetrieveLoggerConfigResponse>
     implements WithEntity<RetrieveLoggerConfigResponse> {
 
@@ -55,9 +59,12 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
 
     private final List<LoggerConfig> loggerConfigs;
 
-    private RetrieveLoggerConfigResponse(@Nullable final String serviceName, @Nullable final String instance,
-            final List<LoggerConfig> loggerConfigs, final DittoHeaders dittoHeaders) {
-        super(TYPE, serviceName, instance, HttpStatusCode.OK, dittoHeaders);
+    private RetrieveLoggerConfigResponse(@Nullable final String serviceName,
+            @Nullable final String instance,
+            final List<LoggerConfig> loggerConfigs,
+            final DittoHeaders dittoHeaders) {
+
+        super(TYPE, serviceName, instance, HttpStatus.OK, dittoHeaders);
         this.loggerConfigs = Collections.unmodifiableList(new ArrayList<>(loggerConfigs));
     }
 
@@ -70,9 +77,11 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
      * @param dittoHeaders the headers of the request.
      * @return the new RetrieveLoggerConfigResponse response.
      */
-    public static RetrieveLoggerConfigResponse of(@Nullable final String serviceName, @Nullable final String instance,
+    public static RetrieveLoggerConfigResponse of(@Nullable final String serviceName,
+            @Nullable final String instance,
             final List<LoggerConfig> loggerConfigs,
             final DittoHeaders dittoHeaders) {
+
         return new RetrieveLoggerConfigResponse(serviceName, instance, loggerConfigs, dittoHeaders);
     }
 
@@ -101,10 +110,9 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static RetrieveLoggerConfigResponse fromJson(final JsonObject jsonObject,
-            final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<RetrieveLoggerConfigResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
+    public static RetrieveLoggerConfigResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandResponseJsonDeserializer<RetrieveLoggerConfigResponse>(TYPE, jsonObject).deserialize(
+                httpStatus -> {
                     final String serviceName = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_SERVICE_NAME)
                             .orElse(null);
                     final String instance = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_INSTANCE)

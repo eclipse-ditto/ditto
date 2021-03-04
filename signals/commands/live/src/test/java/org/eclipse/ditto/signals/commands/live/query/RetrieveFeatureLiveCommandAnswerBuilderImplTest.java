@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -15,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import java.text.MessageFormat;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.signals.commands.live.assertions.LiveCommandAssertions;
@@ -45,7 +47,7 @@ public final class RetrieveFeatureLiveCommandAnswerBuilderImplTest {
     /** */
     @Before
     public void setUp() {
-        Mockito.when(commandMock.getThingId()).thenReturn(TestConstants.Thing.THING_ID);
+        Mockito.when(commandMock.getThingEntityId()).thenReturn(TestConstants.Thing.THING_ID);
         Mockito.when(commandMock.getDittoHeaders()).thenReturn(DittoHeaders.empty());
         Mockito.when(commandMock.getFeatureId()).thenReturn(TestConstants.Feature.FLUX_CAPACITOR_ID);
 
@@ -85,7 +87,7 @@ public final class RetrieveFeatureLiveCommandAnswerBuilderImplTest {
                 .hasNoEvent()
                 .hasThingQueryCommandResponse()
                 .hasType(RetrieveFeatureResponse.TYPE)
-                .hasDittoHeaders(DittoHeaders.empty())
+                .hasDittoHeaders(DittoHeaders.newBuilder().responseRequired(false).build())
                 .hasResourcePath(JsonPointer.of("features/" + feature.getId()));
     }
 
@@ -101,8 +103,8 @@ public final class RetrieveFeatureLiveCommandAnswerBuilderImplTest {
                 .hasNoEvent()
                 .hasThingErrorResponse()
                 .withType(ThingErrorResponse.TYPE)
-                .withDittoHeaders(DittoHeaders.empty())
-                .withStatus(HttpStatusCode.NOT_FOUND)
+                .withDittoHeaders(DittoHeaders.newBuilder().responseRequired(false).build())
+                .withStatus(HttpStatus.NOT_FOUND)
                 .withDittoRuntimeExceptionOfType(FeatureNotAccessibleException.class);
     }
 

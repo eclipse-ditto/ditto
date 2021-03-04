@@ -1,30 +1,32 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.utils.persistence.mongo;
 
-import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_ACK_MSG;
-import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_COMPLETED;
-import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_STARTED;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.time.Instant;
 import java.util.Collections;
 import java.util.UUID;
 
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.models.streaming.AbstractEntityIdWithRevision;
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
-import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
+import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
+import org.eclipse.ditto.services.models.streaming.SudoStreamPids;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -39,7 +41,9 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.stream.SourceRef;
 import akka.stream.javadsl.Source;
+import akka.stream.testkit.javadsl.TestSink;
 import akka.testkit.javadsl.TestKit;
 
 /**
@@ -49,8 +53,7 @@ public final class DefaultPersistenceStreamingActorTest {
 
     private static ActorSystem actorSystem;
 
-    private static final String ID = "ns:knownId";
-    private static final long REVISION = 32L;
+    private static final EntityId ID = DefaultEntityId.of("ns:knownId");
 
     @BeforeClass
     public static void initActorSystem() {
@@ -66,54 +69,56 @@ public final class DefaultPersistenceStreamingActorTest {
     @Test
     public void retrieveEmptyStream() {
         new TestKit(actorSystem) {{
-            final Source<PidWithSeqNr, NotUsed> mockedSource = Source.empty();
+            final Source<String, NotUsed> mockedSource = Source.empty();
             final ActorRef underTest = createPersistenceQueriesActor(mockedSource);
             final Command<?> command = createStreamingRequest();
 
             sendCommand(this, underTest, command);
-            expectMsg(STREAM_STARTED);
-            reply(STREAM_ACK_MSG);
 
-            expectMsg(STREAM_COMPLETED);
+            final SourceRef<?> sourceRef = expectMsgClass(SourceRef.class);
+
+            sourceRef.getSource()
+                    .runWith(TestSink.probe(actorSystem), actorSystem)
+                    .request(1000L)
+                    .expectComplete();
         }};
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void retrieveNonEmptyStream() {
         new TestKit(actorSystem) {{
-            final Source<PidWithSeqNr, NotUsed> mockedSource = Source.single(new PidWithSeqNr(ID, REVISION));
+            final Source<String, NotUsed> mockedSource = Source.single(ID.toString());
             final ActorRef underTest = createPersistenceQueriesActor(mockedSource);
             final Command<?> command = createStreamingRequest();
 
             sendCommand(this, underTest, command);
-            expectMsg(STREAM_STARTED);
-            reply(STREAM_ACK_MSG);
 
-            final BatchedEntityIdWithRevisions<?> expectedMessage =
+            final SourceRef<Object> sourceRef = expectMsgClass(SourceRef.class);
+
+            final Object expectedMessage =
                     BatchedEntityIdWithRevisions.of(SimpleEntityIdWithRevision.class,
-                            Collections.singletonList(new SimpleEntityIdWithRevision(ID, REVISION)));
-            expectMsg(expectedMessage);
-            reply(STREAM_ACK_MSG);
+                            Collections.singletonList(new SimpleEntityIdWithRevision(ID, 0L)));
 
-            expectMsg(STREAM_COMPLETED);
+            sourceRef.getSource()
+                    .runWith(TestSink.probe(actorSystem), actorSystem)
+                    .request(1000L)
+                    .expectNext(expectedMessage)
+                    .expectComplete();
         }};
     }
 
-    private Command<?> createStreamingRequest() {
-        final Instant endTs = Instant.now().minusSeconds(5);
-        final Instant startTs = endTs.minusSeconds(10);
-
-        final DittoHeaders dittoHeaders = DittoHeaders.empty();
-        return SudoStreamModifiedEntities.of(startTs, endTs, 1, 10_000L, dittoHeaders);
+    private static Command<?> createStreamingRequest() {
+        return SudoStreamPids.of(1, 10_000L, DittoHeaders.empty());
     }
 
-    private static ActorRef createPersistenceQueriesActor(final Source<PidWithSeqNr, NotUsed> mockedSource) {
-        final MongoClientWrapper mockClient = mock(MongoClientWrapper.class);
+    private static ActorRef createPersistenceQueriesActor(final Source<String, NotUsed> mockedSource) {
         final MongoReadJournal mockJournal = mock(MongoReadJournal.class);
-        when(mockJournal.getPidWithSeqNrsByInterval(any(), any())).thenReturn(mockedSource);
-        final Props props = Props.create(DefaultPersistenceStreamingActor.class, () ->
-                new DefaultPersistenceStreamingActor<>(SimpleEntityIdWithRevision.class,
-                        100, DefaultPersistenceStreamingActorTest::mapEntity, mockJournal, mockClient));
+        when(mockJournal.getJournalPids(anyInt(), any(), any())).thenReturn(mockedSource);
+        final Props props = DefaultPersistenceStreamingActor.propsForTests(SimpleEntityIdWithRevision.class,
+                DefaultPersistenceStreamingActorTest::mapEntity,
+                DefaultPersistenceStreamingActorTest::unmapEntity,
+                mockJournal);
         return actorSystem.actorOf(props, "persistenceQueriesActor-" + UUID.randomUUID());
     }
 
@@ -122,13 +127,19 @@ public final class DefaultPersistenceStreamingActorTest {
     }
 
     private static SimpleEntityIdWithRevision mapEntity(final PidWithSeqNr pidWithSeqNr) {
-        return new SimpleEntityIdWithRevision(pidWithSeqNr.getPersistenceId(), pidWithSeqNr.getSequenceNr());
+        return new SimpleEntityIdWithRevision(DefaultEntityId.of(pidWithSeqNr.getPersistenceId()),
+                pidWithSeqNr.getSequenceNr());
     }
 
-    private static final class SimpleEntityIdWithRevision extends AbstractEntityIdWithRevision {
+    private static PidWithSeqNr unmapEntity(final EntityIdWithRevision<?> entityIdWithRevision) {
+        return new PidWithSeqNr(entityIdWithRevision.getEntityId().toString(), entityIdWithRevision.getRevision());
+    }
 
-        private SimpleEntityIdWithRevision(final String id, final long revision) {
+    private static final class SimpleEntityIdWithRevision extends AbstractEntityIdWithRevision<EntityId> {
+
+        private SimpleEntityIdWithRevision(final EntityId id, final long revision) {
             super(id, revision);
         }
     }
+
 }

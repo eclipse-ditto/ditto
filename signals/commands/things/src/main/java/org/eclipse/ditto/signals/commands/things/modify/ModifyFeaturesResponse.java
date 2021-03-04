@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -26,21 +28,25 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Features;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * Response to a {@link ModifyFeatures} command.
  */
 @Immutable
-public final class ModifyFeaturesResponse extends AbstractCommandResponse<ModifyFeaturesResponse> implements
-        ThingModifyCommandResponse<ModifyFeaturesResponse> {
+@JsonParsableCommandResponse(type = ModifyFeaturesResponse.TYPE)
+public final class ModifyFeaturesResponse extends AbstractCommandResponse<ModifyFeaturesResponse>
+        implements ThingModifyCommandResponse<ModifyFeaturesResponse> {
 
     /**
      * Type of this response.
@@ -51,22 +57,42 @@ public final class ModifyFeaturesResponse extends AbstractCommandResponse<Modify
             JsonFactory.newJsonObjectFieldDefinition("features", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final Features featuresCreated;
 
-    private ModifyFeaturesResponse(final String thingId,
-            final HttpStatusCode statusCode,
+    private ModifyFeaturesResponse(final ThingId thingId,
+            final HttpStatus httpStatus,
             final Features featuresCreated,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, statusCode, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
         this.featuresCreated = featuresCreated;
     }
 
     /**
-     * Returns a new {@code ModifyFeaturesResponse} for a created Feature. This corresponds to the HTTP status code
-     * {@link HttpStatusCode#CREATED}.
+     * Returns a new {@code ModifyFeaturesResponse} for a created Feature. This corresponds to the HTTP status
+     * {@link HttpStatus#CREATED}.
+     *
+     * @param thingId the Thing ID of the created features.
+     * @param features the created Features.
+     * @param dittoHeaders the headers of the ThingCommand which caused the new response.
+     * @return a command response for a created Feature.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #created(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.Features, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static ModifyFeaturesResponse created(final String thingId, final Features features,
+            final DittoHeaders dittoHeaders) {
+
+        return created(ThingId.of(thingId), features, dittoHeaders);
+    }
+
+    /**
+     * Returns a new {@code ModifyFeaturesResponse} for a created Feature. This corresponds to the HTTP status
+     * {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created features.
      * @param features the created Features.
@@ -74,24 +100,41 @@ public final class ModifyFeaturesResponse extends AbstractCommandResponse<Modify
      * @return a command response for a created Feature.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ModifyFeaturesResponse created(final String thingId, final Features features,
+    public static ModifyFeaturesResponse created(final ThingId thingId, final Features features,
             final DittoHeaders dittoHeaders) {
 
         checkNotNull(features, "created Features");
-        return new ModifyFeaturesResponse(thingId, HttpStatusCode.CREATED, features, dittoHeaders);
+        return new ModifyFeaturesResponse(thingId, HttpStatus.CREATED, features, dittoHeaders);
     }
 
     /**
-     * Returns a new {@code ModifyFeaturesResponse} for a modified Feature. This corresponds to the HTTP status code
-     * {@link HttpStatusCode#NO_CONTENT}.
+     * Returns a new {@code ModifyFeaturesResponse} for a modified Feature. This corresponds to the HTTP status
+     * {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified features.
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a modified Feature.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #modified(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static ModifyFeaturesResponse modified(final String thingId, final DittoHeaders dittoHeaders) {
-        return new ModifyFeaturesResponse(thingId, HttpStatusCode.NO_CONTENT, ThingsModelFactory.nullFeatures(),
+        return modified(ThingId.of(thingId), dittoHeaders);
+    }
+
+    /**
+     * Returns a new {@code ModifyFeaturesResponse} for a modified Feature. This corresponds to the HTTP status
+     * {@link HttpStatus#NO_CONTENT}.
+     *
+     * @param thingId the Thing ID of the modified features.
+     * @param dittoHeaders the headers of the ThingCommand which caused the new response.
+     * @return a command response for a modified Feature.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static ModifyFeaturesResponse modified(final ThingId thingId, final DittoHeaders dittoHeaders) {
+        return new ModifyFeaturesResponse(thingId, HttpStatus.NO_CONTENT, ThingsModelFactory.nullFeatures(),
                 dittoHeaders);
     }
 
@@ -121,22 +164,16 @@ public final class ModifyFeaturesResponse extends AbstractCommandResponse<Modify
      * format.
      */
     public static ModifyFeaturesResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<ModifyFeaturesResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String thingId =
-                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
-                    final JsonObject featuresJsonObject = jsonObject.getValueOrThrow(JSON_FEATURES);
-
-                    final Features extractedFeatures = (null != featuresJsonObject)
-                            ? ThingsModelFactory.newFeatures(featuresJsonObject)
-                            : ThingsModelFactory.nullFeatures();
-
-                    return new ModifyFeaturesResponse(thingId, statusCode, extractedFeatures, dittoHeaders);
-                });
+        return new CommandResponseJsonDeserializer<ModifyFeaturesResponse>(TYPE, jsonObject).deserialize(
+                httpStatus -> new ModifyFeaturesResponse(
+                        ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
+                        httpStatus,
+                        ThingsModelFactory.newFeatures(jsonObject.getValueOrThrow(JSON_FEATURES)),
+                        dittoHeaders));
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -164,20 +201,20 @@ public final class ModifyFeaturesResponse extends AbstractCommandResponse<Modify
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURES, featuresCreated.toJson(schemaVersion, thePredicate), predicate);
     }
 
     @Override
     public ModifyFeaturesResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return (HttpStatusCode.CREATED == getStatusCode())
+        return HttpStatus.CREATED.equals(getHttpStatus())
                 ? created(thingId, featuresCreated, dittoHeaders)
                 : modified(thingId, dittoHeaders);
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof ModifyFeaturesResponse);
+        return other instanceof ModifyFeaturesResponse;
     }
 
     @Override
@@ -189,8 +226,10 @@ public final class ModifyFeaturesResponse extends AbstractCommandResponse<Modify
             return false;
         }
         final ModifyFeaturesResponse that = (ModifyFeaturesResponse) o;
-        return that.canEqual(this) && Objects.equals(thingId, that.thingId) &&
-                Objects.equals(featuresCreated, that.featuresCreated) && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(thingId, that.thingId) &&
+                Objects.equals(featuresCreated, that.featuresCreated) &&
+                super.equals(o);
     }
 
     @Override

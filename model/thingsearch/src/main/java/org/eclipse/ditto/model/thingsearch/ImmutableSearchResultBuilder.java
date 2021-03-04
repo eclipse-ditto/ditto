@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -12,6 +14,7 @@ package org.eclipse.ditto.model.thingsearch;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -26,11 +29,15 @@ import org.eclipse.ditto.json.JsonValue;
 final class ImmutableSearchResultBuilder implements SearchResultBuilder {
 
     private final JsonArrayBuilder jsonArrayBuilder;
-    private long offset;
 
-    private ImmutableSearchResultBuilder(final JsonArrayBuilder theJsonArrayBuilder, final long theOffset) {
+    @Nullable
+    private Long offset;
+
+    @Nullable
+    private String cursor;
+
+    private ImmutableSearchResultBuilder(final JsonArrayBuilder theJsonArrayBuilder) {
         jsonArrayBuilder = theJsonArrayBuilder;
-        offset = theOffset;
     }
 
     /**
@@ -38,8 +45,9 @@ final class ImmutableSearchResultBuilder implements SearchResultBuilder {
      *
      * @return a new builder.
      */
-    public static ImmutableSearchResultBuilder newInstance() {
-        return new ImmutableSearchResultBuilder(JsonFactory.newArrayBuilder(), SearchResult.NO_NEXT_PAGE);
+    public static SearchResultBuilder newInstance() {
+        return new ImmutableSearchResultBuilder(JsonFactory.newArrayBuilder())
+                .nextPageOffset(SearchResult.NO_NEXT_PAGE);
     }
 
     /**
@@ -50,17 +58,25 @@ final class ImmutableSearchResultBuilder implements SearchResultBuilder {
      * @return the new builder.
      * @throws NullPointerException if {@code searchResult} is null.
      */
-    public static ImmutableSearchResultBuilder of(final SearchResult searchResult) {
+    public static SearchResultBuilder of(final SearchResult searchResult) {
         checkNotNull(searchResult, "search result");
 
         final JsonArrayBuilder jsonArrayBuilder = JsonFactory.newArrayBuilder(searchResult.getItems());
+        final Long nextPageOffset = searchResult.getNextPageOffset().orElse(null);
+        final String cursor = searchResult.getCursor().orElse(null);
 
-        return new ImmutableSearchResultBuilder(jsonArrayBuilder, searchResult.getNextPageOffset());
+        return new ImmutableSearchResultBuilder(jsonArrayBuilder).nextPageOffset(nextPageOffset).cursor(cursor);
     }
 
     @Override
-    public SearchResultBuilder nextPageOffset(final long nextPageOffset) {
+    public SearchResultBuilder nextPageOffset(@Nullable final Long nextPageOffset) {
         offset = nextPageOffset;
+        return this;
+    }
+
+    @Override
+    public SearchResultBuilder cursor(@Nullable final String cursor) {
+        this.cursor = cursor;
         return this;
     }
 
@@ -85,7 +101,7 @@ final class ImmutableSearchResultBuilder implements SearchResultBuilder {
     @Override
     public SearchResult build() {
         final JsonArray searchResultsJsonArray = jsonArrayBuilder.build();
-        return ImmutableSearchResult.of(searchResultsJsonArray, offset);
+        return ImmutableSearchResult.of(searchResultsJsonArray, offset, cursor);
     }
 
 }

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -12,6 +14,7 @@ package org.eclipse.ditto.signals.commands.thingsearch.query;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -22,9 +25,11 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
@@ -33,6 +38,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  * Response to a {@link CountThings} command.
  */
 @Immutable
+@JsonParsableCommandResponse(type = CountThingsResponse.TYPE)
 public final class CountThingsResponse extends AbstractCommandResponse<CountThingsResponse>
         implements ThingSearchQueryCommandResponse<CountThingsResponse> {
 
@@ -44,7 +50,7 @@ public final class CountThingsResponse extends AbstractCommandResponse<CountThin
     private final long count;
 
     private CountThingsResponse(final long count, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatusCode.OK, dittoHeaders);
+        super(TYPE, HttpStatus.OK, dittoHeaders);
         this.count = count;
     }
 
@@ -61,7 +67,7 @@ public final class CountThingsResponse extends AbstractCommandResponse<CountThin
     }
 
     /**
-     * Creates a response to a {@link CountThingsResponse} command from a JSON string.
+     * Creates a response to a CountThingsResponse command from a JSON string.
      *
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the command which caused this response.
@@ -76,7 +82,7 @@ public final class CountThingsResponse extends AbstractCommandResponse<CountThin
     }
 
     /**
-     * Creates a response to a {@link CountThingsResponse} command from a JSON object.
+     * Creates a response to a {@code CountThingsResponse} command from a JSON object.
      *
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the command which caused this response.
@@ -86,12 +92,16 @@ public final class CountThingsResponse extends AbstractCommandResponse<CountThin
      * format.
      */
     public static CountThingsResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<CountThingsResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final JsonValue count = jsonObject.getValueOrThrow(JsonFields.PAYLOAD);
-
-                    return of(count.asLong(), dittoHeaders);
-                });
+        return new CommandResponseJsonDeserializer<CountThingsResponse>(TYPE, jsonObject).deserialize(httpStatus -> {
+            final JsonValue jsonValue = jsonObject.getValueOrThrow(JsonFields.PAYLOAD);
+            if (jsonValue.isLong()) {
+                return of(jsonValue.asLong(), dittoHeaders);
+            } else {
+                throw new JsonParseException(MessageFormat.format(
+                        "Payload JSON value <{0}> is not a count representation!",
+                        jsonValue));
+            }
+        });
     }
 
     /**
@@ -149,12 +159,13 @@ public final class CountThingsResponse extends AbstractCommandResponse<CountThin
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof CountThingsResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof CountThingsResponse;
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + ", count=" + count + "]";
     }
+
 }

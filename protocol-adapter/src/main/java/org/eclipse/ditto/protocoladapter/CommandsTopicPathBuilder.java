@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -30,6 +32,7 @@ public interface CommandsTopicPathBuilder extends TopicPathBuildable {
      */
     CommandsTopicPathBuilder retrieve();
 
+
     /**
      * Sets the {@code Action} of this builder to {@link TopicPath.Action#MODIFY}. A previously set action is replaced.
      *
@@ -38,9 +41,17 @@ public interface CommandsTopicPathBuilder extends TopicPathBuildable {
     CommandsTopicPathBuilder modify();
 
     /**
+     * Sets the {@code Action} of this builder to {@link TopicPath.Action#MERGE}. A previously set action is replaced.
+     *
+     * @return this builder to allow method chaining.
+     */
+    CommandsTopicPathBuilder merge();
+
+    /**
      * Sets the {@code Action} of this builder to {@link TopicPath.Action#DELETE}. A previously set action is replaced.
      *
      * @return this builder to allow method chaining.
      */
     CommandsTopicPathBuilder delete();
+
 }

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -12,6 +14,7 @@ package org.eclipse.ditto.json;
 
 import static java.util.Objects.requireNonNull;
 
+import java.io.IOException;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
@@ -24,6 +27,9 @@ import javax.annotation.concurrent.Immutable;
  */
 @Immutable
 final class ImmutableJsonString extends AbstractJsonValue {
+
+    private static final long MAX_CHAR_ESCAPE_SEQUENCE_LENGTH = 6; // "\u1234"
+    private static final long NUM_ENCLOSING_QUOTES = 2;
 
     private final String value;
     @Nullable private String stringRepresentation;
@@ -80,6 +86,19 @@ final class ImmutableJsonString extends AbstractJsonValue {
             stringRepresentation = result;
         }
         return result;
+    }
+
+    @Override
+    public void writeValue(final SerializationContext serializationContext) throws IOException {
+        serializationContext.writeString(value);
+    }
+
+    @Override
+    public long getUpperBoundForStringSize() {
+        if (stringRepresentation != null) {
+            return stringRepresentation.length();
+        }
+        return (value.length() * MAX_CHAR_ESCAPE_SEQUENCE_LENGTH) + NUM_ENCLOSING_QUOTES;
     }
 
     private String createStringRepresentation() {

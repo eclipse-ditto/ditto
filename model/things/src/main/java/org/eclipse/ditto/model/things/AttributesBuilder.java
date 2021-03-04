@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -150,7 +152,7 @@ public interface AttributesBuilder extends JsonObjectBuilder {
      * @throws IllegalArgumentException if {@code name} is empty.
      */
     @Override
-    AttributesBuilder set(CharSequence key, String value, Predicate<JsonField> predicate);
+    AttributesBuilder set(CharSequence key, @Nullable String value, Predicate<JsonField> predicate);
 
     /**
      * Sets a new string value attribute to the {@code Attributes} to be built.
@@ -162,7 +164,7 @@ public interface AttributesBuilder extends JsonObjectBuilder {
      * @throws IllegalArgumentException if {@code name} is empty.
      */
     @Override
-    default AttributesBuilder set(final CharSequence key, final String value) {
+    default AttributesBuilder set(final CharSequence key, @Nullable final String value) {
         return set(key, value, field -> true);
     }
 
@@ -202,174 +204,6 @@ public interface AttributesBuilder extends JsonObjectBuilder {
     default <T> AttributesBuilder set(final JsonFieldDefinition<T> fieldDefinition, @Nullable final T value) {
         return set(fieldDefinition, value, jsonField -> true);
     }
-
-    //    /**
-//     * Sets a new int attribute to the {@code Attributes} to be built if the specified predicate evaluates to
-//     * {@code true}.
-//     *
-//     * @param fieldDefinition this field definition provides the JSON pointer to the attribute to be set.
-//     * @param value the value of the attribute to be set.
-//     * @param predicate the predicate which finally determines if the attribute is to be set.
-//     * @return this builder to allow method chaining.
-//     * @throws NullPointerException if {@code fieldDefinition} is null.
-//     * @see #set(CharSequence, int)
-//     */
-//    @Override
-//    AttributesBuilder set(JsonFieldDefinition fieldDefinition, int value, Predicate<JsonField> predicate);
-//
-//    /**
-//     * Sets a new int attribute to the {@code Attributes} to be built.
-//     *
-//     * @param fieldDefinition this field definition provides the JSON pointer to the attribute to be set.
-//     * @param value the value of the attribute to be set.
-//     * @return this builder to allow method chaining.
-//     * @throws NullPointerException if {@code fieldDefinition} is null.
-//     * @see #set(CharSequence, int)
-//     */
-//    @Override
-//    default AttributesBuilder set(final JsonFieldDefinition fieldDefinition, final int value) {
-//        return set(fieldDefinition, value, field -> true);
-//    }
-//
-//    /**
-//     * Sets a new long attribute to the {@code Attributes} to be built if the specified predicate evaluates to
-//     * {@code true}.
-//     *
-//     * @param fieldDefinition this field definition provides the JSON pointer to the attribute to be set.
-//     * @param value the value of the attribute to be set.
-//     * @param predicate the predicate which finally determines if the attribute is to be set.
-//     * @return this builder to allow method chaining.
-//     * @throws NullPointerException if {@code fieldDefinition} is null.
-//     * @see #set(CharSequence, long)
-//     */
-//    @Override
-//    AttributesBuilder set(JsonFieldDefinition fieldDefinition, long value, Predicate<JsonField> predicate);
-//
-//    /**
-//     * Sets a new long attribute to the {@code Attributes} to be built.
-//     *
-//     * @param fieldDefinition this field definition provides the JSON pointer to the attribute to be set.
-//     * @param value the value of the attribute to be set.
-//     * @return this builder to allow method chaining.
-//     * @throws NullPointerException if {@code fieldDefinition} is null.
-//     * @see #set(CharSequence, long)
-//     */
-//    @Override
-//    default AttributesBuilder set(final JsonFieldDefinition fieldDefinition, final long value) {
-//        return set(fieldDefinition, value, field -> true);
-//    }
-//
-//    /**
-//     * Sets a new double attribute to the {@code Attributes} to be built if the specified predicate evaluates to
-//     * {@code true}.
-//     *
-//     * @param fieldDefinition this field definition provides the JSON pointer to the attribute to be set.
-//     * @param value the value of the attribute to be set.
-//     * @param predicate the predicate which finally determines if the attribute is to be set.
-//     * @return this builder to allow method chaining.
-//     * @throws NullPointerException if {@code fieldDefinition} is null.
-//     * @see #set(CharSequence, double)
-//     */
-//    @Override
-//    AttributesBuilder set(JsonFieldDefinition fieldDefinition, double value, Predicate<JsonField> predicate);
-//
-//    /**
-//     * Sets a new double attribute to the {@code Attributes} to be built.
-//     *
-//     * @param fieldDefinition this field definition provides the JSON pointer to the attribute to be set.
-//     * @param value the value of the attribute to be set.
-//     * @return this builder to allow method chaining.
-//     * @throws NullPointerException if {@code fieldDefinition} is null.
-//     * @see #set(CharSequence, double)
-//     */
-//    @Override
-//    default AttributesBuilder set(final JsonFieldDefinition fieldDefinition, final double value) {
-//        return set(fieldDefinition, value, field -> true);
-//    }
-//
-//    /**
-//     * Sets a new boolean attribute to the {@code Attributes} to be built if the specified predicate evaluates to
-//     * {@code true}.
-//     *
-//     * @param fieldDefinition this field definition provides the JSON pointer to the attribute to be set.
-//     * @param value the value of the attribute to be set.
-//     * @param predicate the predicate which finally determines if the attribute is to be set.
-//     * @return this builder to allow method chaining.
-//     * @throws NullPointerException if {@code fieldDefinition} is null.
-//     * @see #set(CharSequence, boolean)
-//     */
-//    @Override
-//    AttributesBuilder set(JsonFieldDefinition fieldDefinition, boolean value, Predicate<JsonField> predicate);
-//
-//    /**
-//     * Sets a new boolean attribute to the {@code Attributes} to be built.
-//     *
-//     * @param fieldDefinition this field definition provides the JSON pointer to the attribute to be set.
-//     * @param value the value of the attribute to be set.
-//     * @return this builder to allow method chaining.
-//     * @throws NullPointerException if {@code fieldDefinition} is null.
-//     * @see #set(CharSequence, boolean)
-//     */
-//    @Override
-//    default AttributesBuilder set(final JsonFieldDefinition fieldDefinition, final boolean value) {
-//        return set(fieldDefinition, value, field -> true);
-//    }
-//
-//    /**
-//     * Sets a new string attribute to the {@code Attributes} to be built if the specified predicate evaluates to
-//     * {@code true}.
-//     *
-//     * @param fieldDefinition this field definition provides the JSON pointer to the attribute to be set.
-//     * @param value the value of the attribute to be set.
-//     * @param predicate the predicate which finally determines if the attribute is to be set.
-//     * @return this builder to allow method chaining.
-//     * @throws NullPointerException if {@code fieldDefinition} is null.
-//     * @see #set(CharSequence, String)
-//     */
-//    @Override
-//    AttributesBuilder set(JsonFieldDefinition fieldDefinition, String value, Predicate<JsonField> predicate);
-//
-//    /**
-//     * Sets a new string attribute to the {@code Attributes} to be built.
-//     *
-//     * @param fieldDefinition this field definition provides the JSON pointer to the attribute to be set.
-//     * @param value the value of the attribute to be set.
-//     * @return this builder to allow method chaining.
-//     * @throws NullPointerException if {@code fieldDefinition} is null.
-//     * @see #set(CharSequence, String)
-//     */
-//    @Override
-//    default AttributesBuilder set(final JsonFieldDefinition fieldDefinition, final String value) {
-//        return set(fieldDefinition, value, field -> true);
-//    }
-//
-//    /**
-//     * Sets a new {@link JsonValue} attribute to the {@code Attributes} to be built if the specified predicate evaluates
-//     * to {@code true}.
-//     *
-//     * @param fieldDefinition this field definition provides the JSON pointer to the attribute to be set.
-//     * @param value the value of the attribute to be set.
-//     * @param predicate the predicate which finally determines if the attribute is to be set.
-//     * @return this builder to allow method chaining.
-//     * @throws NullPointerException if any argument but {@code value} is {@code null}.
-//     * @see #set(CharSequence, JsonValue)
-//     */
-//    @Override
-//    AttributesBuilder set(JsonFieldDefinition fieldDefinition, JsonValue value, Predicate<JsonField> predicate);
-//
-//    /**
-//     * Sets a new {@link JsonValue} attribute to the {@code Attributes} to be built.
-//     *
-//     * @param fieldDefinition this field definition provides the JSON pointer to the attribute to be set.
-//     * @param value the value of the attribute to be set.
-//     * @return this builder to allow method chaining.
-//     * @throws NullPointerException if {@code fieldDefinition} is {@code null}.
-//     * @see #set(CharSequence, JsonValue)
-//     */
-//    @Override
-//    default AttributesBuilder set(final JsonFieldDefinition fieldDefinition, final JsonValue value) {
-//        return set(fieldDefinition, value, field -> true);
-//    } // TODO
 
     /**
      * Sets the specified attribute to the {@code Attributes} to be built if the specified predicate evaluates to
@@ -459,6 +293,9 @@ public interface AttributesBuilder extends JsonObjectBuilder {
      * Creates a new {@link Attributes} object containing all values which were set to this builder beforehand.
      *
      * @return the new {@code Attributes} object.
+     * @throws org.eclipse.ditto.json.JsonPointerInvalidException if an attribute name in the passed {@code jsonObject} was not valid
+     * according to pattern
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     @Override
     Attributes build();

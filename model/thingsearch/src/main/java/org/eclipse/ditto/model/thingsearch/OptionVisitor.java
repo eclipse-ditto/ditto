@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -30,10 +32,17 @@ public interface OptionVisitor {
     void visit(SortOption sortOption);
 
     /**
-     * Is called by a {@link Option} in its {@link Option#accept(OptionVisitor)} method.
+     * Is called by a {@link CursorOption} in its {@link CursorOption#accept(OptionVisitor)} method.
      *
-     * @param option an instance of the {@link Option}.
+     * @param cursorOption an instance of the {@link CursorOption}.
      */
-    void visit(Option option); // general catch all for custom Node implementations
+    void visit(CursorOption cursorOption);
+
+    /**
+     * Is called by a {@link SizeOption} in its {@link SizeOption#accept(OptionVisitor)} method.
+     *
+     * @param sizeOption an instance of the {@link SizeOption}.
+     */
+    void visit(SizeOption sizeOption);
 
 }

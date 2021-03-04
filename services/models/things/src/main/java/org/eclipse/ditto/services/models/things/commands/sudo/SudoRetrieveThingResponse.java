@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -24,10 +26,11 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
@@ -38,8 +41,9 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  * Response to a {@link SudoRetrieveThing} command.
  */
 @Immutable
-public final class SudoRetrieveThingResponse extends AbstractCommandResponse<SudoRetrieveThingResponse> implements
-        SudoCommandResponse<SudoRetrieveThingResponse> {
+@JsonParsableCommandResponse(type = SudoRetrieveThingResponse.TYPE)
+public final class SudoRetrieveThingResponse extends AbstractCommandResponse<SudoRetrieveThingResponse>
+        implements SudoCommandResponse<SudoRetrieveThingResponse> {
 
     /**
      * Name of the response.
@@ -57,9 +61,10 @@ public final class SudoRetrieveThingResponse extends AbstractCommandResponse<Sud
 
     private final JsonObject thing;
 
-    private SudoRetrieveThingResponse(final HttpStatusCode statusCode, final JsonObject thing,
+    private SudoRetrieveThingResponse(final HttpStatus httpStatus, final JsonObject thing,
             final DittoHeaders dittoHeaders) {
-        super(TYPE, statusCode, dittoHeaders);
+
+        super(TYPE, httpStatus, dittoHeaders);
         this.thing = checkNotNull(thing, "Thing");
     }
 
@@ -72,7 +77,7 @@ public final class SudoRetrieveThingResponse extends AbstractCommandResponse<Sud
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static SudoRetrieveThingResponse of(final JsonObject thing, final DittoHeaders dittoHeaders) {
-        return new SudoRetrieveThingResponse(HttpStatusCode.OK, thing, dittoHeaders);
+        return new SudoRetrieveThingResponse(HttpStatus.OK, thing, dittoHeaders);
     }
 
     /**
@@ -81,13 +86,12 @@ public final class SudoRetrieveThingResponse extends AbstractCommandResponse<Sud
      * @param jsonString the JSON string of which a new SudoRetrieveThingResponse instance is to be created.
      * @param dittoHeaders the optional command headers of the request.
      * @return the {@code SudoRetrieveThingResponse} which was created from the given JSON string.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws DittoJsonException if the passed in {@code jsonString} was {@code null}, empty or not in the expected
      * 'SudoRetrieveThingResponse' format.
      */
     public static SudoRetrieveThingResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        final JsonObject jsonObject =
-                DittoJsonException.wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
+        final var jsonObject = DittoJsonException.wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
         return fromJson(jsonObject, dittoHeaders);
     }
 
@@ -102,12 +106,8 @@ public final class SudoRetrieveThingResponse extends AbstractCommandResponse<Sud
      * 'SudoRetrieveThingResponse' format.
      */
     public static SudoRetrieveThingResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<SudoRetrieveThingResponse>(TYPE, jsonObject)
-                .deserialize(statusCode -> {
-                    final JsonObject extractedThing = jsonObject.getValueOrThrow(JSON_THING);
-
-                    return of(extractedThing, dittoHeaders);
-                });
+        return new CommandResponseJsonDeserializer<SudoRetrieveThingResponse>(TYPE, jsonObject).deserialize(
+                httpStatus -> of(jsonObject.getValueOrThrow(JSON_THING), dittoHeaders));
     }
 
     /**
@@ -138,6 +138,7 @@ public final class SudoRetrieveThingResponse extends AbstractCommandResponse<Sud
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_THING, thing, predicate);
     }

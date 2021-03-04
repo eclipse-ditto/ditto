@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -139,6 +141,53 @@ public interface Features extends Iterable<Feature>, Jsonifiable.WithFieldSelect
      * @throws NullPointerException if any argument is {@code null}.
      */
     Features removeProperty(String featureId, JsonPointer propertyPath);
+
+    /**
+     * Sets the given desired properties for the Feature with the given ID on a copy of this Features. The
+     * previous desired properties of a Feature with the same ID are overwritten.
+     *
+     * @param featureId the ID of the Feature for which the desired properties are set.
+     * @param desiredProperties the properties to be set.
+     * @return a copy of this Features with the desired property set.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.5.0
+     */
+    Features setDesiredProperties(CharSequence featureId, FeatureProperties desiredProperties);
+
+    /**
+     * Removes all desired properties of the Feature with the given ID from a copy of this Features.
+     *
+     * @param featureId the ID of the Feature from which all desired properties are removed.
+     * @return a copy of this Features with all desired properties of the Feature with {@code featureId} removed.
+     * @throws NullPointerException if {@code featureId} is {@code null}.
+     * @since 1.5.0
+     */
+    Features removeDesiredProperties(CharSequence featureId);
+
+    /**
+     * Sets the value of the desired property which is referred by the given JSON Pointer of the Feature with the given
+     * ID on a copy of this Features. The value of a previous desired property at the pointed position is overwritten.
+     *
+     * @param featureId the ID of the Feature of which the desired property is set.
+     * @param desiredPropertyPath defines the hierarchical path within the Feature to the desired property to be set.
+     * @param desiredPropertyValue the desired property value to be set.
+     * @return a copy of this Features with the desired property set.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.5.0
+     */
+    Features setDesiredProperty(CharSequence featureId, JsonPointer desiredPropertyPath, JsonValue desiredPropertyValue);
+
+    /**
+     * Removes the desired property which is referred by the given JSON Pointer from the Feature with the given ID on
+     * a copy of this Features..
+     *
+     * @param featureId the ID of the Feature from which the desired property is removed.
+     * @param desiredPropertyPath defines the hierarchical path within the Feature to the desired property to be removed.
+     * @return a copy of this Features with the given desired property removed.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.5.0
+     */
+    Features removeDesiredProperty(CharSequence featureId, JsonPointer desiredPropertyPath);
 
     /**
      * Indicates whether this Features are equivalent to semantic {@code null}.

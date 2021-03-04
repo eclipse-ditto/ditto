@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -31,9 +33,9 @@ final class JavaStringToEscapedJsonString implements UnaryOperator<String> {
 
     private static final char QUOTE = '\"';
 
-    private final Function<Character, String> jsonCharEscaper;
+    private final Function<Integer, String> jsonCharEscaper;
 
-    private JavaStringToEscapedJsonString(final Function<Character, String> theJsonCharEscaper) {
+    private JavaStringToEscapedJsonString(final Function<Integer, String> theJsonCharEscaper) {
         jsonCharEscaper = theJsonCharEscaper;
     }
 
@@ -54,7 +56,7 @@ final class JavaStringToEscapedJsonString implements UnaryOperator<String> {
         stringBuilder.append(javaString);
         int i = 1; // offset of starting " char
         for (final char c : javaString.toCharArray()) {
-            @Nullable final String replacement = jsonCharEscaper.apply(c);
+            @Nullable final String replacement = jsonCharEscaper.apply((int) c);
             if (null != replacement) {
                 stringBuilder.replace(i, i + 1, replacement);
                 i += replacement.length();

@@ -1,16 +1,19 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.connectivity.mapping.javascript;
 
-import java.util.Optional;
+import java.util.Collections;
+import java.util.List;
 
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -23,7 +26,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 /**
  * The default mapping for outgoing messages that maps to Ditto protocol format.
  */
-public class DefaultOutgoingMapping implements MappingFunction<Adaptable, Optional<ExternalMessage>> {
+public class DefaultOutgoingMapping implements MappingFunction<Adaptable, List<ExternalMessage>> {
 
     private static final DefaultOutgoingMapping INSTANCE = new DefaultOutgoingMapping();
 
@@ -35,15 +38,15 @@ public class DefaultOutgoingMapping implements MappingFunction<Adaptable, Option
     }
 
     @Override
-    public Optional<ExternalMessage> apply(final Adaptable adaptable) {
+    public List<ExternalMessage> apply(final Adaptable adaptable) {
         final JsonifiableAdaptable jsonifiableAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
         final ExternalMessageBuilder messageBuilder = ExternalMessageFactory.newExternalMessageBuilder(
-                adaptable.getHeaders().orElseGet(adaptable::getDittoHeaders))
+                adaptable.getDittoHeaders())
                         .withTopicPath(adaptable.getTopicPath());
         messageBuilder.withAdditionalHeaders(ExternalMessage.CONTENT_TYPE_HEADER,
                 DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
         messageBuilder.withText(jsonifiableAdaptable.toJsonString());
-        return Optional.of(messageBuilder.build());
+        return Collections.singletonList(messageBuilder.build());
     }
 
 }

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -26,15 +28,20 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.common.Placeholders;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
+import org.eclipse.ditto.signals.commands.things.exceptions.PoliciesConflictingException;
 
 /**
  * This command creates a new Thing. It contains the full {@link Thing} including the Thing ID which should be used for
@@ -42,6 +49,7 @@ import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
  * generated.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = CreateThing.TYPE_PREFIX, name = CreateThing.NAME)
 public final class CreateThing extends AbstractCommand<CreateThing> implements ThingModifyCommand<CreateThing> {
 
     /**
@@ -54,7 +62,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition<JsonObject> JSON_THING =
+    public static final JsonFieldDefinition<JsonObject> JSON_THING =
             JsonFactory.newJsonObjectFieldDefinition("thing", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
@@ -87,15 +95,18 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
 
     @Nullable private final String policyIdOrPlaceholder;
 
-    private CreateThing(final Thing thing, @Nullable final JsonObject initialPolicy,
-            final DittoHeaders dittoHeaders) {
+    private CreateThing(final Thing thing, @Nullable final JsonObject initialPolicy, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.thing = thing;
         this.initialPolicy = initialPolicy;
         this.policyIdOrPlaceholder = null;
 
-        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> thing.toJsonString().length(), () ->
-                dittoHeaders);
+        final JsonObject thingJsonObject = thing.toJson();
+
+        ThingCommandSizeValidator.getInstance().ensureValidSize(
+                thingJsonObject::getUpperBoundForStringSize,
+                () -> thingJsonObject.toString().length(),
+                () -> dittoHeaders);
     }
 
     private CreateThing(final Thing thing, final String policyIdOrPlaceholder, final DittoHeaders dittoHeaders) {
@@ -103,9 +114,16 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
         this.thing = thing;
         this.initialPolicy = null;
         this.policyIdOrPlaceholder = policyIdOrPlaceholder;
+        if (!Placeholders.containsAnyPlaceholder(policyIdOrPlaceholder)) {
+            PolicyId.of(policyIdOrPlaceholder); //validates
+        }
 
-        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> thing.toJsonString().length(), () ->
-                dittoHeaders);
+        final JsonObject thingJsonObject = thing.toJson();
+
+        ThingCommandSizeValidator.getInstance().ensureValidSize(
+                thingJsonObject::getUpperBoundForStringSize,
+                () -> thingJsonObject.toString().length(),
+                () -> dittoHeaders);
     }
 
     /**
@@ -124,7 +142,6 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
     public static CreateThing of(final Thing newThing, @Nullable final JsonObject initialPolicy,
             final DittoHeaders dittoHeaders) {
         checkNotNull(newThing, "new Thing");
-        ensureThingIdPresence(newThing, dittoHeaders);
         return new CreateThing(newThing, initialPolicy, dittoHeaders);
     }
 
@@ -148,13 +165,12 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
             final DittoHeaders dittoHeaders) {
         checkNotNull(newThing, "new Thing");
         checkNotNull(newThing, "policyIdOrPlaceholder");
-        ensureThingIdPresence(newThing, dittoHeaders);
         return new CreateThing(newThing, policyIdOrPlaceholder, dittoHeaders);
     }
 
     /**
      * Returns a Command for creating a new Thing which is passed as argument. The created thing will have a policy
-     * copied from a policy with athe given policyIdOrPlaceholder.
+     * copied from a policy with a given policyIdOrPlaceholder.
      *
      * @param newThing the new {@link Thing} to create.
      * @param initialPolicy the initial {@code Policy} to set for the Thing - may be null.
@@ -171,22 +187,16 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
      */
     public static CreateThing of(final Thing newThing, @Nullable final JsonObject initialPolicy,
             @Nullable final String policyIdOrPlaceholder, final DittoHeaders dittoHeaders) {
-        final String thingId = String.valueOf(newThing.getId().orElse(null));
-        ThingModifyCommand.ensurePolicyCopyFromDoesNotConflictWithInlinePolicy(thingId, initialPolicy,
-                policyIdOrPlaceholder, dittoHeaders);
+        final ThingId thingId = newThing.getEntityId().orElse(null);
+
+        if (policyIdOrPlaceholder != null && initialPolicy != null) {
+            throw PoliciesConflictingException.newBuilder(thingId).dittoHeaders(dittoHeaders).build();
+        }
+
         if (policyIdOrPlaceholder == null) {
             return of(newThing, initialPolicy, dittoHeaders);
         } else {
             return withCopiedPolicy(newThing, policyIdOrPlaceholder, dittoHeaders);
-        }
-    }
-
-    private static void ensureThingIdPresence(final Thing newThing, final DittoHeaders dittoHeaders) {
-        if (!newThing.getId().isPresent()) {
-            throw ThingIdInvalidException.newBuilder("")
-                    .message("Thing ID must be present in 'CreateThing' payload")
-                    .dittoHeaders(dittoHeaders)
-                    .build();
         }
     }
 
@@ -248,8 +258,8 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
     public Optional<String> getPolicyIdOrPlaceholder() { return Optional.ofNullable(policyIdOrPlaceholder);}
 
     @Override
-    public String getThingId() {
-        return thing.getId().orElseThrow(() -> new NullPointerException("Thing has no ID!"));
+    public ThingId getThingEntityId() {
+        return thing.getEntityId().orElseThrow(() -> new NullPointerException("Thing has no ID!"));
     }
 
     @Override
@@ -258,7 +268,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
         final JsonObject withInlinePolicyThingJson =
                 getInitialPolicy().map(ip -> thingJson.set(JSON_INLINE_POLICY, ip)).orElse(thingJson);
         final JsonObject fullThingJson = getPolicyIdOrPlaceholder().map(
-                containedPolicyIdOrPlaceholder -> withInlinePolicyThingJson.set(JSON_POLICY_ID_OR_PLACEHOLDER,
+                containedPolicyIdOrPlaceholder -> withInlinePolicyThingJson.set(JSON_COPY_POLICY_FROM,
                         containedPolicyIdOrPlaceholder)).orElse(withInlinePolicyThingJson);
         return Optional.of(fullThingJson);
     }

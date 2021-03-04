@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -12,107 +14,161 @@ package org.eclipse.ditto.model.query.expression;
 
 /**
  * Factory for creating {@link FieldExpression}s for thing search.
+ * The only relevant method is {@code filterByNamespace}; all others are only for tests.
  */
 public interface ThingsFieldExpressionFactory extends FieldExpressionFactory {
 
     /**
-     * Return a exist field expression for the given feature id.
-     *
-     * @param featureId the feature id
-     * @return the exist field expression
+     * @return a filter expression for the given namespace
      */
-    ExistsFieldExpression existsByFeatureId(final String featureId);
+    default FilterFieldExpression filterByNamespace() {
+        return filterBy(FieldExpressionUtil.FIELD_NAME_NAMESPACE);
+    }
 
     /**
-     * Return a filter field expression for the given feature property key.
+     * Return an "exist" field expression for the given feature ID.
      *
-     * @param property the property path
-     * @return the filter field expression
+     * @param featureId the feature ID.
+     * @return the "exists" field expression.
      */
-    FilterFieldExpression filterByFeatureProperty(final String property);
+    default ExistsFieldExpression existsByFeatureId(final String featureId) {
+        return existsBy("features/" + featureId);
+    }
 
     /**
-     * Return a exist field expression for the given feature property key.
+     * Return a filter field expression for the given feature ID and property key.
      *
-     * @param property the property path
-     * @return the exist field expression
+     * @param featureId the feature ID.
+     * @param property the property path.
+     * @return the filter field expression.
      */
-    ExistsFieldExpression existsByFeatureProperty(final String property);
+    default FilterFieldExpression filterByFeatureProperty(final String featureId, final String property) {
+        return filterBy(String.format("features/%s/properties/%s", featureId, property));
+    }
 
     /**
-     * Return a filter field expression for the given feature id and property key.
+     * Return an "exists" field expression for the given feature ID and its properties.
      *
-     * @param featureId the feature id
-     * @param property the property path
-     * @return the filter field expression
+     * @param featureId the feature ID.
+     * @return the "exists" field expression.
      */
-    FilterFieldExpression filterByFeatureProperty(final String featureId, final String property);
+    default ExistsFieldExpression existsByFeatureProperties(final CharSequence featureId) {
+        return existsBy(String.format("features/%s/properties", featureId));
+    }
 
     /**
-     * Return a exist field expression for the given feature id and property key.
+     * Return an "exists" field expression for the given feature ID and property key.
      *
-     * @param featureId the feature id
-     * @param property the property path
-     * @return the exist field expression
+     * @param featureId the feature ID.
+     * @param property the property path.
+     * @return the "exists" field expression.
      */
-    ExistsFieldExpression existsByFeatureProperty(final String featureId, final String property);
+    default ExistsFieldExpression existsByFeatureProperty(final String featureId, final String property) {
+        return existsBy(String.format("features/%s/properties/%s", featureId, property));
+    }
 
     /**
-     * Return a sortOptions field expression for the given feature property key.
+     * Return a "sortOptions" field expression for the given feature desired property key.
      *
-     * @param featureId the feature id
-     * @param property the property path
-     * @return the sortOptions field expression
+     * @param featureId the feature ID.
+     * @param property the desired property path.
+     * @return the "sortOptions" field expression.
      */
-    SortFieldExpression sortByFeatureProperty(final String featureId, final String property);
+    default SortFieldExpression sortByFeatureProperty(final String featureId, final String property) {
+        return sortBy(String.format("features/%s/properties/%s", featureId, property));
+    }
+
+    /**
+     * Return a filter field expression for the given feature ID and desired property key.
+     *
+     * @param featureId the feature ID.
+     * @param desiredProperty the desired property path.
+     * @return the filter field expression.
+     */
+    default FilterFieldExpression filterByFeatureDesiredProperty(final CharSequence featureId,
+            final CharSequence desiredProperty) {
+
+        return filterBy(String.format("features/%s/desiredProperties/%s", featureId, desiredProperty));
+    }
+
+    /**
+     * Return an "exists" field expression for the given feature ID and its desired properties.
+     *
+     * @param featureId the feature ID.
+     * @return the "exists" field expression.
+     */
+    default ExistsFieldExpression existsByFeatureDesiredProperties(final CharSequence featureId) {
+        return existsBy(String.format("features/%s/desiredProperties", featureId));
+    }
+
+    /**
+     * Return an "exists" field expression for the given feature ID and desired property key.
+     *
+     * @param featureId the feature ID.
+     * @param desiredProperty the desired property path.
+     * @return the "exists" field expression.
+     */
+    default ExistsFieldExpression existsByFeatureDesiredProperty(final CharSequence featureId,
+            final CharSequence desiredProperty) {
+
+        return existsBy(String.format("features/%s/desiredProperties/%s", featureId, desiredProperty));
+    }
+
+    /**
+     * Return a "sortOptions" field expression for the given feature desired property key.
+     *
+     * @param featureId the feature ID.
+     * @param desiredProperty the desired property path.
+     * @return the "sortOptions" field expression.
+     */
+    default SortFieldExpression sortByFeatureDesiredProperty(final CharSequence featureId,
+            final CharSequence desiredProperty) {
+
+        return sortBy(String.format("features/%s/desiredProperties/%s", featureId, desiredProperty));
+    }
 
     /**
      * Return a filter field expression for the given attribute key.
      *
-     * @param key the key
-     * @return the filter field expression
+     * @param key the key.
+     * @return the filter field expression.
      */
-    FilterFieldExpression filterByAttribute(final String key);
+    default FilterFieldExpression filterByAttribute(final String key) {
+        return filterBy("attributes/" + key);
+    }
 
     /**
-     * Return a exist field expression for the given attribute key.
+     * Return an "exists" field expression for the given attribute key.
      *
-     * @param key the key
-     * @return the exist field expression
+     * @param key the key.
+     * @return the "exists" field expression.
      */
-    ExistsFieldExpression existsByAttribute(final String key);
+    default ExistsFieldExpression existsByAttribute(final String key) {
+        return existsBy("attributes/" + key);
+    }
 
     /**
-     * Return a sortOptions field expression for the given attribute key.
+     * Return a "sortOptions" field expression for the given attribute key.
      *
-     * @param key the key
-     * @return the sortOptions field expression
+     * @param key the key.
+     * @return the "sortOptions" field expression.
      */
-    SortFieldExpression sortByAttribute(final String key);
+    default SortFieldExpression sortByAttribute(final String key) {
+        return sortBy("attributes/" + key);
+    }
 
     /**
-     * @return a filter expression for the thingId field.
+     * @return a filter expression for the "thingId" field.
      */
-    FilterFieldExpression filterByThingId();
+    default FilterFieldExpression filterByThingId() {
+        return filterBy(FieldExpressionUtil.FIELD_NAME_THING_ID);
+    }
 
     /**
-     * @return a sortOptions expression for the thingId field.
+     * @return a sortOptions expression for the "thingId" field.
      */
-    SortFieldExpression sortByThingId();
+    default SortFieldExpression sortByThingId() {
+        return sortBy(FieldExpressionUtil.FIELD_NAME_THING_ID);
+    }
 
-    /**
-     * @return a filter expression for acl field.
-     */
-    FilterFieldExpression filterByAcl();
-
-    /**
-     * @return a filter expression for global read field.
-     */
-    FilterFieldExpression filterByGlobalRead();
-
-    /**
-     *
-     * @return a filter expression for the given namespace
-     */
-    FilterFieldExpression filterByNamespace();
 }

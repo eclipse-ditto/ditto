@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -45,7 +47,7 @@ public abstract class AbstractCommandSizeValidator<T extends DittoRuntimeExcepti
     }
 
     /**
-     * Guard function that throws when a size limit is specified and the given size supplier returns a size
+     * Guard function that throws when a size limit is specified, and the given size supplier returns a size
      * greater than the limit.
      *
      * @param sizeSupplier the length calc function (only called when limit is present)
@@ -58,6 +60,24 @@ public abstract class AbstractCommandSizeValidator<T extends DittoRuntimeExcepti
             if (maxSize < actualSize) {
                 throw newInvalidSizeException(maxSize, actualSize, headersSupplier.get());
             }
+        }
+    }
+
+    /**
+     * Guard function that throws when a size limit is specified, and the given size supplier returns a size
+     * greater than the limit.
+     * Only calls the sizeSupplier, if the upper bound provided by the upperBoundSupplier exceeds the limit.
+     *
+     * @param upperBoundSupplier a calculation function that returns an upper bound for the size
+     * (possibly {@link Long#MAX_VALUE})
+     * @param sizeSupplier the length calc function (only called when limit is present)
+     * @param headersSupplier the headersSupplier for the exception
+     * @throws T if size limit is set and exceeded
+     * @since 1.1.0
+     */
+    public void ensureValidSize(final LongSupplier upperBoundSupplier, final LongSupplier sizeSupplier, final Supplier<DittoHeaders> headersSupplier) {
+        if (null != maxSize && upperBoundSupplier.getAsLong() >= maxSize) {
+            ensureValidSize(sizeSupplier, headersSupplier);
         }
     }
 

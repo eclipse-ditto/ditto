@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -13,14 +15,16 @@ package org.eclipse.ditto.services.policies.persistence.actors;
 import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.services.policies.persistence.TestConstants.Policy.SUBJECT_TYPE;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
@@ -30,6 +34,7 @@ import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyLifecycle;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.Resources;
@@ -38,24 +43,27 @@ import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.services.models.policies.Permission;
+import org.eclipse.ditto.services.policies.common.config.DefaultPolicyConfig;
+import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.policies.persistence.TestConstants;
 import org.junit.After;
+import org.junit.BeforeClass;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.event.Logging;
-import akka.testkit.JavaTestKit;
+import akka.stream.Attributes;
 import akka.testkit.TestProbe;
+import akka.testkit.javadsl.TestKit;
 
 /**
  * Base test class for testing persistence actors of the policies persistence.
  */
 public abstract class PersistenceActorTestBase {
 
-    protected static final String POLICY_ID = "org.eclipse.ditto:myPolicy";
+    protected static final PolicyId POLICY_ID = PolicyId.of("org.eclipse.ditto", "myPolicy");
     protected static final PolicyLifecycle POLICY_LIFECYCLE = PolicyLifecycle.ACTIVE;
     protected static final JsonPointer POLICY_RESOURCE_PATH = JsonPointer.empty();
     protected static final Resource POLICY_RESOURCE_ALL =
@@ -67,10 +75,8 @@ public abstract class PersistenceActorTestBase {
                     EffectedPermissions.newInstance(Permissions.newInstance(Permission.READ),
                             PoliciesModelFactory.noPermissions()));
     private static final SubjectIssuer ISSUER_GOOGLE = SubjectIssuer.GOOGLE;
-    protected static final SubjectId POLICY_SUBJECT_ID =
-            SubjectId.newInstance(ISSUER_GOOGLE, "allowedId");
-    protected static final Subject POLICY_SUBJECT =
-            Subject.newInstance(POLICY_SUBJECT_ID, SUBJECT_TYPE);
+    protected static final SubjectId POLICY_SUBJECT_ID = SubjectId.newInstance(ISSUER_GOOGLE, "allowedId");
+    protected static final Subject POLICY_SUBJECT = Subject.newInstance(POLICY_SUBJECT_ID, SUBJECT_TYPE);
     protected static final Resources POLICY_RESOURCES_ALL = Resources.newInstance(POLICY_RESOURCE_ALL);
     protected static final Resources POLICY_RESOURCES_READ = Resources.newInstance(POLICY_RESOURCE_READ);
     protected static final Subjects POLICY_SUBJECTS = Subjects.newInstance(POLICY_SUBJECT);
@@ -82,36 +88,50 @@ public abstract class PersistenceActorTestBase {
 
     private static final PolicyEntry POLICY_ENTRY =
             PoliciesModelFactory.newPolicyEntry(POLICY_LABEL, POLICY_SUBJECTS, POLICY_RESOURCES_ALL);
-    private static final PolicyEntry ANOTHER_POLICY_ENTRY =
+    protected static final PolicyEntry ANOTHER_POLICY_ENTRY =
             PoliciesModelFactory.newPolicyEntry(ANOTHER_POLICY_LABEL, POLICY_SUBJECTS, POLICY_RESOURCES_READ);
     private static final long POLICY_REVISION = 0;
+
+    protected static Config testConfig;
+    protected static PolicyConfig policyConfig;
+
     protected ActorSystem actorSystem = null;
     protected ActorRef pubSubMediator = null;
+    protected TestProbe pubSubMediatorTestProbe = null;
     protected DittoHeaders dittoHeadersV2;
 
+    @BeforeClass
+    public static void initTestFixture() {
+        testConfig = ConfigFactory.load("test");
+        policyConfig = DefaultPolicyConfig.of(testConfig.getConfig("ditto.policies"));
+    }
+
     protected static DittoHeaders createDittoHeaders(final JsonSchemaVersion schemaVersion,
-            final String... authSubjects) {
-        final List<String> authSubjectsStr = Arrays.asList(authSubjects);
-        final List<AuthorizationSubject> authSubjectsList = new ArrayList<>();
-        authSubjectsStr.stream().map(AuthorizationModelFactory::newAuthSubject).forEach(authSubjectsList::add);
+            final String... authSubjectIds) {
+
+        final List<AuthorizationSubject> authSubjects = Arrays.stream(authSubjectIds)
+                .map(AuthorizationModelFactory::newAuthSubject)
+                .collect(Collectors.toList());
 
         return DittoHeaders.newBuilder()
                 .correlationId(null)
-                .source(null)
-                .responseRequired(false)
                 .schemaVersion(schemaVersion)
-                .authorizationSubjects(authSubjectsStr)
-                .authorizationContext(AuthorizationModelFactory.newAuthContext(authSubjectsList)).build();
+                .authorizationContext(
+                        AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                                authSubjects))
+                .putHeader(DittoHeaderDefinition.POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY.getKey(),
+                        Boolean.TRUE.toString())
+                .build();
     }
 
     protected static Policy createPolicyWithRandomId() {
         final Random rnd = new Random();
-        final String policyId = POLICY_ID + rnd.nextInt();
-        return createPolicyWithId(policyId);
+        final String policyName = POLICY_ID.getName() + rnd.nextInt();
+        return createPolicyWithId(policyName);
     }
 
-    protected static Policy createPolicyWithId(final String policyId) {
-        return PoliciesModelFactory.newPolicyBuilder("test.ns:" + policyId)
+    protected static Policy createPolicyWithId(final String policyName) {
+        return PoliciesModelFactory.newPolicyBuilder(PolicyId.of("test.ns", policyName))
                 .setLifecycle(POLICY_LIFECYCLE)
                 .set(POLICY_ENTRY)
                 .set(ANOTHER_POLICY_ENTRY)
@@ -126,7 +146,7 @@ public abstract class PersistenceActorTestBase {
         init(config);
     }
 
-    public void setUpBase() {
+    protected void setUpBase() {
         final Config config = ConfigFactory.load("test");
 
         init(config);
@@ -134,15 +154,15 @@ public abstract class PersistenceActorTestBase {
 
     private void init(final Config config) {
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
-        pubSubMediator = new TestProbe(actorSystem, "mock-pubSub-mediator").ref();
+        pubSubMediatorTestProbe = new TestProbe(actorSystem, "mock-pubSub-mediator");
+        pubSubMediator = pubSubMediatorTestProbe.ref();
         dittoHeadersV2 = createDittoHeaders(JsonSchemaVersion.V_2, AUTH_SUBJECT);
     }
 
-    /** */
     @After
     public void tearDownBase() {
         if (actorSystem != null) {
-            JavaTestKit.shutdownActorSystem(actorSystem);
+            TestKit.shutdownActorSystem(actorSystem);
             actorSystem = null;
         }
     }
@@ -151,6 +171,7 @@ public abstract class PersistenceActorTestBase {
      * Disable logging for 1 test to hide stacktrace or other logs on level ERROR. Comment out to debug the test.
      */
     protected void disableLogging() {
-        actorSystem.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
+        actorSystem.eventStream().setLogLevel(Attributes.logLevelOff());
     }
+
 }

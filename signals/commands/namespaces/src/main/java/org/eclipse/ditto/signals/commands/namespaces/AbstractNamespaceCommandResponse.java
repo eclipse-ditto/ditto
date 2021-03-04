@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -22,7 +24,9 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
@@ -31,7 +35,7 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
  * Common base implementation of {@link org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandResponse}.
  */
 @Immutable
-abstract class AbstractNamespaceCommandResponse<T extends AbstractNamespaceCommandResponse>
+abstract class AbstractNamespaceCommandResponse<T extends AbstractNamespaceCommandResponse<T>>
         extends AbstractCommandResponse<T> implements NamespaceCommandResponse<T> {
 
     /**
@@ -48,7 +52,7 @@ abstract class AbstractNamespaceCommandResponse<T extends AbstractNamespaceComma
      * @param namespace the namespace this response relates to.
      * @param resourceType type of the {@code Resource} represented by this response.
      * @param responseType the type of this response.
-     * @param statusCode the HTTP statusCode of this response.
+     * @param httpStatus the HTTP status of this response.
      * @param dittoHeaders the headers of the command which caused this response.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code namespace} or {@code resourceType} is empty.
@@ -56,10 +60,10 @@ abstract class AbstractNamespaceCommandResponse<T extends AbstractNamespaceComma
     protected AbstractNamespaceCommandResponse(final CharSequence namespace,
             final CharSequence resourceType,
             final String responseType,
-            final HttpStatusCode statusCode,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(responseType, statusCode, dittoHeaders);
+        super(responseType, httpStatus, dittoHeaders);
         this.namespace = argumentNotEmpty(namespace, "namespace").toString();
         this.resourceType = argumentNotEmpty(resourceType, "resourceType").toString();
     }
@@ -75,6 +79,11 @@ abstract class AbstractNamespaceCommandResponse<T extends AbstractNamespaceComma
     @Override
     public String getId() {
         return getNamespace();
+    }
+
+    @Override
+    public EntityId getEntityId() {
+        return DefaultEntityId.of(getNamespace());
     }
 
     @Override

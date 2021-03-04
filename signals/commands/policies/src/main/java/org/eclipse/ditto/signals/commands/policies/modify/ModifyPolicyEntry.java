@@ -1,14 +1,18 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.policies.modify;
+
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -26,10 +30,11 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyEntry;
-import org.eclipse.ditto.model.policies.PolicyIdValidator;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
@@ -38,8 +43,9 @@ import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
  * This command modifies a {@link PolicyEntry}.
  */
 @Immutable
-public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry> implements
-        PolicyModifyCommand<ModifyPolicyEntry> {
+@JsonParsableCommand(typePrefix = ModifyPolicyEntry.TYPE_PREFIX, name = ModifyPolicyEntry.NAME)
+public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry>
+        implements PolicyModifyCommand<ModifyPolicyEntry> {
 
     /**
      * NAME of this command.
@@ -57,17 +63,39 @@ public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry> 
     static final JsonFieldDefinition<JsonObject> JSON_POLICY_ENTRY =
             JsonFactory.newJsonObjectFieldDefinition("policyEntry", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final String policyId;
+    private final PolicyId policyId;
     private final PolicyEntry policyEntry;
 
-    private ModifyPolicyEntry(final String policyId, final PolicyEntry policyEntry, final DittoHeaders dittoHeaders) {
+    private ModifyPolicyEntry(final PolicyId policyId, final PolicyEntry policyEntry, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
-        PolicyIdValidator.getInstance().accept(policyId, dittoHeaders);
         this.policyId = policyId;
         this.policyEntry = policyEntry;
 
-        PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> policyEntry.toJsonString().length(), () ->
-                dittoHeaders);
+        final JsonObject policyEntryJsonObject = policyEntry.toJson();
+
+        PolicyCommandSizeValidator.getInstance().ensureValidSize(
+                policyEntryJsonObject::getUpperBoundForStringSize,
+                () -> policyEntryJsonObject.toString().length(),
+                () -> dittoHeaders);
+    }
+
+    /**
+     * Creates a command for modifying a {@code PolicyEntry}.
+     *
+     * @param policyId the identifier of the Policy.
+     * @param policyEntry the PolicyEntry to modify.
+     * @param dittoHeaders the headers of the command.
+     * @return the command.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.PolicyEntry, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static ModifyPolicyEntry of(final String policyId, final PolicyEntry policyEntry,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), policyEntry, dittoHeaders);
     }
 
     /**
@@ -79,11 +107,11 @@ public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry> 
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ModifyPolicyEntry of(final String policyId, final PolicyEntry policyEntry,
+    public static ModifyPolicyEntry of(final PolicyId policyId, final PolicyEntry policyEntry,
             final DittoHeaders dittoHeaders) {
 
-        Objects.requireNonNull(policyId, "The Policy identifier must not be null!");
-        Objects.requireNonNull(policyEntry, "The PolicyEntry must not be null!");
+        checkNotNull(policyId, "Policy identifier");
+        checkNotNull(policyEntry, "PolicyEntry");
         return new ModifyPolicyEntry(policyId, policyEntry, dittoHeaders);
     }
 
@@ -114,7 +142,8 @@ public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry> 
      */
     public static ModifyPolicyEntry fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifyPolicyEntry>(TYPE, jsonObject).deserialize(() -> {
-            final String policyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+            final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final String policyEntryLabel = jsonObject.getValueOrThrow(JSON_LABEL);
             final JsonObject policyEntryJsonObject = jsonObject.getValueOrThrow(JSON_POLICY_ENTRY);
             final PolicyEntry policyEntry =
@@ -139,7 +168,7 @@ public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry> 
      * @return the identifier of the Policy whose PolicyEntry to modify.
      */
     @Override
-    public String getId() {
+    public PolicyId getEntityId() {
         return policyId;
     }
 
@@ -159,7 +188,7 @@ public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry> 
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_LABEL, policyEntry.getLabel().toString(), predicate);
         jsonObjectBuilder.set(JSON_POLICY_ENTRY, policyEntry.toJson(schemaVersion, thePredicate), predicate);
     }
@@ -189,8 +218,10 @@ public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry> 
             return false;
         }
         final ModifyPolicyEntry that = (ModifyPolicyEntry) obj;
-        return that.canEqual(this) && Objects.equals(policyId, that.policyId)
-                && Objects.equals(policyEntry, that.policyEntry) && super.equals(obj);
+        return that.canEqual(this) &&
+                Objects.equals(policyId, that.policyId) &&
+                Objects.equals(policyEntry, that.policyEntry) &&
+                super.equals(obj);
     }
 
     @SuppressWarnings("squid:S109")

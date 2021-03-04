@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+  ~ Copyright (c) 2017 Contributors to the Eclipse Foundation
   ~
-  ~ All rights reserved. This program and the accompanying materials
-  ~ are made available under the terms of the Eclipse Public License v2.0
-  ~ which accompanies this distribution, and is available at
-  ~ https://www.eclipse.org/org/documents/epl-2.0/index.php
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
   ~
   ~ SPDX-License-Identifier: EPL-2.0
   -->
@@ -34,6 +36,7 @@
         <module>things</module>
         <module>thingsearch</module>
         <module>utils</module>
+        <module>legal</module>
     </modules>
 
     <properties>
@@ -47,7 +50,8 @@
         <docker.registry>docker.io</docker.registry>
         <docker.repository>${docker.registry}/eclipse</docker.repository>
         <docker.image.additional.tag/>
-        <docker.image.jdk>docker.io/adoptopenjdk/openjdk8-openj9:x86_64-alpine-jdk8u192-b12_openj9-0.11.0-slim</docker.image.jdk>
+        <docker.image.jdk>docker.io/adoptopenjdk/openjdk11-openj9:x86_64-alpine-jdk-11.0.7_10_openj9-0.20.0-slim
+        </docker.image.jdk>
         <docker.image.port>8080</docker.image.port>
 
         <policies.docker.image.name>ditto-policies</policies.docker.image.name>
@@ -110,66 +114,15 @@
     </dependencies>
 
     <build>
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <groupId>io.fabric8</groupId>
-                    <artifactId>docker-maven-plugin</artifactId>
-                    <configuration>
-                        <dockerHost>${docker.daemon.url}</dockerHost>
-                        <certPath>${docker.certsPath}</certPath>
-                        <verbose>true</verbose>
-                        <autoCreateCustomNetworks>true</autoCreateCustomNetworks>
-                    </configuration>
-                </plugin>
-            </plugins>
-        </pluginManagement>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <configuration>
+                    <flattenMode>ossrh</flattenMode>
+                </configuration>
+            </plugin>
+        </plugins>
     </build>
-
-    <profiles>
-        <profile>
-            <id>docker-build-image</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>io.fabric8</groupId>
-                        <artifactId>docker-maven-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>docker-build-image</id>
-                                <phase>install</phase>
-                                <goals>
-                                    <goal>remove</goal>
-                                    <!-- In order to clean up! -->
-                                    <goal>build</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-
-        <profile>
-            <id>docker-push-image</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>io.fabric8</groupId>
-                        <artifactId>docker-maven-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>docker-push-image</id>
-                                <phase>install</phase>
-                                <goals>
-                                    <goal>push</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
 
 </project>

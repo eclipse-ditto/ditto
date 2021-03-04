@@ -1,16 +1,18 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.thingsearch;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -27,16 +29,18 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
-import org.eclipse.ditto.signals.commands.thingsearch.exceptions.ThingSearchErrorRegistry;
 
 /**
  * Response to a {@link ThingSearchCommand} which wraps the exception thrown by SearchService when processing the
  * SearchCommand.
  */
 @Immutable
+@JsonParsableCommandResponse(type = SearchErrorResponse.TYPE)
 public final class SearchErrorResponse extends AbstractCommandResponse<SearchErrorResponse>
         implements ThingSearchCommandResponse<SearchErrorResponse>, ErrorResponse<SearchErrorResponse> {
 
@@ -44,13 +48,14 @@ public final class SearchErrorResponse extends AbstractCommandResponse<SearchErr
      * Type of this response.
      */
     public static final String TYPE = TYPE_PREFIX + "errorResponse";
-    private final static ThingSearchErrorRegistry SEARCH_ERROR_REGISTRY = ThingSearchErrorRegistry.newInstance();
+
+    private static final GlobalErrorRegistry GLOBAL_ERROR_REGISTRY = GlobalErrorRegistry.getInstance();
+
     private final DittoRuntimeException dittoRuntimeException;
 
     private SearchErrorResponse(final DittoRuntimeException dittoRuntimeException, final DittoHeaders dittoHeaders) {
-        super(TYPE, dittoRuntimeException.getStatusCode(), dittoHeaders);
-        this.dittoRuntimeException =
-                requireNonNull(dittoRuntimeException, "The DittoRuntimeException must not be null");
+        super(TYPE, dittoRuntimeException.getHttpStatus(), dittoHeaders);
+        this.dittoRuntimeException = checkNotNull(dittoRuntimeException, "dittoRuntimeException");
     }
 
     /**
@@ -63,6 +68,7 @@ public final class SearchErrorResponse extends AbstractCommandResponse<SearchErr
      */
     public static SearchErrorResponse of(final DittoRuntimeException dittoRuntimeException,
             final DittoHeaders dittoHeaders) {
+
         return new SearchErrorResponse(dittoRuntimeException, dittoHeaders);
     }
 
@@ -75,25 +81,10 @@ public final class SearchErrorResponse extends AbstractCommandResponse<SearchErr
      * @return the SearchErrorResponse.
      */
     public static SearchErrorResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(SEARCH_ERROR_REGISTRY, jsonString, dittoHeaders);
-    }
-
-    /**
-     * Creates a new {@code SearchErrorResponse} containing the causing {@code DittoRuntimeException} which is
-     * deserialized from the passed {@code jsonString} using a special {@code SearchErrorRegistry}.
-     *
-     * @param searchErrorRegistry the special {@code SearchErrorRegistry} to use for deserializing the
-     * DittoRuntimeException.
-     * @param jsonString the JSON string representation of the causing {@code DittoRuntimeException}.
-     * @param dittoHeaders the DittoHeaders to use.
-     * @return the KeystoreErrorResponse.
-     */
-    public static SearchErrorResponse fromJson(final ThingSearchErrorRegistry searchErrorRegistry,
-            final String jsonString,
-            final DittoHeaders dittoHeaders) {
         final JsonObject jsonObject =
                 DittoJsonException.wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
-        return fromJson(searchErrorRegistry, jsonObject, dittoHeaders);
+
+        return fromJson(jsonObject, dittoHeaders);
     }
 
     /**
@@ -105,25 +96,10 @@ public final class SearchErrorResponse extends AbstractCommandResponse<SearchErr
      * @return the SearchErrorResponse.
      */
     public static SearchErrorResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return fromJson(SEARCH_ERROR_REGISTRY, jsonObject, dittoHeaders);
-    }
-
-    /**
-     * Creates a new {@code SearchErrorResponse} containing the causing {@code DittoRuntimeException} which is
-     * deserialized from the passed {@code jsonObject} using a special {@code SearchErrorRegistry}.
-     *
-     * @param searchErrorRegistry the special {@code SearchErrorRegistry} to use for deserializing the
-     * DittoRuntimeException.
-     * @param jsonObject the JSON representation of the causing {@code DittoRuntimeException}.
-     * @param dittoHeaders the DittoHeaders to use.
-     * @return the SearchErrorResponse.
-     */
-    public static SearchErrorResponse fromJson(final ThingSearchErrorRegistry searchErrorRegistry,
-            final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         final JsonObject payload = jsonObject.getValue(JsonFields.PAYLOAD)
                 .map(JsonValue::asObject)
                 .orElseThrow(() -> new JsonMissingFieldException(JsonFields.PAYLOAD.getPointer()));
-        final DittoRuntimeException exception = searchErrorRegistry.parse(payload, dittoHeaders);
+        final DittoRuntimeException exception = GLOBAL_ERROR_REGISTRY.parse(payload, dittoHeaders);
         return of(exception, dittoHeaders);
     }
 
@@ -139,6 +115,7 @@ public final class SearchErrorResponse extends AbstractCommandResponse<SearchErr
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JsonFields.PAYLOAD, dittoRuntimeException.toJson(schemaVersion, thePredicate), predicate);
     }
@@ -172,8 +149,8 @@ public final class SearchErrorResponse extends AbstractCommandResponse<SearchErr
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof SearchErrorResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof SearchErrorResponse;
     }
 
     @Override
@@ -182,4 +159,5 @@ public final class SearchErrorResponse extends AbstractCommandResponse<SearchErr
                 dittoRuntimeException +
                 "]";
     }
+
 }

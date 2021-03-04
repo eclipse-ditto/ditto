@@ -1,43 +1,50 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.models.policies;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.services.models.streaming.AbstractEntityIdWithRevision;
 
 /**
  * Represents the ID and revision of a Policy.
  */
 @Immutable
-public final class PolicyTag extends AbstractEntityIdWithRevision {
+public final class PolicyTag extends AbstractEntityIdWithRevision<PolicyId> {
 
-    private PolicyTag(final String id, final long revision) {
-        super(id, revision);
-    }
+    /**
+     * Defines a Publish/Subscribe topic on which PolicyTag message are published whenever the policy enforcer caches
+     * of the policyId contained in the published PolicyTag should be invalidated.
+     */
+    public static final String PUB_SUB_TOPIC_INVALIDATE_ENFORCERS = "policy-invalidate-enforcers";
 
-    private PolicyTag(final JsonObject jsonObject) {
-        super(jsonObject);
+    private PolicyTag(final PolicyId policyId, final long revision) {
+        super(policyId, revision);
     }
 
     /**
      * Returns a new {@link PolicyTag}.
      *
-     * @param id the ID of the modified Policy.
+     * @param policyId the ID of the modified Policy.
      * @param revision the revision of the modified Policy.
      * @return a new {@link PolicyTag}.
      */
-    public static PolicyTag of(final String id, final long revision) {
-        return new PolicyTag(id, revision);
+    public static PolicyTag of(final PolicyId policyId, final long revision) {
+        return new PolicyTag(policyId, revision);
     }
 
     /**
@@ -52,7 +59,11 @@ public final class PolicyTag extends AbstractEntityIdWithRevision {
      * expected format.
      */
     public static PolicyTag fromJson(final JsonObject jsonObject) {
-        return new PolicyTag(jsonObject);
+        checkNotNull(jsonObject, "JSON object");
+        final PolicyId policyId = PolicyId.of(jsonObject.getValueOrThrow(JsonFields.ID));
+        final Long revision = jsonObject.getValueOrThrow(JsonFields.REVISION);
+
+        return new PolicyTag(policyId, revision);
     }
 
 }

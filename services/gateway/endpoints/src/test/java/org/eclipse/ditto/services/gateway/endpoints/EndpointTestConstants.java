@@ -1,14 +1,18 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.gateway.endpoints;
+
+import org.eclipse.ditto.model.things.ThingId;
 
 import akka.http.javadsl.model.StatusCode;
 import akka.http.javadsl.model.StatusCodes;
@@ -22,7 +26,7 @@ public final class EndpointTestConstants {
 
     public static final String KNOWN_FEATURE_ID = "knownFeatureId";
     public static final String KNOWN_NS = "org.eclipse.ditto.test";
-    public static final String KNOWN_THING_ID = KNOWN_NS + ":dummyThingId";
+    public static final ThingId KNOWN_THING_ID = ThingId.of(KNOWN_NS + ":dummyThingId");
 
     public static final String UNKNOWN_PATH = "/doesNotExist";
     public static final String KNOWN_SUBJECT = "knownSubject";
@@ -36,6 +40,8 @@ public final class EndpointTestConstants {
     public static final StatusCode DUMMY_COMMAND_SUCCESS = StatusCodes.OK;
     public static final BasicHttpCredentials DEVOPS_CREDENTIALS =
             HttpCredentials.createBasicHttpCredentials("devops", "devops!");
+    public static final BasicHttpCredentials STATUS_CREDENTIALS =
+            HttpCredentials.createBasicHttpCredentials("devops", "status!");
 
     private EndpointTestConstants() {
         throw new AssertionError();

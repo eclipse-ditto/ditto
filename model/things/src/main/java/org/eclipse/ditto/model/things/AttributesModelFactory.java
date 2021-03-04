@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -16,7 +18,10 @@ import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJso
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonPointerInvalidException;
 
 /**
  * Factory that creates new {@code attributes} objects.
@@ -55,6 +60,9 @@ public final class AttributesModelFactory {
      * @param jsonObject provides the initial values of the result.
      * @return the new immutable initialised {@code Attributes}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws JsonPointerInvalidException if an attribute name in the contained {@code jsonObject} was not valid
+     * according to pattern
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static Attributes newAttributes(final JsonObject jsonObject) {
         checkNotNull(jsonObject, "JSON object for initialization");
@@ -100,4 +108,28 @@ public final class AttributesModelFactory {
         return ImmutableAttributesBuilder.of(jsonObject);
     }
 
+    /**
+     * Validates the given attribute {@link JsonPointer}.
+     *
+     * @param jsonPointer {@code jsonPointer} that is validated
+     * @return the same {@code jsonPointer} if validation was successful
+     * @throws JsonKeyInvalidException if {@code jsonPointer} was not valid according to
+     * pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * @since 1.2.0
+     */
+    public static JsonPointer validateAttributePointer(final JsonPointer jsonPointer) {
+        return JsonKeyValidator.validate(jsonPointer);
+    }
+
+    /**
+     * Validates the given attribute {@link JsonObject}.
+     *
+     * @param jsonObject {@code jsonObject} that is validated
+     * @throws JsonKeyInvalidException if {@code jsonObject} was not valid according to
+     * pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * @since 1.3.0
+     */
+    public static void validateAttributeKeys(final JsonObject jsonObject) {
+        JsonKeyValidator.validateJsonKeys(jsonObject);
+    }
 }

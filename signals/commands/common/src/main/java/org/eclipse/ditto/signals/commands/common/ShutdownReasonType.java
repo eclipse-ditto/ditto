@@ -1,16 +1,16 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.common;
-
-import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -33,13 +33,13 @@ public interface ShutdownReasonType extends CharSequence {
      */
     @Immutable
     final class Unknown implements ShutdownReasonType {
-        
+
         private final String typeName;
-        
+
         private Unknown(final CharSequence theTypeName) {
-            typeName = argumentNotEmpty(theTypeName, "typeName").toString();
+            typeName = theTypeName.toString();
         }
-        
+
         /**
          * Returns an instance of {@code Unknown}.
          *
@@ -104,11 +104,16 @@ public interface ShutdownReasonType extends CharSequence {
         /**
          * A namespace is going to be purged.
          */
-        PURGE_NAMESPACE("purge-namespace");
+        PURGE_NAMESPACE("purge-namespace"),
+
+        /**
+         * Entities are going to be purged.
+         */
+        PURGE_ENTITIES("purge-entities");
 
         private final String typeName;
 
-        private Known(final String theTypeName) {
+        Known(final String theTypeName) {
             typeName = theTypeName;
         }
 
@@ -119,10 +124,9 @@ public interface ShutdownReasonType extends CharSequence {
          * @return an Optional containing the {@code ShutdownReasonType} constant with the requested type name or an empty
          * Optional.
          * @throws NullPointerException if {@code requestedTypeName} is {@code null}.
-         * @throws IllegalArgumentException if {@code requestedTypeName} is empty.
          */
         public static Optional<ShutdownReasonType> forTypeName(final CharSequence requestedTypeName) {
-            final String requestedTypeNameString = argumentNotEmpty(requestedTypeName, "requestedTypeName").toString();
+            final String requestedTypeNameString = requestedTypeName.toString();
             for (final ShutdownReasonType.Known type : values()) {
                 if (requestedTypeNameString.equals(type.typeName)) {
                     return Optional.of(type);

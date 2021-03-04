@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -17,19 +19,23 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute} command.
  */
 @Immutable
-final class RetrieveAttributeStrategy
-        extends AbstractConditionalHeadersCheckingCommandStrategy<RetrieveAttribute, JsonValue> {
+final class RetrieveAttributeStrategy extends AbstractThingCommandStrategy<RetrieveAttribute> {
 
     /**
      * Constructs a new {@code RetrieveAttributeStrategy} object.
@@ -39,20 +45,23 @@ final class RetrieveAttributeStrategy
     }
 
     @Override
-    protected Result doApply(final Context context, @Nullable final Thing thing,
-            final long nextRevision, final RetrieveAttribute command) {
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
+            @Nullable final Thing thing,
+            final long nextRevision,
+            final RetrieveAttribute command,
+            @Nullable final Metadata metadata) {
 
         return extractAttributes(thing)
-                .map(attributes -> getAttributeValueResult(attributes, context.getThingId(), command, thing))
+                .map(attributes -> getAttributeValueResult(attributes, context.getState(), command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.attributesNotFound(context.getThingId(), command.getDittoHeaders())));
+                        ExceptionFactory.attributesNotFound(context.getState(), command.getDittoHeaders()), command));
     }
 
     private Optional<Attributes> extractAttributes(final @Nullable Thing thing) {
-        return getThingOrThrow(thing).getAttributes();
+        return getEntityOrThrow(thing).getAttributes();
     }
 
-    private Result getAttributeValueResult(final JsonObject attributes, final String thingId,
+    private Result<ThingEvent<?>> getAttributeValueResult(final JsonObject attributes, final ThingId thingId,
             final RetrieveAttribute command, @Nullable final Thing thing) {
 
         final JsonPointer attributePointer = command.getAttributePointer();
@@ -60,15 +69,23 @@ final class RetrieveAttributeStrategy
 
         return attributes.getValue(attributePointer)
                 .map(value -> RetrieveAttributeResponse.of(thingId, attributePointer, value, dittoHeaders))
-                .map(response -> ResultFactory.newQueryResult(command, thing, response, this))
+                .<Result<ThingEvent<?>>>map(response ->
+                        ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.attributeNotFound(thingId, attributePointer, dittoHeaders)));
+                        ExceptionFactory.attributeNotFound(thingId, attributePointer, dittoHeaders), command));
     }
 
 
     @Override
-    public Optional<JsonValue> determineETagEntity(final RetrieveAttribute command, @Nullable final Thing thing) {
-        return extractAttributes(thing)
-                .flatMap(attributes -> attributes.getValue(command.getAttributePointer()));
+    public Optional<EntityTag> previousEntityTag(final RetrieveAttribute command,
+            @Nullable final Thing previousEntity) {
+        return nextEntityTag(command, previousEntity);
+    }
+
+    @Override
+    public Optional<EntityTag> nextEntityTag(final RetrieveAttribute command, @Nullable final Thing newEntity) {
+        return extractAttributes(newEntity)
+                .flatMap(attributes -> attributes.getValue(command.getAttributePointer()))
+                .flatMap(EntityTag::fromEntity);
     }
 }

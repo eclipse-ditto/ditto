@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -15,14 +17,16 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.assertj.core.api.SoftAssertions;
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
+import org.eclipse.ditto.model.base.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.things.ThingId;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -32,11 +36,10 @@ import org.junit.Test;
 public final class MessageHeadersBuilderTest {
 
     private static final MessageDirection DIRECTION = MessageDirection.TO;
-    private final static String THING_ID = "bla:foo-bar";
+    private final static ThingId THING_ID = ThingId.of("bla","foo-bar");
     private static final String SUBJECT = KnownMessageSubjects.CLAIM_SUBJECT;
     private static final String FEATURE_ID = "flux-condensator-0815";
     private static final String CONTENT_TYPE = "application/json";
-    private static final long TIMEOUT = 5000;
     private static final String CORRELATION_ID = "myCorrelationId";
 
     private MessageHeadersBuilder underTest;
@@ -58,15 +61,7 @@ public final class MessageHeadersBuilderTest {
     public void tryToCreateInstanceWithNullThingId() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> MessageHeadersBuilder.newInstance(DIRECTION, null, SUBJECT))
-                .withMessage("The %s must not be null!", MessageHeaderDefinition.THING_ID.getKey())
-                .withNoCause();
-    }
-
-    @Test
-    public void tryToCreateInstanceWithEmptyThingId() {
-        assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> MessageHeadersBuilder.newInstance(DIRECTION, "", SUBJECT))
-                .withMessage("The argument '%s' must not be empty!", MessageHeaderDefinition.THING_ID.getKey())
+                .withMessage("The %s must not be null!", "thing-id")
                 .withNoCause();
     }
 
@@ -74,7 +69,7 @@ public final class MessageHeadersBuilderTest {
     public void tryToCreateInstanceWithNullSubject() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> MessageHeadersBuilder.newInstance(DIRECTION, THING_ID, null))
-                .withMessage("The %s must not be null!", MessageHeaderDefinition.SUBJECT.getKey())
+                .withMessage("The %s must not be null!", "subject")
                 .withNoCause();
     }
 
@@ -82,18 +77,18 @@ public final class MessageHeadersBuilderTest {
     public void tryToCreateInstanceWithEmptySubject() {
         assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> MessageHeadersBuilder.newInstance(DIRECTION, THING_ID, ""))
-                .withMessage("The argument '%s' must not be empty!", MessageHeaderDefinition.SUBJECT.getKey())
+                .withMessage("The argument '%s' must not be empty!", "subject")
                 .withNoCause();
     }
 
     @Test
     public void tryToCreateInstanceWithInvalidSubject() {
-        final String invalidSubject = "{foo}";
+        final String invalidSubject = "§foo";
 
-        assertThatExceptionOfType(SubjectInvalidException.class)
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> MessageHeadersBuilder.newInstance(DIRECTION, THING_ID, invalidSubject))
-                .withMessageStartingWith(
-                        "The subject <" + invalidSubject + "> is invalid because it did not match the pattern")
+                .withMessageContaining(invalidSubject)
+                .withMessageEndingWith("is not a valid message subject.")
                 .withNoCause();
     }
 
@@ -102,7 +97,7 @@ public final class MessageHeadersBuilderTest {
         final Map<String, String> validHeaders = new HashMap<>();
         validHeaders.put(MessageHeaderDefinition.DIRECTION.getKey(), MessageDirection.TO.toString());
         validHeaders.put(MessageHeaderDefinition.SUBJECT.getKey(), SUBJECT);
-        validHeaders.put(MessageHeaderDefinition.THING_ID.getKey(), THING_ID);
+        validHeaders.put(MessageHeaderDefinition.THING_ID.getKey(), THING_ID.toString());
 
         final MessageHeaders messageHeaders = MessageHeadersBuilder.of(validHeaders).build();
 
@@ -152,25 +147,32 @@ public final class MessageHeadersBuilderTest {
 
         assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> underTest.statusCode(unknownCode))
-                .withMessage("HTTP status code <%s> is unknown!", unknownCode)
-                .withNoCause();
+                .withCauseInstanceOf(HttpStatusCodeOutOfRangeException.class);
     }
 
     @Test
     public void setStatusCodeAsIntWorksAsExpected() {
-        final int knownCode = 404;
+        final HttpStatus knownStatus = HttpStatus.NOT_FOUND;
 
-        final MessageHeaders messageHeaders = underTest.statusCode(knownCode).build();
+        final MessageHeaders messageHeaders = underTest.statusCode(knownStatus.getCode()).build();
 
-        assertThat(messageHeaders.getStatusCode()).contains(HttpStatusCode.NOT_FOUND);
+        assertThat(messageHeaders.getHttpStatus()).contains(knownStatus);
+    }
+
+    @Test
+    public void setHttpStatusWorksAsExpected() {
+        final HttpStatus knownStatus = HttpStatus.NOT_FOUND;
+
+        final MessageHeaders messageHeaders = underTest.httpStatus(knownStatus).build();
+
+        assertThat(messageHeaders.getHttpStatus()).contains(knownStatus);
     }
 
     @Test
     public void putValidHeadersWorksAsExpected() {
         final Map<String, String> validHeaders = new HashMap<>();
         validHeaders.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), CONTENT_TYPE);
-        validHeaders.put(MessageHeaderDefinition.STATUS_CODE.getKey(), String.valueOf(HttpStatusCode.CREATED.toInt()));
-        validHeaders.put(MessageHeaderDefinition.TIMEOUT.getKey(), String.valueOf(TIMEOUT));
+        validHeaders.put(MessageHeaderDefinition.STATUS_CODE.getKey(), String.valueOf(HttpStatus.CREATED.getCode()));
         validHeaders.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), CORRELATION_ID);
 
         final MessageHeaders messageHeaders = underTest.putHeaders(validHeaders).build();
@@ -185,8 +187,7 @@ public final class MessageHeadersBuilderTest {
 
         final Map<String, String> invalidHeaders = new HashMap<>();
         invalidHeaders.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), CONTENT_TYPE);
-        invalidHeaders.put(MessageHeaderDefinition.STATUS_CODE.getKey(), String.valueOf(HttpStatusCode.CREATED.toInt()));
-        invalidHeaders.put(MessageHeaderDefinition.TIMEOUT.getKey(), String.valueOf(TIMEOUT));
+        invalidHeaders.put(MessageHeaderDefinition.STATUS_CODE.getKey(), String.valueOf(HttpStatus.CREATED.getCode()));
         invalidHeaders.put(key, invalidValue);
 
         assertThatExceptionOfType(DittoHeaderInvalidException.class)
@@ -196,30 +197,29 @@ public final class MessageHeadersBuilderTest {
     }
 
     @Test
-    public void tryToPutMapWithInvalidMessageHeader() {
-        final String key = MessageHeaderDefinition.TIMEOUT.getKey();
-        final String invalidValue = "bar";
-
-        final Map<String, String> invalidHeaders = new HashMap<>();
-        invalidHeaders.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), CONTENT_TYPE);
-        invalidHeaders.put(MessageHeaderDefinition.STATUS_CODE.getKey(), String.valueOf(HttpStatusCode.CREATED.toInt()));
-        invalidHeaders.put(key, invalidValue);
-
-        assertThatExceptionOfType(DittoHeaderInvalidException.class)
-                .isThrownBy(() -> underTest.putHeaders(invalidHeaders))
-                .withMessage("The value '%s' of the header '%s' is not a valid long.", invalidValue, key)
-                .withNoCause();
+    public void tryToRemoveMandatoryHeader() {
+        final SoftAssertions softly = new SoftAssertions();
+        for (final MessageHeaderDefinition mandatoryHeaderDefinition : MessageHeadersBuilder.MANDATORY_HEADERS) {
+            final String key = mandatoryHeaderDefinition.getKey();
+            softly.assertThatThrownBy(() -> underTest.removeHeader(key))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .withFailMessage("Mandatory header with key <%s> cannot be removed!", key)
+                    .hasNoCause();
+        }
+        softly.assertAll();
     }
 
     @Test
-    public void tryToOverwriteMandatoryHeader() {
-        final String key = MessageHeaderDefinition.SUBJECT.getKey();
-        final String value = "mySubject";
-
-        assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> underTest.putHeader(key, value))
-                .withMessage("Value for mandatory header with key <%s> cannot be overwritten!", key)
-                .withNoCause();
+    public void tryToRemoveMandatoryHeaderBySettingToNull() {
+        final SoftAssertions softly = new SoftAssertions();
+        for (final MessageHeaderDefinition mandatoryHeaderDefinition : MessageHeadersBuilder.MANDATORY_HEADERS) {
+            final String key = mandatoryHeaderDefinition.getKey();
+            softly.assertThatThrownBy(() -> underTest.putHeader(key, null))
+                    .isInstanceOf(NullPointerException.class)
+                    .withFailMessage("The value must not be null!")
+                    .hasNoCause();
+        }
+        softly.assertAll();
     }
 
     @Test
@@ -227,10 +227,10 @@ public final class MessageHeadersBuilderTest {
         final String key = MessageHeaderDefinition.TIMESTAMP.getKey();
         final String invalidValue = "foo";
 
-        assertThatExceptionOfType(IllegalArgumentException.class)
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> underTest.putHeader(key, invalidValue))
-                .withMessage("<foo> is not a valid timestamp!")
-                .withCauseInstanceOf(DateTimeParseException.class);
+                .withMessageContaining(invalidValue)
+                .withMessageEndingWith("is not a valid timestamp.");
     }
 
     @Test

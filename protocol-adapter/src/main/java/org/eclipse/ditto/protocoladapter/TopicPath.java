@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -14,18 +16,43 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionFailed;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionHasNextPage;
+
 /**
  * Represents the path of a topic for the Ditto Protocol.
  * <p>
  * A {@code TopicPath} complies with the scheme
  *
- * <tt>&lt;namespace&gt;/&lt;id&gt;/&lt;group&gt;/&lt;channel&gt;/&lt;criterion&gt;/&lt;action&gt;</tt> <br>
- * for example <tt>org.eclipse.ditto/myThing/things/twin/commands/modify</tt>
+ * <code>&lt;namespace&gt;/&lt;id&gt;/&lt;group&gt;/&lt;channel&gt;/&lt;criterion&gt;/&lt;action&gt;</code> <br>
+ * for example <code>org.eclipse.ditto/myThing/things/twin/commands/modify</code>
  * </p>
  */
 public interface TopicPath {
 
     String ID_PLACEHOLDER = "_";
+    String PATH_DELIMITER = "/";
+
+    /**
+     * Returns a mutable builder to create immutable {@code TopicPath} instances for a given {@code thingId}.
+     *
+     * @param thingId the identifier of the {@code Thing}.
+     * @return the builder.
+     * @throws NullPointerException if {@code thingId} is {@code null}.
+     * @deprecated Thing ID is now typed. Use {@link #newBuilder(org.eclipse.ditto.model.things.ThingId)} instead.
+     */
+    @Deprecated
+    static TopicPathBuilder newBuilder(final String thingId) {
+        return newBuilder(ThingId.of(thingId));
+    }
+
     /**
      * Returns a mutable builder to create immutable {@code TopicPath} instances for a given {@code thingId}.
      *
@@ -33,8 +60,19 @@ public interface TopicPath {
      * @return the builder.
      * @throws NullPointerException if {@code thingId} is {@code null}.
      */
-    static TopicPathBuilder newBuilder(final String thingId) {
+    static TopicPathBuilder newBuilder(final ThingId thingId) {
         return ProtocolFactory.newTopicPathBuilder(thingId);
+    }
+
+    /**
+     * Returns a mutable builder to create immutable {@code TopicPath} instances for a given {@code policyId}.
+     *
+     * @param policyId the identifier of the {@code Policy}.
+     * @return the builder.
+     * @throws NullPointerException if {@code policyId} is {@code null}.
+     */
+    static TopicPathBuilder newBuilder(final PolicyId policyId) {
+        return ProtocolFactory.newTopicPathBuilder(policyId);
     }
 
     /**
@@ -84,6 +122,13 @@ public interface TopicPath {
     Optional<Action> getAction();
 
     /**
+     * Returns an {@link Optional} for an search action part of this {@code TopicPath}.
+     *
+     * @return the search action.
+     */
+    Optional<SearchAction> getSearchAction();
+
+    /**
      * Returns an {@link Optional} for a subject part of this {@code TopicPath}.
      *
      * @return the subject.
@@ -94,8 +139,17 @@ public interface TopicPath {
      * Returns the id part of this {@code TopicPath}.
      *
      * @return the id.
+     * @deprecated Since 1.4.0. Use {@link #getEntityName()} instead.
      */
+    @Deprecated
     String getId();
+
+    /**
+     * Returns the entity name part of this {@code TopicPath}.
+     *
+     * @return the entity name.
+     */
+    String getEntityName();
 
     /**
      * Returns the path of this {@code TopicPath}.
@@ -130,8 +184,8 @@ public interface TopicPath {
          * @return the optional Group.
          */
         public static Optional<Group> forName(final String name) {
-            return Stream.of(values()) //
-                    .filter(a -> Objects.equals(a.getName(), name)) //
+            return Stream.of(values())
+                    .filter(a -> Objects.equals(a.getName(), name))
                     .findFirst();
         }
 
@@ -163,7 +217,14 @@ public interface TopicPath {
 
         MESSAGES("messages"),
 
-        ERRORS("errors");
+        ERRORS("errors"),
+
+        /**
+         * Criterion for the topic path of an acknowledgement (ACK).
+         *
+         * @since 1.1.0
+         */
+        ACKS("acks");
 
         private final String name;
 
@@ -179,8 +240,8 @@ public interface TopicPath {
          * @return the optional Criterion.
          */
         public static Optional<Criterion> forName(final String name) {
-            return Stream.of(values()) //
-                    .filter(a -> Objects.equals(a.getName(), name)) //
+            return Stream.of(values())
+                    .filter(a -> Objects.equals(a.getName(), name))
                     .findFirst();
         }
 
@@ -206,7 +267,9 @@ public interface TopicPath {
 
         TWIN("twin"),
 
-        LIVE("live");
+        LIVE("live"),
+
+        NONE("none");
 
         private final String name;
 
@@ -222,8 +285,8 @@ public interface TopicPath {
          * @return the optional Channel.
          */
         public static Optional<Channel> forName(final String name) {
-            return Stream.of(values()) //
-                    .filter(a -> Objects.equals(a.getName(), name)) //
+            return Stream.of(values())
+                    .filter(a -> Objects.equals(a.getName(), name))
                     .findFirst();
         }
 
@@ -253,12 +316,16 @@ public interface TopicPath {
 
         MODIFY("modify"),
 
+        MERGE("merge"),
+
         DELETE("delete"),
 
 
         CREATED("created"),
 
         MODIFIED("modified"),
+
+        MERGED("merged"),
 
         DELETED("deleted");
 
@@ -276,8 +343,8 @@ public interface TopicPath {
          * @return the optional Action.
          */
         public static Optional<Action> forName(final String name) {
-            return Stream.of(values()) //
-                    .filter(a -> Objects.equals(a.getName(), name)) //
+            return Stream.of(values())
+                    .filter(a -> Objects.equals(a.getName(), name))
                     .findFirst();
         }
 
@@ -285,6 +352,64 @@ public interface TopicPath {
          * Returns the Action name as String.
          *
          * @return the Action name as String.
+         */
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
+
+    /**
+     * An enumeration of topic path search-actions.
+     *
+     * @since 1.2.0
+     */
+    enum SearchAction {
+
+
+        SUBSCRIBE(CreateSubscription.NAME),
+
+        CANCEL(CancelSubscription.NAME),
+
+        REQUEST(RequestFromSubscription.NAME),
+
+
+        COMPLETE(SubscriptionComplete.NAME),
+
+        GENERATED(SubscriptionCreated.NAME),
+
+        FAILED(SubscriptionFailed.NAME),
+
+        NEXT(SubscriptionHasNextPage.NAME);
+
+        private final String name;
+
+        SearchAction(final String name) {
+            this.name = name;
+        }
+
+        /**
+         * Creates a SearchAction from the passed SearchAction {@code name} if such an enum value exists, otherwise an empty
+         * Optional.
+         *
+         * @param name the SearchAction name to create the SearchAction enum value of.
+         * @return the optional SearchAction.
+         * @since 1.2.0
+         */
+        public static Optional<SearchAction> forName(final String name) {
+            return Stream.of(values()) //
+                    .filter(a -> Objects.equals(a.getName(), name)) //
+                    .findFirst();
+        }
+
+        /**
+         * Returns the SearchAction name as String.
+         *
+         * @return the SearchAction name as String.
          */
         public String getName() {
             return name;

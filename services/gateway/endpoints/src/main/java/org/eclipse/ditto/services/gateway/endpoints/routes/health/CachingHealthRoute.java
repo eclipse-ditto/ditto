@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -20,6 +22,7 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.PublicHealthConfig;
 import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
 import org.eclipse.ditto.services.utils.health.StatusDetailMessage;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
@@ -54,6 +57,19 @@ public final class CachingHealthRoute {
     public CachingHealthRoute(final StatusAndHealthProvider statusHealthHelper, final Duration refreshInterval) {
         this.statusHealthHelper = statusHealthHelper;
         this.refreshInterval = refreshInterval;
+    }
+
+    /**
+     * Constructs a new {@code CachingHealthRoute} object.
+     *
+     * @param statusAndHealthProvider is used to retrieve the health status of the cluster.
+     * @param publicHealthConfig the configuration settings of the public health endpoint.
+     */
+    public CachingHealthRoute(final StatusAndHealthProvider statusAndHealthProvider,
+            final PublicHealthConfig publicHealthConfig) {
+
+        statusHealthHelper = statusAndHealthProvider;
+        refreshInterval = publicHealthConfig.getCacheTimeout();
     }
 
     /**

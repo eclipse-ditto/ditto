@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -15,20 +17,24 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
-
-import akka.event.DiagnosticLoggingAdapter;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * This strategy handles the {@link DeleteThing} command.
  */
 @Immutable
-final class DeleteThingStrategy extends AbstractConditionalHeadersCheckingCommandStrategy<DeleteThing, Thing> {
+final class DeleteThingStrategy extends AbstractThingCommandStrategy<DeleteThing> {
 
     /**
      * Constructs a new {@code DeleteThingStrategy} object.
@@ -38,21 +44,31 @@ final class DeleteThingStrategy extends AbstractConditionalHeadersCheckingComman
     }
 
     @Override
-    protected Result doApply(final Context context, @Nullable final Thing thing,
-            final long nextRevision, final DeleteThing command) {
-        final String thingId = context.getThingId();
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final DiagnosticLoggingAdapter log = context.getLog();
-        LogUtil.enhanceLogWithCorrelationId(log, command);
-        log.info("Deleted Thing with ID <{}>.", thingId);
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
+            @Nullable final Thing thing,
+            final long nextRevision,
+            final DeleteThing command,
+            @Nullable final Metadata metadata) {
 
-        return ResultFactory.newMutationResult(command,
-                ThingDeleted.of(thingId, nextRevision, getEventTimestamp(), dittoHeaders),
-                DeleteThingResponse.of(thingId, dittoHeaders), false,true, this);
+        final ThingId thingId = context.getState();
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+        context.getLog().withCorrelationId(command)
+                .info("Deleted Thing with ID <{}>.", thingId);
+
+        final ThingEvent<?> event = ThingDeleted.of(thingId, nextRevision, getEventTimestamp(), dittoHeaders, metadata);
+        final WithDittoHeaders<?> response =
+                appendETagHeaderIfProvided(command, DeleteThingResponse.of(thingId, dittoHeaders), null);
+
+        return ResultFactory.newMutationResult(command, event, response, false, true);
     }
 
     @Override
-    public Optional<Thing> determineETagEntity(final DeleteThing command, @Nullable final Thing thing) {
-        return Optional.ofNullable(thing);
+    public Optional<EntityTag> previousEntityTag(final DeleteThing command, @Nullable final Thing previousEntity) {
+        return Optional.ofNullable(previousEntity).flatMap(EntityTag::fromEntity);
+    }
+
+    @Override
+    public Optional<EntityTag> nextEntityTag(final DeleteThing command, @Nullable final Thing newEntity) {
+        return Optional.empty();
     }
 }

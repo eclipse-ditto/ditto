@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -51,8 +53,32 @@ public class RqlPredicateParserTest {
     }
 
     @Test
+    public void testComparisonEqualsWithStringSingleQuoteValue() throws ParserException {
+        final RootNode root = parser.parse("eq(username,'te\\'st')");
+
+        assertThat(root).isNotNull();
+        assertThat(root.getChildren().size()).isEqualTo(1);
+
+        final SingleComparisonNode comparison = (SingleComparisonNode) root.getChildren().get(0);
+        assertThat(comparison.getComparisonValue().getClass()).isEqualTo(String.class);
+        assertThat(comparison.getComparisonValue()).isEqualTo("te'st");
+    }
+
+    @Test
     public void testComparisonEqualsWithStringValueContainingBackslash() throws ParserException {
         final RootNode root = parser.parse("eq(username,\"abc\\nyz\")");
+
+        assertThat(root).isNotNull();
+        assertThat(root.getChildren().size()).isEqualTo(1);
+
+        final SingleComparisonNode comparison = (SingleComparisonNode) root.getChildren().get(0);
+        assertThat(comparison.getComparisonValue().getClass()).isEqualTo(String.class);
+        assertThat(comparison.getComparisonValue()).isEqualTo("abc\nyz");
+    }
+
+    @Test
+    public void testComparisonEqualsWithStringSingleQuoteValueContainingBackslash() throws ParserException {
+        final RootNode root = parser.parse("eq(username,'abc\\nyz')");
 
         assertThat(root).isNotNull();
         assertThat(root.getChildren().size()).isEqualTo(1);
@@ -158,6 +184,19 @@ public class RqlPredicateParserTest {
     }
 
     @Test
+    public void testComparisonLikeWithStringSingleQuoteValue() throws ParserException {
+        final RootNode root = parser.parse("like(width,'test*')");
+        assertThat(root).isNotNull();
+        assertThat(root.getChildren().size()).isEqualTo(1);
+
+        final SingleComparisonNode comparison = (SingleComparisonNode) root.getChildren().get(0);
+        assertThat(comparison.getComparisonType()).isEqualTo(SingleComparisonNode.Type.LIKE);
+        assertThat(comparison.getComparisonProperty()).isEqualTo("width");
+        assertThat(comparison.getComparisonValue().getClass()).isEqualTo(String.class);
+        assertThat(comparison.getComparisonValue()).isEqualTo("test*");
+    }
+
+    @Test
     public void testComparisonIn() throws ParserException {
         final RootNode root = parser.parse("in(attributes,\"test\",1,true)");
         assertThat(root).isNotNull();
@@ -251,6 +290,17 @@ public class RqlPredicateParserTest {
     @Test
     public void checkWithEmptyString() throws ParserException {
         final RootNode root = parser.parse("eq(username,\" \")");
+        assertThat(root).isNotNull();
+        assertThat(root.getChildren().size()).isEqualTo(1);
+
+        final SingleComparisonNode comparison = (SingleComparisonNode) root.getChildren().get(0);
+        assertThat(comparison.getComparisonValue().getClass()).isEqualTo(String.class);
+        assertThat(comparison.getComparisonValue()).isEqualTo(" ");
+    }
+
+    @Test
+    public void checkWithEmptyStringSingleQuote() throws ParserException {
+        final RootNode root = parser.parse("eq(username,' ')");
         assertThat(root).isNotNull();
         assertThat(root.getChildren().size()).isEqualTo(1);
 

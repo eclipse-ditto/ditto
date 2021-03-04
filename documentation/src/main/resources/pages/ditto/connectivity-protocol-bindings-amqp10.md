@@ -5,6 +5,11 @@ tags: [protocol, connectivity, rql]
 permalink: connectivity-protocol-bindings-amqp10.html
 ---
 
+Consume messages from AMQP 1.0 endpoints via [sources](#source-format) and send messages to AMQP 1.0 endpoints via
+[targets](#target-format).
+
+## Content-type
+
 When messages are sent in [Ditto Protocol](protocol-overview.html) (as `UTF-8` encoded String payload), 
 the `content-type` of AMQP 1.0 messages must be set to:
 
@@ -12,23 +17,64 @@ the `content-type` of AMQP 1.0 messages must be set to:
 application/vnd.eclipse.ditto+json
 ```
 
-If messages which are not in Ditto Protocol should be processed, a [payload mapping](connectivity-mapping.html) must
+If messages, which are not in Ditto Protocol, should be processed, a [payload mapping](connectivity-mapping.html) must
 be configured for the AMQP 1.0 connection in order to transform the messages. 
 
-## AMQP 1.0 properties
+## AMQP 1.0 properties and application properties
 
-Supported AMQP 1.0 properties which are interpreted in a specific way are:
+When set as external headers by outgoing payload or header mapping, the properties defined by AMQP 1.0 specification are
+set to the corresponding header value. Conversely, the values of AMQP 1.0 properties are available for incoming payload
+and header mapping as external headers. The supported AMQP 1.0 properties are:
 
-* `content-type`: for defining the Ditto Protocol content-type
-* `correlation-id`: for correlating request messages to responses
+* `message-id`
+* `user-id`
+* `to`
+* `subject`
+* `reply-to`
+* `correlation-id`
+* `content-type`
+* `absolute-expiry-time`
+* `creation-time`
+* `group-id`
+* `group-sequence`
+* `reply-to-group-id`
+
+External headers not on this list are mapped to AMQP application properties.
+To set an application property whose name is identical to an AMQP 1.0 property, prefix it by
+`amqp.application.property:`. The following [target header mapping](basic-connections.html#target-header-mapping) sets
+the application property `to` to the value of the Ditto protocol header `reply-to`:
+```json
+{
+  "headerMapping": {
+    "amqp.application.property:to": "{%raw%}{{ header:reply-to }}{%endraw%}"
+  }
+}
+```
+
+To read an application property whose name is identical to an AMQP 1.0 property, prefix it by
+`amqp.application.property:`. The following [source header mapping](basic-connections.html#source-header-mapping) sets
+the Ditto protocol header `reply-to` to the value of the application property `to`:
+```json
+{
+  "headerMapping": {
+    "reply-to": "{%raw%}{{ header:amqp.application.property:to }}{%endraw%}"
+  }
+}
+```
+
+{% include note.html content="For now, setting or reading the AMQP 1.0 property 'content-encoding' is impossible." %}
 
 ## Specific connection configuration
+
+The common configuration for connections in [Connections > Sources](basic-connections.html#sources) and 
+[Connections > Targets](basic-connections.html#targets) applies here as well. 
+Following are some specifics for AMQP 1.0 connections:
 
 ### Source format
 
 Any `source` item defines an `addresses` array of source identifiers (e.g. Eclipse Hono's 
-[Telemetry API](https://www.eclipse.org/hono/api/telemetry-api)) to consume messages from
-and `authorizationContext` array that contains the authorization subjects in whose context
+Telemetry API) to consume messages from,
+and `authorizationContext` array that contains the authorization subjects, in whose context
 inbound messages are processed. These subjects may contain placeholders, see 
 [placeholders](basic-connections.html#placeholder-for-source-authorization-subjects) section for more information.
 
@@ -42,47 +88,20 @@ inbound messages are processed. These subjects may contain placeholders, see
 }
 ```
 
-#### Enforcement
+#### Source acknowledgement handling
 
-{% include_relative connectivity-enforcement.md %}
+For AMQP 1.0 sources, when configuring 
+[acknowledgement requests](basic-connections.html#source-acknowledgement-requests), consumed messages from the AMQP 1.0
+endpoint are treated in the following way:
 
-The following placeholders are available for the `input` field:
+For Ditto acknowledgements with successful [status](protocol-specification-acks.html#combined-status-code):
+* Acknowledges the AMQP 1.0 message with `accepted` outcome (see [AMQP 1.0 spec: 3.4.2 Accepted](http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-messaging-v1.0-os.html#type-accepted))
 
-| Placeholder    | Description  | Example   |
-|-----------|-------|---------------|
-| `{%raw%}{{ header:<name> }}{%endraw%}` | Any header from the message received via the source. | `{%raw%}{{header:device_id }}{%endraw%}`  |
-
-Assuming a device `sensor:temperature1` pushes its telemetry data to Ditto which is stored in a Thing 
-`sensor:temperature1`. The device identity is provided in a header field `device_id`. To enforce that the device can 
-only send data to the Thing `sensor:temperature1` the following enforcement configuration can be used: 
-```json
-{
-  "addresses": [ "telemetry/hono_tenant" ],
-  "authorizationContext": ["ditto:inbound-auth-subject"],
-  "enforcement": {
-    "input": "{%raw%}{{ header:device_id }}{%endraw%}",
-    "filters": [ "{%raw%}{{ thing:id }}{%endraw%}" ]
-  }
-}
-```
-
-#### Source header mapping
-
-For incoming AMQP 1.0 messages, an optional [header mapping](connectivity-header-mapping.html) may be applied.
-
-The JSON for an AMQP 1.0 source with header mapping could like this:
-```json
-{
-  "addresses": [
-    "<source>"
-  ],
-  "authorizationContext": ["ditto:inbound-auth-subject"],
-  "headerMapping": {
-    "correlation-id": "{%raw%}{{ header:message-id }}{%endraw%}",
-    "content-type": "{%raw%}{{ header:content-type }}{%endraw%}"
-  }
-}
-```
+For Ditto acknowledgements with mixed successful/failed [status](protocol-specification-acks.html#combined-status-code):
+* If some of the aggregated [acknowledgements](basic-acknowledgements.html#acknowledgements-acks) require redelivery (e.g. based on a timeout):
+   * Negatively acknowledges the AMQP 1.0 message with `modified[delivery-failed]` outcome (see [AMQP 1.0 spec: 3.4.5 Modified](http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-messaging-v1.0-os.html#type-modified))
+* If none of the aggregated [acknowledgements](basic-acknowledgements.html#acknowledgements-acks) require redelivery:
+   * Negatively acknowledges the AMQP 1.0 message with `rejected` outcome (see [AMQP 1.0 spec: 3.4.3 Rejected](http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-messaging-v1.0-os.html#type-rejected)) preventing redelivery by the AMQP 1.0 endpoint
 
 ### Target format
 
@@ -91,11 +110,19 @@ identifier. The target address may contain placeholders; see
 [placeholders](basic-connections.html#placeholder-for-target-addresses) section for more 
 information.
 
+Target addresses for AMQP 1.0 are by default handled as AMQP 1.0 "queues". There is however the possibility to also 
+configure AMQP 1.0 "topics" as well. In fact, the following formats for the `address` are 
+supported:
+* `the-queue-name` (when configuring w/o prefix, the `address` is handled as "queue")
+* `queue://the-queue-name`
+* `topic://the-topic-name`
+
 Further, `"topics"` is a list of strings, each list entry representing a subscription of
-[Ditto protocol topics](protocol-specification-topic.html).
+[Ditto protocol topics](protocol-specification-topic.html), see 
+[target topics and filtering](basic-connections.html#target-topics-and-filtering) for more information on that.
 
 Outbound messages are published to the configured target address if one of the subjects in `"authorizationContext"`
-have READ permission on the Thing that is associated with a message.
+has READ permission on the thing, which is associated with a message.
 
 ```json
 {
@@ -108,62 +135,27 @@ have READ permission on the Thing that is associated with a message.
 }
 ```
 
-#### Filtering 
+#### Target acknowledgement handling
 
-In order to only consume specific events like described in [change notifications](basic-changenotifications.html), the
-following parameters can additionally be provided when specifying the `topics` of a target:
+For AMQP 1.0 targets, when configuring 
+[automatically issued acknowledgement labels](basic-connections.html#target-issued-acknowledgement-label), requested 
+acknowledgements are produced in the following way:
 
-| Description | Topic | Filter by namespaces | Filter by RQL expression |
-|-------------|-----------------|------------------|-----------|
-| Subscribe for [events/change notifications](basic-changenotifications.html) | `_/_/things/twin/events` | &#10004; | &#10004; |
-| Subscribe for [messages](basic-messages.html) | `_/_/things/live/messages` | &#10004; | &#10060; |
-| Subscribe for [live commands](protocol-twinlive.html) | `_/_/things/live/commands` | &#10004; | &#10060; |
-| Subscribe for [live events](protocol-twinlive.html) | `_/_/things/live/events` | &#10004; | &#10004; |
+Once the AMQP 1.0 client signals that the message was acknowledged by the AMQP 1.0 endpoint, the following information 
+is mapped to the automatically created [acknowledgement](protocol-specification-acks.html#acknowledgement):
 
-The parameters are specified similar to HTTP query parameters, the first one separated with a `?` and all following ones
-with `&`. You have to URL encode the filter values before using them in a configuration.
-
-For example this way the connection session would register for all events in the namespace `org.eclipse.ditto` and which
-would match an attribute "counter" to be greater than 42. Additionally it would subscribe to messages in the namespace
-`org.eclipse.ditto`:
-```json
-{
-  "address": "<target>",
-  "topics": [
-    "_/_/things/twin/events?namespaces=org.eclipse.ditto&filter=gt(attributes/counter,42)",
-    "_/_/things/live/messages?namespaces=org.eclipse.ditto"
-  ],
-  "authorizationContext": ["ditto:outbound-auth-subject", "..."]
-}
-```
-
-#### Target header mapping
-
-For outgoing AMQP 1.0 messages, an optional [header mapping](connectivity-header-mapping.html) may be applied.
-
-The JSON for an AMQP 1.0 target with header mapping could like this:
-```json
-{
-  "address": "<target>",
-  "topics": [
-    "_/_/things/twin/events",
-    "_/_/things/live/messages?namespaces=org.eclipse.ditto"
-  ],
-  "authorizationContext": ["ditto:inbound-auth-subject"],
-  "headerMapping": {
-    "message-id": "{%raw%}{{ header:correlation-id }}{%endraw%}",
-    "content-type": "{%raw%}{{ header:content-type }}{%endraw%}",
-    "subject": "{%raw%}{{ topic:subject }}{%endraw%}",
-    "reply-to": "all-replies"
-  }
-}
-```
+* Acknowledgement.status: 
+   * will be `200`, if the message was successfully consumed by the AMQP 1.0 endpoint
+   * will be `5xx`, if the AMQP 1.0 endpoint failed in consuming the message, retrying sending the message is feasible
+* Acknowledgement.value: 
+   * will be missing, for status `200`
+   * will contain more information, in case that an error `status` was set
 
 
 ### Specific configuration properties
 
 The specific configuration properties are interpreted as 
-[JMS Configuration options](https://qpid.apache.org/releases/qpid-jms-0.34.0/docs/index.html#jms-configuration-options). 
+[JMS Configuration options](https://qpid.apache.org/releases/qpid-jms-0.40.0/docs/index.html#jms-configuration-options). 
 Use these to customize and tweak your connection as needed.
 
 
@@ -204,10 +196,3 @@ Example connection configuration to create a new AMQP 1.0 connection:
   ]
 }
 ```
-
-## Messages
-
-Messages consumed via the AMQP 1.0 binding are treated similar to the [WebSocket binding](httpapi-protocol-bindings-websocket.html)
-meaning that the messages are expected to be [Ditto Protocol](protocol-overview.html) messages serialized as JSON (as 
-shown for example in the [protocol examples](protocol-examples.html)). If your payload is not conform to the [Ditto
-Protocol](protocol-overview.html), you can configure a custom [payload mapping](connectivity-mapping.html).

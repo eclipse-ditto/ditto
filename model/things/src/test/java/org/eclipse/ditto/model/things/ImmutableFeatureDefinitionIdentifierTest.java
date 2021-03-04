@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -14,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -33,14 +36,14 @@ public final class ImmutableFeatureDefinitionIdentifierTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ImmutableFeatureDefinitionIdentifier.class, areImmutable());
+        assertInstancesOf(ImmutableFeatureDefinitionIdentifier.class, areImmutable(),
+                provided(DefinitionIdentifier.class).areAlsoImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ImmutableFeatureDefinitionIdentifier.class)
                 .usingGetClass()
-                .withIgnoredFields("stringRepresentation") // as it is only derived from other properties
                 .verify();
     }
 
@@ -134,9 +137,9 @@ public final class ImmutableFeatureDefinitionIdentifierTest {
 
     @Test
     public void tryToParseEmptyIdentifierString() {
-        assertThatExceptionOfType(FeatureDefinitionIdentifierInvalidException.class)
+        assertThatExceptionOfType(DefinitionIdentifierInvalidException.class)
                 .isThrownBy(() -> ImmutableFeatureDefinitionIdentifier.ofParsed(""))
-                .withMessage("Feature Definition Identifier <> is invalid!")
+                .withMessage("Definition identifier <> is invalid!")
                 .withNoCause();
     }
 
@@ -144,9 +147,9 @@ public final class ImmutableFeatureDefinitionIdentifierTest {
     public void tryToParseIdentifierStringWithEmptyNameSegment() {
         final String invalidString = NAMESPACE + "::" + VERSION;
 
-        assertThatExceptionOfType(FeatureDefinitionIdentifierInvalidException.class)
+        assertThatExceptionOfType(DefinitionIdentifierInvalidException.class)
                 .isThrownBy(() -> ImmutableFeatureDefinitionIdentifier.ofParsed(invalidString))
-                .withMessage("Feature Definition Identifier <%s> is invalid!", invalidString)
+                .withMessage("Definition identifier <%s> is invalid!", invalidString)
                 .withNoCause();
     }
 
@@ -154,9 +157,9 @@ public final class ImmutableFeatureDefinitionIdentifierTest {
     public void tryToParseIdentifierStringWithIllegalChar() {
         final String invalidString = "org/eclipse/ditto" + ":" + NAME + ":" + VERSION;
 
-        assertThatExceptionOfType(FeatureDefinitionIdentifierInvalidException.class)
+        assertThatExceptionOfType(DefinitionIdentifierInvalidException.class)
                 .isThrownBy(() -> ImmutableFeatureDefinitionIdentifier.ofParsed(invalidString))
-                .withMessage("Feature Definition Identifier <%s> is invalid!", invalidString)
+                .withMessage("Definition identifier <%s> is invalid!", invalidString)
                 .withNoCause();
     }
 

@@ -1,36 +1,47 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.gateway.streaming;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.Objects;
 
 import org.eclipse.ditto.services.models.streaming.StreamingType;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
+
+import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 
 /**
  * Message indicating a demand to receive entities of a specified {@link StreamingType} via a "streaming" connection.
  */
-public final class StopStreaming {
+@Immutable
+public final class StopStreaming implements StreamControlMessage {
 
     private final StreamingType streamingType;
     private final String connectionCorrelationId;
 
     /**
-     * Constructs a new {@link StopStreaming} instance.
+     * Constructs a new {@code StopStreaming} object.
      *
      * @param streamingType the type of entity to start the streaming for.
-     * @param connectionCorrelationId the correlationId of the connection/session.
+     * @param connectionCorrelationId the correlation ID of the connection/session.
+     * @throws NullPointerException if any argument is {@code null}.
      */
-    public StopStreaming(final StreamingType streamingType, final String connectionCorrelationId) {
-        this.streamingType = streamingType;
-        this.connectionCorrelationId = connectionCorrelationId;
+    public StopStreaming(final StreamingType streamingType, final CharSequence connectionCorrelationId) {
+        this.streamingType = checkNotNull(streamingType, "streamingType");
+        this.connectionCorrelationId = checkNotNull(connectionCorrelationId, "connectionCorrelationId")
+                .toString();
     }
 
     /**
@@ -45,9 +56,13 @@ public final class StopStreaming {
     }
 
     @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+    public boolean equals(@Nullable final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         final StopStreaming that = (StopStreaming) o;
         return streamingType == that.streamingType &&
                 Objects.equals(connectionCorrelationId, that.connectionCorrelationId);
@@ -65,4 +80,5 @@ public final class StopStreaming {
                 ", connectionCorrelationId=" + connectionCorrelationId +
                 "]";
     }
+
 }

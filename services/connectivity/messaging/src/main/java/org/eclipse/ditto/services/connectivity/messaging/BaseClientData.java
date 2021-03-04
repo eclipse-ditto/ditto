@@ -1,16 +1,21 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -19,118 +24,164 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 
 import akka.actor.ActorRef;
+import akka.japi.Pair;
 
 /**
- * The data the {@link BaseClientActor} has in its different {@link BaseClientState States}.
+ * The data the {@link BaseClientActor} has in its different {@link org.eclipse.ditto.services.models.connectivity.BaseClientState States}.
  */
 @Immutable
 public final class BaseClientData {
 
-    /**
-     * MDC (logging) field name for the connection ID.
-     */
-    public static final String MDC_CONNECTION_ID = "connection-id";
-
-    private final String connectionId;
+    private final ConnectionId connectionId;
     private final Connection connection;
-    private final ConnectionStatus connectionStatus;
-    private final ConnectionStatus desiredConnectionStatus;
+    private final ConnectivityStatus connectionStatus;
+    private final ConnectivityStatus desiredConnectionStatus;
     @Nullable private final String connectionStatusDetails;
     private final Instant inConnectionStatusSince;
-    @Nullable private final ActorRef sessionSender;
-    @Nullable private final DittoHeaders sessionHeaders;
+    private final List<Pair<ActorRef, DittoHeaders>> sessionSenders;
 
     /**
      * Constructs new instance of BaseClientData, the data of the {@link BaseClientActor}.
      *
      * @param connectionId the ID of the {@link Connection}.
      * @param connection the optional {@link Connection}.
-     * @param connectionStatus the current {@link ConnectionStatus} of the Connection.
-     * @param desiredConnectionStatus the desired {@link ConnectionStatus} of the Connection.
+     * @param connectionStatus the current {@link ConnectivityStatus} of the Connection.
+     * @param desiredConnectionStatus the desired {@link ConnectivityStatus} of the Connection.
      * @param connectionStatusDetails the optional details about the ConnectionStatus.
      * @param inConnectionStatusSince the instant since when the Client is in its current ConnectionStatus.
-     * @param sessionSender the ActorRef which caused the latest state data change.
      */
-    BaseClientData(final String connectionId, final Connection connection,
-            final ConnectionStatus connectionStatus,
-            final ConnectionStatus desiredConnectionStatus,
+    BaseClientData(final ConnectionId connectionId, final Connection connection,
+            final ConnectivityStatus connectionStatus,
+            final ConnectivityStatus desiredConnectionStatus,
+            @Nullable final String connectionStatusDetails,
+            final Instant inConnectionStatusSince) {
+        this(connectionId, connection, connectionStatus, desiredConnectionStatus, connectionStatusDetails,
+                inConnectionStatusSince, Collections.emptyList());
+    }
+
+    private BaseClientData(final ConnectionId connectionId, final Connection connection,
+            final ConnectivityStatus connectionStatus,
+            final ConnectivityStatus desiredConnectionStatus,
             @Nullable final String connectionStatusDetails,
             final Instant inConnectionStatusSince,
-            @Nullable final ActorRef sessionSender,
-            @Nullable DittoHeaders sessionHeaders) {
+            final List<Pair<ActorRef, DittoHeaders>> sessionSenders) {
         this.connectionId = connectionId;
         this.connection = connection;
         this.connectionStatus = connectionStatus;
         this.desiredConnectionStatus = desiredConnectionStatus;
         this.connectionStatusDetails = connectionStatusDetails;
         this.inConnectionStatusSince = inConnectionStatusSince;
-        this.sessionSender = sessionSender;
-        this.sessionHeaders = sessionHeaders;
+        this.sessionSenders = Collections.unmodifiableList(new ArrayList<>(sessionSenders));
     }
 
-    public String getConnectionId() {
+    /**
+     * @return the ID of the Connection
+     */
+    public ConnectionId getConnectionId() {
         return connectionId;
     }
 
+    /**
+     * @return the managed Connection
+     */
     public Connection getConnection() {
         return connection;
     }
 
-    public ConnectionStatus getConnectionStatus() {
+    /**
+     * @return the current connection status
+     */
+    public ConnectivityStatus getConnectionStatus() {
         return connectionStatus;
     }
 
-    public ConnectionStatus getDesiredConnectionStatus() {
+    /**
+     * @return the desired connection status
+     */
+    ConnectivityStatus getDesiredConnectionStatus() {
         return desiredConnectionStatus;
     }
 
-    public Optional<String> getConnectionStatusDetails() {
+    /**
+     * @return the details description about the current connection status
+     */
+    Optional<String> getConnectionStatusDetails() {
         return Optional.ofNullable(connectionStatusDetails);
     }
 
-    public Instant getInConnectionStatusSince() {
+    /**
+     * @return the time since when the connection is in the current status
+     */
+    Instant getInConnectionStatusSince() {
         return inConnectionStatusSince;
     }
 
-    public Optional<ActorRef> getSessionSender() {
-        return Optional.ofNullable(sessionSender);
+    /**
+     * @return the Pairs of session senders (including DittoHeaders per sender ActorRef)
+     */
+    List<Pair<ActorRef, DittoHeaders>> getSessionSenders() {
+        return sessionSenders;
     }
 
-    public DittoHeaders getSessionHeaders() {
-        return Optional.ofNullable(sessionHeaders).orElseGet(DittoHeaders::empty);
-    }
-
+    /**
+     * Updates the managed connection returning a new instance of BaseClientData.
+     *
+     * @param connection the new connection to use
+     * @return the new instance of BaseClientData
+     */
     public BaseClientData setConnection(final Connection connection) {
         return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, inConnectionStatusSince, sessionSender, sessionHeaders);
+                connectionStatusDetails, inConnectionStatusSince, sessionSenders);
     }
 
-    public BaseClientData setConnectionStatus(final ConnectionStatus connectionStatus) {
+    /**
+     * Updates the current connection status returning a new instance of BaseClientData.
+     *
+     * @param connectionStatus the new connection status to use
+     * @return the new instance of BaseClientData
+     */
+    public BaseClientData setConnectionStatus(final ConnectivityStatus connectionStatus) {
         return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, Instant.now(), sessionSender, sessionHeaders);
+                connectionStatusDetails, Instant.now(), sessionSenders);
     }
 
-    public BaseClientData setDesiredConnectionStatus(final ConnectionStatus desiredConnectionStatus) {
+    /**
+     * Updates the desired connection staus returning a new instance of BaseClientData.
+     *
+     * @param desiredConnectionStatus the new desired connection status to use
+     * @return the new instance of BaseClientData
+     */
+    BaseClientData setDesiredConnectionStatus(final ConnectivityStatus desiredConnectionStatus) {
         return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, inConnectionStatusSince, sessionSender, sessionHeaders);
+                connectionStatusDetails, inConnectionStatusSince, sessionSenders);
     }
 
     public BaseClientData setConnectionStatusDetails(@Nullable final String connectionStatusDetails) {
         return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, inConnectionStatusSince, sessionSender, sessionHeaders);
+                connectionStatusDetails, inConnectionStatusSince, sessionSenders);
     }
 
-    public BaseClientData setSessionSender(@Nullable final ActorRef origin) {
-        return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, inConnectionStatusSince, origin, sessionHeaders);
-    }
-
-    public BaseClientData setSessionHeaders(@Nullable final DittoHeaders lastCommandHeaders) {
-        return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, inConnectionStatusSince, sessionSender, lastCommandHeaders);
+    /**
+     * Adds the passed {@code origin} sender with the passed {@code dittoHeaders} to the managed {@code sessionSenders}
+     * returning a new instance of BaseClientData.
+     *
+     * @param origin the sender to add
+     * @param dittoHeaders the DittoHeaders to add for the passed sender
+     * @return the new instance of BaseClientData
+     */
+    BaseClientData addSessionSender(@Nullable final ActorRef origin, final DittoHeaders dittoHeaders) {
+        if (origin != null) {
+            final List<Pair<ActorRef, DittoHeaders>> newSessionSenders = new ArrayList<>(sessionSenders);
+            newSessionSenders.add(Pair.create(origin, dittoHeaders));
+            return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
+                    connectionStatusDetails, inConnectionStatusSince, newSessionSenders);
+        } else {
+            return this;
+        }
     }
 
     /**
@@ -139,9 +190,9 @@ public final class BaseClientData {
      *
      * @return data without info related to the last command.
      */
-    public BaseClientData resetSession() {
+    BaseClientData resetSession() {
         return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, inConnectionStatusSince, null, null);
+                connectionStatusDetails, inConnectionStatusSince, Collections.emptyList());
     }
 
     @Override
@@ -155,14 +206,13 @@ public final class BaseClientData {
                 desiredConnectionStatus == that.desiredConnectionStatus &&
                 Objects.equals(connectionStatusDetails, that.connectionStatusDetails) &&
                 Objects.equals(inConnectionStatusSince, that.inConnectionStatusSince) &&
-                Objects.equals(sessionSender, that.sessionSender) &&
-                Objects.equals(sessionHeaders, that.sessionHeaders);
+                Objects.equals(sessionSenders, that.sessionSenders);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, inConnectionStatusSince, sessionSender, sessionHeaders);
+                connectionStatusDetails, inConnectionStatusSince, sessionSenders);
     }
 
     @Override
@@ -174,8 +224,7 @@ public final class BaseClientData {
                 ", desiredConnectionStatus=" + desiredConnectionStatus +
                 ", connectionStatusDetails=" + connectionStatusDetails +
                 ", inConnectionStatusSince=" + inConnectionStatusSince +
-                ", sessionSender=" + sessionSender +
-                ", sessionHeaders=" + sessionHeaders +
+                ", sessionSenders=" + sessionSenders +
                 "]";
     }
 }

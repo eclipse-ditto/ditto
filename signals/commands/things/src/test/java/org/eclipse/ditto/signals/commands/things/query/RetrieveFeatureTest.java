@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -20,6 +22,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
@@ -36,14 +39,14 @@ public final class RetrieveFeatureTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, RetrieveFeature.TYPE)
-            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
-            .set(RetrieveFeature.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
+            .set(RetrieveFeature.JSON_FEATURE_ID, TestConstants.Feature.HOVER_BOARD_ID)
             .build();
 
     private static final JsonObject KNOWN_JSON_WITH_FIELD_SELECTION = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, RetrieveFeature.TYPE)
-            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
-            .set(RetrieveFeature.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
+            .set(RetrieveFeature.JSON_FEATURE_ID, TestConstants.Feature.HOVER_BOARD_ID)
             .set(RetrieveFeature.JSON_SELECTED_FIELDS, SELECTED_FIELDS)
             .build();
 
@@ -54,12 +57,11 @@ public final class RetrieveFeatureTest {
         return JsonFactory.newFieldSelector(SELECTED_FIELDS, JSON_PARSE_OPTIONS);
     }
 
-
     @Test
     public void assertImmutability() {
-        assertInstancesOf(RetrieveFeature.class, areImmutable(), provided(JsonFieldSelector.class).isAlsoImmutable());
+        assertInstancesOf(RetrieveFeature.class, areImmutable(),
+                provided(JsonFieldSelector.class, ThingId.class).isAlsoImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
@@ -68,17 +70,15 @@ public final class RetrieveFeatureTest {
                 .verify();
     }
 
-
     @Test
     public void toJsonReturnsExpected() {
         final RetrieveFeature underTest =
-                RetrieveFeature.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                RetrieveFeature.of(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID,
                         TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {
@@ -86,22 +86,20 @@ public final class RetrieveFeatureTest {
                 RetrieveFeature.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.HOVER_BOARD_ID);
         assertThat(underTest.getSelectedFields()).isEmpty();
     }
-
 
     @Test
     public void jsonSerializationWorksAsExpectedWithSelectedFields() {
         final RetrieveFeature underTest =
-                RetrieveFeature.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                RetrieveFeature.of(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID,
                         getJsonFieldSelector(), TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON_WITH_FIELD_SELECTION);
     }
-
 
     @Test
     public void createInstanceFromValidJsonWithSelectedFields() {
@@ -110,8 +108,8 @@ public final class RetrieveFeatureTest {
                         TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.HOVER_BOARD_ID);
         assertThat(underTest.getSelectedFields()).contains(getJsonFieldSelector());
     }
 

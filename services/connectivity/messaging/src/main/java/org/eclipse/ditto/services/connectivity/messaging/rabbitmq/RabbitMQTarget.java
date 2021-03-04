@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -53,13 +55,12 @@ final class RabbitMQTarget implements PublishTarget {
      * For RabbitMQ connections the target can have the following format: [exchange]/[routingKey].
      *
      * @param target the configured target
-     * @return the exchange part of the target, {@link Optional#EMPTY} otherwise.
+     * @return the exchange part of the target, empty Optional otherwise.
      */
     private static Optional<String> getExchangeFromTarget(final String target) {
         return Optional.of(target.split("/"))
                 .filter(segments -> segments.length > 0)
-                .map(segments -> segments[0])
-                .filter(exchange -> !exchange.isEmpty());
+                .map(segments -> segments[0]);
     }
 
     /**

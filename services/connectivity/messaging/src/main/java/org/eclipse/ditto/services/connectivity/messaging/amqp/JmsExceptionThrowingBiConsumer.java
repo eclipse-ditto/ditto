@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -18,9 +20,11 @@ import javax.jms.Message;
 
 /**
  * An interface similar to BiConsumer that accepts a JMS Message and a String and throws {@link JMSException}s.
+ *
+ * @param <T> type of the second argument.
  */
 @FunctionalInterface
-public interface JmsExceptionThrowingBiConsumer {
+public interface JmsExceptionThrowingBiConsumer<T> {
 
     /**
      * Performs this operation on the given arguments of type JMS Message and String.
@@ -29,7 +33,7 @@ public interface JmsExceptionThrowingBiConsumer {
      * @param value the String to accept.
      * @throws JMSException when the underlying JMS implementation raised a JMSException
      */
-    void accept(Message message, String value) throws JMSException;
+    void accept(Message message, T value) throws JMSException;
 
     /**
      * Wraps a {@link JmsExceptionThrowingBiConsumer} returning a BiConsumer by converting thrown {@link JMSException}s
@@ -38,7 +42,7 @@ public interface JmsExceptionThrowingBiConsumer {
      * @param throwingConsumer the JmsExceptionThrowingBiConsumer that throws {@link JMSException}
      * @return a BiConsumer that throws {@link JMSRuntimeException}
      */
-    static BiConsumer<Message, String> wrap(final JmsExceptionThrowingBiConsumer throwingConsumer) {
+    static <T> BiConsumer<Message, T> wrap(final JmsExceptionThrowingBiConsumer<T> throwingConsumer) {
         return (m, v) -> {
             try {
                 throwingConsumer.accept(m, v);

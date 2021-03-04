@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -21,6 +23,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.live.base.LiveCommand;
 import org.eclipse.ditto.signals.commands.live.modify.CreateThingLiveCommand;
@@ -31,6 +34,7 @@ import org.eclipse.ditto.signals.commands.live.modify.DeleteFeaturePropertiesLiv
 import org.eclipse.ditto.signals.commands.live.modify.DeleteFeaturePropertyLiveCommand;
 import org.eclipse.ditto.signals.commands.live.modify.DeleteFeaturesLiveCommand;
 import org.eclipse.ditto.signals.commands.live.modify.DeleteThingLiveCommand;
+import org.eclipse.ditto.signals.commands.live.modify.MergeThingLiveCommand;
 import org.eclipse.ditto.signals.commands.live.modify.ModifyAttributeLiveCommand;
 import org.eclipse.ditto.signals.commands.live.modify.ModifyAttributesLiveCommand;
 import org.eclipse.ditto.signals.commands.live.modify.ModifyFeatureLiveCommand;
@@ -55,6 +59,7 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatures;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
+import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
@@ -245,7 +250,9 @@ public final class LiveCommandFactoryTest {
         createAndCheckLiveCommandFor(twinCommand, ModifyFeaturesLiveCommand.class);
     }
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void getModifyThingLiveCommandForModifyThing() {
         final ModifyThing twinCommand = ModifyThing.of(TestConstants.Thing.THING_ID, TestConstants.Thing.THING, null,
@@ -253,7 +260,20 @@ public final class LiveCommandFactoryTest {
         createAndCheckLiveCommandFor(twinCommand, ModifyThingLiveCommand.class);
     }
 
-    /** */
+    /**
+     *
+     */
+    @Test
+    public void getMergeThingLiveCommandForMergeThing() {
+        final MergeThing twinCommand =
+                MergeThing.of(TestConstants.Thing.THING_ID, TestConstants.PATH, TestConstants.VALUE,
+                        DittoHeaders.empty());
+        createAndCheckLiveCommandFor(twinCommand, MergeThingLiveCommand.class);
+    }
+
+    /**
+     *
+     */
     @Test
     public void getRetrieveAttributeLiveCommandForRetrieveAttribute() {
         final RetrieveAttribute twinCommand =
@@ -315,7 +335,8 @@ public final class LiveCommandFactoryTest {
     /** */
     @Test
     public void getRetrieveThingsLiveCommandForRetrieveThing() {
-        final List<String> thingIds = Arrays.asList(":boatyMcBoatface", ":Harambe");
+        final List<ThingId> thingIds = Arrays.asList(ThingId.inDefaultNamespace("boatyMcBoatface"),
+                ThingId.inDefaultNamespace("Harambe"));
         final RetrieveThings twinCommand = RetrieveThings.getBuilder(thingIds)
                 .dittoHeaders(DittoHeaders.empty())
                 .build();

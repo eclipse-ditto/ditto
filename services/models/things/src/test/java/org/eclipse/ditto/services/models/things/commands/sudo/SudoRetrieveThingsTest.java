@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -27,8 +29,10 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.things.TestConstants.Thing;
 import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -39,7 +43,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class SudoRetrieveThingsTest {
 
     private static final JsonArray THING_IDS = JsonFactory.newArrayBuilder()
-            .add(Thing.THING_ID, ":otherThingId")
+            .add(Thing.THING_ID.toString(), ThingId.of(Thing.THING_ID.getNamespace(), "otherThingId").toString())
             .build();
 
     private static final String SELECTED_FIELDS = "field1,field2,field3";
@@ -57,8 +61,8 @@ public final class SudoRetrieveThingsTest {
 
     private static final DittoHeaders EMPTY_DITTO_HEADERS = DittoHeaders.empty();
 
-    private static List<String> getThingIds() {
-        return THING_IDS.stream().map(JsonValue::asString).collect(Collectors.toList());
+    private static List<ThingId> getThingIds() {
+        return THING_IDS.stream().map(JsonValue::asString).map(ThingId::of).collect(Collectors.toList());
     }
 
     private static JsonFieldSelector getJsonFieldSelector() {
@@ -66,15 +70,13 @@ public final class SudoRetrieveThingsTest {
                 JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build());
     }
 
-    /** */
     @Test
     public void assertImmutability() {
         assertInstancesOf(SudoRetrieveThings.class,
                 areImmutable(),
-                provided(AuthorizationContext.class, JsonFieldSelector.class).isAlsoImmutable());
+                provided(AuthorizationContext.class, JsonFieldSelector.class, ThingId.class).isAlsoImmutable());
     }
 
-    /** */
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(SudoRetrieveThings.class)
@@ -82,7 +84,6 @@ public final class SudoRetrieveThingsTest {
                 .verify();
     }
 
-    /** */
     @Test
     public void toJsonReturnsExpected() {
         final SudoRetrieveThings underTest = SudoRetrieveThings.of(getThingIds(), EMPTY_DITTO_HEADERS);
@@ -91,7 +92,6 @@ public final class SudoRetrieveThingsTest {
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
 
-    /** */
     @Test
     public void createInstanceFromValidJson() {
         final SudoRetrieveThings underTest = SudoRetrieveThings.fromJson(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
@@ -101,7 +101,6 @@ public final class SudoRetrieveThingsTest {
         assertThat(underTest.getSelectedFields()).isEqualTo(Optional.empty());
     }
 
-    /** */
     @Test
     public void jsonSerializationWorksAsExpectedWithSelectedFields() {
         final SudoRetrieveThings underTest =
@@ -111,7 +110,6 @@ public final class SudoRetrieveThingsTest {
         assertThat(actualJson).isEqualTo(KNOWN_JSON_WITH_FIELD_SELECTION);
     }
 
-    /** */
     @Test
     public void createInstanceFromValidJsonWithSelectedFields() {
         final SudoRetrieveThings underTest =
@@ -122,14 +120,12 @@ public final class SudoRetrieveThingsTest {
         assertThat(underTest.getSelectedFields()).isEqualTo(Optional.of(getJsonFieldSelector()));
     }
 
-    /** */
     @Test
     public void checkSudoCommandTypeWorks() {
         final SudoRetrieveThings sudoRetrieveThings =
                 SudoRetrieveThings.fromJson(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
 
-        final SudoCommand sudoCommand = SudoCommandRegistry.newInstance()
-                .parse(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
+        final Command sudoCommand = GlobalCommandRegistry.getInstance().parse(KNOWN_JSON, EMPTY_DITTO_HEADERS);
 
         assertThat(sudoRetrieveThings).isEqualTo(sudoCommand);
     }

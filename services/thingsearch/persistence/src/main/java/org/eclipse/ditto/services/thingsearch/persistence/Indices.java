@@ -1,35 +1,31 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.thingsearch.persistence;
 
-import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DELETED;
-import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DELETED_FLAG;
-import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_FEATURE_PATH_KEY;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DELETE_AT;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_GLOBAL_READ;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_GRANTED_PATH;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ID;
-import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL_ACL;
-import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL_GLOBAL_READS;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_NAMESPACE;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_PATH_KEY;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_PATH_VALUE;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_POLICY_ID;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_POLICY_REVISION;
-import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_THING_ID;
-import static org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearchPersistence.filterNotDeleted;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.bson.BsonBoolean;
-import org.bson.BsonDocument;
 import org.eclipse.ditto.services.utils.persistence.mongo.indices.Index;
 import org.eclipse.ditto.services.utils.persistence.mongo.indices.IndexFactory;
 
@@ -43,82 +39,39 @@ public final class Indices {
     }
 
     /**
-     * Indices on {@link PersistenceConstants#THINGS_COLLECTION_NAME}.
+     * Index for queries with effective filters.
      */
-    public static final class Things {
-
-        private static final Index KEY_VALUE = IndexFactory.newInstance("nfkv",
-                keys(FIELD_NAMESPACE, FIELD_FEATURE_PATH_KEY, FIELD_PATH_KEY, FIELD_PATH_VALUE, FIELD_ID), false)
-                .withPartialFilterExpression(filterNotDeleted());
-
-        private static final Index ACL = IndexFactory.newInstance("acl",
-                keys(FIELD_INTERNAL_ACL, FIELD_ID), false)
-                .withPartialFilterExpression(filterNotDeleted());
-
-        private static final Index GLOBAL_READS = IndexFactory.newInstance("gr",
-                keys(FIELD_INTERNAL_GLOBAL_READS), false)
-                .withPartialFilterExpression(filterNotDeleted());
-
-        private static final Index DELETED = IndexFactory.newInstance("deleted",
-                keys(FIELD_DELETED_FLAG, FIELD_DELETED), false);
-
-        private static final Index POLICY = IndexFactory.newInstance("policy",
-                keys(FIELD_POLICY_ID, FIELD_POLICY_REVISION), false)
-                .withPartialFilterExpression(filterPolicyIdExists());
-
-        /**
-         * Gets all defined indices.
-         *
-         * @return the indices
-         */
-        public static List<Index> all() {
-            return Collections.unmodifiableList(Arrays.asList(KEY_VALUE, ACL, GLOBAL_READS, DELETED, POLICY));
-        }
-
-        private static List<String> keys(final String... keyNames) {
-            return Collections.unmodifiableList(Arrays.asList(keyNames));
-        }
-
-        private Things() {
-            throw new AssertionError();
-        }
-
-        /**
-         * Create a BSON filter for existent policyId.
-         *
-         * @return the BSON filter.
-         */
-        private static BsonDocument filterPolicyIdExists() {
-            return new BsonDocument(FIELD_POLICY_ID, new BsonDocument("$exists", BsonBoolean.TRUE));
-        }
-
-    }
+    private static final Index KEY_VALUE = IndexFactory.newInstance("key-value",
+            Arrays.asList(FIELD_GRANTED_PATH, FIELD_PATH_KEY, FIELD_PATH_VALUE, FIELD_ID), false);
 
     /**
-     * Indices on {@link PersistenceConstants#POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME}.
+     * Index for queries without effective filters to be executed as scans over all visible things.
      */
-    public static final class Policies {
+    private static final Index GLOBAL_READ = IndexFactory.newInstance("global-read",
+            Collections.singletonList(FIELD_GLOBAL_READ), false);
 
-        private static final Index THING = IndexFactory.newInstance("thingId",
-                keys(FIELD_THING_ID), false);
+    /**
+     * Index for dispatching policy events.
+     */
+    private static final Index POLICY = IndexFactory.newInstance("policyId",
+            Arrays.asList(FIELD_POLICY_ID, FIELD_POLICY_REVISION), false);
 
-        /**
-         * Gets all defined indices.
-         *
-         * @return the indices
-         */
-        public static List<Index> all() {
-            return Collections.unmodifiableList(Arrays.asList(THING));
-        }
+    private static final Index DELETE_AT = IndexFactory.newExpirationIndex(FIELD_DELETE_AT, FIELD_DELETE_AT, 0L);
 
-        private static List<String> keys(final String... keyNames) {
-            return Collections.unmodifiableList(Arrays.asList(keyNames));
-        }
+    /**
+     * Index for namespace.
+     */
+    private static final Index NAMESPACE = IndexFactory.newInstance("namespace",
+            Arrays.asList(FIELD_NAMESPACE, FIELD_ID), false);
 
-        private Policies() {
-            throw new AssertionError();
-        }
-
+    /**
+     * Gets all defined indices.
+     *
+     * @return the indices
+     */
+    public static List<Index> all() {
+        return Collections.unmodifiableList(
+                Arrays.asList(KEY_VALUE, GLOBAL_READ, POLICY, NAMESPACE, DELETE_AT));
     }
 
 }

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -15,8 +17,11 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * Represents a {@code Message} <em>FROM</em> or <em>TO</em> a {@code Thing} or a {@code Feature}.
@@ -64,10 +69,19 @@ public interface Message<T> {
     Optional<ByteBuffer> getRawPayload();
 
     /**
-     * Returns the MessageResponseConsumer which is invoked with a potential response message or an error.
+     * Returns the extra data included via signal enrichment.
      *
-     * @return the MessageResponseConsumer which is invoked with a potential response message or an error.
+     * @return the extra data.
      */
+    Optional<JsonObject> getExtra();
+
+    /**
+     * Returns the MessageResponseConsumer which is stored together with the message but never serialized.
+     *
+     * @return the MessageResponseConsumer stored locally with the message.
+     * @deprecated since 1.2.0.
+     */
+    @Deprecated
     Optional<MessageResponseConsumer<?>> getResponseConsumer();
 
     /**
@@ -82,8 +96,19 @@ public interface Message<T> {
      * Returns the ID of the {@code Thing} from/to which this message is sent.
      *
      * @return the thing ID.
+     * @deprecated the thing ID is now typed. Use {@link #getThingEntityId()} instead.
      */
-    String getThingId();
+    @Deprecated
+    default String getThingId() {
+        return getThingEntityId().toString();
+    }
+
+    /**
+     * Returns the ID of the {@code Thing} from/to which this message is sent.
+     *
+     * @return the thing ID.
+     */
+    ThingId getThingEntityId();
 
     /**
      * Returns the subject of the message as provided by the message sender.
@@ -140,7 +165,19 @@ public interface Message<T> {
      * Returns the status code of the message.
      *
      * @return the status code.
+     * @deprecated as of 2.0.0 please use {@link #getHttpStatus()} instead.
      */
-    Optional<HttpStatusCode> getStatusCode();
+    @Deprecated
+    default Optional<HttpStatusCode> getStatusCode() {
+        return getHttpStatus().map(HttpStatus::getCode).flatMap(HttpStatusCode::forInt);
+    }
+
+    /**
+     * Returns the HTTP status of this message.
+     *
+     * @return the status.
+     * @since 2.0.0
+     */
+    Optional<HttpStatus> getHttpStatus();
 
 }

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -24,6 +26,8 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclEntry;
@@ -32,6 +36,8 @@ import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Permission;
+import org.eclipse.ditto.model.things.ThingDefinition;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
@@ -51,7 +57,10 @@ final class TestConstants {
      */
     public static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder()
             .correlationId(CORRELATION_ID)
-            .authorizationSubjects("the_subject", "another_subject").build();
+            .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                    AuthorizationSubject.newInstance("the_subject"),
+                    AuthorizationSubject.newInstance("another_subject")))
+            .build();
 
     /**
      * Empty command headers.
@@ -62,21 +71,33 @@ final class TestConstants {
      * A known timestamp.
      */
     public static final Instant TIMESTAMP = Instant.EPOCH;
+
+    /**
+     * A known metadata.
+     */
+    public static final Metadata METADATA = Metadata.newBuilder()
+            .set("creator", "The epic Ditto team")
+            .build();
+
     /**
      * Known JSON parse options.
      */
-    public static final JsonParseOptions JSON_PARSE_OPTIONS =
-            JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build();
+    public static final JsonParseOptions JSON_PARSE_OPTIONS = JsonFactory.newParseOptionsBuilder()
+            .withoutUrlDecoding()
+            .build();
+
     /**
      * A known JSON field selector.
      */
     public static final JsonFieldSelector JSON_FIELD_SELECTOR_ATTRIBUTES =
             JsonFactory.newFieldSelector("attributes(location,maker)", JSON_PARSE_OPTIONS);
+
     /**
      * A known JSON field selector.
      */
     public static final JsonFieldSelector JSON_FIELD_SELECTOR_ATTRIBUTES_WITH_THING_ID =
             JsonFactory.newFieldSelector("thingId,attributes(location,maker)", JSON_PARSE_OPTIONS);
+
     /**
      * A known JSON field selector.
      */
@@ -108,7 +129,8 @@ final class TestConstants {
          * An Authorization Context which contains all known Authorization Subjects.
          */
         public static final AuthorizationContext AUTH_CONTEXT =
-                AuthorizationModelFactory.newAuthContext(AUTH_SUBJECT_OLDMAN, AUTH_SUBJECT_GRIMES);
+                AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                        AUTH_SUBJECT_OLDMAN, AUTH_SUBJECT_GRIMES);
 
         public static final List<AuthorizationSubject> authorizationSubjects =
                 Arrays.asList(AUTH_SUBJECT_OLDMAN, AUTH_SUBJECT_GRIMES);
@@ -129,6 +151,7 @@ final class TestConstants {
         private Authorization() {
             throw new AssertionError();
         }
+
     }
 
 
@@ -140,9 +163,12 @@ final class TestConstants {
         /**
          * A known Thing ID for testing.
          */
-        public static final String THING_ID = "example.com:testThing";
+        public static final ThingId THING_ID = ThingId.of("example.com", "testThing");
 
         public static final String POLICY_ID = "example.com:testPolicy";
+
+        public static final ThingDefinition DEFINITION = ThingsModelFactory.newDefinition("example:test" +
+                ":definition");
 
         /**
          * A known lifecycle of a Thing.
@@ -156,7 +182,9 @@ final class TestConstants {
                 ThingsModelFactory.newAcl(Authorization.ACL_ENTRY_OLDMAN, Authorization.ACL_ENTRY_GRIMES);
 
         public static final JsonPointer LOCATION_ATTRIBUTE_POINTER = JsonFactory.newPointer("location");
-
+        public static final JsonPointer ABSOLUTE_LOCATION_ATTRIBUTE_POINTER =
+                org.eclipse.ditto.model.things.Thing.JsonFields.ATTRIBUTES.getPointer()
+                        .append(LOCATION_ATTRIBUTE_POINTER);
         /**
          * A known location attribute for testing.
          */
@@ -189,6 +217,7 @@ final class TestConstants {
         public static final org.eclipse.ditto.model.things.Thing THING = ThingsModelFactory.newThingBuilder()
                 .setId(THING_ID)
                 .setAttributes(ATTRIBUTES)
+                .setDefinition(DEFINITION)
                 .setFeatures(Feature.FEATURES)
                 .setLifecycle(LIFECYCLE)
                 .setPolicyId(POLICY_ID)
@@ -197,6 +226,7 @@ final class TestConstants {
         private Thing() {
             throw new AssertionError();
         }
+
     }
 
     /**
@@ -253,6 +283,7 @@ final class TestConstants {
         private Feature() {
             throw new AssertionError();
         }
+
     }
 
 }

@@ -1,46 +1,75 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.gateway.streaming;
 
-import java.util.Objects;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
+import java.time.Instant;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.services.gateway.streaming.actors.SessionedJsonifiable;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
 
-import akka.actor.ActorRef;
+import akka.stream.javadsl.SourceQueueWithComplete;
 
 /**
  * Message to be sent in order to establish a new "streaming" connection via {@link StreamingActor}.
  */
 public final class Connect {
 
-    private final ActorRef eventAndResponsePublisher;
+    private final SourceQueueWithComplete<SessionedJsonifiable> eventAndResponsePublisher;
     private final String connectionCorrelationId;
     private final String type;
+    private final JsonSchemaVersion jsonSchemaVersion;
+    @Nullable private final Instant sessionExpirationTime;
+    private final Set<AcknowledgementLabel> declaredAcknowledgementLabels;
+    private final AuthorizationContext connectionAuthContext;
 
     /**
      * Constructs a new {@link Connect} instance.
      *
-     * @param eventAndResponsePublisher the ActorRef to the correlating {@link EventAndResponsePublisher}.
+     * @param eventAndResponsePublisher a source queue to push events and responses into.
      * @param connectionCorrelationId the correlationId of the connection/session.
      * @param type the type of the "streaming" connection to establish.
+     * @param jsonSchemaVersion schema version of the request for the streaming session.
+     * @param sessionExpirationTime how long to keep the session alive when idling.
+     * @param declaredAcknowledgementLabels labels of acknowledgements this session may send.
      */
-    public Connect(final ActorRef eventAndResponsePublisher, final String connectionCorrelationId,
-            final String type) {
+    public Connect(final SourceQueueWithComplete<SessionedJsonifiable> eventAndResponsePublisher,
+            final CharSequence connectionCorrelationId,
+            final String type,
+            final JsonSchemaVersion jsonSchemaVersion,
+            @Nullable final Instant sessionExpirationTime,
+            final Set<AcknowledgementLabel> declaredAcknowledgementLabels,
+            final AuthorizationContext connectionAuthContext) {
         this.eventAndResponsePublisher = eventAndResponsePublisher;
-        this.connectionCorrelationId = connectionCorrelationId;
+        this.connectionCorrelationId = checkNotNull(connectionCorrelationId, "connectionCorrelationId")
+                .toString();
         this.type = type;
+        this.jsonSchemaVersion = jsonSchemaVersion;
+        this.sessionExpirationTime = sessionExpirationTime;
+        this.declaredAcknowledgementLabels = declaredAcknowledgementLabels;
+        this.connectionAuthContext = connectionAuthContext;
     }
 
-    public ActorRef getEventAndResponsePublisher() {
+    public SourceQueueWithComplete<SessionedJsonifiable> getEventAndResponsePublisher() {
         return eventAndResponsePublisher;
     }
 
@@ -50,6 +79,22 @@ public final class Connect {
 
     public String getType() {
         return type;
+    }
+
+    public Optional<Instant> getSessionExpirationTime() {
+        return Optional.ofNullable(sessionExpirationTime);
+    }
+
+    public JsonSchemaVersion getJsonSchemaVersion() {
+        return jsonSchemaVersion;
+    }
+
+    public Set<AcknowledgementLabel> getDeclaredAcknowledgementLabels() {
+        return declaredAcknowledgementLabels;
+    }
+
+    public AuthorizationContext getConnectionAuthContext() {
+        return connectionAuthContext;
     }
 
     @Override
@@ -63,12 +108,16 @@ public final class Connect {
         final Connect connect = (Connect) o;
         return Objects.equals(eventAndResponsePublisher, connect.eventAndResponsePublisher) &&
                 Objects.equals(connectionCorrelationId, connect.connectionCorrelationId) &&
-                Objects.equals(type, connect.type);
+                Objects.equals(type, connect.type) &&
+                Objects.equals(sessionExpirationTime, connect.sessionExpirationTime) &&
+                Objects.equals(declaredAcknowledgementLabels, connect.declaredAcknowledgementLabels) &&
+                Objects.equals(connectionAuthContext, connect.connectionAuthContext);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(eventAndResponsePublisher, connectionCorrelationId, type);
+        return Objects.hash(eventAndResponsePublisher, connectionCorrelationId, type, sessionExpirationTime,
+                declaredAcknowledgementLabels, connectionAuthContext);
     }
 
     @Override
@@ -77,6 +126,9 @@ public final class Connect {
                 "eventAndResponsePublisher=" + eventAndResponsePublisher +
                 ", connectionCorrelationId=" + connectionCorrelationId +
                 ", type=" + type +
+                ", sessionExpirationTime=" + sessionExpirationTime +
+                ", declaredAcknowledgementLabels" + declaredAcknowledgementLabels +
+                ", connectionAuthContext" + connectionAuthContext +
                 "]";
     }
 }

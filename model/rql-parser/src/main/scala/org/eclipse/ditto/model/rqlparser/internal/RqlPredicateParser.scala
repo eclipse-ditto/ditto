@@ -1,22 +1,25 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.model.rqlparser.internal
 
+import akka.parboiled2._
 import org.eclipse.ditto.model.rql.ParserException
 import org.eclipse.ditto.model.rql.predicates.PredicateParser
 import org.eclipse.ditto.model.rql.predicates.ast.SingleComparisonNode.Type
 import org.eclipse.ditto.model.rql.predicates.ast._
-import org.parboiled2._
 
-import scala.collection.{JavaConverters, immutable}
+import scala.jdk.javaapi.CollectionConverters
+import scala.collection.immutable
 import scala.util.{Failure, Success}
 
 /**
@@ -43,7 +46,9 @@ private class RqlPredicateParser(override val input: ParserInput) extends RqlPar
   /**
     * @return the root for parsing an RQL Predicate.
     */
-  def PredicateRoot: Rule1[Node] = rule { WhiteSpace ~ Query ~ EOI }
+  def PredicateRoot: Rule1[Node] = rule {
+    WhiteSpace ~ Query ~ EOI
+  }
 
   /**
     * Query                      = SingleComparisonOp | MultiComparisonOp | MultiLogicalOp | SingleLogicalOp | ExistsOp
@@ -71,13 +76,34 @@ private class RqlPredicateParser(override val input: ParserInput) extends RqlPar
   private def SingleComparisonName: Rule1[SingleComparisonNode.Type] = rule {
     eq | ne | gt | ge | lt | le | like
   }
-  private def eq: Rule1[SingleComparisonNode.Type]   = rule { "eq" ~   push(SingleComparisonNode.Type.EQ) }
-  private def ne: Rule1[SingleComparisonNode.Type]   = rule { "ne" ~   push(SingleComparisonNode.Type.NE) }
-  private def gt: Rule1[SingleComparisonNode.Type]   = rule { "gt" ~   push(SingleComparisonNode.Type.GT) }
-  private def ge: Rule1[SingleComparisonNode.Type]   = rule { "ge" ~   push(SingleComparisonNode.Type.GE) }
-  private def lt: Rule1[SingleComparisonNode.Type]   = rule { "lt" ~   push(SingleComparisonNode.Type.LT) }
-  private def le: Rule1[SingleComparisonNode.Type]   = rule { "le" ~   push(SingleComparisonNode.Type.LE) }
-  private def like: Rule1[SingleComparisonNode.Type] = rule { "like" ~ push(SingleComparisonNode.Type.LIKE) }
+
+  private def eq: Rule1[SingleComparisonNode.Type] = rule {
+    "eq" ~ push(SingleComparisonNode.Type.EQ)
+  }
+
+  private def ne: Rule1[SingleComparisonNode.Type] = rule {
+    "ne" ~ push(SingleComparisonNode.Type.NE)
+  }
+
+  private def gt: Rule1[SingleComparisonNode.Type] = rule {
+    "gt" ~ push(SingleComparisonNode.Type.GT)
+  }
+
+  private def ge: Rule1[SingleComparisonNode.Type] = rule {
+    "ge" ~ push(SingleComparisonNode.Type.GE)
+  }
+
+  private def lt: Rule1[SingleComparisonNode.Type] = rule {
+    "lt" ~ push(SingleComparisonNode.Type.LT)
+  }
+
+  private def le: Rule1[SingleComparisonNode.Type] = rule {
+    "le" ~ push(SingleComparisonNode.Type.LE)
+  }
+
+  private def like: Rule1[SingleComparisonNode.Type] = rule {
+    "like" ~ push(SingleComparisonNode.Type.LIKE)
+  }
 
   /**
     * MultiComparisonOp          = MultiComparisonName, '(', ComparisonProperty, ',', ComparisonValue, { ',', ComparisonValue }, ')'
@@ -85,11 +111,12 @@ private class RqlPredicateParser(override val input: ParserInput) extends RqlPar
   private def MultiComparisonOp: Rule1[Node] = rule {
     MultiComparisonName ~ '(' ~ ComparisonProperty ~ MultiComparisonValues ~ ')' ~>
       ((compType: MultiComparisonNode.Type, compProp: String, compValues: Seq[java.lang.Object]) =>
-        new MultiComparisonNode(compType, compProp, JavaConverters.seqAsJavaList(compValues.map({
+        new MultiComparisonNode(compType, compProp, CollectionConverters.asJava(compValues.map({
           case None => null
           case default => default
         }))))
   }
+
   private def MultiComparisonValues: Rule1[immutable.Seq[java.lang.Object]] = rule {
     oneOrMore(',' ~ Literal)
   }
@@ -100,7 +127,10 @@ private class RqlPredicateParser(override val input: ParserInput) extends RqlPar
   private def MultiComparisonName: Rule1[MultiComparisonNode.Type] = rule {
     in
   }
-  private def in: Rule1[MultiComparisonNode.Type]   = rule { "in" ~   push(MultiComparisonNode.Type.IN) }
+
+  private def in: Rule1[MultiComparisonNode.Type] = rule {
+    "in" ~ push(MultiComparisonNode.Type.IN)
+  }
 
 
   /**
@@ -109,7 +139,7 @@ private class RqlPredicateParser(override val input: ParserInput) extends RqlPar
   private def MultiLogicalOp: Rule1[Node] = rule {
     MultiLogicalName ~ '(' ~ oneOrMore(Query).separatedBy(ws(',')) ~ ')' ~>
       ((logicalType: LogicalNode.Type, subQuery: Seq[Node]) =>
-        new LogicalNode(logicalType, JavaConverters.seqAsJavaList(subQuery)))
+        new LogicalNode(logicalType, CollectionConverters.asJava(subQuery)))
   }
 
   /**
@@ -118,8 +148,14 @@ private class RqlPredicateParser(override val input: ParserInput) extends RqlPar
   private def MultiLogicalName: Rule1[LogicalNode.Type] = rule {
     and | or
   }
-  private def and: Rule1[LogicalNode.Type]  = rule { "and"  ~ push(LogicalNode.Type.AND) }
-  private def or:  Rule1[LogicalNode.Type]  = rule { "or"   ~ push(LogicalNode.Type.OR) }
+
+  private def and: Rule1[LogicalNode.Type] = rule {
+    "and" ~ push(LogicalNode.Type.AND)
+  }
+
+  private def or: Rule1[LogicalNode.Type] = rule {
+    "or" ~ push(LogicalNode.Type.OR)
+  }
 
   /**
     * SingleLogicalOp            = SingleLogicalName, '(', Query, ')'
@@ -135,19 +171,23 @@ private class RqlPredicateParser(override val input: ParserInput) extends RqlPar
   private def SingleLogicalName: Rule1[LogicalNode.Type] = rule {
     not
   }
-  private def not: Rule1[LogicalNode.Type]  = rule { "not"  ~ push(LogicalNode.Type.NOT) }
+
+  private def not: Rule1[LogicalNode.Type] = rule {
+    "not" ~ push(LogicalNode.Type.NOT)
+  }
 
   /**
     * ExistsOp                   = "exists" '(', ComparisonProperty, ')'
     */
   private def ExistsOp: Rule1[Node] = rule {
-    "exists" ~ '(' ~ ComparisonProperty ~ ')' ~> ((property) => new ExistsNode(property))
+    "exists" ~ '(' ~ ComparisonProperty ~ ')' ~> (property => new ExistsNode(property))
   }
 
 
   private def ComparisonProperty: Rule1[java.lang.String] = rule {
     PropertyLiteral
   }
+
   private def ComparisonValue: Rule1[java.lang.Object] = rule {
     Literal
   }
@@ -164,7 +204,7 @@ object RqlPredicateParser extends PredicateParser {
     * @param input the input that should be parsed.
     * @return the AST RootNode representing the root of the AST.
     * @throws NullPointerException if input is null.
-    * @throws ParserException if input could not be parsed.
+    * @throws ParserException      if input could not be parsed.
     */
   override def parse(input: String): RootNode = parsePredicate(input)
 

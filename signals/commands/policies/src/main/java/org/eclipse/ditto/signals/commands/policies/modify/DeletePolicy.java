@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -22,8 +24,9 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.policies.PolicyIdValidator;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -31,6 +34,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * This command deletes a {@link org.eclipse.ditto.model.policies.Policy}.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = DeletePolicy.TYPE_PREFIX, name = DeletePolicy.NAME)
 public final class DeletePolicy extends AbstractCommand<DeletePolicy> implements PolicyModifyCommand<DeletePolicy> {
 
     /**
@@ -43,11 +47,10 @@ public final class DeletePolicy extends AbstractCommand<DeletePolicy> implements
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private final String policyId;
+    private final PolicyId policyId;
 
-    private DeletePolicy(final String policyId, final DittoHeaders dittoHeaders) {
+    private DeletePolicy(final PolicyId policyId, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
-        PolicyIdValidator.getInstance().accept(policyId, dittoHeaders);
         this.policyId = policyId;
     }
 
@@ -58,8 +61,24 @@ public final class DeletePolicy extends AbstractCommand<DeletePolicy> implements
      * @param dittoHeaders the headers of the command.
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static DeletePolicy of(final String policyId, final DittoHeaders dittoHeaders) {
+        return of(PolicyId.of(policyId), dittoHeaders);
+    }
+
+    /**
+     * Creates a command for deleting a {@code Policy}.
+     *
+     * @param policyId the identifier of the Policy to delete.
+     * @param dittoHeaders the headers of the command.
+     * @return the command.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static DeletePolicy of(final PolicyId policyId, final DittoHeaders dittoHeaders) {
         Objects.requireNonNull(policyId, "The identifier of the Policy must not be null!");
         return new DeletePolicy(policyId, dittoHeaders);
     }
@@ -91,7 +110,8 @@ public final class DeletePolicy extends AbstractCommand<DeletePolicy> implements
      */
     public static DeletePolicy fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<DeletePolicy>(TYPE, jsonObject).deserialize(() -> {
-            final String policyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+            final PolicyId policyId = PolicyId.of(extractedPolicyId);
 
             return of(policyId, dittoHeaders);
         });
@@ -103,7 +123,7 @@ public final class DeletePolicy extends AbstractCommand<DeletePolicy> implements
      * @return the identifier of the Policy to delete.
      */
     @Override
-    public String getId() {
+    public PolicyId getEntityId() {
         return policyId;
     }
 
@@ -117,7 +137,7 @@ public final class DeletePolicy extends AbstractCommand<DeletePolicy> implements
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
     }
 
     @Override

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -32,11 +34,6 @@ public interface SourceMetrics extends Jsonifiable.WithFieldSelectorAndPredicate
      * @return the AddressMetrics for each source
      */
     Map<String, AddressMetric> getAddressMetrics();
-
-    /**
-     * @return the total count of consumed messages on this source
-     */
-    long getConsumedMessages();
 
     /**
      * Returns all non hidden marked fields of this {@code SourceMetrics}.
@@ -71,13 +68,6 @@ public interface SourceMetrics extends Jsonifiable.WithFieldSelectorAndPredicate
          */
         public static final JsonFieldDefinition<JsonObject> ADDRESS_METRICS =
                 JsonFactory.newJsonObjectFieldDefinition("addressMetrics", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
-
-        /**
-         * JSON field containing the amount of consumed messages.
-         */
-        public static final JsonFieldDefinition<Long> CONSUMED_MESSAGES =
-                JsonFactory.newLongFieldDefinition("consumedMessages", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

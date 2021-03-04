@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -12,17 +14,17 @@ package org.eclipse.ditto.model.query.expression;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Objects;
+
 import org.eclipse.ditto.model.query.expression.visitors.ExistsFieldExpressionVisitor;
 import org.eclipse.ditto.model.query.expression.visitors.FieldExpressionVisitor;
 import org.eclipse.ditto.model.query.expression.visitors.FilterFieldExpressionVisitor;
-import org.eclipse.ditto.model.query.expression.visitors.PolicyRestrictedFieldExpressionVisitor;
 import org.eclipse.ditto.model.query.expression.visitors.SortFieldExpressionVisitor;
 
 /**
  * Expression for an attribute.
  */
-public class AttributeExpressionImpl implements FilterFieldExpression, SortFieldExpression, ExistsFieldExpression,
-        PolicyRestrictedFieldExpression {
+public class AttributeExpressionImpl implements FilterFieldExpression, SortFieldExpression, ExistsFieldExpression {
 
     private final String key;
 
@@ -63,17 +65,8 @@ public class AttributeExpressionImpl implements FilterFieldExpression, SortField
     }
 
     @Override
-    public <T> T acceptPolicyRestrictedVisitor(final PolicyRestrictedFieldExpressionVisitor<T> visitor) {
-        return visitor.visitAttribute(key);
-    }
-
-    @SuppressWarnings("squid:S109")
-    @Override
     public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = (prime * result) + ((key == null) ? 0 : key.hashCode());
-        return result;
+        return Objects.hash(key);
     }
 
     @SuppressWarnings("squid:MethodCyclomaticComplexity")

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -21,11 +23,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import kamon.Kamon;
+import kamon.tag.TagSet;
 
 /**
  * Kamon based implementation of {@link StoppedTimer}.
  */
-public class StoppedKamonTimer implements StoppedTimer {
+final class StoppedKamonTimer implements StoppedTimer {
 
     private static final String SEGMENT_TAG = "segment";
     private static final Logger LOGGER = LoggerFactory.getLogger(StoppedKamonTimer.class);
@@ -48,11 +51,11 @@ public class StoppedKamonTimer implements StoppedTimer {
             }
         });
 
+        final long durationNano = getElapsedNano();
         LOGGER.trace("Timer with name <{}> and segment <{}> was stopped after <{}> nanoseconds", name,
-                tags.get(SEGMENT_TAG), getDuration());
-        onStopHandlers
-                .forEach(stoppedTimerConsumer -> stoppedTimerConsumer.handleStoppedTimer(this));
-        getKamonInternalTimer().record(getDuration().getNano());
+                tags.get(SEGMENT_TAG), durationNano);
+        onStopHandlers.forEach(stoppedTimerConsumer -> stoppedTimerConsumer.handleStoppedTimer(this));
+        getKamonInternalTimer().record(durationNano);
     }
 
     static StoppedTimer fromStartedTimer(final StartedTimer startedTimer) {
@@ -63,7 +66,7 @@ public class StoppedKamonTimer implements StoppedTimer {
 
     @Override
     public Duration getDuration() {
-        return Duration.ofNanos(this.endTimestamp - this.startTimestamp);
+        return Duration.ofNanos(getElapsedNano());
     }
 
     @Override
@@ -78,8 +81,8 @@ public class StoppedKamonTimer implements StoppedTimer {
     }
 
 
-    private kamon.metric.Timer getKamonInternalTimer() {
-        return Kamon.timer(name).refine(this.tags);
+    kamon.metric.Timer getKamonInternalTimer() {
+        return Kamon.timer(name).withTags(TagSet.from(new HashMap<>(this.tags)));
     }
 
     @Override
@@ -96,5 +99,9 @@ public class StoppedKamonTimer implements StoppedTimer {
                 ", startTimestamp=" + startTimestamp +
                 ", endTimestamp=" + endTimestamp +
                 "]";
+    }
+
+    private long getElapsedNano() {
+        return this.endTimestamp - this.startTimestamp;
     }
 }

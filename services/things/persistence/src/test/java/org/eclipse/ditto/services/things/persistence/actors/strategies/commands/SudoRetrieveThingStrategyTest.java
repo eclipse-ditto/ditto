@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -23,8 +25,10 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.junit.Before;
 import org.junit.Test;
@@ -48,8 +52,9 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
 
     @Test
     public void isNotDefinedForDeviantThingIds() {
-        final CommandStrategy.Context context = getDefaultContext();
-        final SudoRetrieveThing command = SudoRetrieveThing.of("org.example:myThing", DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final SudoRetrieveThing command =
+                SudoRetrieveThing.of(ThingId.of("org.example", "myThing"), DittoHeaders.empty());
 
         final boolean defined = underTest.isDefined(context, THING_V2, command);
 
@@ -58,7 +63,7 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
 
     @Test
     public void isNotDefinedIfContextHasNoThing() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final SudoRetrieveThing command = SudoRetrieveThing.of(THING_ID, DittoHeaders.empty());
 
         final boolean defined = underTest.isDefined(context, null, command);
@@ -68,8 +73,8 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
 
     @Test
     public void isDefinedIfContextHasThingAndThingIdsAreEqual() {
-        final CommandStrategy.Context context = getDefaultContext();
-        final SudoRetrieveThing command = SudoRetrieveThing.of(context.getThingId(), DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final SudoRetrieveThing command = SudoRetrieveThing.of(context.getState(), DittoHeaders.empty());
 
         final boolean defined = underTest.isDefined(context, THING_V2, command);
 
@@ -78,11 +83,11 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
 
     @Test
     public void retrieveThingWithoutSelectedFields() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .schemaVersion(JsonSchemaVersion.V_1)
                 .build();
-        final SudoRetrieveThing command = SudoRetrieveThing.of(context.getThingId(), dittoHeaders);
+        final SudoRetrieveThing command = SudoRetrieveThing.of(context.getState(), dittoHeaders);
         final JsonObject expectedThingJson = THING_V2.toJson(command.getImplementedSchemaVersion(),
                 FieldType.regularOrSpecial());
         final SudoRetrieveThingResponse expectedResponse =
@@ -93,9 +98,9 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
 
     @Test
     public void retrieveThingWithoutSelectedFieldsWithOriginalSchemaVersion() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final SudoRetrieveThing command =
-                SudoRetrieveThing.withOriginalSchemaVersion(context.getThingId(), DittoHeaders.empty());
+                SudoRetrieveThing.withOriginalSchemaVersion(context.getState(), DittoHeaders.empty());
         final JsonObject expectedThingJson = THING_V2.toJson(THING_V2.getImplementedSchemaVersion(),
                 FieldType.regularOrSpecial());
         final SudoRetrieveThingResponse expectedResponse =
@@ -106,13 +111,13 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
 
     @Test
     public void retrieveThingWithSelectedFields() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector("/attribute/location");
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .schemaVersion(JsonSchemaVersion.V_1)
                 .build();
         final SudoRetrieveThing command =
-                SudoRetrieveThing.of(context.getThingId(), fieldSelector, dittoHeaders);
+                SudoRetrieveThing.of(context.getState(), fieldSelector, dittoHeaders);
         final JsonObject expectedThingJson = THING_V2.toJson(command.getImplementedSchemaVersion(), fieldSelector,
                 FieldType.regularOrSpecial());
         final SudoRetrieveThingResponse expectedResponse =
@@ -123,10 +128,10 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
 
     @Test
     public void retrieveThingWithSelectedFieldsWithOriginalSchemaVersion() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector("/attribute/location");
         final SudoRetrieveThing command =
-                SudoRetrieveThing.of(context.getThingId(), fieldSelector, DittoHeaders.empty());
+                SudoRetrieveThing.of(context.getState(), fieldSelector, DittoHeaders.empty());
         final JsonObject expectedThingJson = THING_V2.toJson(THING_V2.getImplementedSchemaVersion(), fieldSelector,
                 FieldType.regularOrSpecial());
         final SudoRetrieveThingResponse expectedResponse =
@@ -137,12 +142,11 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
 
     @Test
     public void unhandledReturnsThingNotAccessibleException() {
-        final CommandStrategy.Context context = getDefaultContext();
-        final SudoRetrieveThing command = SudoRetrieveThing.of(context.getThingId(), DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final SudoRetrieveThing command = SudoRetrieveThing.of(context.getState(), DittoHeaders.empty());
         final ThingNotAccessibleException expectedException =
-                new ThingNotAccessibleException(context.getThingId(), command.getDittoHeaders());
+                new ThingNotAccessibleException(context.getState(), command.getDittoHeaders());
 
         assertUnhandledResult(underTest, THING_V2, command, expectedException);
     }
-
 }

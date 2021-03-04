@@ -1,0 +1,237 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "cosmosDB": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "CosmosDB deployment enabled."
+            }
+        },
+        "aks": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "AKS deployment enabled."
+            }
+        },
+        "aksClusterName": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Optional AKS cluster name. Otherwise calculated from uniqueSolutionPrefix."
+            }
+        },
+        "cosmosAccountName": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Optional Cosmos DB account name. Otherwise calculated from uniqueSolutionPrefix."
+            }
+        },
+        "vnetName": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Optional virtual network name. Otherwise calculated from uniqueSolutionPrefix."
+            }
+        },
+        "aksSubnetName": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Optional subnet name for AKS nodes and pods. Otherwise calculated from uniqueSolutionPrefix."
+            }
+        },
+        "dnsLabelPrefix": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Optional DNS Label for the Public IP that will be used by Ditto service. Otherwise calculated from uniqueSolutionPrefix. Must be lowercase. It should match with the following regular expression: ^[a-z][a-z0-9-]{1,61}[a-z0-9]$ or it will raise an error."
+            }
+        },
+        "publicIPAddressName": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Optional IP address name that will be used by Ditto service. Otherwise calculated from uniqueSolutionPrefix."
+            }
+        },
+        "uniqueSolutionPrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "Prefix used for resource names. Should be unique as this will also be used for domain names."
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Location for all resources."
+            }
+        },
+        "servicePrincipalObjectId": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Object ID against which the Network Contributor roles will be assigned on the subnet"
+            }
+        },
+        "servicePrincipalClientId": {
+            "metadata": {
+                "description": "Client ID (used by cloudprovider)"
+            },
+            "type": "securestring"
+        },
+        "servicePrincipalClientSecret": {
+            "metadata": {
+                "description": "The Service Principal Client Secret."
+            },
+            "type": "securestring"
+        }
+
+    },
+    "variables": {
+        "dnsLabelPrefix": "[if(empty(parameters('dnsLabelPrefix')),concat(parameters('uniqueSolutionPrefix'),'ditto'),parameters('dnsLabelPrefix'))]",
+        "publicIPAddressName": "[if(empty(parameters('publicIPAddressName')),concat(parameters('uniqueSolutionPrefix'),'dittopip'),parameters('publicIPAddressName'))]",
+        "aksClusterName": "[if(empty(parameters('aksClusterName')),concat(parameters('uniqueSolutionPrefix'), 'dittoaks'),parameters('aksClusterName'))]",
+        "cosmosAccountName": "[if(empty(parameters('cosmosAccountName')),concat(parameters('uniqueSolutionPrefix'), 'dittocosmos'),parameters('cosmosAccountName'))]",
+        "vnetName": "[if(empty(parameters('vnetName')),concat(parameters('uniqueSolutionPrefix'), 'dittovnet'),parameters('vnetName'))]",
+        "aksSubnetName": "[if(empty(parameters('aksSubnetName')),concat(parameters('uniqueSolutionPrefix'), 'dittoakssubnet'),parameters('aksSubnetName'))]"
+    },
+    "resources": [{
+            "condition": "[parameters('aks')]",
+            "name": "dittoKubernetesDeployment",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2018-05-01",
+            "dependsOn": [
+                "[concat('Microsoft.Resources/deployments/', 'dittoVnetDeployment')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "https://raw.githubusercontent.com/eclipse/ditto/master/deployment/azure/arm/templates/kubernetesDeploy.json"
+                },
+                "parameters": {
+                    "clusterName": {
+                        "value": "[variables('aksClusterName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "dnsPrefix": {
+                        "value": "[parameters('uniqueSolutionPrefix')]"
+                    },
+                    "servicePrincipalObjectId": {
+                        "value": "[parameters('servicePrincipalObjectId')]"
+                    },
+                    "servicePrincipalClientId": {
+                        "value": "[parameters('servicePrincipalClientId')]"
+                    },
+                    "servicePrincipalClientSecret": {
+                        "value": "[parameters('servicePrincipalClientSecret')]"
+                    },
+                    "virtualNetworkName": {
+                        "value": "[variables('vnetName')]"
+                    },
+                    "subnetName": {
+                        "value": "[variables('aksSubnetName')]"
+                    },
+                    "virtualNetworkResourceGroup": {
+                        "value": "[resourceGroup().name]"
+                    },
+                    "publicIPAddressName": {
+                        "value": "[variables('publicIPAddressName')]"
+                    },
+                    "dnsLabelPrefix": {
+                        "value": "[variables('dnsLabelPrefix')]"
+                    }
+                }
+            }
+        },
+        {
+            "condition": "[parameters('cosmosDB')]",
+            "name": "dittoCosmosDBDeployment",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2018-05-01",
+            "dependsOn": [
+                "[concat('Microsoft.Resources/deployments/', 'dittoVnetDeployment')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "https://raw.githubusercontent.com/eclipse/ditto/master/deployment/azure/arm/templates/cosmosDBDeploy.json"
+                },
+                "parameters": {
+                    "accountName": {
+                        "value": "[variables('cosmosAccountName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "virtualNetworkName": {
+                        "value": "[variables('vnetName')]"
+                    },
+                    "subnetName": {
+                        "value": "[variables('aksSubnetName')]"
+                    },
+                    "virtualNetworkResourceGroup": {
+                        "value": "[resourceGroup().name]"
+                    }
+                }
+            }
+        },
+        {
+            "name": "dittoVnetDeployment",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2018-05-01",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "https://raw.githubusercontent.com/eclipse/ditto/master/deployment/azure/arm/templates/vnetDeploy.json"
+                },
+                "parameters": {
+                    "vnetName": {
+                        "value": "[variables('vnetName')]"
+                    },
+                    "aksSubnetName": {
+                        "value": "[variables('aksSubnetName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    }
+                }
+            }
+        }
+    ],
+    "outputs": {
+        "aksClusterName": {
+            "type": "string",
+            "value": "[variables('aksClusterName')]"
+        },
+        "cosmosAccountName": {
+            "type": "string",
+            "value": "[variables('cosmosAccountName')]"
+        },
+        "cosmosPrimaryMasterKey": {
+            "type": "string",
+            "value": "[reference('dittoCosmosDBDeployment', '2018-05-01').outputs.primaryMasterKey.value]"
+        },
+        "vnetName": {
+            "type": "string",
+            "value": "[variables('vnetName')]"
+        },
+        "publicIPAddressName": {
+            "type": "string",
+            "value": "[variables('publicIPAddressName')]"
+        },
+        "publicIPAddress": {
+            "type": "string",
+            "value": "[reference('dittoKubernetesDeployment').outputs.ipAddress.value]"
+        },
+        "publicIPFQDN": {
+            "type": "string",
+            "value": "[reference('dittoKubernetesDeployment').outputs.ipFQDN.value]"
+        }
+    }
+}

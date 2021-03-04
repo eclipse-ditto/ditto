@@ -1,24 +1,35 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.devops;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -26,6 +37,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * Command which retrieves publicly available statistics about the stored Things currently present.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = RetrieveStatisticsDetails.TYPE_PREFIX, name = RetrieveStatisticsDetails.NAME)
 public final class RetrieveStatisticsDetails extends AbstractDevOpsCommand<RetrieveStatisticsDetails> {
 
     /**
@@ -38,18 +50,37 @@ public final class RetrieveStatisticsDetails extends AbstractDevOpsCommand<Retri
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private RetrieveStatisticsDetails(final DittoHeaders dittoHeaders) {
+    private final List<String> shardRegions;
+    private final List<String> namespaces;
+
+    private RetrieveStatisticsDetails(final List<String> shardRegions, final List<String> namespaces,
+            final DittoHeaders dittoHeaders) {
         super(TYPE, null, null, dittoHeaders);
+        this.shardRegions = Collections.unmodifiableList(new ArrayList<>(shardRegions));
+        this.namespaces = Collections.unmodifiableList(new ArrayList<>(namespaces));
     }
 
     /**
-     * Returns a Command for retrieving statistics.
+     * Returns a Command for retrieving statistics about all namespaces in all shard regions.
      *
      * @param dittoHeaders the optional command headers of the request.
      * @return a Command for retrieving statistics.
      */
     public static RetrieveStatisticsDetails of(final DittoHeaders dittoHeaders) {
-        return new RetrieveStatisticsDetails(dittoHeaders);
+        return new RetrieveStatisticsDetails(Collections.emptyList(), Collections.emptyList(), dittoHeaders);
+    }
+
+    /**
+     * Returns a Command for retrieving statistics about certain namespaces in certain shard regions.
+     *
+     * @param shardRegions shard regions to query, or an empty list to query all shard regions.
+     * @param namespaces namespaces to query, or an empty list to query all namespaces.
+     * @param dittoHeaders the optional command headers of the request.
+     * @return a Command for retrieving statistics.
+     */
+    public static RetrieveStatisticsDetails of(final List<String> shardRegions, final List<String> namespaces,
+            final DittoHeaders dittoHeaders) {
+        return new RetrieveStatisticsDetails(shardRegions, namespaces, dittoHeaders);
     }
 
     /**
@@ -78,7 +109,15 @@ public final class RetrieveStatisticsDetails extends AbstractDevOpsCommand<Retri
      */
     public static RetrieveStatisticsDetails fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveStatisticsDetails>(TYPE, jsonObject)
-                .deserialize(() -> RetrieveStatisticsDetails.of(dittoHeaders));
+                .deserialize(() -> {
+                    final List<String> shardRegions = jsonObject.getValue(JsonFields.SHARD_REGIONS)
+                            .map(RetrieveStatisticsDetails::toStringListOrThrow)
+                            .orElseGet(Collections::emptyList);
+                    final List<String> namespaces = jsonObject.getValue(JsonFields.NAMESPACES)
+                            .map(RetrieveStatisticsDetails::toStringListOrThrow)
+                            .orElseGet(Collections::emptyList);
+                    return RetrieveStatisticsDetails.of(shardRegions, namespaces, dittoHeaders);
+                });
     }
 
     @Override
@@ -87,7 +126,32 @@ public final class RetrieveStatisticsDetails extends AbstractDevOpsCommand<Retri
 
         super.appendPayload(jsonObjectBuilder, schemaVersion, thePredicate);
 
-        jsonObjectBuilder.build();
+        if (!shardRegions.isEmpty()) {
+            jsonObjectBuilder.set(JsonFields.SHARD_REGIONS,
+                    shardRegions.stream().map(JsonFactory::newValue).collect(JsonCollectors.valuesToArray()));
+        }
+        if (!namespaces.isEmpty()) {
+            jsonObjectBuilder.set(JsonFields.NAMESPACES,
+                    namespaces.stream().map(JsonFactory::newValue).collect(JsonCollectors.valuesToArray()));
+        }
+    }
+
+    /**
+     * Return the shard regions to query for statistics-details, or an empty list to query all shard regions.
+     *
+     * @return the relevant shard regions.
+     */
+    public List<String> getShardRegions() {
+        return shardRegions;
+    }
+
+    /**
+     * Return the namespaces to query for statistics-details, or an empty list to query all namespaces.
+     *
+     * @return the relevant namespaces.
+     */
+    public List<String> getNamespaces() {
+        return namespaces;
     }
 
     @Override
@@ -102,7 +166,32 @@ public final class RetrieveStatisticsDetails extends AbstractDevOpsCommand<Retri
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [" + super.toString() + "]";
+        return getClass().getSimpleName() + " [" + super.toString() +
+                ", shardRegions=" + shardRegions +
+                ", namespaces=" + namespaces +
+                "]";
+    }
+
+    private static List<String> toStringListOrThrow(final JsonArray jsonArray) {
+        return jsonArray.stream().map(JsonValue::asString).collect(Collectors.toList());
+    }
+
+    /**
+     * JSON fields of this command.
+     */
+    public static final class JsonFields {
+
+        /**
+         * JSON fields to limit the shard regions to query.
+         */
+        public static final JsonFieldDefinition<JsonArray> SHARD_REGIONS =
+                JsonFactory.newJsonArrayFieldDefinition("shardRegions");
+
+        /**
+         * JSON fields to limit statistics details to the namespaces.
+         */
+        public static final JsonFieldDefinition<JsonArray> NAMESPACES =
+                JsonFactory.newJsonArrayFieldDefinition("namespaces");
     }
 
 }

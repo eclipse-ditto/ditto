@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -29,6 +31,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
@@ -38,6 +41,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a {@link Policy} was modified.
  */
 @Immutable
+@JsonParsableEvent(name = PolicyModified.NAME, typePrefix= PolicyModified.TYPE_PREFIX)
 public final class PolicyModified extends AbstractPolicyEvent<PolicyModified> implements PolicyEvent<PolicyModified> {
 
     /**
@@ -60,7 +64,7 @@ public final class PolicyModified extends AbstractPolicyEvent<PolicyModified> im
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, checkNotNull(policy, "Policy").getId().orElse(null), revision, timestamp, dittoHeaders);
+        super(TYPE, checkNotNull(policy, "Policy").getEntityId().orElse(null), revision, timestamp, dittoHeaders);
         this.policy = policy;
     }
 
@@ -118,7 +122,8 @@ public final class PolicyModified extends AbstractPolicyEvent<PolicyModified> im
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected 'PolicyModified' format.
      */
     public static PolicyModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<PolicyModified>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
+        return new EventJsonDeserializer<PolicyModified>(TYPE, jsonObject).deserialize(
+                (revision, timestamp, metadata) -> {
             final JsonObject policyJsonObject = jsonObject.getValueOrThrow(JSON_POLICY);
             final Policy extractedModifiedPolicy = PoliciesModelFactory.newPolicy(policyJsonObject);
 

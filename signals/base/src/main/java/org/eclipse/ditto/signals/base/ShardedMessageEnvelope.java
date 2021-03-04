@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -17,6 +19,8 @@ import java.util.Objects;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -50,12 +54,12 @@ public final class ShardedMessageEnvelope
     public static final JsonFieldDefinition<JsonObject> JSON_DITTO_HEADERS =
             JsonFactory.newJsonObjectFieldDefinition("dittoHeaders");
 
-    private final String id;
+    private final EntityId id;
     private final String type;
     private final JsonObject message;
     private final DittoHeaders dittoHeaders;
 
-    private ShardedMessageEnvelope(final String id,
+    private ShardedMessageEnvelope(final EntityId id,
             final String type,
             final JsonObject message,
             final DittoHeaders dittoHeaders) {
@@ -75,7 +79,7 @@ public final class ShardedMessageEnvelope
      * @param dittoHeaders the command headers.
      * @return the ShardedMessageEnvelope.
      */
-    public static ShardedMessageEnvelope of(final String id,
+    public static ShardedMessageEnvelope of(final EntityId id,
             final String type,
             final JsonObject message,
             final DittoHeaders dittoHeaders) {
@@ -91,12 +95,13 @@ public final class ShardedMessageEnvelope
      */
     public static ShardedMessageEnvelope fromJson(final JsonObject jsonObject) {
         final String extractedId = jsonObject.getValueOrThrow(JSON_ID);
+        final EntityId entityId = DefaultEntityId.of(extractedId);
         final String extractedType = jsonObject.getValueOrThrow(JSON_TYPE);
         final JsonObject extractedMessage = jsonObject.getValueOrThrow(JSON_MESSAGE);
         final JsonObject jsonDittoHeaders = jsonObject.getValueOrThrow(JSON_DITTO_HEADERS);
         final DittoHeaders extractedDittoHeaders = DittoHeaders.newBuilder(jsonDittoHeaders).build();
 
-        return of(extractedId, extractedType, extractedMessage, extractedDittoHeaders);
+        return of(entityId, extractedType, extractedMessage, extractedDittoHeaders);
     }
 
     /**
@@ -104,7 +109,7 @@ public final class ShardedMessageEnvelope
      *
      * @return the ID of the envelope.
      */
-    public String getId() {
+    public EntityId getEntityId() {
         return id;
     }
 
@@ -139,7 +144,7 @@ public final class ShardedMessageEnvelope
     @Override
     public JsonObject toJson() {
         return JsonObject.newBuilder()
-                .set(JSON_ID, id)
+                .set(JSON_ID, String.valueOf(id))
                 .set(JSON_TYPE, type)
                 .set(JSON_MESSAGE, message)
                 .set(JSON_DITTO_HEADERS, dittoHeaders.toJson())

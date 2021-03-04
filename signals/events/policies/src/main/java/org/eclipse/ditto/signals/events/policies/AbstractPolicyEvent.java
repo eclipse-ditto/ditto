@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -25,8 +27,10 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.events.base.Event;
 
 /**
@@ -35,10 +39,10 @@ import org.eclipse.ditto.signals.events.base.Event;
  * @param <T> the type of the implementing class.
  */
 @Immutable
-public abstract class AbstractPolicyEvent<T extends AbstractPolicyEvent> implements PolicyEvent<T> {
+public abstract class AbstractPolicyEvent<T extends AbstractPolicyEvent<T>> implements PolicyEvent<T> {
 
     private final String type;
-    private final String policyId;
+    private final PolicyId policyId;
     private final long revision;
     @Nullable private final Instant timestamp;
     private final DittoHeaders dittoHeaders;
@@ -54,7 +58,7 @@ public abstract class AbstractPolicyEvent<T extends AbstractPolicyEvent> impleme
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
     protected AbstractPolicyEvent(final String type,
-            final String policyId,
+            final PolicyId policyId,
             final long revision,
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
@@ -72,7 +76,7 @@ public abstract class AbstractPolicyEvent<T extends AbstractPolicyEvent> impleme
     }
 
     @Override
-    public String getPolicyId() {
+    public PolicyId getPolicyEntityId() {
         return policyId;
     }
 
@@ -84,6 +88,11 @@ public abstract class AbstractPolicyEvent<T extends AbstractPolicyEvent> impleme
     @Override
     public Optional<Instant> getTimestamp() {
         return Optional.ofNullable(timestamp);
+    }
+
+    @Override
+    public Optional<Metadata> getMetadata() {
+        return Optional.empty();
     }
 
     @Override
@@ -105,7 +114,7 @@ public abstract class AbstractPolicyEvent<T extends AbstractPolicyEvent> impleme
                 .set(Event.JsonFields.TYPE, type)
                 .set(Event.JsonFields.TIMESTAMP, getTimestamp().map(Instant::toString).orElse(null), predicate)
                 .set(Event.JsonFields.REVISION, revision, predicate)
-                .set(JsonFields.POLICY_ID, policyId, predicate);
+                .set(JsonFields.POLICY_ID, String.valueOf(policyId), predicate);
 
         appendPayload(jsonObjectBuilder, schemaVersion, thePredicate);
 

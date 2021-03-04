@@ -1,0 +1,144 @@
+/*
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ *
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
+package org.eclipse.ditto.services.thingsearch.persistence.query;
+
+import java.util.Set;
+
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.query.Query;
+import org.eclipse.ditto.model.query.QueryBuilder;
+import org.eclipse.ditto.model.query.QueryBuilderFactory;
+import org.eclipse.ditto.model.query.criteria.Criteria;
+import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
+import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
+import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.model.rql.ParserException;
+import org.eclipse.ditto.model.thingsearchparser.RqlOptionParser;
+import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
+import org.eclipse.ditto.services.models.thingsearch.query.filter.ParameterOptionVisitor;
+import org.eclipse.ditto.services.thingsearch.persistence.query.validation.QueryCriteriaValidator;
+import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
+import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
+import org.eclipse.ditto.signals.commands.thingsearch.query.StreamThings;
+import org.eclipse.ditto.signals.commands.thingsearch.query.ThingSearchQueryCommand;
+
+/**
+ * Create Query objects from search commands.
+ */
+public final class QueryParser {
+
+    private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
+    private final ThingsFieldExpressionFactory fieldExpressionFactory;
+    private final QueryBuilderFactory queryBuilderFactory;
+    private final RqlOptionParser rqlOptionParser;
+    private final QueryCriteriaValidator queryCriteriaValidator;
+
+    private QueryParser(final CriteriaFactory criteriaFactory,
+            final ThingsFieldExpressionFactory fieldExpressionFactory,
+            final QueryBuilderFactory queryBuilderFactory,
+            final QueryCriteriaValidator queryCriteriaValidator) {
+
+        this.queryFilterCriteriaFactory = new QueryFilterCriteriaFactory(criteriaFactory, fieldExpressionFactory);
+        this.fieldExpressionFactory = fieldExpressionFactory;
+        this.queryBuilderFactory = queryBuilderFactory;
+        this.queryCriteriaValidator = queryCriteriaValidator;
+        rqlOptionParser = new RqlOptionParser();
+    }
+
+    /**
+     * Create a QueryFactory.
+     *
+     * @param criteriaFactory a factory to create criteria.
+     * @param fieldExpressionFactory a factory to retrieve things field expressions.
+     * @param queryBuilderFactory a factory to create a query builder.
+     * @param queryCriteriaValidator a validator for queries.
+     * @return the query factory.
+     */
+    public static QueryParser of(final CriteriaFactory criteriaFactory,
+            final ThingsFieldExpressionFactory fieldExpressionFactory,
+            final QueryBuilderFactory queryBuilderFactory,
+            final QueryCriteriaValidator queryCriteriaValidator) {
+
+        return new QueryParser(criteriaFactory, fieldExpressionFactory, queryBuilderFactory, queryCriteriaValidator);
+    }
+
+    /**
+     * Parses a search command into a query.
+     *
+     * @param command the search command.
+     * @return the query.
+     */
+    public Query parse(final ThingSearchQueryCommand<?> command) {
+        queryCriteriaValidator.validateCommand(command);
+        final Criteria criteria = parseCriteria(command);
+        if (command instanceof QueryThings) {
+            final QueryThings queryThings = (QueryThings) command;
+            final QueryBuilder queryBuilder = queryBuilderFactory.newBuilder(criteria);
+            queryThings.getOptions()
+                    .map(optionStrings -> String.join(",", optionStrings))
+                    .ifPresent(options -> setOptions(options, queryBuilder, command.getDittoHeaders()));
+            return queryBuilder.build();
+        } else if (command instanceof StreamThings) {
+            final StreamThings streamThings = (StreamThings) command;
+            final QueryBuilder queryBuilder = queryBuilderFactory.newUnlimitedBuilder(criteria);
+            streamThings.getSort().ifPresent(sort -> setOptions(sort, queryBuilder, command.getDittoHeaders()));
+            return queryBuilder.build();
+        } else {
+            return queryBuilderFactory.newUnlimitedBuilder(criteria).build();
+        }
+    }
+
+    private Criteria parseCriteria(final ThingSearchQueryCommand<?> command) {
+        final DittoHeaders headers = command.getDittoHeaders();
+        final Set<String> namespaces = command.getNamespaces().orElse(null);
+        final String filter = command.getFilter().orElse(null);
+        if (namespaces == null) {
+            return queryFilterCriteriaFactory.filterCriteria(filter, command.getDittoHeaders());
+        } else {
+            return queryFilterCriteriaFactory.filterCriteriaRestrictedByNamespaces(filter, headers, namespaces);
+        }
+    }
+
+    /**
+     * Parses a SudoCountThings command into a query.
+     *
+     * @param sudoCountThings the command.
+     * @return the query.
+     */
+    public Query parseSudoCountThings(final SudoCountThings sudoCountThings) {
+        final DittoHeaders headers = sudoCountThings.getDittoHeaders();
+        final String filters = sudoCountThings.getFilter().orElse(null);
+        final Criteria criteria = queryFilterCriteriaFactory.filterCriteria(filters, headers);
+        return queryBuilderFactory.newUnlimitedBuilder(criteria).build();
+    }
+
+    /**
+     * @return the criteria factory.
+     */
+    public CriteriaFactory getCriteriaFactory() {
+        return queryFilterCriteriaFactory.toCriteriaFactory();
+    }
+
+    private void setOptions(final String options, final QueryBuilder queryBuilder, final DittoHeaders headers) {
+        try {
+            final ParameterOptionVisitor visitor = new ParameterOptionVisitor(fieldExpressionFactory, queryBuilder);
+            visitor.visitAll(rqlOptionParser.parse(options));
+        } catch (final ParserException | IllegalArgumentException e) {
+            throw InvalidOptionException.newBuilder()
+                    .message(e.getMessage())
+                    .cause(e)
+                    .dittoHeaders(headers)
+                    .build();
+        }
+    }
+}

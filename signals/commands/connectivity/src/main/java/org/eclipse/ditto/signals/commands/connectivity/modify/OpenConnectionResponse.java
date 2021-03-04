@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -22,9 +24,12 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
@@ -33,6 +38,7 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandRespon
  * Response to a {@link OpenConnection} command.
  */
 @Immutable
+@JsonParsableCommandResponse(type = OpenConnectionResponse.TYPE)
 public final class OpenConnectionResponse extends AbstractCommandResponse<OpenConnectionResponse>
         implements ConnectivityModifyCommandResponse<OpenConnectionResponse> {
 
@@ -41,10 +47,10 @@ public final class OpenConnectionResponse extends AbstractCommandResponse<OpenCo
      */
     public static final String TYPE = TYPE_PREFIX + OpenConnection.NAME;
 
-    private final String connectionId;
+    private final ConnectionId connectionId;
 
-    private OpenConnectionResponse(final String connectionId, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatusCode.OK, dittoHeaders);
+    private OpenConnectionResponse(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
+        super(TYPE, HttpStatus.OK, dittoHeaders);
         this.connectionId = connectionId;
     }
 
@@ -56,7 +62,7 @@ public final class OpenConnectionResponse extends AbstractCommandResponse<OpenCo
      * @return a new OpenConnectionResponse response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static OpenConnectionResponse of(final String connectionId, final DittoHeaders dittoHeaders) {
+    public static OpenConnectionResponse of(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
         checkNotNull(connectionId, "Connection ID");
         return new OpenConnectionResponse(connectionId, dittoHeaders);
     }
@@ -88,24 +94,30 @@ public final class OpenConnectionResponse extends AbstractCommandResponse<OpenCo
      */
     public static OpenConnectionResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<OpenConnectionResponse>(TYPE, jsonObject).deserialize(
-                statusCode -> {
+                httpStatus -> {
                     final String readConnectionId =
                             jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
-
-                    return of(readConnectionId, dittoHeaders);
+                    return of(ConnectionId.of(readConnectionId), dittoHeaders);
                 });
     }
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, connectionId, predicate);
+        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId),
+                predicate);
     }
 
     @Override
-    public String getConnectionId() {
+    public ConnectionId getConnectionEntityId() {
         return connectionId;
+    }
+
+    @Override
+    public JsonPointer getResourcePath() {
+        return JsonPointer.of("/command");
     }
 
     @Override
@@ -115,14 +127,20 @@ public final class OpenConnectionResponse extends AbstractCommandResponse<OpenCo
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof OpenConnectionResponse);
+        return other instanceof OpenConnectionResponse;
     }
 
     @Override
     public boolean equals(@Nullable final Object o) {
-        if (this == o) {return true;}
-        if (o == null || getClass() != o.getClass()) {return false;}
-        if (!super.equals(o)) {return false;}
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
         final OpenConnectionResponse that = (OpenConnectionResponse) o;
         return Objects.equals(connectionId, that.connectionId);
     }

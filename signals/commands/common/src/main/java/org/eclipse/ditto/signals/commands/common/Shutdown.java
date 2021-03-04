@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -25,6 +27,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
@@ -34,6 +37,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * Each recipient decides whether it accepts the provided reason of this command or if it ignores the command.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = Shutdown.TYPE_PREFIX, name = Shutdown.NAME)
 public final class Shutdown extends CommonCommand<Shutdown> {
 
     /**
@@ -79,7 +83,8 @@ public final class Shutdown extends CommonCommand<Shutdown> {
      */
     public static Shutdown fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<Shutdown>(TYPE, jsonObject).deserialize(
-                () -> getInstance(ShutdownReasonFactory.fromJson(jsonObject.getValueOrThrow(JsonFields.REASON)),
+                () -> getInstance(ShutdownReasonFactory.fromJson(
+                        jsonObject.getValue(JsonFields.REASON).orElseGet(JsonObject::empty)),
                         dittoHeaders));
     }
 
@@ -96,7 +101,11 @@ public final class Shutdown extends CommonCommand<Shutdown> {
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicate) {
 
-        jsonObjectBuilder.set(JsonFields.REASON, reason.toJson(schemaVersion, predicate), schemaVersion.and(predicate));
+        final Predicate<JsonField> isNonEmptyObject =
+                field -> field.getValue().isObject() && !field.getValue().asObject().isEmpty();
+
+        jsonObjectBuilder.set(JsonFields.REASON, reason.toJson(schemaVersion, predicate),
+                schemaVersion.and(predicate).and(predicate).and(isNonEmptyObject));
     }
 
     @Override
@@ -132,6 +141,14 @@ public final class Shutdown extends CommonCommand<Shutdown> {
         return Objects.hash(super.hashCode(), reason);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                super.toString() +
+                ", reason=" + reason +
+                "]";
+    }
+
     /**
      * This class contains definitions for all specific fields of a {@code ShutdownCommand}'s JSON representation.
      */
@@ -145,14 +162,6 @@ public final class Shutdown extends CommonCommand<Shutdown> {
             throw new AssertionError();
         }
 
-    }
-
-    @Override
-    public String toString() {
-        return getClass().getSimpleName() + " [" +
-                super.toString() +
-                ", reason=" + reason +
-                "]";
     }
 
 }

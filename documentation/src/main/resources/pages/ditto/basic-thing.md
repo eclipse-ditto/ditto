@@ -24,42 +24,25 @@ Examples:
 
 ### Thing ID
 
-Unique identifier of a Thing. For choosing custom Thing IDs when creating a Thing, following rules apply:
-
-#### Allowed Characters
-
-Due to the fact that a Thing ID often needs to be set in the path of a HTTP request, we have restricted the set of
-allowed characters to those for [Uniform Resource Identifiers (URI)](http://www.ietf.org/rfc/rfc2396.txt).
-
-In order to separate Things from different Solution spaces from each other, they are required to be created in a
-specific *Namespace*.
-This Namespace needs to be provided additionally to every REST request as a **prefix** of the Thing ID:
-
-* The Namespace must conform to Java package naming:
-    * must start with a lower- or uppercase character from a-z,
-    * can use dots (`.`) to separate characters,
-    * a dot (`.`) must be followed by a lower- or uppercase character from a-z,
-    * numbers can be used,
-    * underscore can be used,
-* The Namespace is separated by a mandatory colon (`:`) from the thingId.
-
-#### Examples
-
-Following some examples of valid Thing IDs are given:
-* `org.eclipse.ditto:fancycar-1`,
-* `foo:fancycar-1`,
-* `org.eclipse.ditto_42:fancycar-1`.
-
+Unique identifier of a Thing. For choosing custom Thing IDs when creating a Thing, the rules for 
+[namespaced IDs](basic-namespaces-and-names.html#namespaced-id) apply.
 
 ### Access control
 
 A Thing in API version 1 contains an inline [ACL](basic-acl.html) defining which authenticated parties may READ, WRITE
-and ADMINISTRATE the `Thing`.
+and ADMINISTRATE the `Thing`. (Please note that ACL's are part of deprecated API 1)
 
 A Thing in API version 2 does no longer contain the <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.acl}}">ACL</a>.
 Instead it contains a link to a [Policy](basic-policy.html) in form of a `policyId`. This 
 <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.policy}}">Policy</a> defines which 
 authenticated subjects may READ and WRITE the Thing or even parts of it (hierarchically specified).
+
+
+### Definition
+
+A Thing may contain a definition. The definition can also be used to find Things. The definition is used to link a thing
+to a corresponding model defining the capabilities/features of it, e.g. via an 
+[Eclipse Vorto](https://www.eclipse.org/vorto/) "information model".
 
 
 ### Attributes
@@ -77,9 +60,15 @@ A Thing may contain an arbitrary amount of [Features](basic-feature.html).
 many Features" max-width=100 %}
 
 
+### Metadata
+
+A Thing may contain additional [metadata](basic-metadata.html) for all of its attributes and features describing the
+semantics of the data or adding other useful information about the data points of the twin.
+
+
 ### Model specification
 
-#### API version 1
+#### API version 1 - Deprecated
 
 {% include docson.html schema="jsonschema/thing_v1.json" %}
 
@@ -88,18 +77,13 @@ many Features" max-width=100 %}
 {% include docson.html schema="jsonschema/thing_v2.json" %}
 
 
-### Example (API version 1)
+### Example (API version 2)
 
 ```json
 {
   "thingId": "the.namespace:theId",
-  "acl": {
-    "subject-id": {
-      "READ": true,
-      "WRITE": true,
-      "ADMINISTRATE": true
-    }
-  },
+  "policyId": "the.namespace:thePolicyId",
+  "definition": "org.eclipse.ditto:HeatingDevice:2.1.0",
   "attributes": {
       "someAttr": 32,
       "manufacturer": "ACME corp"
@@ -112,9 +96,13 @@ many Features" max-width=100 %}
                   "street": "my street",
                   "house no": 42
               }
+          },
+          "desiredProperties": {
+              "connected": false
           }
       },
       "switchable": {
+          "definition": [ "org.eclipse.ditto:Switcher:1.0.0" ],
           "properties": {
               "on": true,
               "lastToggled": "2017-11-15T18:21Z"

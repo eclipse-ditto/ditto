@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -43,7 +45,7 @@ final class NullFeatureDefinition implements FeatureDefinition {
     }
 
     @Override
-    public Identifier getFirstIdentifier() {
+    public DefinitionIdentifier getFirstIdentifier() {
         return new NullIdentifier();
     }
 
@@ -53,13 +55,13 @@ final class NullFeatureDefinition implements FeatureDefinition {
     }
 
     @Override
-    public Stream<Identifier> stream() {
+    public Stream<DefinitionIdentifier> stream() {
         return Stream.empty();
     }
 
     @Override
-    public Iterator<Identifier> iterator() {
-        final List<Identifier> emptyList = Collections.emptyList();
+    public Iterator<DefinitionIdentifier> iterator() {
+        final List<DefinitionIdentifier> emptyList = Collections.emptyList();
         return emptyList.iterator();
     }
 
@@ -91,7 +93,7 @@ final class NullFeatureDefinition implements FeatureDefinition {
         return getClass().getSimpleName() + " [wrapped=" + wrapped + "]";
     }
 
-    private static final class NullIdentifier implements FeatureDefinition.Identifier {
+    private static final class NullIdentifier implements DefinitionIdentifier {
 
         private NullIdentifier() {
             super();

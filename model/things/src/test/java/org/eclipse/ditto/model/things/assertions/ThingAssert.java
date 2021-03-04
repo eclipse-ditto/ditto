@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -28,7 +30,9 @@ import org.eclipse.ditto.model.base.assertions.JsonifiableAssertions;
 import org.eclipse.ditto.model.base.assertions.JsonifiableWithPredicateAssert;
 import org.eclipse.ditto.model.base.assertions.JsonifiableWithSelectorAndPredicateAssert;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Attributes;
@@ -38,6 +42,8 @@ import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Permissions;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingDefinition;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
@@ -58,15 +64,16 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
         super(actual, ThingAssert.class);
     }
 
-    public ThingAssert hasId(final String expectedIdentifier) {
+    public ThingAssert hasId(final ThingId expectedIdentifier) {
         isNotNull();
 
-        final Optional<String> actualIdOptional = actual.getId();
+        final Optional<ThingId> actualIdOptional = actual.getEntityId();
 
-        assertThat(actualIdOptional.isPresent() && Objects.equals(actualIdOptional.get(), expectedIdentifier)) //
-                .overridingErrorMessage("Expected Thing identifier to be \n<%s> but was \n<%s>", expectedIdentifier,
-                        actualIdOptional.orElse(null)) //
-                .isTrue();
+        assertThat(actualIdOptional)
+                .overridingErrorMessage("Expected Thing identifier to be \n<%s> but was \n<%s>",
+                        expectedIdentifier.toString(),
+                        String.valueOf(actualIdOptional.orElse(null)))
+                .contains(expectedIdentifier);
 
         return this;
     }
@@ -74,12 +81,12 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
     public ThingAssert hasNoId() {
         isNotNull();
 
-        final Optional<String> actualIdOptional = actual.getId();
+        final Optional<ThingId> actualIdOptional = actual.getEntityId();
 
-        assertThat(actualIdOptional.isPresent()) //
+        assertThat(actualIdOptional)
                 .overridingErrorMessage("Expected Thing not have an identifier but it had <%s>",
-                        actualIdOptional.orElse(null)) //
-                .isFalse();
+                        String.valueOf(actualIdOptional.orElse(null)))
+                .isNotPresent();
 
         return this;
     }
@@ -91,9 +98,9 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
 
         assertThat(
                 actualNamespaceOptional.isPresent() &&
-                        Objects.equals(actualNamespaceOptional.get(), expectedNamespace)) //
+                        Objects.equals(actualNamespaceOptional.get(), expectedNamespace))
                 .overridingErrorMessage("Expected Thing namespace to be \n<%s> but was \n<%s>", expectedNamespace,
-                        actualNamespaceOptional.orElse(null)) //
+                        actualNamespaceOptional.orElse(null))
                 .isTrue();
 
         return this;
@@ -106,7 +113,7 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
 
         assertThat(actualNamespaceOptional.isPresent())
                 .overridingErrorMessage("Expected Thing not to have a namespace but it had <%s>",
-                        actualNamespaceOptional.orElse(null)) //
+                        actualNamespaceOptional.orElse(null))
                 .isFalse();
 
         return this;
@@ -115,11 +122,24 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
     public ThingAssert hasPolicyId(final String expectedPolicyId) {
         isNotNull();
 
-        final Optional<String> optionalPolicyId = actual.getPolicyId();
+        final Optional<PolicyId> optionalPolicyId = actual.getPolicyEntityId();
 
-        assertThat(optionalPolicyId.isPresent() && Objects.equals(optionalPolicyId.get(), expectedPolicyId)) //
+        assertThat(optionalPolicyId.isPresent() && Objects.equals(optionalPolicyId.get(), expectedPolicyId))
                 .overridingErrorMessage("Expected Policy ID to be \n<%s> but was \n<%s>", expectedPolicyId,
-                        optionalPolicyId.orElse(null)) //
+                        optionalPolicyId.orElse(null))
+                .isTrue();
+
+        return this;
+    }
+
+    public ThingAssert hasPolicyId(final PolicyId expectedPolicyId) {
+        isNotNull();
+
+        final Optional<PolicyId> optionalPolicyId = actual.getPolicyEntityId();
+
+        assertThat(optionalPolicyId.isPresent() && Objects.equals(optionalPolicyId.get(), expectedPolicyId))
+                .overridingErrorMessage("Expected Policy ID to be \n<%s> but was \n<%s>", expectedPolicyId,
+                        optionalPolicyId.orElse(null))
                 .isTrue();
 
         return this;
@@ -128,11 +148,11 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
     public ThingAssert hasNoPolicyId() {
         isNotNull();
 
-        final Optional<String> policyIdOptional = actual.getPolicyId();
+        final Optional<PolicyId> policyIdOptional = actual.getPolicyEntityId();
 
-        assertThat(policyIdOptional.isPresent()) //
+        assertThat(policyIdOptional.isPresent())
                 .overridingErrorMessage("Expected Thing not have a PolicyId but it had <%s>",
-                        policyIdOptional.orElse(null)) //
+                        policyIdOptional.orElse(null))
                 .isFalse();
 
         return this;
@@ -143,9 +163,9 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
 
         final Optional<AccessControlList> aclOptional = actual.getAccessControlList();
 
-        assertThat(aclOptional.isPresent() && Objects.equals(aclOptional.get(), expectedAcl)) //
+        assertThat(aclOptional.isPresent() && Objects.equals(aclOptional.get(), expectedAcl))
                 .overridingErrorMessage("Expected Thing ACL to be \n<%s> but was \n<%s>", expectedAcl,
-                        aclOptional.orElse(null)) //
+                        aclOptional.orElse(null))
                 .isTrue();
 
         return this;
@@ -156,9 +176,9 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
 
         final Optional<AccessControlList> accessControlListOptional = actual.getAccessControlList();
 
-        assertThat(accessControlListOptional.isPresent()) //
+        assertThat(accessControlListOptional.isPresent())
                 .overridingErrorMessage("Expected Thing not have an Access Control List but it had <%s>",
-                        accessControlListOptional.orElse(null)) //
+                        accessControlListOptional.orElse(null))
                 .isFalse();
 
         return this;
@@ -173,13 +193,13 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
             final Collection<Permission> expectedPermissions) {
         isNotNull();
 
-        final Permissions actualPermissions = actual.getAccessControlList() //
-                .map(acl -> acl.getPermissionsOf(authorizationSubject)) //
+        final Permissions actualPermissions = actual.getAccessControlList()
+                .map(acl -> acl.getPermissionsOf(authorizationSubject))
                 .orElse(ThingsModelFactory.noPermissions());
 
-        assertThat(actualPermissions.containsAll(expectedPermissions)) //
+        assertThat(actualPermissions.containsAll(expectedPermissions))
                 .overridingErrorMessage("Expected Thing ACL to contain an entry for <%s> with the permission(s) \n<%s> "
-                        + "but it contained \n<%s>", authorizationSubject, expectedPermissions, actualPermissions) //
+                        + "but it contained \n<%s>", authorizationSubject, expectedPermissions, actualPermissions)
                 .isTrue();
 
         return this;
@@ -191,16 +211,14 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
         boolean isHasAclEntry = false;
         final Optional<AccessControlList> accessControlListOptional = actual.getAccessControlList();
         if (accessControlListOptional.isPresent()) {
-            isHasAclEntry = accessControlListOptional.get() //
-                    .stream() //
-                    .filter(actualAclEntry -> Objects.equals(actualAclEntry, expectedAclEntry)) //
-                    .findAny() //
-                    .isPresent();
+            isHasAclEntry = accessControlListOptional.get()
+                    .stream()
+                    .anyMatch(actualAclEntry -> Objects.equals(actualAclEntry, expectedAclEntry));
         }
 
-        assertThat(isHasAclEntry) //
+        assertThat(isHasAclEntry)
                 .overridingErrorMessage("Expected Thing ACL to contain the entry <%s> but it did not",
-                        expectedAclEntry) //
+                        expectedAclEntry)
                 .isTrue();
 
         return this;
@@ -209,8 +227,8 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
     public ThingAssert hasAttributes(final Attributes expectedAttributes) {
         isNotNull();
 
-        assertThat(actual.getAttributes()) //
-                .overridingErrorMessage("Expected Thing Attributes to be <%s> but it did not", expectedAttributes) //
+        assertThat(actual.getAttributes())
+                .overridingErrorMessage("Expected Thing Attributes to be <%s> but it did not", expectedAttributes)
                 .contains(expectedAttributes);
 
         return this;
@@ -220,9 +238,9 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
         isNotNull();
 
         final Optional<Attributes> attributesOptional = actual.getAttributes();
-        assertThat(attributesOptional) //
+        assertThat(attributesOptional)
                 .overridingErrorMessage("Expected Thing not to have any attributes but it had <%s>",
-                        attributesOptional.orElse(null)) //
+                        attributesOptional.orElse(null))
                 .isEmpty();
 
         return this;
@@ -231,14 +249,14 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
     public ThingAssert hasAttribute(final JsonPointer attributePath, final JsonValue expectedValue) {
         isNotNull();
 
-        final JsonValue actualAttributeValue = actual.getAttributes() //
-                .flatMap(attributes -> attributes.getValue(attributePath)) //
+        final JsonValue actualAttributeValue = actual.getAttributes()
+                .flatMap(attributes -> attributes.getValue(attributePath))
                 .orElse(null);
 
-        assertThat(actualAttributeValue) //
+        assertThat(actualAttributeValue)
                 .overridingErrorMessage("Expected Thing attribute at <%s> to be \n<%s> but it was \n<%s>",
                         attributePath,
-                        expectedValue, actualAttributeValue) //
+                        expectedValue, actualAttributeValue)
                 .isEqualTo(expectedValue);
 
         return this;
@@ -247,12 +265,49 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
     public ThingAssert hasNotAttribute(final JsonPointer attributePath) {
         isNotNull();
 
-        final boolean isAttributePresent = actual.getAttributes() //
-                .flatMap(attributes -> attributes.getValue(attributePath)) //
+        final boolean isAttributePresent = actual.getAttributes()
+                .flatMap(attributes -> attributes.getValue(attributePath))
                 .isPresent();
 
         assertThat(isAttributePresent)
-                .overridingErrorMessage("Expected Thing not to have an attribute at <%s> but it did", attributePath) //
+                .overridingErrorMessage("Expected Thing not to have an attribute at <%s> but it did", attributePath)
+                .isFalse();
+
+        return this;
+    }
+
+    public ThingAssert hasDefinition(final ThingDefinition expectedDefinition) {
+        isNotNull();
+
+        assertThat(actual.getDefinition())
+                .overridingErrorMessage("Expected Thing Definition to be <%s> but it did not", expectedDefinition)
+                .contains(expectedDefinition);
+
+        return this;
+    }
+
+    public ThingAssert hasDefinition(final String expectedDefinition) {
+        isNotNull();
+
+        final Optional<ThingDefinition> optionalDefinition = actual.getDefinition();
+
+        assertThat(optionalDefinition.isPresent() &&
+                optionalDefinition.get().toString().equals(expectedDefinition))
+                .overridingErrorMessage("Expected Definition to be \n<%s> but was \n<%s>", expectedDefinition,
+                        optionalDefinition.orElse(null))
+                .isTrue();
+
+        return this;
+    }
+
+    public ThingAssert hasNoDefinition() {
+        isNotNull();
+
+        final Optional<ThingDefinition> definitionOptional = actual.getDefinition();
+
+        assertThat(definitionOptional.isPresent())
+                .overridingErrorMessage("Expected Thing not have a Definition but it had <%s>",
+                        definitionOptional.orElse(null))
                 .isFalse();
 
         return this;
@@ -261,12 +316,12 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
     public ThingAssert hasFeature(final Feature expectedFeature) {
         isNotNull();
 
-        final Optional<Feature> featureOptional = actual.getFeatures() //
+        final Optional<Feature> featureOptional = actual.getFeatures()
                 .flatMap(features -> features.getFeature(expectedFeature.getId()));
 
         assertThat(featureOptional.isPresent() && Objects.equals(featureOptional.get(), expectedFeature))
                 .overridingErrorMessage("Expected Thing to have Feature \n<%s> but it had \n<%s>", expectedFeature,
-                        featureOptional.orElse(null)) //
+                        featureOptional.orElse(null))
                 .isTrue();
 
         return this;
@@ -275,12 +330,12 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
     public ThingAssert hasFeatureWithId(final String featureId) {
         isNotNull();
 
-        final Optional<Feature> featureOptional = actual.getFeatures() //
+        final Optional<Feature> featureOptional = actual.getFeatures()
                 .flatMap(features -> features.getFeature(featureId));
 
-        assertThat(featureOptional.isPresent()) //
+        assertThat(featureOptional.isPresent())
                 .overridingErrorMessage("Expected Thing to have Feature with identifier <%s> but it had not",
-                        featureId) //
+                        featureId)
                 .isTrue();
 
         return this;
@@ -289,12 +344,12 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
     public ThingAssert hasNotFeatureWithId(final String featureId) {
         isNotNull();
 
-        final Optional<Feature> featureOptional = actual.getFeatures() //
+        final Optional<Feature> featureOptional = actual.getFeatures()
                 .flatMap(features -> features.getFeature(featureId));
 
-        assertThat(!featureOptional.isPresent()) //
+        assertThat(!featureOptional.isPresent())
                 .overridingErrorMessage("Expected Thing not to have Feature with identifier <%s> but it had",
-                        featureId) //
+                        featureId)
                 .isTrue();
 
         return this;
@@ -303,8 +358,8 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
     public ThingAssert hasFeatures(final Features expectedFeatures) {
         isNotNull();
 
-        assertThat(actual.getFeatures()) //
-                .overridingErrorMessage("Expected Thing Features to be <%s> but it did not", expectedFeatures) //
+        assertThat(actual.getFeatures())
+                .overridingErrorMessage("Expected Thing Features to be <%s> but it did not", expectedFeatures)
                 .contains(expectedFeatures);
 
         return this;
@@ -314,9 +369,9 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
         isNotNull();
 
         final Optional<Features> featuresOptional = actual.getFeatures();
-        assertThat(featuresOptional) //
+        assertThat(featuresOptional)
                 .overridingErrorMessage("Expected Thing not to have any features but it had <%s>",
-                        featuresOptional.orElse(null)) //
+                        featuresOptional.orElse(null))
                 .isEmpty();
 
         return this;
@@ -325,14 +380,14 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
     public ThingAssert hasFeatureProperties(final String featureId, final FeatureProperties expectedFeatureProperties) {
         isNotNull();
 
-        final FeatureProperties actualProperties = actual.getFeatures() //
-                .flatMap(features -> features.getFeature(featureId)) //
-                .flatMap(Feature::getProperties) //
+        final FeatureProperties actualProperties = actual.getFeatures()
+                .flatMap(features -> features.getFeature(featureId))
+                .flatMap(Feature::getProperties)
                 .orElse(null);
 
-        assertThat(actualProperties) //
+        assertThat(actualProperties)
                 .overridingErrorMessage("Expected Thing Feature <%s> to have the properties \n<%s> but it had \n<%s>",
-                        featureId, expectedFeatureProperties, actualProperties) //
+                        featureId, expectedFeatureProperties, actualProperties)
                 .isEqualTo(expectedFeatureProperties);
 
         return this;
@@ -341,14 +396,14 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
     public ThingAssert featureHasNoProperties(final String featureId) {
         isNotNull();
 
-        final boolean isFeatureHasProperties = actual.getFeatures() //
-                .flatMap(features -> features.getFeature(featureId)) //
-                .flatMap(Feature::getProperties) //
+        final boolean isFeatureHasProperties = actual.getFeatures()
+                .flatMap(features -> features.getFeature(featureId))
+                .flatMap(Feature::getProperties)
                 .isPresent();
 
-        assertThat(isFeatureHasProperties) //
+        assertThat(isFeatureHasProperties)
                 .overridingErrorMessage("Expected Thing Feature <%s> not to have any properties but it did",
-                        featureId) //
+                        featureId)
                 .isFalse();
 
         return this;
@@ -358,15 +413,15 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
             final JsonValue expectedValue) {
         isNotNull();
 
-        final JsonValue actualPropertyValue = actual.getFeatures() //
-                .flatMap(features -> features.getFeature(featureId)) //
-                .flatMap(feature -> feature.getProperty(propertyPath)) //
+        final JsonValue actualPropertyValue = actual.getFeatures()
+                .flatMap(features -> features.getFeature(featureId))
+                .flatMap(feature -> feature.getProperty(propertyPath))
                 .orElse(null);
 
-        assertThat(actualPropertyValue) //
+        assertThat(actualPropertyValue)
                 .overridingErrorMessage("Expected Thing Feature property at <%s> to be \n<%s> but it was \n<%s>",
                         propertyPath,
-                        expectedValue, actualPropertyValue) //
+                        expectedValue, actualPropertyValue)
                 .isEqualTo(expectedValue);
 
         return this;
@@ -375,14 +430,81 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
     public ThingAssert hasNotFeatureProperty(final String featureId, final JsonPointer propertyPath) {
         isNotNull();
 
-        final boolean isHasFeatureProperty = actual.getFeatures() //
-                .flatMap(features -> features.getFeature(featureId)) //
-                .flatMap(feature -> feature.getProperty(propertyPath)) //
+        final boolean isHasFeatureProperty = actual.getFeatures()
+                .flatMap(features -> features.getFeature(featureId))
+                .flatMap(feature -> feature.getProperty(propertyPath))
                 .isPresent();
 
-        assertThat(isHasFeatureProperty) //
+        assertThat(isHasFeatureProperty)
                 .overridingErrorMessage("Expected Thing Feature not to have a property at <%s> but it had.",
-                        propertyPath) //
+                        propertyPath)
+                .isFalse();
+
+        return this;
+    }
+
+    public ThingAssert hasFeatureDesiredProperties(final String featureId, final FeatureProperties expectedDesiredProperties) {
+        isNotNull();
+
+        final FeatureProperties actualDesiredProperties = actual.getFeatures()
+                .flatMap(features -> features.getFeature(featureId))
+                .flatMap(Feature::getDesiredProperties)
+                .orElse(null);
+
+        assertThat(actualDesiredProperties)
+                .overridingErrorMessage("Expected Thing Feature <%s> to have the desired properties \n<%s> but it had \n<%s>",
+                        featureId, expectedDesiredProperties, actualDesiredProperties)
+                .isEqualTo(expectedDesiredProperties);
+
+        return this;
+    }
+
+    public ThingAssert featureHasNoDesiredProperties(final String featureId) {
+        isNotNull();
+
+        final boolean isFeatureHasDesiredProperties = actual.getFeatures()
+                .flatMap(features -> features.getFeature(featureId))
+                .flatMap(Feature::getDesiredProperties)
+                .isPresent();
+
+        assertThat(isFeatureHasDesiredProperties)
+                .overridingErrorMessage("Expected Thing Feature <%s> not to have any desired properties but it did",
+                        featureId)
+                .isFalse();
+
+        return this;
+    }
+
+    public ThingAssert hasFeatureDesiredProperty(final String featureId, final JsonPointer propertyPath,
+            final JsonValue expectedValue) {
+        isNotNull();
+
+        final JsonValue actualDesiredPropertyValue = actual.getFeatures()
+                .flatMap(features -> features.getFeature(featureId))
+                .flatMap(feature -> feature.getDesiredProperty(propertyPath))
+                .orElse(null);
+
+        assertThat(actualDesiredPropertyValue)
+                .overridingErrorMessage("Expected Thing Feature desired property at <%s> to be \n<%s> but " +
+                                "it was \n<%s>",
+                        propertyPath,
+                        expectedValue, actualDesiredPropertyValue)
+                .isEqualTo(expectedValue);
+
+        return this;
+    }
+
+    public ThingAssert hasNotFeatureDesiredProperty(final String featureId, final JsonPointer propertyPath) {
+        isNotNull();
+
+        final boolean isHasDesiredFeatureProperty = actual.getFeatures()
+                .flatMap(features -> features.getFeature(featureId))
+                .flatMap(feature -> feature.getDesiredProperty(propertyPath))
+                .isPresent();
+
+        assertThat(isHasDesiredFeatureProperty)
+                .overridingErrorMessage("Expected Thing Feature not to have a desired property at <%s> but it had.",
+                        propertyPath)
                 .isFalse();
 
         return this;
@@ -393,9 +515,9 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
 
         final Optional<ThingLifecycle> lifecycleOptional = actual.getLifecycle();
 
-        assertThat(lifecycleOptional.isPresent() && Objects.equals(lifecycleOptional.get(), expectedLifecycle)) //
+        assertThat(lifecycleOptional.isPresent() && Objects.equals(lifecycleOptional.get(), expectedLifecycle))
                 .overridingErrorMessage("Expected Thing lifecycle to have lifecycle \n<%s> but it had \n<%s>",
-                        expectedLifecycle, lifecycleOptional.orElse(null)) //
+                        expectedLifecycle, lifecycleOptional.orElse(null))
                 .isTrue();
 
         return this;
@@ -406,9 +528,9 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
 
         final Optional<ThingLifecycle> actualLifecycleOptional = actual.getLifecycle();
 
-        assertThat(actualLifecycleOptional.isPresent()) //
+        assertThat(actualLifecycleOptional.isPresent())
                 .overridingErrorMessage("Expected Thing not to have a lifecycle but it had <%s>",
-                        actualLifecycleOptional.orElse(null)) //
+                        actualLifecycleOptional.orElse(null))
                 .isFalse();
 
         return this;
@@ -419,9 +541,9 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
 
         final Optional<ThingRevision> revisionOptional = actual.getRevision();
 
-        assertThat(revisionOptional) //
+        assertThat(revisionOptional)
                 .overridingErrorMessage("Expected Thing revision to be \n<%s> but it was \n<%s>", expectedRevision,
-                        revisionOptional.orElse(null)) //
+                        revisionOptional.orElse(null))
                 .contains(expectedRevision);
 
         return this;
@@ -432,9 +554,9 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
 
         final Optional<ThingRevision> actualRevisionOptional = actual.getRevision();
 
-        assertThat(actualRevisionOptional.isPresent()) //
+        assertThat(actualRevisionOptional.isPresent())
                 .overridingErrorMessage("Expected Thing not have a revision but it had <%s>",
-                        actualRevisionOptional.orElse(null)) //
+                        actualRevisionOptional.orElse(null))
                 .isFalse();
 
         return this;
@@ -445,15 +567,16 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
 
         final Optional<Instant> modifiedOptional = actual.getModified();
 
-        assertThat(modifiedOptional) //
+        assertThat(modifiedOptional)
                 .overridingErrorMessage("Expected Thing modified to be \n<%s> but it was \n<%s>", expectedmodified,
-                        modifiedOptional.orElse(null)) //
+                        modifiedOptional.orElse(null))
                 .contains(expectedmodified);
 
         return this;
     }
 
     /**
+     *
      */
     public ThingAssert isModified() {
         isNotNull();
@@ -469,9 +592,44 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
 
         final Optional<Instant> actualmodifiedOptional = actual.getModified();
 
-        assertThat(actualmodifiedOptional.isPresent()) //
+        assertThat(actualmodifiedOptional.isPresent())
                 .overridingErrorMessage("Expected Thing not have a modified but it had <%s>",
-                        actualmodifiedOptional.orElse(null)) //
+                        actualmodifiedOptional.orElse(null))
+                .isFalse();
+
+        return this;
+    }
+
+    public ThingAssert isCreated() {
+        isNotNull();
+        final Optional<Instant> actualCreated = actual.getCreated();
+        assertThat(actualCreated)
+                .overridingErrorMessage("Expected Thing to be created but it was not")
+                .isPresent();
+        return this;
+    }
+
+    public ThingAssert hasCreated(final Instant expectedCreated) {
+        isNotNull();
+
+        final Optional<Instant> createdOptional = actual.getCreated();
+
+        assertThat(createdOptional)
+                .overridingErrorMessage("Expected Thing created to be \n<%s> but it was \n<%s>", expectedCreated,
+                        createdOptional.orElse(null))
+                .contains(expectedCreated);
+
+        return this;
+    }
+
+    public ThingAssert hasNoCreated() {
+        isNotNull();
+
+        final Optional<Instant> actualCreatedOptional = actual.getCreated();
+
+        assertThat(actualCreatedOptional.isPresent())
+                .overridingErrorMessage("Expected Thing not have a created but it had <%s>",
+                        actualCreatedOptional.orElse(null))
                 .isFalse();
 
         return this;
@@ -484,10 +642,10 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
 
         final Instant modified = actual.getModified().get();
 
-        assertThat(modified.isAfter(Instant)) //
+        assertThat(modified.isAfter(Instant))
                 .overridingErrorMessage("Expected <%s> to be after <%s> but it was not",
                         modified,
-                        Instant) //
+                        Instant)
                 .isTrue();
 
         return this;
@@ -500,10 +658,10 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
 
         final Instant modified = actual.getModified().get();
 
-        assertThat(!modified.isAfter(Instant)) //
+        assertThat(!modified.isAfter(Instant))
                 .overridingErrorMessage("Expected <%s> to be before <%s> but it was not",
                         modified,
-                        Instant) //
+                        Instant)
                 .isTrue();
 
         return this;
@@ -514,7 +672,7 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
         assertThat(actual).isNotNull();
 
         assertThat(actual.getModified()).isPresent();
-        assertThat(actual.getId()).isEqualTo(expected.getId());
+        assertThat(actual.getEntityId()).isEqualTo(expected.getEntityId());
         assertThat(actual.getAttributes()).isEqualTo(expected.getAttributes());
         assertThat(actual.getFeatures()).isEqualTo(expected.getFeatures());
 
@@ -522,8 +680,21 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
             assertThat(actual.getAccessControlList()).isEqualTo(expected.getAccessControlList());
         }
         if (JsonSchemaVersion.V_2.equals(expected.getImplementedSchemaVersion())) {
-            assertThat(actual.getPolicyId()).isEqualTo(expected.getPolicyId());
+            assertThat(actual.getPolicyEntityId()).isEqualTo(expected.getPolicyEntityId());
         }
+
+        return this;
+    }
+
+    public ThingAssert hasMetadata(final Metadata expectedMetadata) {
+        isNotNull();
+
+        final Optional<Metadata> metadataOptional = actual.getMetadata();
+
+        assertThat(metadataOptional)
+                .overridingErrorMessage("Expected Thing metadata to be \n<%s> but it was \n<%s>", expectedMetadata,
+                        metadataOptional.orElse(null))
+                .contains(expectedMetadata);
 
         return this;
     }

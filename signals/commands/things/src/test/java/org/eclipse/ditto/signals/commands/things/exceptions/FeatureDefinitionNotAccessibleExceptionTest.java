@@ -1,11 +1,13 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
- *  
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.things.exceptions;
@@ -18,8 +20,9 @@ import java.net.URI;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.junit.Test;
 
@@ -29,14 +32,14 @@ import org.junit.Test;
 public final class FeatureDefinitionNotAccessibleExceptionTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(DittoRuntimeException.JsonFields.STATUS, HttpStatusCode.NOT_FOUND.toInt())
+            .set(DittoRuntimeException.JsonFields.STATUS, HttpStatus.NOT_FOUND.getCode())
             .set(DittoRuntimeException.JsonFields.ERROR_CODE, FeatureDefinitionNotAccessibleException.ERROR_CODE)
             .set(DittoRuntimeException.JsonFields.MESSAGE,
-                    TestConstants.Feature.FEATURE_PROPERTIES_NOT_ACCESSIBLE_EXCEPTION.getMessage())
+                    TestConstants.Feature.FEATURE_DEFINITION_NOT_ACCESSIBLE_EXCEPTION.getMessage())
             .set(DittoRuntimeException.JsonFields.DESCRIPTION,
-                    TestConstants.Feature.FEATURE_PROPERTIES_NOT_ACCESSIBLE_EXCEPTION.getDescription().get())
+                    TestConstants.Feature.FEATURE_DEFINITION_NOT_ACCESSIBLE_EXCEPTION.getDescription().get())
             .set(DittoRuntimeException.JsonFields.HREF,
-                    TestConstants.Feature.FEATURE_PROPERTIES_NOT_ACCESSIBLE_EXCEPTION.getHref()
+                    TestConstants.Feature.FEATURE_DEFINITION_NOT_ACCESSIBLE_EXCEPTION.getHref()
                             .map(URI::toString).orElse(null))
             .build();
 
@@ -47,8 +50,8 @@ public final class FeatureDefinitionNotAccessibleExceptionTest {
 
     @Test
     public void checkFeatureDefinitionErrorCodeWorks() {
-        final DittoRuntimeException actual =
-                ThingErrorRegistry.newInstance().parse(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
+        final GlobalErrorRegistry globalErrorRegistry = GlobalErrorRegistry.getInstance();
+        final DittoRuntimeException actual = globalErrorRegistry.parse(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(actual).isEqualTo(TestConstants.Feature.FEATURE_DEFINITION_NOT_ACCESSIBLE_EXCEPTION);
     }

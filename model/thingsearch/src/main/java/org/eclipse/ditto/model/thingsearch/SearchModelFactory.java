@@ -1,19 +1,25 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.model.thingsearch;
 
+import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
+import java.util.Collections;
 import java.util.List;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -47,7 +53,7 @@ public final class SearchModelFactory {
      * @throws NullPointerException if {@code items} is {@code null}.
      */
     public static SearchResult newSearchResult(final JsonArray items, final long nextPageOffset) {
-        return ImmutableSearchResult.of(items, nextPageOffset);
+        return ImmutableSearchResult.of(items, nextPageOffset, null);
     }
 
     /**
@@ -222,15 +228,45 @@ public final class SearchModelFactory {
     }
 
     /**
+     * Creates a new {@link SortOption} with a single entry for the provided {@code order} and {@code propertyPath}.
+     *
+     * @param propertyPath the {@code propertyPath} of the SortOptionEntry to create
+     * @param sortOrder the {@code order} of the SortOptionEntry to create
+     * @return the created SortOption.
+     */
+    public static SortOption newSortOption(final CharSequence propertyPath, final SortOptionEntry.SortOrder sortOrder) {
+        requireNonNull(sortOrder);
+        requireNonNull(propertyPath);
+
+        final SortOptionEntry entry = ImmutableSortOptionEntry.of(propertyPath, sortOrder);
+        return ImmutableSortOption.of(Collections.singletonList(entry));
+    }
+
+    /**
      * Creates a new {@link SortOptionEntry} for the provided {@code order} and {@code propertyPath}.
      *
      * @param sortOrder the {@code order} of the SortOptionEntry to create
      * @param propertyPath the {@code propertyPath} of the SortOptionEntry to create
      * @return the created SortOption.
+     * @deprecated Please use {@link #newSortOptionEntry(CharSequence, SortOptionEntry.SortOrder)} instead.
      */
+    @Deprecated
     public static SortOptionEntry newSortOptionEntry(final SortOptionEntry.SortOrder sortOrder,
             final CharSequence propertyPath) {
-        return ImmutableSortOptionEntry.of(sortOrder, propertyPath);
+        return newSortOptionEntry(propertyPath, sortOrder);
+    }
+
+    /**
+     * Creates a new {@link SortOptionEntry} for the provided {@code order} and {@code propertyPath}.
+     *
+     * @param propertyPath the {@code propertyPath} of the SortOptionEntry to create
+     * @param sortOrder the {@code order} of the SortOptionEntry to create
+     * @return the created SortOption.
+     */
+    public static SortOptionEntry newSortOptionEntry(final CharSequence propertyPath,
+            final SortOptionEntry.SortOrder sortOrder) {
+
+        return ImmutableSortOptionEntry.of(propertyPath, sortOrder);
     }
 
     /**
@@ -242,6 +278,26 @@ public final class SearchModelFactory {
      */
     public static LimitOption newLimitOption(final int offset, final int count) {
         return ImmutableLimitOption.of(offset, count);
+    }
+
+    /**
+     * Creates a new {@link SizeOption}.
+     *
+     * @param size the maximum number of results
+     * @return the SizeOption
+     */
+    public static SizeOption newSizeOption(final int size) {
+        return ImmutableSizeOption.of(size);
+    }
+
+    /**
+     * Creates a new {@link CursorOption}.
+     *
+     * @param cursor cursor of the new  page
+     * @return the CursorOption
+     */
+    public static CursorOption newCursorOption(final String cursor) {
+        return ImmutableCursorOption.of(checkNotNull(cursor, "cursor"));
     }
 
 }

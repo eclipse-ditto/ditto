@@ -1,52 +1,81 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.connectivity.mapping.test;
 
-import java.util.Optional;
+import static java.util.Collections.emptyList;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import javax.annotation.Nonnull;
 
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.services.connectivity.config.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperConfiguration;
+import org.eclipse.ditto.services.connectivity.mapping.PayloadMapper;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 
-import com.typesafe.config.Config;
-
-
-public class MockMapper implements MessageMapper {
+@PayloadMapper(alias = "test")
+public final class MockMapper implements MessageMapper {
 
     public static final String OPT_IS_VALID = "Mock";
 
-    public MockMapper() {
+    MockMapper() {
+        super();
     }
 
     @Override
-    public void configure(@Nonnull final Config mappingConfig, @Nonnull final MessageMapperConfiguration configuration) {
+    public String getId() {
+        return "mock";
+    }
+
+    @Override
+    public Collection<String> getContentTypeBlocklist() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public void configure(@Nonnull final MappingConfig mappingConfig,
+            @Nonnull final MessageMapperConfiguration configuration) {
+
         configuration.findProperty(OPT_IS_VALID).map(Boolean::valueOf).filter(Boolean.TRUE::equals).orElseThrow
                 (() -> MessageMapperConfigurationInvalidException.newBuilder(OPT_IS_VALID).build());
     }
 
     @Override
     @Nonnull
-    public Optional<Adaptable> map(@Nonnull final ExternalMessage message) {
-        return Optional.empty();
+    public List<Adaptable> map(@Nonnull final ExternalMessage message) {
+        return emptyList();
     }
 
     @Override
     @Nonnull
-    public Optional<ExternalMessage> map(@Nonnull final Adaptable adaptable) {
-        return Optional.empty();
+    public List<ExternalMessage> map(@Nonnull final Adaptable adaptable) {
+        return emptyList();
     }
 
+    @Override
+    public Map<String, String> getIncomingConditions() {
+        return Collections.emptyMap();
+    }
+
+    @Override
+    public Map<String, String> getOutgoingConditions() {
+        return Collections.emptyMap();
+    }
 
 }

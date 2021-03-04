@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -16,11 +18,12 @@ import java.util.Map;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.utils.persistence.mongo.AbstractMongoEventAdapter;
 import org.eclipse.ditto.signals.base.JsonParsable;
+import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.base.EventRegistry;
+import org.eclipse.ditto.signals.events.base.GlobalEventRegistry;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionCreated;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionModified;
 import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
-import org.eclipse.ditto.signals.events.connectivity.ConnectivityEventRegistry;
 
 import akka.actor.ExtendedActorSystem;
 
@@ -28,15 +31,15 @@ import akka.actor.ExtendedActorSystem;
  * EventAdapter for {@link ConnectivityEvent}s persisted into
  * akka-persistence event-journal. Converts Events to MongoDB BSON objects and vice versa.
  */
-public final class ConnectivityMongoEventAdapter extends AbstractMongoEventAdapter<ConnectivityEvent> {
+public final class ConnectivityMongoEventAdapter extends AbstractMongoEventAdapter<Event> {
 
     public ConnectivityMongoEventAdapter(final ExtendedActorSystem system) {
         super(system, createEventRegistry());
     }
 
-    private static EventRegistry<ConnectivityEvent> createEventRegistry() {
+    private static EventRegistry<Event> createEventRegistry() {
 
-        final Map<String, JsonParsable<ConnectivityEvent>> parseStrategies = new HashMap<>();
+        final Map<String, JsonParsable<Event>> parseStrategies = new HashMap<>();
         parseStrategies.put(ConnectionCreated.TYPE, (jsonObject, dittoHeaders) -> {
             final Connection connection = ConnectionMigrationUtil.connectionFromJsonWithMigration(
                     jsonObject.getValueOrThrow(ConnectionCreated.JsonFields.CONNECTION));
@@ -48,6 +51,6 @@ public final class ConnectivityMongoEventAdapter extends AbstractMongoEventAdapt
             );
             return ConnectionModified.of(connection, dittoHeaders);
         });
-        return ConnectivityEventRegistry.newInstance(parseStrategies);
+        return GlobalEventRegistry.getInstance().customize(parseStrategies);
     }
 }

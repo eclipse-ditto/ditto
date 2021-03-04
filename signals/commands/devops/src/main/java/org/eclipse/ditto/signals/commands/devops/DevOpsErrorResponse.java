@@ -1,16 +1,18 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.devops;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -25,10 +27,11 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.WithEntity;
@@ -37,6 +40,7 @@ import org.eclipse.ditto.signals.commands.base.WithEntity;
  * Response to a {@link DevOpsCommand} which wraps the exception thrown while processing the command.
  */
 @Immutable
+@JsonParsableCommandResponse(type = DevOpsErrorResponse.TYPE)
 public final class DevOpsErrorResponse extends AbstractCommandResponse<DevOpsErrorResponse>
         implements DevOpsCommandResponse<DevOpsErrorResponse>, WithEntity<DevOpsErrorResponse> {
 
@@ -49,15 +53,21 @@ public final class DevOpsErrorResponse extends AbstractCommandResponse<DevOpsErr
     @Nullable private final String instance;
     private final JsonObject dittoRuntimeException;
 
-    private DevOpsErrorResponse(@Nullable final String serviceName, @Nullable final String instance,
-            final JsonObject dittoRuntimeException, final DittoHeaders dittoHeaders) {
-        super(TYPE,
-                HttpStatusCode.forInt(dittoRuntimeException.getValueOrThrow(DittoRuntimeException.JsonFields.STATUS))
-                        .orElse(HttpStatusCode.INTERNAL_SERVER_ERROR), dittoHeaders);
+    private DevOpsErrorResponse(@Nullable final String serviceName,
+            @Nullable final String instance,
+            final JsonObject dittoRuntimeException,
+            final DittoHeaders dittoHeaders) {
+
+        super(TYPE, getHttpStatus(dittoRuntimeException), dittoHeaders);
         this.serviceName = serviceName;
         this.instance = instance;
         this.dittoRuntimeException =
-                requireNonNull(dittoRuntimeException, "The Ditto Runtime Exception must not be null");
+                checkNotNull(dittoRuntimeException, "The Ditto Runtime Exception must not be null");
+    }
+
+    private static HttpStatus getHttpStatus(final JsonObject jsonObject) {
+        final Integer statusCode = jsonObject.getValueOrThrow(DittoRuntimeException.JsonFields.STATUS);
+        return HttpStatus.tryGetInstance(statusCode).orElse(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     /**
@@ -68,8 +78,11 @@ public final class DevOpsErrorResponse extends AbstractCommandResponse<DevOpsErr
      * @return the response.
      * @throws NullPointerException if one of the arguments is {@code null}.
      */
-    public static DevOpsErrorResponse of(@Nullable final String serviceName, @Nullable final String instance,
-            final JsonObject dittoRuntimeException, final DittoHeaders dittoHeaders) {
+    public static DevOpsErrorResponse of(@Nullable final String serviceName,
+            @Nullable final String instance,
+            final JsonObject dittoRuntimeException,
+            final DittoHeaders dittoHeaders) {
+
         return new DevOpsErrorResponse(serviceName, instance, dittoRuntimeException, dittoHeaders);
     }
 
@@ -81,8 +94,7 @@ public final class DevOpsErrorResponse extends AbstractCommandResponse<DevOpsErr
      * @param dittoHeaders the DittoHeaders to use.
      * @return the DevOpsErrorResponse.
      */
-    public static DevOpsErrorResponse fromJson(final String jsonString,
-            final DittoHeaders dittoHeaders) {
+    public static DevOpsErrorResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         final JsonObject jsonObject =
                 DittoJsonException.wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
         return fromJson(jsonObject, dittoHeaders);
@@ -136,8 +148,7 @@ public final class DevOpsErrorResponse extends AbstractCommandResponse<DevOpsErr
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(DevOpsCommandResponse.JsonFields.JSON_SERVICE_NAME, serviceName, predicate);
         jsonObjectBuilder.set(DevOpsCommandResponse.JsonFields.JSON_INSTANCE, instance, predicate);
-        jsonObjectBuilder.set(DevOpsCommandResponse.JsonFields.PAYLOAD,
-                dittoRuntimeException, predicate);
+        jsonObjectBuilder.set(DevOpsCommandResponse.JsonFields.PAYLOAD, dittoRuntimeException, predicate);
     }
 
     @Override
@@ -161,7 +172,8 @@ public final class DevOpsErrorResponse extends AbstractCommandResponse<DevOpsErr
             return false;
         }
         final DevOpsErrorResponse that = (DevOpsErrorResponse) o;
-        return that.canEqual(this) && Objects.equals(serviceName, that.serviceName) &&
+        return that.canEqual(this) &&
+                Objects.equals(serviceName, that.serviceName) &&
                 Objects.equals(instance, that.instance) &&
                 Objects.equals(dittoRuntimeException, that.dittoRuntimeException) &&
                 super.equals(that);
@@ -187,4 +199,5 @@ public final class DevOpsErrorResponse extends AbstractCommandResponse<DevOpsErr
     public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
         return dittoRuntimeException;
     }
+
 }

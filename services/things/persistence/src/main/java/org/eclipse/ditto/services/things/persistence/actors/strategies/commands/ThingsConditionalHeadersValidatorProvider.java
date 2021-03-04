@@ -1,21 +1,33 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.services.utils.headers.conditional.ConditionalHeadersValidator;
+import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingPreconditionFailedException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingPreconditionNotModifiedException;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 
 /**
  * Provides a {@link ConditionalHeadersValidator} which checks conditional (http) headers based on a given ETag on
@@ -32,6 +44,7 @@ final class ThingsConditionalHeadersValidatorProvider {
 
         /**
          * Returns a builder for a {@link ThingPreconditionFailedException}.
+         *
          * @param conditionalHeaderName the name of the conditional header.
          * @param expected the expected value.
          * @param actual the actual ETag value.
@@ -45,6 +58,7 @@ final class ThingsConditionalHeadersValidatorProvider {
 
         /**
          * Returns a builder for a {@link ThingPreconditionNotModifiedException}.
+         *
          * @param expectedNotToMatch the value which was expected not to match {@code matched} value.
          * @param matched the matched value.
          * @return the builder.
@@ -56,6 +70,7 @@ final class ThingsConditionalHeadersValidatorProvider {
         }
     }
 
+    private static final Set<JsonPointer> EXEMPTED_FIELDS = Collections.singleton(JsonPointer.of("_policy"));
     private static final ConditionalHeadersValidator INSTANCE = createInstance();
 
     private ThingsConditionalHeadersValidatorProvider() {
@@ -64,6 +79,7 @@ final class ThingsConditionalHeadersValidatorProvider {
 
     /**
      * Returns the (singleton) instance of {@link ConditionalHeadersValidator} for Thing resources.
+     *
      * @return the {@link ConditionalHeadersValidator}.
      */
     public static ConditionalHeadersValidator getInstance() {
@@ -71,7 +87,38 @@ final class ThingsConditionalHeadersValidatorProvider {
     }
 
     private static ConditionalHeadersValidator createInstance() {
-        return ConditionalHeadersValidator.of(new ThingsConditionalHeadersValidationSettings());
+        return ConditionalHeadersValidator.of(new ThingsConditionalHeadersValidationSettings(),
+                ThingsConditionalHeadersValidatorProvider::skipExemptedFields);
     }
 
+    /**
+     * Skip precondition check if the selected fields contain exempted fields (e.g. {@code _policy} for things
+     * because the revision of a thing does not change if its policy is updated).
+     *
+     * @param command the command to check for if the conditional header check should be skipped.
+     * @return {@code true} when for the passed {@code command} the conditional header check should be skipped.
+     */
+    private static boolean skipExemptedFields(final Command<?> command) {
+
+        @Nullable final JsonFieldSelector selectedFields;
+        if (command instanceof RetrieveThing) {
+            selectedFields = ((RetrieveThing) command).getSelectedFields().orElse(null);
+        } else if (command instanceof RetrieveThings) {
+            selectedFields = ((RetrieveThings) command).getSelectedFields().orElse(null);
+        } else {
+            return false;
+        }
+
+        if (null != selectedFields) {
+            return containsExemptedField(selectedFields.getPointers());
+        }
+
+        return false;
+    }
+
+    private static boolean containsExemptedField(final Set<JsonPointer> selectedFields) {
+        final Set<JsonPointer> result = new HashSet<>(EXEMPTED_FIELDS);
+        result.retainAll(selectedFields);
+        return !result.isEmpty();
+    }
 }

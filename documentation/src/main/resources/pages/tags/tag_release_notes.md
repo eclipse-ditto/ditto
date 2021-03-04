@@ -1,5 +1,5 @@
 ---
-title: "Release Notes"
+title: "Release Notes topics"
 tagName: release_notes
 search: exclude
 permalink: tag_release_notes.html

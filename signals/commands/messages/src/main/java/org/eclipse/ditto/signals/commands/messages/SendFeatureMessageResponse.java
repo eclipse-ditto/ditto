@@ -1,18 +1,20 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.messages;
 
-import static java.util.Objects.requireNonNull;
-
+import java.text.MessageFormat;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
@@ -22,11 +24,16 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.messages.FeatureIdInvalidException;
 import org.eclipse.ditto.model.messages.Message;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -35,7 +42,9 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  *
  * @param <T> the type of the message's payload.
  */
-public final class SendFeatureMessageResponse<T> extends AbstractMessageCommandResponse<T, SendFeatureMessageResponse>
+@JsonParsableCommandResponse(type = SendFeatureMessageResponse.TYPE)
+public final class SendFeatureMessageResponse<T>
+        extends AbstractMessageCommandResponse<T, SendFeatureMessageResponse<T>>
         implements WithFeatureId {
 
     /**
@@ -54,19 +63,20 @@ public final class SendFeatureMessageResponse<T> extends AbstractMessageCommandR
 
     private final String featureId;
 
-    private SendFeatureMessageResponse(final String thingId,
+    private SendFeatureMessageResponse(final ThingId thingId,
             final String featureId,
             final Message<T> message,
-            final HttpStatusCode responseStatusCode,
+            final HttpStatus responseStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, thingId, message, responseStatusCode, dittoHeaders);
-        this.featureId = requireNonNull(featureId, "The featureId cannot be null.");
+        super(TYPE, thingId, message, responseStatus, dittoHeaders);
+        this.featureId = ConditionChecker.checkNotNull(featureId, "featureId");
+        validateMessageFeatureId(this.featureId, message, dittoHeaders);
     }
 
     @Override
     public SendFeatureMessageResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingId(), getFeatureId(), getMessage(), getStatusCode(), dittoHeaders);
+        return of(getThingEntityId(), getFeatureId(), getMessage(), getHttpStatus(), dittoHeaders);
     }
 
     /**
@@ -80,14 +90,62 @@ public final class SendFeatureMessageResponse<T> extends AbstractMessageCommandR
      * @param <T> the type of the message's payload.
      * @return new instance of {@code SendFeatureMessageResponse}.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use {@link #of(ThingId, String, Message, HttpStatus, DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static <T> SendFeatureMessageResponse<T> of(final String thingId,
             final String featureId,
             final Message<T> message,
             final HttpStatusCode responseStatusCode,
             final DittoHeaders dittoHeaders) {
 
-        return new SendFeatureMessageResponse<>(thingId, featureId, message, responseStatusCode, dittoHeaders);
+        return of(ThingId.of(thingId), featureId, message, responseStatusCode.getAsHttpStatus(), dittoHeaders);
+    }
+
+    /**
+     * Creates a new instance of {@code SendFeatureMessageResponse}.
+     *
+     * @param thingId the ID of the Thing to send the message from.
+     * @param featureId the ID of the Feature to send the message from.
+     * @param message the response message to send from the Thing.
+     * @param responseStatusCode the optional status code of this response.
+     * @param dittoHeaders the DittoHeaders of this message.
+     * @param <T> the type of the message's payload.
+     * @return new instance of {@code SendFeatureMessageResponse}.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated as of 2.0.0 please use {@link #of(ThingId, String, Message, HttpStatus, DittoHeaders)} instead.
+     */
+    @Deprecated
+    public static <T> SendFeatureMessageResponse<T> of(final ThingId thingId,
+            final String featureId,
+            final Message<T> message,
+            final HttpStatusCode responseStatusCode,
+            final DittoHeaders dittoHeaders) {
+
+        return of(thingId, featureId, message, responseStatusCode.getAsHttpStatus(), dittoHeaders);
+    }
+
+    /**
+     * Creates a new instance of {@code SendFeatureMessageResponse}.
+     *
+     * @param thingId the ID of the Thing to send the message from.
+     * @param featureId the ID of the Feature to send the message from.
+     * @param message the response message to send from the Thing.
+     * @param responseStatus the optional HTTP status of this response.
+     * @param dittoHeaders the DittoHeaders of this message.
+     * @param <T> the type of the message's payload.
+     * @return new instance of {@code SendFeatureMessageResponse}.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 2.0.0
+     */
+    public static <T> SendFeatureMessageResponse<T> of(final ThingId thingId,
+            final String featureId,
+            final Message<T> message,
+            final HttpStatus responseStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new SendFeatureMessageResponse<>(thingId, featureId, message, responseStatus, dittoHeaders);
     }
 
     /**
@@ -95,14 +153,13 @@ public final class SendFeatureMessageResponse<T> extends AbstractMessageCommandR
      *
      * @param jsonString the JSON string of which the SendClaimMessageResponse is to be created.
      * @param dittoHeaders the headers.
-     * @param <T> the type of the message's payload
      * @return the command.
-     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
      */
-    public static <T> SendFeatureMessageResponse<T> fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
+    public static SendFeatureMessageResponse<?> fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
@@ -111,22 +168,40 @@ public final class SendFeatureMessageResponse<T> extends AbstractMessageCommandR
      *
      * @param jsonObject the JSON object of which the SendClaimMessageResponse is to be created.
      * @param dittoHeaders the headers.
-     * @param <T> the type of the message's payload
      * @return the command.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static <T> SendFeatureMessageResponse<T> fromJson(final JsonObject jsonObject,
-            final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<SendFeatureMessageResponse<T>>(TYPE, jsonObject).deserialize(
-                statusCode -> {
-                    final String thingId = jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID);
-                    final String featureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
-                    final Message<T> message = deserializeMessageFromJson(jsonObject);
+    public static SendFeatureMessageResponse<?> fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandResponseJsonDeserializer<SendFeatureMessageResponse<?>>(TYPE, jsonObject).deserialize(
+                httpStatus -> of(
+                        ThingId.of(jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID)),
+                        jsonObject.getValueOrThrow(JSON_FEATURE_ID),
+                        deserializeMessageFromJson(jsonObject),
+                        httpStatus,
+                        dittoHeaders));
+    }
 
-                    return of(thingId, featureId, message, statusCode, dittoHeaders);
-                });
+    private static void validateMessageFeatureId(final String expectedFeatureId, final Message<?> message,
+            final DittoHeaders dittoHeaders) {
+
+        final Optional<String> messageFeatureIdOptional = message.getFeatureId();
+        if (!messageFeatureIdOptional.isPresent()) {
+            final String msgPattern = "The Message did not contain a feature ID at all! Expected was feature ID <{0}>.";
+            throw FeatureIdInvalidException.newBuilder()
+                    .message(MessageFormat.format(msgPattern, expectedFeatureId))
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+        final String messageFeatureId = messageFeatureIdOptional.get();
+        if (!messageFeatureId.equals(expectedFeatureId)) {
+            final String msgPattern = "The Message contained feature ID <{0}>. Expected was feature ID <{1}>.";
+            throw FeatureIdInvalidException.newBuilder()
+                    .message(MessageFormat.format(msgPattern, messageFeatureId, expectedFeatureId))
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
     }
 
     @Override
@@ -143,7 +218,7 @@ public final class SendFeatureMessageResponse<T> extends AbstractMessageCommandR
         jsonObjectBuilder.remove(MessageCommand.JsonFields.JSON_THING_ID);
         final JsonObject superBuild = jsonObjectBuilder.build();
         jsonObjectBuilder.removeAll();
-        jsonObjectBuilder.set(MessageCommand.JsonFields.JSON_THING_ID, getThingId());
+        jsonObjectBuilder.set(MessageCommand.JsonFields.JSON_THING_ID, getThingEntityId().toString());
         jsonObjectBuilder.set(JSON_FEATURE_ID, getFeatureId());
         jsonObjectBuilder.setAll(superBuild);
     }
@@ -172,7 +247,7 @@ public final class SendFeatureMessageResponse<T> extends AbstractMessageCommandR
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof SendFeatureMessageResponse);
+        return other instanceof SendFeatureMessageResponse;
     }
 
     @Override

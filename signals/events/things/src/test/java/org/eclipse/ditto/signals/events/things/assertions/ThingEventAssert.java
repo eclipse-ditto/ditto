@@ -1,16 +1,19 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.events.things.assertions;
 
 import org.assertj.core.api.Assertions;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.events.base.assertions.AbstractEventAssert;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
@@ -28,13 +31,13 @@ public final class ThingEventAssert extends AbstractEventAssert<ThingEventAssert
         super(actual, ThingEventAssert.class);
     }
 
-    public ThingEventAssert hasThingId(final CharSequence expectedThingId) {
+    public ThingEventAssert hasThingId(final ThingId expectedThingId) {
         isNotNull();
-        final String actualThingId = actual.getThingId();
-        Assertions.assertThat(actualThingId)
+        final ThingId actualThingId = actual.getThingEntityId();
+        Assertions.assertThat((CharSequence) actualThingId)
                 .overridingErrorMessage("Expected ThingEvent to have Thing ID\n<%s> but it had\n<%s>",
                         expectedThingId, actualThingId)
-                .isEqualTo(expectedThingId.toString());
+                .isEqualTo(expectedThingId);
         return this;
     }
 

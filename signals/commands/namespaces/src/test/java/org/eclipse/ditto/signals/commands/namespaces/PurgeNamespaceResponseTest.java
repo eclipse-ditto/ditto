@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -16,9 +18,10 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.util.UUID;
 
+import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -40,7 +43,7 @@ public final class PurgeNamespaceResponseTest {
     public static void initTestConstants() {
         knownJsonRepresentation = JsonFactory.newObjectBuilder()
                 .set(PurgeNamespaceResponse.JsonFields.TYPE, PurgeNamespaceResponse.TYPE)
-                .set(PurgeNamespaceResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
+                .set(PurgeNamespaceResponse.JsonFields.STATUS, HttpStatus.OK.getCode())
                 .set(PurgeNamespaceResponse.JsonFields.NAMESPACE, NAMESPACE)
                 .set(PurgeNamespaceResponse.JsonFields.RESOURCE_TYPE, RESOURCE_TYPE)
                 .set(PurgeNamespaceResponse.JsonFields.SUCCESSFUL, true)
@@ -97,6 +100,13 @@ public final class PurgeNamespaceResponseTest {
         final PurgeNamespaceResponse underTest = PurgeNamespaceResponse.failed(NAMESPACE, RESOURCE_TYPE, dittoHeaders);
 
         assertThat(underTest.getId()).isEqualTo(underTest.getNamespace());
+    }
+
+    @Test
+    public void getEntityIdReturnsNamespace() {
+        final PurgeNamespaceResponse underTest = PurgeNamespaceResponse.failed(NAMESPACE, RESOURCE_TYPE, dittoHeaders);
+
+        Assertions.assertThat(underTest.getEntityId().toString()).isEqualTo(underTest.getNamespace());
     }
 
     @Test

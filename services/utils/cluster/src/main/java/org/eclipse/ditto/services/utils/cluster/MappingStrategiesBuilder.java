@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -14,20 +16,24 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import javax.annotation.Nonnull;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.services.utils.akka.SimpleCommand;
 import org.eclipse.ditto.services.utils.akka.SimpleCommandResponse;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
+import org.eclipse.ditto.signals.acks.things.ThingAcknowledgementFactory;
+import org.eclipse.ditto.signals.acks.things.ThingAcknowledgementsFactory;
+import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.base.JsonParsableRegistry;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 
@@ -42,7 +48,8 @@ public final class MappingStrategiesBuilder {
      * Failure message when json deserialization function is null.
      */
     private static final String ERROR_MESSAGE_JSON_DESERIALIZATION_FUNCTION = "JSON deserialization function";
-    private final Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> strategies;
+
+    private final Map<String, JsonParsable<Jsonifiable<?>>> strategies;
 
     private MappingStrategiesBuilder() {
         strategies = new HashMap<>();
@@ -66,6 +73,13 @@ public final class MappingStrategiesBuilder {
                 jsonObject -> SimpleCommandResponse.fromJson(jsonObject)); // do not replace with lambda!
         builder.add(StatusInfo.class,
                 jsonObject -> StatusInfo.fromJson(jsonObject)); // do not replace with lambda!
+        // If there will be more than one acknowledgement types, do not add them here via builder.
+        // Instead provide an infrastructure for JSON serialization like for other signals, i. e. annotation,
+        // registries etc.
+        builder.add(Acknowledgement.getType(ThingConstants.ENTITY_TYPE),
+                jsonObject -> ThingAcknowledgementFactory.fromJson(jsonObject)); // do not replace with lambda!
+        builder.add(Acknowledgements.getType(ThingConstants.ENTITY_TYPE),
+                jsonObject -> ThingAcknowledgementsFactory.fromJson(jsonObject)); // do not replace with lambda!
         builder.add(StreamAck.class, StreamAck::fromJson);
 
         return builder;
@@ -78,12 +92,12 @@ public final class MappingStrategiesBuilder {
      * @return this builder instance to allow Method Chaining.
      * @throws NullPointerException if {@code jsonParsableRegistry} is {@code null}.
      */
-    public MappingStrategiesBuilder add(
-            @Nonnull final JsonParsableRegistry<? extends Jsonifiable> jsonParsableRegistry) {
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public MappingStrategiesBuilder add(final JsonParsableRegistry<? extends Jsonifiable> jsonParsableRegistry) {
         checkNotNull(jsonParsableRegistry, "jsonParsableRegistry");
-        final Set<String> types = jsonParsableRegistry.getTypes();
-        for (final String type : types) {
-            strategies.put(type, jsonParsableRegistry::parse);
+        final BiFunction<JsonObject, DittoHeaders, Jsonifiable<?>> jsonDeserializer = jsonParsableRegistry::parse;
+        for (final String type : jsonParsableRegistry.getTypes()) {
+            add(type, (JsonParsable<Jsonifiable<?>>) jsonParsableRegistry);
         }
         return this;
     }
@@ -96,30 +110,26 @@ public final class MappingStrategiesBuilder {
      * @return this builder instance to allow Method Chaining.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public MappingStrategiesBuilder add(@Nonnull final Class<?> clazz,
-            @Nonnull final Function<JsonObject, Jsonifiable<?>> jsonDeserializer) {
+    public MappingStrategiesBuilder add(final Class<?> clazz,
+            final Function<JsonObject, Jsonifiable<?>> jsonDeserializer) {
+
         checkNotNull(clazz, "class");
-        checkNotNull(jsonDeserializer, ERROR_MESSAGE_JSON_DESERIALIZATION_FUNCTION);
-        // Translate simple Function to BiFunction ignoring the command headers
-        strategies.put(clazz.getSimpleName(), (jsonObject, dittoHeaders) -> jsonDeserializer.apply(jsonObject));
-        return this;
+        return add(clazz.getSimpleName(), jsonDeserializer);
     }
 
     /**
      * Adds the given JSON deserialization function for the given class to this builder.
      *
-     * @param klasse a class whose simple name is the key for {@code jsonDeserializer}.
+     * @param clazz a class whose simple name is the key for {@code jsonDeserializer}.
      * @param jsonDeserializer a function for creating a particular Jsonifiable based on a JSON object.
      * @return this builder instance to allow Method Chaining.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public MappingStrategiesBuilder add(@Nonnull final Class<?> klasse,
-            @Nonnull final BiFunction<JsonObject, DittoHeaders, Jsonifiable<?>> jsonDeserializer) {
-        checkNotNull(klasse, "class");
-        checkNotNull(jsonDeserializer, ERROR_MESSAGE_JSON_DESERIALIZATION_FUNCTION);
-        // Translate simple Function to BiFunction ignoring the command headers
-        strategies.put(klasse.getSimpleName(), jsonDeserializer::apply);
-        return this;
+    public MappingStrategiesBuilder add(final Class<?> clazz,
+            final BiFunction<JsonObject, DittoHeaders, Jsonifiable<?>> jsonDeserializer) {
+
+        checkNotNull(clazz, "class");
+        return add(clazz.getSimpleName(), jsonDeserializer::apply);
     }
 
     /**
@@ -130,29 +140,45 @@ public final class MappingStrategiesBuilder {
      * @return this builder instance to allow Method Chaining.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public MappingStrategiesBuilder add(@Nonnull final String type,
-            @Nonnull final Function<JsonObject, Jsonifiable<?>> jsonDeserializer) {
-        checkNotNull(type, "type");
+    public MappingStrategiesBuilder add(final String type,
+            final Function<JsonObject, Jsonifiable<?>> jsonDeserializer) {
+
         checkNotNull(jsonDeserializer, ERROR_MESSAGE_JSON_DESERIALIZATION_FUNCTION);
+
         // Translate simple Function to BiFunction ignoring the command headers
-        strategies.put(type, (jsonObject, dittoHeaders) -> jsonDeserializer.apply(jsonObject));
-        return this;
+        return add(type, (jsonObject, dittoHeaders) -> jsonDeserializer.apply(jsonObject));
     }
 
     /**
      * Adds the given JSON deserialization function for the given type to this builder.
      *
      * @param type the key for {@code jsonDeserializer}.
-     * @param jsonDeserializer a function for creating a particular Jsonifiable based on a JSON object.
+     * @param jsonParsable a function for creating a particular Jsonifiable based on a JSON object.
      * @return this builder instance to allow Method Chaining.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public MappingStrategiesBuilder add(@Nonnull final String type,
-            @Nonnull final BiFunction<JsonObject, DittoHeaders, Jsonifiable<?>> jsonDeserializer) {
+    public MappingStrategiesBuilder add(final String type, final JsonParsable<Jsonifiable<?>> jsonParsable) {
+
         checkNotNull(type, "type");
-        checkNotNull(jsonDeserializer, ERROR_MESSAGE_JSON_DESERIALIZATION_FUNCTION);
+        checkNotNull(jsonParsable, ERROR_MESSAGE_JSON_DESERIALIZATION_FUNCTION);
+
         // Translate simple Function to BiFunction ignoring the command headers
-        strategies.put(type, jsonDeserializer::apply);
+        strategies.put(type, jsonParsable);
+        return this;
+    }
+
+    /**
+     * Puts the given mapping strategies to this builder.
+     *
+     * @param mappingStrategies the mapping strategies to be put to this builder.
+     * @param <T> the type of the mapping strategies to be put.
+     * @return this builder instance to allow Method Chaining.
+     * @throws NullPointerException if {@code mappingStrategies} is {@code null}.
+     */
+    public <T extends Map<String, JsonParsable<Jsonifiable<?>>>> MappingStrategiesBuilder putAll(
+            final T mappingStrategies) {
+        checkNotNull(mappingStrategies, "mappingStrategies");
+        strategies.putAll(mappingStrategies);
         return this;
     }
 
@@ -162,8 +188,8 @@ public final class MappingStrategiesBuilder {
      *
      * @return the Map.
      */
-    @Nonnull
-    public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> build() {
-        return strategies;
+    public MappingStrategies build() {
+        return DefaultMappingStrategies.of(strategies);
     }
+
 }

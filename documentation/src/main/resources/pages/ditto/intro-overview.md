@@ -1,6 +1,6 @@
 ---
 title: Ditto documentation overview
-keywords: purpose, about, motivation, digital twin
+keywords: purpose, about, motivation, digital twin, digitaltwin, twin
 tags: [getting_started]
 permalink: intro-overview.html
 ---
@@ -9,8 +9,8 @@ permalink: intro-overview.html
 ## What is it?
 
 Eclipse Ditto is a technology in the <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.iot}}">IoT</a> 
-implementing a software pattern called “**[Digital Twins](intro-digitaltwins.html)**”.<br/>
-A Digital Twin is a virtual, cloud based, representation of his real world counterpart 
+implementing a software pattern called “**[digital twins](intro-digitaltwins.html)**”.<br/>
+A digital twin is a virtual, cloud based, representation of his real world counterpart 
 (real world “Things”, e.g. devices like sensors, smart heating, connected cars, smart grids, EV charging stations, …).
 
 The technology mirrors potentially millions and billions of digital twins residing in the digital world with physical “**Things**”. 
@@ -33,8 +33,8 @@ It also does not specify which data or which structure a “Thing” in the IoT 
 
 ## When to use it?
 
-  {% include callout.html content="**TL;DR**<br/>Use it in order to get a fully-fledged, authorization aware, web API 
-  (HTTP and WebSocket) for accessing your “Things” and their most recently reported state." type="primary" %}
+  {% include callout.html content="**TL;DR**<br/>Use it in order to get a fully-fledged, authorization aware API 
+  (HTTP, WebSocket and other messaging protocols) for interacting with your digital twins and all aspects around them." type="primary" %}
 
 Imagine you are building an IoT solution. And let's assume that you use both hardware (e.g. sensors or actuators) and
 software (e.g. a mobile or web app) in order to solve your customer's problem.

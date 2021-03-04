@@ -1,23 +1,34 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.utils.akka.controlflow;
 
+import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
-import akka.stream.Attributes;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+
+import akka.NotUsed;
 import akka.stream.FanOutShape2;
-import akka.stream.Inlet;
-import akka.stream.Outlet;
-import akka.stream.stage.GraphStage;
-import akka.stream.stage.GraphStageLogic;
+import akka.stream.FlowShape;
+import akka.stream.Graph;
+import akka.stream.UniformFanOutShape;
+import akka.stream.javadsl.Broadcast;
+import akka.stream.javadsl.Flow;
+import akka.stream.javadsl.GraphDSL;
+import scala.util.Either;
+import scala.util.Left;
+import scala.util.Right;
 
 /**
  * A stream processor filtering messages by type and by a predicate.
@@ -38,20 +49,11 @@ import akka.stream.stage.GraphStageLogic;
  *                              unhandled
  * }
  * </pre>
- *
- * @param <T> type of messages to filter for.
  */
-public final class Filter<T> extends GraphStage<FanOutShape2<WithSender, WithSender<T>, WithSender>> {
+public final class Filter {
 
-    private final FanOutShape2<WithSender, WithSender<T>, WithSender> shape =
-            new FanOutShape2<>(Inlet.create("input"), Outlet.create("output"), Outlet.create("unhandled"));
-
-    private final Class<T> clazz;
-    private final Predicate<T> predicate;
-
-    private Filter(final Class<T> clazz, final Predicate<T> predicate) {
-        this.clazz = clazz;
-        this.predicate = predicate;
+    private Filter() {
+        throw new AssertionError();
     }
 
     /**
@@ -62,10 +64,22 @@ public final class Filter<T> extends GraphStage<FanOutShape2<WithSender, WithSen
      * @param predicate predicate to test instances of {@code T} with.
      * @return {@code GraphStage} that performs the filtering.
      */
-    public static <T> Filter<T> of(final Class<T> clazz, final Predicate<T> predicate) {
-        return new Filter<>(clazz, predicate);
-    }
+    public static <T extends WithDittoHeaders> Graph<FanOutShape2<WithSender, WithSender<T>, WithSender>, NotUsed> of(
+            final Class<T> clazz,
+            final Predicate<T> predicate) {
 
+        return Filter.multiplexBy(withSender -> {
+            // introduce wildcard type parameter to un-confuse type-checker
+            final WithSender<?> input = (WithSender<?>) withSender;
+            if (clazz.isInstance(input.getMessage())) {
+                final T message = clazz.cast(input.getMessage());
+                if (predicate.test(message)) {
+                    return Optional.of(input.withMessage(message));
+                }
+            }
+            return Optional.empty();
+        });
+    }
 
     /**
      * Create a filter stage from a class.
@@ -74,35 +88,73 @@ public final class Filter<T> extends GraphStage<FanOutShape2<WithSender, WithSen
      * @param clazz class of {@code T}.
      * @return {@code GraphStage} that performs the filtering.
      */
-    public static <T> Filter<T> of(final Class<T> clazz) {
+    public static <T extends WithDittoHeaders> Graph<FanOutShape2<WithSender, WithSender<T>, WithSender>, NotUsed> of(
+            final Class<T> clazz) {
         return of(clazz, x -> true);
     }
 
-    @Override
-    public FanOutShape2<WithSender, WithSender<T>, WithSender> shape() {
-        return shape;
+    /**
+     * Multiplex messages by an optional mapper.
+     *
+     * @param mapper partial mapper of messages.
+     * @param <A> type of all messages.
+     * @param <B> type of accepted messages.
+     * @return graph with 1 inlet for messages and 2 outlets, the first outlet for messages mapped successfully
+     * and the second outlet for other messages.
+     */
+    public static <A, B> Graph<FanOutShape2<A, B, A>, NotUsed> multiplexBy(final Function<A, Optional<B>> mapper) {
+        return multiplexByEither(a -> mapper.apply(a).<Either<A, B>>map(Right::new).orElseGet(() -> new Left<>(a)));
     }
 
-    @Override
-    @SuppressWarnings({"squid:S3599","squid:S1171"})
-    public GraphStageLogic createLogic(final Attributes inheritedAttributes) {
-        return new AbstractControlFlowLogic(shape) {
-            {
-                initOutlets(shape);
+    /**
+     * Multiplex messages by an Either mapper.
+     *
+     * @param mapper mapper of messages.
+     * @param <A> type of all messages.
+     * @param <B> type of accepted messages.
+     * @param <C> type of rejected messages.
+     * @return graph with 1 inlet for messages and 2 outlets, the first outlet for messages mapped to the right
+     * and the second outlet for messages mapped to the left.
+     */
+    public static <A, B, C> Graph<FanOutShape2<A, B, C>, NotUsed> multiplexByEither(
+            final Function<A, Either<C, B>> mapper) {
+        return multiplexByEitherFlow(Flow.fromFunction(mapper::apply));
+    }
 
-                when(shape.in(), wrapped -> {
-                    if (clazz.isInstance(wrapped.getMessage())) {
-                        final T message = clazz.cast(wrapped.getMessage());
-                        if (predicate.test(message)) {
-                            emit(shape.out0(), WithSender.of(message, wrapped.getSender()));
-                        } else {
-                            emit(shape.out1(), wrapped);
-                        }
-                    } else {
-                        emit(shape.out1(), wrapped);
-                    }
-                });
-            }
-        };
+    /**
+     * Multiplex messages by an Either flow.
+     *
+     * @param eitherFlow the filter implemented as a flow from messages to Either of accepted or rejected messages.
+     * @param <A> type of all messages.
+     * @param <B> type of accepted messages.
+     * @param <C> type of rejected messages.
+     * @return graph with 1 inlet for messages and 2 outlets, the first outlet for messages mapped to the right
+     * and the second outlet for messages mapped to the left.
+     */
+    public static <A, B, C> Graph<FanOutShape2<A, B, C>, NotUsed> multiplexByEitherFlow(
+            final Graph<FlowShape<A, Either<C, B>>, ?> eitherFlow) {
+
+        return GraphDSL.create(builder -> {
+            final FlowShape<A, Either<C, B>> testPredicate =
+                    builder.add(eitherFlow);
+
+            final UniformFanOutShape<Either<C, B>, Either<C, B>> broadcast =
+                    builder.add(Broadcast.create(2, true));
+
+            final FlowShape<Either<C, B>, B> filterTrue =
+                    builder.add(Flow.<Either<C, B>>create()
+                            .filter(Either::isRight)
+                            .map(either -> either.right().get()));
+
+            final FlowShape<Either<C, B>, C> filterFalse =
+                    builder.add(Flow.<Either<C, B>>create()
+                            .filter(Either::isLeft)
+                            .map(either -> either.left().get()));
+
+            builder.from(testPredicate.out()).toInlet(broadcast.in());
+            builder.from(broadcast.out(0)).toInlet(filterTrue.in());
+            builder.from(broadcast.out(1)).toInlet(filterFalse.in());
+            return new FanOutShape2<>(testPredicate.in(), filterTrue.out(), filterFalse.out());
+        });
     }
 }

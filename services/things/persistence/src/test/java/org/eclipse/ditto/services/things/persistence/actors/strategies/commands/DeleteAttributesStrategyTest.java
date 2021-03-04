@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -16,6 +18,8 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributesResponse;
 import org.eclipse.ditto.signals.events.things.AttributesDeleted;
@@ -41,20 +45,20 @@ public final class DeleteAttributesStrategyTest extends AbstractCommandStrategyT
 
     @Test
     public void successfullyDeleteAllAttributesFromThing() {
-        final CommandStrategy.Context context = getDefaultContext();
-        final DeleteAttributes command = DeleteAttributes.of(context.getThingId(), DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final DeleteAttributes command = DeleteAttributes.of(context.getState(), DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
                 AttributesDeleted.class,
-                DeleteAttributesResponse.of(context.getThingId(), command.getDittoHeaders()));
+                DeleteAttributesResponse.of(context.getState(), command.getDittoHeaders()));
     }
 
     @Test
     public void deleteAttributesFromThingWithoutAttributes() {
-        final CommandStrategy.Context context = getDefaultContext();
-        final DeleteAttributes command = DeleteAttributes.of(context.getThingId(), DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final DeleteAttributes command = DeleteAttributes.of(context.getState(), DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.attributesNotFound(context.getThingId(), command.getDittoHeaders());
+                ExceptionFactory.attributesNotFound(context.getState(), command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.removeAttributes(), command, expectedException);
     }

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -15,12 +17,13 @@ import java.util.Set;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.enforcers.EffectedSubjectIds;
+import org.eclipse.ditto.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.model.enforcers.tree.TreeBasedPolicyEnforcer;
 import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.ResourceKey;
-
 
 public final class TreeBasedPolicyAlgorithm implements PolicyAlgorithm {
 
@@ -45,10 +48,22 @@ public final class TreeBasedPolicyAlgorithm implements PolicyAlgorithm {
     }
 
     @Override
+    public EffectedSubjects getSubjectsWithPermission(final ResourceKey resourceKey, final Permissions permissions) {
+        return treeBasedPolicyEvaluator.getSubjectsWithPermission(resourceKey, permissions);
+    }
+
+    @Override
     public Set<String> getSubjectIdsWithPartialPermission(final ResourceKey resourceKey,
             final Permissions permissions) {
 
         return treeBasedPolicyEvaluator.getSubjectIdsWithPartialPermission(resourceKey, permissions);
+    }
+
+    @Override
+    public Set<AuthorizationSubject> getSubjectsWithPartialPermission(final ResourceKey resourceKey,
+            final Permissions permissions) {
+
+        return treeBasedPolicyEvaluator.getSubjectsWithPartialPermission(resourceKey, permissions);
     }
 
     @Override

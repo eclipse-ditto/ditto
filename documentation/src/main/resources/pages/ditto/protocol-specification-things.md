@@ -11,20 +11,21 @@ permalink: protocol-specification-things.html
 A valid topic consists of six elements, describing the thing affected by this message and the type of the message:
 
 ```
-<namespace>/<thingId>/things/<channel>/<criterion>/<action>
+<namespace>/<thingName>/things/<channel>/<criterion>/<action>
 ```
 
 1. `namespace`: the namespace of the Thing.
-2. `thingId`: the Thing ID.
+2. `thingName`: the name of the Thing.
 3. `group`: the appropriate group for addressing Things is `things`. 
 4. `channel`: the channel of the Protocol message; can either be `live` or `twin`.
 5. `criterion`: the type of Protocol message; can either be `commands`, `events`, 
    [`search`](protocol-specification-things-search.html) or [`messages`](protocol-specification-things-messages.html).
 6. `action`: the action executed on the Thing, only required for:
     1. Commands: [`create/modify`](protocol-specification-things-create-or-modify.html),
+       [`merge`](protocol-specification-things-merge.html),
        [`retrieve`](protocol-specification-things-retrieve.html) or
        [`delete`](protocol-specification-things-delete.html).
-    2. Events: `created,` `modified,` `deleted.`
+    2. Events: `created`, `modified`, `merged`, `deleted.`
 
 
 ## Thing representation

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -15,11 +17,12 @@ import static org.mockito.Mockito.mock;
 import java.net.URI;
 
 import org.eclipse.ditto.model.base.assertions.DittoBaseAssertions;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
+import nl.jqno.equalsverifier.Warning;
 
 /**
  * Unit test for {@link DittoRuntimeException}.
@@ -27,41 +30,42 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DittoRuntimeExceptionTest {
 
     private static final String KNOWN_ERROR_CODE = "matrix.glitch";
-    private static final HttpStatusCode KNOWN_STATUS_CODE = HttpStatusCode.SERVICE_UNAVAILABLE;
+    private static final HttpStatus KNOWN_STATUS = HttpStatus.SERVICE_UNAVAILABLE;
     private static final String KNOWN_MESSAGE = "A glitch happened in the Matrix!";
     private static final String KNOWN_DESCRIPTION = "This occurs from time to time. Please restart the Matrix service.";
     private static final DittoHeaders KNOWN_DITTO_HEADERS = DittoHeaders.empty();
     private static final Throwable KNOWN_CAUSE = new IllegalStateException("You divided by zero!");
     private static final URI KNOWN_HREF = null;
     private static final DittoRuntimeException KNOWN_DITTO_RUNTIME_EXCEPTION =
-            DittoRuntimeException.newBuilder(KNOWN_ERROR_CODE, KNOWN_STATUS_CODE) //
-                    .message(KNOWN_MESSAGE) //
-                    .description(KNOWN_DESCRIPTION) //
-                    .dittoHeaders(KNOWN_DITTO_HEADERS) //
-                    .cause(KNOWN_CAUSE) //
-                    .href(KNOWN_HREF) //
+            DittoRuntimeException.newBuilder(KNOWN_ERROR_CODE, KNOWN_STATUS)
+                    .message(KNOWN_MESSAGE)
+                    .description(KNOWN_DESCRIPTION)
+                    .dittoHeaders(KNOWN_DITTO_HEADERS)
+                    .cause(KNOWN_CAUSE)
+                    .href(KNOWN_HREF)
                     .build();
 
 
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(DittoRuntimeException.class)
-                .withIgnoredFields("detailMessage", "cause", "stackTrace", "suppressedExceptions")
+                .withIgnoredFields("cause", "stackTrace", "suppressedExceptions")
                 .withRedefinedSuperclass()
                 .usingGetClass()
+                .suppress(Warning.NONFINAL_FIELDS)
                 .verify();
     }
 
 
     @Test
     public void knownRuntimeExceptionIsLikeExpected() {
-        DittoBaseAssertions.assertThat(KNOWN_DITTO_RUNTIME_EXCEPTION) //
-                .hasErrorCode(KNOWN_ERROR_CODE) //
-                .hasStatusCode(KNOWN_STATUS_CODE) //
-                .hasDittoHeaders(KNOWN_DITTO_HEADERS) //
-                .hasDescription(KNOWN_DESCRIPTION) //
-                .hasMessage(KNOWN_MESSAGE) //
-                .hasCause(KNOWN_CAUSE) //
+        DittoBaseAssertions.assertThat(KNOWN_DITTO_RUNTIME_EXCEPTION)
+                .hasErrorCode(KNOWN_ERROR_CODE)
+                .hasStatus(KNOWN_STATUS)
+                .hasDittoHeaders(KNOWN_DITTO_HEADERS)
+                .hasDescription(KNOWN_DESCRIPTION)
+                .hasMessage(KNOWN_MESSAGE)
+                .hasCause(KNOWN_CAUSE)
                 .hasNoHref();
     }
 
@@ -71,17 +75,17 @@ public final class DittoRuntimeExceptionTest {
         final DittoHeaders dittoHeadersMock = mock(DittoHeaders.class);
 
         final DittoRuntimeException withOtherDittoHeaders =
-                DittoRuntimeException.newBuilder(KNOWN_DITTO_RUNTIME_EXCEPTION) //
-                        .dittoHeaders(dittoHeadersMock) //
+                DittoRuntimeException.newBuilder(KNOWN_DITTO_RUNTIME_EXCEPTION)
+                        .dittoHeaders(dittoHeadersMock)
                 .build();
 
-        DittoBaseAssertions.assertThat(withOtherDittoHeaders) //
-                .hasErrorCode(KNOWN_ERROR_CODE) //
-                .hasStatusCode(KNOWN_STATUS_CODE) //
-                .hasDittoHeaders(dittoHeadersMock) //
-                .hasDescription(KNOWN_DESCRIPTION) //
-                .hasMessage(KNOWN_MESSAGE) //
-                .hasCause(KNOWN_CAUSE) //
+        DittoBaseAssertions.assertThat(withOtherDittoHeaders)
+                .hasErrorCode(KNOWN_ERROR_CODE)
+                .hasStatus(KNOWN_STATUS)
+                .hasDittoHeaders(dittoHeadersMock)
+                .hasDescription(KNOWN_DESCRIPTION)
+                .hasMessage(KNOWN_MESSAGE)
+                .hasCause(KNOWN_CAUSE)
                 .hasNoHref();
     }
 

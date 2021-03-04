@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -14,7 +16,6 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
@@ -23,15 +24,11 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.IdValidator;
-import org.eclipse.ditto.model.base.common.Validator;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.Message;
-import org.eclipse.ditto.model.messages.MessageBuilder;
-import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.messages.ThingIdInvalidException;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 
 /**
@@ -40,32 +37,14 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommand;
  * @param <T> the type of the message's payload.
  * @param <C> the type of the AbstractMessageCommand.
  */
-abstract class AbstractMessageCommand<T, C extends AbstractMessageCommand> extends AbstractCommand<C>
+abstract class AbstractMessageCommand<T, C extends AbstractMessageCommand<T, C>> extends AbstractCommand<C>
         implements MessageCommand<T, C> {
 
-    /**
-     * The regex pattern a Thing ID has to conform to. Defined by
-     * <a href="http://www.ietf.org/rfc/rfc2396.txt">RFC-2396</a>.
-     */
-    public static final String THING_ID_NON_NAMESPACE_REGEX =
-            "(?:[-\\w:@&=+,.!~*'_;]|%\\p{XDigit}{2})(?:[-\\w:@&=+,.!~*'$_;]|%\\p{XDigit}{2})*+";
-
-    /**
-     * The regex pattern a Thing Namespace.
-     */
-    public static final String THING_NAMESPACE_PREFIX_REGEX = "(?<ns>|(?:(?:[a-zA-Z]\\w*+)(?:\\.[a-zA-Z]\\w*+)*+))";
-
-    /**
-     * The regex pattern a Thing ID has to conform to. Combines "namespace" pattern (java package notation + a
-     * semicolon) and "non namespace" (Defined by <a href="http://www.ietf.org/rfc/rfc2396.txt">RFC-2396</a>) pattern.
-     */
-    public static final String THING_ID_REGEX = THING_NAMESPACE_PREFIX_REGEX + "\\:" + THING_ID_NON_NAMESPACE_REGEX;
-
-    private final String thingId;
+    private final ThingId thingId;
     private final Message<T> message;
 
     AbstractMessageCommand(final String type,
-            final String thingId,
+            final ThingId thingId,
             final Message<T> message,
             final DittoHeaders dittoHeaders) {
 
@@ -73,18 +52,14 @@ abstract class AbstractMessageCommand<T, C extends AbstractMessageCommand> exten
         this.thingId = checkNotNull(thingId, "thingId");
         this.message = checkNotNull(message, "message");
 
-        validateThingId(message.getThingId(), dittoHeaders);
+        validateThingId(message.getThingEntityId(), dittoHeaders);
     }
 
-    private void validateThingId(final String thingIdFromMessage, final DittoHeaders dittoHeaders) {
-        final Validator thingIdValidator = IdValidator.newInstance(thingId, THING_ID_REGEX);
-        if (!thingIdValidator.isValid()) {
-            throw ThingIdInvalidException.newBuilder(thingId).dittoHeaders(dittoHeaders).build();
-        }
+    private void validateThingId(final ThingId thingIdFromMessage, final DittoHeaders dittoHeaders) {
         if (!thingId.equals(thingIdFromMessage)) {
             final String descTemplate = "It does not match the 'thingId' from the Message the command" +
                     " transports (<{0}>). Please ensure that they are equal.";
-            throw ThingIdInvalidException.newBuilder(thingId)
+            throw ThingIdInvalidException.newBuilder(String.valueOf(thingId))
                     .description(MessageFormat.format(descTemplate, thingIdFromMessage))
                     .dittoHeaders(dittoHeaders).build();
         }
@@ -96,7 +71,7 @@ abstract class AbstractMessageCommand<T, C extends AbstractMessageCommand> exten
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -109,7 +84,7 @@ abstract class AbstractMessageCommand<T, C extends AbstractMessageCommand> exten
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicate) {
 
-        jsonObjectBuilder.set(MessageCommand.JsonFields.JSON_THING_ID, getThingId(), predicate);
+        jsonObjectBuilder.set(MessageCommand.JsonFields.JSON_THING_ID, getThingEntityId().toString(), predicate);
 
         final JsonObjectBuilder messageBuilder = JsonFactory.newObjectBuilder();
         final JsonObject headersObject = message.getHeaders().toJson();
@@ -122,24 +97,14 @@ abstract class AbstractMessageCommand<T, C extends AbstractMessageCommand> exten
     }
 
     /**
-     * Deserializes the {@link Message} from the JSON representation - the {@code rawPayload} is decoded with Base64.
+     * Deserializes the {@link Message} from the JSON representation of the Command- the {@code rawPayload} is decoded with Base64.
      *
-     * @param <T> the type of the message's payload.
      * @param jsonObject the JsonObjectReader to use for reading the message.
      * @return the Message.
      */
-    protected static <T> Message<T> deserializeMessageFromJson(final JsonObject jsonObject) {
+    protected static Message<?> deserializeMessageFromJson(final JsonObject jsonObject) {
         final JsonObject messageObject = jsonObject.getValueOrThrow(MessageCommand.JsonFields.JSON_MESSAGE);
-        final JsonObject messageHeadersObject =
-                messageObject.getValueOrThrow(MessageCommand.JsonFields.JSON_MESSAGE_HEADERS);
-        final Optional<JsonValue> messagePayloadOptional =
-                messageObject.getValue(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD);
-
-        final MessageHeaders messageHeaders = MessageHeaders.of(messageHeadersObject);
-        final MessageBuilder<T> messageBuilder = Message.newBuilder(messageHeaders);
-        MessagePayloadSerializer.deserialize(messagePayloadOptional, messageBuilder,
-                messageHeaders);
-        return messageBuilder.build();
+        return MessageDeserializer.deserializeMessageFromJson(messageObject);
     }
 
     @Override
@@ -169,7 +134,7 @@ abstract class AbstractMessageCommand<T, C extends AbstractMessageCommand> exten
 
     @Override
     public String toString() {
-        return "thingId=" + thingId + ", message=" + message;
+        return super.toString() + ", thingId=" + thingId + ", message=" + message;
     }
 
     @Override

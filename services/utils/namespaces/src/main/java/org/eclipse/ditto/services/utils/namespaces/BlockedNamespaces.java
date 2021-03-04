@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -14,14 +16,16 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.services.utils.ddata.DistributedData;
-import org.eclipse.ditto.services.utils.ddata.DistributedDataConfigReader;
+import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
 
 import akka.actor.ActorSystem;
+import akka.actor.ExtendedActorSystem;
 import akka.cluster.Cluster;
 import akka.cluster.ddata.Key;
 import akka.cluster.ddata.ORSet;
 import akka.cluster.ddata.ORSetKey;
 import akka.cluster.ddata.Replicator;
+import akka.cluster.ddata.SelfUniqueAddress;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -46,34 +50,34 @@ public final class BlockedNamespaces extends DistributedData<ORSet<String>> {
 
     private static final String BLOCKED_NAMESPACES_DISPATCHER = "blocked-namespaces-dispatcher";
 
-    private final Cluster node;
+    private final SelfUniqueAddress selfUniqueAddress;
 
-    private BlockedNamespaces(final DistributedDataConfigReader configReader, final ActorSystem system) {
-        super(configReader, system, system.dispatchers().lookup(BLOCKED_NAMESPACES_DISPATCHER));
-        node = Cluster.get(system);
+    private BlockedNamespaces(final DistributedDataConfig config, final ActorSystem system) {
+        super(config, system, system.dispatchers().lookup(BLOCKED_NAMESPACES_DISPATCHER));
+        selfUniqueAddress = SelfUniqueAddress.apply(Cluster.get(system).selfUniqueAddress());
     }
 
     /**
-     * Create an instance of this distributed data with the default configuration. The provided Akka system must be a
+     * Get an instance of this distributed data with the default configuration. The provided Akka system must be a
      * cluster member with the role {@code blocked-namespaces-aware}.
      *
      * @param system the actor system where the replicator actor will be created.
      * @return a new instance of the distributed data.
      */
     public static BlockedNamespaces of(final ActorSystem system) {
-        return new BlockedNamespaces(DistributedDataConfigReader.of(system, ACTOR_NAME, CLUSTER_ROLE), system);
+        return Provider.INSTANCE.get(system);
     }
 
     /**
      * Create an instance of this distributed data with special configuration.
      *
-     * @param configReader the overriding configuration.
+     * @param config the overriding configuration.
      * @param system the actor system where the replicator actor will be created.
      * @return a new instance of the distributed data.
      * @throws NullPointerException if {@code configReader} is {@code null}.
      */
-    public static BlockedNamespaces of(final DistributedDataConfigReader configReader, final ActorSystem system) {
-        return new BlockedNamespaces(configReader, system);
+    public static BlockedNamespaces create(final DistributedDataConfig config, final ActorSystem system) {
+        return new BlockedNamespaces(config, system);
     }
 
     /**
@@ -83,7 +87,7 @@ public final class BlockedNamespaces extends DistributedData<ORSet<String>> {
      * @return whether the local replica is retrieved successfully and contains the namespace.
      */
     public CompletionStage<Boolean> contains(final String namespace) {
-        return get(Replicator.readLocal())
+        return get((Replicator.ReadConsistency) Replicator.readLocal())
                 .thenApply(maybeORSet -> maybeORSet.orElse(ORSet.empty()).contains(namespace))
                 .exceptionally(error -> false);
     }
@@ -95,7 +99,7 @@ public final class BlockedNamespaces extends DistributedData<ORSet<String>> {
      * @return future that completes after the update propagates to all replicas, exceptionally if there is any error.
      */
     public CompletionStage<Void> add(final String namespace) {
-        return update(writeAll(), orSet -> orSet.add(node, namespace));
+        return update(writeAll(), orSet -> orSet.add(selfUniqueAddress, namespace));
     }
 
     /**
@@ -105,7 +109,7 @@ public final class BlockedNamespaces extends DistributedData<ORSet<String>> {
      * @return future that completes after the removal propagates to all replicas, exceptionally if there is any error.
      */
     public CompletionStage<Void> remove(final String namespace) {
-        return update(writeAll(), orSet -> orSet.remove(node, namespace));
+        return update(writeAll(), orSet -> orSet.remove(selfUniqueAddress, namespace));
     }
 
     @Override
@@ -122,4 +126,16 @@ public final class BlockedNamespaces extends DistributedData<ORSet<String>> {
         return new Replicator.WriteAll(FiniteDuration.apply(writeTimeout.toMillis(), TimeUnit.MILLISECONDS));
     }
 
+    private static final class Provider
+            extends DistributedData.AbstractDDataProvider<ORSet<String>, BlockedNamespaces> {
+
+        private static final Provider INSTANCE = new Provider();
+
+        private Provider() {}
+
+        @Override
+        public BlockedNamespaces createExtension(final ExtendedActorSystem system) {
+            return new BlockedNamespaces(DistributedData.createConfig(system, ACTOR_NAME, CLUSTER_ROLE), system);
+        }
+    }
 }

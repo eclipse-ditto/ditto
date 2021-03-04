@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -31,7 +33,7 @@ public final class ImmutableFeatureFromCopyBuilderTest {
 
     @Before
     public void setUp() {
-        underTest = ImmutableFeatureFromCopyBuilder.of(TestConstants.Feature.FLUX_CAPACITOR);
+        underTest = ImmutableFeatureFromCopyBuilder.of(TestConstants.Feature.FLUX_CAPACITOR_V2);
     }
 
     @Test(expected = NullPointerException.class)
@@ -43,7 +45,7 @@ public final class ImmutableFeatureFromCopyBuilderTest {
     public void builderOfFeatureIsCorrectlyInitialised() {
         final Feature feature = underTest.build();
 
-        assertThat(feature).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR);
+        assertThat(feature).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_V2);
     }
 
     @Test
@@ -52,6 +54,18 @@ public final class ImmutableFeatureFromCopyBuilderTest {
 
         assertThat(feature).isEqualTo(Feature.newBuilder()
                 .definition(TestConstants.Feature.FLUX_CAPACITOR_DEFINITION)
+                .desiredProperties(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES)
+                .withId(TestConstants.Feature.FLUX_CAPACITOR_ID)
+                .build());
+    }
+
+    @Test
+    public void desiredFeaturePropertiesNullGivesNullFeature() {
+        final Feature feature = underTest.desiredProperties((FeatureProperties) null).build();
+
+        assertThat(feature).isEqualTo(Feature.newBuilder()
+                .definition(TestConstants.Feature.FLUX_CAPACITOR_DEFINITION)
+                .properties(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES)
                 .withId(TestConstants.Feature.FLUX_CAPACITOR_ID)
                 .build());
     }
@@ -61,6 +75,7 @@ public final class ImmutableFeatureFromCopyBuilderTest {
         final Feature feature = underTest.properties((JsonObject) null).build();
 
         assertThat(feature).isEqualTo(Feature.newBuilder()
+                .desiredProperties(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES)
                 .definition(TestConstants.Feature.FLUX_CAPACITOR_DEFINITION)
                 .withId(TestConstants.Feature.FLUX_CAPACITOR_ID)
                 .build());
@@ -76,11 +91,32 @@ public final class ImmutableFeatureFromCopyBuilderTest {
 
         final Feature expected = Feature.newBuilder()
                 .properties(featureProperties)
+                .desiredProperties(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES)
                 .definition(TestConstants.Feature.FLUX_CAPACITOR_DEFINITION)
                 .withId(TestConstants.Feature.FLUX_CAPACITOR_ID)
                 .build();
 
         final Feature actual = underTest.properties(props -> props.setValue(PROPERTY_PATH, PROPERTY_VALUE)).build();
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void copyFeatureAndModifyDesiredProperties() {
+        final FeatureProperties desiredProperties = FeatureProperties.newBuilder()
+                .set(PROPERTY_PATH, PROPERTY_VALUE)
+                .set("target_year_2", 2015)
+                .set("target_year_3", 1885)
+                .build();
+
+        final Feature expected = Feature.newBuilder()
+                .desiredProperties(desiredProperties)
+                .properties(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES)
+                .definition(TestConstants.Feature.FLUX_CAPACITOR_DEFINITION)
+                .withId(TestConstants.Feature.FLUX_CAPACITOR_ID)
+                .build();
+
+        final Feature actual = underTest.desiredProperties(props -> props.setValue(PROPERTY_PATH, PROPERTY_VALUE)).build();
 
         assertThat(actual).isEqualTo(expected);
     }

@@ -1,16 +1,20 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.connectivity;
 
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -23,7 +27,8 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
  * Intercepts a {@link ConnectivityCommand}s and may throw a {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException}
  * if the command is invalid.
  */
-public interface ConnectivityCommandInterceptor extends Consumer<ConnectivityCommand<?>> {
+public interface ConnectivityCommandInterceptor extends Consumer<ConnectivityCommand<?>>,
+        BiConsumer<ConnectivityCommand<?>, Supplier<Connection>> {
 
     @Nullable
     default Connection getConnectionFromCommand(final ConnectivityCommand<?> command) {
@@ -37,5 +42,15 @@ public interface ConnectivityCommandInterceptor extends Consumer<ConnectivityCom
             default:
                 return null;
         }
+    }
+
+    /**
+     * By default resolve connection from the given {@link ConnectivityCommand}.
+     *
+     * @param command the intercepted command
+     */
+    @Override
+    default void accept(final ConnectivityCommand<?> command) {
+        accept(command, () -> getConnectionFromCommand(command));
     }
 }

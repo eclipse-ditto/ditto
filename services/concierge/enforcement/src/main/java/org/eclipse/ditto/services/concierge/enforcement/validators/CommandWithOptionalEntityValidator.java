@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -26,7 +28,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  * Checks that commands that modify entities cause no harm downstream.
  */
 public final class CommandWithOptionalEntityValidator implements
-        Function<WithDittoHeaders, WithDittoHeaders> {
+        Function<WithDittoHeaders<?>, WithDittoHeaders<?>> {
 
     private static final CommandWithOptionalEntityValidator INSTANCE = new CommandWithOptionalEntityValidator();
 
@@ -35,11 +37,11 @@ public final class CommandWithOptionalEntityValidator implements
     }
 
     @Override
-    public WithDittoHeaders apply(final WithDittoHeaders withDittoHeaders) {
+    public WithDittoHeaders<?> apply(final WithDittoHeaders<?> withDittoHeaders) {
         return checkForHarmfulEntity(withDittoHeaders);
     }
 
-    private static WithDittoHeaders checkForHarmfulEntity(final WithDittoHeaders withDittoHeaders) {
+    private static WithDittoHeaders<?> checkForHarmfulEntity(final WithDittoHeaders<?> withDittoHeaders) {
         if (withDittoHeaders instanceof Command && withDittoHeaders instanceof WithOptionalEntity) {
             final Optional<JsonValue> optionalEntity = ((WithOptionalEntity) withDittoHeaders).getEntity();
             if (optionalEntity.isPresent() && isJsonValueIllegal(optionalEntity.get())) {
@@ -76,9 +78,10 @@ public final class CommandWithOptionalEntityValidator implements
         return false;
     }
 
-    private static DittoRuntimeException buildError(final WithDittoHeaders withDittoHeaders) {
+    private static DittoRuntimeException buildError(final WithDittoHeaders<?> withDittoHeaders) {
         final JsonParseException jsonException = JsonParseException.newBuilder()
-                .message("JSON contains forbidden character '\\u0000'")
+                .message("JSON contains a string with the forbidden character '\\u0000'")
+                .description("We do not accept any JSON strings containing the null character.")
                 .build();
         return new DittoJsonException(jsonException).setDittoHeaders(withDittoHeaders.getDittoHeaders());
     }

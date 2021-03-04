@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -16,13 +18,12 @@ import java.util.function.Supplier;
 
 import org.eclipse.ditto.json.JsonException;
 import org.eclipse.ditto.json.JsonRuntimeException;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-
 
 /**
  * Exception to adapt {@link JsonRuntimeException}s to {@code DittoRuntimeException} by adding {@link DittoHeaders} and
- * the HTTP status code {@link HttpStatusCode#BAD_REQUEST 400}.
+ * the HTTP status code {@link HttpStatus#BAD_REQUEST 400}.
  */
 public final class DittoJsonException extends DittoRuntimeException {
 
@@ -44,7 +45,9 @@ public final class DittoJsonException extends DittoRuntimeException {
                 (toWrap instanceof JsonRuntimeException)
                         ? ((JsonException) toWrap).getErrorCode()
                         : FALLBACK_ERROR_CODE,
-                HttpStatusCode.BAD_REQUEST, DittoHeaders.empty(), toWrap.getMessage(),
+                HttpStatus.BAD_REQUEST,
+                DittoHeaders.empty(),
+                toWrap.getMessage(),
                 (toWrap instanceof JsonRuntimeException)
                         ? ((JsonException) toWrap).getDescription().orElse(null)
                         : null,
@@ -53,6 +56,7 @@ public final class DittoJsonException extends DittoRuntimeException {
                         ? ((JsonException) toWrap).getHref().orElse(null)
                         : null
         );
+
     }
 
     /**
@@ -66,7 +70,9 @@ public final class DittoJsonException extends DittoRuntimeException {
         super(
                 toWrap instanceof JsonRuntimeException ? ((JsonRuntimeException) toWrap).getErrorCode() :
                         FALLBACK_ERROR_CODE,
-                HttpStatusCode.BAD_REQUEST, dittoHeaders, toWrap.getMessage(),
+                HttpStatus.BAD_REQUEST,
+                dittoHeaders,
+                toWrap.getMessage(),
                 toWrap instanceof JsonRuntimeException ? ((JsonRuntimeException) toWrap).getDescription().orElse(null) :
                         null,
                 toWrap.getCause(),

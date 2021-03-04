@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -18,6 +20,8 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyId;
 import org.eclipse.ditto.signals.events.things.PolicyIdCreated;
 import org.eclipse.ditto.signals.events.things.PolicyIdModified;
@@ -43,22 +47,22 @@ public final class ModifyPolicyIdStrategyTest extends AbstractCommandStrategyTes
 
     @Test
     public void modifyPolicyIdOnThingWithoutPolicyId() {
-        final CommandStrategy.Context context = getDefaultContext();
-        final ModifyPolicyId command = ModifyPolicyId.of(context.getThingId(), POLICY_ID, DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final ModifyPolicyId command = ModifyPolicyId.of(context.getState(), POLICY_ID, DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V1, command,
-                PolicyIdCreated.class,
-                modifyPolicyIdResponse(context.getThingId(), command.getPolicyId(), command.getDittoHeaders(), true));
+        assertModificationResult(underTest, THING_V1, command, PolicyIdCreated.class,
+                modifyPolicyIdResponse(context.getState(), command.getPolicyEntityId(),
+                        command.getDittoHeaders(), true));
     }
 
     @Test
     public void modifyExistingPolicyId() {
-        final CommandStrategy.Context context = getDefaultContext();
-        final ModifyPolicyId command = ModifyPolicyId.of(context.getThingId(), POLICY_ID, DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final ModifyPolicyId command = ModifyPolicyId.of(context.getState(), POLICY_ID, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
-                PolicyIdModified.class,
-                modifyPolicyIdResponse(context.getThingId(), command.getPolicyId(), command.getDittoHeaders(), false));
+                PolicyIdModified.class, modifyPolicyIdResponse(context.getState(), command.getPolicyEntityId(),
+                        command.getDittoHeaders(), false));
     }
 
 }

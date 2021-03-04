@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -28,17 +30,22 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AclEntry;
-import org.eclipse.ditto.model.things.ThingIdValidator;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
 /**
  * This command modifies a single ACL Entry of a Thing.
+ *
+ * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
  */
+@Deprecated
 @Immutable
+@JsonParsableCommand(typePrefix = ModifyAclEntry.TYPE_PREFIX, name = ModifyAclEntry.NAME)
 public final class ModifyAclEntry extends AbstractCommand<ModifyAclEntry>
         implements ThingModifyCommand<ModifyAclEntry> {
 
@@ -55,12 +62,11 @@ public final class ModifyAclEntry extends AbstractCommand<ModifyAclEntry>
     static final JsonFieldDefinition<JsonObject> JSON_ACL_ENTRY =
             JsonFactory.newJsonObjectFieldDefinition("aclEntry", FieldType.REGULAR, JsonSchemaVersion.V_1);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final AclEntry aclEntry;
 
-    private ModifyAclEntry(final String thingId, final AclEntry aclEntry, final DittoHeaders dittoHeaders) {
+    private ModifyAclEntry(final ThingId thingId, final AclEntry aclEntry, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
-        ThingIdValidator.getInstance().accept(thingId, dittoHeaders);
         this.thingId = thingId;
         this.aclEntry = checkNotNull(aclEntry, "ACL Entry which should be applied");
     }
@@ -73,10 +79,27 @@ public final class ModifyAclEntry extends AbstractCommand<ModifyAclEntry>
      * @param dittoHeaders the headers of the command.
      * @return a command for modifying the provided ACL Entry.
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.AclEntry, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static ModifyAclEntry of(final String thingId, final AclEntry aclEntry,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), aclEntry, dittoHeaders);
+    }
+
+    /**
+     * Returns a command for modifying a single ACL entry of a Thing.
+     *
+     * @param thingId the ID of the Thing on which to modify the ACL Entry.
+     * @param aclEntry the ACL Entry which should be modified.
+     * @param dittoHeaders the headers of the command.
+     * @return a command for modifying the provided ACL Entry.
+     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
+     */
+    public static ModifyAclEntry of(final ThingId thingId, final AclEntry aclEntry,
             final DittoHeaders dittoHeaders) {
 
         return new ModifyAclEntry(thingId, aclEntry, dittoHeaders);
@@ -93,7 +116,7 @@ public final class ModifyAclEntry extends AbstractCommand<ModifyAclEntry>
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static ModifyAclEntry fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -109,11 +132,12 @@ public final class ModifyAclEntry extends AbstractCommand<ModifyAclEntry>
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static ModifyAclEntry fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifyAclEntry>(TYPE, jsonObject).deserialize(() -> {
-            final String thingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
             final JsonObject aclEntryJsonObject = jsonObject.getValueOrThrow(JSON_ACL_ENTRY);
             final AclEntry extractedAclEntry = ThingsModelFactory.newAclEntry(aclEntryJsonObject);
 
@@ -131,7 +155,7 @@ public final class ModifyAclEntry extends AbstractCommand<ModifyAclEntry>
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -150,7 +174,7 @@ public final class ModifyAclEntry extends AbstractCommand<ModifyAclEntry>
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_ACL_ENTRY, aclEntry.toJson(schemaVersion, thePredicate), predicate);
     }
 

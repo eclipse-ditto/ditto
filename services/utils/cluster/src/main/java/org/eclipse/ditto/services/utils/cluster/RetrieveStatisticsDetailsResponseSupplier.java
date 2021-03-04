@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -14,6 +16,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonCollectors;
@@ -27,7 +30,7 @@ import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetailsRespon
 import akka.actor.ActorRef;
 import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.pattern.PatternsCS;
+import akka.pattern.Patterns;
 
 /**
  * Supplier of {@link RetrieveStatisticsDetailsResponse}s for a specific shard region - determines the "hot entities"
@@ -65,8 +68,7 @@ public final class RetrieveStatisticsDetailsResponseSupplier
 
     @Override
     public CompletionStage<RetrieveStatisticsDetailsResponse> apply(final DittoHeaders dittoHeaders) {
-        return PatternsCS.ask(shardRegion, ShardRegion.getShardRegionStateInstance(),
-                Duration.ofSeconds(5))
+        return Patterns.ask(shardRegion, ShardRegion.getShardRegionStateInstance(), Duration.ofSeconds(5))
                 .handle((result, throwable) -> {
                     if (throwable != null) {
                         log.error(throwable, "Could not determine 'ShardRegionState' for shard region <{}>",
@@ -76,6 +78,9 @@ public final class RetrieveStatisticsDetailsResponseSupplier
                                         .build(),
                                 dittoHeaders);
                     } else if (result instanceof ShardRegion.CurrentShardRegionState) {
+                        final Collector<String, ?, Map<String, Long>> stringMapCollector =
+                                Collectors.groupingBy(Function.identity(),
+                                        Collectors.mapping(Function.identity(), Collectors.counting()));
                         final Map<String, Long> shardStats =
                                 ((ShardRegion.CurrentShardRegionState) result).getShards()
                                         .stream()
@@ -83,27 +88,16 @@ public final class RetrieveStatisticsDetailsResponseSupplier
                                         .flatMap(strSet -> strSet.stream()
                                                 .map(str -> {
                                                     // groupKey may be either namespace or resource-type+namespace (in case of concierge)
-                                                    final String[] groupKeys = str.split(":", 3);
+                                                    final String[] groupKeys = str.split(":", 2);
                                                     // assume String.split(String, int) may not return an empty array
-                                                    switch (groupKeys.length) {
-                                                        case 0:
-                                                            // should not happen with Java 8 strings, but just in case
-                                                            return EMPTY_ID;
-                                                        case 1:
-                                                        case 2:
-                                                            // normal: namespace
-                                                            return ensureNonemptyString(
-                                                                    groupKeys[0]);
-                                                        default:
-                                                            // concierge: resource-type + namespace
-                                                            return groupKeys[0] + ":" +
-                                                                    groupKeys[1];
+                                                    if (groupKeys.length == 0) {
+                                                        // should not happen with Java 8 strings, but just in case
+                                                        return EMPTY_ID;
                                                     }
+                                                    return ensureNonemptyString(groupKeys[0]);
                                                 })
                                         )
-                                        .collect(Collectors.groupingBy(Function.identity(),
-                                                Collectors.mapping(Function.identity(),
-                                                        Collectors.counting())));
+                                        .collect(stringMapCollector);
 
                         final JsonObject namespaceStats = shardStats.entrySet().stream()
                                 .map(entry -> JsonField.newInstance(entry.getKey(),

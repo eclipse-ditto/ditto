@@ -1,268 +1,121 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.concierge.starter.actors;
 
-import static akka.http.javadsl.server.Directives.logRequest;
-import static akka.http.javadsl.server.Directives.logResult;
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.net.ConnectException;
-import java.time.Duration;
-import java.util.NoSuchElementException;
-import java.util.concurrent.CompletionStage;
-
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.services.base.config.HealthConfigReader;
-import org.eclipse.ditto.services.base.config.HttpConfigReader;
-import org.eclipse.ditto.services.concierge.batch.actors.BatchSupervisorActor;
-import org.eclipse.ditto.services.concierge.starter.proxy.AbstractEnforcerActorFactory;
-import org.eclipse.ditto.services.concierge.util.config.AbstractConciergeConfigReader;
+import org.eclipse.ditto.services.base.actors.DittoRootActor;
+import org.eclipse.ditto.services.concierge.actors.ShardRegions;
+import org.eclipse.ditto.services.concierge.actors.cleanup.EventSnapshotCleanupCoordinator;
+import org.eclipse.ditto.services.concierge.common.ConciergeConfig;
+import org.eclipse.ditto.services.concierge.starter.proxy.EnforcerActorFactory;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
-import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
-import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
+import org.eclipse.ditto.services.utils.health.SingletonStatusReporter;
+import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
+import org.eclipse.ditto.services.utils.health.config.PersistenceConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
-import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 
-import akka.Done;
-import akka.actor.AbstractActor;
-import akka.actor.ActorInitializationException;
-import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.CoordinatedShutdown;
-import akka.actor.InvalidActorNameException;
-import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
-import akka.actor.Status;
-import akka.actor.SupervisorStrategy;
-import akka.cluster.Cluster;
-import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.cluster.sharding.ShardRegion;
-import akka.cluster.singleton.ClusterSingletonManager;
-import akka.cluster.singleton.ClusterSingletonManagerSettings;
-import akka.event.DiagnosticLoggingAdapter;
-import akka.http.javadsl.ConnectHttp;
-import akka.http.javadsl.Http;
-import akka.http.javadsl.ServerBinding;
-import akka.http.javadsl.server.Route;
-import akka.japi.pf.DeciderBuilder;
-import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.AskTimeoutException;
-import akka.pattern.PatternsCS;
-import akka.stream.ActorMaterializer;
 
 /**
  * The root actor of the concierge service.
  */
-public final class ConciergeRootActor extends AbstractActor {
+public final class ConciergeRootActor extends DittoRootActor {
 
     /**
      * Name of this actor.
      */
     public static final String ACTOR_NAME = "conciergeRoot";
 
-    private static final String RESTARTING_CHILD_MSG = "Restarting child...";
-
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-    private final SupervisorStrategy supervisorStrategy = new OneForOneStrategy(true, DeciderBuilder
-            .match(NullPointerException.class, e -> {
-                log.error(e, "NullPointer in child actor: {}", e.getMessage());
-                log.info(RESTARTING_CHILD_MSG);
-                return SupervisorStrategy.restart();
-            }).match(IllegalArgumentException.class, e -> {
-                log.warning("Illegal Argument in child actor: {}", e.getMessage());
-                return SupervisorStrategy.resume();
-            }).match(IndexOutOfBoundsException.class, e -> {
-                log.warning("IndexOutOfBounds in child actor: {}", e.getMessage());
-                return SupervisorStrategy.resume();
-            }).match(IllegalStateException.class, e -> {
-                log.warning("Illegal State in child actor: {}", e.getMessage());
-                return SupervisorStrategy.resume();
-            }).match(NoSuchElementException.class, e -> {
-                log.warning("NoSuchElement in child actor: {}", e.getMessage());
-                return SupervisorStrategy.resume();
-            }).match(AskTimeoutException.class, e -> {
-                log.warning("AskTimeoutException in child actor: {}", e.getMessage());
-                return SupervisorStrategy.resume();
-            }).match(ConnectException.class, e -> {
-                log.warning("ConnectException in child actor: {}", e.getMessage());
-                log.info(RESTARTING_CHILD_MSG);
-                return SupervisorStrategy.restart();
-            }).match(InvalidActorNameException.class, e -> {
-                log.warning("InvalidActorNameException in child actor: {}", e.getMessage());
-                return SupervisorStrategy.resume();
-            }).match(ActorInitializationException.class, e -> {
-                log.error(e, "ActorInitializationException in child actor: {}", e.getMessage());
-                return SupervisorStrategy.stop();
-            }).match(ActorKilledException.class, e -> {
-                log.error(e, "ActorKilledException in child actor: {}", e.message());
-                log.info(RESTARTING_CHILD_MSG);
-                return SupervisorStrategy.restart();
-            }).match(DittoRuntimeException.class, e -> {
-                log.error(e,
-                        "DittoRuntimeException '{}' should not be escalated to RootActor. Simply resuming Actor.",
-                        e.getErrorCode());
-                return SupervisorStrategy.resume();
-            }).match(Throwable.class, e -> {
-                log.error(e, "Escalating above root actor!");
-                return SupervisorStrategy.escalate();
-            }).matchAny(e -> {
-                log.error("Unknown message:'{}'! Escalating above root actor!", e);
-                return SupervisorStrategy.escalate();
-            }).build());
-
-    private final RetrieveStatisticsDetailsResponseSupplier retrieveStatisticsDetailsResponseSupplier;
-
-    private <C extends AbstractConciergeConfigReader> ConciergeRootActor(final C configReader,
+    @SuppressWarnings("unused")
+    private <C extends ConciergeConfig> ConciergeRootActor(final C conciergeConfig,
             final ActorRef pubSubMediator,
-            final AbstractEnforcerActorFactory<C> authorizationProxyPropsFactory,
-            final ActorMaterializer materializer) {
+            final EnforcerActorFactory<C> enforcerActorFactory) {
 
-        requireNonNull(configReader);
-        requireNonNull(pubSubMediator);
-        requireNonNull(authorizationProxyPropsFactory);
-        requireNonNull(materializer);
+        pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
 
         final ActorContext context = getContext();
+        final ShardRegions shardRegions = ShardRegions.of(getContext().getSystem(), conciergeConfig.getClusterConfig());
 
-        final ActorRef conciergeShardRegion =
-                authorizationProxyPropsFactory.startEnforcerActor(context, configReader, pubSubMediator);
+        enforcerActorFactory.startEnforcerActor(context, conciergeConfig, pubSubMediator, shardRegions);
 
-        retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(conciergeShardRegion,
-                ConciergeMessagingConstants.SHARD_REGION, log);
+        final ActorRef conciergeForwarder = context.findChild(ConciergeForwarderActor.ACTOR_NAME).orElseThrow(() ->
+                new IllegalStateException("ConciergeForwarder could not be found"));
 
-        final ActorRef conciergeForwarder = startChildActor(context, ConciergeForwarderActor.ACTOR_NAME,
-                ConciergeForwarderActor.props(pubSubMediator, conciergeShardRegion));
+        final ActorRef cleanupCoordinator = startClusterSingletonActor(
+                EventSnapshotCleanupCoordinator.ACTOR_NAME,
+                EventSnapshotCleanupCoordinator.props(conciergeConfig.getPersistenceCleanupConfig(), pubSubMediator,
+                        shardRegions));
 
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(conciergeForwarder), getSelf());
-
-        startClusterSingletonActor(context, BatchSupervisorActor.ACTOR_NAME,
-                BatchSupervisorActor.props(pubSubMediator, conciergeForwarder));
-
-        final ActorRef healthCheckingActor = startHealthCheckingActor(context, configReader);
-
-        final HttpConfigReader httpConfig = configReader.http();
-
-        bindHttpStatusRoute(healthCheckingActor, httpConfig, materializer);
+        final ActorRef healthCheckingActor = startHealthCheckingActor(conciergeConfig, cleanupCoordinator);
+        bindHttpStatusRoute(conciergeConfig.getHttpConfig(), healthCheckingActor);
     }
 
     /**
      * Creates Akka configuration object Props for this actor.
      *
-     * @param configReader the config reader.
+     * @param conciergeConfig the config of Concierge.
      * @param pubSubMediator the PubSub mediator Actor.
-     * @param authorizationProxyPropsFactory the {@link AbstractEnforcerActorFactory}.
-     * @param materializer the materializer for the Akka actor system.
+     * @param enforcerActorFactory factory for creating sharded enforcer actors.
      * @return the Akka configuration Props object.
+     * @throws NullPointerException if any argument is {@code null}.
      */
-    public static <C extends AbstractConciergeConfigReader> Props props(final C configReader,
+    public static <C extends ConciergeConfig> Props props(final C conciergeConfig,
             final ActorRef pubSubMediator,
-            final AbstractEnforcerActorFactory<C> authorizationProxyPropsFactory,
-            final ActorMaterializer materializer) {
+            final EnforcerActorFactory<C> enforcerActorFactory) {
 
-        return Props.create(ConciergeRootActor.class,
-                () -> new ConciergeRootActor(configReader, pubSubMediator, authorizationProxyPropsFactory,
-                        materializer));
+        checkNotNull(conciergeConfig, "config of Concierge");
+        checkNotNull(pubSubMediator, "pub-sub mediator");
+        checkNotNull(enforcerActorFactory, "EnforcerActor factory");
+
+        return Props.create(ConciergeRootActor.class, conciergeConfig, pubSubMediator, enforcerActorFactory);
     }
 
 
-    private static void startClusterSingletonActor(final akka.actor.ActorContext context, final String actorName,
-            final Props props) {
+    private ActorRef startClusterSingletonActor(final String actorName, final Props props) {
 
-        ClusterUtil.startSingleton(context, ConciergeMessagingConstants.CLUSTER_ROLE, actorName, props);
+        return ClusterUtil.startSingleton(getContext(), ConciergeMessagingConstants.CLUSTER_ROLE, actorName, props);
     }
 
-    private static ActorRef startHealthCheckingActor(final ActorContext context,
-            final AbstractConciergeConfigReader configReader) {
+    private ActorRef startHealthCheckingActor(final ConciergeConfig conciergeConfig,
+            final ActorRef cleanupCoordinator) {
 
-        final HealthConfigReader healthConfig = configReader.health();
-        final HealthCheckingActorOptions.Builder hcBuilder = HealthCheckingActorOptions
-                .getBuilder(healthConfig.enabled(), healthConfig.getInterval());
+        final HealthCheckConfig healthCheckConfig = conciergeConfig.getHealthCheckConfig();
 
-        if (healthConfig.persistenceEnabled()) {
+        final HealthCheckingActorOptions.Builder hcBuilder =
+                HealthCheckingActorOptions.getBuilder(healthCheckConfig.isEnabled(), healthCheckConfig.getInterval());
+
+        final PersistenceConfig persistenceConfig = healthCheckConfig.getPersistenceConfig();
+        if (persistenceConfig.isEnabled()) {
             hcBuilder.enablePersistenceCheck();
         }
-
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
-        return startChildActor(context, DefaultHealthCheckingActorFactory.ACTOR_NAME,
-                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, MongoHealthChecker.props()));
-    }
 
-    private static ActorRef startChildActor(final akka.actor.ActorContext context, final String actorName,
-            final Props props) {
+        final ActorRef cleanupCoordinatorProxy = ClusterUtil.startSingletonProxy(getContext(),
+                ConciergeMessagingConstants.CLUSTER_ROLE, cleanupCoordinator);
 
-        return context.actorOf(props, actorName);
-    }
-
-    private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {
-        final StatusRoute statusRoute = new StatusRoute(new ClusterStatusSupplier(Cluster.get(actorSystem)),
-                healthCheckingActor, actorSystem);
-
-        return logRequest("http-request", () ->
-                logResult("http-response", statusRoute::buildStatusRoute));
-    }
-
-    @Override
-    public SupervisorStrategy supervisorStrategy() {
-        return supervisorStrategy;
-    }
-
-    @Override
-    public Receive createReceive() {
-        return ReceiveBuilder.create()
-                .match(RetrieveStatisticsDetails.class, this::handleRetrieveStatisticsDetails)
-                .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure <{}>!", f))
-                .matchAny(m -> {
-                    log.warning("Unknown message <{}>.", m);
-                    unhandled(m);
-                }).build();
-    }
-
-    private void handleRetrieveStatisticsDetails(final RetrieveStatisticsDetails command) {
-        log.info("Sending the namespace stats of the concierge shard as requested..");
-        PatternsCS.pipe(retrieveStatisticsDetailsResponseSupplier
-                .apply(command.getDittoHeaders()), getContext().dispatcher()).to(getSender());
-    }
-
-    private void bindHttpStatusRoute(final ActorRef healthCheckingActor, final HttpConfigReader httpConfig,
-            final ActorMaterializer materializer) {
-        String hostname = httpConfig.getHostname();
-        if (hostname.isEmpty()) {
-            hostname = ConfigUtil.getLocalHostAddress();
-            log.info("No explicit hostname configured, using HTTP hostname: {}", hostname);
-        }
-
-        final CompletionStage<ServerBinding> binding = Http.get(getContext().system())
-                .bindAndHandle(createRoute(getContext().system(), healthCheckingActor).flow(getContext().system(),
-                        materializer), ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
-
-        binding.thenAccept(theBinding -> CoordinatedShutdown.get(getContext().getSystem()).addTask(
-                CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_health_http_endpoint", () -> {
-                    log.info("Gracefully shutting down status/health HTTP endpoint..");
-                    return theBinding.terminate(Duration.ofSeconds(1))
-                            .handle((httpTerminated, e) -> Done.getInstance());
-                })
-        ).exceptionally(failure -> {
-            log.error(failure, "Something very bad happened: {}", failure.getMessage());
-            getContext().system().terminate();
-            return null;
-        });
+        return startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions,
+                        MongoHealthChecker.props(),
+                        SingletonStatusReporter.props(ConciergeMessagingConstants.CLUSTER_ROLE,
+                                cleanupCoordinatorProxy))
+        );
     }
 
 }

@@ -1,20 +1,25 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.connectivity.mapping.javascript;
 
-import java.util.Map;
+import static org.eclipse.ditto.services.connectivity.mapping.javascript.JavaScriptMessageMapperConfigurationProperties.LOAD_BYTEBUFFER_JS;
+import static org.eclipse.ditto.services.connectivity.mapping.javascript.JavaScriptMessageMapperConfigurationProperties.LOAD_LONG_JS;
+
 import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperConfiguration;
 
 /**
@@ -40,30 +45,22 @@ public interface JavaScriptMessageMapperConfiguration extends MessageMapperConfi
      * @return whether to load "bytebuffer.js" library.
      */
     default boolean isLoadBytebufferJS() {
-        final Map<String, String> properties = getProperties();
-        @Nullable final String v = properties.get(JavaScriptMessageMapperConfigurationProperties.LOAD_BYTEBUFFER_JS);
-        if (null != v) {
-            return Boolean.valueOf(v);
-        }
-        return false;
+        return findProperty(LOAD_BYTEBUFFER_JS, JsonValue::isBoolean, JsonValue::asBoolean)
+                .orElseGet(() -> findProperty(LOAD_BYTEBUFFER_JS).map(Boolean::parseBoolean).orElse(false));
     }
 
     /**
      * @return whether to load "long.js" library.
      */
     default boolean isLoadLongJS() {
-        final Map<String, String> properties = getProperties();
-        @Nullable final String v = properties.get(JavaScriptMessageMapperConfigurationProperties.LOAD_LONG_JS);
-        if (null != v) {
-            return Boolean.valueOf(v);
-        }
-        return false;
+        return findProperty(LOAD_LONG_JS, JsonValue::isBoolean, JsonValue::asBoolean)
+                .orElseGet(() -> findProperty(LOAD_BYTEBUFFER_JS).map(Boolean::parseBoolean).orElse(false));
     }
 
     /**
      * Specific builder for {@link JavaScriptMessageMapperConfiguration}.
      */
-    interface Builder extends MessageMapperConfiguration.Builder<Builder, JavaScriptMessageMapperConfiguration> {
+    interface Builder extends MessageMapperConfiguration.Builder<JavaScriptMessageMapperConfiguration> {
 
         /**
          * Configures the mappingScript responsible for mapping incoming messages.
@@ -74,7 +71,7 @@ public interface JavaScriptMessageMapperConfiguration extends MessageMapperConfi
         default Builder incomingScript(@Nullable final String mappingScript) {
             if (mappingScript != null) {
                 getProperties().put(JavaScriptMessageMapperConfigurationProperties.INCOMING_SCRIPT,
-                        mappingScript);
+                        JsonValue.of(mappingScript));
             } else {
                 getProperties().remove(JavaScriptMessageMapperConfigurationProperties.INCOMING_SCRIPT);
             }
@@ -90,12 +87,13 @@ public interface JavaScriptMessageMapperConfiguration extends MessageMapperConfi
         default Builder outgoingScript(@Nullable final String mappingScript) {
             if (mappingScript != null) {
                 getProperties().put(JavaScriptMessageMapperConfigurationProperties.OUTGOING_SCRIPT,
-                        mappingScript);
+                        JsonValue.of(mappingScript));
             } else {
                 getProperties().remove(JavaScriptMessageMapperConfigurationProperties.OUTGOING_SCRIPT);
             }
             return this;
         }
+
         /**
          * Configures whether to load "bytebuffer.js" library.
          *
@@ -103,8 +101,7 @@ public interface JavaScriptMessageMapperConfiguration extends MessageMapperConfi
          * @return this builder for chaining.
          */
         default Builder loadBytebufferJS(final boolean load) {
-            getProperties().put(JavaScriptMessageMapperConfigurationProperties.LOAD_BYTEBUFFER_JS,
-                    Boolean.toString(load));
+            getProperties().put(LOAD_BYTEBUFFER_JS, JsonValue.of(load));
             return this;
         }
 
@@ -115,8 +112,7 @@ public interface JavaScriptMessageMapperConfiguration extends MessageMapperConfi
          * @return this builder for chaining.
          */
         default Builder loadLongJS(final boolean load) {
-            getProperties().put(JavaScriptMessageMapperConfigurationProperties.LOAD_LONG_JS,
-                    Boolean.toString(load));
+            getProperties().put(LOAD_LONG_JS, JsonValue.of(load));
             return this;
         }
 

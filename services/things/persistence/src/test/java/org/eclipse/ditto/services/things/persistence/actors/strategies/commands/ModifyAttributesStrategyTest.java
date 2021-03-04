@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -18,6 +20,8 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.TestConstants;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributes;
 import org.eclipse.ditto.signals.events.things.AttributesCreated;
 import org.eclipse.ditto.signals.events.things.AttributesModified;
@@ -53,24 +57,24 @@ public final class ModifyAttributesStrategyTest extends AbstractCommandStrategyT
 
     @Test
     public void modifyAttributesOfThingWithoutAttributes() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyAttributes command =
-                ModifyAttributes.of(context.getThingId(), modifiedAttributes, DittoHeaders.empty());
+                ModifyAttributes.of(context.getState(), modifiedAttributes, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2.removeAttributes(), command,
                 AttributesCreated.class,
-                modifyAttributesResponse(context.getThingId(), modifiedAttributes, command.getDittoHeaders(), true));
+                modifyAttributesResponse(context.getState(), modifiedAttributes, command.getDittoHeaders(), true));
     }
 
     @Test
     public void modifyAttributesOfThingWithAttributes() {
-        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyAttributes command =
-                ModifyAttributes.of(context.getThingId(), modifiedAttributes, DittoHeaders.empty());
+                ModifyAttributes.of(context.getState(), modifiedAttributes, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
                 AttributesModified.class,
-                modifyAttributesResponse(context.getThingId(), modifiedAttributes, command.getDittoHeaders(), false));
+                modifyAttributesResponse(context.getState(), modifiedAttributes, command.getDittoHeaders(), false));
     }
 
 }

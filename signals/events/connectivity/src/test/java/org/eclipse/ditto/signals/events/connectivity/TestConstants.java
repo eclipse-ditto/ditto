@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -12,19 +14,16 @@ package org.eclipse.ditto.signals.events.connectivity;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.HeaderMapping;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
@@ -34,15 +33,15 @@ import org.eclipse.ditto.model.connectivity.Topic;
  */
 public final class TestConstants {
 
-    public static String ID = "myConnectionId";
+    public static final ConnectionId ID = ConnectionId.of("myConnectionId");
 
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
-    public static ConnectionStatus STATUS = ConnectionStatus.OPEN;
+    public static final ConnectivityStatus STATUS = ConnectivityStatus.OPEN;
 
-    public static String URI = "amqps://username:password@my.endpoint:443";
+    public static final String URI = "amqps://username:password@my.endpoint:443";
 
-    public static AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
-            AuthorizationSubject.newInstance("mySolutionId:mySubject"));
+    public static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
+            DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION, AuthorizationSubject.newInstance("myIssuer:mySubject"));
 
     public static final List<Source> SOURCES = Arrays.asList(
             ConnectivityModelFactory.newSourceBuilder()
@@ -57,21 +56,15 @@ public final class TestConstants {
                     .index(1).build()
     );
 
-    private static final HeaderMapping HEADER_MAPPING = null;
-    public static final Set<Target> TARGETS = new HashSet<>(
-            Collections.singletonList(
-                    ConnectivityModelFactory.newTarget("eventQueue", AUTHORIZATION_CONTEXT, HEADER_MAPPING, Topic.TWIN_EVENTS)));
-    public static Connection CONNECTION =
-            ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
-                    .sources(SOURCES)
-                    .targets(TARGETS)
-                    .build();
+    public static final List<Target> TARGETS = Collections.singletonList(ConnectivityModelFactory.newTargetBuilder()
+            .address("eventQueue")
+            .authorizationContext(AUTHORIZATION_CONTEXT)
+            .topics(Topic.TWIN_EVENTS)
+            .build());
 
-    public static Map<String, ConnectionStatus> CONNECTION_STATUSES;
-
-    static {
-        CONNECTION_STATUSES = new HashMap<>();
-        CONNECTION_STATUSES.put(ID, ConnectionStatus.OPEN);
-    }
+    public static final Connection CONNECTION = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
+            .sources(SOURCES)
+            .targets(TARGETS)
+            .build();
 
 }

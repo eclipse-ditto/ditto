@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -13,23 +15,21 @@ package org.eclipse.ditto.services.utils.akka.controlflow;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+
+import akka.NotUsed;
 import akka.actor.ActorRef;
-import akka.stream.Attributes;
-import akka.stream.Inlet;
+import akka.stream.Graph;
 import akka.stream.SinkShape;
-import akka.stream.stage.GraphStage;
-import akka.stream.stage.GraphStageLogic;
+import akka.stream.javadsl.Sink;
 
 /**
  * An Akka stream sink from a consumer of messages with sender.
  */
-public class Consume<T> extends GraphStage<SinkShape<WithSender<T>>> {
+public final class Consume {
 
-    private final SinkShape<WithSender<T>> shape = SinkShape.of(Inlet.create("input"));
-    private final Consumer<WithSender<T>> consumer;
-
-    private Consume(final Consumer<WithSender<T>> consumer) {
-        this.consumer = consumer;
+    private Consume() {
+        throw new AssertionError();
     }
 
     /**
@@ -37,21 +37,25 @@ public class Consume<T> extends GraphStage<SinkShape<WithSender<T>>> {
      *
      * @param consumer the consumer.
      * @param <T> type of messages.
+     * @param <S> some supertype of messages.
      * @return sink.
      */
-    public static <T> Consume<T> of(final Consumer<WithSender<? super T>> consumer) {
-        return new Consume<>(consumer::accept);
+    @SuppressWarnings("unchecked")
+    public static <S extends WithDittoHeaders, T extends S> Graph<SinkShape<WithSender<T>>, NotUsed> of(final Consumer<WithSender<S>> consumer) {
+        // need to cast WithSender<T> to WithSender<S> because java does not understand covariance
+        return Sink.<WithSender<T>>foreach(w -> consumer.accept((WithSender<S>) w))
+                .mapMaterializedValue(x -> NotUsed.getInstance());
     }
 
     /**
-     * Create sink from biconsumer of message and sender.
+     * Create sink from bi-consumer of message and sender.
      *
-     * @param consumer the consumer.
+     * @param biConsumer the bi-consumer.
      * @param <T> type of messages.
      * @return sink.
      */
-    public static <T> Consume<T> of(final BiConsumer<? super T, ActorRef> consumer) {
-        return new Consume<>(withSender -> consumer.accept(withSender.getMessage(), withSender.getSender()));
+    public static <T extends WithDittoHeaders> Graph<SinkShape<WithSender<T>>, NotUsed> of(final BiConsumer<? super T, ActorRef> biConsumer) {
+        return of(withSender -> biConsumer.accept(withSender.getMessage(), withSender.getSender()));
     }
 
     /**
@@ -61,26 +65,9 @@ public class Consume<T> extends GraphStage<SinkShape<WithSender<T>>> {
      * @return sink.
      */
     @SuppressWarnings("unchecked")
-    public static GraphStage<SinkShape<WithSender>> untyped(
-            final Consumer<WithSender> consumer) {
+    public static Graph<SinkShape<WithSender>, NotUsed> untyped(final Consumer<WithSender> consumer) {
 
-        // Ignore complaints from Java type checker. The biConsumer can clearly handle all inputs.
-        return (GraphStage<SinkShape<WithSender>>) (Object) new Consume<>(consumer::accept);
-    }
-
-    @Override
-    public SinkShape<WithSender<T>> shape() {
-        return shape;
-    }
-
-    @Override
-    @SuppressWarnings({"squid:S3599","squid:S1171"})
-    public GraphStageLogic createLogic(final Attributes inheritedAttributes) {
-        return new AbstractControlFlowLogic(shape) {
-            {
-                initOutlets(shape);
-                when(shape.in(), consumer::accept);
-            }
-        };
+        // Ignore complaints from Java type checker. The consumer can clearly handle all inputs.
+        return (Graph<SinkShape<WithSender>, NotUsed>) (Object) of(consumer::accept);
     }
 }

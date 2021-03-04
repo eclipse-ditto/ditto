@@ -1,0 +1,57 @@
+# Copyright (c) 2020 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+type: object
+properties:
+  _policy:
+    allOf:
+      - $ref: "../policies/policy.yml"
+    description: |-
+      The initial policy to create for this thing. This will create a separate policy entity managed by resource `/policies/{thingId}`.
+
+
+      Use the placeholder `{{ request:subjectId }}` in order to let the backend insert the authenticated subjectId of the HTTP request.
+  _copyPolicyFrom:
+    type: string
+    description: |-
+      This field may contain
+      * the policy ID of an existing policy.
+
+        The policy is copied and used for this newly created thing. The
+        caller needs to have READ and WRITE<sup>*</sup> access to the policy.
+      * a placeholder reference to a thing in the format {{ ref:things/[thingId]/policyId }} where you need to
+        replace [thingId] with a valid thing ID.
+
+        The newly created thing will then obtain a copy of the policy of
+        the referenced thing. The caller needs to have READ access to the thing and READ and WRITE<sup>*</sup>
+        access to the policy of the thing.
+
+
+      <sup>*</sup> The check for WRITE permission avoids locking yourself out of the newly created policy. You can
+      bypass this check by setting the header `allowPolicyLockout` to `true`. Be aware that the authorized
+      subject cannot modify the policy if you do not assign WRITE permission on the policy resource!
+
+      If you want to specify a policy ID for the copied policy, use the policyId field.
+
+      This field must not be used together with the field _policy. If you specify both _policy and _copyPolicyFrom
+      this will lead to an error response.
+  policyId:
+    type: string
+    description: |-
+      The policy ID used for controlling access to this thing. Managed by
+      resource `/policies/{policyId}`.
+  definition:
+    $ref: 'definition.yml'
+  attributes:
+    $ref: 'attributes.yml'
+  features:
+    $ref: '../features/features.yml'
+required:
+  - policyId

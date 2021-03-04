@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -18,17 +20,20 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.policies.PolicyException;
+import org.eclipse.ditto.model.policies.PolicyId;
 
 /**
  * Thrown if the {@link org.eclipse.ditto.model.policies.Subjects} of a {@link org.eclipse.ditto.model.policies.PolicyEntry}
  * could not be modified because the requester had insufficient permissions.
  */
 @Immutable
+@JsonParsableException(errorCode = SubjectsNotModifiableException.ERROR_CODE)
 public final class SubjectsNotModifiableException extends DittoRuntimeException implements PolicyException {
 
     /**
@@ -49,7 +54,7 @@ public final class SubjectsNotModifiableException extends DittoRuntimeException 
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-        super(ERROR_CODE, HttpStatusCode.FORBIDDEN, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, HttpStatus.FORBIDDEN, dittoHeaders, message, description, cause, href);
     }
 
     /**
@@ -59,7 +64,7 @@ public final class SubjectsNotModifiableException extends DittoRuntimeException 
      * @param label the label of the PolicyEntry.
      * @return the builder.
      */
-    public static Builder newBuilder(final String policyId, final CharSequence label) {
+    public static Builder newBuilder(final PolicyId policyId, final CharSequence label) {
         return new Builder(policyId, label);
     }
 
@@ -69,13 +74,11 @@ public final class SubjectsNotModifiableException extends DittoRuntimeException 
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new SubjectsNotModifiableException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static SubjectsNotModifiableException fromMessage(final String message,
+    public static SubjectsNotModifiableException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
@@ -85,22 +88,29 @@ public final class SubjectsNotModifiableException extends DittoRuntimeException 
      * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new SubjectsNotModifiableException.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
-     * JsonFields#MESSAGE} field.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static SubjectsNotModifiableException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
+    }
+
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new Builder()
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
                 .dittoHeaders(dittoHeaders)
-                .message(readMessage(jsonObject))
-                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
-                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 
     /**
      * A mutable builder with a fluent API for a {@link SubjectsNotModifiableException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<SubjectsNotModifiableException> {
@@ -109,9 +119,9 @@ public final class SubjectsNotModifiableException extends DittoRuntimeException 
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String policyId, final CharSequence label) {
+        private Builder(final PolicyId policyId, final CharSequence label) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, label, policyId));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, label, String.valueOf(policyId)));
         }
 
         @Override

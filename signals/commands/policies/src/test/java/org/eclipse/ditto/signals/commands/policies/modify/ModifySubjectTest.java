@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -20,8 +22,9 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Label;
-import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.model.policies.Subject;
+import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.TestConstants;
 import org.junit.Test;
@@ -35,7 +38,7 @@ public class ModifySubjectTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(PolicyCommand.JsonFields.TYPE, ModifySubject.TYPE)
-            .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(ModifySubject.JSON_LABEL, TestConstants.Policy.LABEL.toString())
             .set(ModifySubject.JSON_SUBJECT_ID, TestConstants.Policy.SUBJECT.getId().toString())
             .set(ModifySubject.JSON_SUBJECT, TestConstants.Policy.SUBJECT.toJson(FieldType.regularOrSpecial()))
@@ -46,7 +49,7 @@ public class ModifySubjectTest {
     public void assertImmutability() {
         assertInstancesOf(ModifySubject.class,
                 areImmutable(),
-                provided(Label.class, Subject.class, JsonObject.class).areAlsoImmutable());
+                provided(Label.class, Subject.class, JsonObject.class, PolicyId.class).areAlsoImmutable());
     }
 
 
@@ -60,7 +63,14 @@ public class ModifySubjectTest {
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
-        ModifySubject.of(null, TestConstants.Policy.LABEL,
+        ModifySubject.of((PolicyId) null, TestConstants.Policy.LABEL,
+                TestConstants.Policy.SUBJECT, TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+
+    @Test(expected = PolicyIdInvalidException.class)
+    public void tryToCreateInstanceWithNullPolicyIdString() {
+        ModifySubject.of((String) null, TestConstants.Policy.LABEL,
                 TestConstants.Policy.SUBJECT, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
@@ -69,8 +79,7 @@ public class ModifySubjectTest {
     public void tryToCreateInstanceWithInvalidPolicyId() {
         assertThatExceptionOfType(PolicyIdInvalidException.class)
                 .isThrownBy(() -> ModifySubject.of("undefined", TestConstants.Policy.LABEL,
-                        TestConstants.Policy.SUBJECT, TestConstants.EMPTY_DITTO_HEADERS))
-                .withNoCause();
+                        TestConstants.Policy.SUBJECT, TestConstants.EMPTY_DITTO_HEADERS));
     }
 
 

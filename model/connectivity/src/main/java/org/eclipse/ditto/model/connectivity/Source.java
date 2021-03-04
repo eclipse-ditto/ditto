@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -21,6 +23,8 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -55,9 +59,23 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
     int getIndex();
 
     /**
+     * @return the optional qos value of this source - only applicable for certain {@link ConnectionType}s.
+     */
+    Optional<Integer> getQos();
+
+    /**
      * @return the enforcement options that should be applied to this source
      */
     Optional<Enforcement> getEnforcement();
+
+    /**
+     * Returns the acknowledgement requests which should be added to each by the source consumed message
+     * with an optional filter.
+     *
+     * @return the acknowledgements that are requested from messages consumed in this source
+     * @since 1.2.0
+     */
+    Optional<FilteredAcknowledgementRequest> getAcknowledgementRequests();
 
     /**
      * Defines an optional header mapping e.g. rename, combine etc. headers for inbound message. Mapping is
@@ -67,6 +85,39 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
      * @return the optional header mappings
      */
     Optional<HeaderMapping> getHeaderMapping();
+
+
+    /**
+     * The payload mappings that should be applied for messages received on this source. Each
+     * mapping can produce multiple signals on its own that are then forwarded independently.
+     *
+     * @return the payload mappings to execute
+     */
+    PayloadMapping getPayloadMapping();
+
+    /**
+     * The target to handle Ditto command responses to commands sent by this source.
+     * If undefined, responses are published for commands with {@code response-required=true}
+     * at the address defined by the header {@code reply-to} without header or payload mapping.
+     *
+     * @return an optional reply-target.
+     */
+    Optional<ReplyTarget> getReplyTarget();
+
+    /**
+     * Whether reply-target is enabled for this source.
+     *
+     * @return whether reply-target is enabled.
+     */
+    boolean isReplyTargetEnabled();
+
+    /**
+     * The declared acknowledgement labels are those of acknowledgements this source is allowed to send.
+     *
+     * @return the declared acknowledgement labels.
+     * @since 1.4.0
+     */
+    Set<AcknowledgementLabel> getDeclaredAcknowledgementLabels();
 
     /**
      * Returns all non hidden marked fields of this {@code Source}.
@@ -111,6 +162,13 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
                         JsonSchemaVersion.V_2);
 
         /**
+         * JSON field containing the {@code Source} qos.
+         */
+        public static final JsonFieldDefinition<Integer> QOS =
+                JsonFactory.newIntFieldDefinition("qos", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
          * JSON field containing the {@code Source} authorization context (list of authorization subjects).
          */
         public static final JsonFieldDefinition<JsonArray> AUTHORIZATION_CONTEXT =
@@ -125,10 +183,54 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
+         * JSON field containing the {@code Source} acknowledgements that are requested from messages consumed in this
+         * source.
+         *
+         * @since 1.2.0
+         */
+        public static final JsonFieldDefinition<JsonObject> ACKNOWLEDGEMENT_REQUESTS =
+                JsonFactory.newJsonObjectFieldDefinition("acknowledgementRequests", FieldType.REGULAR,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+
+        /**
          * JSON field containing the {@code Source} header mapping.
          */
         public static final JsonFieldDefinition<JsonObject> HEADER_MAPPING =
                 JsonFactory.newJsonObjectFieldDefinition("headerMapping", FieldType.REGULAR,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code Source} payload mapping.
+         */
+        public static final JsonFieldDefinition<JsonArray> PAYLOAD_MAPPING =
+                JsonFactory.newJsonArrayFieldDefinition("payloadMapping", FieldType.REGULAR,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the reply-target.
+         */
+        public static final JsonFieldDefinition<JsonObject> REPLY_TARGET =
+                JsonFactory.newJsonObjectFieldDefinition("replyTarget", FieldType.REGULAR,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field for whether reply-target is enabled. Set to false explicitly to disable reply sending.
+         * Otherwise it is assumed that the connection was created before reply-target was introduced and
+         * live migration will occur. The field is within the "replyTarget" block but is treated as a part of
+         * Source instead.
+         */
+        public static final JsonFieldDefinition<Boolean> REPLY_TARGET_ENABLED =
+                JsonFactory.newBooleanFieldDefinition("replyTarget/enabled", FieldType.REGULAR,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field for declared acknowledgement labels, namely the labels of acknowledgements the connection
+         * source is allowed to send.
+         *
+         * @since 1.4.0
+         */
+        public static final JsonFieldDefinition<JsonArray> DECLARED_ACKS =
+                JsonFactory.newJsonArrayFieldDefinition("declaredAcks", FieldType.REGULAR,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         JsonFields() {

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -26,6 +28,7 @@ import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.GlobalEventRegistry;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -39,14 +42,14 @@ public final class PolicyCreatedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, PolicyCreated.TYPE)
             .set(Event.JsonFields.REVISION, TestConstants.Policy.REVISION_NUMBER)
-            .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(PolicyCreated.JSON_POLICY, TestConstants.Policy.POLICY.toJson(FieldType.regularOrSpecial()))
             .build();
 
     private static final JsonObject KNOWN_JSON_WITHOUT_REVISION = JsonFactory.newObjectBuilder()
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, PolicyCreated.TYPE)
-            .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(PolicyCreated.JSON_POLICY, TestConstants.Policy.POLICY.toJson(FieldType.regularOrSpecial()))
             .build();
 
@@ -106,6 +109,19 @@ public final class PolicyCreatedTest {
 
         assertThat(underTest).isNotNull();
         assertThat((Jsonifiable) underTest.getPolicy()).isEqualTo(TestConstants.Policy.POLICY);
+    }
+
+    @Test
+    public void parsePolicyCreatedEvent() {
+        final GlobalEventRegistry eventRegistry = GlobalEventRegistry.getInstance();
+
+        final PolicyCreated event = PolicyCreated.of(TestConstants.Policy.POLICY, TestConstants.Policy.REVISION_NUMBER,
+                TestConstants.DITTO_HEADERS);
+        final JsonObject jsonObject = event.toJson(FieldType.regularOrSpecial());
+
+        final Event parsedEvent = eventRegistry.parse(jsonObject, TestConstants.DITTO_HEADERS);
+
+        assertThat(parsedEvent).isEqualTo(event);
     }
 
 }

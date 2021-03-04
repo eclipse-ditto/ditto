@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -32,11 +34,6 @@ public final class FieldExpressionUtil {
     public static final String FIELD_NAME_THING_ID = "thingId";
 
     /**
-     * Owner field name.
-     */
-    public static final String FIELD_NAME_OWNER = "owner";
-
-    /**
      * namespace field to be saved in field expressions.
      */
     public static final String FIELD_NAMESPACE = "_namespace";
@@ -49,6 +46,7 @@ public final class FieldExpressionUtil {
     private static final String REGEX_FIELD_START = "^";
     private static final String REGEX_FIELD_END = "(/|\\z)";
     private static final String FIELD_NAME_ATTRIBUTES_PREFIX = "attributes/";
+    private static final String FIELD_NAME_DEFINITION_PREFIX = "definition/";
 
     private FieldExpressionUtil() {
         throw new AssertionError();
@@ -93,6 +91,17 @@ public final class FieldExpressionUtil {
      */
     public static String stripAttributesPrefix(final String attributesFieldName) {
         return requireNonNull(attributesFieldName).substring(FIELD_NAME_ATTRIBUTES_PREFIX.length());
+
+    }
+
+    /**
+     * Checks if the given field name is an definition field name.
+     *
+     * @param fieldName the field name
+     * @return {@code true}, if the field name is an attribute field name
+     */
+    public static boolean isDefinitionFieldName(final String fieldName) {
+        return requireNonNull(fieldName).startsWith(FIELD_NAME_DEFINITION_PREFIX);
     }
 
     /**
@@ -110,44 +119,87 @@ public final class FieldExpressionUtil {
      */
     public static final class FeatureField {
 
-        private static final Pattern FIELD_NAME_FEATURE_PATTERN1 = Pattern.compile("^features/" +
-                "(?<featureId>[^\\*][^/]*)/properties/(?<property>.+)");
+        private static final Pattern FIELD_NAME_PROPERTIES_PATTERN =
+                Pattern.compile("^features/(?<featureId>[^/]++)/properties/?");
+
+        private static final Pattern FIELD_NAME_DESIRED_PROPERTIES_PATTERN =
+                Pattern.compile("^features/(?<featureId>[^/]++)/desiredProperties/?");
+
+        private static final Pattern FIELD_NAME_FEATURE_PATTERN1 =
+                Pattern.compile("^features/(?<featureId>[^/]++)/properties/(?<property>.+)");
+
+        private static final Pattern FIELD_NAME_DESIRED_FEATURE_PATTERN =
+                Pattern.compile("^features/(?<featureId>[^/]++)/desiredProperties/(?<desiredProperty>.+)");
 
         private static final Pattern FIELD_NAME_FEATURE_PATTERN2 =
-                Pattern.compile("^features/(?<featureId>[^\\*][^/]*)");
-
-        private static final Pattern FIELD_NAME_FEATURE_PATTERN3 =
-                Pattern.compile("^features/\\*/properties/(?<property>.+)");
+                Pattern.compile("^features/(?<featureId>[^/]++)");
 
         private final boolean matches;
         private final String featureId;
         private final String property;
+        private final boolean isProperties;
+        private final String desiredProperty;
+        private final boolean isDesiredProperties;
 
-        private FeatureField(final String fieldName) {
+        private FeatureField(final CharSequence fieldName) {
             Matcher matcher = FIELD_NAME_FEATURE_PATTERN1.matcher(fieldName);
-
             if (matcher.matches()) {
-                this.matches = true;
-                this.featureId = matcher.group("featureId");
-                this.property = matcher.group("property");
+                matches = true;
+                featureId = matcher.group("featureId");
+                isProperties = false;
+                property = matcher.group("property");
+                isDesiredProperties = false;
+                desiredProperty = null;
             } else {
-                matcher = FIELD_NAME_FEATURE_PATTERN2.matcher(fieldName);
 
+                matcher = FIELD_NAME_DESIRED_FEATURE_PATTERN.matcher(fieldName);
                 if (matcher.matches()) {
-                    this.matches = true;
-                    this.featureId = matcher.group("featureId");
-                    this.property = null;
+                    matches = true;
+                    featureId = matcher.group("featureId");
+                    isProperties = false;
+                    property = null;
+                    isDesiredProperties = false;
+                    desiredProperty = matcher.group("desiredProperty");
                 } else {
-                    matcher = FIELD_NAME_FEATURE_PATTERN3.matcher(fieldName);
 
+                    matcher = FIELD_NAME_PROPERTIES_PATTERN.matcher(fieldName);
                     if (matcher.matches()) {
-                        this.matches = true;
-                        this.featureId = null;
-                        this.property = matcher.group("property");
+                        matches = true;
+                        featureId = matcher.group("featureId");
+                        isProperties = true;
+                        property = null;
+                        isDesiredProperties = false;
+                        desiredProperty = null;
                     } else {
-                        this.matches = false;
-                        this.featureId = null;
-                        this.property = null;
+
+                        matcher = FIELD_NAME_DESIRED_PROPERTIES_PATTERN.matcher(fieldName);
+                        if (matcher.matches()) {
+                            matches = true;
+                            featureId = matcher.group("featureId");
+                            isProperties = false;
+                            property = null;
+                            isDesiredProperties = true;
+                            desiredProperty = null;
+                        } else {
+
+                            matcher = FIELD_NAME_FEATURE_PATTERN2.matcher(fieldName);
+                            if (matcher.matches()) {
+                                matches = true;
+                                featureId = matcher.group("featureId");
+                                isProperties = false;
+                                property = null;
+                                isDesiredProperties = false;
+                                desiredProperty = null;
+                            } else {
+
+                                matches = false;
+                                featureId = null;
+                                isProperties = false;
+                                property = null;
+                                isDesiredProperties = false;
+                                desiredProperty = null;
+                            }
+                        }
                     }
                 }
             }
@@ -171,5 +223,27 @@ public final class FieldExpressionUtil {
             return Optional.ofNullable(property);
         }
 
+        /**
+         * @return the optional feature desiredProperty path.
+         */
+        public Optional<String> getDesiredProperty() {
+            return Optional.ofNullable(desiredProperty);
+        }
+
+        /**
+         * @return whether the field matches the properties.
+         */
+        public boolean isProperties() {
+            return isProperties;
+        }
+
+        /**
+         * @return whether the field matches the desired properties.
+         */
+        public boolean isDesiredProperties() {
+            return isDesiredProperties;
+        }
+
     }
+
 }

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -22,12 +24,13 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchQuery;
@@ -65,9 +68,9 @@ public final class JsonExamplesProducer {
         final Path modelDir = rootPath.resolve(Paths.get("model"));
         Files.createDirectories(modelDir);
 
-        final Thing thing = ThingsModelFactory.newThingBuilder().setId("default:thing1")
+        final Thing thing = ThingsModelFactory.newThingBuilder().setId(ThingId.of("default", "thing1"))
                 .setAttribute(JsonFactory.newPointer("temperature"), JsonFactory.newValue(35L)).build();
-        final Thing thing2 = ThingsModelFactory.newThingBuilder().setId("default:thing2")
+        final Thing thing2 = ThingsModelFactory.newThingBuilder().setId(ThingId.of("default", "thing2"))
                 .setAttribute(JsonFactory.newPointer("temperature"), JsonFactory.newValue(35L)).build();
         final JsonArray items = JsonFactory.newArrayBuilder().add(thing.toJson(), thing2.toJson()).build();
         writeJson(modelDir.resolve(Paths.get("search-model.json")),
@@ -106,11 +109,11 @@ public final class JsonExamplesProducer {
 
 
         final Thing thing = ThingsModelFactory.newThingBuilder()
-                .setId("default:thing1")
+                .setId(ThingId.of("default", "thing1"))
                 .setAttribute(JsonFactory.newPointer("temperature"), JsonFactory.newValue(35L))
                 .build();
         final Thing thing2 = ThingsModelFactory.newThingBuilder()
-                .setId("default:thing2")
+                .setId(ThingId.of("default", "thing2"))
                 .setAttribute(JsonFactory.newPointer("temperature"), JsonFactory.newValue(35L))
                 .build();
         final JsonArray array = JsonFactory.newArrayBuilder()
@@ -126,7 +129,7 @@ public final class JsonExamplesProducer {
         writeJson(commandsDir.resolve(Paths.get("count-things-response.json")), countThingsResponse);
 
         final DittoRuntimeException e =
-                DittoRuntimeException.newBuilder("search.filter.invalid", HttpStatusCode.BAD_REQUEST)
+                DittoRuntimeException.newBuilder("search.filter.invalid", HttpStatus.BAD_REQUEST)
                         .build();
         final SearchErrorResponse errorResponse = SearchErrorResponse.of(e, DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("query-things-error-response.json")), errorResponse);

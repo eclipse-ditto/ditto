@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -16,6 +18,7 @@ import javax.annotation.Nullable;
 /**
  * This interface represents the definition of a pre-defined Ditto header. The definition provides the header key as
  * well as the Java type of the header value.
+ * Note: All header keys must be lower-case;
  */
 public interface HeaderDefinition {
 
@@ -63,13 +66,11 @@ public interface HeaderDefinition {
      * </p>
      *
      * @param value the value to be validated.
-     * @throws IllegalArgumentException if {@code value} is not a valid representation of this definition's Java type.
+     * @throws org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException if {@code value} is not a valid
+     * representation of this definition's Java type.
      * @see #getJavaType()
      */
-    default void validateValue(@Nullable final CharSequence value) {
-        final HeaderValueValidator validator = HeaderValueValidator.getInstance();
-        validator.accept(this, value);
-    }
+    void validateValue(@Nullable CharSequence value);
 
     /**
      * Same as {@link #getKey()}.

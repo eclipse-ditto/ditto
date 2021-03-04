@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -17,10 +19,7 @@ import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJou
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
-import com.typesafe.config.Config;
-
 import akka.actor.Props;
-
 
 /**
  * Configurable default implementation of {@link AbstractPersistenceStreamingActor}.
@@ -30,17 +29,24 @@ public final class DefaultPersistenceStreamingActor<T extends EntityIdWithRevisi
         extends AbstractPersistenceStreamingActor<T> {
 
     private final Class<T> elementClass;
-    private final MongoClientWrapper mongoClientWrapper;
 
-    DefaultPersistenceStreamingActor(final Class<T> elementClass,
-            final int streamingCacheSize,
+    @SuppressWarnings("unused")
+    private DefaultPersistenceStreamingActor(final Class<T> elementClass,
             final Function<PidWithSeqNr, T> entityMapper,
-            final MongoReadJournal readJournal,
-            final MongoClientWrapper mongoClientWrapper) {
+            final Function<EntityIdWithRevision, PidWithSeqNr> entityUnmapper) {
 
-        super(streamingCacheSize, entityMapper, readJournal);
+        super(entityMapper, entityUnmapper);
         this.elementClass = elementClass;
-        this.mongoClientWrapper = mongoClientWrapper;
+    }
+
+    @SuppressWarnings("unused")
+    private DefaultPersistenceStreamingActor(final Class<T> elementClass,
+            final Function<PidWithSeqNr, T> entityMapper,
+            final Function<EntityIdWithRevision, PidWithSeqNr> entityUnmapper,
+            final MongoReadJournal readJournal) {
+
+        super(entityMapper, entityUnmapper, readJournal);
+        this.elementClass = elementClass;
     }
 
     /**
@@ -48,33 +54,31 @@ public final class DefaultPersistenceStreamingActor<T extends EntityIdWithRevisi
      *
      * @param <T> type of messages to stream.
      * @param elementClass class of the elements.
-     * @param config the configuration of the akka system.
-     * @param streamingCacheSize the size of the streaming cache.
-     * @param entityMapper the mapper used to map {@link PidWithSeqNr} to {@code T}. The resulting entity will be
-     * streamed to the recipient actor.
+     * @param entityMapper the mapper used to map
+     * {@link org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr} to {@code T}.
+     * The resulting entity will be streamed to the recipient actor.
+     * @param entityUnmapper the inverse of {@code entityMapper}.
      * @return the Akka configuration Props object.
      */
     public static <T extends EntityIdWithRevision> Props props(final Class<T> elementClass,
-            final Config config,
-            final int streamingCacheSize,
-            final Function<PidWithSeqNr, T> entityMapper) {
+            final Function<PidWithSeqNr, T> entityMapper,
+            final Function<EntityIdWithRevision, PidWithSeqNr> entityUnmapper) {
 
-        return Props.create(DefaultPersistenceStreamingActor.class, () -> {
-            final MongoClientWrapper mongoClient = MongoClientWrapper.newInstance(config);
-            final MongoReadJournal readJournal = MongoReadJournal.newInstance(config, mongoClient);
-            return new DefaultPersistenceStreamingActor<>(elementClass,
-                    streamingCacheSize, entityMapper, readJournal, mongoClient);
-        });
+        return Props.create(DefaultPersistenceStreamingActor.class, elementClass, entityMapper, entityUnmapper);
     }
 
-    @Override
-    public void postStop() throws Exception {
-        mongoClientWrapper.close();
-        super.postStop();
+    static <T extends EntityIdWithRevision> Props propsForTests(final Class<T> elementClass,
+            final Function<PidWithSeqNr, T> entityMapper,
+            final Function<EntityIdWithRevision, PidWithSeqNr> entityUnmapper,
+            final MongoReadJournal readJournal) {
+
+        return Props.create(DefaultPersistenceStreamingActor.class, elementClass, entityMapper, entityUnmapper,
+                readJournal);
     }
 
     @Override
     protected Class<T> getElementClass() {
         return elementClass;
     }
+
 }

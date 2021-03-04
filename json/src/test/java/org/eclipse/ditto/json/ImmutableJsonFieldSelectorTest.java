@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -101,13 +103,14 @@ public final class ImmutableJsonFieldSelectorTest {
         final Set<JsonPointer> jsonPointers = pointers.stream()
                 .map(JsonFactory::newPointer)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
-        final String jsonFieldSelector = pointers.stream().collect(Collectors.joining(","));
+        final String inputJsonFieldSelector = String.join(",", pointers);
 
         final JsonFieldSelector underTest1 = ImmutableJsonFieldSelector.of(jsonPointers);
-        final JsonFieldSelector underTest2 = JsonFactory.newFieldSelector(jsonFieldSelector,
+        final JsonFieldSelector underTest2 = JsonFactory.newFieldSelector(inputJsonFieldSelector,
                 JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build());
 
         assertThat(underTest1.toString()).isEqualTo(underTest2.toString());
+        assertThat(underTest1.toString()).isEqualTo(inputJsonFieldSelector);
     }
 
 }

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -20,6 +22,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
@@ -34,7 +37,7 @@ public final class DeleteThingTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, DeleteThing.TYPE)
-            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .build();
 
 
@@ -42,7 +45,7 @@ public final class DeleteThingTest {
     public void assertImmutability() {
         assertInstancesOf(DeleteThing.class,
                 areImmutable(),
-                provided(Thing.class, JsonPointer.class).areAlsoImmutable());
+                provided(Thing.class, JsonPointer.class, ThingId.class).areAlsoImmutable());
     }
 
 
@@ -55,8 +58,14 @@ public final class DeleteThingTest {
 
 
     @Test(expected = ThingIdInvalidException.class)
+    public void tryToCreateInstanceWithNullThingString() {
+        DeleteThing.of((String) null, TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+
+    @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThing() {
-        DeleteThing.of(null, TestConstants.EMPTY_DITTO_HEADERS);
+        DeleteThing.of((ThingId) null, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
 
@@ -75,7 +84,7 @@ public final class DeleteThingTest {
         final DeleteThing underTest = DeleteThing.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
     }
 
 }

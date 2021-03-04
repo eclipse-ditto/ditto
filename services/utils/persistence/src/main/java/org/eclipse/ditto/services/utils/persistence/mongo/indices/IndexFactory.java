@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -12,6 +14,7 @@ package org.eclipse.ditto.services.utils.persistence.mongo.indices;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -41,7 +44,7 @@ public final class IndexFactory {
      *
      * @param name the name of the index.
      * @param fields the fields which form the index.
-     * @param unique whether or not the index should be unique.
+     * @param unique whether or not the index should be unique AND sparse.
      * @return the index.
      * @see #newInstanceWithCustomKeys(String, List, boolean)
      */
@@ -56,15 +59,27 @@ public final class IndexFactory {
      *
      * @param name the name of the index.
      * @param keys the keys which form the index.
-     * @param unique whether or not the index should be unique.
+     * @param unique whether or not the index should be unique AND sparse.
      * @return the index.
      * @see #newInstance(String, List, boolean)
      */
-    public static Index newInstanceWithCustomKeys(final String name, final List<IndexKey> keys, final boolean
-            unique) {
-
+    public static Index newInstanceWithCustomKeys(final String name, final List<IndexKey> keys, final boolean unique) {
         final BsonDocument keysDocument = createKeysDocument(requireNonNull(keys));
         return Index.of(keysDocument, name, unique, unique, BACKGROUND_OPTION_DEFAULT);
+    }
+
+    /**
+     * Return a new {@link Index} for background deletion of documents.
+     *
+     * @param name the name of the index.
+     * @param field the field containing the epoch timestamp for deletion.
+     * @param expireAfterSeconds how many seconds the deletion threshold lies before the current epoch second.
+     * @return the index.
+     */
+    public static Index newExpirationIndex(final String name, final String field, final long expireAfterSeconds) {
+        final IndexKey key = DefaultIndexKey.of(field);
+        final BsonDocument keysDocument = createKeysDocument(Collections.singletonList(key));
+        return Index.of(keysDocument, name, false, true, true).withExpireAfterSeconds(expireAfterSeconds);
     }
 
     private static BsonDocument createKeysDocument(final List<IndexKey> keys) {

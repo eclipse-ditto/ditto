@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -28,15 +30,21 @@ import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.ThingIdValidator;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
 /**
  * This command deletes one single ACL entry of a Thing. Contains the {@code authorizationSubject} of the ACL to delete.
+ *
+ * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
  */
+
+@Deprecated
 @Immutable
+@JsonParsableCommand(typePrefix = DeleteAclEntry.TYPE_PREFIX, name = DeleteAclEntry.NAME)
 public final class DeleteAclEntry extends AbstractCommand<DeleteAclEntry>
         implements ThingModifyCommand<DeleteAclEntry> {
 
@@ -53,14 +61,13 @@ public final class DeleteAclEntry extends AbstractCommand<DeleteAclEntry>
     static final JsonFieldDefinition<String> JSON_AUTHORIZATION_SUBJECT =
             JsonFactory.newStringFieldDefinition("authorizationSubject", FieldType.REGULAR, JsonSchemaVersion.V_1);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final AuthorizationSubject authorizationSubject;
 
-    private DeleteAclEntry(final AuthorizationSubject authorizationSubject, final String thingId,
+    private DeleteAclEntry(final AuthorizationSubject authorizationSubject, final ThingId thingId,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, dittoHeaders);
-        ThingIdValidator.getInstance().accept(thingId, dittoHeaders);
         this.thingId = thingId;
         this.authorizationSubject = checkNotNull(authorizationSubject, "authorization subject to be deleted");
     }
@@ -74,10 +81,28 @@ public final class DeleteAclEntry extends AbstractCommand<DeleteAclEntry>
      * @param dittoHeaders the headers of the command.
      * @return a command for deleting a Thing's ACL entry.
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if {@code thingId} does not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.auth.AuthorizationSubject, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static DeleteAclEntry of(final String thingId, final AuthorizationSubject authorizationSubject,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), authorizationSubject, dittoHeaders);
+    }
+
+    /**
+     * Returns a command for deleting one single ACL entry of a Thing. The ACL entry's {@code authorizationSubject} is
+     * passed as identifier of which ACL entry to delete.
+     *
+     * @param thingId the Thing's key.
+     * @param authorizationSubject the subject of the ACL entry to delete.
+     * @param dittoHeaders the headers of the command.
+     * @return a command for deleting a Thing's ACL entry.
+     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
+     */
+    public static DeleteAclEntry of(final ThingId thingId, final AuthorizationSubject authorizationSubject,
             final DittoHeaders dittoHeaders) {
 
         return new DeleteAclEntry(authorizationSubject, thingId, dittoHeaders);
@@ -94,7 +119,7 @@ public final class DeleteAclEntry extends AbstractCommand<DeleteAclEntry>
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if {@code thingId} does not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static DeleteAclEntry fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -110,11 +135,12 @@ public final class DeleteAclEntry extends AbstractCommand<DeleteAclEntry>
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if {@code thingId} does not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static DeleteAclEntry fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<DeleteAclEntry>(TYPE, jsonObject).deserialize(() -> {
-            final String thingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
             final String authSubjectId = jsonObject.getValueOrThrow(JSON_AUTHORIZATION_SUBJECT);
             final AuthorizationSubject extractedAuthSubject =
                     AuthorizationModelFactory.newAuthSubject(authSubjectId);
@@ -133,7 +159,7 @@ public final class DeleteAclEntry extends AbstractCommand<DeleteAclEntry>
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -147,7 +173,7 @@ public final class DeleteAclEntry extends AbstractCommand<DeleteAclEntry>
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_AUTHORIZATION_SUBJECT, authorizationSubject.getId(), predicate);
     }
 

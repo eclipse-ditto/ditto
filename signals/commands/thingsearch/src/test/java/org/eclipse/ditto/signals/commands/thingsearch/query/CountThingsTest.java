@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -30,17 +32,17 @@ public final class CountThingsTest {
 
     private static final String JSON_ALL_FIELDS_V2 = JsonFactory.newObjectBuilder()
             .set(ThingSearchCommand.JsonFields.TYPE, CountThings.TYPE)
-            .set(CountThings.JSON_FILTER, TestConstants.Search.KNOWN_FILTER_STR)
+            .set(CountThings.JSON_FILTER, TestConstants.KNOWN_FILTER_STR)
             .set(CountThings.JSON_NAMESPACES, JsonFactory.newArrayBuilder()
-                    .add(TestConstants.Search.KNOWN_NAMESPACE)
+                    .add(TestConstants.KNOWN_NAMESPACE)
                     .build())
             .build().toString();
 
     private static final String JSON_ALL_FIELDS_V1 = JsonFactory.newObjectBuilder()
             .set(ThingSearchCommand.JsonFields.ID, CountThings.NAME)
-            .set(CountThings.JSON_FILTER, TestConstants.Search.KNOWN_FILTER_STR)
+            .set(CountThings.JSON_FILTER, TestConstants.KNOWN_FILTER_STR)
             .set(CountThings.JSON_NAMESPACES, JsonFactory.newArrayBuilder()
-                    .add(TestConstants.Search.KNOWN_NAMESPACE)
+                    .add(TestConstants.KNOWN_NAMESPACE)
                     .build())
             .build().toString();
 
@@ -69,8 +71,8 @@ public final class CountThingsTest {
 
     @Test
     public void toJsonWithAllFieldsSetV2() {
-        final CountThings command = CountThings.of(TestConstants.Search.KNOWN_FILTER_STR,
-                TestConstants.Search.KNOWN_NAMESPACES_SET, DittoHeaders.empty());
+        final CountThings command = CountThings.of(TestConstants.KNOWN_FILTER_STR,
+                TestConstants.KNOWN_NAMESPACES_SET, DittoHeaders.empty());
 
         final String json = command.toJsonString();
         assertThat(json).isEqualTo(JSON_ALL_FIELDS_V2);
@@ -79,8 +81,8 @@ public final class CountThingsTest {
 
     @Test
     public void toJsonWithAllFieldsSetV1() {
-        final CountThings command = CountThings.of(TestConstants.Search.KNOWN_FILTER_STR,
-                TestConstants.Search.KNOWN_NAMESPACES_SET, DittoHeaders.empty());
+        final CountThings command = CountThings.of(TestConstants.KNOWN_FILTER_STR,
+                TestConstants.KNOWN_NAMESPACES_SET, DittoHeaders.empty());
 
         final String json = command.toJsonString(JsonSchemaVersion.V_1, FieldType.regularOrSpecial());
         assertThat(json).isEqualTo(JSON_ALL_FIELDS_V1);
@@ -120,7 +122,7 @@ public final class CountThingsTest {
 
     public void assertAllFieldsSet(final CountThings command) {
         assertThat(command).isNotNull();
-        assertThat(command.getFilter()).contains(TestConstants.Search.KNOWN_FILTER_STR);
+        assertThat(command.getFilter()).contains(TestConstants.KNOWN_FILTER_STR);
     }
 
 

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -24,8 +26,10 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.entity.Entity;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 
 /**
  * A generic entity which can be used as a "handle" for multiple {@link Feature}s belonging to this Thing. A Thing can
@@ -54,27 +58,12 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 public interface Thing extends Entity<ThingRevision> {
 
     /**
-     * The regex pattern a Thing Namespace.
-     */
-    String NAMESPACE_PREFIX_REGEX = "(?<ns>|(?:(?:[a-zA-Z]\\w*+)(?:\\.[a-zA-Z]\\w*+)*+))";
-
-    /**
-     * The regex pattern a Thing ID has to conform to. Defined by
-     * <a href="http://www.ietf.org/rfc/rfc2396.txt">RFC-2396</a>.
-     */
-    String ID_NON_NAMESPACE_REGEX =
-            "(?<id>(?:[-\\w:@&=+,.!~*'_;]|%\\p{XDigit}{2})(?:[-\\w:@&=+,.!~*'$_;]|%\\p{XDigit}{2})*+)";
-
-    /**
-     * The regex pattern a Thing ID has to conform to. Combines "namespace" pattern (java package notation + a
-     * semicolon) and "non namespace" (Defined by <a href="http://www.ietf.org/rfc/rfc2396.txt">RFC-2396</a>) pattern.
-     */
-    String ID_REGEX = NAMESPACE_PREFIX_REGEX + "\\:" + ID_NON_NAMESPACE_REGEX;
-
-    /**
      * The set of permissions which at least must be present in the ACL of a Thing for one Authorization Subject.
+     *
+     * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
      */
     @SuppressWarnings("squid:S2386")
+    @Deprecated
     Permissions MIN_REQUIRED_PERMISSIONS =
             ThingsModelFactory.newUnmodifiablePermissions(Permission.READ, Permission.WRITE, Permission.ADMINISTRATE);
 
@@ -99,7 +88,7 @@ public interface Thing extends Entity<ThingRevision> {
 
     @Override
     default JsonSchemaVersion getImplementedSchemaVersion() {
-        return (getAccessControlList().isPresent() && !getPolicyId().isPresent())
+        return (getAccessControlList().isPresent() && !getPolicyEntityId().isPresent())
                 ? JsonSchemaVersion.V_1 : JsonSchemaVersion.LATEST;
     }
 
@@ -131,6 +120,9 @@ public interface Thing extends Entity<ThingRevision> {
      * @return a copy of this Thing with all of its attributes removed.
      */
     Thing removeAttributes();
+
+    @Override
+    Optional<ThingId> getEntityId();
 
     /**
      * Sets the given attribute on a copy of this Thing.
@@ -242,6 +234,29 @@ public interface Thing extends Entity<ThingRevision> {
      * @throws IllegalArgumentException if {@code pointer} is empty.
      */
     Thing removeAttribute(JsonPointer attributePath);
+
+    /**
+     * Gets the definition of this Thing.
+     *
+     * @return the Definition of this Thing.
+     */
+    Optional<ThingDefinition> getDefinition();
+
+    /**
+     * Sets the definition on a copy of this Thing.
+     *
+     * @param definitionIdentifier the Thing's definition to set.
+     * @return a copy of this Thing with the given definition.
+     * @throws DefinitionIdentifierInvalidException if {@code definitionIdentifier} is invalid.
+     */
+    Thing setDefinition(@Nullable CharSequence definitionIdentifier);
+
+    /**
+     * Removes the Thing's definition on a copy of this Thing.
+     *
+     * @return a copy of this Thing without definition.
+     */
+    Thing removeDefinition();
 
     /**
      * Sets the given definition of a Feature on a copy of this Thing.
@@ -403,6 +418,157 @@ public interface Thing extends Entity<ThingRevision> {
     Thing removeFeatureProperty(String featureId, JsonPointer propertyPath);
 
     /**
+     * Sets the given desired properties of a Feature on a copy of this Thing.
+     *
+     * @param featureId the ID of the Feature.
+     * @param desiredProperties the desired properties to be set.
+     * @return a copy of this Thing with the Feature containing the given desired properties.
+     * @throws NullPointerException if {@code featureId} is {@code null}.
+     * @since 1.5.0
+     */
+    Thing setFeatureDesiredProperties(CharSequence featureId, FeatureProperties desiredProperties);
+
+    /**
+     * Sets the given desired property to the Feature with the given ID on a copy of this Thing.
+     *
+     * @param featureId the ID of the Feature.
+     * @param desiredPropertyPath the hierarchical path within the Feature to the desired property to be set.
+     * @param desiredPropertyValue the desired property value to be set.
+     * @return a copy of this Thing with the Feature containing the given desired property.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.5.0
+     */
+    default Thing setFeatureDesiredProperty(final CharSequence featureId, final CharSequence desiredPropertyPath,
+            final JsonValue desiredPropertyValue) {
+
+        return setFeatureDesiredProperty(featureId, JsonPointer.of(desiredPropertyPath), desiredPropertyValue);
+    }
+
+    /**
+     * Sets the given desired property to the Feature with the given ID on a copy of this Thing.
+     *
+     * @param featureId the ID of the Feature.
+     * @param desiredPropertyPath the hierarchical path within the Feature to the desired property to be set.
+     * @param desiredPropertyValue the desired property value to be set.
+     * @return a copy of this Thing with the Feature containing the given desired property.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.5.0
+     */
+    default Thing setFeatureDesiredProperty(final CharSequence featureId, final CharSequence desiredPropertyPath,
+            final boolean desiredPropertyValue) {
+
+        return setFeatureDesiredProperty(featureId, JsonPointer.of(desiredPropertyPath), JsonValue.of(desiredPropertyValue));
+    }
+
+    /**
+     * Sets the given desired property to the Feature with the given ID on a copy of this Thing.
+     *
+     * @param featureId the ID of the Feature.
+     * @param desiredPropertyPath the hierarchical path within the Feature to the desired property to be set.
+     * @param desiredPropertyValue the desired property value to be set.
+     * @return a copy of this Thing with the Feature containing the given desired property.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.5.0
+     */
+    default Thing setFeatureDesiredProperty(final CharSequence featureId, final CharSequence desiredPropertyPath, final int desiredPropertyValue) {
+        return setFeatureDesiredProperty(featureId, JsonPointer.of(desiredPropertyPath), JsonValue.of(desiredPropertyValue));
+    }
+
+    /**
+     * Sets the given desired property to the Feature with the given ID on a copy of this Thing.
+     *
+     * @param featureId the ID of the Feature.
+     * @param desiredPropertyPath the hierarchical path within the Feature to the desired property to be set.
+     * @param desiredPropertyValue the desired property value to be set.
+     * @return a copy of this Thing with the Feature containing the given desired property.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.5.0
+     */
+    default Thing setFeatureDesiredProperty(final CharSequence featureId, final CharSequence desiredPropertyPath,
+            final long desiredPropertyValue) {
+
+        return setFeatureDesiredProperty(featureId, JsonPointer.of(desiredPropertyPath), JsonValue.of(desiredPropertyValue));
+    }
+
+    /**
+     * Sets the given desired property to the Feature with the given ID on a copy of this Thing.
+     *
+     * @param featureId the ID of the Feature.
+     * @param desiredPropertyPath the hierarchical path within the Feature to the desired property to be set.
+     * @param desiredPropertyValue the desired property value to be set.
+     * @return a copy of this Thing with the Feature containing the given desired property.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.5.0
+     */
+    default Thing setFeatureDesiredProperty(final CharSequence featureId, final CharSequence desiredPropertyPath,
+            final double desiredPropertyValue) {
+
+        return setFeatureDesiredProperty(featureId, JsonPointer.of(desiredPropertyPath), JsonValue.of(desiredPropertyValue));
+    }
+
+    /**
+     * Sets the given desired property to the Feature with the given ID on a copy of this Thing.
+     *
+     * @param featureId the ID of the Feature.
+     * @param desiredPropertyPath the hierarchical path within the Feature to the desired property to be set.
+     * @param desiredPropertyValue the desired property value to be set.
+     * @return a copy of this Thing with the Feature containing the given desired property.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.5.0
+     */
+    default Thing setFeatureDesiredProperty(final CharSequence featureId, final CharSequence desiredPropertyPath,
+            final String desiredPropertyValue) {
+
+        return setFeatureDesiredProperty(featureId, JsonPointer.of(desiredPropertyPath), JsonValue.of(desiredPropertyValue));
+    }
+
+    /**
+     * Sets the given desired property to the Feature with the given ID on a copy of this Thing.
+     *
+     * @param featureId the ID of the Feature.
+     * @param desiredPropertyPath the hierarchical path within the Feature to the desired property to be set.
+     * @param desiredPropertyValue the desired property value to be set.
+     * @return a copy of this Thing with the Feature containing the given desired property.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.5.0
+     */
+    Thing setFeatureDesiredProperty(CharSequence featureId, JsonPointer desiredPropertyPath, JsonValue desiredPropertyValue);
+
+    /**
+     * Removes all desired properties from the given Feature on a copy of this Thing.
+     *
+     * @param featureId the ID of the Feature of which all desired properties are to be removed.
+     * @return a copy of this Thing with all of the Feature's desired properties removed.
+     * @throws NullPointerException if {@code featureId} is {@code null}.
+     * @since 1.5.0
+     */
+    Thing removeFeatureDesiredProperties(CharSequence featureId);
+
+    /**
+     * Removes the given desired property from a Feature on a copy of this Thing.
+     *
+     * @param featureId the ID of the Feature.
+     * @param propertyPath the hierarchical path within the Feature to the desired property to be removed.
+     * @return a copy of this Thing with the given Features desired property removed.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.5.0
+     */
+    default Thing removeFeatureDesiredProperty(final CharSequence featureId, final CharSequence propertyPath) {
+        return removeFeatureDesiredProperty(featureId, JsonPointer.of(propertyPath));
+    }
+
+    /**
+     * Removes the given desired property from a Feature on a copy of this Thing.
+     *
+     * @param featureId the ID of the Feature.
+     * @param propertyPath the hierarchical path within the Feature to the desired property to be removed.
+     * @return a copy of this Thing with the given Feature desired property removed.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.5.0
+     */
+    Thing removeFeatureDesiredProperty(CharSequence featureId, JsonPointer propertyPath);
+
+    /**
      * Returns the current lifecycle of this Thing.
      *
      * @return the current lifecycle of this Thing.
@@ -434,7 +600,9 @@ public interface Thing extends Entity<ThingRevision> {
      * Returns the Access Control List of this Thing.
      *
      * @return the Access Control List of this Thing.
+     * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
      */
+    @Deprecated
     Optional<AccessControlList> getAccessControlList();
 
     /**
@@ -442,7 +610,9 @@ public interface Thing extends Entity<ThingRevision> {
      *
      * @param accessControlList the Access Control List to be set.
      * @return a copy of this Thing with {@code accessControlList} as its ACL.
+     * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
      */
+    @Deprecated
     Thing setAccessControlList(AccessControlList accessControlList);
 
     /**
@@ -452,7 +622,9 @@ public interface Thing extends Entity<ThingRevision> {
      * @param aclEntry the entry to be set.
      * @return a copy of this Thing with the changed ACL.
      * @throws NullPointerException if {@code aclEntry} is {@code null}.
+     * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
      */
+    @Deprecated
     Thing setAclEntry(AclEntry aclEntry);
 
     /**
@@ -463,15 +635,33 @@ public interface Thing extends Entity<ThingRevision> {
      * @return a copy of this Thing whose ACL does not contain any entries which are associated with the specified
      * authorization subject.
      * @throws NullPointerException if {@code authorizationSubject} is {@code null}.
+     * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
      */
+    @Deprecated
     Thing removeAllPermissionsOf(AuthorizationSubject authorizationSubject);
 
     /**
      * Returns the Policy ID of this Thing.
      *
      * @return the Policy ID of this Thing.
+     * @deprecated Policy ID of the thing is now typed. Use {@link #getPolicyEntityId()} instead.
      */
-    Optional<String> getPolicyId();
+    @Deprecated
+    default Optional<String> getPolicyId() {
+        return getPolicyEntityId().map(String::valueOf);
+    }
+
+    /**
+     * Sets the given Policy ID on a copy of this Thing.
+     *
+     * @param policyId the Policy ID to set.
+     * @return a copy of this Thing with {@code policyId} as its Policy ID.
+     * @deprecated Policy ID of the thing is now typed. Use {@link #setPolicyId(PolicyId)} ()} instead.
+     */
+    @Deprecated
+    default Thing setPolicyId(@Nullable String policyId) {
+        return setPolicyId(policyId == null ? null : PolicyId.of(policyId));
+    }
 
     /**
      * Sets the given Policy ID on a copy of this Thing.
@@ -479,7 +669,14 @@ public interface Thing extends Entity<ThingRevision> {
      * @param policyId the Policy ID to set.
      * @return a copy of this Thing with {@code policyId} as its Policy ID.
      */
-    Thing setPolicyId(@Nullable String policyId);
+    Thing setPolicyId(@Nullable PolicyId policyId);
+
+    /**
+     * Returns the Policy ID of this Thing.
+     *
+     * @return the Policy ID of this Thing.
+     */
+    Optional<PolicyId> getPolicyEntityId();
 
     /**
      * Returns the Features of this Thing.
@@ -519,6 +716,12 @@ public interface Thing extends Entity<ThingRevision> {
      * @return a copy of this Thing without the Feature with the given ID.
      */
     Thing removeFeature(String featureId);
+
+    /**
+     * @deprecated this method does nothing anymore. IDs are now typed and already validated.
+     */
+    @Deprecated
+    default void validate(DittoHeaders headers) { }
 
     /**
      * An enumeration of the known {@link JsonField}s of a Thing.
@@ -562,6 +765,15 @@ public interface Thing extends Entity<ThingRevision> {
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
+         * JSON field containing the Thing's created timestamp in ISO-8601 format.
+         *
+         * @since 1.2.0
+         */
+        public static final JsonFieldDefinition<String> CREATED =
+                JsonFactory.newStringFieldDefinition("_created", FieldType.SPECIAL, FieldType.HIDDEN,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+
+        /**
          * JSON field containing the Thing's ID.
          */
         public static final JsonFieldDefinition<String> ID =
@@ -581,6 +793,13 @@ public interface Thing extends Entity<ThingRevision> {
                 JsonFactory.newStringFieldDefinition("policyId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
+         * JSON field containing the Thing's definition.
+         */
+        public static final JsonFieldDefinition<JsonValue> DEFINITION =
+                JsonFactory.newJsonValueFieldDefinition("definition", FieldType.REGULAR,
+                        JsonSchemaVersion.V_2);
+
+        /**
          * JSON field containing the Thing's attributes.
          */
         public static final JsonFieldDefinition<JsonObject> ATTRIBUTES =
@@ -593,6 +812,15 @@ public interface Thing extends Entity<ThingRevision> {
         public static final JsonFieldDefinition<JsonObject> FEATURES =
                 JsonFactory.newJsonObjectFieldDefinition("features", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the Thing's metadata.
+         *
+         * @since 1.2.0
+         */
+        public static final JsonFieldDefinition<JsonObject> METADATA =
+            JsonFactory.newJsonObjectFieldDefinition("_metadata", FieldType.SPECIAL, FieldType.HIDDEN,
+                JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

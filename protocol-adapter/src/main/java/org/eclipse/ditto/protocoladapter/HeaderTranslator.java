@@ -1,26 +1,31 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.protocoladapter;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
@@ -28,18 +33,16 @@ import org.eclipse.ditto.model.base.headers.HeaderDefinition;
 /**
  * Utility for translating Headers from external sources or to external sources.
  * <p>
- * Does so by applying blacklisting based on {@link HeaderDefinition}s.
+ * Does so by applying blocking based on {@link HeaderDefinition}s.
  * </p>
  */
 @Immutable
 public final class HeaderTranslator {
 
-    private final Set<String> headerKeys;
-    private final Map<String, HeaderDefinition> headerDefinitionMap;
+    private final Map<String, HeaderDefinition> headerDefinitions;
 
     private HeaderTranslator(final Map<String, HeaderDefinition> headerDefinitionMap) {
-        this.headerDefinitionMap = Collections.unmodifiableMap(headerDefinitionMap);
-        this.headerKeys = headerDefinitionMap.keySet();
+        headerDefinitions = Collections.unmodifiableMap(headerDefinitionMap);
     }
 
     /**
@@ -60,28 +63,31 @@ public final class HeaderTranslator {
     public static HeaderTranslator of(final HeaderDefinition[]... headerDefinitions) {
         return new HeaderTranslator(Arrays.stream(headerDefinitions)
                 .flatMap(Arrays::stream)
-                .collect(Collectors.toMap(HeaderDefinition::getKey, Function.identity())));
+                .collect(Collectors.toMap(HeaderDefinition::getKey, Function.identity(),
+                        (headerDefinition, headerDefinition2) -> {
+                            if (Objects.equals(headerDefinition.getKey(), DittoHeaderDefinition.TIMEOUT.getKey())) {
+                                // special treatment for "timeout" as this was copied from MessageHeaderDefinition
+                                //  to DittoHeaderDefinition - and the latter (having SerializationType String) shall
+                                //  have priority when merging:
+                                return headerDefinition.getSerializationType().equals(String.class) ?
+                                        headerDefinition : headerDefinition2;
+                            } else {
+                                throw new IllegalStateException("Duplicate key: " + headerDefinition.getKey());
+                            }
+                        })));
     }
 
     /**
      * Read Ditto headers from external headers.
      *
      * @param externalHeaders external headers as a map.
-     * @return Ditto headers initialized with values from external headers.
+     * @return a Map of headers to keep from the passed external headers.
+     * @throws NullPointerException if {@code externalHeaders} is {@code null}.
      */
-    public DittoHeaders fromExternalHeaders(final Map<String, String> externalHeaders) {
-        final DittoHeadersBuilder builder = DittoHeaders.newBuilder();
-        externalHeaders.forEach((externalKey, value) -> {
-            if (value == null) {
-                return;
-            }
-            final String key = externalKey.toLowerCase();
-            final HeaderDefinition definition = headerDefinitionMap.get(key);
-            if (definition == null || definition.shouldReadFromExternalHeaders()) {
-                builder.putHeader(key, value);
-            }
-        });
-        return builder.build();
+    public Map<String, String> fromExternalHeaders(final Map<String, String> externalHeaders) {
+        checkNotNull(externalHeaders, "externalHeaders");
+        final HeaderEntryFilter headerEntryFilter = HeaderEntryFilters.fromExternalHeadersFilter(headerDefinitions);
+        return filterHeaders(externalHeaders, headerEntryFilter);
     }
 
     /**
@@ -89,16 +95,46 @@ public final class HeaderTranslator {
      *
      * @param dittoHeaders Ditto headers to publish.
      * @return external headers.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
     public Map<String, String> toExternalHeaders(final DittoHeaders dittoHeaders) {
-        final Map<String, String> headers = new HashMap<>();
-        dittoHeaders.forEach((key, value) -> {
-            final HeaderDefinition definition = headerDefinitionMap.get(key);
-            if (definition == null || definition.shouldWriteToExternalHeaders()) {
-                headers.put(key, value);
-            }
-        });
-        return headers;
+        checkNotNull(dittoHeaders, "dittoHeaders");
+        final HeaderEntryFilter headerEntryFilter = HeaderEntryFilters.toExternalHeadersFilter(headerDefinitions);
+        return filterHeadersMap(dittoHeaders.asCaseSensitiveMap(), headerEntryFilter);
+    }
+
+    /**
+     * Retain only header fields which are known to this HeaderTranslator instance based on the configured
+     * {@code headerDefinitions}.
+     *
+     * @param externalHeaders external headers as a map.
+     * @return a Map of headers to retain from the passed external headers.
+     * @throws NullPointerException if {@code externalHeaders} is {@code null}.
+     * @since 1.1.0
+     */
+    public Map<String, String> retainKnownHeaders(final Map<String, String> externalHeaders) {
+        checkNotNull(externalHeaders, "externalHeaders");
+        final HeaderEntryFilter headerEntryFilter = HeaderEntryFilters.existsAsHeaderDefinition(headerDefinitions);
+        return filterHeaders(externalHeaders, headerEntryFilter);
+    }
+
+    /**
+     * Publish Ditto headers to external headers and filter out Ditto unknown headers.
+     * A combination of {@link #toExternalHeaders(DittoHeaders)} and {@link #retainKnownHeaders(Map)}.
+     *
+     * @param dittoHeaders Ditto headers to publish.
+     * @return external headers.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @since 1.1.0
+     */
+    public Map<String, String> toExternalAndRetainKnownHeaders(final DittoHeaders dittoHeaders) {
+        checkNotNull(dittoHeaders, "dittoHeaders");
+        if (headerDefinitions.isEmpty()) {
+            return dittoHeaders;
+        }
+        final HeaderEntryFilter headerEntryFilter = HeaderEntryFilters
+                .existsAsHeaderDefinitionAndExternal(headerDefinitions);
+        return filterHeaders(dittoHeaders, headerEntryFilter);
     }
 
     /**
@@ -106,19 +142,69 @@ public final class HeaderTranslator {
      *
      * @param headerKeys header keys to forget.
      * @return a new header translator with less knowledge.
+     * @throws NullPointerException if {@code headerKeys} is {@code null}.
+     * @deprecated this method will be removed in version 2.0.
      */
+    @Deprecated
     public HeaderTranslator forgetHeaderKeys(final Collection<String> headerKeys) {
-        final Map<String, HeaderDefinition> newHeaderDefinitionMap = headerDefinitionMap.entrySet()
-                .stream()
-                .filter(entry -> !headerKeys.contains(entry.getKey()))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        return new HeaderTranslator(newHeaderDefinitionMap);
+        checkNotNull(headerKeys, "headerKeys");
+        final Map<String, HeaderDefinition> newHeaderDefinitions = new LinkedHashMap<>(headerDefinitions);
+        headerKeys.forEach(newHeaderDefinitions::remove);
+        return new HeaderTranslator(newHeaderDefinitions);
+    }
+
+    private static Map<String, String> filterHeaders(final Map<String, String> headersToFilter,
+            final HeaderEntryFilter headerEntryFilter) {
+
+        if (headersToFilter instanceof DittoHeaders) {
+
+            // performance optimization: when filtering on already built DittoHeaders, use the ".toBuilder()"
+            // and remove values which were filtered out from the DittoHeadersBuilder
+            // return DittoHeaders again so that based on this return value other ".toBuilder()" calls may
+            // profit from the performance optimization in DittoHeaders.toBuilder() as no validation has to be done
+            return filterDittoHeaders((DittoHeaders) headersToFilter, headerEntryFilter);
+        } else {
+            return filterHeadersMap(headersToFilter, headerEntryFilter);
+        }
+    }
+
+    private static DittoHeaders filterDittoHeaders(final DittoHeaders headersToFilter,
+            final HeaderEntryFilter headerEntryFilter) {
+
+        final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = headersToFilter.toBuilder();
+        for (final Map.Entry<String, String> entry : headersToFilter.asCaseSensitiveMap().entrySet()) {
+            final String originalKey = entry.getKey();
+            final String originalValue = entry.getValue();
+            final String key = originalKey.toLowerCase();
+            final String filteredValue = headerEntryFilter.apply(key, originalValue);
+            if (null == filteredValue) {
+                dittoHeadersBuilder.removeHeader(originalKey);
+            } else if (!filteredValue.equals(originalValue)) {
+                dittoHeadersBuilder.putHeader(originalKey, filteredValue);
+            }
+        }
+        return dittoHeadersBuilder.build();
+    }
+
+    private static Map<String, String> filterHeadersMap(final Map<String, String> headersToFilter,
+            final HeaderEntryFilter headerEntryFilter) {
+
+        final Map<String, String> result = new LinkedHashMap<>(headersToFilter.size());
+        headersToFilter.forEach((originalKey, value) -> {
+            final String lowercaseKey = originalKey.toLowerCase();
+            final String filteredValue = headerEntryFilter.apply(lowercaseKey, value);
+            if (null != filteredValue) {
+                result.put(originalKey, filteredValue);
+            }
+        });
+        return result;
     }
 
     @Override
     public String toString() {
-        return this.getClass().getSimpleName() + " [" +
-                "headerKeys=" + headerKeys +
+        return getClass().getSimpleName() + " [" +
+                "headerKeys=" + headerDefinitions.keySet() +
                 ']';
     }
+
 }

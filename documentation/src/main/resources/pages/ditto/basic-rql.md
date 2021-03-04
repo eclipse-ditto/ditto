@@ -1,7 +1,7 @@
 ---
 title: RQL expressions
 keywords: rql, query, filter, filtering, search
-tags: [rql]
+tags: [rql, protocol]
 permalink: basic-rql.html
 ---
 
@@ -35,7 +35,7 @@ The RQL filter specifies "what" to filter.
 <property> = url-encoded-string
 ```
 
-To filter nested properties, Ditto uses the JSON Pointer notation ([RFC-6901](http://www.rfc-base.org/rfc-6901.html)).
+To filter nested properties, Ditto uses the JSON Pointer notation ([RFC-6901](https://tools.ietf.org/html/rfc6901)).
 
 The following example shows how to apply a filter for the sub property location of the parent property attributes with 
 a forward slash as separator:
@@ -234,12 +234,8 @@ not(<query>)
 
 **Example - filter things whose ID do not start with a common prefix**
 ```
-not(like(thingId,"org.eclipse.ditto:blacklisted*"))
+not(like(thingId,"org.eclipse.ditto:blocked*"))
 ```
-  
-{% include warning.html content="The `not` expression is not usable at the [search](basic-search.html) API due to
-                                 long running queries against the search index when using negation." %}
-
 
 ## RQL sorting
 

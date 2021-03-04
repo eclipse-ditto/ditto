@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -15,6 +17,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -31,10 +34,12 @@ final class ImmutableFeatureFromCopyBuilder implements FeatureBuilder, FeatureBu
     private String featureId;
     @Nullable private FeatureDefinition definition;
     @Nullable private FeatureProperties properties;
+    @Nullable private FeatureProperties desiredProperties;
 
     private ImmutableFeatureFromCopyBuilder(final String theFeatureId) {
         featureId = theFeatureId;
         properties = null;
+        desiredProperties = null;
         definition = null;
     }
 
@@ -51,6 +56,7 @@ final class ImmutableFeatureFromCopyBuilder implements FeatureBuilder, FeatureBu
 
         final ImmutableFeatureFromCopyBuilder result = new ImmutableFeatureFromCopyBuilder(feature.getId());
         result.properties(feature.getProperties().orElse(null));
+        result.desiredProperties(feature.getDesiredProperties().orElse(null));
         result.definition(feature.getDefinition().orElse(null));
 
         return result;
@@ -89,6 +95,33 @@ final class ImmutableFeatureFromCopyBuilder implements FeatureBuilder, FeatureBu
     }
 
     @Override
+    public FromCopyBuildable desiredProperties(@Nullable final FeatureProperties desiredProperties) {
+        this.desiredProperties = desiredProperties;
+        return this;
+    }
+
+    @Override
+    public FromCopyBuildable desiredProperties(@Nullable final JsonObject desiredProperties) {
+        if (null == desiredProperties) {
+            this.desiredProperties = null;
+        } else {
+            this.desiredProperties = desiredProperties instanceof FeatureProperties
+                    ? (FeatureProperties) desiredProperties
+                    : ThingsModelFactory.newFeatureProperties(desiredProperties);
+        }
+        return this;
+    }
+
+    @Override
+    public FromCopyBuildable desiredProperties(final UnaryOperator<FeatureProperties> transform) {
+        checkNotNull(transform, "transform function");
+
+        desiredProperties = transform.apply(desiredProperties == null ?
+                ThingsModelFactory.emptyFeatureProperties() : desiredProperties);
+        return this;
+    }
+
+    @Override
     public FromCopyBuildable setId(final String featureId) {
         this.featureId = argumentNotEmpty(featureId, "Feature ID to be set");
         return this;
@@ -104,7 +137,7 @@ final class ImmutableFeatureFromCopyBuilder implements FeatureBuilder, FeatureBu
 
     @Override
     public Feature build() {
-        return ImmutableFeature.of(featureId, definition, properties);
+        return ImmutableFeature.of(featureId, definition, properties, desiredProperties);
     }
 
 }

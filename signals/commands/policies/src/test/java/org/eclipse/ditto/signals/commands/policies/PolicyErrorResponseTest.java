@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -17,9 +19,10 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -31,18 +34,17 @@ public class PolicyErrorResponseTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(PolicyCommandResponse.JsonFields.TYPE, PolicyErrorResponse.TYPE)
-            .set(PolicyCommandResponse.JsonFields.STATUS, HttpStatusCode.NOT_FOUND.toInt())
-            .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyCommandResponse.JsonFields.STATUS, HttpStatus.NOT_FOUND.getCode())
+            .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(PolicyCommandResponse.JsonFields.PAYLOAD,
                     TestConstants.Policy.POLICY_NOT_ACCESSIBLE_EXCEPTION.toJson(FieldType.regularOrSpecial()))
             .build();
-
 
     @Test
     public void assertImmutability() {
         assertInstancesOf(PolicyErrorResponse.class,
                 areImmutable(),
-                provided(DittoRuntimeException.class).isAlsoImmutable());
+                provided(DittoRuntimeException.class, PolicyId.class).isAlsoImmutable());
     }
 
 
@@ -65,13 +67,35 @@ public class PolicyErrorResponseTest {
         assertThat(actualJsonCreated).isEqualTo(KNOWN_JSON);
     }
 
-
     @Test
     public void createInstanceFromValidJson() {
         final PolicyErrorResponse underTest =
                 PolicyErrorResponse.fromJson(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
+    }
+
+    @Test
+    public void createInstanceFromUnregisteredException() {
+        final JsonObject genericExceptionJson = KNOWN_JSON.toBuilder()
+                .set(PolicyCommandResponse.JsonFields.PAYLOAD,
+                        DittoRuntimeException
+                                .newBuilder("some.error", HttpStatus.VARIANT_ALSO_NEGOTIATES)
+                                .description("the description")
+                                .message("the message")
+                                .build().toJson(FieldType.regularOrSpecial()))
+                .build();
+
+        final PolicyErrorResponse underTest =
+                PolicyErrorResponse.fromJson(genericExceptionJson, TestConstants.EMPTY_DITTO_HEADERS);
+
+        assertThat(underTest).isNotNull();
+        assertThat(underTest.getDittoRuntimeException()).isNotNull();
+        assertThat(underTest.getDittoRuntimeException().getErrorCode()).isEqualTo("some.error");
+        assertThat(underTest.getDittoRuntimeException().getDescription()).contains("the description");
+        assertThat(underTest.getDittoRuntimeException().getMessage()).isEqualTo("the message");
+        assertThat(underTest.getDittoRuntimeException().getHttpStatus()).isEqualTo(HttpStatus.VARIANT_ALSO_NEGOTIATES);
+        assertThat(underTest.getHttpStatus()).isEqualTo(HttpStatus.VARIANT_ALSO_NEGOTIATES);
     }
 
 }

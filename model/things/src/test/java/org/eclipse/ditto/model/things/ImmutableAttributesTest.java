@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -16,7 +18,9 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.id.restriction.LengthRestrictionTestBase;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -24,7 +28,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link ImmutableAttributes}.
  */
-public final class ImmutableAttributesTest {
+public final class ImmutableAttributesTest extends LengthRestrictionTestBase {
 
     private static final int KNOWN_INT_42 = 42;
 
@@ -39,8 +43,8 @@ public final class ImmutableAttributesTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ImmutableAttributes.class, //
-                areImmutable(), //
+        assertInstancesOf(ImmutableAttributes.class,
+                areImmutable(),
                 provided(JsonObject.class).isAlsoImmutable());
     }
 
@@ -136,4 +140,45 @@ public final class ImmutableAttributesTest {
         assertThat(attributes).isEqualTo(attributes.toBuilder().build());
     }
 
+    @Test(expected = JsonKeyInvalidException.class)
+    public void createInvalidAttributeKey() {
+        final String invalidAttributeKey = "invalid/";
+        TestConstants.Thing.ATTRIBUTES.setValue(invalidAttributeKey, "invalidAttributeKey")
+                .toBuilder()
+                .build();
+    }
+
+    @Test(expected = JsonKeyInvalidException.class)
+    public void createInvalidNestedAttributeKey() {
+        final String validAttributeKey = "valid";
+        final JsonObject invalidJsonObject = JsonObject.newBuilder()
+                .set("foo/", "bar")
+                .build();
+        TestConstants.Thing.ATTRIBUTES.setValue(validAttributeKey, invalidJsonObject)
+                .toBuilder()
+                .build();
+    }
+
+    @Test(expected = JsonKeyInvalidException.class)
+    public void createInvalidNestedNestedAttributeKey() {
+        final String validAttributeKey = "valid";
+        final JsonObject invalidJsonObject = JsonObject.newBuilder()
+                .set("foo/", "bar")
+                .build();
+        final JsonObject validJsonObject = JsonObject.newBuilder()
+                .set("foo", "bar")
+                .set("invalid", invalidJsonObject)
+                .build();
+        TestConstants.Thing.ATTRIBUTES.setValue(validAttributeKey, validJsonObject)
+                .toBuilder()
+                .build();
+    }
+
+    @Test(expected = JsonKeyInvalidException.class)
+    public void createTooLargePropertyKey() {
+        final String tooLargePropertyKey = generateStringExceedingMaxLength();
+        TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.setValue(tooLargePropertyKey, "tooLargePropertyKey")
+                .toBuilder()
+                .build();
+    }
 }

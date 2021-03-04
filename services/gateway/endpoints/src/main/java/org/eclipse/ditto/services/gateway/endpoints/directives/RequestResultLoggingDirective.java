@@ -1,28 +1,28 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.gateway.endpoints.directives;
 
-import static akka.http.javadsl.server.Directives.extractRequestContext;
+import static akka.http.javadsl.server.Directives.extractRequest;
 import static akka.http.javadsl.server.Directives.logRequest;
 import static akka.http.javadsl.server.Directives.logResult;
 import static akka.http.javadsl.server.Directives.mapRouteResult;
 
 import java.util.function.Supplier;
 
-import org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils;
 import org.eclipse.ditto.services.gateway.endpoints.utils.HttpUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
 
-import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.server.Complete;
 import akka.http.javadsl.server.Route;
 
@@ -31,10 +31,14 @@ import akka.http.javadsl.server.Route;
  */
 public final class RequestResultLoggingDirective {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(RequestResultLoggingDirective.class);
+    private static final String DITTO_TRACE_HEADERS = "ditto-trace-headers";
+    private static final ThreadSafeDittoLogger LOGGER =
+            DittoLoggerFactory.getThreadSafeLogger(RequestResultLoggingDirective.class);
+    private static final ThreadSafeDittoLogger TRACE_LOGGER = DittoLoggerFactory.getThreadSafeLogger(
+            RequestResultLoggingDirective.class.getName() + "." + DITTO_TRACE_HEADERS);
 
     private RequestResultLoggingDirective() {
-        // no op
+        throw new AssertionError();
     }
 
     /**
@@ -44,39 +48,39 @@ public final class RequestResultLoggingDirective {
      * @param inner the inner Route to be logged
      * @return the new Route wrapping {@code inner} with logging
      */
-    public static Route logRequestResult(final String correlationId, final Supplier<Route> inner) {
+    public static Route logRequestResult(final CharSequence correlationId, final Supplier<Route> inner) {
         // add akka standard logging to the route
         final Supplier<Route> innerWithAkkaLoggingRoute = () -> logRequest("http-request", () ->
                 logResult("http-response", inner));
 
         // add our own logging with time measurement and creating a kamon trace
         // code is inspired by DebuggingDirectives#logRequestResult
-        return extractRequestContext(requestContext -> {
-            final HttpRequest request = requestContext.getRequest();
+        return extractRequest(request -> {
             final String requestMethod = request.method().name();
             final String requestUri = request.getUri().toRelative().toString();
-            return mapRouteResult(
-                    routeResult -> DirectivesLoggingUtils.enhanceLogWithCorrelationId(correlationId, () -> {
-
-                        if (routeResult instanceof Complete) {
-                            final Complete complete = (Complete) routeResult;
-                            final int statusCode = complete.getResponse().status().intValue();
-                            LOGGER.info("StatusCode of request {} '{}' was: {}", requestMethod, requestUri, statusCode);
-                            final String rawRequestUri = HttpUtils.getRawRequestUri(request);
-                            LOGGER.debug("Raw request URI was: {}", rawRequestUri);
-
-                        } else {
+            return mapRouteResult(routeResult -> {
+                final ThreadSafeDittoLogger logger = LOGGER.withCorrelationId(correlationId);
+                if (routeResult instanceof Complete) {
+                    final Complete complete = (Complete) routeResult;
+                    final int statusCode = complete.getResponse().status().intValue();
+                    logger.info("StatusCode of request {} '{}' was: {}", requestMethod, requestUri, statusCode);
+                    final String rawRequestUri = HttpUtils.getRawRequestUri(request);
+                    logger.debug("Raw request URI was: {}", rawRequestUri);
+                    request.getHeader(DITTO_TRACE_HEADERS)
+                            .filter(unused -> TRACE_LOGGER.isDebugEnabled())
+                            .ifPresent(unused -> TRACE_LOGGER.withCorrelationId(correlationId)
+                                    .debug("Request headers: {}", request.getHeaders()));
+                } else {
                          /* routeResult could be Rejected, if no route is able to handle the request -> but this should
                             not happen when rejections are handled before this directive is called. */
-                            LOGGER.warn("Unexpected routeResult for request {} '{}': {}, routeResult will be handled by " +
-                                            "akka default RejectionHandler.", requestMethod, requestUri,
-                                    routeResult);
-                        }
+                    logger.warn("Unexpected routeResult for request {} '{}': {}, routeResult will be handled by " +
+                                    "akka default RejectionHandler.", requestMethod, requestUri,
+                            routeResult);
+                }
 
-                        return routeResult;
-                    }), innerWithAkkaLoggingRoute);
+                return routeResult;
+            }, innerWithAkkaLoggingRoute);
         });
     }
-
 
 }

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -18,10 +20,13 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.model.base.common.Validator;
+import org.eclipse.ditto.model.base.entity.validation.NoControlCharactersNoSlashesValidator;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 
@@ -45,6 +50,13 @@ final class NullFeature implements Feature {
      * @throws NullPointerException if {@code featureId} is {@code null}.
      */
     public static NullFeature of(final String featureId) {
+        ConditionChecker.checkNotNull(featureId, "ID of the Feature");
+
+        final Validator validator = NoControlCharactersNoSlashesValidator.getInstance(featureId);
+        if (!validator.isValid()) {
+            throw JsonKeyInvalidException.newBuilderWithDescription(featureId, validator.getReason().orElse(null))
+                    .build();
+        }
         return new NullFeature(featureId);
     }
 
@@ -95,6 +107,36 @@ final class NullFeature implements Feature {
 
     @Override
     public Feature removeProperty(final JsonPointer pointer) {
+        return this;
+    }
+
+    @Override
+    public Optional<FeatureProperties> getDesiredProperties() {
+        return Optional.empty();
+    }
+
+    @Override
+    public Feature setDesiredProperties(final FeatureProperties desiredProperties) {
+        return this;
+    }
+
+    @Override
+    public Feature removeDesiredProperties() {
+        return this;
+    }
+
+    @Override
+    public Optional<JsonValue> getDesiredProperty(final JsonPointer pointer) {
+        return Optional.empty();
+    }
+
+    @Override
+    public Feature setDesiredProperty(final JsonPointer pointer, final JsonValue desiredPropertyValue) {
+        return this;
+    }
+
+    @Override
+    public Feature removeDesiredProperty(final JsonPointer pointer) {
         return this;
     }
 

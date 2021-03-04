@@ -1,0 +1,20 @@
+# Copyright (c) 2020 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+description: |-
+  The (sub-)resource has not been modified. This happens when you specified a If-None-Match header which
+   matches the current ETag of the (sub-)resource.
+headers:
+  ETag:
+    description: |-
+      The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+      "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+    schema:
+      type: string

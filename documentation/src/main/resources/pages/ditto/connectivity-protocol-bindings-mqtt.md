@@ -5,12 +5,15 @@ tags: [protocol, connectivity]
 permalink: connectivity-protocol-bindings-mqtt.html
 ---
 
-[awsiot]: https://docs.aws.amazon.com/iot/
+Consume messages from MQTT brokers via [sources](#source-format) and send messages to MQTT brokers via 
+[targets](#target-format).
+
+## Content-type
 
 When MQTT messages are sent in [Ditto Protocol](protocol-overview.html),
 the payload should be `UTF-8` encoded strings.
 
-If messages which are not in Ditto Protocol should be processed, a [payload mapping](connectivity-mapping.html) must
+If messages, which are not in Ditto Protocol, should be processed, a [payload mapping](connectivity-mapping.html) must
 be configured for the connection in order to transform the messages.
 
 ## MQTT 3.1.1 properties
@@ -19,14 +22,17 @@ MQTT 3.1.1 messages have no application headers. Transmission-relevant propertie
 `"headers"` field as a part of [Ditto protocol messages](protocol-specification.html#dittoProtocolEnvelope) in the
 payload. 
 
-These properties are supported:
+This property is supported:
 
 * `correlation-id`: For correlating request messages and events. Twin events have the correlation IDs of
   [Twin commands](protocol-twinlive.html#twin) that produced them.
-* `reply-to`: The value should be an MQTT topic.
-  If a command sets the header `reply-to`, then its response is published at the topic equal to the header value.
 
 ## Specific connection configuration
+
+The common configuration for connections in [Connections > Sources](basic-connections.html#sources) and 
+[Connections > Targets](basic-connections.html#targets) applies here as well. 
+
+Following are some specifics for MQTT connections:
 
 ### Source format
 
@@ -52,34 +58,43 @@ For an MQTT connection:
 }
 ```
 
-#### Enforcement
+Note: This example assumes that there is a valid user named `ditto:inbound-auth-subject` in Ditto.
+If you want to use a user for the basic auth (from the [HTTP API](connectivity-protocol-bindings-http.html)) use the prefix `nginx:`, e.g. `nginx:ditto`.
+See [Basic Authentication](basic-auth.html#authorization-context-in-devops-commands) for more information.
 
-{% include_relative connectivity-enforcement.md %}
+#### Source header mapping
 
-The following placeholders are available for the `input` field:
+MQTT 3.1.1 does not support headers in its protocol, however Ditto extracts the following headers from each consumed message:
+* `mqtt.topic`: contains the MQTT topic on which a message was received 
+* `mqtt.qos`: contains the MQTT QoS value of a received message
+* `mqtt.retain`: contains the MQTT retain flag of a received message
 
-| Placeholder    | Description  | Example   |
-|-----------|-------|---------------|
-| `{%raw%}{{ source:address }}{%endraw%}` | The topic on which the message was received. | devices/sensors/temperature1  |
-
-Assuming a device `temperature1` publishes its telemetry data to an MQTT broker on topic `devices/sensors/temperature1`.
-The MQTT broker verifies that no other device is allowed to publish on this topic. To enforce that the device can 
-only send data to the Thing `sensors:temperature1` the following enforcement configuration can be used: 
+These headers may be used in a source header mapping, e.g.:
 ```json
 {
-  "addresses": [ "devices/sensors/#" ],
-  "authorizationContext": ["ditto:inbound-auth-subject", "..."],
-  "qos": 1,
-  "enforcement": {
-    "input": "{%raw%}{{ source:address }}{%endraw%}",
-    "filters": [ "{%raw%}devices/{{ thing:namespace }}/{{ thing:name }}{%endraw%}" ]
+  "headerMapping": {
+    "topic": "{%raw%}{{ header:mqtt.topic }}{%endraw%}",
+    "the-qos": "{%raw%}{{ header:mqtt.qos }}{%endraw%}"
   }
 }
 ```
 
-#### Source header mapping
+#### Source acknowledgement handling
 
-As MQTT 3.1.1 does not support headers in its protocol, a [header mapping](connectivity-header-mapping.html) is not possible to configure here.
+For MQTT 3.1.1 sources, when configuring 
+[acknowledgement requests](basic-connections.html#source-acknowledgement-requests), consumed messages from the MQTT 3.1.1
+broker are treated in the following way:
+
+For Ditto acknowledgements with successful [status](protocol-specification-acks.html#combined-status-code):
+* Acknowledges the received MQTT 3.1.1 message
+
+For Ditto acknowledgements with mixed successful/failed [status](protocol-specification-acks.html#combined-status-code):
+* If some of the aggregated [acknowledgements](basic-acknowledgements.html#acknowledgements-acks) require redelivery (e.g. based on a timeout):
+   * based on the [specificConfig](#specific-configuration) [reconnectForDelivery](#reconnectforredelivery) either 
+      * closes and reconnects the MQTT connection in order to receive unACKed QoS 1/2 messages again 
+      * or simply acknowledges the received MQTT 3.1.1 message
+* If none of the aggregated [acknowledgements](basic-acknowledgements.html#acknowledgements-acks) require redelivery:
+   * acknowledges the received MQTT 3.1.1 message as redelivery does not make sense
 
 
 ### Target format
@@ -92,7 +107,7 @@ Further, `"topics"` is a list of strings, each list entry representing a subscri
 [Ditto protocol topics](protocol-specification-topic.html).
 
 Outbound messages are published to the configured target address if one of the subjects in `"authorizationContext"`
-have READ permission on the Thing that is associated with a message.
+has READ permission on the thing, which is associated with a message.
 
 The additional field `"qos"` sets the Quality of Service with which messages are published.
 Its value can be `0` for at-most-once delivery, `1` for at-least-once delivery and `2` for exactly-once delivery.
@@ -112,39 +127,103 @@ The default value is `0` (at-most-once).
 }
 ```
 
-#### Filtering
-
-In order to only consume specific events like described in [change notifications](basic-changenotifications.html), the
-following parameters can additionally be provided when specifying the `topics` of a target:
-
-| Description | Topic | Filter by namespaces | Filter by RQL expression |
-|-------------|-----------------|------------------|-----------|
-| Subscribe for [events/change notifications](basic-changenotifications.html) | `_/_/things/twin/events` | &#10004; | &#10004; |
-| Subscribe for [messages](basic-messages.html) | `_/_/things/live/messages` | &#10004; | &#10060; |
-| Subscribe for [live commands](protocol-twinlive.html) | `_/_/things/live/commands` | &#10004; | &#10060; |
-| Subscribe for [live events](protocol-twinlive.html) | `_/_/things/live/events` | &#10004; | &#10004; |
-
-The parameters are specified similar to HTTP query parameters, the first one separated with a `?` and all following ones
-with `&`. You have to URL encode the filter values before using them in a configuration.
-
-For example this way the connection session would register for all events in the namespace `org.eclipse.ditto` and which
-would match an attribute "counter" to be greater than 42. Additionally it would subscribe to messages in the namespace
-`org.eclipse.ditto`:
-```json
-{
-  "address": "eclipse-ditto-sandbox/{%raw%}{{ thing:id }}{%endraw%}",
-  "topics": [
-    "_/_/things/twin/events?namespaces=org.eclipse.ditto&filter=gt(attributes/counter,42)",
-    "_/_/things/live/messages?namespaces=org.eclipse.ditto"
-  ],
-  "authorizationContext": ["ditto:outbound-auth-subject", "..."]
-}
-```
-
 #### Target header mapping
 
 As MQTT 3.1.1 does not support headers in its protocol, a [header mapping](connectivity-header-mapping.html) is not possible to configure here.
 
+#### Target acknowledgement handling
+
+For MQTT 3.1.1 targets, when configuring 
+[automatically issued acknowledgement labels](basic-connections.html#target-issued-acknowledgement-label), requested 
+acknowledgements are produced in the following way:
+
+Once the MQTT 3.1.1 client signals that the message was acknowledged by the MQTT 3.1.1 broker, the following information 
+is mapped to the automatically created [acknowledgement](protocol-specification-acks.html#acknowledgement):
+* Acknowledgement.status: 
+   * will be `200`, if the message was successfully ACKed by the MQTT 3.1.1 broker or when the target has QoS 0
+   * will be `503`, if the MQTT 3.1.1 broker ran into an error before an acknowledgement message was received
+* Acknowledgement.value: 
+   * will be missing, for status `200`
+   * will contain more information, in case that an error `status` was set
+
+### Specific Configuration
+
+The MQTT 3.1.1 binding offers additional [specific configurations](basic-connections.html#specific-configuration) 
+to apply for the used MQTT client.
+
+Overall example JSON of the MQTT `"specificConfig"`:
+```json
+{
+  "id": "mqtt-example-connection-123",
+  "connectionType": "mqtt",
+  "connectionStatus": "open",
+  "failoverEnabled": true,
+  "uri": "tcp://test.mosquitto.org:1883",
+  "specificConfig": {
+    "clientId": "my-awesome-mqtt-client-id",
+    "reconnectForRedelivery": true,
+    "cleanSession": false,
+    "separatePublisherClient": true,
+    "publisherId": "my-awesome-mqtt-publisher-client-id",
+    "reconnectForRedeliveryDelay": "5s"
+  },
+  "sources": ["..."],
+  "targets": ["..."]
+}
+```
+
+#### clientId
+
+Overwrites the default MQTT client id.
+
+Default: not set - the ID of the Ditto [connection](basic-connections.html) is used as MQTT client ID. 
+
+#### reconnectForRedelivery
+
+Configures that the MQTT connection re-connects whenever a consumed message (via a connection source) with QoS 1 
+("at least once") or 2 ("exactly once")
+is processed but cannot be [acknowledged](#source-acknowledgement-handling) successfully.<br/>
+That causes that the MQTT broker will re-publish the message once the connection reconnected.   
+If configured to `false`, the MQTT message is simply acknowledged (`PUBACK` or `PUBREC`, `PUBREL`).
+
+Default: `true`
+
+Handle with care: 
+* when set to `true`, incoming QoS 0 messages are lost during the reconnection phase
+* when set to `true` and there is also an MQTT target configured to publish messages,
+  the messages to be published during the reconnection phase are lost
+   * to fix that, configure `"separatePublisherClient"` also to `true` in order to publish via another MQTT connection
+* when set to `false`, MQTT messages with QoS 1 and 2 could get lost (e.g. during downtime or connection issues)
+
+#### cleanSession
+
+Configure the MQTT client's `cleanSession` flag.
+
+Default: the negation of `"reconnectForRedelivery"`
+
+#### separatePublisherClient
+
+Configures whether to create a separate physical client and connection to the MQTT broker for publishing messages, or not. 
+By default (configured true), a single Ditto connection would open 2 MQTT connections/sessions: one for subscribing and one for publishing.
+If configured to `false`, the same MQTT connection/session is used both: for subscribing to messages, and for
+publishing messages.
+
+Default: `true`
+
+#### publisherId
+
+Configures a specific MQTT client ID for the case that `"separatePublisherClient"` is enabled.
+
+Default: 
+* if client ID is configured, `clientId` + `"p"`
+* if no client ID is configured, `connectionId` + `"p"`
+
+#### reconnectForRedeliveryDelay
+
+Configures how long to wait before reconnecting a consumer client for redelivery when `"reconnectForRedelivery"`
+and `separatePublisherClient` are both enabled. The minimum value is `1s`.
+
+Default: `2s`
 
 ## Establishing a connection to an MQTT 3.1.1 endpoint
 
@@ -154,7 +233,7 @@ existing connections.
 This can be done dynamically at runtime without the need to restart any microservice using a
 [Ditto DevOps command](installation-operating.html#devops-commands).
 
-Example 
+Example: 
 
 Connection configuration to create a new MQTT connection:
 
@@ -188,22 +267,13 @@ Connection configuration to create a new MQTT connection:
 }
 ```
 
-## Messages
-
-Messages consumed via the MQTT binding are treated similar to the
-[WebSocket binding](httpapi-protocol-bindings-websocket.html), 
-meaning that the messages are expected to be [Ditto Protocol](protocol-overview.html) messages serialized as
-UTF-8-coded JSON (as shown for example in the [protocol examples](protocol-examples.html)).
-If your payload does not conform to the [Ditto Protocol](protocol-overview.html) or uses any character set other
-than UTF-8, you can configure a custom [payload mapping](connectivity-mapping.html).
-
 ## Client-certificate authentication
 
 Ditto supports certificate-based authentication for MQTT connections. Consult 
 [Certificates for Transport Layer Security](connectivity-tls-certificates.html)
 for how to set it up.
 
-Here is an example MQTT connection that checks the broker certificate and authenticates by a client certificate.
+Here is an example MQTT connection, which checks the broker certificate and authenticates by a client certificate.
 
 ```json
 {
@@ -241,3 +311,5 @@ Here is an example MQTT connection that checks the broker certificate and authen
   ]
 }
 ```
+
+[awsiot]: https://docs.aws.amazon.com/iot/

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -20,11 +22,14 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
+import org.eclipse.ditto.model.policies.PolicyId;
 
 /**
  * A mutable builder with a fluent API for an immutable {@link Thing}. This builder is initialised with the properties
@@ -50,14 +55,17 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
         checkNotNull(thing, "Thing");
 
         final ImmutableThingFromCopyBuilder result = new ImmutableThingFromCopyBuilder();
-        thing.getId().ifPresent(result::setId);
+        thing.getEntityId().ifPresent(result::setId);
         thing.getAccessControlList().ifPresent(result::setPermissions);
-        thing.getPolicyId().ifPresent(result::setPolicyId);
+        thing.getPolicyEntityId().ifPresent(result::setPolicyId);
         thing.getAttributes().ifPresent(result::setAttributes);
+        thing.getDefinition().ifPresent(result::setDefinition);
         thing.getFeatures().ifPresent(result::setFeatures);
         thing.getLifecycle().ifPresent(result::setLifecycle);
         thing.getRevision().ifPresent(result::setRevision);
         thing.getModified().ifPresent(result::setModified);
+        thing.getCreated().ifPresent(result::setCreated);
+        thing.getMetadata().ifPresent(result::setMetadata);
 
         return result;
     }
@@ -77,17 +85,31 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
 
         final ImmutableThingFromCopyBuilder result = new ImmutableThingFromCopyBuilder();
 
-        jsonObject.getValue(Thing.JsonFields.ID).ifPresent(result::setId);
+        jsonObject.getValue(Thing.JsonFields.ID)
+                .map(ThingId::of)
+                .ifPresent(result::setId);
 
         jsonObject.getValue(Thing.JsonFields.ACL)
                 .map(ThingsModelFactory::newAcl)
                 .ifPresent(result::setPermissions);
 
-        jsonObject.getValue(Thing.JsonFields.POLICY_ID).ifPresent(result::setPolicyId);
+        jsonObject.getValue(Thing.JsonFields.POLICY_ID)
+                .map(PolicyId::of)
+                .ifPresent(result::setPolicyId);
 
         jsonObject.getValue(Thing.JsonFields.ATTRIBUTES)
                 .map(ThingsModelFactory::newAttributes)
                 .ifPresent(result::setAttributes);
+
+        jsonObject.getValue(Thing.JsonFields.DEFINITION)
+                .map(jsonValue -> {
+                    if (jsonValue.isNull()) {
+                        return ThingsModelFactory.nullDefinition();
+                    } else {
+                        return ThingsModelFactory.newDefinition(jsonValue.asString());
+                    }
+                })
+                .ifPresent(result::setDefinition);
 
         jsonObject.getValue(Thing.JsonFields.FEATURES)
                 .map(ThingsModelFactory::newFeatures)
@@ -105,22 +127,39 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
                 .map(ImmutableThingFromCopyBuilder::tryToParseModified)
                 .ifPresent(result::setModified);
 
+        jsonObject.getValue(Thing.JsonFields.CREATED)
+                .map(ImmutableThingFromCopyBuilder::tryToParseCreated)
+                .ifPresent(result::setCreated);
+
+        jsonObject.getValue(Thing.JsonFields.METADATA)
+                .map(ThingsModelFactory::newMetadata)
+                .ifPresent(result::setMetadata);
+
         return result;
     }
 
     private static Instant tryToParseModified(final CharSequence dateTime) {
+        return tryToParseDate(dateTime, Thing.JsonFields.MODIFIED);
+    }
+
+    private static Instant tryToParseCreated(final CharSequence dateTime) {
+        return tryToParseDate(dateTime, Thing.JsonFields.CREATED);
+    }
+
+    private static Instant tryToParseDate(final CharSequence dateTime, final JsonFieldDefinition<String> field) {
         try {
             return Instant.parse(dateTime);
         } catch (final DateTimeParseException e) {
-            final String msgPattern ="The JSON object's field <{0>' is not in ISO-8601 format as expected!";
+            final String msgPattern = "The JSON object''s field <{0}> is not in ISO-8601 format as expected!";
             throw JsonParseException.newBuilder()
-                    .message(MessageFormat.format(msgPattern, Thing.JsonFields.MODIFIED.getPointer()))
+                    .message(MessageFormat.format(msgPattern, field.getPointer()))
                     .cause(e)
                     .build();
         }
     }
 
     @Override
+    @Deprecated
     public FromCopy setPermissions(final AuthorizationSubject authorizationSubject, final Permission permission,
             final Permission... furtherPermissions) {
 
@@ -129,6 +168,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
+    @Deprecated
     public FromCopy setPermissions(final Predicate<AccessControlList> existingAclPredicate,
             final AuthorizationSubject authorizationSubject,
             final Permission permission,
@@ -141,12 +181,14 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
+    @Deprecated
     public FromCopy setPermissions(final AuthorizationSubject authorizationSubject, final Permissions permissions) {
         fromScratchBuilder.setPermissions(authorizationSubject, permissions);
         return this;
     }
 
     @Override
+    @Deprecated
     public FromCopy setPermissions(final Predicate<AccessControlList> existingAclPredicate,
             final AuthorizationSubject authorizationSubject, final Permissions permissions) {
 
@@ -157,12 +199,14 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
+    @Deprecated
     public FromCopy setPermissions(final Iterable<AclEntry> aclEntries) {
         fromScratchBuilder.setPermissions(aclEntries);
         return this;
     }
 
     @Override
+    @Deprecated
     public FromCopy setPermissions(final Predicate<AccessControlList> existingAclPredicate,
             final Iterable<AclEntry> aclEntries) {
 
@@ -173,12 +217,14 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
+    @Deprecated
     public FromCopy setPermissions(final JsonObject accessControlListJsonObject) {
         fromScratchBuilder.setPermissions(accessControlListJsonObject);
         return this;
     }
 
     @Override
+    @Deprecated
     public FromCopy setPermissions(final Predicate<AccessControlList> existingAclPredicate,
             final JsonObject accessControlListJsonObject) {
 
@@ -189,12 +235,14 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
+    @Deprecated
     public FromCopy setPermissions(final String accessControlListJsonString) {
         fromScratchBuilder.setPermissions(accessControlListJsonString);
         return this;
     }
 
     @Override
+    @Deprecated
     public FromCopy setPermissions(final Predicate<AccessControlList> existingAclPredicate,
             final String accessControlListJsonString) {
 
@@ -205,12 +253,14 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
+    @Deprecated
     public FromCopy setPermissions(final AclEntry aclEntry, final AclEntry... furtherAclEntries) {
         fromScratchBuilder.setPermissions(aclEntry, furtherAclEntries);
         return this;
     }
 
     @Override
+    @Deprecated
     public FromCopy setPermissions(final Predicate<AccessControlList> existingAclPredicate, final AclEntry aclEntry,
             final AclEntry... furtherAclEntries) {
 
@@ -221,12 +271,14 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
+    @Deprecated
     public FromCopy removePermissionsOf(final AuthorizationSubject authorizationSubject) {
         fromScratchBuilder.removePermissionsOf(authorizationSubject);
         return this;
     }
 
     @Override
+    @Deprecated
     public FromCopy removePermissionsOf(final Predicate<AccessControlList> existingAclPredicate,
             final AuthorizationSubject authorizationSubject) {
 
@@ -237,12 +289,14 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
+    @Deprecated
     public FromCopy removeAllPermissions() {
         fromScratchBuilder.removeAllPermissions();
         return this;
     }
 
     @Override
+    @Deprecated
     public FromCopy removeAllPermissions(final Predicate<AccessControlList> existingAclPredicate) {
         if (testAclPredicate(existingAclPredicate)) {
             return removeAllPermissions();
@@ -251,7 +305,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
-    public FromCopy setPolicyId(@Nullable final String policyId) {
+    public FromCopy setPolicyId(@Nullable final PolicyId policyId) {
         fromScratchBuilder.setPolicyId(policyId);
         return this;
     }
@@ -362,6 +416,24 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
+    public FromCopy setDefinition(@Nullable final ThingDefinition definition) {
+        fromScratchBuilder.setDefinition(definition);
+        return this;
+    }
+
+    @Override
+    public FromCopy setNullDefinition() {
+        fromScratchBuilder.setNullDefinition();
+        return this;
+    }
+
+    @Override
+    public FromCopy removeDefinition() {
+        fromScratchBuilder.removeDefinition();
+        return this;
+    }
+
+    @Override
     public FromCopy setFeature(final Feature feature) {
         fromScratchBuilder.setFeature(feature);
         return this;
@@ -417,6 +489,27 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
         if (testFeaturesPredicate(existingFeaturesPredicate)) {
             setFeature(featureId, featureDefinition, featureProperties);
         }
+        return this;
+    }
+
+    @Override
+    public FromCopy setFeature(final Predicate<Features> existingFeaturesPredicate,
+            final CharSequence featureId,
+            final FeatureDefinition featureDefinition,
+            final FeatureProperties featureProperties,
+            final FeatureProperties featureDesiredProperties) {
+
+        if (testFeaturesPredicate(existingFeaturesPredicate)) {
+            setFeature(featureId, featureDefinition, featureProperties, featureDesiredProperties);
+        }
+        return this;
+    }
+
+    @Override
+    public FromCopy setFeature(final CharSequence featureId, @Nullable final FeatureDefinition featureDefinition,
+            @Nullable final FeatureProperties featureProperties, @Nullable final FeatureProperties featureDesiredProperties) {
+
+        fromScratchBuilder.setFeature(featureId, featureDefinition, featureProperties, featureDesiredProperties);
         return this;
     }
 
@@ -512,6 +605,62 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
 
         if (testFeaturesPredicate(existingFeaturesPredicate)) {
             fromScratchBuilder.removeFeatureProperties(featureId);
+        }
+        return this;
+    }
+
+    @Override
+    public FromCopy setFeatureDesiredProperty(final CharSequence featureId, final JsonPointer desiredPropertyPath,
+            final JsonValue desiredPropertyValue) {
+
+        fromScratchBuilder.setFeatureDesiredProperty(featureId, desiredPropertyPath, desiredPropertyValue);
+        return this;
+    }
+
+    @Override
+    public FromCopy setFeatureDesiredProperty(final Predicate<Features> existingFeaturesPredicate,
+            final CharSequence featureId,
+            final JsonPointer desiredPropertyPath,
+            final JsonValue desiredPropertyValue) {
+
+        if (testFeaturesPredicate(existingFeaturesPredicate)) {
+            fromScratchBuilder.setFeatureDesiredProperty(featureId, desiredPropertyPath, desiredPropertyValue);
+        }
+        return this;
+    }
+
+    @Override
+    public FromCopy removeFeatureDesiredProperty(final CharSequence featureId, final JsonPointer desiredPropertyPath) {
+        fromScratchBuilder.removeFeatureDesiredProperty(featureId, desiredPropertyPath);
+        return this;
+    }
+
+    @Override
+    public FromCopy removeFeatureDesiredProperty(final Predicate<Features> existingFeaturesPredicate, final CharSequence featureId,
+            final JsonPointer desiredPropertyPath) {
+
+        if (testFeaturesPredicate(existingFeaturesPredicate)) {
+            fromScratchBuilder.removeFeatureDesiredProperty(featureId, desiredPropertyPath);
+        }
+        return this;
+    }
+
+    @Override
+    public FromCopy setFeatureDesiredProperties(final Predicate<Features> existingFeaturesPredicate, final CharSequence featureId,
+            final FeatureProperties desiredProperties) {
+
+        if (testFeaturesPredicate(existingFeaturesPredicate)) {
+            fromScratchBuilder.setFeatureDesiredProperties(featureId, desiredProperties);
+        }
+        return this;
+    }
+
+    @Override
+    public FromCopy removeFeatureDesiredProperties(final Predicate<Features> existingFeaturesPredicate,
+            final CharSequence featureId) {
+
+        if (testFeaturesPredicate(existingFeaturesPredicate)) {
+            fromScratchBuilder.removeFeatureDesiredProperties(featureId);
         }
         return this;
     }
@@ -639,13 +788,48 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
+    public FromCopy setCreated(@Nullable final Instant created) {
+        fromScratchBuilder.setCreated(created);
+        return this;
+    }
+
+    @Override
+    public FromCopy setCreated(final Predicate<Instant> existingCreatedPredicate, @Nullable final Instant created) {
+        if (existingCreatedPredicate.test(fromScratchBuilder.created)) {
+            setCreated(created);
+        }
+        return this;
+    }
+
+    @Override
+    public FromCopy setMetadata(@Nullable final Metadata metadata) {
+        fromScratchBuilder.setMetadata(metadata);
+        return this;
+    }
+
+    @Override
+    public FromCopy setMetadata(final Predicate<Metadata> existingMetadataPredicate,
+            @Nullable final Metadata metadata) {
+        if (existingMetadataPredicate.test(fromScratchBuilder.metadata)) {
+            setMetadata(metadata);
+        }
+        return this;
+    }
+
+    @Override
     public FromCopy setId(@Nullable final String thingId) {
         fromScratchBuilder.setId(thingId);
         return this;
     }
 
     @Override
-    public FromCopy setId(final Predicate<String> existingIdPredicate, @Nullable final String thingId) {
+    public FromCopy setId(@Nullable final ThingId thingId) {
+        fromScratchBuilder.setId(thingId);
+        return this;
+    }
+
+    @Override
+    public FromCopy setId(final Predicate<ThingId> existingIdPredicate, @Nullable final ThingId thingId) {
         if (existingIdPredicate.test(fromScratchBuilder.id)) {
             setId(thingId);
         }
@@ -659,7 +843,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
-    public FromCopy setGeneratedId(final Predicate<String> existingIdPredicate) {
+    public FromCopy setGeneratedId(final Predicate<ThingId> existingIdPredicate) {
         if (existingIdPredicate.test(fromScratchBuilder.id)) {
             setGeneratedId();
         }
@@ -671,6 +855,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
         return fromScratchBuilder.build();
     }
 
+    @Deprecated
     private boolean testAclPredicate(final Predicate<AccessControlList> existingAclPredicate) {
         return existingAclPredicate.test(fromScratchBuilder.getAcl());
     }

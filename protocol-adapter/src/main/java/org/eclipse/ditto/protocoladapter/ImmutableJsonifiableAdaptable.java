@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -21,6 +23,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 /**
@@ -56,13 +59,19 @@ final class ImmutableJsonifiableAdaptable implements JsonifiableAdaptable {
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} is missing required JSON fields.
      */
     public static ImmutableJsonifiableAdaptable fromJson(final JsonObject jsonObject) {
-        final TopicPath topicPath = jsonObject.getValue(JsonFields.TOPIC)
-                .map(ProtocolFactory::newTopicPath)
-                .orElseGet(ProtocolFactory::emptyTopicPath);
-
         final DittoHeaders headers = jsonObject.getValue(JsonFields.HEADERS)
                 .map(ProtocolFactory::newHeaders)
                 .orElse(DittoHeaders.empty());
+
+        final TopicPath topicPath;
+
+        try {
+            topicPath = jsonObject.getValue(JsonFields.TOPIC)
+                    .map(ProtocolFactory::newTopicPath)
+                    .orElseGet(ProtocolFactory::emptyTopicPath);
+        } catch (final DittoRuntimeException e) {
+            throw e.setDittoHeaders(headers);
+        }
 
         return new ImmutableJsonifiableAdaptable(ImmutableAdaptable.of(topicPath,
                 ProtocolFactory.newPayload(jsonObject), headers));
@@ -79,6 +88,7 @@ final class ImmutableJsonifiableAdaptable implements JsonifiableAdaptable {
     }
 
     @Override
+    @Deprecated
     public Optional<DittoHeaders> getHeaders() {
         return delegateAdaptable.getHeaders();
     }
@@ -90,7 +100,7 @@ final class ImmutableJsonifiableAdaptable implements JsonifiableAdaptable {
 
     @Override
     public JsonObject toJson() {
-        return toJson(getHeaders().orElse(ProtocolFactory.emptyHeaders()));
+        return toJson(getDittoHeaders());
     }
 
     @Override

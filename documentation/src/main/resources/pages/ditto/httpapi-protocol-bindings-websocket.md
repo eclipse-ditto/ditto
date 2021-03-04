@@ -11,17 +11,26 @@ The Ditto Protocol JSON must be sent as `UTF-8` encoded String payload.
 
 ## WebSocket features
 
-The WebSocket provides an alternative to the [HTTP API](httpapi-overview.html) in order to manage your Digital Twins.
+The WebSocket provides an alternative to the [HTTP API](httpapi-overview.html) in order to manage your digital twins.
 
 The benefits of the WebSocket compared to HTTP are multiple ones:
 
-* a single connection (socket like) is established and for commands to Digital Twins no further HTTP overhead 
+* a single connection (socket like) is established and for commands to digital twins no further HTTP overhead 
   (e.g. HTTP headers, HTTP connection establishment) is produced which means you can get more commands/seconds 
   through the WebSocket compared to the HTTP endpoint
 * as the WebSocket is a duplex connection, [change notifications](basic-changenotifications.html) can be sent via the
   WebSocket for changes to entities done in Ditto
 * additionally, [messages](basic-messages.html) and [live commands/events](protocol-twinlive.html) can be exchanged 
-  (sending and receiving) via multiple connected WebSocket sessions 
+  (sending and receiving) via multiple connected WebSocket sessions
+
+Please keep in mind that every web WebSocket connection will receive all events and messages it is allowed to receive 
+depending on the provided authentication.<br/>
+There is no round-robin dispatching for WebSockets using the same authentication.
+
+{% include warning.html content="This means that WebSockets are not meant to be used for scenarios where horizontal 
+    scaling should be applied. 
+    For those scenarios we suggest using the [Connectivity API](connectivity-overview.html)." 
+%}
 
 ### Send commands and get responses
    
@@ -146,6 +155,7 @@ The following table shows which WebSocket protocol message are supported:
 
 | Description | Request message | Response message |
 |-------------|-----------------|------------------|
+| Refresh JWT based authentication |  `JWT-TOKEN` | `-` |
 | Subscribe for [events/change notifications](basic-changenotifications.html) | `START-SEND-EVENTS` | `START-SEND-EVENTS:ACK` |
 | Stop receiving change notifications | `STOP-SEND-EVENTS` | `STOP-SEND-EVENTS:ACK` |
 | Subscribe for [messages](basic-messages.html) | `START-SEND-MESSAGES` | `START-SEND-MESSAGES:ACK` |
@@ -155,13 +165,41 @@ The following table shows which WebSocket protocol message are supported:
 | Subscribe for [live events](protocol-twinlive.html) | `START-SEND-LIVE-EVENTS` | `START-SEND-LIVE-EVENTS:ACK` |
 | Stop receiving live commands | `STOP-SEND-LIVE-EVENTS` | `STOP-SEND-LIVE-EVENTS:ACK` |
 
+### Authentication
+
+Ditto closes Websocket connections when the JWT provided with the initial connect expires. To keep the connection 
+open,  one can send a valid JWT via `JWT-TOKEN` protocol message. The `sub` of the new token must match the one from 
+the initial connect, otherwise Ditto will close the connection.
+
+Ditto expects the message with the JWT as a base64 encoded string provided with the paramter `?jwtToken=<token>`, e.g.:
+```
+JWT-TOKEN?jwtToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+```
+
+### Enrichment
+
+When extra fields should be added to outgoing messages on the WebSocket channel, an `extraFields` parameter can be added
+to the request message. This is supported for all request messages:
+
+| Description | Request message | [Enrich by extra fields](basic-enrichment.html) |
+|-------------|-----------------|------------------|
+| Subscribe for [events/change notifications](basic-changenotifications.html) | `START-SEND-EVENTS` | &#10004; |
+| Subscribe for [messages](basic-messages.html) | `START-SEND-MESSAGES` | &#10004; |
+| Subscribe for [live commands](protocol-twinlive.html) | `START-SEND-LIVE-COMMANDS` | &#10004; |
+| Subscribe for [live events](protocol-twinlive.html) | `START-SEND-LIVE-EVENTS` | &#10004; |
+
+Analog to the [filtering](#filtering) the parameter is defined like an HTTP query parameter, e.g.:
+```
+START-SEND-EVENTS?extraFields=attributes/counter,features/ConnectionStatus
+START-SEND-MESSAGES?extraFields=attributes
+```
 
 ### Filtering
 
 In order to only consume specific events like described in [change notifications](basic-changenotifications.html), the
 following parameters can additionally be provided when sending the WebSocket protocol messages:
 
-| Description | Request message | Filter by namespaces | Filter by RQL expression |
+| Description | Request message | [Filter by namespaces](basic-changenotifications.html#by-namespaces) | [Filter by RQL expression](basic-changenotifications.html#by-rql-expression) |
 |-------------|-----------------|------------------|-----------|
 | Subscribe for [events/change notifications](basic-changenotifications.html) | `START-SEND-EVENTS` | &#10004; | &#10004; |
 | Subscribe for [messages](basic-messages.html) | `START-SEND-MESSAGES` | &#10004; | &#10060; |
@@ -175,4 +213,9 @@ For example this way the WebSocket session would register for all events in the 
 would match an attribute "counter" to be greater than 42:
 ```
 START-SEND-EVENTS?namespaces=org.eclipse.ditto&filter=gt(attributes/counter,42)
+```
+
+The filtering may be also used in combination with an [enrichment](#enrichment), e.g.:
+```
+START-SEND-EVENTS?extraFields=attributes&filter=gt(attributes/counter,42)
 ```

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -71,20 +73,21 @@ final class ModifyAttributesLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ModifyAttributesResponse created() {
-            return ModifyAttributesResponse.created(command.getThingId(), command.getAttributes(),
+            return ModifyAttributesResponse.created(command.getThingEntityId(), command.getAttributes(),
                     command.getDittoHeaders());
         }
 
         @Nonnull
         @Override
         public ModifyAttributesResponse modified() {
-            return ModifyAttributesResponse.modified(command.getThingId(), command.getDittoHeaders());
+            return ModifyAttributesResponse.modified(command.getThingEntityId(), command.getDittoHeaders());
         }
 
         @Nonnull
         @Override
         public ThingErrorResponse attributesNotAccessibleError() {
-            return errorResponse(command.getThingId(), AttributesNotAccessibleException.newBuilder(command.getThingId())
+            return errorResponse(command.getThingEntityId(),
+                    AttributesNotAccessibleException.newBuilder(command.getThingEntityId())
                     .dittoHeaders(command.getDittoHeaders())
                     .build());
         }
@@ -92,7 +95,8 @@ final class ModifyAttributesLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ThingErrorResponse attributesNotModifiableError() {
-            return errorResponse(command.getThingId(), AttributesNotModifiableException.newBuilder(command.getThingId())
+            return errorResponse(command.getThingEntityId(),
+                    AttributesNotModifiableException.newBuilder(command.getThingEntityId())
                     .dittoHeaders(command.getDittoHeaders())
                     .build());
         }
@@ -104,15 +108,15 @@ final class ModifyAttributesLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public AttributesCreated created() {
-            return AttributesCreated.of(command.getThingId(), command.getAttributes(), -1, Instant.now(),
-                    command.getDittoHeaders());
+            return AttributesCreated.of(command.getThingEntityId(), command.getAttributes(), -1, Instant.now(),
+                    command.getDittoHeaders(), null);
         }
 
         @Nonnull
         @Override
         public AttributesModified modified() {
-            return AttributesModified.of(command.getThingId(), command.getAttributes(), -1, Instant.now(),
-                    command.getDittoHeaders());
+            return AttributesModified.of(command.getThingEntityId(), command.getAttributes(), -1, Instant.now(),
+                    command.getDittoHeaders(), null);
         }
     }
 

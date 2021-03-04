@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -36,6 +38,7 @@ import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.events.things.AclEntryCreated;
 import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
 import org.eclipse.ditto.signals.events.things.AclEntryModified;
@@ -71,8 +74,8 @@ public final class TestConstants {
         throw new AssertionError();
     }
 
-    public static String thingId(final String namespace, final String idWithoutNamespace) {
-        return requireNonNull(namespace) + ":" + requireNonNull(idWithoutNamespace);
+    public static ThingId thingId(final String namespace, final String idWithoutNamespace) {
+        return ThingId.of(namespace, idWithoutNamespace);
     }
 
     /**
@@ -217,7 +220,7 @@ public final class TestConstants {
 
         public static final String NAMESPACE = "example.com.things";
 
-        public static final String THING_ID = NAMESPACE + ":testThing";
+        public static final ThingId THING_ID = ThingId.of(NAMESPACE,"testThing");
 
         public static final String POLICY_ID = NAMESPACE + ":testPolicy";
 

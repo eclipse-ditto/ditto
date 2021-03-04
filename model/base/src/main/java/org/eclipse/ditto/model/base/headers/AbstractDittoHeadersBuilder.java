@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -14,38 +16,65 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEm
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.JsonValueContainer;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.model.base.common.ResponseType;
+import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
+import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeader;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaderKey;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
  * An abstract base implementation for subclasses of {@link DittoHeadersBuilder}. This implementation does already
- * most of the work including header value validation.
+ * most of the work including header value validation. Insertion order and re-insertion order is maintained via
+ * a linked hash map. Since Java linked hash map does not maintain re-insertion order, each entry is removed from
+ * the map before they are added.
  */
 @NotThreadSafe
-public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeadersBuilder, R extends DittoHeaders>
+public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeadersBuilder<S, R>, R extends DittoHeaders>
         implements DittoHeadersBuilder<S, R> {
 
+    private static final Map<String, HeaderDefinition> BUILT_IN_DEFINITIONS;
+
+    static {
+        final DittoHeaderDefinition[] dittoHeaderDefinitions = DittoHeaderDefinition.values();
+        final Map<String, HeaderDefinition> definitions = new LinkedHashMap<>(dittoHeaderDefinitions.length);
+        for (final DittoHeaderDefinition dittoHeaderDefinition : dittoHeaderDefinitions) {
+            definitions.put(dittoHeaderDefinition.getKey(), dittoHeaderDefinition);
+        }
+        BUILT_IN_DEFINITIONS = Collections.unmodifiableMap(definitions);
+    }
+
     protected final S myself;
-    private final Map<String, String> headers;
-    private final Collection<HeaderDefinition> definitions;
+    private final Map<String, Header> headers;
+    private MetadataHeaders metadataHeaders;
+    private final Map<String, HeaderDefinition> definitions;
 
     /**
      * Constructs a new {@code AbstractDittoHeadersBuilder} object.
@@ -59,15 +88,65 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
      */
     @SuppressWarnings("unchecked")
     protected AbstractDittoHeadersBuilder(final Map<String, String> initialHeaders,
-            final Collection<HeaderDefinition> definitions, final Class<?> selfType) {
+            final Collection<? extends HeaderDefinition> definitions, final Class<?> selfType) {
 
         checkNotNull(initialHeaders, "initial headers");
         checkNotNull(definitions, "header definitions");
-        validateValueTypes(initialHeaders, definitions);
+        validateValueTypes(initialHeaders, definitions); // this constructor does validate the known value types
         myself = (S) selfType.cast(this);
-        headers = new HashMap<>(initialHeaders);
-        this.definitions = new HashSet<>(definitions);
-        Collections.addAll(this.definitions, DittoHeaderDefinition.values());
+        headers = preserveCaseSensitivity(initialHeaders);
+        metadataHeaders = MetadataHeaders.newInstance();
+        metadataHeaders.addAll(extractMetadataHeaders(headers));
+        this.definitions = getHeaderDefinitionsAsMap(definitions);
+    }
+
+    private static MetadataHeaders extractMetadataHeaders(final Map<String, Header> headers) {
+        final CharSequence metadataHeadersCharSequence = headers.remove(DittoHeaderDefinition.PUT_METADATA.getKey());
+        final MetadataHeaders result;
+        if (null != metadataHeadersCharSequence) {
+            result = MetadataHeaders.parseMetadataHeaders(metadataHeadersCharSequence);
+        } else {
+            result = MetadataHeaders.newInstance();
+        }
+        return result;
+    }
+
+    private static Map<String, HeaderDefinition> getHeaderDefinitionsAsMap(
+            final Collection<? extends HeaderDefinition> headerDefinitions) {
+
+        final DittoHeaderDefinition[] dittoHeaderDefinitions = DittoHeaderDefinition.values();
+        final Map<String, HeaderDefinition> result =
+                new LinkedHashMap<>(headerDefinitions.size() + dittoHeaderDefinitions.length);
+        for (final HeaderDefinition definition : headerDefinitions) {
+            result.put(definition.getKey(), definition);
+        }
+        result.putAll(BUILT_IN_DEFINITIONS);
+        return result;
+    }
+
+    /**
+     * Constructs a new {@code AbstractDittoHeadersBuilder} object based on an existing {@code DittoHeaders} instance
+     * applying a performance optimization: skipping the validation of values types as we can be sure that they already
+     * are valid when being passed in as DittoHeaders.
+     *
+     * @param initialHeaders initial DittoHeaders.
+     * @param definitions a collection of all well known {@link HeaderDefinition}s of this builder. The definitions
+     * are used for header value validation.
+     * @param selfType this type is used to simulate the "self type" of the returned object for Method Chaining of
+     * the builder methods.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    @SuppressWarnings("unchecked")
+    protected AbstractDittoHeadersBuilder(final R initialHeaders,
+            final Collection<? extends HeaderDefinition> definitions, final Class<?> selfType) {
+
+        checkNotNull(initialHeaders, "initialHeaders");
+        checkNotNull(definitions, "definitions");
+        myself = (S) selfType.cast(this);
+        headers = preserveCaseSensitivity(initialHeaders);
+        metadataHeaders = MetadataHeaders.newInstance();
+        metadataHeaders.addAll(extractMetadataHeaders(headers));
+        this.definitions = getHeaderDefinitionsAsMap(definitions);
     }
 
     /**
@@ -77,7 +156,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
      * @param definitions perform the actual validation.
      */
     protected void validateValueTypes(final Map<String, String> headers,
-            final Collection<HeaderDefinition> definitions) {
+            final Collection<? extends HeaderDefinition> definitions) {
 
         for (final HeaderDefinition definition : definitions) {
             final String value = headers.get(definition.getKey());
@@ -89,7 +168,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
 
     protected static Map<String, String> toMap(final JsonValueContainer<JsonField> jsonObject) {
         checkNotNull(jsonObject, "JSON object");
-        final Map<String, String> result = new HashMap<>(jsonObject.getSize());
+        final Map<String, String> result = new LinkedHashMap<>(jsonObject.getSize());
         jsonObject.forEach(jsonField -> {
             final JsonValue jsonValue = jsonField.getValue();
             final String stringValue = jsonValue.isString() ? jsonValue.asString() : jsonValue.toString();
@@ -101,7 +180,19 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
 
     @Override
     public S correlationId(@Nullable final CharSequence correlationId) {
-        putCharSequence(DittoHeaderDefinition.CORRELATION_ID, correlationId);
+        // special handling: as pass-through header, preserve capitalization of original header.
+        final String key = DittoHeaderDefinition.CORRELATION_ID.getKey();
+        if (correlationId != null) {
+            checkNotEmpty(correlationId, "correlationId");
+            final Header previousCorrelationId = headers.remove(key);
+            if (previousCorrelationId != null) {
+                headers.put(key, Header.of(previousCorrelationId.getKey(), correlationId.toString()));
+            } else {
+                headers.put(key, Header.of(key, correlationId.toString()));
+            }
+        } else {
+            headers.remove(key);
+        }
         return myself;
     }
 
@@ -116,16 +207,11 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     protected void putCharSequence(final HeaderDefinition definition, @Nullable final CharSequence value) {
         if (null != value) {
             checkNotEmpty(value, definition.getKey());
-            headers.put(definition.getKey(), value.toString());
+            headers.remove(definition.getKey());
+            headers.put(definition.getKey(), Header.of(definition.getKey(), value.toString()));
         } else {
             removeHeader(definition.getKey());
         }
-    }
-
-    @Override
-    public S source(@Nullable final CharSequence source) {
-        putCharSequence(DittoHeaderDefinition.SOURCE, source);
-        return myself;
     }
 
     @Override
@@ -141,7 +227,41 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     @Override
     public S authorizationContext(@Nullable final AuthorizationContext authorizationContext) {
         if (null != authorizationContext) {
-            return authorizationSubjects(authorizationContext.getAuthorizationSubjectIds());
+            putJsonValue(DittoHeaderDefinition.AUTHORIZATION_CONTEXT, authorizationContext.toJson());
+        } else {
+            removeHeader(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey());
+        }
+        return myself;
+    }
+
+    @Override
+    public S replyTarget(@Nullable final Integer replyTarget) {
+        if (replyTarget != null) {
+            putCharSequence(DittoHeaderDefinition.REPLY_TARGET, String.valueOf(replyTarget));
+        } else {
+            removeHeader(DittoHeaderDefinition.REPLY_TARGET.getKey());
+        }
+        return myself;
+    }
+
+    @Override
+    public S expectedResponseTypes(final ResponseType... responseTypes) {
+        checkNotNull(responseTypes, "responseTypes");
+        final List<String> expectedResponseTypes = Arrays.stream(responseTypes)
+                .map(ResponseType::getName)
+                .collect(Collectors.toList());
+        putStringCollection(DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES, expectedResponseTypes);
+        return myself;
+    }
+
+    @Override
+    public S expectedResponseTypes(final Collection<ResponseType> responseTypes) {
+        checkNotNull(responseTypes, "responseTypes");
+        if (!responseTypes.isEmpty()) {
+            final List<String> expectedResponseTypes = responseTypes.stream()
+                    .map(ResponseType::getName)
+                    .collect(Collectors.toList());
+            putStringCollection(DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES, expectedResponseTypes);
         }
         return myself;
     }
@@ -162,12 +282,26 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
+    @Deprecated
     public S authorizationSubjects(final Collection<String> authorizationSubjectIds) {
-        putStringCollection(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS, authorizationSubjectIds);
+        authorizationContext(keepSubjectsWithIssuerPrefix(authorizationSubjectIds));
         return myself;
     }
 
+    private static AuthorizationContext keepSubjectsWithIssuerPrefix(
+            final Collection<String> subjectsWithAndWithoutPrefix) {
+
+        final List<AuthorizationSubject> authSubjects = subjectsWithAndWithoutPrefix.stream()
+                .map(AuthorizationSubject::newInstance)
+                .collect(Collectors.toList());
+        final AuthorizationContext authorizationContext =
+                AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED, authSubjects);
+
+        return AbstractDittoHeaders.keepAuthContextSubjectsWithIssuer(authorizationContext);
+    }
+
     @Override
+    @Deprecated
     public S authorizationSubjects(final CharSequence authorizationSubject,
             final CharSequence... furtherAuthorizationSubjects) {
 
@@ -187,6 +321,29 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     @Override
     public S readSubjects(final Collection<String> readSubjects) {
         putStringCollection(DittoHeaderDefinition.READ_SUBJECTS, readSubjects);
+        return myself;
+    }
+
+    @Override
+    public S readGrantedSubjects(final Collection<AuthorizationSubject> readGrantedSubjects) {
+        putAuthorizationSubjectCollection(readGrantedSubjects, DittoHeaderDefinition.READ_SUBJECTS);
+        return myself;
+    }
+
+    private void putAuthorizationSubjectCollection(final Collection<AuthorizationSubject> authorizationSubjects,
+            final HeaderDefinition definition) {
+
+        checkNotNull(authorizationSubjects, definition.getKey());
+        final JsonArray authorizationSubjectIdsJsonArray = authorizationSubjects.stream()
+                .map(AuthorizationSubject::getId)
+                .map(JsonFactory::newValue)
+                .collect(JsonCollectors.valuesToArray());
+        putJsonValue(definition, authorizationSubjectIdsJsonArray);
+    }
+
+    @Override
+    public S readRevokedSubjects(final Collection<AuthorizationSubject> readRevokedSubjects) {
+        putAuthorizationSubjectCollection(readRevokedSubjects, DittoHeaderDefinition.READ_REVOKED_SUBJECTS);
         return myself;
     }
 
@@ -219,8 +376,18 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
-    public S contentType(final CharSequence contentType) {
+    public S contentType(@Nullable final CharSequence contentType) {
         putCharSequence(DittoHeaderDefinition.CONTENT_TYPE, contentType);
+        return myself;
+    }
+
+    @Override
+    public S contentType(@Nullable final ContentType contentType) {
+        if (null != contentType) {
+            putCharSequence(DittoHeaderDefinition.CONTENT_TYPE, contentType.getValue());
+        } else {
+            removeHeader(DittoHeaderDefinition.CONTENT_TYPE.getKey());
+        }
         return myself;
     }
 
@@ -243,11 +410,96 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
+    public S inboundPayloadMapper(@Nullable final String inboundPayloadMapperId) {
+        putCharSequence(DittoHeaderDefinition.INBOUND_PAYLOAD_MAPPER, inboundPayloadMapperId);
+        return myself;
+    }
+
+    @Override
+    public S acknowledgementRequests(final Collection<AcknowledgementRequest> acknowledgementRequests) {
+        checkNotNull(acknowledgementRequests, "acknowledgementRequests");
+        putJsonValue(DittoHeaderDefinition.REQUESTED_ACKS, acknowledgementRequests.stream()
+                .map(AcknowledgementRequest::toString)
+                .map(JsonValue::of)
+                .collect(JsonCollectors.valuesToArray()));
+        return myself;
+    }
+
+    @Override
+    public S acknowledgementRequest(final AcknowledgementRequest acknowledgementRequest,
+            final AcknowledgementRequest... furtherAcknowledgementRequests) {
+
+        checkNotNull(acknowledgementRequest, "acknowledgementRequest");
+        checkNotNull(furtherAcknowledgementRequests, "furtherAcknowledgementRequests");
+        final Collection<AcknowledgementRequest> ackRequests =
+                new ArrayList<>(1 + furtherAcknowledgementRequests.length);
+
+        ackRequests.add(acknowledgementRequest);
+        Collections.addAll(ackRequests, furtherAcknowledgementRequests);
+        return acknowledgementRequests(ackRequests);
+    }
+
+    @Override
+    public S timeout(@Nullable final CharSequence timeoutStr) {
+        if (null != timeoutStr) {
+            return timeout(tryToParseDuration(timeoutStr));
+        }
+        return timeout((DittoDuration) null);
+    }
+
+    private static DittoDuration tryToParseDuration(final CharSequence duration) {
+        try {
+            return DittoDuration.parseDuration(duration);
+        } catch (final IllegalArgumentException e) {
+            throw DittoHeaderInvalidException.newInvalidTypeBuilder(DittoHeaderDefinition.TIMEOUT.getKey(), duration,
+                    "duration").build();
+        }
+    }
+
+    @Override
+    public S timeout(@Nullable final Duration timeout) {
+        if (null != timeout) {
+            return timeout(DittoDuration.of(timeout));
+        }
+        return timeout((DittoDuration) null);
+    }
+
+    private S timeout(@Nullable final DittoDuration timeout) {
+        final DittoHeaderDefinition definition = DittoHeaderDefinition.TIMEOUT;
+        if (null != timeout) {
+            putCharSequence(definition, timeout.toString());
+        } else {
+            removeHeader(definition.getKey());
+        }
+        return myself;
+    }
+
+    @Override
+    public S putMetadata(final MetadataHeaderKey key, final JsonValue value) {
+        metadataHeaders.add(MetadataHeader.of(key, value));
+        return myself;
+    }
+
+    @Override
+    public S allowPolicyLockout(final boolean allowPolicyLockout) {
+        putBoolean(DittoHeaderDefinition.ALLOW_POLICY_LOCKOUT, allowPolicyLockout);
+        return myself;
+    }
+
+    @Override
     public S putHeader(final CharSequence key, final CharSequence value) {
         validateKey(key);
         checkNotNull(value, "value");
-        validateValueType(key, value);
-        headers.put(key.toString(), value.toString());
+        final String keyString = key.toString().toLowerCase();
+        validateValueType(keyString, value);
+        if (isMetadataKey(keyString)) {
+            metadataHeaders = MetadataHeaders.parseMetadataHeaders(value);
+        } else if (DittoHeaderDefinition.CORRELATION_ID.getKey().equals(keyString)) {
+            correlationId(value);
+        } else {
+            headers.remove(keyString);
+            headers.put(keyString, Header.of(key.toString(), value.toString()));
+        }
         return myself;
     }
 
@@ -256,24 +508,31 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     protected void validateValueType(final CharSequence key, final CharSequence value) {
-        definitions.stream()
-                .filter(definition -> Objects.equals(definition.getKey(), key))
-                .findAny()
-                .ifPresent(definition -> definition.validateValue(value));
+        @Nullable final HeaderDefinition headerDefinition = definitions.get(key.toString());
+        if (null != headerDefinition) {
+            headerDefinition.validateValue(value);
+        }
+    }
+
+    private static boolean isMetadataKey(final CharSequence key) {
+        return Objects.equals(DittoHeaderDefinition.PUT_METADATA.getKey(), key.toString());
     }
 
     @Override
     public S putHeaders(final Map<String, String> headers) {
         checkNotNull(headers, "headers");
-        validateValueTypes(headers, definitions);
-        this.headers.putAll(headers);
+        headers.forEach(this::putHeader);
         return myself;
     }
 
     @Override
     public S removeHeader(final CharSequence key) {
         validateKey(key);
-        headers.remove(key.toString());
+        final String keyString = key.toString().toLowerCase();
+        headers.remove(keyString);
+        if (isMetadataKey(keyString)) {
+            metadataHeaders.clear();
+        }
         return myself;
     }
 
@@ -286,14 +545,35 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
 
     @Override
     public R build() {
-        final ImmutableDittoHeaders dittoHeaders = ImmutableDittoHeaders.of(headers);
+        // do it here
+        putMetadataHeadersToRegularHeaders();
+        final ImmutableDittoHeaders dittoHeaders = ImmutableDittoHeaders.fromBuilder(headers);
         return doBuild(dittoHeaders);
+    }
+
+    private void putMetadataHeadersToRegularHeaders() {
+        if (!metadataHeaders.isEmpty()) {
+            headers.put(DittoHeaderDefinition.PUT_METADATA.getKey(),
+                    Header.of(DittoHeaderDefinition.PUT_METADATA.getKey(), metadataHeaders.toJsonString()));
+        }
     }
 
     @Override
     public String toString() {
+        putMetadataHeadersToRegularHeaders();
         return headers.toString();
     }
 
     protected abstract R doBuild(DittoHeaders dittoHeaders);
+
+    private static Map<String, Header> preserveCaseSensitivity(final Map<String, String> headers) {
+        if (headers instanceof AbstractDittoHeaders) {
+            return new LinkedHashMap<>(((AbstractDittoHeaders) headers).headers);
+        } else {
+            final LinkedHashMap<String, Header> result = new LinkedHashMap<>();
+            headers.forEach((k, v) -> result.put(k.toLowerCase(), Header.of(k, v)));
+            return result;
+        }
+    }
+
 }

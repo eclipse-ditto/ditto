@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -15,9 +17,14 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributeResponse;
 import org.eclipse.ditto.signals.events.things.AttributeDeleted;
@@ -44,22 +51,22 @@ public final class DeleteAttributeStrategyTest extends AbstractCommandStrategyTe
     @Test
     public void successfullyDeleteAttribute() {
         final JsonPointer attrPointer = JsonFactory.newPointer("/location/longitude");
-        final CommandStrategy.Context context = getDefaultContext();
-        final DeleteAttribute command = DeleteAttribute.of(context.getThingId(), attrPointer, DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final DeleteAttribute command = DeleteAttribute.of(context.getState(), attrPointer, DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
                 AttributeDeleted.class,
-                DeleteAttributeResponse.of(context.getThingId(),
+                DeleteAttributeResponse.of(context.getState(),
                         attrPointer, command.getDittoHeaders()));
     }
 
     @Test
     public void deleteAttributeFromThingWithoutAttributes() {
         final JsonPointer attrPointer = JsonFactory.newPointer("/location/longitude");
-        final CommandStrategy.Context context = getDefaultContext();
-        final DeleteAttribute command = DeleteAttribute.of(context.getThingId(), attrPointer, DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final DeleteAttribute command = DeleteAttribute.of(context.getState(), attrPointer, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.attributeNotFound(context.getThingId(), attrPointer, command.getDittoHeaders());
+                ExceptionFactory.attributeNotFound(context.getState(), attrPointer, command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.removeAttributes(), command, expectedException);
     }
@@ -67,12 +74,68 @@ public final class DeleteAttributeStrategyTest extends AbstractCommandStrategyTe
     @Test
     public void deleteAttributeFromThingWithoutThatAttribute() {
         final JsonPointer attrPointer = JsonFactory.newPointer("/location/longitude");
-        final CommandStrategy.Context context = getDefaultContext();
-        final DeleteAttribute command = DeleteAttribute.of(context.getThingId(), attrPointer, DittoHeaders.empty());
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final DeleteAttribute command = DeleteAttribute.of(context.getState(), attrPointer, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.attributeNotFound(context.getThingId(), attrPointer, command.getDittoHeaders());
+                ExceptionFactory.attributeNotFound(context.getState(), attrPointer, command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.removeAttribute(attrPointer), command, expectedException);
+    }
+
+    /**
+     * Having attributes:
+     * <code>
+     * "attributes": {
+     *     "complex": {
+     *         "nested": "foo"
+     *     }
+     * }
+     * </code>
+     * a delete on <code>/complex/nested/non/existent/path</code> should result in an error
+     */
+    @Test
+    public void deleteFromComplexNestedAttributeWithoutThatPath() {
+        // the last known object key must be still part of the pointer, or the test will not work. Since "nested"
+        // is the last known part of the pointer that is part of the attributes, it has to be a primitive value.
+        // if it was an object and the object did not contain "non", then the test would fail trivially.
+        final JsonPointer attrPointer = JsonFactory.newPointer("/complex/nested/non/existent/path");
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final DeleteAttribute command = DeleteAttribute.of(context.getState(), attrPointer, DittoHeaders.empty());
+        final DittoRuntimeException expectedException =
+                ExceptionFactory.attributeNotFound(context.getState(), attrPointer, command.getDittoHeaders());
+
+        final Thing thing = THING_V2.toBuilder()
+                .removeAllAttributes()
+                .setAttribute(JsonPointer.of("/complex"), JsonObject.of("{\"nested\": \"foo\"}"))
+                .build();
+
+        assertErrorResult(underTest, thing, command, expectedException);
+    }
+
+    /**
+     * Having attributes:
+     * <code>
+     * "attributes": {
+     *     "flat":"foobar"
+     * }
+     * </code>
+     * a delete on <code>/flat/non/existent/path</code> should result in an error
+     */
+    @Test
+    public void deleteFromFlatAttributeWithoutThatPath() {
+
+        final JsonPointer attrPointer = JsonFactory.newPointer("/flat/non/existent/path");
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final DeleteAttribute command = DeleteAttribute.of(context.getState(), attrPointer, DittoHeaders.empty());
+        final DittoRuntimeException expectedException =
+                ExceptionFactory.attributeNotFound(context.getState(), attrPointer, command.getDittoHeaders());
+
+        final Thing thing = THING_V2.toBuilder()
+                .removeAllAttributes()
+                .setAttribute(JsonPointer.of("/flat"), JsonValue.of("foobar"))
+                .build();
+
+        assertErrorResult(underTest, thing, command, expectedException);
     }
 
 }

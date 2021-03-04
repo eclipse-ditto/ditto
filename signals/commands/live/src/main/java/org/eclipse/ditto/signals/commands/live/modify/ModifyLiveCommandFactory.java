@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -264,6 +266,20 @@ public final class ModifyLiveCommandFactory {
     @Nonnull
     public static ModifyThingLiveCommand modifyThing(final Command<?> command) {
         return ModifyThingLiveCommandImpl.of(command);
+    }
+
+    /**
+     * Returns a new immutable instance of {@code MergeThingLiveCommand}.
+     *
+     * @param command the command to base the result on.
+     * @return the instance.
+     * @throws NullPointerException if {@code command} is {@code null}.
+     * @throws ClassCastException if {@code command} is not an instance of
+     * {@link org.eclipse.ditto.signals.commands.things.modify.MergeThing MergeThing}.
+     */
+    @Nonnull
+    public static MergeThingLiveCommand mergeThing(final Command<?> command) {
+        return MergeThingLiveCommandImpl.of(command);
     }
 
 }

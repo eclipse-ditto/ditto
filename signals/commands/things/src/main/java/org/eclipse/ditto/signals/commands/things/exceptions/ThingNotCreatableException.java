@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -18,16 +20,20 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingException;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * Thrown if a Thing could not be created because a linked Policy ID was not existing for example.
  */
 @Immutable
+@JsonParsableException(errorCode = ThingNotCreatableException.ERROR_CODE)
 public final class ThingNotCreatableException extends DittoRuntimeException implements ThingException {
 
     /**
@@ -60,7 +66,7 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-        super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, HttpStatus.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
     /**
@@ -71,7 +77,7 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
      * @param policyId the ID of the Policy which was used when creating the Thing.
      * @return the builder.
      */
-    public static Builder newBuilderForPolicyMissing(final String thingId, final String policyId) {
+    public static Builder newBuilderForPolicyMissing(final ThingId thingId, final PolicyId policyId) {
         return new Builder(thingId, policyId, true);
     }
 
@@ -83,7 +89,7 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
      * @param policyId the ID of the Policy which was used when creating the Thing.
      * @return the builder.
      */
-    public static Builder newBuilderForPolicyExisting(final String thingId, final String policyId) {
+    public static Builder newBuilderForPolicyExisting(final ThingId thingId, final PolicyId policyId) {
         return new Builder(thingId, policyId, false);
     }
 
@@ -93,20 +99,14 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param description the description which may be {@code null}.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new
-     * ThingNotCreatableException.
+     * @return the new ThingNotCreatableException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static ThingNotCreatableException fromMessage(final String message, @Nullable final String description,
+    public static ThingNotCreatableException fromMessage(@Nullable final String message,
+            @Nullable final String description,
             final DittoHeaders dittoHeaders) {
-
-        final DittoRuntimeExceptionBuilder<ThingNotCreatableException> exceptionBuilder = new Builder(true)
-                .dittoHeaders(dittoHeaders)
-                .message(message);
-        if (description != null) {
-            return exceptionBuilder.description(description).build();
-        } else {
-            return exceptionBuilder.build();
-        }
+        return DittoRuntimeException.fromMessage(message, dittoHeaders,
+                new Builder().description(() -> description != null ? description : DEFAULT_DESCRIPTION_GENERIC));
     }
 
     /**
@@ -116,16 +116,24 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
      * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new ThingNotCreatableException.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
-     * JsonFields#MESSAGE} field.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static ThingNotCreatableException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
+    }
+
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new Builder()
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
                 .dittoHeaders(dittoHeaders)
-                .message(readMessage(jsonObject))
-                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION_GENERIC))
-                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 
@@ -147,12 +155,13 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
             }
         }
 
-        private Builder(final String thingId, final String policyId, final boolean policyMissing) {
+        private Builder(final ThingId thingId, final PolicyId policyId, final boolean policyMissing) {
             this(policyMissing);
             if (policyMissing) {
-                message(MessageFormat.format(MESSAGE_TEMPLATE, thingId, policyId));
+                message(MessageFormat.format(MESSAGE_TEMPLATE, String.valueOf(thingId), policyId));
             } else {
-                message(MessageFormat.format(MESSAGE_TEMPLATE_POLICY_CREATION_FAILURE, thingId, policyId));
+                message(MessageFormat.format(MESSAGE_TEMPLATE_POLICY_CREATION_FAILURE, String.valueOf(thingId),
+                        policyId));
             }
         }
 

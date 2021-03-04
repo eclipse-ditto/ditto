@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -110,12 +112,12 @@ public class ThingPersistenceActorMailbox implements MailboxType,
             // instead of blocking return "too many requests" response if numberOfMessages > capacity
             if (numberOfMessages() > capacity) {
                 log.warning("Number of messages ({}) in the Mailbox of thing with ID '{}' exceeded the max capacity of "
-                                + "{} -> rejecting ThingModifyCommand '{}'", numberOfMessages(), command.getId(), capacity,
+                                + "{} -> rejecting ThingModifyCommand '{}'", numberOfMessages(), command.getEntityId(), capacity,
                         command.getType());
 
-                final ThingErrorResponse errorResponse = ThingErrorResponse.of(command.getId(),
+                final ThingErrorResponse errorResponse = ThingErrorResponse.of(command.getThingEntityId(),
                         ThingTooManyModifyingRequestsException //
-                                .newBuilder(command.getId()) //
+                                .newBuilder(command.getThingEntityId()) //
                                 .dittoHeaders(command.getDittoHeaders()) //
                                 .build());
                 sender.tell(errorResponse, null);

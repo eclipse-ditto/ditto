@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -29,7 +31,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  * Immutable implementation of a {@link HeaderMapping}.
  */
 @Immutable
-public final class ImmutableHeaderMapping implements HeaderMapping {
+final class ImmutableHeaderMapping implements HeaderMapping {
 
     private final Map<String, String> mapping;
 
@@ -50,7 +52,7 @@ public final class ImmutableHeaderMapping implements HeaderMapping {
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
-    public static HeaderMapping fromJson(final JsonObject jsonObject) {
+    static HeaderMapping fromJson(final JsonObject jsonObject) {
         return new ImmutableHeaderMapping(jsonObject.stream()
                 .filter(f -> f.getValue().isString())
                 .collect(Collectors.toMap(JsonField::getKeyName, jsonField -> jsonField.getValue().asString())));

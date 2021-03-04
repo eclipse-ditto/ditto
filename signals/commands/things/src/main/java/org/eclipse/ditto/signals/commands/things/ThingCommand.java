@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -13,10 +15,14 @@ package org.eclipse.ditto.signals.commands.things;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
+import org.eclipse.ditto.model.base.entity.type.WithEntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.signals.base.WithThingId;
+import org.eclipse.ditto.model.things.ThingConstants;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 /**
@@ -24,7 +30,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ThingCommand<T extends ThingCommand> extends Command<T>, WithThingId {
+public interface ThingCommand<T extends ThingCommand<T>> extends Command<T>, WithThingId, WithEntityType {
 
     /**
      * Type Prefix of Thing commands.
@@ -34,7 +40,7 @@ public interface ThingCommand<T extends ThingCommand> extends Command<T>, WithTh
     /**
      * Thing resource type.
      */
-    String RESOURCE_TYPE = "thing";
+    String RESOURCE_TYPE = ThingConstants.ENTITY_TYPE.toString();
 
     @Override
     default String getTypePrefix() {
@@ -42,13 +48,24 @@ public interface ThingCommand<T extends ThingCommand> extends Command<T>, WithTh
     }
 
     @Override
-    default String getId() {
-        return getThingId();
+    default ThingId getEntityId() {
+        return getThingEntityId();
     }
 
     @Override
     default String getResourceType() {
         return RESOURCE_TYPE;
+    }
+
+    /**
+     * Returns the entity type {@link ThingConstants#ENTITY_TYPE}.
+     *
+     * @return the Thing entity type.
+     * @since 1.1.0
+     */
+    @Override
+    default EntityType getEntityType() {
+        return ThingConstants.ENTITY_TYPE;
     }
 
     @Override

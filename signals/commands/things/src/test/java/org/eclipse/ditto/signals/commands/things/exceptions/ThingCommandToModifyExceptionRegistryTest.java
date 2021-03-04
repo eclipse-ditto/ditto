@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -15,6 +17,7 @@ import static org.eclipse.ditto.signals.commands.things.assertions.ThingCommandA
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttribute;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,12 +36,17 @@ public final class ThingCommandToModifyExceptionRegistryTest {
 
     @Test
     public void mapModifyThingToThingNotModifiable() {
-        final DeleteAttribute modifyThing = DeleteAttribute.of(":thingId", JsonPointer.of("abc"), DittoHeaders.empty());
-        final DittoRuntimeException mappedException = registryUnderTest.exceptionFrom(modifyThing);
-        final DittoRuntimeException expectedException = AttributeNotModifiableException.newBuilder(":thingId",
-                JsonPointer.of("abc")).build();
+        final DeleteAttribute modifyThing = DeleteAttribute.of(ThingId.of("org.eclipse.ditto:thingId"),
+                JsonPointer.of("abc"),
+                DittoHeaders.newBuilder().randomCorrelationId().build());
 
-        assertThat(mappedException).isEqualTo(expectedException);
+        final DittoRuntimeException expectedException =
+                AttributeNotModifiableException.newBuilder(modifyThing.getEntityId(),
+                        JsonPointer.of("/attributes" + modifyThing.getAttributePointer()))
+                        .dittoHeaders(modifyThing.getDittoHeaders())
+                        .build();
+
+        assertThat(registryUnderTest.exceptionFrom(modifyThing)).isEqualTo(expectedException);
     }
 
 }

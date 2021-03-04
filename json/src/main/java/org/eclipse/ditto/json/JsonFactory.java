@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -12,12 +14,17 @@ package org.eclipse.ditto.json;
 
 import static java.util.Objects.requireNonNull;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -32,6 +39,9 @@ import javax.annotation.concurrent.Immutable;
  */
 @Immutable
 public final class JsonFactory {
+
+    private static final String NULL_STRING = "null";
+    private static final byte[] NULL_DATA = NULL_STRING.getBytes(StandardCharsets.UTF_8);
 
     /*
      * This utility class is not meant to be instantiated.
@@ -243,16 +253,57 @@ public final class JsonFactory {
             return nullObject();
         } else {
             final JsonValue jsonValue = JsonValueParser.fromString().apply(jsonString);
+            return newObject(jsonValue);
+        }
+    }
+
+    public static JsonObject newObject(final JsonValue jsonValue) {
+        if (!jsonValue.isObject()) {
+            final String msgPattern = "<{0}> is not a valid JSON object!";
+            throw JsonParseException.newBuilder()
+                    .message(MessageFormat.format(msgPattern, jsonValue.toString()))
+                    .build();
+        }
+        return jsonValue.asObject();
+    }
+
+
+    /**
+     * Creates a JSON object from the given byte array.
+     *
+     * @param jsonData the byte array that represents the JSON object.
+     * @return the JSON object that has been created from the data.
+     * @throws NullPointerException if {@code jsonData} is {@code null}.
+     * @throws IllegalArgumentException if {@code jsonData} is empty.
+     * @throws JsonParseException if {@code jsonData} does not contain a valid JSON object.
+     * @since 1.5.0
+     */
+    public static JsonObject newObject(final byte[] jsonData) {
+        requireNonNull(jsonData, "The JSON data to create a JSON object from must not be null!");
+        if (jsonData.length == 0) {
+            throw new IllegalArgumentException("The JSON data to create a JSON object from must not be empty!");
+        }
+
+        if (isJsonNullLiteralData(jsonData)) {
+            return nullObject();
+        } else {
+            final Reader reader = new InputStreamReader(new ByteArrayInputStream(jsonData));
+            final JsonValue jsonValue = JsonValueParser.fromReader().apply(reader);
             if (!jsonValue.isObject()) {
                 final String msgPattern = "<{0}> is not a valid JSON object!";
-                throw JsonParseException.newBuilder().message(MessageFormat.format(msgPattern, jsonString)).build();
+                throw JsonParseException.newBuilder()
+                        .message(MessageFormat.format(msgPattern, jsonValue)).build();
             }
             return jsonValue.asObject();
         }
     }
 
     private static boolean isJsonNullLiteralString(final String s) {
-        return "null".equals(s);
+        return NULL_STRING.equals(s);
+    }
+
+    private static boolean isJsonNullLiteralData(final byte[] data) {
+        return Arrays.equals(NULL_DATA, data);
     }
 
     /**
@@ -269,6 +320,30 @@ public final class JsonFactory {
     }
 
     /**
+     * Creates a JSON object from the given {@code path} and {@code value}.
+     *
+     * @param path the path where the given value will be set
+     * @param value the value that will be set at the given path
+     * @return a new JSON object containing the given {@code value} at the given {@code path}.
+     * @throws NullPointerException if {@code path} or {@code value} is {@code null}.
+     * @throws java.lang.IllegalArgumentException if {@code path} is empty and {@code value} is not an object.
+     * @since 1.5.0
+     */
+    public static JsonObject newObject(final JsonPointer path, final JsonValue value) {
+        final JsonObject result;
+        if (path.isEmpty()) {
+            if (value.isObject()) {
+                result = value.asObject();
+            } else {
+                throw new IllegalArgumentException("Value must be a JsonObject at root revel (empty path).");
+            }
+        } else {
+            result = JsonObject.newBuilder().set(path, value).build();
+        }
+        return result;
+    }
+
+    /**
      * @param jsonFields the json fields to create a new JsonObject from.
      * @return a null object if {@code jsonFields} is a null json object. Else this returns a new object containing the
      * given {code jsonFields}.
@@ -278,6 +353,31 @@ public final class JsonFactory {
             return nullObject();
         }
         return newObjectBuilder(jsonFields).build();
+    }
+
+    /**
+     * Merge two JSON objects into one JSON object.
+     *
+     * @param jsonObject1 the json object to merge, overrides conflicting fields.
+     * @param jsonObject2 the json object to merge.
+     * @return returns a new object merged the given {code jsonObject1} and {code jsonObject2}.
+     * @since 1.5.0
+     */
+    public static JsonObject newObject(final JsonObject jsonObject1, final JsonObject jsonObject2) {
+        return JsonObjectMerger.mergeJsonObjects(jsonObject1, jsonObject2);
+    }
+
+    /**
+     * Merge two JSON values into one JSON value.
+     * Implementation is conform to <a href="https://tools.ietf.org/html/rfc7396">RFC 7396</a>.
+     *
+     * @param jsonValue1 the json value to merge, overrides conflicting fields.
+     * @param jsonValue2 the json value to merge.
+     * @return returns a new value merged the given {@code jsonValue1} and {@code jsonValue2}.
+     * @since 2.0.0
+     */
+    public static JsonValue mergeJsonValues(final JsonValue jsonValue1, final JsonValue jsonValue2) {
+        return JsonValueMerger.mergeJsonValues(jsonValue1, jsonValue2);
     }
 
     /**
@@ -436,13 +536,11 @@ public final class JsonFactory {
      * {@link JsonPointer#toString()} with one exception: both strings {@code "/"} and {@code ""} lead to an empty
      * pointer while the string representation of an empty string is always {@code "/"}.
      * <p>
-     * As a JsonPointer is a hierarchy of JsonKeys it has to support JsonKeys containing slashes. Because of this, a
-     * JsonPointer string has to escape each slash of a JsonKey with {@code "~1"}. To support, tildes in JsonKeys,
-     * too, they have to be escaped with {@code "~0"}. For example, parsing the string
-     * {@code "/foo/~0dum~1~0die~1~0dum/baz"} would result in a JsonPointer consisting of the JsonKeys
+     * To support tildes in JsonKeys, they have to be escaped with {@code "~0"}. For example, parsing the string
+     * {@code "/foo/~0dum~0die~0dum/baz"} would result in a JsonPointer consisting of the JsonKeys
      * <ol>
      * <li>{@code "foo"},</li>
-     * <li>{@code "~dum/~die/~dum"} and</li>
+     * <li>{@code "~dum~die~dum"} and</li>
      * <li>{@code "baz"}.</li>
      * </ol>
      *
@@ -572,6 +670,30 @@ public final class JsonFactory {
         }
 
         return ImmutableJsonFieldSelector.of(jsonPointers);
+    }
+
+    /**
+     * Parse a nullable string as JSON field selector. Return null if the string is null or contains a single
+     * comma.
+     *
+     * @param jsonFieldSelectorString the string to parse.
+     * @return the Json field selector.
+     * @since 1.1.0
+     */
+    @Nullable
+    public static JsonFieldSelector parseJsonFieldSelector(@Nullable final String jsonFieldSelectorString) {
+        if (jsonFieldSelectorString == null) {
+            return null;
+        } else {
+            final String[] splitFields = jsonFieldSelectorString.split(ImmutableJsonFieldSelector.COMMA);
+            if (splitFields.length < 1) {
+                return null;
+            } else {
+                final String firstField = splitFields[0];
+                final String[] otherFields = Arrays.stream(splitFields).skip(1L).toArray(String[]::new);
+                return JsonFieldSelector.newInstance(firstField, otherFields);
+            }
+        }
     }
 
     /**
@@ -740,6 +862,42 @@ public final class JsonFactory {
 
         return JsonValueFieldDefinition.newInstance(pointer, JsonValue.class, jsonValue -> true, Function.identity(),
                 markers);
+    }
+
+    /**
+     * Creates a {@link JsonArray} backed with an already serialized CBOR representation as the passed bytes.
+     * <p>
+     * <b>This is a Ditto internal API is not intended for re-use.</b>
+     * It therefore is not treated as API which is held binary compatible to previous versions.
+     * </p>
+     *
+     * @param jsonValueList the JSON values to create the JsonArray from.
+     * @param cborRepresentation the already CBOR serialized representation of the JsonArray.
+     * @return the created JsonArray.
+     * @since 1.2.1
+     */
+    public static JsonArray createJsonArray(final List<JsonValue> jsonValueList,
+            @Nullable final byte[] cborRepresentation) {
+        return new ImmutableJsonArray(
+                ImmutableJsonArray.SoftReferencedValueList.of(jsonValueList, cborRepresentation));
+    }
+
+    /**
+     * Creates a {@link JsonObject} backed with an already serialized CBOR representation as the passed bytes.
+     * <p>
+     * <b>This is a Ditto internal API is not intended for re-use.</b>
+     * It therefore is not treated as API which is held binary compatible to previous versions.
+     * </p>
+     *
+     * @param jsonFieldMap the JSON fields to create the JsonObject from.
+     * @param cborObjectRepresentation the already CBOR serialized representation of the JsonObject.
+     * @return the created JsonObject.
+     * @since 1.2.1
+     */
+    public static JsonObject createJsonObject(final Map<String, JsonField> jsonFieldMap,
+            @Nullable final byte[] cborObjectRepresentation) {
+        return new ImmutableJsonObject(
+                ImmutableJsonObject.SoftReferencedFieldMap.of(jsonFieldMap, null, cborObjectRepresentation));
     }
 
     /**

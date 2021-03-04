@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -20,6 +22,7 @@ import static org.eclipse.ditto.model.policies.assertions.DittoPolicyAssertions.
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
@@ -32,7 +35,7 @@ import org.junit.Test;
 public final class ImmutablePolicyBuilderTest {
 
     private static final String POLICY_NS = "com.test";
-    private static final String POLICY_ID = POLICY_NS + ":test";
+    private static final PolicyId POLICY_ID = PolicyId.of(POLICY_NS, "test");
     private static final JsonPointer ATTRIBUTES_POINTER = JsonFactory.newPointer("/attributes");
     private static final JsonPointer FEATURES_POINTER = JsonFactory.newPointer("/features");
 
@@ -54,10 +57,17 @@ public final class ImmutablePolicyBuilderTest {
 
     @Test
     public void tryToSetNullPolicyId() {
-        assertThatExceptionOfType(PolicyIdInvalidException.class)
+        assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> underTest.setId(null))
-                .withMessage("The ID is not valid because it was 'null'!")
+                .withMessage("The Policy ID must not be null!")
                 .withNoCause();
+    }
+
+    @Test
+    public void tryToSetNullPolicyIdCharSequence() {
+        assertThatExceptionOfType(PolicyIdInvalidException.class)
+                .isThrownBy(() -> underTest.setId((CharSequence) null))
+                .withMessage("Policy ID 'null' is not valid!");
     }
 
     @Test(expected = NullPointerException.class)
@@ -150,7 +160,7 @@ public final class ImmutablePolicyBuilderTest {
                 .setRevokedPermissionsFor(support, "thing", FEATURES_POINTER, PERMISSION_READ, PERMISSION_WRITE)
                 .build();
 
-        final String newPolicyId = "com.policy:foobar2000";
+        final PolicyId newPolicyId = PolicyId.of("com.policy", "foobar2000");
         final String newEndUser = "NewEndUser";
         final SubjectId newUserSubjectId = SubjectId.newInstance(SubjectIssuer.GOOGLE, "newUserSubjectId");
 
@@ -210,6 +220,12 @@ public final class ImmutablePolicyBuilderTest {
         assertThat(policy).hasResourceEffectedPermissionsFor(endUserLabel, RESOURCE_TYPE, JsonPointer.empty(),
                 EffectedPermissions.newInstance(Collections.singleton(PERMISSION_READ),
                         Collections.singleton(PERMISSION_WRITE)));
+    }
+
+    @Test
+    public void buildPolicyWithoutPolicyId() {
+        final Policy policyWithoutPolicyId = ImmutablePolicyBuilder.newInstance().build();
+        assertThat(policyWithoutPolicyId.getEntityId()).isEqualTo(Optional.empty());
     }
 
 }

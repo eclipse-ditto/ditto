@@ -1,0 +1,115 @@
+# Copyright (c) 2020 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+post:
+  summary: Processes a CloudEvent sent in Ditto Protocol
+  description: |-
+    Provides an endpoint accepting [CloudEvents via its HTTP protocol binding](https://github.com/cloudevents/spec/blob/v1.0/http-protocol-binding.md)
+    in [Ditto Protocol JSON](https://www.eclipse.org/ditto/protocol-specification.html).
+
+    The endpoint can also directly be configured as a [Knative eventing](https://knative.dev/docs/eventing/) destination.
+
+    Find more documentation on that [here](https://www.eclipse.org/ditto/httpapi-protocol-bindings-cloudevents.html).
+  tags:
+    - CloudEvents
+  parameters:
+    - in: header
+      name: ce-specversion
+      description: The CloudEvents "specversion".
+      schema:
+        type: string
+        example: "1.0"
+      required: true
+    - in: header
+      name: ce-type
+      description: The CloudEvents event "type".
+      schema:
+        type: string
+        example: "com.example.someevent"
+      required: true
+    - in: header
+      name: ce-source
+      description: The CloudEvents event "source".
+      schema:
+        type: string
+        example: "/mycontext"
+      required: true
+    - in: header
+      name: ce-id
+      description: The CloudEvents event "id".
+      schema:
+        type: string
+        example: "1234-1234-1234"
+      required: true
+    - in: header
+      name: ce-time
+      description: The CloudEvents event "time".
+      schema:
+        type: string
+        format: date-time
+        example: "2020-12-31T23:59:59Z"
+      required: true
+    - in: header
+      name: ce-dataschema
+      description: The CloudEvents event "dataschema". If provided, this must start with `ditto:`.
+      schema:
+        type: string
+      required: false
+  responses:
+    '202':
+      description: |-
+        The Ditto Protocol CloudEvent was successfully parsed, the authentication was valid and also reached the persistence.
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the CloudEvent could not be parsed as some mandatory CloudEvent headers were missing from the request
+          * the payload was missing from the CloudEvent
+          * the [Ditto Protocol JSON](https://www.eclipse.org/ditto/protocol-specification.html) message could not be parsed or was missing a required field
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the caller has insufficient permissions.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the referenced thing does not exist.
+          * the caller has insufficient permissions to perform the contained Ditto Protocol command.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '408':
+      description: The request could not be completed due to timeout.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '415':
+      description: The `Content-Type` of the request was not supported.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+  requestBody:
+    $ref: '../../requests/dittoProtocol.yml'

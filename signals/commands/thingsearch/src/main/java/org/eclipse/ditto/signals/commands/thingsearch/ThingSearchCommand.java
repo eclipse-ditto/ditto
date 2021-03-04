@@ -1,17 +1,25 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.thingsearch;
 
+import java.util.Optional;
+import java.util.Set;
+
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.thingsearch.ThingSearchConstants;
+import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 /**
@@ -21,7 +29,8 @@ import org.eclipse.ditto.signals.commands.base.Command;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ThingSearchCommand<T extends ThingSearchCommand> extends Command<T> {
+public interface ThingSearchCommand<T extends ThingSearchCommand<T>>
+        extends Command<T>, WithIdButActuallyNot {
 
     /**
      * Type Prefix of Search commands.
@@ -31,7 +40,23 @@ public interface ThingSearchCommand<T extends ThingSearchCommand> extends Comman
     /**
      * Thing Search resource type.
      */
-    String RESOURCE_TYPE = "thing-search";
+    String RESOURCE_TYPE = ThingSearchConstants.ENTITY_TYPE.toString();
+
+    /**
+     * Returns the selected fields which are to be included in the JSON of the retrieved entity.
+     *
+     * @return the selected fields.
+     */
+    default Optional<JsonFieldSelector> getSelectedFields() {
+        return Optional.empty();
+    }
+
+    /**
+     * Get the optional set of namespaces.
+     *
+     * @return the optional set of namespaces.
+     */
+    default Optional<Set<String>> getNamespaces() {return Optional.empty();}
 
     @Override
     default String getTypePrefix() {
@@ -50,15 +75,5 @@ public interface ThingSearchCommand<T extends ThingSearchCommand> extends Comman
 
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);
-
-    /**
-     * Search commands do not have an ID. Thus this implementation always returns an empty string.
-     *
-     * @return an empty string.
-     */
-    @Override
-    default String getId() {
-        return "";
-    }
 
 }

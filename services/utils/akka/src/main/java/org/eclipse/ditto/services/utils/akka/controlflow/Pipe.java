@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -27,27 +29,6 @@ public final class Pipe {
 
     private Pipe() {
         throw new AssertionError();
-    }
-
-    /**
-     * Join a flow into a sink.
-     *
-     * @param step1 the flow.
-     * @param step2 the sink.
-     * @param <A> type of input.
-     * @param <B> type of intermediate messages.
-     * @return joined sink.
-     */
-    public static <A, B> Graph<SinkShape<A>, NotUsed> joinSink(
-            final Graph<FlowShape<A, B>, NotUsed> step1,
-            final Graph<SinkShape<B>, NotUsed> step2) {
-
-        return GraphDSL.create(builder -> {
-            final FlowShape<A, B> shape1 = builder.add(step1);
-            final SinkShape<B> shape2 = builder.add(step2);
-            builder.from(shape1.out()).to(shape2);
-            return SinkShape.of(shape1.in());
-        });
     }
 
     /**
@@ -132,4 +113,5 @@ public final class Pipe {
 
         return overallFlow;
     }
+
 }

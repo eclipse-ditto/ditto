@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -15,19 +17,26 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributesResponse;
 import org.eclipse.ditto.signals.events.things.AttributesDeleted;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * This strategy handles the {@link DeleteAttributes} command.
  */
 @Immutable
 final class DeleteAttributesStrategy
-        extends AbstractConditionalHeadersCheckingCommandStrategy<DeleteAttributes, Attributes> {
+        extends AbstractThingCommandStrategy<DeleteAttributes> {
 
     /**
      * Constructs a new {@code DeleteAttributesStrategy} object.
@@ -37,32 +46,41 @@ final class DeleteAttributesStrategy
     }
 
     @Override
-    protected Result doApply(final Context context, @Nullable final Thing thing,
-            final long nextRevision, final DeleteAttributes command) {
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
+            @Nullable final Thing thing,
+            final long nextRevision,
+            final DeleteAttributes command,
+            @Nullable final Metadata metadata) {
 
         return extractAttributes(thing)
-                .map(attributes -> getDeleteAttributesResult(context, nextRevision, command))
+                .map(attributes -> getDeleteAttributesResult(context, nextRevision, command, thing, metadata))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.attributesNotFound(context.getThingId(), command.getDittoHeaders())));
+                        ExceptionFactory.attributesNotFound(context.getState(), command.getDittoHeaders()), command));
     }
 
     private Optional<Attributes> extractAttributes(final @Nullable Thing thing) {
-        return getThingOrThrow(thing).getAttributes();
+        return getEntityOrThrow(thing).getAttributes();
     }
 
-    private Result getDeleteAttributesResult(final Context context, final long nextRevision,
-            final DeleteAttributes command) {
-        final String thingId = context.getThingId();
+    private Result<ThingEvent<?>> getDeleteAttributesResult(final Context<ThingId> context, final long nextRevision,
+            final DeleteAttributes command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
+        final ThingId thingId = context.getState();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
+        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
+                DeleteAttributesResponse.of(thingId, dittoHeaders), thing);
+
         return ResultFactory.newMutationResult(command,
-                AttributesDeleted.of(thingId, nextRevision, getEventTimestamp(), dittoHeaders),
-                DeleteAttributesResponse.of(thingId, dittoHeaders), this);
+                AttributesDeleted.of(thingId, nextRevision, getEventTimestamp(), dittoHeaders, metadata), response);
     }
 
     @Override
-    public Optional<Attributes> determineETagEntity(final DeleteAttributes command,
-            @Nullable final Thing thing) {
-        return extractAttributes(thing);
+    public Optional<EntityTag> previousEntityTag(final DeleteAttributes command, @Nullable final Thing previousEntity) {
+        return Optional.ofNullable(previousEntity).flatMap(Thing::getAttributes).flatMap(EntityTag::fromEntity);
+    }
+
+    @Override
+    public Optional<EntityTag> nextEntityTag(final DeleteAttributes command, @Nullable final Thing newEntity) {
+        return Optional.empty();
     }
 }

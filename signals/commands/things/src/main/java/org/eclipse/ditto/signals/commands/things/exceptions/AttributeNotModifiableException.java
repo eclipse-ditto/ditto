@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -18,15 +20,18 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.things.ThingException;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * Exception which indicates that an attribute cannot be modified.
  */
+@JsonParsableException(errorCode = AttributeNotModifiableException.ERROR_CODE)
 public final class AttributeNotModifiableException extends DittoRuntimeException implements ThingException {
 
     /**
@@ -40,7 +45,7 @@ public final class AttributeNotModifiableException extends DittoRuntimeException
 
     private static final String DEFAULT_DESCRIPTION =
             "Check if the ID of your requested Thing was correct and you have sufficient permissions.";
-    
+
     private static final long serialVersionUID = 2892397125359904460L;
 
     private AttributeNotModifiableException(final DittoHeaders dittoHeaders,
@@ -48,7 +53,7 @@ public final class AttributeNotModifiableException extends DittoRuntimeException
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-        super(ERROR_CODE, HttpStatusCode.FORBIDDEN, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, HttpStatus.FORBIDDEN, dittoHeaders, message, description, cause, href);
     }
 
     /**
@@ -58,7 +63,7 @@ public final class AttributeNotModifiableException extends DittoRuntimeException
      * @param attributePath the path of the attribute which is not modifiable.
      * @return the builder.
      */
-    public static AttributeNotModifiableException.Builder newBuilder(final String thingId,
+    public static AttributeNotModifiableException.Builder newBuilder(final ThingId thingId,
             final JsonPointer attributePath) {
         return new AttributeNotModifiableException.Builder(thingId, attributePath);
     }
@@ -69,13 +74,11 @@ public final class AttributeNotModifiableException extends DittoRuntimeException
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new AttributeNotModifiableException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static AttributeNotModifiableException fromMessage(final String message,
+    public static AttributeNotModifiableException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
@@ -85,22 +88,29 @@ public final class AttributeNotModifiableException extends DittoRuntimeException
      * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new AttributeNotModifiableException.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
-     * JsonFields#MESSAGE} field.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static AttributeNotModifiableException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
+    }
+
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new Builder()
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
                 .dittoHeaders(dittoHeaders)
-                .message(readMessage(jsonObject))
-                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
-                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 
     /**
      * A mutable builder with a fluent API for a {@link AttributeNotModifiableException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<AttributeNotModifiableException> {
@@ -109,7 +119,7 @@ public final class AttributeNotModifiableException extends DittoRuntimeException
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String thingId, final JsonPointer attributePath) {
+        private Builder(final ThingId thingId, final JsonPointer attributePath) {
             this();
             message(MessageFormat.format(MESSAGE_TEMPLATE, attributePath.toString(), thingId));
         }

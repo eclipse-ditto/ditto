@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -24,8 +26,10 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
@@ -35,6 +39,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a {@link Thing} was created.
  */
 @Immutable
+@JsonParsableEvent(name = ThingCreated.NAME, typePrefix = ThingCreated.TYPE_PREFIX)
 public final class ThingCreated extends AbstractThingEvent<ThingCreated> implements ThingModifiedEvent<ThingCreated> {
 
     /**
@@ -52,9 +57,10 @@ public final class ThingCreated extends AbstractThingEvent<ThingCreated> impleme
     private ThingCreated(final Thing thing,
             final long revision,
             @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
 
-        super(TYPE, thing.getId().orElse(null), revision, timestamp, dittoHeaders);
+        super(TYPE, thing.getEntityId().orElse(null), revision, timestamp, dittoHeaders, metadata);
         this.thing = thing;
     }
 
@@ -66,9 +72,15 @@ public final class ThingCreated extends AbstractThingEvent<ThingCreated> impleme
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the ThingCreated created.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.Thing, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
+     * instead.
      */
-    public static ThingCreated of(final Thing thing, final long revision, final DittoHeaders dittoHeaders) {
-        return of(thing, revision, null, dittoHeaders);
+    @Deprecated
+    public static ThingCreated of(final Thing thing,
+            final long revision,
+            final DittoHeaders dittoHeaders) {
+
+        return of(thing, revision, null, dittoHeaders, null);
     }
 
     /**
@@ -80,13 +92,37 @@ public final class ThingCreated extends AbstractThingEvent<ThingCreated> impleme
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the ThingCreated created.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.Thing, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
+     * instead.
      */
+    @Deprecated
     public static ThingCreated of(final Thing thing,
             final long revision,
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
 
-        return new ThingCreated(thing, revision, timestamp, dittoHeaders);
+        return of(thing, revision, timestamp, dittoHeaders, null);
+    }
+
+    /**
+     * Constructs a new {@code ThingCreated} object.
+     *
+     * @param thing the created {@link Thing}.
+     * @param revision the revision of the Thing.
+     * @param timestamp the timestamp of this event.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @param metadata the metadata to apply for the event.
+     * @return the ThingCreated created.
+     * @throws NullPointerException if any argument but {@code timestamp} and {@code metadata} is {@code null}.
+     * @since 1.3.0
+     */
+    public static ThingCreated of(final Thing thing,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
+
+        return new ThingCreated(thing, revision, timestamp, dittoHeaders, metadata);
     }
 
     /**
@@ -114,12 +150,13 @@ public final class ThingCreated extends AbstractThingEvent<ThingCreated> impleme
      * 'ThingCreated' format.
      */
     public static ThingCreated fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<ThingCreated>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
-            final JsonObject thingJsonObject = jsonObject.getValueOrThrow(JsonFields.THING);
-            final Thing extractedThing = ThingsModelFactory.newThing(thingJsonObject);
+        return new EventJsonDeserializer<ThingCreated>(TYPE, jsonObject).deserialize(
+                (revision, timestamp, metadata) -> {
+                    final JsonObject thingJsonObject = jsonObject.getValueOrThrow(JsonFields.THING);
+                    final Thing extractedThing = ThingsModelFactory.newThing(thingJsonObject);
 
-            return of(extractedThing, revision, timestamp, dittoHeaders);
-        });
+                    return of(extractedThing, revision, timestamp, dittoHeaders, metadata);
+                });
     }
 
     /**
@@ -133,12 +170,12 @@ public final class ThingCreated extends AbstractThingEvent<ThingCreated> impleme
 
     @Override
     public ThingCreated setRevision(final long revision) {
-        return of(thing, revision, getTimestamp().orElse(null), getDittoHeaders());
+        return of(thing, revision, getTimestamp().orElse(null), getDittoHeaders(), getMetadata().orElse(null));
     }
 
     @Override
     public ThingCreated setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(thing, getRevision(), getTimestamp().orElse(null), dittoHeaders);
+        return of(thing, getRevision(), getTimestamp().orElse(null), dittoHeaders, getMetadata().orElse(null));
     }
 
     @Override

@@ -12,7 +12,7 @@
     </appender>
 
 
-    <logger name="org.eclipse.ditto" level="DEBUG"/>
+    <logger name="org.eclipse.ditto" level="INFO"/>
     <logger name="org.eclipse.ditto.services.utils.config" level="WARN"/>
 
     <root level="WARN">

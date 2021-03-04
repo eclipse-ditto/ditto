@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -76,10 +78,10 @@ final class CreateThingLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ThingErrorResponse thingConflictError() {
-            final DittoRuntimeException exception = ThingConflictException.newBuilder(command.getThingId())
+            final DittoRuntimeException exception = ThingConflictException.newBuilder(command.getThingEntityId())
                     .dittoHeaders(command.getDittoHeaders())
                     .build();
-            return errorResponse(command.getThingId(), exception);
+            return errorResponse(command.getThingEntityId(), exception);
         }
     }
 
@@ -89,7 +91,7 @@ final class CreateThingLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ThingCreated created() {
-            return ThingCreated.of(command.getThing(), -1, Instant.now(), command.getDittoHeaders());
+            return ThingCreated.of(command.getThing(), -1, Instant.now(), command.getDittoHeaders(), null);
         }
     }
 

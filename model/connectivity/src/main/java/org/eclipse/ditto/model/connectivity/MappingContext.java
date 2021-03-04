@@ -1,16 +1,19 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.model.connectivity;
 
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -37,15 +40,46 @@ public interface MappingContext extends Jsonifiable.WithFieldSelectorAndPredicat
      *     <li>JavaScript</li>
      *     <li><pre>org.eclipse.ditto.services.connectivity.mapping.mapper.javascript.JavaScriptMessageMapperRhino</pre></li>
      * </ul>
+     *
      * @return the mapping engine name
      */
     String getMappingEngine();
 
     /**
-     * All configuration options for mapping engine instantiation.
-     * @return the options
+     * Get options as string key-value pairs. Note that non-string configuration values are converted to JSON string.
+     *
+     * @return the configuration options as key-value pairs.
+     * @deprecated since 1.3.0. Use {@code getOptionsAsJson()} instead.
      */
-    Map<String, String> getOptions();
+    @Deprecated
+    default Map<String, String> getOptions() {
+        return getOptionsAsJson().stream()
+                .collect(Collectors.toMap(JsonField::getKeyName, field -> field.getValue().formatAsString()));
+    }
+
+    /**
+     * All configuration options for mapping engine instantiation.
+     *
+     * @return the options
+     * @since 1.3.0
+     */
+    JsonObject getOptionsAsJson();
+
+    /**
+     * All conditions to be validated before mapping incoming messages.
+     *
+     * @return the conditions
+     * @since 1.3.0
+     */
+    Map<String, String> getIncomingConditions();
+
+    /**
+     * All conditions to be validated before mapping outgoing messages.
+     *
+     * @return the conditions
+     * @since 1.3.0
+     */
+    Map<String, String> getOutgoingConditions();
 
     /**
      * Returns all non hidden marked fields of this {@code MappingContext}.
@@ -81,6 +115,24 @@ public interface MappingContext extends Jsonifiable.WithFieldSelectorAndPredicat
         public static final JsonFieldDefinition<JsonObject> OPTIONS =
                 JsonFactory.newJsonObjectFieldDefinition("options", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code conditions} to check before mapping incoming messages.
+         *
+         * @since 1.3.0
+         */
+        public static final JsonFieldDefinition<JsonObject> INCOMING_CONDITIONS =
+                JsonFactory.newJsonObjectFieldDefinition("incomingConditions", FieldType.REGULAR,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code conditions} to check before mapping outgoing messages.
+         *
+         * @since 1.3.0
+         */
+        public static final JsonFieldDefinition<JsonObject> OUTGOING_CONDITIONS =
+                JsonFactory.newJsonObjectFieldDefinition("outgoingConditions", FieldType.REGULAR,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

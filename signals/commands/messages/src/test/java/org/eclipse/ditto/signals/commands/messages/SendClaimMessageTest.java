@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -13,16 +15,18 @@ package org.eclipse.ditto.signals.commands.messages;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
+import java.nio.ByteBuffer;
 import java.util.UUID;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageHeaders;
-import org.eclipse.ditto.model.messages.ThingIdInvalidException;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -38,7 +42,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 @RunWith(MockitoJUnitRunner.class)
 public final class SendClaimMessageTest {
 
-    private static final String THING_ID = "test.ns:theThingId";
+    private static final ThingId THING_ID = ThingId.of("test.ns", "theThingId");
     private static final String CORRELATION_ID = UUID.randomUUID().toString();
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder().correlationId(CORRELATION_ID).build();
     private static final String KNOWN_RAW_PAYLOAD_STR = "Those reading that are super cool dudes!$$§_ds+üä#das";
@@ -54,6 +58,7 @@ public final class SendClaimMessageTest {
 
     private static final Message<?> DESERIALIZED_MESSAGE = Message.newBuilder(MESSAGE_HEADERS)
             .payload(KNOWN_RAW_PAYLOAD_STR)
+            .rawPayload(ByteBuffer.wrap(KNOWN_RAW_PAYLOAD_STR.getBytes()))
             .build();
 
     private static final JsonObject KNOWN_MESSAGE_AS_JSON = JsonFactory.newObjectBuilder()
@@ -63,7 +68,7 @@ public final class SendClaimMessageTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(Command.JsonFields.TYPE, SendClaimMessage.TYPE)
-            .set(MessageCommand.JsonFields.JSON_THING_ID, THING_ID)
+            .set(MessageCommand.JsonFields.JSON_THING_ID, THING_ID.toString())
             .set(MessageCommand.JsonFields.JSON_MESSAGE, KNOWN_MESSAGE_AS_JSON)
             .build();
 
@@ -80,9 +85,14 @@ public final class SendClaimMessageTest {
                 .verify();
     }
 
+    @Test(expected = ThingIdInvalidException.class)
+    public void tryCreateWithNullThingIdString() {
+        SendClaimMessage.of((String) null, MESSAGE, DITTO_HEADERS);
+    }
+
     @Test(expected = NullPointerException.class)
     public void tryCreateWithNullThingId() {
-        SendClaimMessage.of(null, MESSAGE, DITTO_HEADERS);
+        SendClaimMessage.of((ThingId) null, MESSAGE, DITTO_HEADERS);
     }
 
     @Test(expected = NullPointerException.class)
@@ -93,11 +103,6 @@ public final class SendClaimMessageTest {
     @Test(expected = NullPointerException.class)
     public void tryCreateWithNullDittoHeaders() {
         SendClaimMessage.of(THING_ID, MESSAGE, null);
-    }
-
-    @Test(expected = ThingIdInvalidException.class)
-    public void tryCreateWithInvalidThingId() {
-        SendClaimMessage.of("foobar", MESSAGE, DITTO_HEADERS);
     }
 
     @Test
@@ -128,7 +133,7 @@ public final class SendClaimMessageTest {
                 SendClaimMessage.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getThingId()).isEqualTo(THING_ID);
+        assertThat((CharSequence) underTest.getThingEntityId()).isEqualTo(THING_ID);
         assertThat(underTest.getMessageType()).isEqualTo(SendClaimMessage.NAME);
         assertThat(underTest.getMessage()).isEqualTo(DESERIALIZED_MESSAGE);
     }
@@ -149,7 +154,7 @@ public final class SendClaimMessageTest {
     public void createResponseFromJsonWithoutPayload() {
         final Message<?> emptyMessage = Message.newBuilder(MESSAGE_HEADERS).build();
         final SendClaimMessageResponse<?> underTest = SendClaimMessageResponse.of(THING_ID, emptyMessage,
-                HttpStatusCode.OK, TestConstants.EMPTY_DITTO_HEADERS);
+                HttpStatus.OK, TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject jsonWithoutPayload = underTest.toJson();
         final SendClaimMessageResponse<?> result =
                 SendClaimMessageResponse.fromJson(jsonWithoutPayload, TestConstants.EMPTY_DITTO_HEADERS);

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -63,14 +65,14 @@ final class RetrieveFeatureLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public RetrieveFeatureResponse retrieved(final Feature feature) {
-            return RetrieveFeatureResponse.of(command.getFeatureId(), feature, command.getDittoHeaders());
+            return RetrieveFeatureResponse.of(command.getThingEntityId(), feature, command.getDittoHeaders());
         }
 
         @Nonnull
         @Override
         public ThingErrorResponse featureNotAccessibleError() {
-            return errorResponse(command.getThingId(),
-                    FeatureNotAccessibleException.newBuilder(command.getThingId(), command.getFeatureId())
+            return errorResponse(command.getThingEntityId(),
+                    FeatureNotAccessibleException.newBuilder(command.getThingEntityId(), command.getFeatureId())
                             .dittoHeaders(command.getDittoHeaders())
                             .build());
         }

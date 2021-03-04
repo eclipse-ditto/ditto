@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -23,13 +25,13 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.bson.BsonDocument;
+import org.eclipse.ditto.model.policies.PolicyId;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
 import akka.persistence.inmemory.query.javadsl.InMemoryReadJournal;
 import akka.persistence.query.EventEnvelope;
 import akka.persistence.query.PersistenceQuery;
-import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 
@@ -42,10 +44,10 @@ import akka.stream.javadsl.Source;
 public final class PoliciesJournalTestHelper<J> {
 
     private static final int WAIT_TIMEOUT = 3;
-    private final Function<String, String> domainIdToPersistenceId;
+    private final Function<PolicyId, String> domainIdToPersistenceId;
     private final BiFunction<BsonDocument, Long, J> journalEntryToDomainObject;
-    private final ActorMaterializer mat;
     private final InMemoryReadJournal readJournal;
+    private final ActorSystem actorSystem;
 
     /**
      * Constructor.
@@ -57,11 +59,11 @@ public final class PoliciesJournalTestHelper<J> {
      * persistence ID
      */
     public PoliciesJournalTestHelper(final ActorSystem actorSystem,
-            final BiFunction<BsonDocument, Long, J> journalEntryToDomainObject, final Function<String, String>
+            final BiFunction<BsonDocument, Long, J> journalEntryToDomainObject, final Function<PolicyId, String>
             domainIdToPersistenceId) {
         this.journalEntryToDomainObject = requireNonNull(journalEntryToDomainObject);
         this.domainIdToPersistenceId = requireNonNull(domainIdToPersistenceId);
-        mat = ActorMaterializer.create(actorSystem);
+        this.actorSystem = actorSystem;
 
         readJournal = PersistenceQuery.get(actorSystem).
                 getReadJournalFor(InMemoryReadJournal.class, InMemoryReadJournal.Identifier());
@@ -73,7 +75,7 @@ public final class PoliciesJournalTestHelper<J> {
      * @param domainId the domain ID
      * @return the events
      */
-    public List<J> getAllEvents(final String domainId) {
+    public List<J> getAllEvents(final PolicyId domainId) {
         final String persistenceId = domainIdToPersistenceId.apply(domainId);
         final List<EventEnvelope> eventEnvelopes = getAllEventEnvelopes(persistenceId);
         return Collections.unmodifiableList(
@@ -90,7 +92,7 @@ public final class PoliciesJournalTestHelper<J> {
     }
 
     private <T> List<T> runBlockingWithReturn(final Source<T, NotUsed> publisher) {
-        final CompletionStage<List<T>> done = publisher.runWith(Sink.seq(), mat);
+        final CompletionStage<List<T>> done = publisher.runWith(Sink.seq(), actorSystem);
         try {
             return done.toCompletableFuture().get(WAIT_TIMEOUT, TimeUnit.SECONDS);
         } catch (final InterruptedException | ExecutionException | TimeoutException e) {

@@ -1,23 +1,32 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.status;
 
+import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.STATUS_CREDENTIALS;
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.UNKNOWN_PATH;
 
 import java.util.function.Supplier;
 
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevOpsOAuth2AuthenticationDirective;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevopsAuthenticationDirective;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevopsAuthenticationDirectiveFactory;
 import org.eclipse.ditto.services.gateway.health.DittoStatusAndHealthProviderFactory;
 import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationFactory;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationProvider;
+import org.eclipse.ditto.services.gateway.util.config.security.DevOpsConfig;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 import org.junit.Before;
 import org.junit.Test;
@@ -30,7 +39,7 @@ import akka.http.javadsl.testkit.TestRouteResult;
 /**
  * Tests {@link OverallStatusRoute}.
  */
-public class OverallStatusRouteTest extends EndpointTestBase {
+public final class OverallStatusRouteTest extends EndpointTestBase {
 
     private static final String OVERALL_PATH = "/" + OverallStatusRoute.PATH_OVERALL;
     private static final String OVERALL_STATUS_PATH = OVERALL_PATH + "/" + OverallStatusRoute.PATH_STATUS;
@@ -41,13 +50,18 @@ public class OverallStatusRouteTest extends EndpointTestBase {
 
     private TestRoute statusTestRoute;
 
+
     @Before
     public void setUp() {
         final Supplier<ClusterStatus> clusterStateSupplier = createClusterStatusSupplierMock();
         final StatusAndHealthProvider statusHealthProvider =
-                DittoStatusAndHealthProviderFactory.of(system(), clusterStateSupplier);
+                DittoStatusAndHealthProviderFactory.of(system(), clusterStateSupplier, healthCheckConfig);
+        final DevOpsConfig devOpsConfig = authConfig.getDevOpsConfig();
+        final DevopsAuthenticationDirectiveFactory devopsAuthenticationDirectiveFactory =
+                DevopsAuthenticationDirectiveFactory.newInstance(jwtAuthenticationFactory, devOpsConfig);
+        final DevopsAuthenticationDirective authenticationDirective = devopsAuthenticationDirectiveFactory.status();
         final OverallStatusRoute statusRoute =
-                new OverallStatusRoute(clusterStateSupplier, statusHealthProvider);
+                new OverallStatusRoute(clusterStateSupplier, statusHealthProvider, authenticationDirective);
         statusTestRoute = testRoute(statusRoute.buildOverallStatusRoute());
     }
 
@@ -80,6 +94,13 @@ public class OverallStatusRouteTest extends EndpointTestBase {
     public void getOverallStatusClusterWithAuth() {
         final TestRouteResult result = statusTestRoute.run(withDevopsCredentials(HttpRequest.GET(
                 OVERALL_STATUS_CLUSTER_PATH)));
+        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+    }
+
+    @Test
+    public void getOverallStatusClusterAsStatusUser() {
+        final TestRouteResult result =
+                statusTestRoute.run(HttpRequest.GET(OVERALL_STATUS_CLUSTER_PATH).addCredentials(STATUS_CREDENTIALS));
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
     }
 

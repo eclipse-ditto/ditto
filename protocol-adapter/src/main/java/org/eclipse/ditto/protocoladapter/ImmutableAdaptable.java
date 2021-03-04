@@ -1,21 +1,24 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.protocoladapter;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 import java.util.Optional;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -45,9 +48,11 @@ final class ImmutableAdaptable implements Adaptable {
      * @return the Adaptable.
      * @throws NullPointerException if {@code topicPath} or {@code payload} is {@code null}.
      */
-    public static Adaptable of(final TopicPath topicPath, final Payload payload, final DittoHeaders headers) {
-        requireNonNull(topicPath, "topic path");
-        requireNonNull(payload, "payload");
+    public static ImmutableAdaptable of(final TopicPath topicPath, final Payload payload,
+            @Nullable final DittoHeaders headers) {
+
+        checkNotNull(topicPath, "topicPath");
+        checkNotNull(payload, "payload");
 
         return new ImmutableAdaptable(topicPath, payload, headers);
     }
@@ -63,6 +68,7 @@ final class ImmutableAdaptable implements Adaptable {
     }
 
     @Override
+    @Deprecated
     public Optional<DittoHeaders> getHeaders() {
         return Optional.ofNullable(headers);
     }
@@ -73,7 +79,7 @@ final class ImmutableAdaptable implements Adaptable {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
@@ -81,8 +87,9 @@ final class ImmutableAdaptable implements Adaptable {
             return false;
         }
         final ImmutableAdaptable that = (ImmutableAdaptable) o;
-        return Objects.equals(topicPath, that.topicPath) && Objects.equals(payload, that.payload)
-                && Objects.equals(headers, that.headers);
+        return Objects.equals(topicPath, that.topicPath) &&
+                Objects.equals(payload, that.payload) &&
+                Objects.equals(headers, that.headers);
     }
 
     @Override
@@ -98,11 +105,12 @@ final class ImmutableAdaptable implements Adaptable {
 
     @Override
     public DittoHeaders getDittoHeaders() {
-        return headers;
+        return null != headers ? headers : DittoHeaders.empty();
     }
 
     @Override
     public Adaptable setDittoHeaders(@Nonnull final DittoHeaders dittoHeaders) {
         return new ImmutableAdaptable(topicPath, payload, dittoHeaders);
     }
+
 }

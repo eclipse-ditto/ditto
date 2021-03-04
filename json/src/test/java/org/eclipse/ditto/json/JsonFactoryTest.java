@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -288,7 +290,7 @@ public final class JsonFactoryTest {
         assertThat(actual).isEqualTo(expected);
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test(expected = JsonParseException.class)
     public void tryToReadFromNullReader() {
         JsonFactory.readFrom((Reader) null);
     }
@@ -569,4 +571,32 @@ public final class JsonFactoryTest {
         assertThat(underTest.mapValue(JsonFactory.nullLiteral())).isEqualTo(JsonFactory.nullLiteral());
     }
 
+    @Test
+    public void newJsonObjectFromPathAndValue() {
+        final JsonObject expected = JsonObject.newBuilder()
+                .set("features", JsonObject.newBuilder()
+                        .set("featureA", JsonObject.newBuilder()
+                                .set("properties", JsonObject.newBuilder()
+                                        .set("temperature",
+                                                JsonObject.newBuilder().set("value", 23.0).set("unit", "°C").build())
+                                        .build())
+                                .build())
+                        .build())
+                .build();
+
+        final JsonPointer path = JsonPointer.of("features/featureA/properties/temperature");
+        final JsonValue value = JsonObject.newBuilder()
+                .set("value", 23.0)
+                .set("unit", "°C")
+                .build();
+
+        final JsonObject actual = JsonFactory.newObject(path, value);
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void newJsonObjectThrowsExceptionIfRootIsNotAnObject() {
+        JsonFactory.newObject(JsonPointer.empty(), JsonValue.of(1));
+    }
 }

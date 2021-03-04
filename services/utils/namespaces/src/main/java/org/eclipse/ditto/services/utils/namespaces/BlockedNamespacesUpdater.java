@@ -1,19 +1,20 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.utils.namespaces;
 
-import static akka.cluster.pubsub.DistributedPubSubMediator.Put;
-
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.namespaces.BlockNamespace;
@@ -33,19 +34,17 @@ import akka.japi.pf.ReceiveBuilder;
  */
 public final class BlockedNamespacesUpdater extends AbstractActor {
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final BlockedNamespaces blockedNamespaces;
 
+    @SuppressWarnings("unused")
     private BlockedNamespacesUpdater(final BlockedNamespaces blockedNamespaces, final ActorRef pubSubMediator) {
         this.blockedNamespaces = blockedNamespaces;
 
-        // register self for pub-sub on restart
-        pubSubMediator.tell(new Put(getSelf()), getSelf());
-
         // subscribe to namespace-blocking commands
-        pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(BlockNamespace.TYPE, getSelf()), getSelf());
-        pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(UnblockNamespace.TYPE, getSelf()), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.subscribe(BlockNamespace.TYPE, getSelf()), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.subscribe(UnblockNamespace.TYPE, getSelf()), getSelf());
     }
 
     /**
@@ -55,8 +54,8 @@ public final class BlockedNamespacesUpdater extends AbstractActor {
      * @return the Props.
      */
     public static Props props(final BlockedNamespaces blockedNamespaces, final ActorRef pubSubMediator) {
-        return Props.create(BlockedNamespacesUpdater.class,
-                () -> new BlockedNamespacesUpdater(blockedNamespaces, pubSubMediator));
+
+        return Props.create(BlockedNamespacesUpdater.class, blockedNamespaces, pubSubMediator);
     }
 
     @Override

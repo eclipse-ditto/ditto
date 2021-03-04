@@ -1,14 +1,18 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.policies.modify;
+
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -26,9 +30,11 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
@@ -40,6 +46,7 @@ import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
  * generated.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = CreatePolicy.TYPE_PREFIX, name = CreatePolicy.NAME)
 public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements PolicyModifyCommand<CreatePolicy> {
 
     /**
@@ -59,10 +66,21 @@ public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements
 
     private CreatePolicy(final Policy policy, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
-        this.policy = policy;
+        this.policy = checkNotNull(policy, "policy");
 
-        PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> policy.toJsonString().length(), () ->
-                dittoHeaders);
+        if (!policy.getEntityId().isPresent()) {
+            throw PolicyIdInvalidException.newBuilder("")
+                    .message("Policy ID must be present in 'CreatePolicy' payload")
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+
+        final JsonObject policyJsonObject = policy.toJson();
+
+        PolicyCommandSizeValidator.getInstance().ensureValidSize(
+                policyJsonObject::getUpperBoundForStringSize,
+                () -> policyJsonObject.toString().length(),
+                () -> dittoHeaders);
     }
 
     /**
@@ -75,13 +93,6 @@ public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements
      * @throws PolicyIdInvalidException if the {@link Policy}'s ID is not valid.
      */
     public static CreatePolicy of(final Policy policy, final DittoHeaders dittoHeaders) {
-        Objects.requireNonNull(policy, "The Policy must not be null!");
-        if (!policy.getId().isPresent()) {
-            throw PolicyIdInvalidException.newBuilder("")
-                    .message("Policy ID must be present in 'CreatePolicy' payload")
-                    .dittoHeaders(dittoHeaders)
-                    .build();
-        }
         return new CreatePolicy(policy, dittoHeaders);
     }
 
@@ -128,8 +139,8 @@ public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements
     }
 
     @Override
-    public String getId() {
-        return policy.getId().orElseThrow(() -> new NullPointerException("The Policy has no ID!"));
+    public PolicyId getEntityId() {
+        return policy.getEntityId().orElseThrow(() -> new NullPointerException("The Policy has no ID!"));
     }
 
     @Override

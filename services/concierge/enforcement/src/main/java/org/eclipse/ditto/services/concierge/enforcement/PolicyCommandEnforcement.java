@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -12,9 +14,12 @@ package org.eclipse.ditto.services.concierge.enforcement;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -25,23 +30,38 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
+import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyImportHelper;
+import org.eclipse.ditto.model.policies.PolicyEntry;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.services.models.caching.EntityId;
 import org.eclipse.ditto.services.models.caching.Entry;
+import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.policies.Permission;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.IdentityCache;
+import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
+import org.eclipse.ditto.services.utils.cache.InvalidateCacheEntry;
+import org.eclipse.ditto.services.utils.cache.entry.Entry;
+import org.eclipse.ditto.services.utils.cacheloaders.IdentityCache;
+import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcer;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.commands.base.CommandToExceptionRegistry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
+import org.eclipse.ditto.signals.commands.policies.actions.PolicyActionCommand;
+import org.eclipse.ditto.signals.commands.policies.actions.TopLevelPolicyActionCommand;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyCommandToAccessExceptionRegistry;
+import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyCommandToActionsExceptionRegistry;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyCommandToModifyExceptionRegistry;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyUnavailableException;
@@ -52,74 +72,134 @@ import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommand;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandResponse;
 
 import akka.actor.ActorRef;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.pattern.AskTimeoutException;
-import akka.pattern.PatternsCS;
 
 /**
  * Authorize {@link PolicyCommand}.
  */
-public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCommand> {
+public final class PolicyCommandEnforcement
+        extends AbstractEnforcementWithAsk<PolicyCommand<?>, PolicyQueryCommandResponse<?>> {
 
     /**
      * Json fields that are always shown regardless of authorization.
      */
-    private static final JsonFieldSelector POLICY_QUERY_COMMAND_RESPONSE_WHITELIST =
+    private static final JsonFieldSelector POLICY_QUERY_COMMAND_RESPONSE_ALLOWLIST =
             JsonFactory.newFieldSelector(Policy.JsonFields.ID);
+
     private final ActorRef policiesShardRegion;
-    private final EnforcerRetriever enforcerRetriever;
-    private final Cache<EntityId, Entry<Policy>> policyCache;
-    private final Cache<EntityId, Entry<Enforcer>> enforcerCache;
+    private final EnforcerRetriever<PolicyEnforcer> enforcerRetriever;
+    private final Cache<EntityIdWithResourceType, Entry<Policy>> policyCache;
+    private final Cache<EntityId, Entry<PolicyEnforcer>> enforcerCache;
 
-    private PolicyCommandEnforcement(final Context data, final ActorRef policiesShardRegion,
-            final Cache<EntityId, Entry<Policy>> policyCache,
-            final Cache<EntityId, Entry<Enforcer>> enforcerCache) {
+    private PolicyCommandEnforcement(final Contextual<PolicyCommand<?>> context, final ActorRef policiesShardRegion,
+            final Cache<EntityIdWithResourceType, Entry<Policy>> policyCache,
+            final Cache<EntityId, Entry<PolicyEnforcer>> enforcerCache) {
 
-        super(data);
+        super(context, PolicyQueryCommandResponse.class);
         this.policiesShardRegion = requireNonNull(policiesShardRegion);
         this.policyCache = requireNonNull(policyCache);
         this.enforcerCache = requireNonNull(enforcerCache);
-        enforcerRetriever = new EnforcerRetriever(IdentityCache.INSTANCE, enforcerCache);
+        enforcerRetriever = new EnforcerRetriever<>(IdentityCache.INSTANCE, enforcerCache);
     }
 
     /**
      * Authorize a policy-command by a policy enforcer.
      *
      * @param <T> type of the policy-command.
-     * @param enforcer the policy enforcer.
+     * @param policyEnforcer the policy enforcer.
      * @param command the command to authorize.
      * @return optionally the authorized command.
      */
-    public static <T extends PolicyCommand> Optional<T> authorizePolicyCommand(final T command,
-            final Enforcer enforcer) {
+    public static <T extends PolicyCommand<?>> Optional<T> authorizePolicyCommand(final T command,
+            final PolicyEnforcer policyEnforcer) {
 
+        final Enforcer enforcer = policyEnforcer.getEnforcer();
         final ResourceKey policyResourceKey = PoliciesResourceType.policyResource(command.getResourcePath());
         final AuthorizationContext authorizationContext = command.getDittoHeaders().getAuthorizationContext();
-        final boolean authorized;
-        if (command instanceof PolicyModifyCommand) {
-            final String permission = Permission.WRITE;
-            authorized = ((PolicyModifyCommand) command).getEntity()
-                    .filter(JsonValue::isObject)
-                    .map(JsonValue::asObject)
-                    .map(policyJsonObj -> policyJsonObj.stream()
-                            .filter(f -> !f.getValue().isNull())
-                            .map(JsonField::getKey)
-                            .map(JsonKey::toString))
-                    .map(keys -> keys.map(key ->
-                            PoliciesResourceType.policyResource(command.getResourcePath().append(JsonPointer.of(key)))))
-                    .filter(keys -> keys.allMatch(key ->
-                            enforcer.hasUnrestrictedPermissions(key, authorizationContext, permission))
-                    ).isPresent();
-
-//            authorized = enforcer.hasUnrestrictedPermissions(policyResourceKey, authorizationContext, permission);
+        final Optional<T> authorizedCommand;
+        if (command instanceof CreatePolicy) {
+            if (command.getDittoHeaders().isAllowPolicyLockout() ||
+                    hasUnrestrictedWritePermission(enforcer, policyResourceKey, authorizationContext)) {
+                authorizedCommand = Optional.of(command);
+            } else {
+                authorizedCommand = Optional.empty();
+            }
+        } else if (command instanceof PolicyActionCommand) {
+            authorizedCommand =
+                    authorizeActionCommand(policyEnforcer, command, policyResourceKey, authorizationContext);
+        } else if (command instanceof PolicyModifyCommand) {
+            authorizedCommand = hasUnrestrictedWritePermission(enforcer, policyResourceKey, authorizationContext)
+                    ? Optional.of(command)
+                    : Optional.empty();
+            // TODO TJ policy-import-branch had:
+//            final String permission = Permission.WRITE;
+//            authorized = ((PolicyModifyCommand) command).getEntity()
+//                    .filter(JsonValue::isObject)
+//                    .map(JsonValue::asObject)
+//                    .map(policyJsonObj -> policyJsonObj.stream()
+//                            .filter(f -> !f.getValue().isNull())
+//                            .map(JsonField::getKey)
+//                            .map(JsonKey::toString))
+//                    .map(keys -> keys.map(key ->
+//                            PoliciesResourceType.policyResource(command.getResourcePath().append(JsonPointer.of(key)))))
+//                    .filter(keys -> keys.allMatch(key ->
+//                            enforcer.hasUnrestrictedPermissions(key, authorizationContext, permission))
+//                    ).isPresent();
         } else {
             final String permission = Permission.READ;
-            authorized = enforcer.hasPartialPermissions(policyResourceKey, authorizationContext, permission);
+            return enforcer.hasPartialPermissions(policyResourceKey, authorizationContext, permission)
+                    ? Optional.of(command)
+                    : Optional.empty();
         }
 
-        return authorized
+        return authorizedCommand;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends PolicyCommand<?>> Optional<T> authorizeActionCommand(final PolicyEnforcer enforcer,
+            final T command, final ResourceKey resourceKey, final AuthorizationContext authorizationContext) {
+
+        if (command instanceof TopLevelPolicyActionCommand) {
+            final TopLevelPolicyActionCommand topLevelPolicyActionCommand = (TopLevelPolicyActionCommand) command;
+            return (Optional<T>) authorizeTopLevelAction(enforcer, topLevelPolicyActionCommand, authorizationContext);
+        } else {
+            return authorizeEntryLevelAction(enforcer.getEnforcer(), command, resourceKey, authorizationContext);
+        }
+    }
+
+    private static boolean isTopLevelActionCommand(final PolicyCommand<?> command) {
+        return PolicyActionCommand.RESOURCE_PATH_ACTIONS.getRoot().equals(command.getResourcePath().getRoot());
+    }
+
+    private static <T extends PolicyCommand<?>> Optional<T> authorizeEntryLevelAction(final Enforcer enforcer,
+            final T command, final ResourceKey resourceKey, final AuthorizationContext authorizationContext) {
+        return enforcer.hasUnrestrictedPermissions(resourceKey, authorizationContext, Permission.EXECUTE)
                 ? Optional.of(command)
                 : Optional.empty();
+    }
+
+    private static Optional<TopLevelPolicyActionCommand> authorizeTopLevelAction(final PolicyEnforcer policyEnforcer,
+            final TopLevelPolicyActionCommand command, final AuthorizationContext authorizationContext) {
+        final Enforcer enforcer = policyEnforcer.getEnforcer();
+        final List<Label> authorizedLabels = policyEnforcer.getPolicy()
+                .map(policy -> policy.getEntriesSet().stream()
+                        .map(PolicyEntry::getLabel)
+                        .filter(label -> enforcer.hasUnrestrictedPermissions(asResourceKey(label, command),
+                                authorizationContext, Permission.EXECUTE))
+                        .collect(Collectors.toList()))
+                .orElse(List.of());
+        if (authorizedLabels.isEmpty()) {
+            return Optional.empty();
+        } else {
+            final TopLevelPolicyActionCommand adjustedCommand =
+                    TopLevelPolicyActionCommand.of(command.getPolicyActionCommand(), authorizedLabels);
+            return Optional.of(adjustedCommand);
+        }
+    }
+
+    private static boolean hasUnrestrictedWritePermission(final Enforcer enforcer, final ResourceKey policyResourceKey,
+            final AuthorizationContext authorizationContext) {
+        return enforcer.hasUnrestrictedPermissions(policyResourceKey, authorizationContext, Permission.WRITE);
     }
 
     /**
@@ -129,7 +209,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
      * @param enforcer the enforcer.
      * @return response with view on entity restricted by enforcer..
      */
-    public static <T extends PolicyQueryCommandResponse> T buildJsonViewForPolicyQueryCommandResponse(
+    public static <T extends PolicyQueryCommandResponse<T>> T buildJsonViewForPolicyQueryCommandResponse(
             final PolicyQueryCommandResponse<T> response,
             final Enforcer enforcer) {
 
@@ -144,19 +224,18 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
     }
 
     private static JsonObject getJsonViewForPolicyQueryCommandResponse(final JsonObject responseEntity,
-            final PolicyQueryCommandResponse response,
+            final PolicyQueryCommandResponse<?> response,
             final Enforcer enforcer) {
-
 
         final ResourceKey resourceKey =
                 ResourceKey.newInstance(PolicyCommand.RESOURCE_TYPE, response.getResourcePath());
         final AuthorizationContext authorizationContext = response.getDittoHeaders().getAuthorizationContext();
 
         return enforcer.buildJsonView(resourceKey, responseEntity, authorizationContext,
-                POLICY_QUERY_COMMAND_RESPONSE_WHITELIST, Permissions.newInstance(Permission.READ));
+                POLICY_QUERY_COMMAND_RESPONSE_ALLOWLIST, Permissions.newInstance(Permission.READ));
     }
 
-    private static PolicyCommand transformModifyPolicyToCreatePolicy(final PolicyCommand receivedCommand) {
+    private static PolicyCommand<?> transformModifyPolicyToCreatePolicy(final PolicyCommand<?> receivedCommand) {
         if (receivedCommand instanceof ModifyPolicy) {
             final ModifyPolicy modifyPolicy = (ModifyPolicy) receivedCommand;
             return CreatePolicy.of(modifyPolicy.getPolicy(), modifyPolicy.getDittoHeaders());
@@ -171,62 +250,79 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
      * @param policyCommand the command.
      * @return the error.
      */
-    private static DittoRuntimeException errorForPolicyCommand(final PolicyCommand policyCommand) {
-        final CommandToExceptionRegistry<PolicyCommand, DittoRuntimeException> registry =
-                policyCommand instanceof PolicyModifyCommand
-                        ? PolicyCommandToModifyExceptionRegistry.getInstance()
-                        : PolicyCommandToAccessExceptionRegistry.getInstance();
+    private static DittoRuntimeException errorForPolicyCommand(final PolicyCommand<?> policyCommand) {
+        final CommandToExceptionRegistry<PolicyCommand<?>, DittoRuntimeException> registry;
+        if (policyCommand instanceof PolicyActionCommand) {
+            registry = PolicyCommandToActionsExceptionRegistry.getInstance();
+        } else if (policyCommand instanceof PolicyModifyCommand) {
+            registry = PolicyCommandToModifyExceptionRegistry.getInstance();
+        } else {
+            registry = PolicyCommandToAccessExceptionRegistry.getInstance();
+        }
         return registry.exceptionFrom(policyCommand);
     }
 
     @Override
-    public CompletionStage<Void> enforce(final PolicyCommand signal, final ActorRef sender,
-            final DiagnosticLoggingAdapter log) {
-        LogUtil.enhanceLogWithCorrelationIdOrRandom(signal);
+    public CompletionStage<Contextual<WithDittoHeaders<?>>> enforce() {
         return enforcerRetriever.retrieve(entityId(), (idEntry, enforcerEntry) -> {
-            if (enforcerEntry.exists()) {
-                enforcePolicyCommandByEnforcer(signal, enforcerEntry.getValue(), sender);
-            } else {
-                enforcePolicyCommandByNonexistentEnforcer(signal, sender);
+            try {
+                return CompletableFuture.completedFuture(doEnforce(enforcerEntry));
+            } catch (final RuntimeException e) {
+                return CompletableFuture.failedStage(e);
             }
         });
     }
 
-    private void enforcePolicyCommandByEnforcer(final PolicyCommand<?> policyCommand, final Enforcer enforcer,
-            final ActorRef sender) {
-        final Optional<? extends PolicyCommand> authorizedCommandOpt = authorizePolicyCommand(policyCommand, enforcer);
-        if (authorizedCommandOpt.isPresent()) {
-            final PolicyCommand authorizedCommand = authorizedCommandOpt.get();
-            if (authorizedCommand instanceof PolicyQueryCommand) {
-                final PolicyQueryCommand policyQueryCommand = (PolicyQueryCommand) authorizedCommand;
-                askPoliciesShardRegionAndBuildJsonView(policyQueryCommand, enforcer, sender);
-            } else {
-                forwardToPoliciesShardRegion(authorizedCommand, sender);
-            }
+    private Contextual<WithDittoHeaders<?>> doEnforce(final Entry<PolicyEnforcer> enforcerEntry) {
+        if (enforcerEntry.exists()) {
+            return enforcePolicyCommandByEnforcer(enforcerEntry.getValueOrThrow());
         } else {
-            respondWithError(policyCommand, sender);
+            return forwardToPoliciesShardRegion(enforcePolicyCommandByNonexistentEnforcer());
         }
     }
 
-    private void enforcePolicyCommandByNonexistentEnforcer(final PolicyCommand receivedCommand, final ActorRef sender) {
-        final PolicyCommand policyCommand = transformModifyPolicyToCreatePolicy(receivedCommand);
+    private Contextual<WithDittoHeaders<?>> enforcePolicyCommandByEnforcer(final PolicyEnforcer policyEnforcer) {
+        final PolicyCommand<?> policyCommand = signal();
+        final Optional<? extends PolicyCommand<?>> authorizedCommandOpt =
+                authorizePolicyCommand(policyCommand, policyEnforcer);
+        if (authorizedCommandOpt.isPresent()) {
+            final PolicyCommand<?> authorizedCommand = authorizedCommandOpt.get();
+            if (authorizedCommand instanceof PolicyQueryCommand) {
+                final PolicyQueryCommand<?> policyQueryCommand = (PolicyQueryCommand<?>) authorizedCommand;
+                if (!policyQueryCommand.getDittoHeaders().isResponseRequired()) {
+                    // drop query command with response-required=false
+                    return withMessageToReceiver(null, ActorRef.noSender());
+                } else {
+                    return withMessageToReceiverViaAskFuture(policyQueryCommand, sender(),
+                            () -> askAndBuildJsonView(policiesShardRegion, policyQueryCommand,
+                                    policyEnforcer.getEnforcer()));
+                }
+            } else {
+                return forwardToPoliciesShardRegion(authorizedCommand);
+            }
+        } else {
+            throw errorForPolicyCommand(signal());
+        }
+    }
+
+    private CreatePolicy enforcePolicyCommandByNonexistentEnforcer() {
+        final PolicyCommand<?> policyCommand = transformModifyPolicyToCreatePolicy(signal());
         if (policyCommand instanceof CreatePolicy) {
             final CreatePolicy createPolicy = (CreatePolicy) policyCommand;
             final Set<PolicyEntry> mergedPolicyEntriesSet =
                     PolicyImportHelper.mergeImportedPolicyEntries(createPolicy.getPolicy(), this::policyLoader);
             final Enforcer enforcer = PolicyEnforcers.defaultEvaluator(mergedPolicyEntriesSet);
-            final Optional<CreatePolicy> authorizedCommand = authorizePolicyCommand(createPolicy, enforcer);
+            final Optional<CreatePolicy> authorizedCommand =
+                    authorizePolicyCommand(createPolicy, PolicyEnforcer.of(enforcer));
             if (authorizedCommand.isPresent()) {
-                forwardToPoliciesShardRegion(createPolicy, sender);
+                return createPolicy;
             } else {
-                respondWithError(receivedCommand, sender);
+                throw errorForPolicyCommand(signal());
             }
         } else {
-            final PolicyNotAccessibleException policyNotAccessibleException =
-                    PolicyNotAccessibleException.newBuilder(receivedCommand.getId())
-                            .dittoHeaders(receivedCommand.getDittoHeaders())
-                            .build();
-            replyToSender(policyNotAccessibleException, sender);
+            throw PolicyNotAccessibleException.newBuilder(policyCommand.getEntityId())
+                    .dittoHeaders(policyCommand.getDittoHeaders())
+                    .build();
         }
     }
 
@@ -236,11 +332,25 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
                 .map(Entry::getValue);
     }
 
-    private void forwardToPoliciesShardRegion(final PolicyCommand command, final ActorRef sender) {
+    /**
+     * Forward a command to policies-shard-region.
+     *
+     * @param command command to forward.
+     * @return the contextual including message and receiver
+     */
+    private Contextual<WithDittoHeaders<?>> forwardToPoliciesShardRegion(final PolicyCommand<?> command) {
+        final PolicyCommand<?> commandToForward;
         if (command instanceof PolicyModifyCommand) {
-            invalidateCaches(command.getId());
+            invalidateCaches(command.getEntityId());
+            final DittoHeaders adjustedHeaders = command.getDittoHeaders().toBuilder()
+                    .putHeader(DittoHeaderDefinition.POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY.getKey(),
+                            Boolean.TRUE.toString())
+                    .build();
+            commandToForward = command.setDittoHeaders(adjustedHeaders);
+        } else {
+            commandToForward = command;
         }
-        policiesShardRegion.tell(command, sender);
+        return withMessageToReceiver(commandToForward, policiesShardRegion);
     }
 
     /**
@@ -249,71 +359,57 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
      *
      * @param policyId the ID of the Policy to invalidate caches for.
      */
-    private void invalidateCaches(final String policyId) {
-        final EntityId entityId = EntityId.of(PolicyCommand.RESOURCE_TYPE, policyId);
+    private void invalidateCaches(final PolicyId policyId) {
+        final EntityIdWithResourceType entityId = EntityIdWithResourceType.of(PolicyCommand.RESOURCE_TYPE, policyId);
         policyCache.invalidate(entityId);
         enforcerCache.invalidate(entityId);
+        pubSubMediator().tell(DistPubSubAccess.sendToAll(
+                ConciergeMessagingConstants.ENFORCER_ACTOR_PATH,
+                InvalidateCacheEntry.of(entityId),
+                true),
+                self());
     }
 
-    private void respondWithError(final PolicyCommand policyCommand, final ActorRef sender) {
-        sender.tell(errorForPolicyCommand(policyCommand), self());
-    }
-
-    private void askPoliciesShardRegionAndBuildJsonView(
-            final PolicyQueryCommand commandWithReadSubjects,
-            final Enforcer enforcer,
-            final ActorRef sender) {
-
-        PatternsCS.ask(policiesShardRegion, commandWithReadSubjects, getAskTimeout().toMillis())
-                .handleAsync((response, error) -> {
-                    if (response instanceof PolicyQueryCommandResponse) {
-                        reportJsonViewForPolicyQuery(sender, (PolicyQueryCommandResponse) response, enforcer);
-                    } else if (response instanceof DittoRuntimeException) {
-                        replyToSender(response, sender);
-                    } else if (isAskTimeoutException(response, error)) {
-                        reportTimeoutForPolicyQuery(commandWithReadSubjects, sender, (AskTimeoutException) response);
-                    } else if (error != null) {
-                        reportUnexpectedError("before building JsonView", sender, error,
-                                commandWithReadSubjects.getDittoHeaders());
-                    } else {
-                        reportUnknownResponse("before building JsonView", sender, response,
-                                commandWithReadSubjects.getDittoHeaders());
-                    }
-                    return null;
-                }, getEnforcementExecutor());
-    }
-
-    private void reportTimeoutForPolicyQuery(
-            final PolicyQueryCommand command,
-            final ActorRef sender,
-            final AskTimeoutException askTimeoutException) {
-        log(command).error(askTimeoutException, "Timeout before building JsonView");
-        replyToSender(PolicyUnavailableException.newBuilder(command.getId())
+    @Override
+    protected DittoRuntimeException handleAskTimeoutForCommand(final PolicyCommand<?> command,
+            final AskTimeoutException askTimeout) {
+        log(command).error(askTimeout, "Timeout before building JsonView");
+        return PolicyUnavailableException.newBuilder(command.getEntityId())
                 .dittoHeaders(command.getDittoHeaders())
-                .build(), sender);
+                .build();
     }
 
-    private void reportJsonViewForPolicyQuery(final ActorRef sender,
-            final PolicyQueryCommandResponse<?> thingQueryCommandResponse,
+    @Override
+    protected PolicyQueryCommandResponse<?> filterJsonView(
+            final PolicyQueryCommandResponse<?> policyQueryCommandResponse,
             final Enforcer enforcer) {
-
         try {
-            final PolicyQueryCommandResponse responseWithLimitedJsonView =
-                    buildJsonViewForPolicyQueryCommandResponse(thingQueryCommandResponse, enforcer);
-            replyToSender(responseWithLimitedJsonView, sender);
+            return buildJsonViewForPolicyQueryCommandResponse(policyQueryCommandResponse, enforcer);
         } catch (final RuntimeException e) {
-            reportError("Error after building JsonView", sender, e, thingQueryCommandResponse.getDittoHeaders());
+            throw reportError("Error after building JsonView", e);
         }
+    }
+
+    /**
+     * Convert a policy entry label for a top-level policy action into a resource path for authorization check.
+     *
+     * @param label the policy entry label.
+     * @param command the top-level policy action command.
+     * @return the resource key.
+     */
+    private static ResourceKey asResourceKey(final Label label, final PolicyCommand<?> command) {
+        return ResourceKey.newInstance(PoliciesResourceType.POLICY,
+                Policy.JsonFields.ENTRIES.getPointer().addLeaf(JsonKey.of(label)).append(command.getResourcePath()));
     }
 
     /**
      * Provides {@link AbstractEnforcement} for commands of type {@link PolicyCommand}.
      */
-    public static final class Provider implements EnforcementProvider<PolicyCommand> {
+    public static final class Provider implements EnforcementProvider<PolicyCommand<?>> {
 
         private final Cache<EntityId, Entry<Policy>> policyCache;
-        private final Cache<EntityId, Entry<Enforcer>> enforcerCache;
-        private ActorRef policiesShardRegion;
+        private final Cache<EntityIdWithResourceType, Entry<PolicyEnforcer>> enforcerCache;
+        private final ActorRef policiesShardRegion;
 
         /**
          * Constructor.
@@ -323,19 +419,25 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
          */
         public Provider(final ActorRef policiesShardRegion,
                 final Cache<EntityId, Entry<Policy>> policyCache,
-                final Cache<EntityId, Entry<Enforcer>> enforcerCache) {
+                final Cache<EntityIdWithResourceType, Entry<PolicyEnforcer>> enforcerCache) {
             this.policiesShardRegion = requireNonNull(policiesShardRegion);
             this.policyCache = requireNonNull(policyCache);
             this.enforcerCache = requireNonNull(enforcerCache);
         }
 
         @Override
-        public Class<PolicyCommand> getCommandClass() {
-            return PolicyCommand.class;
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        public Class<PolicyCommand<?>> getCommandClass() {
+            return (Class) PolicyCommand.class;
         }
 
         @Override
-        public AbstractEnforcement<PolicyCommand> createEnforcement(final AbstractEnforcement.Context context) {
+        public boolean changesAuthorization(final PolicyCommand<?> signal) {
+            return signal instanceof PolicyModifyCommand;
+        }
+
+        @Override
+        public AbstractEnforcement<PolicyCommand<?>> createEnforcement(final Contextual<PolicyCommand<?>> context) {
             return new PolicyCommandEnforcement(context, policiesShardRegion, policyCache, enforcerCache);
         }
 

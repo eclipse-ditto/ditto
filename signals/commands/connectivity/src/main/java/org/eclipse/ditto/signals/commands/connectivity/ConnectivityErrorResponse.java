@@ -1,16 +1,18 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.connectivity;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -27,30 +29,36 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 
 /**
  * Response to a {@link ConnectivityCommand} which wraps the exception thrown when processing the command.
  */
 @Immutable
-public final class ConnectivityErrorResponse extends AbstractCommandResponse<ConnectivityErrorResponse> implements
-        ConnectivityCommandResponse<ConnectivityErrorResponse>, ErrorResponse<ConnectivityErrorResponse> {
+@JsonParsableCommandResponse(type = ConnectivityErrorResponse.TYPE)
+public final class ConnectivityErrorResponse extends AbstractCommandResponse<ConnectivityErrorResponse>
+        implements ConnectivityCommandResponse<ConnectivityErrorResponse>, ErrorResponse<ConnectivityErrorResponse> {
 
     /**
      * Type of this response.
      */
     public static final String TYPE = TYPE_PREFIX + "errorResponse";
 
-    private static final ConnectivityErrorRegistry ERROR_REGISTRY = ConnectivityErrorRegistry.newInstance();
+    private static final GlobalErrorRegistry ERROR_REGISTRY = GlobalErrorRegistry.getInstance();
 
     private final DittoRuntimeException dittoRuntimeException;
 
     private ConnectivityErrorResponse(final DittoRuntimeException dittoRuntimeException,
             final DittoHeaders dittoHeaders) {
-        super(TYPE, dittoRuntimeException.getStatusCode(), dittoHeaders);
-        this.dittoRuntimeException = requireNonNull(dittoRuntimeException, "The CR Runtime Exception must not be null");
+
+        super(TYPE, dittoRuntimeException.getHttpStatus(), dittoHeaders);
+        this.dittoRuntimeException = checkNotNull(dittoRuntimeException, "CR Runtime Exception");
     }
 
     /**
@@ -74,6 +82,7 @@ public final class ConnectivityErrorResponse extends AbstractCommandResponse<Con
      */
     public static ConnectivityErrorResponse of(final DittoRuntimeException dittoRuntimeException,
             final DittoHeaders dittoHeaders) {
+
         return new ConnectivityErrorResponse(dittoRuntimeException, dittoHeaders);
     }
 
@@ -86,24 +95,9 @@ public final class ConnectivityErrorResponse extends AbstractCommandResponse<Con
      * @return the ConnectivityErrorResponse.
      */
     public static ConnectivityErrorResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(ERROR_REGISTRY, jsonString, dittoHeaders);
-    }
-
-    /**
-     * Creates a new {@code ConnectivityErrorResponse} containing the causing {@code DittoRuntimeException} which is
-     * deserialized from the passed {@code jsonString} using a special {@code ConnectivityErrorRegistry}.
-     *
-     * @param connectivityErrorRegistry the special {@code ConnectivityErrorRegistry} to use for deserializing the
-     * DittoRuntimeException.
-     * @param jsonString the JSON string representation of the causing {@code DittoRuntimeException}.
-     * @param dittoHeaders the DittoHeaders to use.
-     * @return the ConnectivityErrorResponse.
-     */
-    public static ConnectivityErrorResponse fromJson(final ConnectivityErrorRegistry connectivityErrorRegistry,
-            final String jsonString, final DittoHeaders dittoHeaders) {
         final JsonObject jsonObject =
                 DittoJsonException.wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
-        return fromJson(connectivityErrorRegistry, jsonObject, dittoHeaders);
+        return fromJson(jsonObject, dittoHeaders);
     }
 
     /**
@@ -115,26 +109,10 @@ public final class ConnectivityErrorResponse extends AbstractCommandResponse<Con
      * @return the ConnectivityErrorResponse.
      */
     public static ConnectivityErrorResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return fromJson(ERROR_REGISTRY, jsonObject, dittoHeaders);
-    }
-
-    /**
-     * Creates a new {@code ConnectivityErrorResponse} containing the causing {@code DittoRuntimeException} which is
-     * deserialized from the passed {@code jsonObject} using a special {@code ConnectivityErrorRegistry}.
-     *
-     * @param connectivityErrorRegistry the special {@code ConnectivityErrorRegistry} to use for deserializing the
-     * DittoRuntimeException.
-     * @param jsonObject the JSON representation of the causing {@code DittoRuntimeException}.
-     * @param dittoHeaders the DittoHeaders to use.
-     * @return the ConnectivityErrorResponse.
-     */
-    public static ConnectivityErrorResponse fromJson(final ConnectivityErrorRegistry connectivityErrorRegistry,
-            final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        final JsonObject payload = jsonObject.getValue(ConnectivityCommandResponse.JsonFields.PAYLOAD)
+        final JsonObject payload = jsonObject.getValue(CommandResponse.JsonFields.PAYLOAD)
                 .map(JsonValue::asObject)
-                .orElseThrow(
-                        () -> new JsonMissingFieldException(ConnectivityCommandResponse.JsonFields.PAYLOAD.getPointer()));
-        final DittoRuntimeException exception = connectivityErrorRegistry.parse(payload, dittoHeaders);
+                .orElseThrow(() -> new JsonMissingFieldException(CommandResponse.JsonFields.PAYLOAD.getPointer()));
+        final DittoRuntimeException exception = ERROR_REGISTRY.parse(payload, dittoHeaders);
         return of(exception, dittoHeaders);
     }
 
@@ -153,16 +131,17 @@ public final class ConnectivityErrorResponse extends AbstractCommandResponse<Con
      * @return an empty string.
      */
     @Override
-    public String getConnectionId() {
-        return "";
+    public ConnectionId getConnectionEntityId() {
+        return ConnectionId.dummy();
     }
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(
-                ConnectivityCommandResponse.JsonFields.PAYLOAD, dittoRuntimeException.toJson(schemaVersion, thePredicate),
+        jsonObjectBuilder.set(CommandResponse.JsonFields.PAYLOAD,
+                dittoRuntimeException.toJson(schemaVersion, thePredicate),
                 predicate);
     }
 
@@ -173,7 +152,7 @@ public final class ConnectivityErrorResponse extends AbstractCommandResponse<Con
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof ConnectivityErrorResponse);
+        return other instanceof ConnectivityErrorResponse;
     }
 
     @Override
@@ -184,9 +163,10 @@ public final class ConnectivityErrorResponse extends AbstractCommandResponse<Con
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        if (!super.equals(o)) return false;
-        final ConnectivityErrorResponse
-                that = (ConnectivityErrorResponse) o;
+        if (!super.equals(o)) {
+            return false;
+        }
+        final ConnectivityErrorResponse that = (ConnectivityErrorResponse) o;
         return Objects.equals(dittoRuntimeException, that.dittoRuntimeException);
     }
 

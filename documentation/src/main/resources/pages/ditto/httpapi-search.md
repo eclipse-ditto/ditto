@@ -11,7 +11,7 @@ The [search aspect](basic-search.html) of Ditto can be accessed via an HTTP API.
     [Search resources](http-api-doc.html?urls.primaryName=api2#/Search)." %}
 
 The concepts of the [RQL expression](basic-rql.html#rql-filter), [RQL sorting](basic-rql.html#rql-sorting) and 
-[RQL paging](basic-search.html#rql-paging) are mapped to HTTP as query parameters which are added to `GET` requests
+[RQL paging](basic-search.html#rql-paging-deprecated) are mapped to HTTP as query parameters which are added to `GET` requests
 to the search endpoint:
 
 ```
@@ -27,7 +27,8 @@ Optionally a `namespaces` parameter can be added to search only in the given nam
 ## Query parameters
 
 In order to define for which `Things` to search, the `filter` query parameter has to be added.<br/>
-In order to change the sorting and limit the result (also to do paging), the `options` parameter has to be added.
+In order to change the sorting and limit the result (also to do paging), the `option` parameter has to be added.
+Default values of each option is documented [here](basic-search.html#sorting-and-paging-options).
 
 Complex example:
 ```

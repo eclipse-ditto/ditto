@@ -5,8 +5,16 @@ permalink: sandbox.html
 topnav: topnav
 ---
 
-Starting with Eclipse Ditto milestone 0.1.0-M3 the Ditto team provides a [sandbox](https://ditto.eclipse.org) which may be used
-by everyone wanting to try out Ditto without starting it locally.
+The Ditto team provides a [sandbox](https://ditto.eclipseprojects.io) which may be used by everyone wanting to try out Ditto 
+without starting it locally.
+
+{% include warning.html content="The Ditto sandbox is not set up in a highly available manner and may experience
+   downtimes. Also, the sandbox will be reset from time to time without prior notice." %}
+
+In addition, the following vendors offer free trial accounts for their Eclipse Ditto compatible products:
+
+* [Bosch IoT Things](https://developer.bosch-iot-suite.com/service/things/) by [Bosch.IO](https://bosch.io)
+
 
 ## Instructions
 
@@ -15,18 +23,18 @@ functionality. Ditto accepts the `id_token` which is issued by Google as `Bearer
 
 ### HTTP API documentation
 
-The online [HTTP API documentation](https://ditto.eclipse.org/apidoc/) of the sandbox implements the OAuth2.0 "authorization code"
+The online [HTTP API documentation](https://ditto.eclipseprojects.io/apidoc/) of the sandbox implements the OAuth2.0 "authorization code"
 flow.<br />
 Simply click the green `Authorize` button, check the checkbox `openid` and click the `Authorize` button. Your browser will
 ask you if the Ditto sandbox may access your Google identity which you should acknowledge.<br/>
 Afterwards you should be authenticated with your Google user (and therefore your Google ID).
 
-You can try out the API now. For example, expand the [PUT /things/{thingId}](https://ditto.eclipse.org/apidoc/#!/Things/put_things_thingId)
-item in order to create a new `Thing`, a **Digital Twin** so to say.<br/>
+You can try out the API now. For example, expand the [PUT /things/{thingId}](https://ditto.eclipseprojects.io/apidoc/#!/Things/put_things_thingId)
+item in order to create a new `Thing`, a **digital twin** so to say.<br/>
 Scroll down to the parameters and enter the required ones (in this case the `thingId`), for example:
 
 ```
-org.eclipse.ditto.tjaeckle:my-first-thing
+org.eclipse.ditto:my-first-thing
 ```
 
 The ID must contain a namespace (in Java package notation) followed by a `:` and an arbitrary string afterwards.

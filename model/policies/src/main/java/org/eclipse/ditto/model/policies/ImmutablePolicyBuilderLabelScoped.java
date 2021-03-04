@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -56,7 +58,13 @@ final class ImmutablePolicyBuilderLabelScoped implements PolicyBuilder.LabelScop
     }
 
     @Override
+    @Deprecated
     public ImmutablePolicyBuilderLabelScoped setId(@Nullable final CharSequence id) {
+        return setId(PolicyId.of(id));
+    }
+
+    @Override
+    public ImmutablePolicyBuilderLabelScoped setId(@Nullable final PolicyId id) {
         delegate.setId(id);
         return this;
     }
@@ -76,6 +84,12 @@ final class ImmutablePolicyBuilderLabelScoped implements PolicyBuilder.LabelScop
     @Override
     public ImmutablePolicyBuilderLabelScoped setModified(@Nullable final Instant modified) {
         delegate.setModified(modified);
+        return this;
+    }
+
+    @Override
+    public ImmutablePolicyBuilderLabelScoped setCreated(@Nullable final Instant created) {
+        delegate.setCreated(created);
         return this;
     }
 

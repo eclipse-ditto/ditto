@@ -18,8 +18,11 @@ permalink: connectivity-tls-certificates.html
 
 _Server-certificate verification is available for
 [AMQP 0.9.1](connectivity-protocol-bindings-amqp091.html),
-[AMQP 1.0](connectivity-protocol-bindings-amqp10.html), and
-[MQTT](connectivity-protocol-bindings-mqtt.html) connections._
+[AMQP 1.0](connectivity-protocol-bindings-amqp10.html),
+[MQTT 3.1.1](connectivity-protocol-bindings-mqtt.html),
+[MQTT 5](connectivity-protocol-bindings-mqtt5.html),
+[HTTP 1.1](connectivity-protocol-bindings-http.html), and
+[Kafka 2.x](connectivity-protocol-bindings-kafka2.html) connections._
 
 ### Connection configuration
 
@@ -79,7 +82,8 @@ The server identity is verified directly or indirectly.
 
 ## Authenticate by client certificate
 
-_Client-certificate authentication is available for [MQTT connections](connectivity-protocol-bindings-mqtt.html) only._
+_Client-certificate authentication is available for [MQTT connections](connectivity-protocol-bindings-mqtt.html)
+ and [HTTP connections](connectivity-protocol-bindings-http.html) only._
 
 ### Connection configuration
 

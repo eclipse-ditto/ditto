@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -24,22 +26,26 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
 
 /**
  * Response to a {@link DeleteResource} command.
  */
 @Immutable
-public final class DeleteResourceResponse extends AbstractCommandResponse<DeleteResourceResponse> implements
-        PolicyModifyCommandResponse<DeleteResourceResponse> {
+@JsonParsableCommandResponse(type = DeleteResourceResponse.TYPE)
+public final class DeleteResourceResponse extends AbstractCommandResponse<DeleteResourceResponse>
+        implements PolicyModifyCommandResponse<DeleteResourceResponse> {
 
     /**
      * Type of this response.
@@ -52,17 +58,17 @@ public final class DeleteResourceResponse extends AbstractCommandResponse<Delete
     static final JsonFieldDefinition<String> JSON_RESOURCE_KEY =
             JsonFactory.newStringFieldDefinition("resourceKey", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final String policyId;
+    private final PolicyId policyId;
     private final Label label;
     private final ResourceKey resourceKey;
 
-    private DeleteResourceResponse(final String policyId,
+    private DeleteResourceResponse(final PolicyId policyId,
             final Label label,
             final ResourceKey resourceKey,
-            final HttpStatusCode statusCode,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, statusCode, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
         this.label = checkNotNull(label, "Label");
         this.resourceKey = checkNotNull(resourceKey, "ResourceKey");
@@ -77,13 +83,35 @@ public final class DeleteResourceResponse extends AbstractCommandResponse<Delete
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.ResourceKey, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static DeleteResourceResponse of(final String policyId,
             final Label label,
             final ResourceKey resourceKey,
             final DittoHeaders dittoHeaders) {
 
-        return new DeleteResourceResponse(policyId, label, resourceKey, HttpStatusCode.NO_CONTENT, dittoHeaders);
+        return of(PolicyId.of(policyId), label, resourceKey, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@code DeleteResource} command.
+     *
+     * @param policyId the Policy ID of the deleted resource.
+     * @param label the Label of the PolicyEntry.
+     * @param resourceKey the ResourceKey of the deleted Resource.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static DeleteResourceResponse of(final PolicyId policyId,
+            final Label label,
+            final ResourceKey resourceKey,
+            final DittoHeaders dittoHeaders) {
+
+        return new DeleteResourceResponse(policyId, label, resourceKey, HttpStatus.NO_CONTENT, dittoHeaders);
     }
 
     /**
@@ -92,7 +120,7 @@ public final class DeleteResourceResponse extends AbstractCommandResponse<Delete
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
@@ -107,24 +135,24 @@ public final class DeleteResourceResponse extends AbstractCommandResponse<Delete
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
     public static DeleteResourceResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<DeleteResourceResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String policyId =
-                            jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
-                    final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
-                    final String path = jsonObject.getValueOrThrow(JSON_RESOURCE_KEY);
+        return new CommandResponseJsonDeserializer<DeleteResourceResponse>(TYPE, jsonObject).deserialize(httpStatus -> {
+            final String extractedPolicyId =
+                    jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID);
+            final PolicyId policyId = PolicyId.of(extractedPolicyId);
+            final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
+            final String path = jsonObject.getValueOrThrow(JSON_RESOURCE_KEY);
 
-                    return of(policyId, label, ResourceKey.newInstance(path), dittoHeaders);
-                });
+            return of(policyId, label, ResourceKey.newInstance(path), dittoHeaders);
+        });
     }
 
     @Override
-    public String getId() {
+    public PolicyId getEntityId() {
         return policyId;
     }
 
@@ -157,7 +185,7 @@ public final class DeleteResourceResponse extends AbstractCommandResponse<Delete
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
         jsonObjectBuilder.set(JSON_RESOURCE_KEY, resourceKey.toString(), predicate);
     }
@@ -181,8 +209,10 @@ public final class DeleteResourceResponse extends AbstractCommandResponse<Delete
             return false;
         }
         final DeleteResourceResponse that = (DeleteResourceResponse) o;
-        return that.canEqual(this) && Objects.equals(policyId, that.policyId)
-                && Objects.equals(label, that.label) && Objects.equals(resourceKey, that.resourceKey) &&
+        return that.canEqual(this) &&
+                Objects.equals(policyId, that.policyId) &&
+                Objects.equals(label, that.label) &&
+                Objects.equals(resourceKey, that.resourceKey) &&
                 super.equals(o);
     }
 

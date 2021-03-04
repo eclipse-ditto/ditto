@@ -1,4 +1,6 @@
 _site/
 .sass-cache/
 .jekyll-metadata
+.jekyll-cache
 _pdf
+/openapi/sources/node_modules/

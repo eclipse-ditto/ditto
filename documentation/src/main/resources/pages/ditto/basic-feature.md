@@ -1,6 +1,6 @@
 ---
 title: Feature
-keywords: definition, properties, entity, feature, functionblock, informationmodel, model, vorto
+keywords: definition, properties, desiredProperties, entity, feature, functionblock, informationmodel, model, vorto
 tags: [model]
 permalink: basic-feature.html
 ---
@@ -17,7 +17,7 @@ and do not exist without this Thing.
 Within a Thing each Feature is identified by a unique string - the so called Feature ID.
 A Feature ID often needs to be set in the path of a HTTP request. Due to this fact we strongly recommend to use a
 restricted set of characters (e.g. those for
-[Uniform Resource Identifiers (URI)](https://www.ietf.org/rfc/rfc2396.txt)).
+[Uniform Resource Identifiers (URI)](https://www.ietf.org/rfc/rfc3986.txt)).
 
 ### Feature properties
 
@@ -26,6 +26,16 @@ e.g. to manage the status, the configuration or any fault information.
 Feature properties are represented as one JSON object.
 
 Each property itself can be either a simple/scalar value or a complex object; allowed is any JSON value.
+
+### Feature desired properties
+
+Desired properties represent the desired state of the properties. They are a tool to represent the desired target state of the properties. The **desiredProperties** related to Features are managed in form of a **list of properties**. These desired properties can be categorized,
+e.g. to manage the status, the configuration or any fault information.
+Feature desired properties are represented as one JSON object.
+
+Each desired property itself can be either a simple/scalar value or a complex object; allowed is any JSON value.
+
+Please note however, that besides persisting the desired properties, and indexing the fields for search requests, filtering etc. for the time being, Ditto does not implement their further processing. Such functionality will come with future releases.
 
 ### Feature definition
 
@@ -44,9 +54,10 @@ described in the `lamp` type of namespace `org.eclipse.ditto` semantically versi
    Tooling for editing such structures and type descriptors is provided by [Eclipse Vorto](#the-link-to-eclipse-vorto)." %}
 
 Ditto aims to support contract-based development - by using feature definitions  - to ensure validity and 
-integrity of **Digital Twins**.
+integrity of **digital twins**.
 
-{% include warning.html content="Currently Ditto **does not** ensure that the properties of a feature or its supported
+{% include warning.html content="Currently Ditto **does not** ensure that the `properties` or 
+ `desiredProperties` of a feature or its supported
    messages follow the type defined in the definition." %}
 
 ## Example
@@ -56,25 +67,35 @@ The following snippet shows a Feature with the ID "arbitrary-feature" and a defi
 
 ```json
 {
-    "arbitrary-feature": {
-        "definition": [ "org.eclipse.ditto:complex-type:1.0.0" ],
-        "properties": {
-            "connected": true,
-            "complexProperty": {
-                "street": "my street",
-                "house no": 42
-            }
+  "arbitrary-feature": {
+    "definition": [ "org.eclipse.ditto:complex-type:1.0.0" ],
+    "properties": {
+      "status": {
+        "connected": true,
+        "complexProperty": {
+          "street": "my street",
+          "house no": 42
         }
+      }
+    },
+    "desiredProperties": {
+      "status": {
+        "connected": false
+      }
     }
+  }
 }
 ```
 
 ## Model specification
 
-The feature model is the same for API version 1 and 2:
+The feature model differs for API version 1 and 2:
 
+### V1
 {% include docson.html schema="jsonschema/feature.json" %}
 
+### V2
+{% include docson.html schema="jsonschema/feature_v2.json" %}
 
 ## The link to Eclipse Vorto
 
@@ -95,9 +116,9 @@ Thus, it is a consistent, self-contained set of (potentially re-usable) properti
 
 ### Mapping Vorto function block elements
 
-A Vorto function block consists of 
-[different sections defining state and capabilities](https://www.eclipse.org/vorto/documentation/appendix/functionblock-dsl-reference.html#function-block-dsl-semantics) 
-of a device (in our case of a feature):
+A Vorto function block consists of different sections defining state and capabilities 
+(see also [Eclipse Vorto's documentation](https://www.eclipse.org/vorto/)) of a device 
+(in our case of a feature):
 * `configuration`: Contains one or many configuration properties for the function block. 
 * `status`: Contains one or many status properties for the function block. 
 * `fault`: Contains one or many fault properties for the function block. 

@@ -1,17 +1,18 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.model.connectivity;
 
-import java.time.Instant;
-import java.util.Optional;
+import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -25,30 +26,14 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
- * Contains the {@link ConnectionStatus} and its details plus a message count related to a {@link Source}/{@link Target}
- * address.
+ * Contains a set of {@link AddressMetric}s.
  */
 public interface AddressMetric extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
-     * @return the current status of the connection
+     * @return set of measurements for this address
      */
-    ConnectionStatus getStatus();
-
-    /**
-     * @return the optional status details
-     */
-    Optional<String> getStatusDetails();
-
-    /**
-     * @return the current message count
-     */
-    long getMessageCount();
-
-    /**
-     * @return the timestamp when the last message was consumed/published.
-     */
-    Optional<Instant> getLastMessageAt();
+    Set<Measurement> getMeasurements();
 
     /**
      * Returns all non hidden marked fields of this {@code AddressMetric}.
@@ -77,27 +62,6 @@ public interface AddressMetric extends Jsonifiable.WithFieldSelectorAndPredicate
         public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
                 JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
-
-        /**
-         * JSON field containing the {@code ConnectionStatus} value.
-         */
-        public static final JsonFieldDefinition<String> STATUS =
-                JsonFactory.newStringFieldDefinition("status", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
-
-        /**
-         * JSON field containing the {@code ConnectionStatus} details.
-         */
-        public static final JsonFieldDefinition<String> STATUS_DETAILS =
-                JsonFactory.newStringFieldDefinition("statusDetails", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
-
-        /**
-         * JSON field containing the amount of consumed/published messages.
-         */
-        public static final JsonFieldDefinition<Long> MESSAGE_COUNT =
-                JsonFactory.newLongFieldDefinition("messageCount", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the timestamp when the last message was consumed/published.

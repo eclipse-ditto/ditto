@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -13,9 +15,15 @@ package org.eclipse.ditto.signals.events.policies;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -29,9 +37,11 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
@@ -39,8 +49,8 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a {@link Subject} was modified.
  */
 @Immutable
-public final class SubjectModified extends AbstractPolicyEvent<SubjectModified>
-        implements PolicyEvent<SubjectModified> {
+@JsonParsableEvent(name = SubjectModified.NAME, typePrefix = SubjectModified.TYPE_PREFIX)
+public final class SubjectModified extends AbstractPolicyActionEvent<SubjectModified> {
 
     /**
      * Name of this event
@@ -64,13 +74,13 @@ public final class SubjectModified extends AbstractPolicyEvent<SubjectModified>
     private final Label label;
     private final Subject subject;
 
-    private SubjectModified(final String policyId,
+    private SubjectModified(final PolicyId policyId,
             final Label label,
             final Subject subject,
             final long revision,
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
-        
+
         super(TYPE, checkNotNull(policyId, "Policy identifier"), revision, timestamp, dittoHeaders);
         this.label = checkNotNull(label, "Label");
         this.subject = checkNotNull(subject, "Subject");
@@ -86,13 +96,37 @@ public final class SubjectModified extends AbstractPolicyEvent<SubjectModified>
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created SubjectModified.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.Subject, long, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static SubjectModified of(final String policyId,
             final Label label,
             final Subject subject,
             final long revision,
             final DittoHeaders dittoHeaders) {
-        
+
+        return of(PolicyId.of(policyId), label, subject, revision, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code SubjectModified} object.
+     *
+     * @param policyId the identifier of the Policy to which the modified subject belongs.
+     * @param label the label of the Policy Entry to which the modified subject belongs.
+     * @param subject the modified {@link Subject}.
+     * @param revision the revision of the Policy.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the created SubjectModified.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static SubjectModified of(final PolicyId policyId,
+            final Label label,
+            final Subject subject,
+            final long revision,
+            final DittoHeaders dittoHeaders) {
+
         return of(policyId, label, subject, revision, null, dittoHeaders);
     }
 
@@ -107,14 +141,40 @@ public final class SubjectModified extends AbstractPolicyEvent<SubjectModified>
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created SubjectModified.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.Subject, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static SubjectModified of(final String policyId,
             final Label label,
             final Subject subject,
             final long revision,
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
-        
+
+        return of(PolicyId.of(policyId), label, subject, revision, timestamp, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code SubjectModified} object.
+     *
+     * @param policyId the identifier of the Policy to which the modified subject belongs.
+     * @param label the label of the Policy Entry to which the modified subject belongs.
+     * @param subject the modified {@link Subject}.
+     * @param revision the revision of the Policy.
+     * @param timestamp the timestamp of this event.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the created SubjectModified.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     */
+    public static SubjectModified of(final PolicyId policyId,
+            final Label label,
+            final Subject subject,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
         return new SubjectModified(policyId, label, subject, revision, timestamp, dittoHeaders);
     }
 
@@ -141,15 +201,18 @@ public final class SubjectModified extends AbstractPolicyEvent<SubjectModified>
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected 'SubjectModified' format.
      */
     public static SubjectModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<SubjectModified>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
-            final String policyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
-            final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
-            final String subjectId = jsonObject.getValueOrThrow(JSON_SUBJECT_ID);
-            final JsonObject subjectJsonObject = jsonObject.getValueOrThrow(JSON_SUBJECT);
-            final Subject extractedModifiedSubject = PoliciesModelFactory.newSubject(subjectId, subjectJsonObject);
+        return new EventJsonDeserializer<SubjectModified>(TYPE, jsonObject).deserialize(
+                (revision, timestamp, metadata) -> {
+                    final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+                    final PolicyId policyId = PolicyId.of(extractedPolicyId);
+                    final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
+                    final String subjectId = jsonObject.getValueOrThrow(JSON_SUBJECT_ID);
+                    final JsonObject subjectJsonObject = jsonObject.getValueOrThrow(JSON_SUBJECT);
+                    final Subject extractedModifiedSubject =
+                            PoliciesModelFactory.newSubject(subjectId, subjectJsonObject);
 
-            return of(policyId, label, extractedModifiedSubject, revision, timestamp, dittoHeaders);
-        });
+                    return of(policyId, label, extractedModifiedSubject, revision, timestamp, dittoHeaders);
+                });
     }
 
     /**
@@ -183,12 +246,12 @@ public final class SubjectModified extends AbstractPolicyEvent<SubjectModified>
 
     @Override
     public SubjectModified setRevision(final long revision) {
-        return of(getPolicyId(), label, subject, revision, getTimestamp().orElse(null), getDittoHeaders());
+        return of(getPolicyEntityId(), label, subject, revision, getTimestamp().orElse(null), getDittoHeaders());
     }
 
     @Override
     public SubjectModified setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getPolicyId(), label, subject, getRevision(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getPolicyEntityId(), label, subject, getRevision(), getTimestamp().orElse(null), dittoHeaders);
     }
 
     @Override
@@ -198,6 +261,17 @@ public final class SubjectModified extends AbstractPolicyEvent<SubjectModified>
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
         jsonObjectBuilder.set(JSON_SUBJECT_ID, subject.getId().toString(), predicate);
         jsonObjectBuilder.set(JSON_SUBJECT, subject.toJson(schemaVersion, thePredicate), predicate);
+    }
+
+    @Override
+    public SubjectsModifiedPartially aggregateWith(final Collection<PolicyActionEvent<?>> otherPolicyActionEvents) {
+        final Map<Label, Collection<Subject>> initialModifiedSubjects =
+                Stream.of(0).collect(Collectors.toMap(i -> label, i -> Collections.singleton(subject),
+                        (u, v) -> {
+                            throw new IllegalStateException(String.format("Duplicate key %s", u));
+                        },
+                        LinkedHashMap::new));
+        return aggregateWithSubjectCreatedOrModified(initialModifiedSubjects, otherPolicyActionEvents);
     }
 
     @SuppressWarnings("squid:S109")
@@ -234,5 +308,4 @@ public final class SubjectModified extends AbstractPolicyEvent<SubjectModified>
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + ", label=" + label + ", subject=" + subject + "]";
     }
-
 }

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -31,6 +33,7 @@ import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyEntryInvalidException;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.model.policies.PolicyRevision;
 import org.eclipse.ditto.model.policies.Resource;
@@ -106,7 +109,7 @@ public class JsonExamplesProducer {
     /*
      * Policy
      */
-    private static final String POLICY_ID = NAMESPACE + ":the_policy_id";
+    private static final PolicyId POLICY_ID = PolicyId.of(NAMESPACE, "the_policy_id");
     private static final Label LABEL = PoliciesModelFactory.newLabel("the_label");
     private static final SubjectId SUBJECT_ID =
             PoliciesModelFactory.newSubjectId(SubjectIssuer.GOOGLE, "the_subjectid");
@@ -288,7 +291,7 @@ public class JsonExamplesProducer {
         writeJson(commandsDir.resolve(Paths.get("modifyPolicyEntriesResponse.json")), modifyPolicyEntriesResponse);
 
         final ModifyPolicyEntryResponse modifyPolicyEntryResponse =
-                ModifyPolicyEntryResponse.modified(POLICY_ID, DITTO_HEADERS);
+                ModifyPolicyEntryResponse.modified(POLICY_ID, LABEL, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("modifyPolicyEntryResponse.json")), modifyPolicyEntryResponse);
 
         final ModifyPolicyEntryResponse modifyPolicyEntryResponseCreated =
@@ -305,7 +308,7 @@ public class JsonExamplesProducer {
         writeJson(commandsDir.resolve(Paths.get("modifySubjectsResponse.json")), modifySubjectsResponse);
 
         final ModifySubjectResponse modifySubjectResponse =
-                ModifySubjectResponse.modified(POLICY_ID, LABEL, DITTO_HEADERS);
+                ModifySubjectResponse.modified(POLICY_ID, LABEL, SUBJECT_ID, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("modifySubjectResponse.json")), modifySubjectResponse);
 
         final ModifySubjectResponse modifySubjectResponseCreated =
@@ -322,7 +325,7 @@ public class JsonExamplesProducer {
         writeJson(commandsDir.resolve(Paths.get("modifyResourcesResponse.json")), modifyResourcesResponse);
 
         final ModifyResourceResponse modifyResourceResponse =
-                ModifyResourceResponse.modified(POLICY_ID, LABEL, DITTO_HEADERS);
+                ModifyResourceResponse.modified(POLICY_ID, LABEL, RESOURCE_KEY, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("modifyResourceResponse.json")), modifyResourceResponse);
 
         final ModifyResourceResponse modifyResourceResponseCreated =

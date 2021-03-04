@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -12,6 +14,8 @@ package org.eclipse.ditto.model.connectivity;
 
 import java.util.List;
 import java.util.Optional;
+
+import org.eclipse.ditto.json.JsonFieldSelector;
 
 /**
  * A FilteredTopic wraps a {@link Topic} and an optional {@code filter} String which additionally restricts which
@@ -36,10 +40,19 @@ public interface FilteredTopic extends CharSequence {
 
     /**
      * @return whether this FilteredTopic has a filter to apply or not
+     * @deprecated please work with the result of {@link #getFilter()} directly.
      */
+    @Deprecated
     default boolean hasFilter() {
         return getFilter().isPresent();
     }
+
+    /**
+     * Returns the selector for the extra fields and their values to enrich outgoing signals with.
+     *
+     * @return the selector or an empty Optional if signals should not be enriched.
+     */
+    Optional<JsonFieldSelector> getExtraFields();
 
     @Override
     String toString();

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -16,6 +18,7 @@ import static org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.Json
 import static org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields.MESSAGE;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
@@ -130,6 +133,23 @@ public abstract class DittoRuntimeExceptionBuilder<T extends DittoRuntimeExcepti
 
     /**
      * Sets a link to a resource which provides further information about the exception to be built.
+     * If the provided href is no valid {@link java.net.URI} the href of this build will be set to null.
+     *
+     * @param href a link to further information.
+     * @return this builder to allow method chaining.
+     */
+    public DittoRuntimeExceptionBuilder<T> href(@Nullable final String href) {
+        try {
+            final URI uriHref = href == null ? null : new URI(href);
+            href(uriHref);
+        } catch (final URISyntaxException e) {
+            href((URI) null);
+        }
+        return this;
+    }
+
+    /**
+     * Sets a link to a resource which provides further information about the exception to be built.
      *
      * @param href a link to further information.
      * @return this builder to allow method chaining.
@@ -182,8 +202,11 @@ public abstract class DittoRuntimeExceptionBuilder<T extends DittoRuntimeExcepti
      * Sets message, description and link from a JSON object of it has matching fields with valid values.
      *
      * @param jsonObject The JSON object to read from.
+     * @return this jsonObject
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @deprecated since 1.3.0; will be removed in future versions. Use {@link DittoRuntimeException#fromJson(JsonObject, DittoHeaders, DittoRuntimeExceptionBuilder)} instead
      */
+    @Deprecated
     public DittoRuntimeExceptionBuilder<T> loadJson(final JsonObject jsonObject) {
         jsonObject.getValue(MESSAGE).ifPresent(this::message);
         jsonObject.getValue(DESCRIPTION).ifPresent(this::description);

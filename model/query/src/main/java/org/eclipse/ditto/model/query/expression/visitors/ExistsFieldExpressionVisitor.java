@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -15,21 +17,24 @@ import org.eclipse.ditto.model.query.expression.ExistsFieldExpression;
 /**
  * Compositional interpreter of {@link ExistsFieldExpression}.
  */
-public interface ExistsFieldExpressionVisitor<T>
-        extends PolicyRestrictedFieldExpressionVisitor<T>, SortFieldExpressionVisitor<T> {
+public interface ExistsFieldExpressionVisitor<T> extends SortFieldExpressionVisitor<T> {
 
     @Override
-    T visitAttribute(final String key);
+    T visitAttribute(String key);
+
+    T visitFeature(String featureId);
+
+    T visitFeatureProperties(CharSequence featureId);
+
+    T visitFeatureDesiredProperties(CharSequence featureId);
 
     @Override
-    T visitFeature(final String featureId);
+    T visitFeatureIdProperty(String featureId, String property);
 
     @Override
-    T visitFeatureIdProperty(final String featureId, final String property);
+    T visitFeatureIdDesiredProperty(CharSequence featureId, CharSequence property);
 
     @Override
-    T visitFeatureProperty(final String property);
+    T visitSimple(String fieldName);
 
-    @Override
-    T visitSimple(final String fieldName);
 }

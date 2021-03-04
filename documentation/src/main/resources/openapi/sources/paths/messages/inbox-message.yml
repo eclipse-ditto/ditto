@@ -1,0 +1,102 @@
+# Copyright (c) 2020 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+post:
+  summary: Send a message TO a specific thing
+  description: |-
+    ### Why
+    A message can be sent to a thing or one of its features in order to invoke an operation on the device.
+
+    ### How
+    Send a message with a `messageSubject` **to** the thing
+    identified by the `thingId` path parameter. The request body contains
+    the message payload and the `Content-Type` header defines its type.
+
+    The HTTP request blocks until all acknowledgement requests are fulfilled.
+    By default, it blocks until a response to the message is available
+    or until the `timeout` is expired. If many clients respond to
+    the issued message, the first response will complete the HTTP request.
+
+    In order to handle the message in a fire and forget manner, add
+    a query-parameter `timeout=0` to the request.
+
+    Note that the client chooses which HTTP status code it wants to return. Ditto
+    will forward the status code to you. (Also note that '204 - No Content' status code
+    will never return a body, even if the client responded with a body).
+
+    ### Who
+    You will need `WRITE` permission on the root "message:/" resource, or at least
+    the resource `message:/inbox/messages/messageSubject`. The receiving device needs `READ` permission on the resource.
+    Such permission is managed within the policy which controls the access on the thing.
+
+    ### Example
+    Given you have a "coffemaker" thing as shown in the examples for the `things` resources.
+    The `messageSubject` understood by such a device would be "makeCoffee".
+
+    Further, as in our example the "brewed-coffees" counter would increase as a response, you would need `WRITE`
+    permission for the things resource, at least at the respective path
+
+    `/things/{thingId}/features/coffee-brewer/properties/brewed-coffees`
+  tags:
+    - Messages
+  parameters:
+    - $ref: '../../parameters/thingIdPathParam.yml'
+    - $ref: '../../parameters/messageSubjectPathParam.yml'
+    - $ref: '../../parameters/messageTimeoutParam.yml'
+    - $ref: '../../parameters/liveMessageRequestedAcksParam.yml'
+  responses:
+    '202':
+      description: |-
+        The message was sent but not necessarily received by the thing (fire and forget).
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+          * at least one of the defined path parameters is invalid
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the caller has insufficient permissions.
+            You need `WRITE` permission on the resource `message:/inbox/messages/{messageSubject}`.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the referenced thing does not exist.
+          * the caller has insufficient permissions to interact with the messages of referenced thing.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '408':
+      description: The request could not be completed due to timeout.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '413':
+      $ref: '../../responses/messageTooLarge.yml'
+    '503':
+      $ref: '../../responses/messageTimeout.yml'
+  requestBody:
+    $ref: '../../requests/payload.yml'

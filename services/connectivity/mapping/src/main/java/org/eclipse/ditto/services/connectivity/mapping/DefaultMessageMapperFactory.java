@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -12,28 +14,35 @@ package org.eclipse.ditto.services.connectivity.mapping;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.atteo.classindex.ClassIndex;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
+import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
-
-import com.typesafe.config.Config;
+import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
+import org.eclipse.ditto.services.connectivity.config.mapping.MappingConfig;
 
 import akka.actor.ActorSystem;
 import akka.actor.DynamicAccess;
 import akka.actor.ExtendedActorSystem;
-import akka.event.DiagnosticLoggingAdapter;
-import scala.Tuple2;
-import scala.collection.JavaConversions;
+import akka.event.LoggingAdapter;
+import scala.collection.immutable.List$;
 import scala.reflect.ClassTag;
 import scala.util.Try;
 
@@ -46,215 +55,259 @@ import scala.util.Try;
  * </p>
  * <p>
  * Due to this, the factory can be instantiated with a reference to the actors log adapter and will log problems to
- * the debug and warning level (no info and error). Setting a log adapter does not change factory behaviour!
+ * the debug and warning level (no info and error).
+ * Setting a log adapter does not change factory behaviour!
  * </p>
  */
 @Immutable
 public final class DefaultMessageMapperFactory implements MessageMapperFactory {
 
-    private final Config mappingConfig;
+    private final ConnectionId connectionId;
+    private final MappingConfig mappingConfig;
 
     /**
      * The actor system used for dynamic class instantiation.
      */
-    private final DynamicAccess dynamicAccess;
+    private final ExtendedActorSystem actorSystem;
 
     /**
-     * The class scanned for static {@link MessageMapper} factory functions.
+     * The factory function that creates instances of {@link MessageMapper}.
      */
-    private final Class<?> factoryClass;
+    private final List<MessageMapperExtension> messageMapperExtensions;
+    private static final List<Class<? extends MessageMapperExtension>> messageMapperExtensionClasses =
+            loadMessageMapperExtensionClasses();
 
-    private final DiagnosticLoggingAdapter log;
+    private static final Map<String, Class<?>> registeredMappers = tryToLoadPayloadMappers();
 
-    /**
-     * Constructor
-     *
-     * @param mappingConfig the static service configuration for mapping related stuff
-     * @param dynamicAccess the actor systems dynamic access used for dynamic class instantiation
-     * @param factoryClass the factory class scanned for factory functions
-     * @param log the log adapter used for debug and warning logs
-     */
-    private DefaultMessageMapperFactory(final Config mappingConfig, final DynamicAccess dynamicAccess,
-            final Class<?> factoryClass, final DiagnosticLoggingAdapter log) {
+    private final LoggingAdapter log;
 
-        this.mappingConfig = checkNotNull(mappingConfig);
-        this.dynamicAccess = checkNotNull(dynamicAccess);
-        this.factoryClass = checkNotNull(factoryClass);
+    private DefaultMessageMapperFactory(final ConnectionId connectionId,
+            final MappingConfig mappingConfig,
+            final ExtendedActorSystem actorSystem,
+            final List<MessageMapperExtension> messageMapperExtensions,
+            final LoggingAdapter log) {
+
+        this.connectionId = checkNotNull(connectionId);
+        this.mappingConfig = checkNotNull(mappingConfig, "MappingConfig");
+        this.actorSystem = checkNotNull(actorSystem);
+        this.messageMapperExtensions = checkNotNull(messageMapperExtensions);
         this.log = checkNotNull(log);
     }
 
     /**
      * Creates a new factory and returns the instance
      *
-     * @param actorSystem the actor system to use for mapping config + dynamicAccess
-     * @param factoryClass the factory class scanned for factory functions
-     * @param log the log adapter used for debug and warning logs
-     * @return the new instance
+     * @param connectionId ID of the connection.
+     * @param actorSystem the actor system to use for mapping config + dynamicAccess.
+     * @param mappingConfig the configuration of the mapping behaviour.
+     * @param log the log adapter used for debug and warning logs.
+     * @return the new instance.
+     * @throws NullPointerException if any argument is {@code null}.
      */
-    public static DefaultMessageMapperFactory of(final ActorSystem actorSystem, final Class<?> factoryClass,
-            final DiagnosticLoggingAdapter log) {
+    public static DefaultMessageMapperFactory of(final ConnectionId connectionId,
+            final ActorSystem actorSystem,
+            final MappingConfig mappingConfig,
+            final LoggingAdapter log) {
 
-        final Config mappingConfig = actorSystem.settings().config().getConfig("ditto.connectivity.mapping");
-        final DynamicAccess dynamicAccess = ((ExtendedActorSystem) actorSystem).dynamicAccess();
-        return new DefaultMessageMapperFactory(mappingConfig, dynamicAccess, factoryClass, log);
+        final ExtendedActorSystem extendedActorSystem = (ExtendedActorSystem) actorSystem;
+        final List<MessageMapperExtension> messageMapperExtensions =
+                tryToLoadMessageMappersExtensions(extendedActorSystem);
+        return new DefaultMessageMapperFactory(connectionId, mappingConfig, extendedActorSystem,
+                messageMapperExtensions, log);
     }
 
     @Override
-    public Optional<MessageMapper> mapperOf(final MappingContext mappingContext) {
-        Optional<MessageMapper> mapper = Optional.empty();
-        try {
-            mapper = findFactoryMethodAndCreateInstance(mappingContext);
-        } catch (final IllegalAccessException e) {
-            log.warning("Failed to load mapper of ctx <{}>! Can't access factory function: {}", mappingContext,
-                    e.getMessage());
-        } catch (final InvocationTargetException e) {
-            log.warning("Failed to load mapper of ctx <{}>! Can't invoke factory function: {}", mappingContext,
-                    e.getMessage());
-        }
+    public Optional<MessageMapper> mapperOf(final String mapperId, final MappingContext mappingContext) {
+        final Optional<MessageMapper> mapper = createMessageMapperInstance(mappingContext.getMappingEngine());
+        final Map<String, String> configuredIncomingConditions = mappingContext.getIncomingConditions();
+        final Map<String, String> configuredOutgoingConditions = mappingContext.getOutgoingConditions();
+        final JsonObject defaultOptions =
+                mapper.map(MessageMapper::getDefaultOptions).orElse(JsonObject.empty());
+        final MergedJsonObjectMap configuredAndDefaultOptions =
+                mergeMappingOptions(defaultOptions, mappingContext.getOptionsAsJson());
+        final MessageMapperConfiguration options =
+                DefaultMessageMapperConfiguration.of(mapperId, configuredAndDefaultOptions,
+                        configuredIncomingConditions, configuredOutgoingConditions);
+        return mapper.map(WrappingMessageMapper::wrap).flatMap(m -> configureInstance(m, options));
+    }
 
-        if (!mapper.isPresent()) {
-            try {
-                mapper = findClassAndCreateInstance(mappingContext);
-            } catch (final InstantiationException e) {
-                log.warning("Failed to load mapper of ctx <{}>! Can't instantiate mapper class: {}",
-                        mappingContext, e.getMessage());
-            } catch (final ClassCastException e) {
-                log.warning("Failed to load mapper of ctx <{}>! Class is no MessageMapper: {}",
-                        mappingContext, e.getMessage());
+    private MergedJsonObjectMap mergeMappingOptions(final JsonObject defaultOptions,
+            final JsonObject configuredOptions) {
+        return MergedJsonObjectMap.of(configuredOptions, defaultOptions);
+    }
+
+    @Override
+    public MessageMapperRegistry registryOf(final MappingContext defaultContext,
+            final PayloadMappingDefinition payloadMappingDefinition) {
+
+        final MessageMapper defaultMapper = mapperOf("default", defaultContext)
+                .orElseThrow(() -> new IllegalArgumentException("No default mapper found: " + defaultContext));
+
+        final Map<String, MessageMapper> mappersFromConnectionConfig =
+                instantiateMappers(payloadMappingDefinition.getDefinitions().entrySet().stream());
+
+        final Map<String, MessageMapper> fallbackMappers =
+                instantiateMappers(registeredMappers.entrySet().stream()
+                        .filter(requiresNoMandatoryConfiguration())
+                        .map(Map.Entry::getKey)
+                        .map(this::getEmptyMappingContextForAlias));
+
+        return DefaultMessageMapperRegistry.of(defaultMapper, mappersFromConnectionConfig, fallbackMappers);
+    }
+
+    private Map.Entry<String, MappingContext> getEmptyMappingContextForAlias(final String alias) {
+        final MappingContext emptyMappingContext =
+                ConnectivityModelFactory.newMappingContext(alias, JsonObject.empty());
+        return new SimpleImmutableEntry<>(alias, emptyMappingContext);
+    }
+
+    private Map<String, MessageMapper> instantiateMappers(final Stream<Map.Entry<String, MappingContext>> definitions) {
+        return definitions
+                .map(e -> {
+                    final String alias = e.getKey();
+                    final MessageMapper messageMapper =
+                            mapperOf(alias, e.getValue()).orElse(null);
+                    return new SimpleImmutableEntry<>(alias, messageMapper);
+                })
+                .filter(e -> null != e.getValue())
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    private static Map<String, Class<?>> tryToLoadPayloadMappers() {
+        try {
+            final Iterable<Class<?>> payloadMappers = ClassIndex.getAnnotated(PayloadMapper.class);
+            final Map<String, Class<?>> mappers = new HashMap<>();
+            for (final Class<?> payloadMapper : payloadMappers) {
+                if (!MessageMapper.class.isAssignableFrom(payloadMapper)) {
+                    throw new IllegalStateException("The class " + payloadMapper.getName() + " does not implement " +
+                            MessageMapper.class.getName());
+                }
+                final PayloadMapper annotation = payloadMapper.getAnnotation(PayloadMapper.class);
+                if (annotation == null) {
+                    throw new IllegalStateException("The mapper " + payloadMapper.getName() + " is not annotated with" +
+                            " @PayloadMapper.");
+                }
+                final String[] aliases = annotation.alias();
+                if (aliases.length == 0) {
+                    throw new IllegalStateException("No alias configured for " + payloadMapper.getName());
+                }
+
+                Stream.of(aliases).forEach(alias -> {
+                    if (null != mappers.get(alias)) {
+                        throw new IllegalStateException("Mapper alias <" + alias + "> was already registered and is " +
+                                "tried to register again for " + payloadMapper.getName());
+                    }
+                    mappers.put(alias, payloadMapper);
+                });
             }
+            return mappers;
+        } catch (final Exception e) {
+            final String message = e.getClass().getCanonicalName() + ": " + e.getMessage();
+            throw MessageMapperConfigurationFailedException.newBuilder(message).build();
         }
-
-        final MessageMapperConfiguration options = DefaultMessageMapperConfiguration.of(mappingContext.getOptions());
-        return mapper.map(m -> configureInstance(m, options) ? m : null);
     }
 
-    @Override
-    public MessageMapperRegistry registryOf(final MappingContext defaultContext, @Nullable final MappingContext context) {
-        final MessageMapper defaultMapper = mapperOf(defaultContext)
-                .map(WrappingMessageMapper::wrap)
-                .orElseThrow(() ->
-                        new IllegalArgumentException("No mapper found for default context: " + defaultContext));
+    private static List<MessageMapperExtension> tryToLoadMessageMappersExtensions(
+            final ExtendedActorSystem actorSystem) {
+        try {
+            return loadMessageMapperExtensions(actorSystem.dynamicAccess());
+        } catch (final Exception e) {
+            final String message = e.getClass().getCanonicalName() + ": " + e.getMessage();
+            throw MessageMapperConfigurationFailedException.newBuilder(message).build();
+        }
+    }
 
-        final MessageMapper messageMapper;
-        if (context != null) {
-            messageMapper = mapperOf(context)
-                    .map(WrappingMessageMapper::wrap).orElse(null);
+    private static List<MessageMapperExtension> loadMessageMapperExtensions(final DynamicAccess dynamicAccess) {
+        return messageMapperExtensionClasses.stream().map(clazz -> {
+            final ClassTag<MessageMapperExtension> tag =
+                    scala.reflect.ClassTag$.MODULE$.apply(MessageMapperExtension.class);
+            return dynamicAccess.createInstanceFor(clazz, List$.MODULE$.empty(), tag).get();
+        }).collect(Collectors.toList());
+    }
+
+    private static List<Class<? extends MessageMapperExtension>> loadMessageMapperExtensionClasses() {
+        return StreamSupport.stream(ClassIndex.getSubclasses(MessageMapperExtension.class).spliterator(), false)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Instantiates a mapper for the specified mapping context.
+     *
+     * @return the instantiated mapper if it can be instantiated from the configured factory class.
+     */
+    Optional<MessageMapper> createMessageMapperInstance(final String mappingEngine) {
+        if (registeredMappers.containsKey(mappingEngine)) {
+            final Class<?> messageMapperClass = registeredMappers.get(mappingEngine);
+            MessageMapper result = createAnyMessageMapper(messageMapperClass,
+                    actorSystem.dynamicAccess());
+            for (final MessageMapperExtension extension : messageMapperExtensions) {
+                if (null == result) {
+                    return Optional.empty();
+                }
+                result = extension.apply(connectionId, result, actorSystem);
+            }
+            return Optional.ofNullable(result);
         } else {
-            messageMapper = null;
-        }
-        return DefaultMessageMapperRegistry.of(defaultMapper, messageMapper);
-    }
-
-    /**
-     * Tries to match a factory function for the specified context and uses this to instantiate a mapper.
-     *
-     * @param mappingContext the mapping context
-     * @return the instantiated mapper, if a factory function matched.
-     * @throws InvocationTargetException if a factory function matched, but could not be invoked.
-     * @throws IllegalAccessException if a factory function matched, but is not accessible.
-     */
-    Optional<MessageMapper> findFactoryMethodAndCreateInstance(final MappingContext mappingContext)
-            throws IllegalAccessException, InvocationTargetException {
-
-        final Optional<Method> factoryMethod = findMessageMapperFactoryMethod(factoryClass, mappingContext);
-        if (!factoryMethod.isPresent()) {
-            log.debug("No factory method found for ctx: <{}>", mappingContext);
-            return Optional.empty();
-        }
-
-        final MessageMapper mapper = (MessageMapper) factoryMethod.get().invoke(null);
-        return Optional.of(mapper);
-    }
-
-
-    /**
-     * Interprets the mapping engine name as a canonical class name which is used to dynamically instantiate a mapper.
-     *
-     * @param mappingContext the mapping context
-     * @return the instantiated mapper, if a class matched.
-     * @throws InstantiationException if a class matched, but mapper instantiation failed.
-     * @throws ClassCastException if a class matched but does not conform to the {@link MessageMapper} interface.
-     */
-    Optional<MessageMapper> findClassAndCreateInstance(final MappingContext mappingContext)
-            throws InstantiationException {
-
-        checkNotNull(mappingContext);
-
-        try {
-            return Optional.of(createInstanceFor(mappingContext.getMappingEngine()));
-        } catch (final ClassNotFoundException e) {
-            log.debug("No mapper class found for ctx: <{}>", mappingContext);
+            log.info("Mapper {} not found.", mappingEngine);
             return Optional.empty();
         }
     }
 
-    private boolean configureInstance(final MessageMapper mapper, final MessageMapperConfiguration options) {
-        try {
-            mapper.configure(mappingConfig, options);
-            return true;
-        } catch (final MessageMapperConfigurationInvalidException e) {
-            log.warning("Failed to apply configuration <{}> to mapper instance <{}>: {}", options, mapper,
-                    e.getMessage());
-            return false;
-        }
-    }
-
-    private MessageMapper createInstanceFor(final String className)
-            throws ClassNotFoundException, InstantiationException {
-
+    @Nullable
+    private static MessageMapper createAnyMessageMapper(final Class<?> clazz,
+            final DynamicAccess dynamicAccess) {
         final ClassTag<MessageMapper> tag = scala.reflect.ClassTag$.MODULE$.apply(MessageMapper.class);
-        final List<Tuple2<Class<?>, Object>> constructorArgs = new ArrayList<>();
-
-        final Try<MessageMapper> mapperTry =
-                dynamicAccess.createInstanceFor(className, JavaConversions.asScalaBuffer(constructorArgs).toList(),
-                        tag);
+        final Try<MessageMapper> mapperTry = dynamicAccess.createInstanceFor(clazz, List$.MODULE$.empty(), tag);
 
         if (mapperTry.isFailure()) {
             final Throwable error = mapperTry.failed().get();
-            if (error.getClass().isAssignableFrom(ClassNotFoundException.class)) {
-                throw (ClassNotFoundException) error;
-            } else if (error.getClass().isAssignableFrom(InstantiationException.class)) {
-                throw (InstantiationException) error;
-            } else if (error.getClass().isAssignableFrom(ClassCastException.class)) {
-                throw (ClassCastException) error;
+            if (error instanceof ClassNotFoundException || error instanceof InstantiationException ||
+                    error instanceof ClassCastException) {
+                return null;
             } else {
                 throw new IllegalStateException("There was an unknown error when trying to creating instance for '"
-                        + className + "'", error);
+                        + clazz + "'", error);
             }
         }
 
         return mapperTry.get();
     }
 
-
-    private static Optional<Method> findMessageMapperFactoryMethod(final Class<?> factory, final MappingContext ctx) {
-        return Arrays.stream(factory.getDeclaredMethods())
-                .filter(DefaultMessageMapperFactory::isFactoryMethod)
-                .filter(m -> m.getName().toLowerCase().contains(ctx.getMappingEngine().toLowerCase()))
-                .findFirst();
+    private Predicate<? super Map.Entry<String, Class<?>>> requiresNoMandatoryConfiguration() {
+        return e -> !getPayloadMapperAnnotation(e).requiresMandatoryConfiguration();
     }
 
-    private static boolean isFactoryMethod(final Method m) {
-        return m.getReturnType().equals(MessageMapper.class) && m.getParameterTypes().length == 0;
+    private static PayloadMapper getPayloadMapperAnnotation(final Map.Entry<String, Class<?>> entry) {
+        final Class<?> mapperClass = entry.getValue();
+        return mapperClass.getAnnotation(PayloadMapper.class);
+    }
+
+    private Optional<MessageMapper> configureInstance(final MessageMapper mapper,
+            final MessageMapperConfiguration options) {
+        try {
+            mapper.configure(mappingConfig, options);
+            return Optional.of(mapper);
+        } catch (final MessageMapperConfigurationInvalidException e) {
+            log.warning("Failed to apply configuration <{}> to mapper instance <{}>: {}", options, mapper,
+                    e.getMessage());
+            return Optional.empty();
+        }
     }
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
         final DefaultMessageMapperFactory that = (DefaultMessageMapperFactory) o;
-        return Objects.equals(dynamicAccess, that.dynamicAccess) &&
-                Objects.equals(factoryClass, that.factoryClass) &&
+        return Objects.equals(connectionId, that.connectionId) &&
+                Objects.equals(mappingConfig, that.mappingConfig) &&
+                Objects.equals(actorSystem, that.actorSystem) &&
+                Objects.equals(messageMapperExtensions, that.messageMapperExtensions) &&
                 Objects.equals(log, that.log);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(dynamicAccess, factoryClass, log);
+        return Objects.hash(connectionId, mappingConfig, actorSystem, messageMapperExtensions, log);
     }
-
 }

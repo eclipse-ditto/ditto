@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -16,10 +18,10 @@ import java.net.URI;
 import java.util.Optional;
 
 import org.assertj.core.api.AbstractAssert;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-
 
 /**
  * Specific assertion for {@link DittoRuntimeException} objects.
@@ -47,14 +49,26 @@ public final class DittoRuntimeAssert extends AbstractAssert<DittoRuntimeAssert,
         return this;
     }
 
+    /**
+     * @deprecated as of 2.0.0 please use {@link #hasStatus(HttpStatus)} instead.
+     */
+    @Deprecated
     public DittoRuntimeAssert hasStatusCode(final HttpStatusCode expectedStatusCode) {
         isNotNull();
+        return hasStatus(expectedStatusCode.getAsHttpStatus());
+    }
 
-        final HttpStatusCode actualStatusCode = actual.getStatusCode();
-        assertThat(actualStatusCode) //
-                .overridingErrorMessage("Expected status code of DittoRuntimeException to be \n<%s> but it was \n<%s>",
-                        expectedStatusCode, actualStatusCode) //
-                .isEqualTo(expectedStatusCode);
+    /**
+     * @since 2.0.0
+     */
+    public DittoRuntimeAssert hasStatus(final HttpStatus expectedStatus) {
+        isNotNull();
+
+        final HttpStatus actualStatus = actual.getHttpStatus();
+        assertThat(actualStatus)
+                .overridingErrorMessage("Expected status of DittoRuntimeException to be \n<%s> but it was \n<%s>",
+                        expectedStatus, actualStatus)
+                .isEqualTo(expectedStatus);
 
         return this;
     }
@@ -67,11 +81,11 @@ public final class DittoRuntimeAssert extends AbstractAssert<DittoRuntimeAssert,
      */
     public DittoRuntimeAssert hasStatusCodeValue(final int expectedValue) {
         isNotNull();
-        final HttpStatusCode actualStatusCode = actual.getStatusCode();
-        final int actualStatusCodeValue = actualStatusCode.toInt();
-        assertThat(actualStatusCodeValue)
-                .overridingErrorMessage("Expected status code value of DittoRuntimeException to be\n<%s> but it " +
-                        "was\n<%s>", expectedValue, actualStatusCodeValue)
+        final HttpStatus actualStatus = actual.getHttpStatus();
+        final int actualStatusCode = actualStatus.getCode();
+        assertThat(actualStatusCode)
+                .overridingErrorMessage("Expected status code of DittoRuntimeException to be\n<%s> but it was\n<%s>",
+                        expectedValue, actualStatusCode)
                 .isEqualTo(expectedValue);
         return myself;
     }

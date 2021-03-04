@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -29,9 +31,11 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
@@ -40,6 +44,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after {@link Subjects} were modified.
  */
 @Immutable
+@JsonParsableEvent(name = SubjectsModified.NAME, typePrefix= SubjectsModified.TYPE_PREFIX)
 public final class SubjectsModified extends AbstractPolicyEvent<SubjectsModified>
         implements PolicyEvent<SubjectsModified> {
 
@@ -62,7 +67,7 @@ public final class SubjectsModified extends AbstractPolicyEvent<SubjectsModified
     private final Label label;
     private final Subjects subjects;
 
-    private SubjectsModified(final String policyId,
+    private SubjectsModified(final PolicyId policyId,
             final Label label,
             final Subjects subjects,
             final long revision,
@@ -84,8 +89,32 @@ public final class SubjectsModified extends AbstractPolicyEvent<SubjectsModified
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created SubjectsModified.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.Subjects, long, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static SubjectsModified of(final String policyId,
+            final Label label,
+            final Subjects subjects,
+            final long revision,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), label, subjects, revision, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code SubjectsModified} object.
+     *
+     * @param policyId the identifier of the Policy to which the modified subjects belongs
+     * @param label the label of the Policy Entry to which the modified subjects belongs
+     * @param subjects the modified {@link Subjects}
+     * @param revision the revision of the Policy.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the created SubjectsModified.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static SubjectsModified of(final PolicyId policyId,
             final Label label,
             final Subjects subjects,
             final long revision,
@@ -105,8 +134,34 @@ public final class SubjectsModified extends AbstractPolicyEvent<SubjectsModified
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created SubjectsModified.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.Subjects, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static SubjectsModified of(final String policyId,
+            final Label label,
+            final Subjects subjects,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), label, subjects, revision, timestamp, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code SubjectsModified} object.
+     *
+     * @param policyId the identifier of the Policy to which the modified subjects belongs
+     * @param label the label of the Policy Entry to which the modified subjects belongs
+     * @param subjects the modified {@link Subjects}
+     * @param revision the revision of the Policy.
+     * @param timestamp the timestamp of this event.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the created SubjectsModified.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     */
+    public static SubjectsModified of(final PolicyId policyId,
             final Label label,
             final Subjects subjects,
             final long revision,
@@ -141,8 +196,10 @@ public final class SubjectsModified extends AbstractPolicyEvent<SubjectsModified
      * format.
      */
     public static SubjectsModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<SubjectsModified>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
-            final String policyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+        return new EventJsonDeserializer<SubjectsModified>(TYPE, jsonObject).deserialize(
+                (revision, timestamp, metadata) -> {
+            final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+            final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
             final JsonObject subjectsJsonObject = jsonObject.getValueOrThrow(JSON_SUBJECTS);
             final Subjects extractedModifiedSubjects = PoliciesModelFactory.newSubjects(subjectsJsonObject);
@@ -182,12 +239,12 @@ public final class SubjectsModified extends AbstractPolicyEvent<SubjectsModified
 
     @Override
     public SubjectsModified setRevision(final long revision) {
-        return of(getPolicyId(), label, subjects, revision, getTimestamp().orElse(null), getDittoHeaders());
+        return of(getPolicyEntityId(), label, subjects, revision, getTimestamp().orElse(null), getDittoHeaders());
     }
 
     @Override
     public SubjectsModified setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getPolicyId(), label, subjects, getRevision(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getPolicyEntityId(), label, subjects, getRevision(), getTimestamp().orElse(null), dittoHeaders);
     }
 
     @Override

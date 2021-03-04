@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -16,8 +18,12 @@ import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.enforcers.DefaultEffectedSubjects;
 import org.eclipse.ditto.model.enforcers.EffectedSubjectIds;
+import org.eclipse.ditto.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.model.enforcers.ImmutableEffectedSubjectIds;
 
 /**
@@ -99,12 +105,9 @@ final class GrantRevokeIndex {
      * @return Result of the check.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    boolean hasPermissions(final Set<String> subjectIds, final Collection<String> permissions) {
-        final Optional<Integer> grantWeight =
-                grantMap.getMaxNonemptyWeightForAllPermissions(subjectIds, permissions);
-
-        final Optional<Integer> revokeWeight =
-                revokeMap.getMaxWeightForAllPermissions(subjectIds, permissions);
+    boolean hasPermissions(final Collection<String> subjectIds, final Collection<String> permissions) {
+        final Optional<Integer> grantWeight = grantMap.getMaxNonemptyWeightForAllPermissions(subjectIds, permissions);
+        final Optional<Integer> revokeWeight = revokeMap.getMaxWeightForAllPermissions(subjectIds, permissions);
 
         return grantWeight.isPresent() && (!revokeWeight.isPresent() || revokeWeight.get() < grantWeight.get());
     }
@@ -116,11 +119,39 @@ final class GrantRevokeIndex {
      * @param permissions Permissions to check.
      * @return An object containing the two sets of authorization subjects.
      * @throws NullPointerException if {@code permissions} is {@code null}.
+     * @deprecated as of 1.1.0 please use {@link #getEffectedSubjects(Set)} instead.
      */
+    @Deprecated
     EffectedSubjectIds getEffectedSubjectIds(final Set<String> permissions) {
         final Set<String> grantedSubjectIds = getGrantedSubjectIds(permissions);
         final Set<String> revokedSubjectIds = getRevokedSubjectIds(permissions);
         return ImmutableEffectedSubjectIds.of(grantedSubjectIds, revokedSubjectIds);
+    }
+
+    /**
+     * Returns the set of authorization subjects for whom <em>all</em> of the given permissions are granted, and the
+     * set of authorization subjects for whom <em>any</em> of the given permissions are revoked.
+     *
+     * @param permissions Permissions to check.
+     * @return an object containing the two sets of authorization subjects.
+     * @throws NullPointerException if {@code permissions} is {@code null}.
+     * @since 1.1.0
+     */
+    EffectedSubjects getEffectedSubjects(final Set<String> permissions) {
+        return DefaultEffectedSubjects.of(getGrantedSubjects(permissions), getRevokedSubjects(permissions));
+    }
+
+    /**
+     * Returns the set of subject IDs granted at this level.
+     *
+     * @param permissions Permissions to check.
+     * @return An object containing the two sets of authorization subject IDs.
+     * @deprecated as of 1.1.0 please use {@link #getGrantedSubjects(Set)} instead.
+     */
+    @Deprecated
+    Set<String> getGrantedSubjectIds(final Set<String> permissions) {
+        checkNotNull(permissions, "permissions to check");
+        return grantMap.getSubjectIntersect(permissions).keySet();
     }
 
     /**
@@ -129,14 +160,29 @@ final class GrantRevokeIndex {
      * @param permissions Permissions to check.
      * @return An object containing the two sets of authorization subjects.
      */
-    Set<String> getGrantedSubjectIds(final Set<String> permissions) {
+    Set<AuthorizationSubject> getGrantedSubjects(final Set<String> permissions) {
         checkNotNull(permissions, "permissions to check");
-        return grantMap.getSubjectIntersect(permissions).keySet();
+        return getAuthorizationSubjects(grantMap.getSubjectIntersect(permissions).keySet());
     }
 
+    private static Set<AuthorizationSubject> getAuthorizationSubjects(final Collection<String> authSubjectIds) {
+        return authSubjectIds.stream()
+                .map(AuthorizationSubject::newInstance)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * @deprecated as of 1.1.0 please use {@link #getRevokedSubjects(Set)} instead.
+     */
+    @Deprecated
     Set<String> getRevokedSubjectIds(final Set<String> permissions) {
         checkNotNull(permissions, "permissions to check");
         return revokeMap.getSubjectUnion(permissions).keySet();
+    }
+
+    Set<AuthorizationSubject> getRevokedSubjects(final Set<String> permissions) {
+        checkNotNull(permissions, "permissions to check");
+        return getAuthorizationSubjects(revokeMap.getSubjectUnion(permissions).keySet());
     }
 
     @Override
@@ -148,8 +194,7 @@ final class GrantRevokeIndex {
             return false;
         }
         final GrantRevokeIndex that = (GrantRevokeIndex) o;
-        return Objects.equals(grantMap, that.grantMap) &&
-                Objects.equals(revokeMap, that.revokeMap);
+        return Objects.equals(grantMap, that.grantMap) && Objects.equals(revokeMap, that.revokeMap);
     }
 
     @Override

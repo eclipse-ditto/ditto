@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -14,29 +16,30 @@ import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
+import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ExecutionException;
 
-import javax.annotation.Nullable;
-
+import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.assertions.MongoIndexAssertions;
 import org.eclipse.ditto.services.utils.test.mongo.MongoDbResource;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.mongodb.MongoCommandException;
 
 import akka.Done;
 import akka.actor.ActorSystem;
-import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
+import akka.stream.SystemMaterializer;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.testkit.javadsl.TestKit;
@@ -46,8 +49,10 @@ import akka.testkit.javadsl.TestKit;
  */
 public final class IndexInitializerIT {
 
+    @ClassRule
+    public static final MongoDbResource MONGO_RESOURCE = new MongoDbResource();
+
     private static final int CONNECTION_POOL_MAX_SIZE = 5;
-    private static final int CONNECTION_POOL_MAX_WAIT_QUEUE_SIZE = 5;
     private static final long CONNECTION_POOL_MAX_WAIT_TIME_SECS = 3L;
 
     private static final int MONGO_INDEX_OPTIONS_CONFLICT_ERROR_CODE = 85;
@@ -83,43 +88,29 @@ public final class IndexInitializerIT {
             Arrays.asList(DefaultIndexKey.of(FOO_FIELD, IndexDirection.ASCENDING),
                     DefaultIndexKey.of(BAR_FIELD, IndexDirection.ASCENDING)), false);
 
-    @Nullable private static MongoDbResource mongoResource;
-
-    @Nullable private ActorSystem system;
-    @Nullable private ActorMaterializer materializer;
-    @Nullable private MongoClientWrapper mongoClientWrapper;
-    @Nullable private IndexInitializer indexInitializerUnderTest;
-    @Nullable private IndexOperations indexOperations;
-
-    @BeforeClass
-    public static void startMongoResource() {
-        mongoResource = new MongoDbResource("localhost");
-        mongoResource.start();
-    }
-
-    @SuppressWarnings("ConstantConditions")
-    @AfterClass
-    public static void stopMongoResource() {
-        if (mongoResource != null) {
-            mongoResource.stop();
-        }
-    }
+    private ActorSystem system;
+    private Materializer materializer;
+    private DittoMongoClient mongoClient;
+    private IndexInitializer indexInitializerUnderTest;
+    private IndexOperations indexOperations;
 
     @Before
     public void before() {
         system = ActorSystem.create("AkkaTestSystem");
-        materializer = ActorMaterializer.create(system);
+        materializer = SystemMaterializer.get(system).materializer();
 
-        requireNonNull(mongoResource);
+        requireNonNull(MONGO_RESOURCE);
         requireNonNull(materializer);
 
-        mongoClientWrapper = MongoClientWrapper.newInstance(mongoResource.getBindIp(),
-                mongoResource.getPort(),
-                this.getClass().getSimpleName() + "-" + UUID.randomUUID().toString(),
-                CONNECTION_POOL_MAX_SIZE, CONNECTION_POOL_MAX_WAIT_QUEUE_SIZE, CONNECTION_POOL_MAX_WAIT_TIME_SECS);
+        mongoClient = MongoClientWrapper.getBuilder()
+                .hostnameAndPort(MONGO_RESOURCE.getBindIp(), MONGO_RESOURCE.getPort())
+                .defaultDatabaseName(getClass().getSimpleName() + "-" + UUID.randomUUID().toString())
+                .connectionPoolMaxSize(CONNECTION_POOL_MAX_SIZE)
+                .connectionPoolMaxWaitTime(Duration.ofSeconds(CONNECTION_POOL_MAX_WAIT_TIME_SECS))
+                .build();
 
-        indexInitializerUnderTest = IndexInitializer.of(mongoClientWrapper.getDatabase(), materializer);
-        indexOperations = IndexOperations.of(mongoClientWrapper.getDatabase());
+        indexInitializerUnderTest = IndexInitializer.of(mongoClient.getDefaultDatabase(), materializer);
+        indexOperations = IndexOperations.of(mongoClient.getDefaultDatabase());
     }
 
     @SuppressWarnings("ConstantConditions")
@@ -131,11 +122,11 @@ public final class IndexInitializerIT {
             system = null;
             materializer = null;
         }
-        if (mongoClientWrapper != null) {
-            mongoClientWrapper.getDatabase().drop();
+        if (mongoClient != null) {
+            mongoClient.getDefaultDatabase().drop();
         }
-        if (mongoClientWrapper != null) {
-            mongoClientWrapper.close();
+        if (mongoClient != null) {
+            mongoClient.close();
         }
     }
 
@@ -217,9 +208,10 @@ public final class IndexInitializerIT {
         // WHEN / THEN
         final List<Index> newIndices = Arrays.asList(INDEX_BAR,
                 INDEX_FOO_CONFLICTING_NAME_OPTION, INDEX_BAZ);
-        assertThatExceptionOfType(MongoCommandException.class).isThrownBy((() -> {
-            initialize(collectionName, newIndices);
-        })).satisfies(e -> assertThat(e.getErrorCode()).isEqualTo(MONGO_INDEX_OPTIONS_CONFLICT_ERROR_CODE));
+        assertThatExceptionOfType(CompletionException.class).isThrownBy(() -> initialize(collectionName, newIndices))
+                .withCauseInstanceOf(MongoCommandException.class)
+                .satisfies(e -> assertThat(((MongoCommandException) e.getCause()).getErrorCode())
+                        .isEqualTo(MONGO_INDEX_OPTIONS_CONFLICT_ERROR_CODE));
         // verify that bar has been created nevertheless (cause it has been initialized before the error), in
         // contrast to baz
         assertIndices(collectionName, Arrays.asList(INDEX_BAR, INDEX_FOO));
@@ -258,13 +250,12 @@ public final class IndexInitializerIT {
         assertIndices(collectionName, newIndices);
     }
 
-    private void createIndices(final String collectionName, final List<Index> indices) {
+    private void createIndices(final String collectionName, final Iterable<Index> indices) {
         requireNonNull(indexOperations);
 
-        final CompletionStage<Done> completionStage =
-                Source.from(indices)
-                        .flatMapConcat(index -> indexOperations.createIndex(collectionName, index))
-                        .runWith(Sink.ignore(), materializer);
+        final CompletionStage<Done> completionStage = Source.from(indices)
+                .flatMapConcat(index -> indexOperations.createIndex(collectionName, index))
+                .runWith(Sink.ignore(), materializer);
 
         runBlocking(completionStage);
     }
@@ -278,24 +269,13 @@ public final class IndexInitializerIT {
         runBlocking(completionStage);
     }
 
-    private void assertIndices(final String collectionName,
-            final List<Index> expectedIndices) {
-        MongoIndexAssertions.assertIndices(mongoClientWrapper.getDatabase(), collectionName, materializer,
+    private void assertIndices(final String collectionName, final Collection<Index> expectedIndices) {
+        MongoIndexAssertions.assertIndices(mongoClient.getDefaultDatabase(), collectionName, materializer,
                 expectedIndices, true);
     }
 
-    private static <T> T runBlocking(final CompletionStage<T> completionStage) {
-        try {
-            return completionStage.toCompletableFuture().get();
-        } catch (final InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw mapToRuntimeException(e);
-        } catch (final ExecutionException e) {
-            if (e.getCause() != null) {
-                throw mapToRuntimeException(e.getCause());
-            }
-            throw mapToRuntimeException(e);
-        }
+    private static <T> void runBlocking(final CompletionStage<T> completionStage) {
+        completionStage.toCompletableFuture().join();
     }
 
     private static RuntimeException mapToRuntimeException(final Throwable t) {
@@ -304,4 +284,5 @@ public final class IndexInitializerIT {
         }
         throw new IllegalStateException(t);
     }
+
 }

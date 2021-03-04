@@ -1,35 +1,49 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.gateway.proxy.actors;
 
+import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.thingsearch.SearchModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchResult;
-import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.GatewayHttpConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThingsResponse;
+import org.eclipse.ditto.signals.events.thingsearch.ThingsOutOfSync;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
-import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
-import scala.concurrent.duration.Duration;
 
 /**
  * Actor which is started for each {@link QueryThings} command in the gateway handling the response from
@@ -42,43 +56,47 @@ import scala.concurrent.duration.Duration;
  */
 final class QueryThingsPerRequestActor extends AbstractActor {
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final QueryThings queryThings;
     private final ActorRef aggregatorProxyActor;
     private final ActorRef originatingSender;
+    private final ActorRef pubSubMediator;
 
     private QueryThingsResponse queryThingsResponse;
+    private List<ThingId> queryThingsResponseThingIds;
 
-    private QueryThingsPerRequestActor(final QueryThings queryThings, final ActorRef aggregatorProxyActor,
-            final ActorRef originatingSender) {
+    @SuppressWarnings("unused")
+    private QueryThingsPerRequestActor(final QueryThings queryThings,
+            final ActorRef aggregatorProxyActor,
+            final ActorRef originatingSender,
+            final ActorRef pubSubMediator) {
 
         this.queryThings = queryThings;
         this.aggregatorProxyActor = aggregatorProxyActor;
         this.originatingSender = originatingSender;
+        this.pubSubMediator = pubSubMediator;
         queryThingsResponse = null;
 
-        final Duration timeout = Duration.create(getContext().system().settings().config()
-                        .getDuration(ConfigKeys.AKKA_HTTP_SERVER_REQUEST_TIMEOUT).getSeconds(),
-                TimeUnit.SECONDS);
-        getContext().setReceiveTimeout(timeout);
+        final HttpConfig httpConfig = GatewayHttpConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        );
+
+        getContext().setReceiveTimeout(httpConfig.getRequestTimeout());
     }
 
     /**
      * Creates Akka configuration object Props for this QueryThingsPerRequestActor.
      *
-     * @return the Akka configuration Props object
+     * @return the Akka configuration Props object.
      */
-    static Props props(final QueryThings queryThings, final ActorRef aggregatorProxyActor,
-            final ActorRef originatingSender) {
-        return Props.create(QueryThingsPerRequestActor.class, new Creator<QueryThingsPerRequestActor>() {
-            private static final long serialVersionUID = 1L;
+    static Props props(final QueryThings queryThings,
+            final ActorRef aggregatorProxyActor,
+            final ActorRef originatingSender,
+            final ActorRef pubSubMediator) {
 
-            @Override
-            public QueryThingsPerRequestActor create() {
-                return new QueryThingsPerRequestActor(queryThings, aggregatorProxyActor, originatingSender);
-            }
-        });
+        return Props.create(QueryThingsPerRequestActor.class, queryThings, aggregatorProxyActor, originatingSender,
+                pubSubMediator);
     }
 
     @Override
@@ -89,42 +107,47 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                     stopMyself();
                 })
                 .match(QueryThingsResponse.class, qtr -> {
-                    LogUtil.enhanceLogWithCorrelationId(log, qtr);
                     queryThingsResponse = qtr;
 
-                    log.debug("Received QueryThingsResponse: {}", qtr);
+                    log.withCorrelationId(qtr)
+                            .debug("Received QueryThingsResponse: {}", qtr);
 
-                    final List<String> thingIds = qtr.getSearchResult().stream()
+                    queryThingsResponseThingIds = qtr.getSearchResult()
+                            .stream()
                             .map(val -> val.asObject().getValue(Thing.JsonFields.ID).orElse(null))
+                            .map(ThingId::of)
                             .collect(Collectors.toList());
 
-                    if (thingIds.isEmpty()) {
+                    if (queryThingsResponseThingIds.isEmpty()) {
                         // shortcut - for no search results we don't have to lookup the things
                         originatingSender.tell(qtr, getSelf());
-
                         stopMyself();
                     } else {
-                        final RetrieveThings retrieveThings = RetrieveThings.getBuilder(thingIds)
-                                .dittoHeaders(qtr.getDittoHeaders())
-                                .selectedFields(queryThings.getFields())
+                        final Optional<JsonFieldSelector> selectedFieldsWithThingId = getSelectedFieldsWithThingId();
+                        final RetrieveThings retrieveThings = RetrieveThings.getBuilder(queryThingsResponseThingIds)
+                                .dittoHeaders(qtr.getDittoHeaders().toBuilder().responseRequired(true).build())
+                                .selectedFields(selectedFieldsWithThingId)
                                 .build();
                         // delegate to the ThingsAggregatorProxyActor which receives the results via a cluster stream:
                         aggregatorProxyActor.tell(retrieveThings, getSelf());
                     }
                 })
                 .match(RetrieveThingsResponse.class, rtr -> {
-                    LogUtil.enhanceLogWithCorrelationId(log, rtr);
-                    log.debug("Received RetrieveThingsResponse: {}", rtr);
+                    log.withCorrelationId(rtr)
+                            .debug("Received RetrieveThingsResponse: {}", rtr);
 
                     if (queryThingsResponse != null) {
+                        final JsonArray rtrEntity = rtr.getEntity(rtr.getImplementedSchemaVersion()).asArray();
+                        final JsonArray retrievedEntitiesWithFieldSelection = getEntitiesWithSelectedFields(rtrEntity);
+                        final SearchResult resultWithRetrievedItems = SearchModelFactory.newSearchResultBuilder()
+                                .addAll(retrievedEntitiesWithFieldSelection)
+                                .nextPageOffset(queryThingsResponse.getSearchResult().getNextPageOffset().orElse(null))
+                                .cursor(queryThingsResponse.getSearchResult().getCursor().orElse(null))
+                                .build();
                         final QueryThingsResponse theQueryThingsResponse =
-                                QueryThingsResponse.of(SearchResult.newBuilder()
-                                                .addAll(rtr.getEntity(rtr.getImplementedSchemaVersion()).asArray())
-                                                .nextPageOffset(queryThingsResponse.getSearchResult().getNextPageOffset())
-                                                .build(),
-                                        rtr.getDittoHeaders()
-                                );
+                                QueryThingsResponse.of(resultWithRetrievedItems, rtr.getDittoHeaders());
                         originatingSender.tell(theQueryThingsResponse, getSelf());
+                        notifyOutOfSyncThings(rtrEntity);
                     } else {
                         log.warning("Did not receive a QueryThingsResponse when a RetrieveThingsResponse occurred: {}",
                                 rtr);
@@ -135,15 +158,71 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                 .matchAny(any -> {
                     // all other messages (e.g. DittoRuntimeExceptions) are directly returned to the sender:
                     originatingSender.tell(any, getSender());
-
                     stopMyself();
                 })
                 .build();
     }
 
+    /**
+     * Extracts selected fields from {@link #queryThings} and ensures that the Thing ID is one of those fields.
+     * If no fields are selected, this means that all fields should be returned.
+     *
+     * @return the optional field selector.
+     */
+    private Optional<JsonFieldSelector> getSelectedFieldsWithThingId() {
+        return queryThings.getFields()
+                .filter(fields -> !fields.getPointers().contains(Thing.JsonFields.ID.getPointer()))
+                .map(jsonFieldSelector -> JsonFieldSelector.newInstance(
+                        Thing.JsonFields.ID.getPointer(),
+                        jsonFieldSelector.getPointers().toArray(new JsonPointer[0])))
+                .or(queryThings::getFields);
+    }
+
+    /**
+     * Maps the retrieved entities into entities with the originally selected fields.
+     *
+     * @param retrievedEntities the retrieved entities.
+     * @return the retrieved entities with the originally selected fields.
+     */
+    private JsonArray getEntitiesWithSelectedFields(final JsonArray retrievedEntities) {
+        return queryThings.getFields()
+                .filter(fields -> !fields.getPointers().contains(Thing.JsonFields.ID.getPointer()))
+                .map(fields -> retrievedEntities.stream()
+                        .map(jsonValue -> jsonValue.asObject().get(fields))
+                        .collect(JsonCollectors.valuesToArray())
+                )
+                .orElse(retrievedEntities);
+    }
+
+    /**
+     * Publish an UpdateThings command including thing IDs in QueryThingsResponse but not in results with retrieved
+     * items.
+     *
+     * @param rtrEntity entity of the RetrieveThingsResponse from the aggregator actor.
+     * @throws java.lang.NullPointerException if this.queryThingsResponse or this.queryThingsResponseThingIds is null.
+     */
+    private void notifyOutOfSyncThings(final JsonArray rtrEntity) {
+
+        final Set<ThingId> retrievedThingIds = rtrEntity.stream()
+                .filter(JsonValue::isObject)
+                .flatMap(item -> item.asObject().getValue(Thing.JsonFields.ID).stream())
+                .map(ThingId::of)
+                .collect(Collectors.toSet());
+
+        final Collection<NamespacedEntityId> outOfSyncThingIds = queryThingsResponseThingIds.stream()
+                .filter(thingId -> !retrievedThingIds.contains(thingId))
+                .collect(Collectors.toList());
+
+        if (!outOfSyncThingIds.isEmpty()) {
+            final ThingsOutOfSync thingsOutOfSync =
+                    ThingsOutOfSync.of(outOfSyncThingIds, queryThings.getDittoHeaders());
+            pubSubMediator.tell(DistPubSubAccess.publishViaGroup(ThingsOutOfSync.TYPE, thingsOutOfSync),
+                    ActorRef.noSender());
+        }
+    }
+
     private void stopMyself() {
         getContext().stop(getSelf());
     }
-
 
 }

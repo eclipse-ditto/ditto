@@ -1,16 +1,20 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.utils.headers.conditional;
 
 import static java.util.Objects.requireNonNull;
+
+import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -20,6 +24,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.signals.commands.base.Command;
+
 
 /**
  * Checks conditional (http) headers based on a given ETag. Has to be configured with {@link ValidationSettings}.
@@ -48,6 +53,7 @@ public final class ConditionalHeadersValidator {
         /**
          * Returns a builder for a {@link DittoRuntimeException} in case status {@code 304 (Not Modified)} should be
          * returned.
+         *
          * @param expectedNotToMatch the value which was expected not to match {@code matched} value.
          * @param matched the matched value.
          * @return the builder.
@@ -57,9 +63,12 @@ public final class ConditionalHeadersValidator {
     }
 
     private final ValidationSettings validationSettings;
+    private final Predicate<Command<?>> additionalSkipPreconditionHeaderCheckPredicate;
 
-    private ConditionalHeadersValidator(final ValidationSettings validationSettings) {
+    private ConditionalHeadersValidator(final ValidationSettings validationSettings,
+            final Predicate<Command<?>> additionalSkipPreconditionHeaderCheckPredicate) {
         this.validationSettings = validationSettings;
+        this.additionalSkipPreconditionHeaderCheckPredicate = additionalSkipPreconditionHeaderCheckPredicate;
     }
 
     /**
@@ -69,7 +78,21 @@ public final class ConditionalHeadersValidator {
      * @return the created instance.
      */
     public static ConditionalHeadersValidator of(final ValidationSettings validationSettings) {
-        return new ConditionalHeadersValidator(requireNonNull(validationSettings));
+        return new ConditionalHeadersValidator(requireNonNull(validationSettings), cmd -> false);
+    }
+
+    /**
+     * Creates a new validator instance with the given {@code settings}.
+     *
+     * @param validationSettings the settings.
+     * @param additionalSkipPreconditionCheckPredicate a predicate accepting a Command which - when evaluated to
+     * {@code true} - will skip the precondition check (in addition to the built-in check).
+     * @return the created instance.
+     */
+    public static ConditionalHeadersValidator of(final ValidationSettings validationSettings,
+            final Predicate<Command<?>> additionalSkipPreconditionCheckPredicate) {
+        return new ConditionalHeadersValidator(requireNonNull(validationSettings),
+                additionalSkipPreconditionCheckPredicate);
     }
 
     /**
@@ -97,9 +120,10 @@ public final class ConditionalHeadersValidator {
 
     private boolean skipPreconditionHeaderCheck(final Command command, @Nullable final EntityTag
             currentETagValue) {
-        return currentETagValue == null &&
+        return (currentETagValue == null &&
                 (Command.Category.DELETE.equals(command.getCategory()) ||
-                        Command.Category.QUERY.equals(command.getCategory()));
+                        Command.Category.QUERY.equals(command.getCategory()))
+        ) || additionalSkipPreconditionHeaderCheckPredicate.test(command);
     }
 
     private void checkIfMatch(final Command command, @Nullable final EntityTag currentETagValue) {
@@ -141,7 +165,8 @@ public final class ConditionalHeadersValidator {
     private DittoRuntimeException buildNotModifiedException(final PreconditionHeader preconditionHeader,
             final DittoHeaders dittoHeaders, @Nullable final EntityTag currentETagValue) {
         return validationSettings
-                .createPreconditionNotModifiedExceptionBuilder(preconditionHeader.getValue(), String.valueOf(currentETagValue))
+                .createPreconditionNotModifiedExceptionBuilder(preconditionHeader.getValue(),
+                        String.valueOf(currentETagValue))
                 .dittoHeaders(appendETagIfNotNull(dittoHeaders, currentETagValue))
                 .build();
     }
@@ -152,4 +177,5 @@ public final class ConditionalHeadersValidator {
         }
         return dittoHeaders.toBuilder().eTag(entityTag).build();
     }
+
 }

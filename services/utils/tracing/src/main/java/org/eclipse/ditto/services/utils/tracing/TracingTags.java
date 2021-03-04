@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -21,6 +23,7 @@ public final class TracingTags {
     public static final String COMMAND_TYPE_PREFIX = PREFIX + "command.typePrefix";
     public static final String COMMAND_CATEGORY = PREFIX + "command.category";
     public static final String CONNECTION_ID =  PREFIX + "connection.id";
+    public static final String CONNECTION_TYPE = PREFIX + "connection.type";
 
     //HTTP round trip tags
     public static final String STATUS_CODE = PREFIX + "statusCode";
@@ -34,4 +37,12 @@ public final class TracingTags {
 
     //Mapping tags
     public static final String MAPPING_SUCCESS = PREFIX + "mapping.success";
+
+    // Acknowledgement tags
+    public static final String ACK_SUCCESS = PREFIX + "ack.success";
+    public static final String ACK_REDELIVER = PREFIX + "ack.redeliver";
+
+    private TracingTags() {
+        throw new AssertionError();
+    }
 }

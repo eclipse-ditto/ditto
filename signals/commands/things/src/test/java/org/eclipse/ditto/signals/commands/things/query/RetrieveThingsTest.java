@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -16,6 +18,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -27,6 +30,9 @@ import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.MissingThingIdsException;
@@ -40,12 +46,12 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class RetrieveThingsTest {
 
     private static final JsonArray THING_IDS = JsonFactory.newArrayBuilder()
-            .add(TestConstants.Thing.THING_ID)
-            .add(":AnotherThingId")
+            .add(TestConstants.Thing.THING_ID.toString())
+            .add(TestConstants.Thing.THING_ID.getNamespace() + ":AnotherThingId")
             .build();
 
     private static final JsonArray THING_IDS_WITH_DISTINCT_NAMESPACE = JsonFactory.newArrayBuilder()
-            .add(TestConstants.Thing.THING_ID)
+            .add(TestConstants.Thing.THING_ID.toString())
             .add(TestConstants.Thing.THING_ID + "1")
             .add(TestConstants.Thing.THING_ID + "2")
             .build();
@@ -72,12 +78,18 @@ public final class RetrieveThingsTest {
     private static final JsonParseOptions JSON_PARSE_OPTIONS =
             JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build();
 
-    private static List<String> getThingIds() {
-        return THING_IDS.stream().map(JsonValue::asString).collect(Collectors.toList());
+    private static List<ThingId> getThingIds() {
+        return THING_IDS.stream()
+                .map(JsonValue::asString)
+                .map(ThingId::of)
+                .collect(Collectors.toList());
     }
 
-    private static List<String> getThingIdsWithDistinctNamespace() {
-        return THING_IDS_WITH_DISTINCT_NAMESPACE.stream().map(JsonValue::asString).collect(Collectors.toList());
+    private static List<ThingId> getThingIdsWithDistinctNamespace() {
+        return THING_IDS_WITH_DISTINCT_NAMESPACE.stream()
+                .map(JsonValue::asString)
+                .map(ThingId::of)
+                .collect(Collectors.toList());
     }
 
     private static JsonFieldSelector getJsonFieldSelector() {
@@ -88,7 +100,7 @@ public final class RetrieveThingsTest {
     public void assertImmutability() {
         assertInstancesOf(RetrieveThings.class,
                 areImmutable(),
-                provided(AuthorizationContext.class, JsonFieldSelector.class).isAlsoImmutable());
+                provided(AuthorizationContext.class, JsonFieldSelector.class, ThingId.class).isAlsoImmutable());
     }
 
     @Test
@@ -121,7 +133,7 @@ public final class RetrieveThingsTest {
                 RetrieveThings.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getThingIds()).isEqualTo(getThingIds());
+        assertThat(underTest.getThingEntityIds()).isEqualTo(getThingIds());
         assertThat(underTest.getSelectedFields()).isEmpty();
         assertThat(underTest.getNamespace()).isEmpty();
     }
@@ -133,8 +145,11 @@ public final class RetrieveThingsTest {
                         TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getThingIds()).isEqualTo(
-                THING_IDS_WITH_DISTINCT_NAMESPACE.stream().map(JsonValue::asString).collect(Collectors.toList()));
+        assertThat(underTest.getThingEntityIds()).isEqualTo(
+                THING_IDS_WITH_DISTINCT_NAMESPACE.stream()
+                        .map(JsonValue::asString)
+                        .map(ThingId::of)
+                        .collect(Collectors.toList()));
         assertThat(underTest.getSelectedFields()).isEmpty();
         assertThat(underTest.getNamespace()).contains("example.com");
     }
@@ -155,7 +170,7 @@ public final class RetrieveThingsTest {
                         TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getThingIds()).isEqualTo(getThingIds());
+        assertThat(underTest.getThingEntityIds()).isEqualTo(getThingIds());
         assertThat(underTest.getSelectedFields()).contains(getJsonFieldSelector());
     }
 
@@ -167,12 +182,13 @@ public final class RetrieveThingsTest {
     @Test
     public void checkRetrieveThingsWithEmptyJsonFieldSelectorBehavesEquallyAsOmittingFields() {
         final JsonFieldSelector selectedFields = JsonFactory.newFieldSelector(null, JSON_PARSE_OPTIONS);
-        final RetrieveThings retrieveThings = RetrieveThings.getBuilder(TestConstants.Thing.THING_ID, ":AnotherThingId")
+        final RetrieveThings retrieveThings = RetrieveThings
+                .getBuilder(TestConstants.Thing.THING_ID, ThingId.inDefaultNamespace("AnotherThingId"))
                 .selectedFields(selectedFields)
                 .build();
 
         final RetrieveThings retrieveThings2 =
-                RetrieveThings.getBuilder(TestConstants.Thing.THING_ID, ":AnotherThingId")
+                RetrieveThings.getBuilder(TestConstants.Thing.THING_ID, ThingId.inDefaultNamespace("AnotherThingId"))
                         .build();
 
         assertThat(retrieveThings).isEqualTo(retrieveThings2);
@@ -180,23 +196,39 @@ public final class RetrieveThingsTest {
 
     @Test(expected = NullPointerException.class)
     public void initializationWithNullForThingIdsArrayThrowsNullPointerException(){
-        //This cast is used to resolve the ambiguous call
-        RetrieveThings.getBuilder( (String[]) null).build();
+        RetrieveThings.getBuilder((ThingId[]) null).build();
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void initializationWithNullForThingIdsStringArrayThrowsNullPointerException(){
+        RetrieveThings.getBuilder((String[]) null).build();
     }
 
     @Test(expected = NullPointerException.class)
     public void initializationWithNullForThingIdsListThrowsNullPointerException(){
-        //This cast is used to resolve the ambiguous call
-        RetrieveThings.getBuilder( (List<String>) null).build();
+        RetrieveThings.getBuilder((List<ThingId>) null).build();
     }
 
     @Test(expected = MissingThingIdsException.class)
     public void initializationWithoutThingIdsThrowsMissingThingIdsException(){
-        RetrieveThings.getBuilder().build();
+        RetrieveThings.getBuilder(Collections.emptyList()).build();
     }
 
     @Test(expected = MissingThingIdsException.class)
     public void initializationWithEmptyThingIdsListThrowsMissingThingIdsException(){
         RetrieveThings.getBuilder(new ArrayList<>()).build();
+    }
+
+    @Test
+    public void parseRetrieveThingCommand() {
+        final GlobalCommandRegistry commandRegistry = GlobalCommandRegistry.getInstance();
+
+        final RetrieveThing command = RetrieveThing.of(
+                TestConstants.Thing.THING_ID, TestConstants.DITTO_HEADERS);
+        final JsonObject jsonObject = command.toJson(FieldType.regularOrSpecial());
+
+        final Command parsedCommand = commandRegistry.parse(jsonObject, TestConstants.DITTO_HEADERS);
+
+        assertThat(parsedCommand).isEqualTo(command);
     }
 }

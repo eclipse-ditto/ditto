@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -26,10 +28,11 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
-import org.eclipse.ditto.model.policies.PolicyIdValidator;
 import org.eclipse.ditto.model.policies.ResourceKey;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -37,6 +40,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * Command which retrieves the {@code Resource} based on the passed in Policy ID, Label and Resource resourceKey.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = RetrieveResource.TYPE_PREFIX, name = RetrieveResource.NAME)
 public final class RetrieveResource extends AbstractCommand<RetrieveResource>
         implements PolicyQueryCommand<RetrieveResource> {
 
@@ -56,17 +60,16 @@ public final class RetrieveResource extends AbstractCommand<RetrieveResource>
     static final JsonFieldDefinition<String> JSON_RESOURCE_KEY =
             JsonFactory.newStringFieldDefinition("resourceKey", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final String policyId;
+    private final PolicyId policyId;
     private final Label label;
     private final ResourceKey resourceKey;
 
-    private RetrieveResource(final String policyId,
+    private RetrieveResource(final PolicyId policyId,
             final Label label,
             final ResourceKey resourceKey,
             final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
-        PolicyIdValidator.getInstance().accept(policyId, dittoHeaders);
-        this.policyId = policyId;
+        this.policyId = checkNotNull(policyId, "policy ID");
         this.label = checkNotNull(label, "Label");
         this.resourceKey = checkNotNull(resourceKey, "ResourceKey");
     }
@@ -81,8 +84,31 @@ public final class RetrieveResource extends AbstractCommand<RetrieveResource>
      * @return a Command for retrieving the Resource with the {@code policyId}, {@code label} and {@code resourcePath}
      * which is readable from the passed authorization context.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.ResourceKey, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static RetrieveResource of(final String policyId,
+            final Label label,
+            final ResourceKey resourceKey,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), label, resourceKey, dittoHeaders);
+    }
+
+    /**
+     * Returns a command for retrieving the Resource with the given Policy ID, Label and Resource resourceKey.
+     *
+     * @param policyId the ID of the Policy for which to retrieve the Resource for.
+     * @param label the specified label of the Policy entry for which to retrieve the Resource for.
+     * @param resourceKey the ResourceKey of the Resource to retrieve.
+     * @param dittoHeaders the optional command headers of the request.
+     * @return a Command for retrieving the Resource with the {@code policyId}, {@code label} and {@code resourcePath}
+     * which is readable from the passed authorization context.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static RetrieveResource of(final PolicyId policyId,
             final Label label,
             final ResourceKey resourceKey,
             final DittoHeaders dittoHeaders) {
@@ -119,7 +145,8 @@ public final class RetrieveResource extends AbstractCommand<RetrieveResource>
      */
     public static RetrieveResource fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveResource>(TYPE, jsonObject).deserialize(() -> {
-            final String policyId = jsonObject.getValueOrThrow(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
+            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
+            final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final Label extractedLabel = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
             final String extractedKey = jsonObject.getValueOrThrow(JSON_RESOURCE_KEY);
 
@@ -151,7 +178,7 @@ public final class RetrieveResource extends AbstractCommand<RetrieveResource>
      * @return the identifier of the Policy for which to retrieve the Resource for.
      */
     @Override
-    public String getId() {
+    public PolicyId getEntityId() {
         return policyId;
     }
 
@@ -166,7 +193,7 @@ public final class RetrieveResource extends AbstractCommand<RetrieveResource>
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyQueryCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(PolicyQueryCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
         jsonObjectBuilder.set(JSON_RESOURCE_KEY, resourceKey.toString(), predicate);
     }

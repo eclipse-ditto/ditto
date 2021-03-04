@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -16,8 +18,10 @@ import java.util.List;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.rql.ParserException;
+import org.eclipse.ditto.model.thingsearch.CursorOption;
 import org.eclipse.ditto.model.thingsearch.LimitOption;
 import org.eclipse.ditto.model.thingsearch.Option;
+import org.eclipse.ditto.model.thingsearch.SizeOption;
 import org.eclipse.ditto.model.thingsearch.SortOption;
 import org.eclipse.ditto.model.thingsearch.SortOptionEntry;
 import org.eclipse.ditto.model.thingsearchparser.OptionParser;
@@ -126,8 +130,8 @@ public final class RqlOptionsParserTest {
 
     @Test
     public void parseOptionCombinations() throws ParserException {
-        final List<Option> options = parser.parse("limit(0,1),sort(-attributes/username)");
-        assertThat(options.size()).isEqualTo(2);
+        final List<Option> options = parser.parse("limit(0,1),sort(-attributes/username),cursor(ABC),size(463)");
+        assertThat(options.size()).isEqualTo(4);
 
         final LimitOption limitOption = (LimitOption) options.get(0);
         assertThat(limitOption.getCount()).isEqualTo(1);
@@ -144,10 +148,37 @@ public final class RqlOptionsParserTest {
                 .map(SortOptionEntry::getOrder)
                 .anyMatch(SortOptionEntry.SortOrder.DESC::equals)
         ).isTrue();
+
+        final CursorOption cursorOption = (CursorOption) options.get(2);
+        assertThat(cursorOption.getCursor()).isEqualTo("ABC");
+
+        final SizeOption sizeOption = (SizeOption) options.get(3);
+        assertThat(sizeOption.getSize()).isEqualTo(463);
+    }
+
+    @Test
+    public void parseAndUnparseAreInverseOfEachOther() throws ParserException {
+        final String input = "limit(0,1),sort(-attributes/username)";
+        final List<Option> parsed = parser.parse(input);
+        final String unparsed = RqlOptionParser.unparse(parsed);
+        final List<Option> reParsed = parser.parse(unparsed);
+
+        assertThat(reParsed).isEqualTo(parsed);
     }
 
     @Test(expected = ParserException.class)
     public void invalidLimitArgumentsExceedsLong() throws ParserException {
         parser.parse("limit(100000000000000000000,10)");
     }
+
+    @Test(expected = ParserException.class)
+    public void cursorWithoutContentOrClosingParenthesis() throws ParserException {
+        parser.parse("cursor(");
+    }
+
+    @Test(expected = ParserException.class)
+    public void cursorWithoutClosingParenthesis() throws ParserException {
+        parser.parse("cursor(0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz");
+    }
+
 }

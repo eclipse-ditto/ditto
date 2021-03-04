@@ -1,27 +1,33 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.things.modify;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.eclipse.ditto.signals.commands.things.TestConstants.Pointer.INVALID_JSON_POINTER;
+import static org.eclipse.ditto.signals.commands.things.TestConstants.Pointer.VALID_JSON_POINTER;
 import static org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
@@ -29,7 +35,6 @@ import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
-
 
 /**
  * Unit test for {@link ModifyFeatureProperty}.
@@ -42,20 +47,18 @@ public final class ModifyFeaturePropertyTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, ModifyFeatureProperty.TYPE)
-            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ModifyFeatureProperty.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(ModifyFeatureProperty.JSON_PROPERTY, PROPERTY_JSON_POINTER.toString())
             .set(ModifyFeatureProperty.JSON_PROPERTY_VALUE, PROPERTY_VALUE)
             .build();
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(ModifyFeatureProperty.class,
                 areImmutable(),
-                provided(JsonPointer.class, JsonValue.class).areAlsoImmutable());
+                provided(JsonPointer.class, JsonValue.class, ThingId.class).areAlsoImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
@@ -64,20 +67,25 @@ public final class ModifyFeaturePropertyTest {
                 .verify();
     }
 
-
     @Test(expected = ThingIdInvalidException.class)
-    public void tryToCreateInstanceWithNullThingId() {
-        ModifyFeatureProperty.of(null, TestConstants.Feature.FLUX_CAPACITOR_ID, PROPERTY_JSON_POINTER, PROPERTY_VALUE,
+    public void tryToCreateInstanceWithNullThingIdString() {
+        ModifyFeatureProperty.of((String) null, TestConstants.Feature.FLUX_CAPACITOR_ID, PROPERTY_JSON_POINTER,
+                PROPERTY_VALUE,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
+    @Test(expected = NullPointerException.class)
+    public void tryToCreateInstanceWithNullThingId() {
+        ModifyFeatureProperty.of((ThingId) null, TestConstants.Feature.FLUX_CAPACITOR_ID, PROPERTY_JSON_POINTER,
+                PROPERTY_VALUE,
+                TestConstants.EMPTY_DITTO_HEADERS);
+    }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullFeatureId() {
         ModifyFeatureProperty.of(TestConstants.Thing.THING_ID, null, PROPERTY_JSON_POINTER, PROPERTY_VALUE,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPropertyJsonPointer() {
@@ -86,14 +94,12 @@ public final class ModifyFeaturePropertyTest {
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPropertyValue() {
         ModifyFeatureProperty.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
                 PROPERTY_JSON_POINTER, null,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
@@ -105,14 +111,49 @@ public final class ModifyFeaturePropertyTest {
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
 
+    @Test
+    public void tryToCreateInstanceWithValidArguments() {
+        ModifyFeatureProperty.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                PROPERTY_JSON_POINTER, PROPERTY_VALUE, TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+    @Test(expected = JsonKeyInvalidException.class)
+    public void tryToCreateInstanceWithInvalidArguments() {
+        ModifyFeatureProperty.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                INVALID_JSON_POINTER, PROPERTY_VALUE, TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+    @Test(expected = JsonKeyInvalidException.class)
+    public void createInstanceFromValidJson() {
+        final JsonObject invalidJson = KNOWN_JSON.toBuilder()
+                .set(ModifyFeatureProperty.JSON_PROPERTY, INVALID_JSON_POINTER.toString()).build();
+
+        ModifyFeatureProperty.fromJson(invalidJson.toString(), TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+    @Test(expected = JsonKeyInvalidException.class)
+    public void createInstanceFromInvalidJsonValue() {
+        final JsonValue invalid = JsonValue.of(JsonObject.of("{\"bar/baz\":false}"));
+
+        ModifyFeatureProperty.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                VALID_JSON_POINTER, invalid, TestConstants.EMPTY_DITTO_HEADERS);
+    }
 
     @Test
-    public void createInstanceFromValidJson() {
+    public void tryToCreateInstanceWithValidPropertyJsonObject() {
+        final JsonValue valid = JsonValue.of(JsonObject.of("{\"bar.baz\":false}"));
+
+        ModifyFeatureProperty.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                VALID_JSON_POINTER, valid, TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+    @Test
+    public void createInstanceFromJsonWithInvalidPropertyPath() {
         final ModifyFeatureProperty underTest =
                 ModifyFeatureProperty.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
         assertThat(underTest.getPropertyPointer()).isEqualTo(PROPERTY_JSON_POINTER);
         assertThat(underTest.getPropertyValue()).isEqualTo(PROPERTY_VALUE);
@@ -121,12 +162,12 @@ public final class ModifyFeaturePropertyTest {
     @Test
     public void modifyTooLargeFeatureProperty() {
         final StringBuilder sb = new StringBuilder();
-        for(int i=0; i<TestConstants.THING_SIZE_LIMIT_BYTES; i++) {
+        for (int i = 0; i < TestConstants.THING_SIZE_LIMIT_BYTES; i++) {
             sb.append('a');
         }
         sb.append('b');
 
-        assertThatThrownBy(() -> ModifyFeatureProperty.of("foo:bar", "foo", JsonPointer.of("foo"),
+        assertThatThrownBy(() -> ModifyFeatureProperty.of(ThingId.of("foo", "bar"), "foo", JsonPointer.of("foo"),
                 JsonValue.of(sb.toString()), DittoHeaders.empty()))
                 .isInstanceOf(ThingTooLargeException.class);
     }

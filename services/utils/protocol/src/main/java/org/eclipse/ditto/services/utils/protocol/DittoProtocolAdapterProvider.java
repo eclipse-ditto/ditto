@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -18,24 +20,23 @@ import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
+import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
 
 /**
  * Provider of Ditto protocol adapter.
  */
 public final class DittoProtocolAdapterProvider extends ProtocolAdapterProvider {
 
-    private DittoProtocolAdapter dittoProtocolAdapter;
-    private HeaderTranslator headerTranslator;
+    private final ProtocolAdapter dittoProtocolAdapter;
 
     /**
      * This constructor is the obligation of all subclasses of {@code ProtocolAdapterProvider}.
      *
-     * @param protocolConfigReader the argument.
+     * @param protocolConfig provides the class name of the ProtocolAdapterProvider to be loaded.
      */
-    public DittoProtocolAdapterProvider(final ProtocolConfigReader protocolConfigReader) {
-        super(protocolConfigReader);
+    public DittoProtocolAdapterProvider(final ProtocolConfig protocolConfig) {
+        super(protocolConfig);
         dittoProtocolAdapter = DittoProtocolAdapter.newInstance();
-        headerTranslator = createHeaderTranslator(protocolConfigReader);
     }
 
     @Override
@@ -44,15 +45,13 @@ public final class DittoProtocolAdapterProvider extends ProtocolAdapterProvider 
     }
 
     @Override
-    public HeaderTranslator getHttpHeaderTranslator() {
-        return headerTranslator;
-    }
-
-    private static HeaderTranslator createHeaderTranslator(final ProtocolConfigReader protocolConfigReader) {
-        final HeaderDefinition[] blacklist = protocolConfigReader.blacklist()
+    protected HeaderTranslator createHttpHeaderTranslatorInstance(final ProtocolConfig protocolConfig) {
+        final HeaderDefinition[] blocklist = protocolConfig.getBlockedHeaderKeys()
                 .stream()
                 .map(Ignored::new)
                 .toArray(HeaderDefinition[]::new);
-        return HeaderTranslator.of(DittoHeaderDefinition.values(), MessageHeaderDefinition.values(), blacklist);
+
+        return HeaderTranslator.of(DittoHeaderDefinition.values(), MessageHeaderDefinition.values(), blocklist);
     }
+
 }

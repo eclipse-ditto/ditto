@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -21,7 +23,10 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
+import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.TestConstants;
 import org.junit.Test;
@@ -35,7 +40,7 @@ public final class RetrievePolicyTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(PolicyCommand.JsonFields.TYPE, RetrievePolicy.TYPE)
-            .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .build();
 
     private static final DittoHeaders EMPTY_DITTO_HEADERS = DittoHeaders.empty();
@@ -43,7 +48,8 @@ public final class RetrievePolicyTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(RetrievePolicy.class, areImmutable(), provided(JsonFieldSelector.class).isAlsoImmutable());
+        assertInstancesOf(RetrievePolicy.class, areImmutable(),
+                provided(JsonFieldSelector.class, PolicyId.class).areAlsoImmutable());
     }
 
 
@@ -57,17 +63,23 @@ public final class RetrievePolicyTest {
 
     @Test
     public void tryToCreateInstanceWithNullPolicyId() {
-        assertThatExceptionOfType(PolicyIdInvalidException.class)
-                .isThrownBy(() -> RetrievePolicy.of(null, EMPTY_DITTO_HEADERS))
+        assertThatExceptionOfType(NullPointerException.class)
+                .isThrownBy(() -> RetrievePolicy.of((PolicyId) null, EMPTY_DITTO_HEADERS))
                 .withNoCause();
+    }
+
+
+    @Test
+    public void tryToCreateInstanceWithNullPolicyIdString() {
+        assertThatExceptionOfType(PolicyIdInvalidException.class)
+                .isThrownBy(() -> RetrievePolicy.of((String) null, EMPTY_DITTO_HEADERS));
     }
 
 
     @Test
     public void tryToCreateInstanceWithInvalidPolicyId() {
         assertThatExceptionOfType(PolicyIdInvalidException.class)
-                .isThrownBy(() -> RetrievePolicy.of("undefined", EMPTY_DITTO_HEADERS))
-                .withNoCause();
+                .isThrownBy(() -> RetrievePolicy.of("undefined", EMPTY_DITTO_HEADERS));
     }
 
 
@@ -86,7 +98,20 @@ public final class RetrievePolicyTest {
         final RetrievePolicy underTest = RetrievePolicy.fromJson(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Policy.POLICY_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Policy.POLICY_ID);
+    }
+
+    @Test
+    public void parseRetrievePolicyCommand() {
+        final GlobalCommandRegistry commandRegistry = GlobalCommandRegistry.getInstance();
+
+        final RetrievePolicy command = RetrievePolicy.of(
+                TestConstants.Policy.POLICY_ID, TestConstants.DITTO_HEADERS);
+        final JsonObject jsonObject = command.toJson(FieldType.regularOrSpecial());
+
+        final Command parsedCommand = commandRegistry.parse(jsonObject, TestConstants.DITTO_HEADERS);
+
+        assertThat(parsedCommand).isEqualTo(command);
     }
 
 }

@@ -1,16 +1,19 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import java.util.concurrent.CompletionStage;
+
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 import akka.http.javadsl.server.RequestContext;
@@ -27,16 +30,18 @@ public interface CustomHeadersHandler {
     }
 
     /**
-     * Appends custom headers to the given dittoDefaultHeaders and returns a new instance of DittoHeaders that
+     * Appends custom headers to the given default DittoHeaders and returns a new instance of DittoHeaders that
      * contains both of them.
      *
-     * @param correlationId The correlation id.
-     * @param requestContext The request context.
-     * @param requestType The request type.
-     * @param authorizationContext the authorization context.
-     * @param dittoDefaultHeaders The headers ditto created by default.
-     * @return A new instance of {@link DittoHeaders} containing both, new custom headers and ditto default headers.
+     * @param correlationId the correlation ID.
+     * @param requestContext the request context.
+     * @param requestType the request type.
+     * @param dittoDefaultHeaders the headers ditto created by default.
+     * @return a new future instance of {@link DittoHeaders} containing both new custom headers and default headers.
      */
-    DittoHeaders handleCustomHeaders(String correlationId, RequestContext requestContext, RequestType requestType,
-            AuthorizationContext authorizationContext, DittoHeaders dittoDefaultHeaders);
+    CompletionStage<DittoHeaders> handleCustomHeaders(CharSequence correlationId,
+            RequestContext requestContext,
+            RequestType requestType,
+            DittoHeaders dittoDefaultHeaders);
+
 }

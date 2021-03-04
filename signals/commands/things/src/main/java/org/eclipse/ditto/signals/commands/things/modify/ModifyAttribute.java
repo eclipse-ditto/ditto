@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -28,8 +30,10 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.ThingIdValidator;
+import org.eclipse.ditto.model.things.AttributesModelFactory;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
@@ -39,6 +43,7 @@ import org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInva
  * This command modifies an attribute.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = ModifyAttribute.TYPE_PREFIX, name = ModifyAttribute.NAME)
 public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
         implements ThingModifyCommand<ModifyAttribute> {
 
@@ -60,31 +65,38 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
             JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final JsonPointer attributePointer;
     private final JsonValue attributeValue;
 
-    private ModifyAttribute(final JsonPointer attributePointer, final JsonValue attributeValue, final String thingId,
+    private ModifyAttribute(final JsonPointer attributePointer, final JsonValue attributeValue, final ThingId thingId,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, dittoHeaders);
-        ThingIdValidator.getInstance().accept(thingId, dittoHeaders);
         this.thingId = thingId;
-        this.attributePointer = checkAttributePointer(attributePointer, dittoHeaders);
-        this.attributeValue = checkNotNull(attributeValue, "new attribute");
+        this.attributePointer = checkAttributePointer(checkNotNull(attributePointer, "attributePointer"), dittoHeaders);
+        this.attributeValue = checkAttributeValue(checkNotNull(attributeValue, "attributeValue"));
 
-        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> attributeValue.toString().length(), () ->
-                dittoHeaders);
+        ThingCommandSizeValidator.getInstance().ensureValidSize(
+                attributeValue::getUpperBoundForStringSize,
+                () -> attributeValue.toString().length(),
+                () -> dittoHeaders);
     }
 
     private static JsonPointer checkAttributePointer(final JsonPointer pointer, final DittoHeaders dittoHeaders) {
-        checkNotNull(pointer, "key of the attribute to be modified");
         if (pointer.isEmpty()) {
             throw AttributePointerInvalidException.newBuilder(pointer)
                     .dittoHeaders(dittoHeaders)
                     .build();
         }
-        return pointer;
+        return AttributesModelFactory.validateAttributePointer(pointer);
+    }
+
+    private static JsonValue checkAttributeValue(final JsonValue value) {
+        if (value.isObject()) {
+            AttributesModelFactory.validateAttributeKeys(value.asObject());
+        }
+        return value;
     }
 
     /**
@@ -96,12 +108,39 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
      * @param dittoHeaders the headers of the command.
      * @return a command for modifying the provided new attribute.
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      * @throws org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException if
      * {@code attributeJsonPointer} is empty.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributeJsonPointer} are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer,
+     * org.eclipse.ditto.json.JsonValue, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static ModifyAttribute of(final String thingId,
+            final JsonPointer attributeJsonPointer,
+            final JsonValue newAttributeValue,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), attributeJsonPointer, newAttributeValue, dittoHeaders);
+    }
+
+    /**
+     * Returns a command for modifying an attribute which is passed as argument.
+     *
+     * @param thingId the ID of the thing on which to modify the attribute.
+     * @param attributeJsonPointer the JSON pointer of the attribute key to modify.
+     * @param newAttributeValue the value of the attribute to modify.
+     * @param dittoHeaders the headers of the command.
+     * @return a command for modifying the provided new attribute.
+     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
+     * @throws org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException if
+     * {@code attributeJsonPointer} is empty.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributeJsonPointer} are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     */
+    public static ModifyAttribute of(final ThingId thingId,
             final JsonPointer attributeJsonPointer,
             final JsonValue newAttributeValue,
             final DittoHeaders dittoHeaders) {
@@ -120,9 +159,11 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      * @throws org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException if
      * {@link #JSON_ATTRIBUTE} contains an empty pointer.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of attribute pointer are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static ModifyAttribute fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -138,13 +179,16 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to
-     * {@link org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      * @throws org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException if
      * {@link #JSON_ATTRIBUTE} contains an empty pointer.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of attribute pointer are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static ModifyAttribute fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifyAttribute>(TYPE, jsonObject).deserialize(() -> {
-            final String thingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
             final String pointerString = jsonObject.getValueOrThrow(JSON_ATTRIBUTE);
             final JsonPointer extractedPointer = JsonFactory.newPointer(pointerString);
             final JsonValue extractedAttributeValue = jsonObject.getValueOrThrow(JSON_ATTRIBUTE_VALUE);
@@ -172,7 +216,7 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -191,7 +235,7 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_ATTRIBUTE, attributePointer.toString(), predicate);
         jsonObjectBuilder.set(JSON_ATTRIBUTE_VALUE, attributeValue, predicate);
     }

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -18,15 +20,17 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown if the Thing's ID is not valid (for example if it does not comply to the Thing ID REGEX).
  */
 @Immutable
+@JsonParsableException(errorCode = ThingIdInvalidException.ERROR_CODE)
 public final class ThingIdInvalidException extends DittoRuntimeException implements MessageException {
 
     /**
@@ -37,8 +41,10 @@ public final class ThingIdInvalidException extends DittoRuntimeException impleme
     private static final String MESSAGE_TEMPLATE = "Thing ID ''{0}'' is not valid!";
 
     private static final String DEFAULT_DESCRIPTION =
-            "It must contain a namespace prefix (java package notation + a colon ':') + ID and must be a valid URI " +
-                    "path segment according to RFC-2396";
+            "It must conform to the namespaced entity ID notation (see Ditto documentation)";
+
+    private static final URI DEFAULT_HREF =
+            URI.create("https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id");
 
     private static final long serialVersionUID = -2426810319409279256L;
 
@@ -48,7 +54,8 @@ public final class ThingIdInvalidException extends DittoRuntimeException impleme
      * @param thingId the invalid Thing ID.
      */
     public ThingIdInvalidException(final String thingId) {
-        this(DittoHeaders.empty(), MessageFormat.format(MESSAGE_TEMPLATE, thingId), DEFAULT_DESCRIPTION, null, null);
+        this(DittoHeaders.empty(), MessageFormat.format(MESSAGE_TEMPLATE, thingId), DEFAULT_DESCRIPTION, null,
+                DEFAULT_HREF);
     }
 
     private ThingIdInvalidException(final DittoHeaders dittoHeaders,
@@ -56,7 +63,8 @@ public final class ThingIdInvalidException extends DittoRuntimeException impleme
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-        super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
+
+        super(ERROR_CODE, HttpStatus.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
     /**
@@ -78,10 +86,7 @@ public final class ThingIdInvalidException extends DittoRuntimeException impleme
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
     public static ThingIdInvalidException fromMessage(@Nullable final String message, final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
@@ -91,15 +96,23 @@ public final class ThingIdInvalidException extends DittoRuntimeException impleme
      * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new ThingIdInvalidException.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
-     * JsonFields#MESSAGE} field.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static ThingIdInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
+    }
+
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new Builder()
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
                 .dittoHeaders(dittoHeaders)
-                .message(readMessage(jsonObject))
-                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
-                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 
@@ -111,6 +124,7 @@ public final class ThingIdInvalidException extends DittoRuntimeException impleme
 
         private Builder() {
             description(DEFAULT_DESCRIPTION);
+            href(DEFAULT_HREF);
         }
 
         private Builder(@Nullable final CharSequence thingId) {
@@ -124,6 +138,7 @@ public final class ThingIdInvalidException extends DittoRuntimeException impleme
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
+
             return new ThingIdInvalidException(dittoHeaders, message, description, cause, href);
         }
 

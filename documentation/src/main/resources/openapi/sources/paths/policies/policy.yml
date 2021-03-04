@@ -1,0 +1,306 @@
+# Copyright (c) 2020 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+get:
+  summary: Retrieve a specific policy
+  description: |-
+    Returns the complete policy identified by the `policyId` path parameter. The
+    response contains the policy as JSON object.
+
+    Tip: If you don't know the policy ID of a thing, request it via GET `/things/{thingId}`.
+  tags:
+    - Policies
+  parameters:
+    - $ref: '../../parameters/policyIdPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParam.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+  responses:
+    '200':
+      description: |-
+        The request successfully returned completed and returned is the
+        policy.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/policies/policy.yml'
+    '304':
+      $ref: '../../responses/notModified.yml'
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+
+          * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The policy with the given ID was
+        not found in the context of the authenticated user.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'
+put:
+  summary: Create or update a policy with a specified ID
+  description: |-
+    Create or update the policy specified by the policyId path parameter.
+    * If you set a new policyId in the path, a new policy will be created.
+    * If you set an existing policyId in the path, the policy will be updated.
+
+    ### Create a new policy
+    At the initial creation of a policy, at least one valid entry is required. However, you can create a full-fledged policy all at once.
+
+    By default the authorized subject needs WRITE permission on the root resource of the created policy. You can
+    however omit this check by setting the parameter `allow-policy-lockout` to `true`.
+
+    Example: To create a policy for multiple coffee maker things,
+    which gives **yourself** all permissions on all resources, set the policyId in the path,
+    e.g. to "com.acme.coffeemaker:policy-01" and the body part, like in the following snippet.
+
+    ```
+    {
+      "entries": {
+        "DEFAULT": {
+          "subjects": {
+            "{{ request:subjectId }}": {
+              "type": "the creator"
+            }
+          },
+          "resources": {
+            "policy:/": {
+              "grant": [
+                "READ",
+                "WRITE"
+              ],
+              "revoke": []
+            },
+            "thing:/": {
+              "grant": [
+                "READ",
+                "WRITE"
+              ],
+              "revoke": []
+            },
+            "message:/": {
+              "grant": [
+                "READ",
+                "WRITE"
+              ],
+              "revoke": []
+            }
+          }
+        }
+      }
+    }
+    ```
+
+    ### Update an existing policy
+    For updating an existing policy, the authorized subject needs WRITE permission on the policy's root resource.
+
+    The ID of a policy cannot be changed after creation. Any `policyId` specified in the request body is therefore ignored.
+
+    ### Partially update an existing policy
+    Partial updates are not supported.
+
+    If you need to create or update a specific label, resource, or subject, please use the respective sub-resources.
+  tags:
+    - Policies
+  parameters:
+    - $ref: '../../parameters/policyIdPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParam.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+    - $ref: '../../parameters/responseRequiredParam.yml'
+    - $ref: '../../parameters/allowPolicyLockoutParam.yml'
+  responses:
+    '201':
+      description: The policy was successfully created.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+        Location:
+          description: The location of the created policy resource
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/policies/newPolicy.yml'
+    '204':
+      description: The policy was successfully updated.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+
+          * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+          * the JSON body of the policy to be created/modified is invalid
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the caller has insufficient permissions.
+            You need `WRITE` permission on the root `policy:/` resource,
+            without any revoke in a deeper path of the policy resource.
+            (You can omit this check by setting the `allow-policy-lockout` parameter.)
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The policy with the given ID was
+        not found in the context of the authenticated user.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'
+    '413':
+      $ref: '../../responses/entityTooLarge.yml'
+  requestBody:
+    content:
+      application/json:
+        schema:
+          $ref: '../../schemas/policies/newPolicy.yml'
+        example: {
+          "entries": {
+            "DEFAULT": {
+              "subjects": {
+                "{{ request:subjectId }}": {
+                  "type": "the creator"
+                }
+              },
+              "resources": {
+                "policy:/": {
+                  "grant": [
+                    "READ",
+                    "WRITE"
+                  ],
+                  "revoke": []
+                },
+                "thing:/": {
+                  "grant": [
+                    "READ",
+                    "WRITE"
+                  ],
+                  "revoke": []
+                },
+                "message:/": {
+                  "grant": [
+                    "READ",
+                    "WRITE"
+                  ],
+                  "revoke": []
+                }
+              }
+            }
+          }
+        }
+    description: |-
+      JSON representation of the policy.
+      Use the placeholder `{{ request:subjectId }}` in order to let the
+      backend insert the authenticated subjectId of the HTTP request.
+    required: true
+delete:
+  summary: Delete a specific policy
+  description: |-
+    Deletes the policy identified by the `policyId` path parameter. Deleting
+    a policy does not implicitly delete other entities (e.g. things) which
+    use this policy.
+
+    Note: Delete the respective things **before** deleting the
+    policy, otherwise nobody has permission to read, update, or delete the things.
+    If you accidentally run into such a scenario, re-create the policy via
+    PUT `/policies/{policyId}`.
+  tags:
+    - Policies
+  parameters:
+    - $ref: '../../parameters/policyIdPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParam.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+    - $ref: '../../parameters/responseRequiredParam.yml'
+  responses:
+    '204':
+      description: The policy was successfully deleted.
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+
+          * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the caller has insufficient permissions.
+            You need `WRITE` permission on the root `policy:/` resource,
+            without any revoke in a deeper path of the policy resource.having any revoke.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The policy with the given ID was
+        not found in the context of the authenticated user.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'

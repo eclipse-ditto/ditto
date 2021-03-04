@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -20,31 +22,25 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageDirection;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.signals.base.WithId;
-import org.eclipse.ditto.signals.base.WithThingId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 /**
  * Base interface for all response messages to things and features.
  *
- * @param <T> the type of the message's payload.
+ * @param <P> the type of the message's payload.
  * @param <C> the type of the MessageCommandResponse.
  */
-public interface MessageCommandResponse<T, C extends MessageCommandResponse>
-        extends CommandResponse<C>, WithId, WithThingId {
+public interface MessageCommandResponse<P, C extends MessageCommandResponse<P, C>>
+        extends CommandResponse<C>, WithId, WithThingId, WithMessage<P> {
 
     /**
      * Type Prefix of Message commands.
      */
     String TYPE_PREFIX = "messages." + TYPE_QUALIFIER + ":";
-
-    /**
-     * Retrieves the Message to be delivered.
-     *
-     * @return the Message to be delivered.
-     */
-    Message<T> getMessage();
 
     /**
      * Retrieves the type of the message to be delivered. This will be used as routingKey for delivering the message
@@ -57,8 +53,8 @@ public interface MessageCommandResponse<T, C extends MessageCommandResponse>
     }
 
     @Override
-    default String getId() {
-        return getThingId();
+    default ThingId getEntityId() {
+        return getThingEntityId();
     }
 
     @Override

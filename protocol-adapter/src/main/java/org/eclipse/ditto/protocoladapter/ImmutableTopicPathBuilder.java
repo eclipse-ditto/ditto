@@ -1,24 +1,25 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.protocoladapter;
 
 import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 
 /**
@@ -26,22 +27,21 @@ import org.eclipse.ditto.model.things.ThingIdInvalidException;
  */
 @NotThreadSafe
 final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopicPathBuilder, EventsTopicPathBuilder,
-        CommandsTopicPathBuilder {
-
-    private static final Pattern THING_ID_PATTERN = Pattern.compile(Thing.ID_REGEX);
+        CommandsTopicPathBuilder, AcknowledgementTopicPathBuilder, SearchTopicPathBuilder {
 
     private final String namespace;
-    private final String id;
+    private final String name;
 
     private TopicPath.Group group;
     private TopicPath.Channel channel;
     private TopicPath.Criterion criterion;
     private TopicPath.Action action;
+    private TopicPath.SearchAction searchAction;
     private String subject;
 
-    private ImmutableTopicPathBuilder(final String namespace, final String id) {
+    private ImmutableTopicPathBuilder(final String namespace, final String name) {
         this.namespace = namespace;
-        this.id = id;
+        this.name = name;
     }
 
     /**
@@ -54,43 +54,32 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     }
 
     /**
-     * Returns a new TopicPathBuilder for the specified {@code thingId}. The {@code namespace} and {@code id} part of
-     * the {@code TopicPath} will pe parsed from the {@code thingId} and set in the builder.
+     * Returns a new TopicPathBuilder for the specified {@code entityId}. The {@code namespace} and {@code id} part of
+     * the {@code TopicPath} will pe parsed from the {@code entityId} and set in the builder.
      *
-     * @param thingId the Thing ID.
+     * @param entityId the entity ID.
      * @return the builder.
-     * @throws NullPointerException if {@code thingId} is {@code null}.
-     * @throws ThingIdInvalidException if {@code thingId} is not in the expected format.
+     * @throws NullPointerException if {@code entityId} is {@code null}.
+     * @throws ThingIdInvalidException if {@code entityId} is not in the expected format.
      */
-    public static TopicPathBuilder of(final String thingId) {
-        requireNonNull(thingId, "thing id");
-
-        final Matcher matcher = THING_ID_PATTERN.matcher(thingId);
-        final boolean matches = matcher.matches();
-
-        if (!matches) {
-            throw ThingIdInvalidException.newBuilder(thingId).build();
-        }
-
-        final String namespace = matcher.group("ns");
-        final String id = matcher.group("id");
-
-        return new ImmutableTopicPathBuilder(namespace, id);
+    public static TopicPathBuilder of(final NamespacedEntityId entityId) {
+        requireNonNull(entityId, "entityId");
+        return new ImmutableTopicPathBuilder(entityId.getNamespace(), entityId.getName());
     }
 
     /**
-     * Returns a new TopicPathBuilder for the specified {@code namespace} and {@code id}.
+     * Returns a new TopicPathBuilder for the specified {@code namespace} and {@code entityName}.
      *
      * @param namespace the Namespace.
-     * @param id the Id.
+     * @param entityName the Id.
      * @return the builder.
-     * @throws NullPointerException if {@code namespace} or {@code id} is {@code null}.
+     * @throws NullPointerException if {@code namespace} or {@code entityName} is {@code null}.
      */
-    public static TopicPathBuilder of(final String namespace, final String id) {
+    public static TopicPathBuilder of(final String namespace, final String entityName) {
         requireNonNull(namespace, ImmutableTopicPath.PROP_NAME_NAMESPACE);
-        requireNonNull(id, ImmutableTopicPath.PROP_NAME_ID);
+        requireNonNull(entityName, ImmutableTopicPath.PROP_NAME_ID);
 
-        return new ImmutableTopicPathBuilder(namespace, id);
+        return new ImmutableTopicPathBuilder(namespace, entityName);
     }
 
     @Override
@@ -102,6 +91,12 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     @Override
     public TopicPathBuilder policies() {
         this.group = TopicPath.Group.POLICIES;
+        return this;
+    }
+
+    @Override
+    public SearchTopicPathBuilder search() {
+        this.criterion = TopicPath.Criterion.SEARCH;
         return this;
     }
 
@@ -123,16 +118,15 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
         return this;
     }
 
-
     @Override
-    public EventsTopicPathBuilder events() {
-        this.criterion = TopicPath.Criterion.EVENTS;
+    public TopicPathBuilder none() {
+        this.channel = TopicPath.Channel.NONE;
         return this;
     }
 
     @Override
-    public TopicPathBuildable search() {
-        this.criterion = TopicPath.Criterion.SEARCH;
+    public EventsTopicPathBuilder events() {
+        this.criterion = TopicPath.Criterion.EVENTS;
         return this;
     }
 
@@ -145,6 +139,12 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     @Override
     public MessagesTopicPathBuilder messages() {
         this.criterion = TopicPath.Criterion.MESSAGES;
+        return this;
+    }
+
+    @Override
+    public AcknowledgementTopicPathBuilder acks() {
+        this.criterion = TopicPath.Criterion.ACKS;
         return this;
     }
 
@@ -167,8 +167,56 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     }
 
     @Override
+    public CommandsTopicPathBuilder merge() {
+        this.action = TopicPath.Action.MERGE;
+        return this;
+    }
+
+    @Override
     public CommandsTopicPathBuilder delete() {
         this.action = TopicPath.Action.DELETE;
+        return this;
+    }
+
+    @Override
+    public TopicPathBuildable subscribe() {
+        this.searchAction = TopicPath.SearchAction.SUBSCRIBE;
+        return this;
+    }
+
+    @Override
+    public TopicPathBuildable cancel() {
+        this.searchAction = TopicPath.SearchAction.CANCEL;
+        return this;
+    }
+
+    @Override
+    public TopicPathBuildable request() {
+        this.searchAction = TopicPath.SearchAction.REQUEST;
+        return this;
+    }
+
+    @Override
+    public TopicPathBuildable complete() {
+        this.searchAction = TopicPath.SearchAction.COMPLETE;
+        return this;
+    }
+
+    @Override
+    public TopicPathBuildable failed() {
+        this.searchAction = TopicPath.SearchAction.FAILED;
+        return this;
+    }
+
+    @Override
+    public TopicPathBuildable hasNext() {
+        this.searchAction = TopicPath.SearchAction.NEXT;
+        return this;
+    }
+
+    @Override
+    public EventsTopicPathBuilder generated() {
+        this.searchAction = TopicPath.SearchAction.GENERATED;
         return this;
     }
 
@@ -185,6 +233,12 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     }
 
     @Override
+    public EventsTopicPathBuilder merged() {
+        this.action = TopicPath.Action.MERGED;
+        return this;
+    }
+
+    @Override
     public EventsTopicPathBuilder deleted() {
         this.action = TopicPath.Action.DELETED;
         return this;
@@ -192,18 +246,32 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
 
     @Override
     public MessagesTopicPathBuilder subject(final String subject) {
-        this.subject = subject;
+        this.subject = checkNotNull(subject, "subject");
+        return this;
+    }
+
+    @Override
+    public AcknowledgementTopicPathBuilder label(final CharSequence label) {
+        subject = checkNotNull(label, "label").toString();
+        return this;
+    }
+
+    @Override
+    public AcknowledgementTopicPathBuilder aggregatedAcks() {
+        subject = null;
         return this;
     }
 
     @Override
     public TopicPath build() {
-        if (action != null && id != null) {
-            return ImmutableTopicPath.of(namespace, id, group, channel, criterion, action);
+        if (action != null && name != null) {
+            return ImmutableTopicPath.of(namespace, name, group, channel, criterion, action);
         } else if (subject != null) {
-            return ImmutableTopicPath.of(namespace, id, group, channel, criterion, subject);
+            return ImmutableTopicPath.of(namespace, name, group, channel, criterion, subject);
+        } else if (searchAction != null) {
+            return ImmutableTopicPath.of(namespace, name, group, channel, criterion, searchAction);
         } else {
-            return ImmutableTopicPath.of(namespace, id, group, channel, criterion);
+            return ImmutableTopicPath.of(namespace, name, group, channel, criterion);
         }
     }
 
@@ -226,6 +294,11 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
         }
 
         @Override
+        public String getEntityName() {
+            return null;
+        }
+
+        @Override
         public Group getGroup() {
             return null;
         }
@@ -242,6 +315,11 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
 
         @Override
         public Optional<Action> getAction() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<SearchAction> getSearchAction() {
             return Optional.empty();
         }
 

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -20,6 +22,17 @@ import javax.annotation.concurrent.Immutable;
  */
 @Immutable
 public interface SortOption extends Option, Iterable<SortOptionEntry> {
+
+    /**
+     * Returns a new instance of {@code SortOption} with the given entries.
+     *
+     * @param entries the entries of the returned sort option.
+     * @return the new sort option.
+     * @throws NullPointerException if {@code entries} is {@code null}.
+     */
+    static SortOption of(final List<SortOptionEntry> entries) {
+        return ImmutableSortOption.of(entries);
+    }
 
     /**
      * Returns an unmodifiable List containing the entries of this sort option.

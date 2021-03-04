@@ -1,21 +1,24 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch;
 
-import static akka.http.javadsl.server.Directives.get;
-import static akka.http.javadsl.server.Directives.parameterOptional;
-import static akka.http.javadsl.server.Directives.path;
-import static akka.http.javadsl.server.Directives.pathEndOrSingleSlash;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchParameter.FIELDS;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchParameter.FILTER;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchParameter.NAMESPACES;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchParameter.OPTION;
 
 import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -23,14 +26,17 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers;
+import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.signals.commands.thingsearch.query.CountThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.http.javadsl.server.Directives;
+import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 
@@ -49,10 +55,18 @@ public final class ThingSearchRoute extends AbstractRoute {
      *
      * @param proxyActor an actor selection of the command delegating actor.
      * @param actorSystem the ActorSystem to use.
+     * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
+     * @param commandConfig the configuration settings of the Gateway service's incoming command processing.
+     * @param headerTranslator translates headers from external sources or to external sources.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public ThingSearchRoute(final ActorRef proxyActor, final ActorSystem actorSystem) {
-        super(proxyActor, actorSystem);
+    public ThingSearchRoute(final ActorRef proxyActor,
+            final ActorSystem actorSystem,
+            final HttpConfig httpConfig,
+            final CommandConfig commandConfig,
+            final HeaderTranslator headerTranslator) {
+
+        super(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator);
     }
 
     /**
@@ -61,10 +75,10 @@ public final class ThingSearchRoute extends AbstractRoute {
      * @return the {@code /search}} route.
      */
     public Route buildSearchRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-        return Directives.rawPathPrefix(CustomPathMatchers.mergeDoubleSlashes().concat(PATH_SEARCH), () ->
-                Directives.rawPathPrefix(CustomPathMatchers.mergeDoubleSlashes().concat(PATH_THINGS),
+        return Directives.rawPathPrefix(PathMatchers.slash().concat(PATH_SEARCH), () ->
+                Directives.rawPathPrefix(PathMatchers.slash().concat(PATH_THINGS),
                         () -> // /search/things
-                                Directives.route(
+                                concat(
                                         // /search/things/count
                                         path(PATH_COUNT, () -> countThings(ctx, dittoHeaders)),
                                         // /search/things
@@ -80,14 +94,11 @@ public final class ThingSearchRoute extends AbstractRoute {
      * @return {@code /search/things/count} route.
      */
     private Route countThings(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-        return get(() -> // GET things/count?filter=<filterString>&namespaces=<namespacesString>
-                parameterOptional(ThingSearchParameter.FILTER.toString(), filterString ->
-                        parameterOptional(ThingSearchParameter.NAMESPACES.toString(), namespacesString ->
-                                handlePerRequest(ctx, CountThings.of(calculateFilter(filterString),
-                                        calculateNamespaces(namespacesString), dittoHeaders))
-                        )
-                )
-        );
+        // GET things/count?filter=<filterString>&namespaces=<namespacesString>
+        return get(() -> thingSearchParameterOptional(params -> handlePerRequest(ctx,
+                CountThings.of(calculateFilter(params.get(FILTER)),
+                        calculateNamespaces(params.get(NAMESPACES)),
+                        dittoHeaders))));
     }
 
     /*
@@ -96,25 +107,40 @@ public final class ThingSearchRoute extends AbstractRoute {
      * @return {@code /search/things} route.
      */
     private Route searchThings(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-        return get(
-                () -> // GET things?filter=<filterString>&options=<optionsString>&fields=<fieldsString>&namespaces=<namespacesString>
-                        parameterOptional(ThingSearchParameter.FILTER.toString(), filterString ->
-                                parameterOptional(ThingSearchParameter.NAMESPACES.toString(), namespacesString ->
-                                        parameterOptional(ThingSearchParameter.OPTION.toString(), optionsString ->
-                                                parameterOptional(ThingSearchParameter.FIELDS.toString(),
-                                                        fieldsString -> handlePerRequest(ctx,
-                                                                QueryThings.of(calculateFilter(filterString),
-                                                                        calculateOptions(optionsString),
-                                                                        AbstractRoute.calculateSelectedFields(
-                                                                                fieldsString)
-                                                                                .orElse(null),
-                                                                        calculateNamespaces(namespacesString),
-                                                                        dittoHeaders))
-                                                )
-                                        )
-                                )
-                        )
-        );
+        // GET things?filter=<filterString>
+        //           &options=<optionsString>
+        //           &fields=<fieldsString>
+        //           &namespaces=<namespacesString>
+        //           &nextPageKey=<nextPageKey>
+        return get(() -> thingSearchParameterOptional(params -> handlePerRequest(ctx,
+                QueryThings.of(calculateFilter(params.get(FILTER)),
+                        calculateOptions(params.get(OPTION)),
+                        AbstractRoute.calculateSelectedFields(params.get(FIELDS))
+                                .orElse(null),
+                        calculateNamespaces(params.get(NAMESPACES)),
+                        dittoHeaders))));
+    }
+
+    private Route thingSearchParameterOptional(
+            final Function<EnumMap<ThingSearchParameter, Optional<String>>, Route> inner) {
+
+        return thingSearchParameterOptionalImpl(ThingSearchParameter.values(),
+                new EnumMap<>(ThingSearchParameter.class), inner);
+    }
+
+    private Route thingSearchParameterOptionalImpl(final ThingSearchParameter[] values,
+            final EnumMap<ThingSearchParameter, Optional<String>> accumulator,
+            final Function<EnumMap<ThingSearchParameter, Optional<String>>, Route> inner) {
+
+        if (accumulator.size() >= values.length) {
+            return inner.apply(accumulator);
+        } else {
+            final ThingSearchParameter parameter = values[accumulator.size()];
+            return parameterOptional(parameter.toString(), parameterValueOptional -> {
+                accumulator.put(parameter, parameterValueOptional);
+                return thingSearchParameterOptionalImpl(values, accumulator, inner);
+            });
+        }
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
@@ -124,7 +150,6 @@ public final class ThingSearchRoute extends AbstractRoute {
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private static Set<String> calculateNamespaces(final Optional<String> namespacesString) {
-
         final Function<String, Set<String>> splitAndRemoveEmpty =
                 s -> Arrays.stream(s.split(","))
                         .filter(segment -> !segment.isEmpty())
@@ -132,9 +157,7 @@ public final class ThingSearchRoute extends AbstractRoute {
 
         // if no namespaces are given explicitly via query parameter,
         // return null to signify the lack of namespace restriction
-        final Set<String> defaultNamespaces = null;
-
-        return namespacesString.map(splitAndRemoveEmpty).orElse(defaultNamespaces);
+        return namespacesString.map(splitAndRemoveEmpty).orElse(null);
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")

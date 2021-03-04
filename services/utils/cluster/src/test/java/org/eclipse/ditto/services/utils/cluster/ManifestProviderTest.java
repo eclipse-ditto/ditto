@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -18,6 +20,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -31,7 +34,7 @@ import org.junit.Test;
  */
 public final class ManifestProviderTest {
 
-    private static final String THING_ID = "org.eclipse.ditto.test:myThing";
+    private static final ThingId THING_ID = ThingId.of("org.eclipse.ditto.test","myThing");
 
     private static final Thing THING = Thing.newBuilder()
             .setId(THING_ID)
@@ -72,7 +75,7 @@ public final class ManifestProviderTest {
 
     @Test
     public void getManifestFromThingCommand() {
-        final String thingId = THING_ID;
+        final ThingId thingId = THING_ID;
         final Command<RetrieveThing> retrieveThing = RetrieveThing.of(thingId, DittoHeaders.empty());
         final String manifest = underTest.apply(retrieveThing);
 

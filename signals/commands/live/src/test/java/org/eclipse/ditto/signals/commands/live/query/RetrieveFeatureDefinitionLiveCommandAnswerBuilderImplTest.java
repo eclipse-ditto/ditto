@@ -1,11 +1,13 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
- *  
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.live.query;
@@ -16,7 +18,7 @@ import static org.eclipse.ditto.signals.commands.live.assertions.LiveCommandAsse
 import java.text.MessageFormat;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.signals.commands.live.base.LiveCommandAnswer;
@@ -44,7 +46,7 @@ public final class RetrieveFeatureDefinitionLiveCommandAnswerBuilderImplTest {
 
     @Before
     public void setUp() {
-        Mockito.when(commandMock.getThingId()).thenReturn(TestConstants.Thing.THING_ID);
+        Mockito.when(commandMock.getThingEntityId()).thenReturn(TestConstants.Thing.THING_ID);
         Mockito.when(commandMock.getDittoHeaders()).thenReturn(DittoHeaders.empty());
         Mockito.when(commandMock.getFeatureId()).thenReturn(TestConstants.Feature.FLUX_CAPACITOR_ID);
 
@@ -81,7 +83,7 @@ public final class RetrieveFeatureDefinitionLiveCommandAnswerBuilderImplTest {
                 .hasNoEvent()
                 .hasThingQueryCommandResponse()
                 .hasType(RetrieveFeatureDefinitionResponse.TYPE)
-                .hasDittoHeaders(DittoHeaders.empty())
+                .hasDittoHeaders(DittoHeaders.newBuilder().responseRequired(false).build())
                 .hasResourcePath(JsonPointer.of("features/" + TestConstants.Feature.FLUX_CAPACITOR_ID + "/definition"));
     }
 
@@ -96,8 +98,8 @@ public final class RetrieveFeatureDefinitionLiveCommandAnswerBuilderImplTest {
                 .hasNoEvent()
                 .hasThingErrorResponse()
                 .withType(ThingErrorResponse.TYPE)
-                .withDittoHeaders(DittoHeaders.empty())
-                .withStatus(HttpStatusCode.NOT_FOUND)
+                .withDittoHeaders(DittoHeaders.newBuilder().responseRequired(false).build())
+                .withStatus(HttpStatus.NOT_FOUND)
                 .withDittoRuntimeExceptionOfType(FeatureDefinitionNotAccessibleException.class);
     }
 

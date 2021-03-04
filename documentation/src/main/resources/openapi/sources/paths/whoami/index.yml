@@ -1,0 +1,30 @@
+# Copyright (c) 2020 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+get:
+  summary: Retrieve information about the current caller
+  description: |-
+    Get information about the current caller, e.g. the auth subjects that are generated for the caller.
+  tags:
+    - Policies
+  responses:
+    '200':
+      description: |-
+        The request successfully returned information about the caller.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/whoami/whoami.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'

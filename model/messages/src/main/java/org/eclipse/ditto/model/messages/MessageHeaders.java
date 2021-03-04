@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -18,8 +20,10 @@ import java.util.Optional;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * This interface represents headers to be used for {@link Message}s.
@@ -39,9 +43,30 @@ public interface MessageHeaders extends DittoHeaders {
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code thingId} or {@code subject} is empty.
      * @throws SubjectInvalidException if {@code subject} is invalid.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #newBuilder(MessageDirection, org.eclipse.ditto.model.things.ThingId, CharSequence)}
+     * instead.
      */
+    @Deprecated
     static MessageHeadersBuilder newBuilder(final MessageDirection direction,
             final CharSequence thingId, final CharSequence subject) {
+
+        return newBuilder(direction, ThingId.of(thingId), subject);
+    }
+
+    /**
+     * Returns a new builder with a fluent API for an immutable MessageHeaders object.
+     *
+     * @param direction the direction of the message.
+     * @param thingId the thing ID of the message.
+     * @param subject the subject of the message.
+     * @return the builder;
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code thingId} or {@code subject} is empty.
+     * @throws SubjectInvalidException if {@code subject} is invalid.
+     */
+    static MessageHeadersBuilder newBuilder(final MessageDirection direction,
+            final ThingId thingId, final CharSequence subject) {
 
         return MessagesModelFactory.newHeadersBuilder(direction, thingId, subject);
     }
@@ -53,8 +78,24 @@ public interface MessageHeaders extends DittoHeaders {
      * @return the builder.
      * @throws NullPointerException if {@code thingId} is {@code null}.
      * @throws IllegalArgumentException if {@code thingId} is empty.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #newBuilderForClaiming(org.eclipse.ditto.model.things.ThingId)}
+     * instead.
      */
+    @Deprecated
     static MessageHeadersBuilder newBuilderForClaiming(final CharSequence thingId) {
+        return newBuilderForClaiming(ThingId.of(thingId));
+    }
+
+    /**
+     * Returns a new builder with a fluent API for an immutable MessageHeaders object for a Claim Message.
+     *
+     * @param thingId the thing ID of the message.
+     * @return the builder.
+     * @throws NullPointerException if {@code thingId} is {@code null}.
+     * @throws IllegalArgumentException if {@code thingId} is empty.
+     */
+    static MessageHeadersBuilder newBuilderForClaiming(final ThingId thingId) {
         return newBuilder(MessageDirection.TO, thingId, KnownMessageSubjects.CLAIM_SUBJECT);
     }
 
@@ -115,8 +156,20 @@ public interface MessageHeaders extends DittoHeaders {
      *
      * @return the thing ID.
      * @throws IllegalStateException if this headers did not contain the thing ID.
+     * @deprecated the thing ID is now typed. Use {@link #getThingEntityId()} instead.
      */
-    String getThingId();
+    @Deprecated
+    default String getThingId() {
+        return getThingEntityId().toString();
+    }
+
+    /**
+     * Returns the ID of the {@code Thing} from/to which this message is sent.
+     *
+     * @return the thing ID.
+     * @throws IllegalStateException if this headers did not contain the thing ID.
+     */
+    ThingId getThingEntityId();
 
     /**
      * Returns the ID of the {@code Feature} from/to which this message is sent (may be empty if the message is not sent
@@ -132,6 +185,7 @@ public interface MessageHeaders extends DittoHeaders {
      *
      * @return the content type.
      */
+    @Override
     Optional<String> getContentType();
 
     /**
@@ -139,6 +193,7 @@ public interface MessageHeaders extends DittoHeaders {
      *
      * @return the timeout.
      */
+    @Override
     Optional<Duration> getTimeout();
 
     /**
@@ -152,14 +207,19 @@ public interface MessageHeaders extends DittoHeaders {
      * Returns the status code of the message.
      *
      * @return the status code.
+     * @deprecated as of 2.0.0 please use {@link #getHttpStatus()} instead.
      */
-    Optional<HttpStatusCode> getStatusCode();
+    @Deprecated
+    default Optional<HttpStatusCode> getStatusCode() {
+        return getHttpStatus().map(HttpStatus::getCode).flatMap(HttpStatusCode::forInt);
+    }
 
     /**
-     * Returns the URL to be used for message validation.
+     * Returns the HTTP status of the message.
      *
-     * @return the validation URL.
+     * @return the HTTP status.
+     * @since 2.0.0
      */
-    Optional<String> getValidationUrl();
+    Optional<HttpStatus> getHttpStatus();
 
 }

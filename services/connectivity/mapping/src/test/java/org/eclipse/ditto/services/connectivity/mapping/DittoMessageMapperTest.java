@@ -1,15 +1,16 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.connectivity.mapping;
-
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -17,8 +18,9 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -31,6 +33,7 @@ import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
@@ -40,12 +43,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+/**
+ * Unit test for {@link DittoMessageMapper}.
+ */
+public final class DittoMessageMapperTest {
 
-public class DittoMessageMapperTest {
-
-    private static final String EXPECTED_TOPIC_PATH = "/things/twin/commands/";
-
-    @SuppressWarnings("NullableProblems") private DittoMessageMapper underTest;
+    private DittoMessageMapper underTest;
 
     @Before
     public void setUp() {
@@ -78,50 +81,51 @@ public class DittoMessageMapperTest {
                 () -> underTest.map(in)));
     }
 
-    private Map<ExternalMessage, Optional<Adaptable>> createValidIncomingMappings() {
+    private static Map<ExternalMessage, List<Adaptable>> createValidIncomingMappings() {
         return Stream.of(
                 valid1(),
                 valid2()
         ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
-    private Map.Entry<ExternalMessage, Optional<Adaptable>> valid1() {
+    private static Map.Entry<ExternalMessage, List<Adaptable>> valid1() {
         final Map<String, String> headers = new HashMap<>();
         headers.put("header-key", "header-value");
         headers.put(ExternalMessage.CONTENT_TYPE_HEADER, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
-
+        final ThingId thingId = ThingId.of("org.eclipse.ditto:thing1");
         final JsonifiableAdaptable adaptable =
                 ProtocolFactory.wrapAsJsonifiableAdaptable(ProtocolFactory.newAdaptableBuilder
-                        (ProtocolFactory.newTopicPathBuilder("org.eclipse.ditto" +
-                                ":thing1").things().twin().commands().modify().build())
-                .withHeaders(DittoHeaders.of(headers))
-                .withPayload(ProtocolFactory
-                        .newPayloadBuilder(JsonPointer.of("/features"))
-                        .withValue(JsonFactory.nullLiteral())
-                        .build())
-                .build());
+                        (ProtocolFactory.newTopicPathBuilder(thingId).things().twin().commands().modify().build())
+                        .withHeaders(DittoHeaders.of(headers))
+                        .withPayload(ProtocolFactory
+                                .newPayloadBuilder(JsonPointer.of("/features"))
+                                .withValue(JsonFactory.nullLiteral())
+                                .build())
+                        .build());
 
-        final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers)
+        // by default, the DittoMessageMapper should not automatically use all headers from the ExternalMessage
+        //  those would have to be mapped by an explicit header mapping
+        final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
                 .withTopicPath(adaptable.getTopicPath())
                 .withText(adaptable.toJsonString())
                 .build();
-        final Optional<Adaptable> expected = Optional.of(ProtocolFactory.newAdaptableBuilder(adaptable).build());
+        final List<Adaptable> expected =
+                Collections.singletonList(ProtocolFactory.newAdaptableBuilder(adaptable).build());
 
         return new AbstractMap.SimpleEntry<>(message, expected);
     }
 
-    private Map.Entry<ExternalMessage, Optional<Adaptable>> valid2() {
+    private static Map.Entry<ExternalMessage, List<Adaptable>> valid2() {
         final Map<String, String> headers = new HashMap<>();
         headers.put("header-key", "header-value");
         headers.put(ExternalMessage.CONTENT_TYPE_HEADER, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
 
         final JsonObject json = JsonFactory.newObjectBuilder()
-                .set("path","/some/path")
+                .set("path", "/some/path")
                 .build();
 
-        final Optional<Adaptable> expected = Optional.ofNullable(
+        final List<Adaptable> expected = Collections.singletonList(
                 ProtocolFactory.newAdaptableBuilder(ProtocolFactory.jsonifiableAdaptableFromJson(json))
-                        .withHeaders(DittoHeaders.of(headers))
                         .build());
         final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers)
                 .withText(json.toString())
@@ -129,7 +133,7 @@ public class DittoMessageMapperTest {
         return new AbstractMap.SimpleEntry<>(message, expected);
     }
 
-    private Map<ExternalMessage, Throwable> createInvalidIncomingMappings() {
+    private static Map<ExternalMessage, Throwable> createInvalidIncomingMappings() {
         final Map<ExternalMessage, Throwable> mappings = new HashMap<>();
 
         final Map<String, String> headers = new HashMap<>();
@@ -153,26 +157,31 @@ public class DittoMessageMapperTest {
         return mappings;
     }
 
+    private static Map<Adaptable, List<ExternalMessage>> createValidOutgoingMappings() {
+        final Map<Adaptable, List<ExternalMessage>> mappings = new HashMap<>();
 
-    private Map<Adaptable, Optional<ExternalMessage>> createValidOutgoingMappings() {
-        final Map<Adaptable, Optional<ExternalMessage>> mappings = new HashMap<>();
+        final String correlationId = UUID.randomUUID().toString();
+        final DittoHeaders expectedMessageHeaders = DittoHeaders.newBuilder()
+                .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
+                .correlationId(correlationId)
+                .build();
+        final DittoHeaders adaptableHeaders = expectedMessageHeaders.toBuilder()
+                .putHeader("header-key", "header-value")
+                .build();
 
-        final Map<String, String> headers = new HashMap<>();
-        headers.put("header-key", "header-value");
-        headers.put(ExternalMessage.CONTENT_TYPE_HEADER, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
 
+        ThingId thingId = ThingId.of("org.eclipse.ditto:thing1");
         JsonifiableAdaptable adaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(ProtocolFactory.newAdaptableBuilder
-                (ProtocolFactory.newTopicPathBuilder("org.eclipse.ditto" +
-                        ":thing1").things().twin().commands().modify().build())
-                .withHeaders(DittoHeaders.of(headers))
+                (ProtocolFactory.newTopicPathBuilder(thingId).things().twin().commands().modify().build())
+                .withHeaders(adaptableHeaders)
                 .withPayload(ProtocolFactory
                         .newPayloadBuilder(JsonPointer.of("/features"))
                         .withValue(JsonFactory.nullLiteral())
                         .build())
                 .build());
 
-        Optional<ExternalMessage> message =
-                Optional.of(ExternalMessageFactory.newExternalMessageBuilder(headers)
+        List<ExternalMessage> message =
+                Collections.singletonList(ExternalMessageFactory.newExternalMessageBuilder(expectedMessageHeaders)
                         .withTopicPath(adaptable.getTopicPath())
                         .withText(adaptable.toJsonString())
                         .build());
@@ -180,13 +189,13 @@ public class DittoMessageMapperTest {
 
         final JsonObject json = JsonFactory.newObjectBuilder()
                 .set("topic", "org.eclipse.ditto/thing2/things/twin/commands/create")
-                .set("path","/some/path")
+                .set("path", "/some/path")
                 .build();
         adaptable = ProtocolFactory.jsonifiableAdaptableFromJson(json);
         adaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(ProtocolFactory.newAdaptableBuilder(adaptable)
-                .withHeaders(DittoHeaders.of(headers)).build());
+                .withHeaders(adaptableHeaders).build());
 
-        message = Optional.of(ExternalMessageFactory.newExternalMessageBuilder(headers)
+        message = Collections.singletonList(ExternalMessageFactory.newExternalMessageBuilder(expectedMessageHeaders)
                 .withTopicPath(adaptable.getTopicPath())
                 .withText(adaptable.toJsonString())
                 .build());
@@ -195,12 +204,9 @@ public class DittoMessageMapperTest {
         return mappings;
     }
 
-    private String expectedPath(final String id, final String action) {
-        return id + EXPECTED_TOPIC_PATH + action;
-    }
-
-    private Map<Adaptable, Throwable> createInvalidOutgoingMappings() {
+    private static Map<Adaptable, Throwable> createInvalidOutgoingMappings() {
         // adaptable is strongly typed and can always be jsonified, no invalid test needed.
         return Collections.emptyMap();
     }
+
 }

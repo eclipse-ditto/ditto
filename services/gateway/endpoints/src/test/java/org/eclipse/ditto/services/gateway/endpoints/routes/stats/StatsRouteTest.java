@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -18,11 +20,17 @@ import java.util.Optional;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevOpsOAuth2AuthenticationDirective;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationFactory;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationProvider;
+import org.eclipse.ditto.services.gateway.util.config.security.DevOpsConfig;
+import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.commands.thingsearch.query.CountThingsResponse;
 import org.junit.Before;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.testkit.TestRoute;
@@ -31,20 +39,34 @@ import akka.http.javadsl.testkit.TestRouteResult;
 /**
  * Tests {@link StatsRoute}.
  */
-public class StatsRouteTest extends EndpointTestBase {
+public final class StatsRouteTest extends EndpointTestBase {
 
     private static final String STATS_PATH = "/" + StatsRoute.STATISTICS_PATH_PREFIX;
 
     private TestRoute statsTestRoute;
+    private DevOpsConfig devOpsConfig;
 
     @Before
     public void setUp() {
+        devOpsConfig = authConfig.getDevOpsConfig();
         final ActorRef proxyActor = createDummyResponseActor();
         setUp(proxyActor);
     }
 
     private void setUp(final ActorRef proxyActor) {
-        final StatsRoute statsRoute = new StatsRoute(proxyActor, system());
+        final ActorSystem actorSystem = system();
+        final ProtocolAdapterProvider adapterProvider = ProtocolAdapterProvider.load(protocolConfig, actorSystem);
+        final JwtAuthenticationFactory devopsJwtAuthenticationFactory =
+                JwtAuthenticationFactory.newInstance(devOpsConfig.getOAuthConfig(), cacheConfig, httpClientFacade,
+                        authorizationSubjectsProviderFactory);
+        final JwtAuthenticationProvider jwtAuthenticationProvider = JwtAuthenticationProvider.newInstance(
+                devopsJwtAuthenticationFactory.newJwtAuthenticationResultProvider(),
+                devopsJwtAuthenticationFactory.getJwtValidator());
+        final DevOpsOAuth2AuthenticationDirective authenticationDirective =
+                DevOpsOAuth2AuthenticationDirective.status(devOpsConfig, jwtAuthenticationProvider);
+        final StatsRoute statsRoute = new StatsRoute(proxyActor, actorSystem, httpConfig, commandConfig,
+                adapterProvider.getHttpHeaderTranslator(), authenticationDirective);
+
         statsTestRoute = testRoute(statsRoute.buildStatsRoute(KNOWN_CORRELATION_ID));
     }
 
@@ -56,8 +78,7 @@ public class StatsRouteTest extends EndpointTestBase {
 
     @Test
     public void getStatsThingsUrl() {
-        final TestRouteResult result = statsTestRoute.run(HttpRequest.GET(STATS_PATH +
-                "/" + StatsRoute.THINGS_PATH));
+        final TestRouteResult result = statsTestRoute.run(HttpRequest.GET(STATS_PATH + "/" + StatsRoute.THINGS_PATH));
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
     }
 

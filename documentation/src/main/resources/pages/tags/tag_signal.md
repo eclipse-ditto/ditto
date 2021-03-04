@@ -1,5 +1,5 @@
 ---
-title: "Signal"
+title: "Signal topics"
 tagName: signal
 search: exclude
 permalink: tag_signal.html

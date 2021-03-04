@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -84,7 +86,7 @@ final class PermissionSubjectsMap extends AbstractMap<String, Map<String, Intege
      * {@code Optional.empty()}.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    Optional<Integer> getMaxWeightForAllPermissions(final Set<String> subjectIds,
+    Optional<Integer> getMaxWeightForAllPermissions(final Collection<String> subjectIds,
             final Collection<String> permissions) {
 
         validateSubjectIds(subjectIds);
@@ -108,7 +110,7 @@ final class PermissionSubjectsMap extends AbstractMap<String, Map<String, Intege
      * {@code Optional.empty()}.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    Optional<Integer> getMaxNonemptyWeightForAllPermissions(final Set<String> subjectIds,
+    Optional<Integer> getMaxNonemptyWeightForAllPermissions(final Collection<String> subjectIds,
             final Collection<String> permissions) {
 
         validateSubjectIds(subjectIds);
@@ -277,7 +279,7 @@ final class PermissionSubjectsMap extends AbstractMap<String, Map<String, Intege
         });
     }
 
-    private static <T> Stream<T> intersect(final Set<T> set1, final Set<T> set2) {
+    private static <T> Stream<T> intersect(final Collection<T> set1, final Collection<T> set2) {
         return set1.size() <= set2.size()
                 ? set1.stream().filter(set2::contains)
                 : set2.stream().filter(set1::contains);

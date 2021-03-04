@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -78,13 +80,14 @@ final class ModifyThingLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ModifyThingResponse modified() {
-            return ModifyThingResponse.modified(command.getThingId(), command.getDittoHeaders());
+            return ModifyThingResponse.modified(command.getThingEntityId(), command.getDittoHeaders());
         }
 
         @Nonnull
         @Override
         public ThingErrorResponse thingNotAccessibleError() {
-            return errorResponse(command.getThingId(), ThingNotAccessibleException.newBuilder(command.getThingId())
+            return errorResponse(command.getThingEntityId(),
+                    ThingNotAccessibleException.newBuilder(command.getThingEntityId())
                     .dittoHeaders(command.getDittoHeaders())
                     .build());
         }
@@ -92,7 +95,8 @@ final class ModifyThingLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ThingErrorResponse thingNotModifiableError() {
-            return errorResponse(command.getThingId(), ThingNotModifiableException.newBuilder(command.getThingId())
+            return errorResponse(command.getThingEntityId(),
+                    ThingNotModifiableException.newBuilder(command.getThingEntityId())
                     .dittoHeaders(command.getDittoHeaders())
                     .build());
         }
@@ -104,13 +108,13 @@ final class ModifyThingLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ThingCreated created() {
-            return ThingCreated.of(command.getThing(), -1, Instant.now(), command.getDittoHeaders());
+            return ThingCreated.of(command.getThing(), -1, Instant.now(), command.getDittoHeaders(), null);
         }
 
         @Nonnull
         @Override
         public ThingModified modified() {
-            return ThingModified.of(command.getThing(), -1, Instant.now(), command.getDittoHeaders());
+            return ThingModified.of(command.getThing(), -1, Instant.now(), command.getDittoHeaders(), null);
         }
     }
 

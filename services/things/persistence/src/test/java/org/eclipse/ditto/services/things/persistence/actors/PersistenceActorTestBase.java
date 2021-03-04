@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -12,21 +14,23 @@ package org.eclipse.ditto.services.things.persistence.actors;
 
 import static java.util.Objects.requireNonNull;
 
-import java.time.Duration;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.AccessControlListModelFactory;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
@@ -34,9 +38,17 @@ import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.services.things.common.config.DefaultThingConfig;
+import org.eclipse.ditto.services.things.common.config.ThingConfig;
+import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.junit.After;
+import org.junit.BeforeClass;
 import org.junit.rules.TestWatcher;
 import org.slf4j.Logger;
 
@@ -46,7 +58,6 @@ import com.typesafe.config.ConfigFactory;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.event.Logging;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
@@ -55,8 +66,8 @@ import akka.testkit.javadsl.TestKit;
  */
 public abstract class PersistenceActorTestBase {
 
-    protected static final String THING_ID = "org.eclipse.ditto:thingId";
-    protected static final String POLICY_ID = "org.eclipse.ditto:policyId";
+    protected static final ThingId THING_ID = ThingId.of("org.eclipse.ditto", "thingId");
+    protected static final PolicyId POLICY_ID = PolicyId.of("org.eclipse.ditto:policyId");
     protected static final String AUTH_SUBJECT = "allowedId";
     protected static final AuthorizationSubject AUTHORIZED_SUBJECT =
             AuthorizationModelFactory.newAuthSubject(AUTH_SUBJECT);
@@ -71,8 +82,8 @@ public abstract class PersistenceActorTestBase {
 
     protected static final JsonFieldSelector ALL_FIELDS_SELECTOR = JsonFactory.newFieldSelector(
             Thing.JsonFields.ATTRIBUTES, Thing.JsonFields.ACL,
-            Thing.JsonFields.FEATURES, Thing.JsonFields.ID, Thing.JsonFields.MODIFIED, Thing.JsonFields.REVISION,
-            Thing.JsonFields.POLICY_ID, Thing.JsonFields.LIFECYCLE);
+            Thing.JsonFields.FEATURES, Thing.JsonFields.ID, Thing.JsonFields.MODIFIED, Thing.JsonFields.CREATED,
+            Thing.JsonFields.REVISION, Thing.JsonFields.POLICY_ID, Thing.JsonFields.LIFECYCLE);
 
     private static final FeatureDefinition FEATURE_DEFINITION = FeatureDefinition.fromIdentifier("ns:name:version");
     private static final FeatureProperties FEATURE_PROPERTIES =
@@ -85,6 +96,8 @@ public abstract class PersistenceActorTestBase {
     private static final ThingLifecycle THING_LIFECYCLE = ThingLifecycle.ACTIVE;
     private static final long THING_REVISION = 1;
 
+    protected static Config testConfig;
+    protected static ThingConfig thingConfig;
 
     protected ActorSystem actorSystem = null;
     protected TestProbe pubSubTestProbe = null;
@@ -92,20 +105,35 @@ public abstract class PersistenceActorTestBase {
     protected DittoHeaders dittoHeadersV1;
     protected DittoHeaders dittoHeadersV2;
 
-    protected static DittoHeaders createDittoHeadersMock(final JsonSchemaVersion schemaVersion,
-            final String... authSubjects) {
+    @BeforeClass
+    public static void initTestFixture() {
+        testConfig = ConfigFactory.load("test");
+        thingConfig = getThingConfig(testConfig);
+    }
 
-        final DittoHeadersBuilder builder = DittoHeaders.newBuilder();
-        builder.authorizationSubjects(Arrays.asList(authSubjects));
-        builder.schemaVersion(schemaVersion);
-        return builder.build();
+    protected static ThingConfig getThingConfig(final Config testConfig) {
+        return DefaultThingConfig.of(testConfig.getConfig("ditto.things"));
+    }
+
+    protected static DittoHeaders createDittoHeadersMock(final JsonSchemaVersion schemaVersion,
+            final String... authSubjectIds) {
+
+        final List<AuthorizationSubject> authSubjects = Arrays.stream(authSubjectIds)
+                .map(AuthorizationSubject::newInstance)
+                .collect(Collectors.toList());
+
+        return DittoHeaders.newBuilder()
+                .authorizationContext(
+                        AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED, authSubjects))
+                .schemaVersion(schemaVersion)
+                .build();
     }
 
     protected static Thing createThingV2WithRandomId() {
-        return createThingV2WithId(THING_ID + UUID.randomUUID());
+        return createThingV2WithId(ThingId.of(THING_ID.getNamespace(), THING_ID.getName() + UUID.randomUUID()));
     }
 
-    protected static Thing createThingV2WithId(final String thingId) {
+    protected static Thing createThingV2WithId(final ThingId thingId) {
         return ThingsModelFactory.newThingBuilder()
                 .setLifecycle(THING_LIFECYCLE)
                 .setAttributes(THING_ATTRIBUTES)
@@ -117,29 +145,17 @@ public abstract class PersistenceActorTestBase {
     }
 
     protected static Thing createThingV1WithRandomId() {
-        return createThingV1WithId(THING_ID + new Random().nextInt());
+        return createThingV1WithId(ThingId.of(THING_ID.getNamespace(), THING_ID.getName() + new Random().nextInt()));
     }
 
-    protected static Thing createThingV1WithId(final String thingId) {
+    protected static Thing createThingV1WithId(final ThingId thingId) {
         return ThingsModelFactory.newThingBuilder()
                 .setLifecycle(THING_LIFECYCLE)
                 .setAttributes(THING_ATTRIBUTES)
                 .setFeatures(THING_FEATURES)
                 .setRevision(THING_REVISION)
-                .setId("test.ns:" + thingId)
+                .setId(thingId)
                 .setPermissions(AUTHORIZED_SUBJECT, AccessControlListModelFactory.allPermissions()).build();
-    }
-
-    protected static void waitSecs(final long secs) {
-        waitMillis(secs * 1000);
-    }
-
-    protected static void waitMillis(final long millis) {
-        try {
-            TimeUnit.MILLISECONDS.sleep(millis);
-        } catch (final InterruptedException e) {
-            throw new IllegalStateException(e);
-        }
     }
 
     protected void setup(final Config customConfig) {
@@ -150,8 +166,8 @@ public abstract class PersistenceActorTestBase {
         pubSubTestProbe = TestProbe.apply("mock-pubSub-mediator", actorSystem);
         pubSubMediator = pubSubTestProbe.ref();
 
-        dittoHeadersV1 = createDittoHeadersMock(JsonSchemaVersion.V_1, AUTH_SUBJECT);
-        dittoHeadersV2 = createDittoHeadersMock(JsonSchemaVersion.V_2, AUTH_SUBJECT);
+        dittoHeadersV1 = createDittoHeadersMock(JsonSchemaVersion.V_1, "test:" + AUTH_SUBJECT);
+        dittoHeadersV2 = createDittoHeadersMock(JsonSchemaVersion.V_2, "test:" + AUTH_SUBJECT);
     }
 
     @After
@@ -160,31 +176,25 @@ public abstract class PersistenceActorTestBase {
         actorSystem = null;
     }
 
-    protected ActorRef createPersistenceActorFor(final String thingId) {
-        return createPersistenceActorWithPubSubFor(thingId, pubSubMediator);
+    protected ActorRef createPersistenceActorFor(final ThingId thingId) {
+        return createPersistenceActorWithPubSubFor(thingId);
     }
 
-    protected ActorRef createPersistenceActorWithPubSubFor(final String thingId, final ActorRef pubSubMediator) {
-        return actorSystem.actorOf(getPropsOfThingPersistenceActor(thingId, pubSubMediator));
+    protected ActorRef createPersistenceActorWithPubSubFor(final ThingId thingId) {
+
+        return actorSystem.actorOf(getPropsOfThingPersistenceActor(thingId, getDistributedPub()));
     }
 
-    private Props getPropsOfThingPersistenceActor(final String thingId) {
-        return getPropsOfThingPersistenceActor(thingId, pubSubMediator);
+    private Props getPropsOfThingPersistenceActor(final ThingId thingId, final DistributedPub<ThingEvent<?>> pub) {
+
+        return ThingPersistenceActor.props(thingId, pub, pubSubMediator);
     }
 
-    private Props getPropsOfThingPersistenceActor(final String thingId, final ActorRef pubSubMediator) {
-        return ThingPersistenceActor.props(thingId, pubSubMediator);
-    }
+    protected ActorRef createSupervisorActorFor(final ThingId thingId) {
+        final Props props =
+                ThingSupervisorActor.props(pubSubMediator, getDistributedPub(), this::getPropsOfThingPersistenceActor);
 
-    protected ActorRef createSupervisorActorFor(final String thingId) {
-        final Duration minBackOff = Duration.ofSeconds(7);
-        final Duration maxBackOff = Duration.ofSeconds(60);
-        final double randomFactor = 0.2;
-
-        final Props props = ThingSupervisorActor.props(pubSubMediator, minBackOff, maxBackOff, randomFactor,
-                this::getPropsOfThingPersistenceActor);
-
-        return actorSystem.actorOf(props, thingId);
+        return actorSystem.actorOf(props, thingId.toString());
     }
 
     /**
@@ -202,12 +212,39 @@ public abstract class PersistenceActorTestBase {
         protected void starting(final org.junit.runner.Description description) {
             logger.info("Testing: {}#{}()", description.getTestClass().getSimpleName(), description.getMethodName());
         }
+
     }
 
     /**
      * Disable logging for 1 test to hide stacktrace or other logs on level ERROR. Comment out to debug the test.
      */
     protected void disableLogging() {
-        actorSystem.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
+        actorSystem.eventStream().setLogLevel(akka.stream.Attributes.logLevelOff());
+    }
+
+    protected DistributedPub<ThingEvent<?>> getDistributedPub() {
+        return new TestPub();
+    }
+
+    @AllParametersAndReturnValuesAreNonnullByDefault
+    private final class TestPub implements DistributedPub<ThingEvent<?>> {
+
+        private TestPub() {}
+
+        @Override
+        public ActorRef getPublisher() {
+            return pubSubMediator;
+        }
+
+        @Override
+        public Object wrapForPublication(final ThingEvent<?> message) {
+            return message;
+        }
+
+        @Override
+        public <S extends ThingEvent<?>> Object wrapForPublicationWithAcks(final S message,
+                final AckExtractor<S> ackExtractor) {
+            return wrapForPublication(message);
+        }
     }
 }

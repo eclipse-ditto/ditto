@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -21,16 +23,17 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageDirection;
-import org.eclipse.ditto.signals.base.WithThingId;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 /**
  * Base interface for all commands to send messages to things and features.
  *
- * @param <T> the type of the message's payload.
+ * @param <P> the type of the message's payload.
  * @param <C> the type of the MessageCommand.
  */
-public interface MessageCommand<T, C extends MessageCommand> extends Command<C>, WithThingId {
+public interface MessageCommand<P, C extends MessageCommand<P, C>> extends Command<C>, WithThingId, WithMessage<P> {
 
     /**
      * Type Prefix of Message commands.
@@ -62,13 +65,6 @@ public interface MessageCommand<T, C extends MessageCommand> extends Command<C>,
      */
     String RESOURCE_TYPE = "message";
 
-    /**
-     * Retrieves the Message to be delivered.
-     *
-     * @return the Message to be delivered.
-     */
-    Message<T> getMessage();
-
     @Override
     default String getTypePrefix() {
         return TYPE_PREFIX;
@@ -85,8 +81,8 @@ public interface MessageCommand<T, C extends MessageCommand> extends Command<C>,
     }
 
     @Override
-    default String getId() {
-        return getThingId();
+    default ThingId getEntityId() {
+        return getThingEntityId();
     }
 
     @Override

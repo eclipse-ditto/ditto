@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -27,6 +29,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.enforcers.TestConstants;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
+import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
@@ -61,13 +64,15 @@ public final class PolicyTrieTest {
         final SubjectId johnTitor = PoliciesModelFactory.newSubjectId(SubjectIssuer.GOOGLE, "JohnTitor");
         anotherSubjectId = johnTitor.toString();
 
+        final Label fooLabel = TestConstants.Policy.LABEL;
+        final Label barLabel = Label.of(fooLabel + "BAR");
         final JsonPointer fooResourcePath = TestConstants.Policy.RESOURCE_PATH;
         final JsonPointer barResourcePath = fooResourcePath.addLeaf(JsonFactory.newKey("Bar"));
         fooResourceKey = ResourceKey.newInstance(TestConstants.Policy.RESOURCE_TYPE, fooResourcePath);
         barResourceKey = ResourceKey.newInstance(TestConstants.Policy.RESOURCE_TYPE, barResourcePath);
 
         policy = Policy.newBuilder(TestConstants.Policy.POLICY_ID)
-                .set(PoliciesModelFactory.newPolicyEntry(PoliciesModelFactory.newLabel(fooResourcePath.toString()),
+                .set(PoliciesModelFactory.newPolicyEntry(PoliciesModelFactory.newLabel(fooLabel),
                         PoliciesModelFactory.newSubjects(
                                 PoliciesModelFactory.newSubject(TestConstants.Policy.SUBJECT_ID)),
                         Resources.newInstance(
@@ -77,7 +82,7 @@ public final class PolicyTrieTest {
                                 Resource.newInstance(barResourceKey,
                                         EffectedPermissions.newInstance(Collections.singleton("READ"),
                                                 Collections.emptySet())))))
-                .set(PoliciesModelFactory.newPolicyEntry(PoliciesModelFactory.newLabel(barResourcePath.toString()),
+                .set(PoliciesModelFactory.newPolicyEntry(PoliciesModelFactory.newLabel(barLabel.toString()),
                         PoliciesModelFactory.newSubjects(
                                 PoliciesModelFactory.newSubject(johnTitor)),
                         Resources.newInstance(
@@ -117,7 +122,7 @@ public final class PolicyTrieTest {
 
         final Iterator<JsonKey> jsonKeyIterator = PolicyTrie.getJsonKeyIterator(barResourceKey);
 
-        assertThat(jsonKeyIterator).containsExactlyElementsOf(expectedJsonKeys);
+        assertThat(jsonKeyIterator).toIterable().containsExactlyElementsOf(expectedJsonKeys);
     }
 
     /** */

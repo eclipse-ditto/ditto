@@ -13,7 +13,7 @@ toc: false
 Today the Eclipse Ditto team proudly presents its first release 
 [0.8.0](https://projects.eclipse.org/projects/iot.ditto/releases/0.8.0). 
 
-Please have a look at the [0.8.0 release notes](release_notes_080.html) for a more detailled information on the release.
+Please have a look at the [0.8.0 release notes](release_notes_080.html) for a more detailed information on the release.
 
 The main changes and new features since the latest milestone [0.8.0-M3](release_notes_080-M3.html) are:
 

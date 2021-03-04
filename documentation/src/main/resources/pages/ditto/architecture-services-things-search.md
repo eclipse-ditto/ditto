@@ -22,7 +22,7 @@ It however contains a model which can transform an <a href="#" data-toggle="tool
 search query into a Java domain model which is defined here:
 
 
-* [rql parser ast](https://github.com/eclipse/ditto/tree/master/model/thingsearch-parser/src/main/java/org/eclipse/ditto/model/thingsearchparser/predicates/ast)
+* [rql parser ast](https://github.com/eclipse/ditto/tree/master/model/rql/src/main/java/org/eclipse/ditto/model/rql/predicates/ast)
 
 ## Signals
 
@@ -34,5 +34,36 @@ Other services can communicate with the things-search service via:
 
 ## Persistence
 
-The things-search service maintains its own persistence in which it stores `Things` in an optimized way in order to 
+The Things-Search service maintains its own persistence in which it stores `Things` in an optimized way in order to 
 provide a full search on arbitrary `Thing` data. 
+
+Things-Search creates the following MongoDB collections:
+
+* `searchThings`: The search index.
+* `searchThingsSyncThings`: A single-document capped collection containing the instant until which `Thing` events are
+indexed for sure; expected to be 30 minutes before the current time.
+* `searchThingsSyncPolicies`: A single-document capped collection containing the instant until which `Policy` events
+are indexed for sure; expected to be 30 minutes before the current time.
+
+## Migration from Ditto 0.9.0-M1
+
+The index schema has changed since Ditto version 0.9.0-M1. Data migration is obligatory to upgrade an existing
+installation running Ditto version 0.9.0-M1 or earlier. Expected duration of data migration is 1/60th of the lifetime
+of the Ditto installation.
+
+1. *After* stopping the cluster of Ditto 0.9.0-M1, drop unnecessary collections:
+```javascript
+db.getCollection('thingEntities').drop();
+db.getCollection('policyBasedSearchIndex').drop();
+db.getCollection('thingsSearchSyncStatePolicies').drop();
+```
+
+2. *Before* starting the upgraded Ditto cluster, write into `searchThingsSyncThings` the timestamp when the Ditto cluster started for the first time:
+```javascript
+var startingTimestamp = new Date(TIMESTAMP-WHEN-DITTO-CLUSTER-STARTED-FOR-THE-FIRST-TIME); // e.g. new Date('2019-01-01T00:00:00.000Z')
+db.getCollection('thingsSearchSyncStateThings').renameCollection('searchThingsSyncThings');
+db.getCollection('searchThingsSyncThings').insert({'ts':startingTimestamp});
+```
+
+3. Start the upgraded Ditto cluster. All `Thing` events persisted after the timestamp in `searchThingsSyncThings` 
+will be indexed in the background.

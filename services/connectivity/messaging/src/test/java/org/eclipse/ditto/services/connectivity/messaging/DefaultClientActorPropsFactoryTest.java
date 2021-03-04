@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -13,6 +15,9 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.connectivity.ConnectionType.AMQP_091;
 import static org.eclipse.ditto.model.connectivity.ConnectionType.AMQP_10;
+import static org.eclipse.ditto.model.connectivity.ConnectionType.KAFKA;
+import static org.eclipse.ditto.model.connectivity.ConnectionType.MQTT;
+import static org.eclipse.ditto.model.connectivity.ConnectionType.MQTT_5;
 
 import java.util.concurrent.TimeUnit;
 
@@ -33,14 +38,14 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Unit tests for {@link DefaultClientActorPropsFactory}.
  */
-public class DefaultClientActorPropsFactoryTest extends WithMockServers {
+public final class DefaultClientActorPropsFactoryTest extends WithMockServers {
 
     private ActorSystem actorSystem;
     private Serialization serialization;
     private ClientActorPropsFactory underTest;
 
     @Before
-    public void setUp() throws java.io.NotSerializableException {
+    public void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
         serialization = SerializationExtension.get(actorSystem);
         underTest = DefaultClientActorPropsFactory.getInstance();
@@ -55,31 +60,72 @@ public class DefaultClientActorPropsFactoryTest extends WithMockServers {
     }
 
     /**
-     * Tests serialization of props of AMQP_091 client actor. The props needs to be serializable because client actors
-     * may be created on a different connectivity service instance using a local connection object.
+     * Tests serialization of props of AMQP_091 client actor.
+     * The props needs to be serializable because client actors may be created on a different connectivity service
+     * instance using a local connection object.
      */
     @Test
     public void amqp091ActorPropsIsSerializable() {
-        actorPropsIsSerializable(AMQP_091);
+        actorPropsIsSerializableAndEqualDeserializedObject(AMQP_091);
     }
 
     /**
-     * Tests serialization of props of AMQP_10 client actor. The props needs to be serializable because client actors
-     * may be created on a different connectivity service instance using a local connection object.
+     * Tests serialization of props of AMQP_10 client actor.
+     * The props needs to be serializable because client actors may be created on a different connectivity service
+     * instance using a local connection object.
      */
     @Test
     public void amqp10ActorPropsIsSerializable() {
-        actorPropsIsSerializable(AMQP_10);
+        actorPropsIsSerializableAndEqualDeserializedObject(AMQP_10);
     }
 
+    /**
+     * Tests serialization of props of MQTT client actor. The props needs to be serializable because client actors
+     * may be created on a different connectivity service instance using a local connection object.
+     */
+    @Test
+    public void mqttActorPropsIsSerializable() {
+        actorPropsIsSerializableAndEqualDeserializedObject(MQTT);
+    }
+
+    /**
+     * Tests serialization of props of MQTT client actor. The props needs to be serializable because client actors
+     * may be created on a different connectivity service instance using a local connection object.
+     */
+    @Test
+    public void mqtt5ActorPropsIsSerializable() {
+        actorPropsIsSerializableAndEqualDeserializedObject(MQTT_5);
+    }
+
+    /**
+     * Tests serialization of props of Kafka client actor. The props needs to be serializable because client actors
+     * may be created on a different connectivity service instance using a local connection object.
+     */
+    @Test
+    @SuppressWarnings("squid:S2699")
+    public void kafkaActorPropsIsSerializable() {
+        actorPropsIsSerializable(KAFKA);
+    }
 
     private void actorPropsIsSerializable(final ConnectionType connectionType) {
-        final Props props = underTest.getActorPropsForType(randomConnection(connectionType), actorSystem.deadLetters());
+        final Props props = underTest.getActorPropsForType(randomConnection(connectionType), actorSystem.deadLetters(),
+                actorSystem.deadLetters());
         final Object objectToSerialize = wrapForSerialization(props);
-        final byte[] bytes = serialization.findSerializerFor(objectToSerialize).toBinary(objectToSerialize);
-        final Object deserializedObject = serialization.deserialize(bytes, objectToSerialize.getClass()).get();
+        serializeAndDeserialize(objectToSerialize);
+    }
+
+    private void actorPropsIsSerializableAndEqualDeserializedObject(final ConnectionType connectionType) {
+        final Props props = underTest.getActorPropsForType(randomConnection(connectionType), actorSystem.deadLetters(),
+                actorSystem.deadLetters());
+        final Object objectToSerialize = wrapForSerialization(props);
+        final Object deserializedObject = serializeAndDeserialize(objectToSerialize);
 
         assertThat(deserializedObject).isEqualTo(objectToSerialize);
+    }
+
+    private Object serializeAndDeserialize(final Object objectToSerialize) {
+        final byte[] bytes = serialization.findSerializerFor(objectToSerialize).toBinary(objectToSerialize);
+        return serialization.deserialize(bytes, objectToSerialize.getClass()).get();
     }
 
     /**
@@ -94,7 +140,7 @@ public class DefaultClientActorPropsFactoryTest extends WithMockServers {
 
     private Connection randomConnection(final ConnectionType connectionType) {
         final Connection template =
-                TestConstants.createConnection(TestConstants.createRandomConnectionId(), actorSystem);
+                TestConstants.createConnection(TestConstants.createRandomConnectionId());
 
         return ConnectivityModelFactory
                 .newConnectionBuilder(template.getId(),
@@ -105,4 +151,5 @@ public class DefaultClientActorPropsFactoryTest extends WithMockServers {
                 .targets(template.getTargets())
                 .build();
     }
+
 }

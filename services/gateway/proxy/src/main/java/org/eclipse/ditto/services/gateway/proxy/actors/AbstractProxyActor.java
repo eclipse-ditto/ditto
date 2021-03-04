@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -13,8 +15,9 @@ package org.eclipse.ditto.services.gateway.proxy.actors;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.pubsub.StreamingType;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatistics;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
@@ -26,7 +29,6 @@ import akka.actor.OneForOneStrategy;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 
@@ -40,16 +42,22 @@ public abstract class AbstractProxyActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = "proxy";
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    /**
+     * Akka pub-sub mediator.
+     */
+    protected final ActorRef pubSubMediator;
+
+    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final ActorRef statisticsActor;
 
     AbstractProxyActor(final ActorRef pubSubMediator) {
+        this.pubSubMediator = pubSubMediator;
         statisticsActor = getContext().actorOf(StatisticsActor.props(pubSubMediator), StatisticsActor.ACTOR_NAME);
     }
 
-    static boolean isLiveSignal(final Signal<?> signal) {
-        return signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
+    static boolean isLiveCommandOrEvent(final Signal<?> signal) {
+        return StreamingType.isLiveSignal(signal);
     }
 
     protected abstract void addCommandBehaviour(final ReceiveBuilder receiveBuilder);
@@ -118,7 +126,7 @@ public abstract class AbstractProxyActor extends AbstractActor {
         return receiveBuilder.build();
     }
 
-    protected DiagnosticLoggingAdapter getLogger() {
+    protected DittoDiagnosticLoggingAdapter getLogger() {
         return log;
     }
 

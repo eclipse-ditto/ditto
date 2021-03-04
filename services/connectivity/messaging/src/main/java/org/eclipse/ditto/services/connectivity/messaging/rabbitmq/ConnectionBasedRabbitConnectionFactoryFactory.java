@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -21,7 +23,8 @@ import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.services.connectivity.messaging.internal.SSLContextCreator;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +40,9 @@ public final class ConnectionBasedRabbitConnectionFactoryFactory implements Rabb
 
     private static final String SECURE_AMQP_SCHEME = "amqps";
 
+    private static final ConnectionBasedRabbitConnectionFactoryFactory INSTANCE =
+            new ConnectionBasedRabbitConnectionFactoryFactory();
+
     private ConnectionBasedRabbitConnectionFactoryFactory() {
         // no-op
     }
@@ -47,12 +53,12 @@ public final class ConnectionBasedRabbitConnectionFactoryFactory implements Rabb
      * @return the instance.
      */
     public static ConnectionBasedRabbitConnectionFactoryFactory getInstance() {
-        return new ConnectionBasedRabbitConnectionFactoryFactory();
+        return INSTANCE;
     }
 
     @Override
     public ConnectionFactory createConnectionFactory(final Connection connection,
-            final ExceptionHandler exceptionHandler) {
+            final ExceptionHandler exceptionHandler, final ConnectionLogger connectionLogger) {
         checkNotNull(connection, "Connection");
         checkNotNull(exceptionHandler, "Exception Handler");
 
@@ -61,7 +67,7 @@ public final class ConnectionBasedRabbitConnectionFactoryFactory implements Rabb
             if (SECURE_AMQP_SCHEME.equalsIgnoreCase(connection.getProtocol())) {
                 if (connection.isValidateCertificates()) {
                     final SSLContextCreator sslContextCreator =
-                            SSLContextCreator.fromConnection(connection, null);
+                            SSLContextCreator.fromConnection(connection, null, connectionLogger);
                     connectionFactory.useSslProtocol(sslContextCreator.withoutClientCertificate());
                 } else {
                     // attention: this accepts all certificates whether they are valid or not
@@ -119,9 +125,7 @@ public final class ConnectionBasedRabbitConnectionFactoryFactory implements Rabb
                 .ifPresent(connectionFactory::setShutdownTimeout);
     }
 
-    /**
-     *
-     */
+
     private static class CustomConnectionFactory extends ConnectionFactory {
 
         @Override

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -12,22 +14,26 @@ package org.eclipse.ditto.signals.commands.connectivity.exceptions;
 
 import java.net.URI;
 import java.text.MessageFormat;
+import java.time.Duration;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityException;
 
 /**
  * Thrown if a connection command arrives while a connection operation is underway.
  */
 @Immutable
+@JsonParsableException(errorCode = ConnectionSignalIllegalException.ERROR_CODE)
 public final class ConnectionSignalIllegalException extends DittoRuntimeException implements ConnectivityException {
 
     /**
@@ -39,7 +45,7 @@ public final class ConnectionSignalIllegalException extends DittoRuntimeExceptio
 
     private static final String OPERATING_DESCRIPTION_TEMPLATE = "Please retry in {0} {1}.";
 
-    private static final String DEFAULT_DESCRIPTION ="Please retry later.";
+    private static final String DEFAULT_DESCRIPTION = "Please retry later.";
 
     private static final String STAYING_MESSAGE_TEMPLATE = "The message ''{2}'' is illegal for the {1} Connection " +
             "with ID ''{0}''";
@@ -52,7 +58,7 @@ public final class ConnectionSignalIllegalException extends DittoRuntimeExceptio
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-        super(ERROR_CODE, HttpStatusCode.CONFLICT, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, HttpStatus.CONFLICT, dittoHeaders, message, description, cause, href);
     }
 
     /**
@@ -61,7 +67,7 @@ public final class ConnectionSignalIllegalException extends DittoRuntimeExceptio
      * @param connectionId the ID of the connection.
      * @return the builder.
      */
-    public static Builder newBuilder(final String connectionId) {
+    public static Builder newBuilder(final ConnectionId connectionId) {
         return new Builder().connectionId(connectionId);
     }
 
@@ -72,16 +78,24 @@ public final class ConnectionSignalIllegalException extends DittoRuntimeExceptio
      * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new ConnectionBusyException.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
-     * JsonFields#MESSAGE} field.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static ConnectionSignalIllegalException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
+    }
+
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new Builder()
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
                 .dittoHeaders(dittoHeaders)
-                .message(readMessage(jsonObject))
-                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
-                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 
@@ -91,7 +105,7 @@ public final class ConnectionSignalIllegalException extends DittoRuntimeExceptio
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<ConnectionSignalIllegalException> {
 
-        private String connectionId = "UNKNOWN";
+        private ConnectionId connectionId = ConnectionId.of("UNKNOWN");
 
         private Builder() {
             this.description(DEFAULT_DESCRIPTION);
@@ -103,7 +117,7 @@ public final class ConnectionSignalIllegalException extends DittoRuntimeExceptio
          * @param connectionId the connection ID.
          * @return this builder.
          */
-        public Builder connectionId(final String connectionId) {
+        public Builder connectionId(final ConnectionId connectionId) {
             this.connectionId = connectionId;
             return this;
         }
@@ -116,7 +130,19 @@ public final class ConnectionSignalIllegalException extends DittoRuntimeExceptio
          * @return this builder.
          */
         public Builder operationName(final String operationName) {
-            message(MessageFormat.format(OPERATING_MESSAGE_TEMPLATE, connectionId, operationName));
+            message(MessageFormat.format(OPERATING_MESSAGE_TEMPLATE, String.valueOf(connectionId), operationName));
+            return this;
+        }
+
+        /**
+         * Set description to after how many seconds the user should attempt the command again.
+         *
+         * @param timeoutInSeconds timeout of the current connection operation in seconds.
+         * @return this builder.
+         */
+        public Builder timeout(final long timeoutInSeconds) {
+            final String timeoutUnit = timeoutInSeconds == 1 ? "second" : "seconds";
+            description(MessageFormat.format(OPERATING_DESCRIPTION_TEMPLATE, timeoutInSeconds, timeoutUnit));
             return this;
         }
 
@@ -126,11 +152,10 @@ public final class ConnectionSignalIllegalException extends DittoRuntimeExceptio
          * @param timeout timeout of the current connection operation in seconds.
          * @return this builder.
          */
-        public Builder timeout(final int timeout) {
-            final String timeoutUnit = timeout == 1 ? "second" : "seconds";
-            description(MessageFormat.format(OPERATING_DESCRIPTION_TEMPLATE, timeout, timeoutUnit));
-            return this;
+        public Builder timeout(final Duration timeout) {
+            return timeout(timeout.getSeconds());
         }
+
 
         /**
          * Set message to about a signal arriving when the connection state does not handle it.

@@ -1,23 +1,32 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.model.base.common;
 
+import java.text.MessageFormat;
+import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
  * An enumeration of HTTP status codes.
  *
  * @see <a href="http://tools.ietf.org/html/rfc7231#section-6.1"></a>
+ * @deprecated as of 2.0.0 please use {@link HttpStatus} instead.
  */
+@Deprecated
 @SuppressWarnings("squid:S109")
 public enum HttpStatusCode {
 
@@ -383,6 +392,8 @@ public enum HttpStatusCode {
      */
     NETWORK_CONNECT_TIMEOUT(599);
 
+    private static final Map<Integer, HttpStatusCode> STATUS_CODE_INDEX = Collections.unmodifiableMap(
+            Stream.of(values()).collect(Collectors.toMap(HttpStatusCode::toInt, Function.identity())));
 
     private final int statusCodeValue;
 
@@ -398,9 +409,7 @@ public enum HttpStatusCode {
      * @return the HTTP status code which is associated with {@code statusCodeAsInt} or an empty optional.
      */
     public static Optional<HttpStatusCode> forInt(final int statusCodeAsInt) {
-        return Stream.of(values()) //
-                .filter(c -> c.toInt() == statusCodeAsInt) //
-                .findFirst();
+        return Optional.ofNullable(STATUS_CODE_INDEX.get(statusCodeAsInt));
     }
 
     /**
@@ -410,6 +419,53 @@ public enum HttpStatusCode {
      */
     public int toInt() {
         return statusCodeValue;
+    }
+
+    /**
+     * Indicates whether this status code is a success status code (2XX).
+     *
+     * @return true if status code is 2XX false otherwise.
+     */
+    public boolean isSuccess() {
+        return statusCodeValue >= OK.statusCodeValue && statusCodeValue < MULTIPLE_CHOICES.statusCodeValue;
+    }
+
+    /**
+     * Indicates whether this status code is a client error status code (4xx).
+     *
+     * @return true if status code is 4xx false otherwise.
+     */
+    public boolean isClientError() {
+        return statusCodeValue >= BAD_REQUEST.statusCodeValue &&
+                statusCodeValue < INTERNAL_SERVER_ERROR.statusCodeValue;
+    }
+
+    /**
+     * Indicates whether this status code is an internal error status code (5xx).
+     *
+     * @return true if status code is 5xx false otherwise.
+     */
+    public boolean isInternalError() {
+        return statusCodeValue >= INTERNAL_SERVER_ERROR.statusCodeValue &&
+                statusCodeValue <= NETWORK_CONNECT_TIMEOUT.statusCodeValue;
+    }
+
+    /**
+     * Returns an equivalent HttpStatus for this HttpStatusCode. This is guaranteed to work as all constants of
+     * HttpStatusCode are reflected in HttpStatus.
+     *
+     * @return the HttpStatus which is equivalent to this HttpStatusCode.
+     * @since 2.0.0
+     */
+    public HttpStatus getAsHttpStatus() {
+        try {
+            return HttpStatus.getInstance(statusCodeValue);
+        } catch (final HttpStatusCodeOutOfRangeException e) {
+
+            // This cannot happen at runtime as all constants of HttpStatusCode are reflected in HttpStatus.
+            throw new IllegalStateException(
+                    MessageFormat.format("Failed to get HttpStatus for <{0}>!", statusCodeValue));
+        }
     }
 
 }

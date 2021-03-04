@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -12,10 +14,12 @@ package org.eclipse.ditto.json;
 
 import static java.util.Objects.requireNonNull;
 
+import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.text.MessageFormat;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
@@ -24,9 +28,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.ServiceLoader;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -48,7 +54,7 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
 
     private final SoftReferencedFieldMap fieldMap;
 
-    private ImmutableJsonObject(final SoftReferencedFieldMap theFieldMap) {
+    ImmutableJsonObject(final SoftReferencedFieldMap theFieldMap) {
         fieldMap = theFieldMap;
     }
 
@@ -74,7 +80,7 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
      * @throws NullPointerException if {@code fields} is {@code null}.
      */
     public static ImmutableJsonObject of(final Map<String, JsonField> fields) {
-        return of(fields, null);
+        return new ImmutableJsonObject(SoftReferencedFieldMap.of(fields));
     }
 
     /**
@@ -88,8 +94,25 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
     public static ImmutableJsonObject of(final Map<String, JsonField> fields,
             @Nullable final String stringRepresentation) {
 
-        requireNonNull(fields, "The fields of JSON object must not be null!");
         return new ImmutableJsonObject(SoftReferencedFieldMap.of(fields, stringRepresentation));
+    }
+
+    /**
+     * Returns a new {@code ImmutableJsonObject} instance which contains the given fields.
+     *
+     * @param fields the fields of the new JSON object.
+     * @param cborRepresentation the already known CBOR representation of the returned object or {@code null}.
+     * @return a new JSON object containing the {@code fields}.
+     * @throws NullPointerException if {@code fields} is {@code null}.
+     * @since 1.1.0
+     */
+    public static ImmutableJsonObject of(final Map<String, JsonField> fields,
+            @Nullable final byte[] cborRepresentation) {
+
+        return new ImmutableJsonObject(SoftReferencedFieldMap.of(
+                fields,
+                cborRepresentation != null ? cborRepresentation.clone() : null
+        ));
     }
 
     @Override
@@ -210,8 +233,9 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         } else {
             result = pointer.getRoot()
                     .flatMap(this::getValueForKey)
-                    .map(jsonValue -> !jsonValue.isObject() ||
-                            jsonValue.asObject().contains(pointer.nextLevel())) // Recursion
+                    .filter(JsonValue::isObject)
+                    .map(JsonValue::asObject)
+                    .map(jsonObject -> jsonObject.contains(pointer.nextLevel()))
                     .orElse(false);
         }
 
@@ -506,38 +530,83 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         return fieldMap.asJsonObjectString();
     }
 
+    @Override
+    public void writeValue(final SerializationContext serializationContext) throws IOException {
+        fieldMap.writeValue(serializationContext);
+    }
+
+    @Override
+    public long getUpperBoundForStringSize() {
+        return fieldMap.upperBoundForStringSize();
+    }
+
     @Immutable
     static final class SoftReferencedFieldMap {
 
-        private final String jsonObjectStringRepresentation;
+        private static final long CBOR_MAX_COMPRESSION_RATIO = 5; // "false" compressed to one byte
+        private static final CborFactory CBOR_FACTORY;
+
+        static {
+            final ServiceLoader<CborFactory> sl = ServiceLoader.load(CborFactory.class);
+            CBOR_FACTORY = StreamSupport.stream(sl.spliterator(), false)
+                    .findFirst()
+                    .orElseGet(NoopCborFactory::new); // when no Service could be found -> CBOR not available
+        }
+
+        private String jsonObjectStringRepresentation;
+        private byte[] cborObjectRepresentation;
         private int hashCode;
         private SoftReference<Map<String, JsonField>> fieldsReference;
 
-        private SoftReferencedFieldMap(final Map<String, JsonField> jsonFieldMap, final String stringRepresentation) {
-            jsonObjectStringRepresentation = stringRepresentation;
+        private SoftReferencedFieldMap(final Map<String, JsonField> jsonFieldMap,
+                @Nullable final String stringRepresentation, @Nullable final byte[] cborObjectRepresentation) {
+
+            requireNonNull(jsonFieldMap, "The fields of JSON object must not be null!");
             fieldsReference = new SoftReference<>(Collections.unmodifiableMap(new LinkedHashMap<>(jsonFieldMap)));
+            jsonObjectStringRepresentation = stringRepresentation;
+            this.cborObjectRepresentation = cborObjectRepresentation;
+            if (jsonObjectStringRepresentation == null && cborObjectRepresentation == null) {
+                if (CBOR_FACTORY.isCborAvailable()) {
+                    try {
+                        this.cborObjectRepresentation = CBOR_FACTORY.createCborRepresentation(jsonFieldMap,
+                                        guessSerializedSize());
+                    } catch (final IOException e) {
+                        assert false; // this should not happen, so assertions will throw during testing
+                        jsonObjectStringRepresentation = createStringRepresentation(jsonFieldMap);
+                    }
+                } else {
+                    jsonObjectStringRepresentation = createStringRepresentation(jsonFieldMap);
+                }
+            }
             hashCode = 0;
         }
 
         static SoftReferencedFieldMap empty() {
-            return of(Collections.emptyMap(), "{}");
+            return of(Collections.emptyMap(), "{}", new byte[]{(byte) 0xA0});
         }
 
         static SoftReferencedFieldMap of(final Map<String, JsonField> fieldMap) {
-            return of(fieldMap, null);
+            return new SoftReferencedFieldMap(fieldMap, null, null);
         }
 
         static SoftReferencedFieldMap of(final Map<String, JsonField> jsonFieldMap,
                 @Nullable final String stringRepresentation) {
-
-            if (null != stringRepresentation) {
-                return new SoftReferencedFieldMap(jsonFieldMap, stringRepresentation);
-            }
-            return new SoftReferencedFieldMap(jsonFieldMap, createStringRepresentation(jsonFieldMap));
+            return new SoftReferencedFieldMap(jsonFieldMap, stringRepresentation, null);
         }
 
-        private static String createStringRepresentation(final Map<String, JsonField> jsonFieldMap) {
-            final StringBuilder stringBuilder = new StringBuilder(512);
+        static SoftReferencedFieldMap of(final Map<String, JsonField> jsonFieldMap,
+                @Nullable final byte[] cborObjectRepresentation) {
+            return new SoftReferencedFieldMap(jsonFieldMap, null, cborObjectRepresentation);
+        }
+
+        static SoftReferencedFieldMap of(final Map<String, JsonField> jsonFieldMap,
+                @Nullable final String stringRepresentation,
+                @Nullable final byte[] cborObjectRepresentation) {
+            return new SoftReferencedFieldMap(jsonFieldMap, stringRepresentation, cborObjectRepresentation);
+        }
+
+        private String createStringRepresentation(final Map<String, JsonField> jsonFieldMap) {
+            final StringBuilder stringBuilder = new StringBuilder(guessSerializedSize());
             stringBuilder.append('{');
             String delimiter = "";
             for (final JsonField jsonField : jsonFieldMap.values()) {
@@ -600,16 +669,35 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         private Map<String, JsonField> fields() {
             Map<String, JsonField> result = fieldsReference.get();
             if (null == result) {
-                result = parseToMap(jsonObjectStringRepresentation);
+                result = recoverFields();
                 fieldsReference = new SoftReference<>(result);
             }
             return result;
+        }
+
+        private Map<String, JsonField> recoverFields() {
+            if (CBOR_FACTORY.isCborAvailable() && cborObjectRepresentation != null) {
+                return parseToMap(cborObjectRepresentation);
+            }
+            if (jsonObjectStringRepresentation != null) {
+                return parseToMap(jsonObjectStringRepresentation);
+            }
+            throw new IllegalStateException("Fatal cache miss on JsonObject");
         }
 
         private static Map<String, JsonField> parseToMap(final String jsonObjectString) {
             final FieldMapJsonHandler jsonHandler = new FieldMapJsonHandler();
             JsonValueParser.fromString(jsonHandler).accept(jsonObjectString);
             return jsonHandler.getValue();
+        }
+
+        private static Map<String, JsonField> parseToMap(final byte[] cborObjectRepresentation) {
+            final JsonValue jsonObject = CBOR_FACTORY.readFrom(cborObjectRepresentation);
+            final Map<String, JsonField> map = new LinkedHashMap<>();
+            for (final JsonField jsonValue : jsonObject.asObject()) {
+                map.put(jsonValue.getKey().toString(), jsonValue);
+            }
+            return map;
         }
 
         @Override
@@ -621,12 +709,20 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
                 return false;
             }
             final SoftReferencedFieldMap that = (SoftReferencedFieldMap) o;
-            if (jsonObjectStringRepresentation.equals(that.jsonObjectStringRepresentation)) {
-                return true;
-            } else if (jsonObjectStringRepresentation.length() == that.jsonObjectStringRepresentation.length()) {
-                return Objects.equals(fields(), that.fields());
+
+            if (jsonObjectStringRepresentation != null && that.jsonObjectStringRepresentation != null) {
+                if (jsonObjectStringRepresentation.equals(that.jsonObjectStringRepresentation)) {
+                    return true;
+                } else if (jsonObjectStringRepresentation.length() == that.jsonObjectStringRepresentation.length()) {
+                    return Objects.equals(fields(), that.fields());
+                }
+                return false;
             }
-            return false;
+            if (cborObjectRepresentation != null && that.cborObjectRepresentation != null &&
+                    Arrays.equals(cborObjectRepresentation, that.cborObjectRepresentation)) {
+                return true;
+            }
+            return Objects.equals(fields(), that.fields());
         }
 
         @Override
@@ -640,7 +736,39 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         }
 
         String asJsonObjectString() {
+            if (jsonObjectStringRepresentation == null) {
+                jsonObjectStringRepresentation = createStringRepresentation(this.fields());
+            }
             return jsonObjectStringRepresentation;
+        }
+
+        void writeValue(final SerializationContext serializationContext) throws IOException {
+            if (CBOR_FACTORY.isCborAvailable() && cborObjectRepresentation == null) {
+                cborObjectRepresentation = CBOR_FACTORY.createCborRepresentation(this.fields(), guessSerializedSize());
+            }
+            serializationContext.writeCachedElement(cborObjectRepresentation);
+        }
+
+        private int guessSerializedSize() {
+            // This function currently overestimates for CBOR and underestimates for JSON, but it should be better than a static guess.
+            if (jsonObjectStringRepresentation != null) {
+                return jsonObjectStringRepresentation.length();
+            }
+            if (cborObjectRepresentation != null) {
+                return cborObjectRepresentation.length;
+            }
+            return 512;
+        }
+
+        public long upperBoundForStringSize() {
+            if (jsonObjectStringRepresentation != null) {
+                return jsonObjectStringRepresentation.length();
+            }
+            if (cborObjectRepresentation != null) {
+                return cborObjectRepresentation.length * CBOR_MAX_COMPRESSION_RATIO;
+            }
+            assert false; // this should never happen
+            return Long.MAX_VALUE;
         }
 
     }

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -28,10 +30,12 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchResult;
@@ -51,7 +55,8 @@ public final class SearchModelJsonExamplesProducer {
         final List<AuthorizationSubject> authorizationSubjects = new ArrayList<>();
         authorizationSubjects.add(newAuthSubject("the_firstSubject"));
         authorizationSubjects.add(newAuthSubject("the_anotherSubject"));
-        final AuthorizationContext authContext = AuthorizationModelFactory.newAuthContext(authorizationSubjects);
+        final AuthorizationContext authContext = AuthorizationModelFactory.newAuthContext(
+                DittoAuthorizationContextType.UNSPECIFIED, authorizationSubjects);
 
         final Path authorizationDir = rootPath.resolve(Paths.get("authorization"));
         Files.createDirectories(authorizationDir);
@@ -64,17 +69,20 @@ public final class SearchModelJsonExamplesProducer {
     private static void produceSearchModel(final Path rootPath) throws IOException {
         final Path modelDir = rootPath.resolve(Paths.get("model"));
         Files.createDirectories(modelDir);
+        final String namespace = "org.eclipse.ditto.example";
+        final ThingId thingId1 = ThingId.of(namespace, "thing1");
+        final ThingId thingId2 = ThingId.of(namespace, "thing2");
 
         final AuthorizationSubject authorizationSubject = newAuthSubject("the_acl_subject");
         final AccessControlList accessControlList = ThingsModelFactory.newAclBuilder() //
                 .set(newAclEntry(authorizationSubject, Permission.READ, Permission.WRITE, Permission.ADMINISTRATE)) //
                 .build();
         final Thing thing1 = ThingsModelFactory.newThingBuilder() //
-                .setId("org.eclipse.ditto.example:thing1") //
+                .setId(thingId1) //
                 .setPermissions(accessControlList) //
                 .build();
         final Thing thing2 = ThingsModelFactory.newThingBuilder() //
-                .setId("org.eclipse.ditto.example:thing2") //
+                .setId(thingId2) //
                 .setPermissions(accessControlList) //
                 .build();
 

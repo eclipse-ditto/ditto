@@ -1,15 +1,18 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.json;
 
+import java.io.IOException;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -84,4 +87,19 @@ final class ImmutableJsonDouble extends AbstractJsonNumber<Double> {
         return getValue().hashCode();
     }
 
+    @Override
+    public void writeValue(final SerializationContext serializationContext) throws IOException {
+        double doubleValue = getValue();
+        float floatValue = getValue().floatValue();
+        if (floatValue == doubleValue){ // value can be represented as float to save space
+            serializationContext.writeNumber(floatValue);
+        } else {
+            serializationContext.writeNumber(doubleValue);
+        }
+    }
+
+    @Override
+    public long getUpperBoundForStringSize() {
+        return 24; // source: https://stackoverflow.com/questions/21146544/what-is-the-maximum-length-of-double-tostringd
+    }
 }

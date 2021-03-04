@@ -5,7 +5,7 @@ tags: [model]
 permalink: basic-messages.html
 ---
 
-Messages *do not affect* the state of a Digital Twin or an actual device.
+Messages *do not affect* the state of a digital twin or an actual device.
 Therefore Ditto does not handle messages like [commands](basic-signals-command.html): there are no responses which are
 produced by Ditto and no events which are emitted for messages.
 
@@ -56,11 +56,11 @@ Ditto messages always have to have at least this elements:
 * **Thing ID**: the ID of the `Thing` (actual device) which should receive/send the message and
 * **Subject**: the custom subject/topic.
 
-Additionally they can contain more information:
+Additionally, they can contain more information:
 * **Feature ID**: if a message should be addressed to the [Feature](basic-feature.html) of a Thing, this specifies 
   its ID.
 * **content-type**: defines which content-type the optional payload has.
-* **correlation-id**: Ditto can route message responses back to the issuer of a message. Therefore a correlation-id has
+* **correlation-id**: Ditto can route message responses back to the issuer of a message. Therefore, a correlation-id has
   to be present in the message.
 
 
@@ -84,29 +84,28 @@ Messages can, however, be received only via the [WebSocket API](httpapi-protocol
 ## Receiving Messages
 
 To be able to receive Messages for a Thing, you need to have `READ` access on that Thing.
-When a Message is sent to or from a Thing, **every** connected WebSocket with the correct
-access rights will receive the Message. If there is more than one response, only the
-first one will be routed back to the initial issuer of a Message.
+When a Message is sent to or from a Thing, **every** connected WebSocket or 
+[connection target](basic-connections.html#targets) with the correct
+access rights will receive the Message.
 
-{% include note.html content="Currently, Messages can only be received using the
- Ditto Protocol WebSocket binding" %}
+If there is more than one response to a message received by multiple consumers, only the
+first response will be routed back to the initial issuer of a Message.
 
 
 ## Sending Messages
 
 If you want to send a Message to or from a Thing, you need `WRITE` permissions on that Thing.
-Every WebSocket that is able to receive Messages for the Thing (`READ` permission), will receive your message.
+Every WebSocket or [connection target](basic-connections.html#targets) that is able to receive Messages for the 
+Thing (`READ` permission), will receive your message.
 
 
 ## Responding to Messages
 
-Since WebSocket messages are stateless there is no *direct* response to a Message.<br/>
+Since messages are stateless there is no *direct* response to a Message.
+
 For Ditto to be able to route the response of a Message back to the issuer, the
 correlation-ids need to match. E.g. when the sender uses correlation-id `random-aa98s`,
 any receiver can reply by using the same correlation-id `random-aa98s`.
-
-{% include note.html content="Currently, you can only respond to Messages using the
- Ditto Protocol WebSocket binding" %}
 
 
 ## Permissions
@@ -118,7 +117,7 @@ you need `READ` access on the Thing. To be able to send Messages to or from a Th
 you need to have `WRITE` permissions.
 
 There is one sole exception, which are [Claim Messages](#claim-messages). You do
-not need access rights for sending them.
+not need the access rights for sending them.
 
 ### API version 2
 
@@ -130,7 +129,7 @@ The same applies for being able to send Messages, here a `WRITE` permission is r
 all messages via the `message:/` resource or only for specific ones.
 
 There is one sole exception, which are [Claim Messages](#claim-messages). You do
-not need access rights for sending them.
+not need the access rights for sending them.
 
 
 ## Claim Messages

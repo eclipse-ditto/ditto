@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -15,6 +17,7 @@ import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITO
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_DEFINITION;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_ID;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES;
+import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_V2;
 import static org.eclipse.ditto.model.things.assertions.DittoThingsAssertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -45,10 +48,12 @@ public final class ImmutableFeaturesTest {
     private static final JsonValue DE_LOREAN = JsonFactory.newValue("DeLorean DMC-12");
 
     private Features underTest = null;
+    private Features underTest_v2 = null;
 
     @Before
     public void setUp() {
         underTest = ImmutableFeatures.of(FLUX_CAPACITOR);
+        underTest_v2 = ImmutableFeatures.of(FLUX_CAPACITOR_V2);
     }
 
     @Test
@@ -225,9 +230,21 @@ public final class ImmutableFeaturesTest {
     }
 
     @Test(expected = NullPointerException.class)
+    public void tryToSetDesiredPropertiesWithNullFeatureId() {
+        final Features emptyFeatures = ImmutableFeatures.empty();
+        emptyFeatures.setDesiredProperties(null, FLUX_CAPACITOR_PROPERTIES);
+    }
+
+    @Test(expected = NullPointerException.class)
     public void tryToSetNullProperties() {
         final Features emptyFeatures = ImmutableFeatures.empty();
         emptyFeatures.setProperties(FLUX_CAPACITOR_ID, null);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void tryToSetNullDesiredProperties() {
+        final Features emptyFeatures = ImmutableFeatures.empty();
+        emptyFeatures.setDesiredProperties(FLUX_CAPACITOR_ID, null);
     }
 
     @Test
@@ -235,6 +252,13 @@ public final class ImmutableFeaturesTest {
         final Features unchangedFeatures = underTest.setProperties(FLUX_CAPACITOR_ID, FLUX_CAPACITOR_PROPERTIES);
 
         assertThat(unchangedFeatures).isSameAs(underTest);
+    }
+
+    @Test
+    public void setSameExistingDesiredPropertiesReturnsSameFeatures() {
+        final Features unchangedFeatures = underTest_v2.setDesiredProperties(FLUX_CAPACITOR_ID, FLUX_CAPACITOR_PROPERTIES);
+
+        assertThat(unchangedFeatures).isSameAs(underTest_v2);
     }
 
     @Test
@@ -252,6 +276,20 @@ public final class ImmutableFeaturesTest {
     }
 
     @Test
+    public void setDesiredPropertiesOverwritesExistingDesiredProperties() {
+        final FeatureProperties featurePropertiesMock = mock(FeatureProperties.class);
+        final Features changedFeatures = underTest.setDesiredProperties(FLUX_CAPACITOR_ID, featurePropertiesMock);
+        final Optional<Feature> featureOptional = changedFeatures.getFeature(FLUX_CAPACITOR_ID);
+
+        assertThat(changedFeatures).isNotSameAs(underTest);
+        assertThat(featureOptional).isPresent();
+
+        final Feature feature = featureOptional.get();
+
+        assertThat(feature.getDesiredProperties()).contains(featurePropertiesMock);
+    }
+
+    @Test
     public void setPropertiesToFeatureWithoutProperties() {
         final Feature feature = ThingsModelFactory.newFeature(FLUX_CAPACITOR_ID);
         final Features withFeature = ImmutableFeatures.of(feature);
@@ -261,11 +299,31 @@ public final class ImmutableFeaturesTest {
     }
 
     @Test
+    public void setDesiredPropertiesToFeatureWithoutDesiredProperties() {
+        final Feature feature = ThingsModelFactory.newFeature(FLUX_CAPACITOR_ID);
+        final Features withFeature = ImmutableFeatures.of(feature);
+        final Features withDesiredFeatureProperties = withFeature.setDesiredProperties(FLUX_CAPACITOR_ID, FLUX_CAPACITOR_PROPERTIES);
+
+        assertThat(withDesiredFeatureProperties).isNotSameAs(withFeature);
+    }
+
+    @Test
     public void setPropertiesOnEmptyFeaturesCreatesNewFeatureWithProperties() {
         final Feature expected = ThingsModelFactory.newFeature(FLUX_CAPACITOR_ID, FLUX_CAPACITOR_PROPERTIES);
         final Features emptyFeatures = ImmutableFeatures.empty();
 
         final Features withFluxCapacitor = emptyFeatures.setProperties(expected.getId(), FLUX_CAPACITOR_PROPERTIES);
+
+        assertThat(withFluxCapacitor).containsOnly(expected);
+    }
+
+    @Test
+    public void setDesiredPropertiesOnEmptyFeaturesCreatesNewFeatureWithDesiredProperties() {
+        final Feature expected = ThingsModelFactory.newFeature(FLUX_CAPACITOR_ID, null,
+                null, FLUX_CAPACITOR_PROPERTIES);
+        final Features emptyFeatures = ImmutableFeatures.empty();
+
+        final Features withFluxCapacitor = emptyFeatures.setDesiredProperties(expected.getId(), FLUX_CAPACITOR_PROPERTIES);
 
         assertThat(withFluxCapacitor).containsOnly(expected);
     }
@@ -284,9 +342,21 @@ public final class ImmutableFeaturesTest {
         underTest.removeProperties(null);
     }
 
+    @Test(expected = NullPointerException.class)
+    public void tryToRemoveDesiredPropertiesForNullFeatureId() {
+        underTest.removeDesiredProperties(null);
+    }
+
     @Test
     public void removePropertiesFromNonExistingFeatureReturnsSameFeaturesObject() {
         final Features unchangedFeatures = underTest.removeProperties("bumlux");
+
+        assertThat(unchangedFeatures).isSameAs(underTest);
+    }
+
+    @Test
+    public void removeDesiredPropertiesFromNonExistingFeatureReturnsSameFeaturesObject() {
+        final Features unchangedFeatures = underTest.removeDesiredProperties("bumlux");
 
         assertThat(unchangedFeatures).isSameAs(underTest);
     }
@@ -304,10 +374,29 @@ public final class ImmutableFeaturesTest {
         assertThat(fluxCapacitor.getProperties()).isEmpty();
     }
 
+    @Test
+    public void removeDesiredPropertiesFromExistingFeatureWorksAsExpected() {
+        final Features withoutDesiredProperties = underTest_v2.removeDesiredProperties(FLUX_CAPACITOR_ID);
+
+        assertThat(withoutDesiredProperties).isNotSameAs(underTest_v2);
+        assertThat(withoutDesiredProperties).hasSize(1);
+
+        final Feature fluxCapacitor = withoutDesiredProperties.getFeature(FLUX_CAPACITOR_ID).orElse(null);
+
+        assertThat(fluxCapacitor).isNotNull();
+        assertThat(fluxCapacitor.getDesiredProperties()).isEmpty();
+    }
+
     @Test(expected = NullPointerException.class)
     public void tryToSetPropertyWithNullFeatureId() {
         final Features emptyFeatures = ImmutableFeatures.empty();
         emptyFeatures.setProperty(null, DE_LOREAN_PROPERTY_POINTER, DE_LOREAN);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void tryToSetDesiredPropertyWithNullFeatureId() {
+        final Features emptyFeatures = ImmutableFeatures.empty();
+        emptyFeatures.setDesiredProperty(null, DE_LOREAN_PROPERTY_POINTER, DE_LOREAN);
     }
 
     @Test(expected = NullPointerException.class)
@@ -317,9 +406,21 @@ public final class ImmutableFeaturesTest {
     }
 
     @Test(expected = NullPointerException.class)
+    public void tryToSetDesiredPropertyWithNullJsonPointer() {
+        final Features emptyFeatures = ImmutableFeatures.empty();
+        emptyFeatures.setDesiredProperty(FLUX_CAPACITOR_ID, null, DE_LOREAN);
+    }
+
+    @Test(expected = NullPointerException.class)
     public void tryToSetPropertyWithNullValue() {
         final Features emptyFeatures = ImmutableFeatures.empty();
         emptyFeatures.setProperty(FLUX_CAPACITOR_ID, DE_LOREAN_PROPERTY_POINTER, null);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void tryToSetDesiredPropertyWithNullValue() {
+        final Features emptyFeatures = ImmutableFeatures.empty();
+        emptyFeatures.setDesiredProperty(FLUX_CAPACITOR_ID, DE_LOREAN_PROPERTY_POINTER, null);
     }
 
     @Test
@@ -328,6 +429,14 @@ public final class ImmutableFeaturesTest {
         final Features unchangedFeatures = underTest.setProperty(FLUX_CAPACITOR_ID, YEAR_1_PROPERTY_POINTER, value);
 
         assertThat(unchangedFeatures).isSameAs(underTest);
+    }
+
+    @Test
+    public void doNotSetDesiredPropertyIfItIsAlreadySet() {
+        final JsonValue value = JsonFactory.newValue(1955);
+        final Features unchangedFeatures = underTest_v2.setDesiredProperty(FLUX_CAPACITOR_ID, YEAR_1_PROPERTY_POINTER, value);
+
+        assertThat(unchangedFeatures).isSameAs(underTest_v2);
     }
 
     @Test
@@ -349,6 +458,24 @@ public final class ImmutableFeaturesTest {
     }
 
     @Test
+    public void overwriteExistingDesiredPropertyValue() {
+        final JsonValue value = JsonFactory.newValue(1337);
+        final Features withChangedPropertyValue =
+                underTest.setDesiredProperty(FLUX_CAPACITOR_ID, YEAR_1_PROPERTY_POINTER, value);
+
+        assertThat(withChangedPropertyValue).isNotSameAs(underTest);
+
+        final Feature fluxCapacitor = withChangedPropertyValue.getFeature(FLUX_CAPACITOR_ID).orElse(null);
+
+        assertThat(fluxCapacitor).isNotNull();
+
+        final FeatureProperties desiredProperties = fluxCapacitor.getDesiredProperties().orElse(null);
+
+        assertThat(desiredProperties).isNotNull();
+        assertThat(desiredProperties).contains(YEAR_1_PROPERTY_POINTER.getRoot().orElse(null), value);
+    }
+
+    @Test
     public void setNonExistingPropertyValue() {
         final Features withDeLorean = underTest.setProperty(FLUX_CAPACITOR_ID, DE_LOREAN_PROPERTY_POINTER, DE_LOREAN);
 
@@ -358,6 +485,19 @@ public final class ImmutableFeaturesTest {
 
         assertThat(fluxCapacitor).isNotNull();
         assertThat(fluxCapacitor.getProperty(DE_LOREAN_PROPERTY_POINTER)).contains(DE_LOREAN);
+    }
+
+    @Test
+    public void setNonExistingDesiredPropertyValue() {
+        final Features withDeLorean = underTest.setDesiredProperty(FLUX_CAPACITOR_ID,
+                DE_LOREAN_PROPERTY_POINTER, DE_LOREAN);
+
+        assertThat(withDeLorean).isNotSameAs(underTest);
+
+        final Feature fluxCapacitor = withDeLorean.getFeature(FLUX_CAPACITOR_ID).orElse(null);
+
+        assertThat(fluxCapacitor).isNotNull();
+        assertThat(fluxCapacitor.getDesiredProperty(DE_LOREAN_PROPERTY_POINTER)).contains(DE_LOREAN);
     }
 
     @Test
@@ -374,19 +514,38 @@ public final class ImmutableFeaturesTest {
         assertThat(fluxCapacitor.getProperty(DE_LOREAN_PROPERTY_POINTER)).contains(DE_LOREAN);
     }
 
+    @Test
+    public void setDesiredPropertyToNonExistingFeature() {
+        final Features emptyFeatures = ImmutableFeatures.empty();
+        final Features withDeLorean =
+                emptyFeatures.setDesiredProperty(FLUX_CAPACITOR_ID, DE_LOREAN_PROPERTY_POINTER, DE_LOREAN);
+
+        assertThat(withDeLorean).isNotSameAs(underTest);
+
+        final Feature fluxCapacitor = withDeLorean.getFeature(FLUX_CAPACITOR_ID).orElse(null);
+
+        assertThat(fluxCapacitor).isNotNull();
+        assertThat(fluxCapacitor.getDesiredProperty(DE_LOREAN_PROPERTY_POINTER)).contains(DE_LOREAN);
+    }
+
     @Test(expected = NullPointerException.class)
     public void tryToRemovePropertyWithNullFeatureId() {
         underTest.removeProperty(null, YEAR_1_PROPERTY_POINTER);
     }
 
     @Test(expected = NullPointerException.class)
-    public void tryToRemovePropertyWithNullJsonPointer() {
-        underTest.removeProperty(FLUX_CAPACITOR_ID, null);
+    public void tryToRemoveDesiredPropertyWithNullFeatureId() {
+        underTest.removeDesiredProperty(null, YEAR_1_PROPERTY_POINTER);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void tryToRemoveDesiredPropertyWithNullJsonPointer() {
+        underTest.removeDesiredProperty(FLUX_CAPACITOR_ID, null);
     }
 
     @Test
-    public void removePropertyFromNonExistingFeatureReturnsSameFeaturesObject() {
-        final Features unchangedFeatures = underTest.removeProperty("waldo", YEAR_1_PROPERTY_POINTER);
+    public void removeDesiredPropertyFromNonExistingFeatureReturnsSameFeaturesObject() {
+        final Features unchangedFeatures = underTest.removeDesiredProperty("waldo", YEAR_1_PROPERTY_POINTER);
 
         assertThat(unchangedFeatures).isSameAs(underTest);
     }
@@ -394,6 +553,13 @@ public final class ImmutableFeaturesTest {
     @Test
     public void removeNonExistingPropertyFromExistingFeatureReturnsSameFeaturesObject() {
         final Features unchangedFeatures = underTest.removeProperty(FLUX_CAPACITOR_ID, DE_LOREAN_PROPERTY_POINTER);
+
+        assertThat(unchangedFeatures).isSameAs(underTest);
+    }
+
+    @Test
+    public void removeNonExistingDesiredPropertyFromExistingFeatureReturnsSameFeaturesObject() {
+        final Features unchangedFeatures = underTest.removeDesiredProperty(FLUX_CAPACITOR_ID, DE_LOREAN_PROPERTY_POINTER);
 
         assertThat(unchangedFeatures).isSameAs(underTest);
     }
@@ -408,6 +574,18 @@ public final class ImmutableFeaturesTest {
 
         assertThat(fluxCapacitor).isNotNull();
         assertThat(fluxCapacitor.getProperty(YEAR_1_PROPERTY_POINTER)).isEmpty();
+    }
+
+    @Test
+    public void removeExistingDesiredPropertyFromExistingFeatureWorksAsExpected() {
+        final Features withoutYear1 = underTest_v2.removeDesiredProperty(FLUX_CAPACITOR_ID, YEAR_1_PROPERTY_POINTER);
+
+        assertThat(withoutYear1).isNotSameAs(underTest_v2);
+
+        final Feature fluxCapacitor = withoutYear1.getFeature(FLUX_CAPACITOR_ID).orElse(null);
+
+        assertThat(fluxCapacitor).isNotNull();
+        assertThat(fluxCapacitor.getDesiredProperty(YEAR_1_PROPERTY_POINTER)).isEmpty();
     }
 
     @Test

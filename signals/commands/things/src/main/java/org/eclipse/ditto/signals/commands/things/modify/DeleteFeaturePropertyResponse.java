@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -24,17 +26,22 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * Response to a {@link DeleteFeatureProperty} command.
  */
 @Immutable
+@JsonParsableCommandResponse(type = DeleteFeaturePropertyResponse.TYPE)
 public final class DeleteFeaturePropertyResponse extends AbstractCommandResponse<DeleteFeaturePropertyResponse>
         implements ThingModifyCommandResponse<DeleteFeaturePropertyResponse> {
 
@@ -51,18 +58,24 @@ public final class DeleteFeaturePropertyResponse extends AbstractCommandResponse
             JsonFactory.newStringFieldDefinition("property", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final String featureId;
     private final JsonPointer propertyPointer;
 
-    private DeleteFeaturePropertyResponse(final String thingId, final String featureId,
+    private DeleteFeaturePropertyResponse(final ThingId thingId,
+            final String featureId,
             final JsonPointer propertyPointer,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, HttpStatusCode.NO_CONTENT, dittoHeaders);
+        super(TYPE, HttpStatus.NO_CONTENT, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
         this.featureId = checkNotNull(featureId, "Feature ID");
-        this.propertyPointer = checkNotNull(propertyPointer, "Property JsonPointer");
+        this.propertyPointer = checkPropertyPointer(propertyPointer);
+    }
+
+    private static JsonPointer checkPropertyPointer(final JsonPointer propertyPointer) {
+        checkNotNull(propertyPointer, "Property JsonPointer");
+        return ThingsModelFactory.validateFeaturePropertyPointer(propertyPointer);
     }
 
     /**
@@ -74,8 +87,36 @@ public final class DeleteFeaturePropertyResponse extends AbstractCommandResponse
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code propertyPointer} are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.json.JsonPointer,
+     * org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
-    public static DeleteFeaturePropertyResponse of(final String thingId, final String featureId,
+    @Deprecated
+    public static DeleteFeaturePropertyResponse of(final String thingId,
+            final String featureId,
+            final JsonPointer propertyPointer,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), featureId, propertyPointer, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@link DeleteFeatureProperty} command.
+     *
+     * @param thingId the Thing ID of the deleted feature property.
+     * @param featureId the {@code Feature}'s ID whose Property was deleted.
+     * @param propertyPointer the JSON pointer of the deleted Property.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code propertyPointer} are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     */
+    public static DeleteFeaturePropertyResponse of(final ThingId thingId,
+            final String featureId,
             final JsonPointer propertyPointer,
             final DittoHeaders dittoHeaders) {
 
@@ -92,6 +133,8 @@ public final class DeleteFeaturePropertyResponse extends AbstractCommandResponse
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of property pointer are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static DeleteFeaturePropertyResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -106,14 +149,15 @@ public final class DeleteFeaturePropertyResponse extends AbstractCommandResponse
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of property pointer are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
-    public static DeleteFeaturePropertyResponse fromJson(final JsonObject jsonObject,
-            final DittoHeaders dittoHeaders) {
-
-        return new CommandResponseJsonDeserializer<DeleteFeaturePropertyResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String thingId =
-                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+    public static DeleteFeaturePropertyResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandResponseJsonDeserializer<DeleteFeaturePropertyResponse>(TYPE, jsonObject).deserialize(
+                httpStatus -> {
+                    final String extractedThingId =
+                            jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
                     final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
                     final String extractedPointerString = jsonObject.getValueOrThrow(JSON_PROPERTY);
                     final JsonPointer extractedPointer = JsonFactory.newPointer(extractedPointerString);
@@ -123,7 +167,7 @@ public final class DeleteFeaturePropertyResponse extends AbstractCommandResponse
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -155,7 +199,7 @@ public final class DeleteFeaturePropertyResponse extends AbstractCommandResponse
             final Predicate<JsonField> predicate) {
 
         final Predicate<JsonField> p = schemaVersion.and(predicate);
-        jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId, p);
+        jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), p);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, p);
         jsonObjectBuilder.set(JSON_PROPERTY, propertyPointer.toString(), p);
     }
@@ -174,10 +218,11 @@ public final class DeleteFeaturePropertyResponse extends AbstractCommandResponse
             return false;
         }
         final DeleteFeaturePropertyResponse that = (DeleteFeaturePropertyResponse) o;
-        return Objects.equals(thingId, that.thingId) && Objects.equals(featureId, that.featureId)
-                && Objects.equals(propertyPointer, that.propertyPointer)
-                && that.canEqual(this)
-                && super.equals(o);
+        return Objects.equals(thingId, that.thingId) &&
+                Objects.equals(featureId, that.featureId) &&
+                Objects.equals(propertyPointer, that.propertyPointer) &&
+                that.canEqual(this) &&
+                super.equals(o);
     }
 
     @Override

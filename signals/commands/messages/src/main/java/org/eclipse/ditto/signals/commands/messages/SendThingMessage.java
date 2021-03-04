@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -16,7 +18,9 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.messages.Message;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
 /**
@@ -25,7 +29,8 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * @param <T> the type of the message's payload.
  */
 @Immutable
-public final class SendThingMessage<T> extends AbstractMessageCommand<T, SendThingMessage> {
+@JsonParsableCommand(typePrefix = SendThingMessage.TYPE_PREFIX, name = SendThingMessage.NAME)
+public final class SendThingMessage<T> extends AbstractMessageCommand<T, SendThingMessage<T>> {
 
     /**
      * The name of the {@code Message} wrapped by this {@code MessageCommand}.
@@ -37,13 +42,32 @@ public final class SendThingMessage<T> extends AbstractMessageCommand<T, SendThi
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private SendThingMessage(final String thingId, final Message<T> message, final DittoHeaders dittoHeaders) {
+    private SendThingMessage(final ThingId thingId, final Message<T> message, final DittoHeaders dittoHeaders) {
         super(TYPE, thingId, message, dittoHeaders);
     }
 
     @Override
     public SendThingMessage setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingId(), getMessage(), dittoHeaders);
+        return of(getThingEntityId(), getMessage(), dittoHeaders);
+    }
+
+    /**
+     * Creates a new instance of {@link SendThingMessage}.
+     *
+     * @param thingId the ID of the Thing to send the message to
+     * @param message the message to send to the Thing
+     * @param dittoHeaders the DittoHeaders of this message.
+     * @param <T> the type of the message's payload.
+     * @return new instance of {@link SendThingMessage}.
+     * @throws NullPointerException if any arguments is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.messages.Message, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static <T> SendThingMessage<T> of(final String thingId, final Message<T> message,
+            final DittoHeaders dittoHeaders) {
+        return of(ThingId.of(thingId), message, dittoHeaders);
     }
 
     /**
@@ -56,7 +80,7 @@ public final class SendThingMessage<T> extends AbstractMessageCommand<T, SendThi
      * @return new instance of {@link SendThingMessage}.
      * @throws NullPointerException if any arguments is {@code null}.
      */
-    public static <T> SendThingMessage<T> of(final String thingId, final Message<T> message,
+    public static <T> SendThingMessage<T> of(final ThingId thingId, final Message<T> message,
             final DittoHeaders dittoHeaders) {
         return new SendThingMessage<>(thingId, message, dittoHeaders);
     }
@@ -66,14 +90,13 @@ public final class SendThingMessage<T> extends AbstractMessageCommand<T, SendThi
      *
      * @param jsonString the JSON string of which the SendThingMessage is to be created.
      * @param dittoHeaders the headers.
-     * @param <T> the type of the message's payload
      * @return the command.
      * @throws NullPointerException if {@code jsonString} is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
      */
-    public static <T> SendThingMessage<T> fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
+    public static SendThingMessage<?> fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
@@ -82,16 +105,16 @@ public final class SendThingMessage<T> extends AbstractMessageCommand<T, SendThi
      *
      * @param jsonObject the JSON object of which the SendThingMessage is to be created.
      * @param dittoHeaders the headers.
-     * @param <T> the type of the message's payload
      * @return the command.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static <T> SendThingMessage<T> fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<SendThingMessage<T>>(TYPE, jsonObject).deserialize(() -> {
-            final String thingId = jsonObject.getValueOrThrow(MessageCommand.JsonFields.JSON_THING_ID);
-            final Message<T> message = deserializeMessageFromJson(jsonObject);
+    public static SendThingMessage<?> fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandJsonDeserializer<SendThingMessage<?>>(TYPE, jsonObject).deserialize(() -> {
+            final String extractedThingId = jsonObject.getValueOrThrow(MessageCommand.JsonFields.JSON_THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
+            final Message<?> message = deserializeMessageFromJson(jsonObject);
 
             return of(thingId, message, dittoHeaders);
         });

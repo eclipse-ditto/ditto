@@ -1,15 +1,14 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
- */
-/*
- * Copyright (c) 2011-2017 Bosch Software Innovations GmbH, Germany. All rights reserved.
  */
 package org.eclipse.ditto.signals.commands.live.modify;
 
@@ -73,13 +72,14 @@ final class DeleteFeaturesLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public DeleteFeaturesResponse deleted() {
-            return DeleteFeaturesResponse.of(command.getThingId(), command.getDittoHeaders());
+            return DeleteFeaturesResponse.of(command.getThingEntityId(), command.getDittoHeaders());
         }
 
         @Nonnull
         @Override
         public ThingErrorResponse featuresNotAccessibleError() {
-            return errorResponse(command.getThingId(), FeaturesNotAccessibleException.newBuilder(command.getThingId())
+            return errorResponse(command.getThingEntityId(),
+                    FeaturesNotAccessibleException.newBuilder(command.getThingEntityId())
                     .dittoHeaders(command.getDittoHeaders())
                     .build());
         }
@@ -87,7 +87,8 @@ final class DeleteFeaturesLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ThingErrorResponse featuresNotModifiableError() {
-            return errorResponse(command.getThingId(), FeaturesNotModifiableException.newBuilder(command.getThingId())
+            return errorResponse(command.getThingEntityId(),
+                    FeaturesNotModifiableException.newBuilder(command.getThingEntityId())
                     .dittoHeaders(command.getDittoHeaders())
                     .build());
         }
@@ -99,7 +100,8 @@ final class DeleteFeaturesLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public FeaturesDeleted deleted() {
-            return FeaturesDeleted.of(command.getThingId(), -1, Instant.now(), command.getDittoHeaders());
+            return FeaturesDeleted.of(command.getThingEntityId(), -1, Instant.now(), command.getDittoHeaders(),
+                    null);
         }
     }
 

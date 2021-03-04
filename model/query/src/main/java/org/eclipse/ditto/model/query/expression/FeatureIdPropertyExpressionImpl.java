@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -17,14 +19,13 @@ import java.util.Objects;
 import org.eclipse.ditto.model.query.expression.visitors.ExistsFieldExpressionVisitor;
 import org.eclipse.ditto.model.query.expression.visitors.FieldExpressionVisitor;
 import org.eclipse.ditto.model.query.expression.visitors.FilterFieldExpressionVisitor;
-import org.eclipse.ditto.model.query.expression.visitors.PolicyRestrictedFieldExpressionVisitor;
 import org.eclipse.ditto.model.query.expression.visitors.SortFieldExpressionVisitor;
 
 /**
  * Field expression for feature properties with a given feature id.
  */
-public class FeatureIdPropertyExpressionImpl implements SortFieldExpression, FilterFieldExpression,
-        ExistsFieldExpression, PolicyRestrictedFieldExpression {
+public class FeatureIdPropertyExpressionImpl
+        implements SortFieldExpression, FilterFieldExpression, ExistsFieldExpression {
 
     private final String property;
     private final String featureId;
@@ -38,11 +39,6 @@ public class FeatureIdPropertyExpressionImpl implements SortFieldExpression, Fil
     public FeatureIdPropertyExpressionImpl(final String featureId, final String property) {
         this.property = requireNonNull(property);
         this.featureId = requireNonNull(featureId);
-    }
-
-    @Override
-    public <T> T acceptPolicyRestrictedVisitor(final PolicyRestrictedFieldExpressionVisitor<T> visitor) {
-        return visitor.visitFeatureIdProperty(featureId, property);
     }
 
     @Override

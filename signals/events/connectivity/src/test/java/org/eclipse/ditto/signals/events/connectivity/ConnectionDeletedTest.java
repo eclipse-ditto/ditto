@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -15,8 +17,12 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.junit.Test;
 
@@ -29,7 +35,7 @@ public final class ConnectionDeletedTest {
 
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(Event.JsonFields.TYPE, ConnectionDeleted.TYPE)
-            .set(ConnectivityEvent.JsonFields.CONNECTION_ID, TestConstants.ID)
+            .set(ConnectivityEvent.JsonFields.CONNECTION_ID, TestConstants.ID.toString())
             .build();
 
     @Test
@@ -45,9 +51,17 @@ public final class ConnectionDeletedTest {
     }
 
     @Test
+    public void createInstanceWithNullConnectionIdString() {
+        assertThatExceptionOfType(NullPointerException.class)
+                .isThrownBy(() -> ConnectionDeleted.of((String) null, DittoHeaders.empty()))
+                .withMessage("The connectionId must not be null!")
+                .withNoCause();
+    }
+
+    @Test
     public void createInstanceWithNullConnectionId() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ConnectionDeleted.of(null, DittoHeaders.empty()))
+                .isThrownBy(() -> ConnectionDeleted.of((ConnectionId) null, DittoHeaders.empty()))
                 .withMessage("The %s must not be null!", "Connection ID")
                 .withNoCause();
     }
@@ -66,6 +80,16 @@ public final class ConnectionDeletedTest {
         final JsonObject actual = ConnectionDeleted.of(TestConstants.ID, DittoHeaders.empty()).toJson();
 
         assertThat(actual).isEqualTo(KNOWN_JSON);
+    }
+
+    @Test
+    public void getResourcePathReturnsExpected() {
+        final JsonPointer expectedResourcePath = JsonFactory.emptyPointer();
+
+        final ConnectionDeleted underTest =
+                ConnectionDeleted.of(TestConstants.ID, DittoHeaders.empty());
+
+        DittoJsonAssertions.assertThat(underTest.getResourcePath()).isEqualTo(expectedResourcePath);
     }
 
 }

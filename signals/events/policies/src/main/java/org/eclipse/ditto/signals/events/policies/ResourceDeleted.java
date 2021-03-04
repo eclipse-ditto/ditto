@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -27,8 +29,10 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
@@ -36,6 +40,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a {@link org.eclipse.ditto.model.policies.Resource} was deleted.
  */
 @Immutable
+@JsonParsableEvent(name = ResourceDeleted.NAME, typePrefix= ResourceDeleted.TYPE_PREFIX)
 public final class ResourceDeleted extends AbstractPolicyEvent<ResourceDeleted>
         implements PolicyEvent<ResourceDeleted> {
 
@@ -58,7 +63,7 @@ public final class ResourceDeleted extends AbstractPolicyEvent<ResourceDeleted>
     private final Label label;
     private final ResourceKey resourceKey;
 
-    private ResourceDeleted(final String policyId,
+    private ResourceDeleted(final PolicyId policyId,
             final Label label,
             final ResourceKey resourceKey,
             final long revision,
@@ -80,8 +85,32 @@ public final class ResourceDeleted extends AbstractPolicyEvent<ResourceDeleted>
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created ResourceDeleted.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.ResourceKey, long, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static ResourceDeleted of(final String policyId,
+            final Label label,
+            final ResourceKey resourceKey,
+            final long revision,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), label, resourceKey, revision, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code ResourceDeleted} object.
+     *
+     * @param policyId the identifier of the Policy to which the modified Resource belongs
+     * @param label the label of the Policy Entry to which the modified Resource belongs
+     * @param resourceKey the deleted {@link ResourceKey}.
+     * @param revision the revision of the Policy.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the created ResourceDeleted.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static ResourceDeleted of(final PolicyId policyId,
             final Label label,
             final ResourceKey resourceKey,
             final long revision,
@@ -101,8 +130,34 @@ public final class ResourceDeleted extends AbstractPolicyEvent<ResourceDeleted>
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created ResourceDeleted.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.ResourceKey, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static ResourceDeleted of(final String policyId,
+            final Label label,
+            final ResourceKey resourceKey,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), label, resourceKey, revision, timestamp, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code ResourceDeleted} object.
+     *
+     * @param policyId the identifier of the Policy to which the modified Resource belongs
+     * @param label the label of the Policy Entry to which the modified Resource belongs
+     * @param resourceKey the deleted {@link ResourceKey}.
+     * @param revision the revision of the Policy.
+     * @param timestamp the timestamp of this event.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the created ResourceDeleted.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     */
+    public static ResourceDeleted of(final PolicyId policyId,
             final Label label,
             final ResourceKey resourceKey,
             final long revision,
@@ -135,8 +190,10 @@ public final class ResourceDeleted extends AbstractPolicyEvent<ResourceDeleted>
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected 'ResourceDeleted' format.
      */
     public static ResourceDeleted fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<ResourceDeleted>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
-            final String policyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+        return new EventJsonDeserializer<ResourceDeleted>(TYPE, jsonObject).deserialize(
+                (revision, timestamp, metadata) -> {
+            final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+            final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
             final String resourceKey = jsonObject.getValueOrThrow(JSON_RESOURCE_KEY);
 
@@ -170,12 +227,12 @@ public final class ResourceDeleted extends AbstractPolicyEvent<ResourceDeleted>
 
     @Override
     public ResourceDeleted setRevision(final long revision) {
-        return of(getPolicyId(), label, resourceKey, revision, getTimestamp().orElse(null), getDittoHeaders());
+        return of(getPolicyEntityId(), label, resourceKey, revision, getTimestamp().orElse(null), getDittoHeaders());
     }
 
     @Override
     public ResourceDeleted setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getPolicyId(), label, resourceKey, getRevision(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getPolicyEntityId(), label, resourceKey, getRevision(), getTimestamp().orElse(null), dittoHeaders);
     }
 
     @Override

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -17,7 +19,8 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.query.QueryBuilder;
 import org.eclipse.ditto.model.query.QueryBuilderFactory;
 import org.eclipse.ditto.model.query.criteria.Criteria;
-import org.eclipse.ditto.services.base.config.LimitsConfigReader;
+import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
+
 
 /**
  * Mongo implementation for {@link QueryBuilderFactory}.
@@ -25,18 +28,17 @@ import org.eclipse.ditto.services.base.config.LimitsConfigReader;
 @Immutable
 public final class MongoQueryBuilderFactory implements QueryBuilderFactory {
 
-    private final LimitsConfigReader limitsConfigReader;
+    private final LimitsConfig limitsConfig;
 
-    public MongoQueryBuilderFactory(final LimitsConfigReader limitsConfigReader) {
-
-        this.limitsConfigReader = limitsConfigReader;
+    public MongoQueryBuilderFactory(final LimitsConfig limitsConfig) {
+        this.limitsConfig = limitsConfig;
     }
 
     @Override
     public QueryBuilder newBuilder(final Criteria criteria) {
         checkCriteria(criteria);
         return MongoQueryBuilder.limited(criteria,
-                limitsConfigReader.thingsSearchMaxPageSize(), limitsConfigReader.thingsSearchDefaultPageSize());
+                limitsConfig.getThingsSearchMaxPageSize(), limitsConfig.getThingsSearchDefaultPageSize());
     }
 
     @Override

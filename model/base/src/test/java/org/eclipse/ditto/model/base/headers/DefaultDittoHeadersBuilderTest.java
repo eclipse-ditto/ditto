@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -15,20 +17,33 @@ import static org.assertj.core.api.Assertions.entry;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.eclipse.ditto.model.base.headers.DefaultDittoHeadersBuilder.of;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.assertions.DittoBaseAssertions;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeader;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaderKey;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,11 +56,10 @@ public final class DefaultDittoHeadersBuilderTest {
     private static final List<String> AUTHORIZATION_SUBJECTS = Arrays.asList("Foo", "Bar");
     private static final String CORRELATION_ID = "correlationId";
     private static final JsonSchemaVersion JSON_SCHEMA_VERSION = JsonSchemaVersion.V_1;
-    private static final String SOURCE = "source";
     private static final String CHANNEL = "twin";
     private static final Collection<String> READ_SUBJECTS = Arrays.asList("read", "subjects");
 
-    private DittoHeadersBuilder underTest = null;
+    private DefaultDittoHeadersBuilder underTest = null;
 
     @Before
     public void setUp() {
@@ -58,7 +72,6 @@ public final class DefaultDittoHeadersBuilderTest {
 
         DittoBaseAssertions.assertThat(dittoHeaders)
                 .hasNoCorrelationId()
-                .hasNoSource()
                 .hasNoSchemaVersion()
                 .hasNoAuthorizationSubjects()
                 .hasNoReadSubjects();
@@ -110,14 +123,12 @@ public final class DefaultDittoHeadersBuilderTest {
     @Test
     public void buildReturnsExpected() {
         final DittoHeaders dittoHeaders = underTest.correlationId(CORRELATION_ID)
-                .source(SOURCE)
                 .readSubjects(READ_SUBJECTS)
                 .schemaVersion(JSON_SCHEMA_VERSION)
                 .build();
 
         DittoBaseAssertions.assertThat(dittoHeaders)
                 .hasCorrelationId(CORRELATION_ID)
-                .hasSource(SOURCE)
                 .hasSchemaVersion(JSON_SCHEMA_VERSION)
                 .hasReadSubject("read", "subjects");
     }
@@ -125,12 +136,27 @@ public final class DefaultDittoHeadersBuilderTest {
     @Test
     public void constructBuilderFromHeadersWorksExpected() {
         final DittoHeaders dittoHeaders = underTest.correlationId(CORRELATION_ID)
-                .source(SOURCE)
                 .readSubjects(READ_SUBJECTS)
                 .schemaVersion(JSON_SCHEMA_VERSION)
                 .build();
 
         final DittoHeaders anotherDittoHeaders = of(dittoHeaders).build();
+
+        assertThat(dittoHeaders).isEqualTo(anotherDittoHeaders);
+    }
+
+    @Test
+    public void buildWithEmptyCorrelationIdThrowsIllegalArgumentException() {
+        DittoBaseAssertions.assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
+                DittoHeaders.newBuilder().correlationId(""));
+    }
+
+    @Test
+    public void buildWithEmptyCorrelationIdFromMapThrowsDittoHeaderInvalidException() {
+        final Map<String, String> headerMap = new HashMap<>();
+        headerMap.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), "");
+        DittoBaseAssertions.assertThatExceptionOfType(DittoHeaderInvalidException.class)
+                .isThrownBy(() -> DittoHeaders.of(headerMap));
     }
 
     @Test
@@ -160,16 +186,6 @@ public final class DefaultDittoHeadersBuilderTest {
                 .hasSize(1)
                 .contains(JsonFactory.newKey(DittoHeaderDefinition.SCHEMA_VERSION.getKey()),
                         JsonFactory.newValue(JSON_SCHEMA_VERSION.toInt()));
-    }
-
-    @Test
-    public void jsonRepresentationOfDittoHeadersWithSourceOnlyIsExpected() {
-        final DittoHeaders dittoHeaders = underTest.source(SOURCE).build();
-        final JsonObject jsonObject = dittoHeaders.toJson();
-
-        assertThat(jsonObject)
-                .hasSize(1)
-                .contains(JsonFactory.newKey(DittoHeaderDefinition.SOURCE.getKey()), SOURCE);
     }
 
     @Test
@@ -207,12 +223,12 @@ public final class DefaultDittoHeadersBuilderTest {
 
     @Test
     public void tryToSetAuthSubjectsAsGenericKeyValuePairWithInvalidValue() {
-        final String key = DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey();
+        final String key = DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey();
         final String value = AUTHORIZATION_SUBJECTS.get(0);
 
         assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> underTest.putHeader(key, value))
-                .withMessage("The value '%s' of the header '%s' is not a valid JSON array.", value, key)
+                .withMessage("The value '%s' of the header '%s' is not a valid JSON object.", value, key)
                 .withNoCause();
     }
 
@@ -220,8 +236,8 @@ public final class DefaultDittoHeadersBuilderTest {
     public void putValidHeaderWorksAsExpected() {
         final String key = "foo";
         final String value = "bar";
-
         underTest.putHeader(key, value);
+
         final DittoHeaders dittoHeaders = underTest.build();
 
         assertThat(dittoHeaders).containsOnly(entry(key, value));
@@ -263,27 +279,218 @@ public final class DefaultDittoHeadersBuilderTest {
 
     @Test
     public void removeValueWorksAsExpected() {
-        final String sourceKey = DittoHeaderDefinition.SOURCE.getKey();
+        final String rsKey = DittoHeaderDefinition.READ_SUBJECTS.getKey();
 
-        final DittoHeaders dittoHeaders = underTest.source(SOURCE)
+        final DittoHeaders dittoHeaders = underTest.readSubjects(READ_SUBJECTS)
                 .dryRun(true)
                 .correlationId(CORRELATION_ID)
-                .removeHeader(sourceKey)
+                .removeHeader(rsKey)
                 .build();
 
-        assertThat(dittoHeaders).hasSize(2).doesNotContainKeys(sourceKey);
+        assertThat(dittoHeaders)
+                .hasSize(2)
+                .doesNotContainKeys(rsKey);
     }
 
     @Test
     public void removePreconditionHeaders() {
-
         final DittoHeaders dittoHeaders = underTest
                 .ifMatch(EntityTagMatchers.fromStrings("\"test\""))
                 .ifNoneMatch(EntityTagMatchers.fromStrings("\"test2\""))
                 .removePreconditionHeaders()
                 .build();
 
-        assertThat(dittoHeaders).hasSize(0);
+        assertThat(dittoHeaders).isEmpty();
+    }
+
+    @Test
+    public void tryToPutMapWithInvalidMessageHeader() {
+        final String key = DittoHeaderDefinition.SCHEMA_VERSION.getKey();
+        final String invalidValue = "bar";
+
+        final Map<String, String> invalidHeaders = new HashMap<>();
+        invalidHeaders.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), "application/json");
+        invalidHeaders.put(key, invalidValue);
+
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
+                .isThrownBy(() -> underTest.putHeaders(invalidHeaders))
+                .withMessage("The value '%s' of the header '%s' is not a valid int.", invalidValue, key)
+                .withNoCause();
+    }
+
+    @Test
+    public void ensureResponseRequiredIsFalseWhenSet() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .responseRequired(false)
+                .build();
+
+        DittoBaseAssertions.assertThat(dittoHeaders)
+                .hasIsResponseRequired(false);
+    }
+
+    @Test
+    public void ensureAllowPolicyLockoutIsFalseWhenSet() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .allowPolicyLockout(true)
+                .build();
+        DittoBaseAssertions.assertThat(dittoHeaders).hasAllowPolicyLockout(true);
+    }
+
+    @Test
+    public void ensureAllowPolicyLockoutIsFalseWhenNotSet() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().build();
+        DittoBaseAssertions.assertThat(dittoHeaders).hasAllowPolicyLockout(false);
+    }
+
+    @Test
+    public void ensureResponseRequiredStaysFalseEvenWhenAcksAreRequested() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .responseRequired(false)
+                .acknowledgementRequest(AcknowledgementRequest.of(AcknowledgementLabel.of("some-ack")))
+                .build();
+
+        assertThat(dittoHeaders)
+                .containsEntry(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), Boolean.FALSE.toString());
+    }
+
+    @Test
+    public void removesDuplicatedAuthSubjects() {
+        final Collection<String> authSubjectsWithDuplicates = Arrays.asList("test:sub", "sub");
+        final AuthorizationContext authorizationContextWithDuplicates =
+                AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                        authSubjectsWithDuplicates.stream()
+                                .map(AuthorizationSubject::newInstance)
+                                .collect(Collectors.toList()));
+        final AuthorizationContext authorizationContextWithoutDuplicates =
+                AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                        AuthorizationSubject.newInstance("test:sub"));
+        final DittoHeaders dittoHeaders = underTest
+                .authorizationContext(authorizationContextWithDuplicates)
+                .build();
+
+        assertThat(dittoHeaders.getAuthorizationContext()).isEqualTo(authorizationContextWithDuplicates);
+        assertThat(dittoHeaders.get(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey()))
+                .isEqualTo(authorizationContextWithoutDuplicates.toJsonString());
+    }
+
+    @Test
+    public void putValidMetadata() {
+        final MetadataHeaderKey metadataKey = MetadataHeaderKey.parse("*/issuedAt");
+        final JsonValue metadataValue = JsonValue.of(String.valueOf(Instant.now()));
+        final MetadataHeaders expected = MetadataHeaders.newInstance();
+        expected.add(MetadataHeader.of(metadataKey, metadataValue));
+
+        final DittoHeaders dittoHeaders = underTest.putMetadata(metadataKey, metadataValue).build();
+
+        assertThat(dittoHeaders.getMetadataHeadersToPut()).isEqualTo(expected);
+    }
+
+    @Test
+    public void putValidMetadataAsCharSequence() {
+        final MetadataHeaders metadataHeaders = MetadataHeaders.newInstance();
+        metadataHeaders.add(
+                MetadataHeader.of(MetadataHeaderKey.parse("*/issuedAt"), JsonValue.of(String.valueOf(Instant.now()))));
+
+        final DittoHeaders dittoHeaders = underTest
+                .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(), metadataHeaders.toJsonString())
+                .build();
+
+        assertThat(dittoHeaders.getMetadataHeadersToPut()).isEqualTo(metadataHeaders);
+    }
+
+    @Test
+    public void putHeadersContainingValidMetadata() {
+        final MetadataHeaderKey metadataKey = MetadataHeaderKey.parse("*/issuedAt");
+        final JsonValue metadataValue = JsonValue.of(String.valueOf(Instant.now()));
+        final Map<String, String> headerMap = new HashMap<>();
+        headerMap.put("foo", "bar");
+        headerMap.put(metadataKey.toString(), metadataValue.toString());
+        headerMap.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), String.valueOf(UUID.randomUUID()));
+
+        final DittoHeaders dittoHeaders = underTest.putHeaders(headerMap).build();
+
+        assertThat(dittoHeaders.asCaseSensitiveMap()).isEqualTo(headerMap);
+    }
+
+    @Test
+    public void putHeadersContainingInvalidMetadataKey() {
+        final String metadataKey = "*/*/issuedAt";
+        final JsonValue metadataValue = JsonValue.of(String.valueOf(Instant.now()));
+        final JsonArray metadataHeaderEntries = JsonArray.of(JsonObject.newBuilder()
+                .set(MetadataHeader.JsonFields.METADATA_KEY, metadataKey)
+                .set(MetadataHeader.JsonFields.METADATA_VALUE, metadataValue)
+                .build());
+        final Map<String, String> headerMap = new HashMap<>();
+        headerMap.put("foo", "bar");
+        headerMap.put(DittoHeaderDefinition.PUT_METADATA.getKey(), metadataHeaderEntries.toString());
+        headerMap.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), String.valueOf(UUID.randomUUID()));
+
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
+                .isThrownBy(() -> underTest.putHeaders(headerMap))
+                .withMessage("The value '%s' of the header 'put-metadata' is not a valid MetadataHeaders.",
+                        metadataHeaderEntries)
+                .satisfies(dittoHeaderInvalidException -> assertThat(
+                        dittoHeaderInvalidException.getDescription())
+                        .contains("The metadata header key <" +
+                                metadataKey +
+                                "> is invalid!" +
+                                " A wildcard path of a metadata header key must have exactly two levels but it had" +
+                                " <3>!"))
+                .withCauseInstanceOf(JsonParseException.class);
+    }
+
+    @Test
+    public void createBuilderFromMapContainingValidMetadata() {
+        final MetadataHeaderKey metadataKey = MetadataHeaderKey.parse("*/issuedAt");
+        final JsonValue metadataValue = JsonValue.of(String.valueOf(Instant.now()));
+        final Map<String, String> headerMap = new HashMap<>();
+        headerMap.put("foo", "bar");
+        headerMap.put(metadataKey.toString(), metadataValue.toString());
+        headerMap.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), String.valueOf(UUID.randomUUID()));
+
+        final DefaultDittoHeadersBuilder underTest = of(headerMap);
+
+        assertThat(underTest.build().asCaseSensitiveMap()).isEqualTo(headerMap);
+    }
+
+    @Test
+    public void createBuilderFromMapContainingInvalidMetadataKey() {
+        final String metadataKey = "*/*/issuedAt";
+        final JsonObject metadataHeaderEntry = JsonObject.newBuilder()
+                .set(MetadataHeader.JsonFields.METADATA_KEY, metadataKey)
+                .set(MetadataHeader.JsonFields.METADATA_VALUE, JsonValue.of(String.valueOf(Instant.now())))
+                .build();
+        final JsonArray metadataHeaderEntries = JsonArray.of(metadataHeaderEntry);
+        final Map<String, String> headerMap = new HashMap<>();
+        headerMap.put("foo", "bar");
+        headerMap.put(DittoHeaderDefinition.PUT_METADATA.getKey(), metadataHeaderEntries.toString());
+        headerMap.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), String.valueOf(UUID.randomUUID()));
+
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
+                .isThrownBy(() -> DefaultDittoHeadersBuilder.of(headerMap))
+                .satisfies(dittoHeaderInvalidException -> assertThat(dittoHeaderInvalidException.getDescription())
+                        .contains("The metadata header key <" + metadataKey + "> is invalid!" +
+                                " A wildcard path of a metadata header key must have exactly two levels but it had" +
+                                " <3>!"))
+                .withCauseInstanceOf(JsonParseException.class);
+    }
+
+    @Test
+    public void createBuilderFromMapContainingInvalidMetadataValue() {
+        final String invalidValue = String.valueOf(Instant.now());
+        final Map<String, String> headerMap = new HashMap<>();
+        headerMap.put("foo", "bar");
+        headerMap.put(DittoHeaderDefinition.PUT_METADATA.getKey(), invalidValue);
+        headerMap.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), String.valueOf(UUID.randomUUID()));
+
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
+                .isThrownBy(() -> DefaultDittoHeadersBuilder.of(headerMap))
+                .withMessage("The value '%s' of the header '%s' is not a valid MetadataHeaders.", invalidValue,
+                        DittoHeaderDefinition.PUT_METADATA.getKey())
+                .satisfies(dittoHeaderInvalidException -> assertThat(dittoHeaderInvalidException.getDescription())
+                        .hasValueSatisfying(description -> assertThat(description)
+                                .startsWith("Failed to parse JSON string '" + invalidValue + "'!")))
+                .withCauseInstanceOf(JsonParseException.class);
     }
 
 }

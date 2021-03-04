@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -13,17 +15,19 @@ package org.eclipse.ditto.services.gateway.proxy.actors;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.Props;
-import akka.japi.Creator;
 
 /**
  * Actor which delegates {@link Command}s to the appropriate receivers in the cluster.
  */
 public final class ProxyActor extends AbstractThingProxyActor {
 
+    @SuppressWarnings("unused")
     private ProxyActor(final ActorRef pubSubMediator,
-            final ActorRef devOpsCommandsActor,
+            final ActorSelection devOpsCommandsActor,
             final ActorRef conciergeForwarder) {
+
         super(pubSubMediator, devOpsCommandsActor, conciergeForwarder);
     }
 
@@ -35,16 +39,10 @@ public final class ProxyActor extends AbstractThingProxyActor {
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
-            final ActorRef devOpsCommandsActor,
+            final ActorSelection devOpsCommandsActor,
             final ActorRef conciergeForwarder) {
-        return Props.create(ProxyActor.class, new Creator<ProxyActor>() {
-            private static final long serialVersionUID = 1L;
 
-            @Override
-            public ProxyActor create() {
-                return new ProxyActor(pubSubMediator, devOpsCommandsActor, conciergeForwarder);
-            }
-        });
+        return Props.create(ProxyActor.class, pubSubMediator, devOpsCommandsActor, conciergeForwarder);
     }
 
 }

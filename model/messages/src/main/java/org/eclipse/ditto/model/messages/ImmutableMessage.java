@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -21,9 +23,11 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.common.ByteBufferUtils;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * An Immutable implementation of {@link Message}.
@@ -36,16 +40,19 @@ final class ImmutableMessage<T> implements Message<T> {
     private final MessageHeaders headers;
     @Nullable private final ByteBuffer rawPayload;
     @Nullable private final T payload;
+    @Nullable private final JsonObject extra;
     @Nullable private final MessageResponseConsumer<?> responseConsumer;
 
     private ImmutableMessage(final MessageHeaders headers,
             @Nullable final ByteBuffer rawPayload,
             @Nullable final T payload,
+            @Nullable final JsonObject extra,
             @Nullable final MessageResponseConsumer<?> responseConsumer) {
 
         this.headers = checkNotNull(headers, "headers");
         this.rawPayload = rawPayload != null ? ByteBufferUtils.clone(rawPayload) : null;
         this.payload = payload;
+        this.extra = extra;
         this.responseConsumer = responseConsumer;
     }
 
@@ -58,12 +65,15 @@ final class ImmutableMessage<T> implements Message<T> {
      * sender has provided no payload)
      * @param payload the payload of the message as provided by the message sender (maybe {@code null} if the sender has
      * provided no payload)
+     * @param extra the extra (enriched) data of the message.
      * @throws NullPointerException if {@code headers} is {@code null}.
      */
-    public static <T> Message<T> of(final MessageHeaders headers, @Nullable final ByteBuffer rawPayload,
-            @Nullable final T payload) {
+    public static <T> Message<T> of(final MessageHeaders headers,
+            @Nullable final ByteBuffer rawPayload,
+            @Nullable final T payload,
+            @Nullable final JsonObject extra) {
 
-        return of(headers, rawPayload, payload, null);
+        return of(headers, rawPayload, payload, extra, null);
     }
 
     /**
@@ -75,15 +85,17 @@ final class ImmutableMessage<T> implements Message<T> {
      * sender has provided no payload)
      * @param payload the payload of the message as provided by the message sender (maybe {@code null} if the sender has
      * provided no payload)
-     * @param responseConsumer MessageResponseConsumer which is invoked with a potential response message.
+     * @param extra the extra (enriched) data of the message.
+     * @param responseConsumer MessageResponseConsumer which is stored together with the message but never serialized.
      * @throws NullPointerException if {@code headers} is {@code null}.
      */
     public static <T> Message<T> of(final MessageHeaders headers,
             @Nullable final ByteBuffer rawPayload,
             @Nullable final T payload,
+            @Nullable final JsonObject extra,
             @Nullable final MessageResponseConsumer<?> responseConsumer) {
 
-        return new ImmutableMessage<>(headers, rawPayload, payload, responseConsumer);
+        return new ImmutableMessage<>(headers, rawPayload, payload, extra, responseConsumer);
     }
 
     @Override
@@ -106,6 +118,11 @@ final class ImmutableMessage<T> implements Message<T> {
     }
 
     @Override
+    public Optional<JsonObject> getExtra() {
+        return Optional.ofNullable(extra);
+    }
+
+    @Override
     public Optional<MessageResponseConsumer<?>> getResponseConsumer() {
         return Optional.ofNullable(responseConsumer);
     }
@@ -116,8 +133,8 @@ final class ImmutableMessage<T> implements Message<T> {
     }
 
     @Override
-    public String getThingId() {
-        return headers.getThingId();
+    public ThingId getThingEntityId() {
+        return headers.getThingEntityId();
     }
 
     @Override
@@ -156,13 +173,13 @@ final class ImmutableMessage<T> implements Message<T> {
     }
 
     @Override
-    public Optional<HttpStatusCode> getStatusCode() {
-        return headers.getStatusCode();
+    public Optional<HttpStatus> getHttpStatus() {
+        return headers.getHttpStatus();
     }
 
-    @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067", "OverlyComplexMethod"})
+    @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067"})
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
@@ -170,13 +187,15 @@ final class ImmutableMessage<T> implements Message<T> {
             return false;
         }
         final ImmutableMessage<?> that = (ImmutableMessage<?>) o;
-        return Objects.equals(rawPayload, that.rawPayload) && Objects.equals(payload, that.payload)
-                && Objects.equals(headers, that.headers);
+        return Objects.equals(rawPayload, that.rawPayload) &&
+                Objects.equals(payload, that.payload) &&
+                Objects.equals(extra, that.extra) &&
+                Objects.equals(headers, that.headers);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(rawPayload, payload, headers);
+        return Objects.hash(rawPayload, payload, extra, headers);
     }
 
     @Override
@@ -184,6 +203,7 @@ final class ImmutableMessage<T> implements Message<T> {
         return getClass().getSimpleName() + " [" +
                 "rawPayload=" + rawPayload +
                 ", payload=" + payload +
+                ", extra=" + extra +
                 ", headers=" + headers +
                 "]";
     }

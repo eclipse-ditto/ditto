@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -18,19 +20,19 @@ import java.util.UUID;
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
+import org.eclipse.ditto.services.connectivity.config.mapping.DefaultMappingConfig;
+import org.eclipse.ditto.services.connectivity.config.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
-import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.junit.Test;
 
-import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 /**
  * Tests the {@link JavaScriptMessageMapperRhino} sandboxing capabilities by trying to exploit CPU time, exiting, etc.
  */
-public class JavaScriptMessageMapperRhinoSandboxingTest {
+public final class JavaScriptMessageMapperRhinoSandboxingTest {
 
     @Test
     public void ensureExitForbidden() {
@@ -75,7 +77,6 @@ public class JavaScriptMessageMapperRhinoSandboxingTest {
 
     @Test
     public void ensureTooBigMappingScriptIsNotLoaded() {
-
         final StringBuilder stringBuilder = new StringBuilder();
         for (int i = 0; i < 100_000; i++) {
             stringBuilder
@@ -89,18 +90,18 @@ public class JavaScriptMessageMapperRhinoSandboxingTest {
         );
     }
 
+    private static MessageMapper createMapper(final String maliciousStuff) {
+        final MessageMapper mapper = JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
+        final MappingConfig mappingConfig =
+                DefaultMappingConfig.of(ConfigFactory.parseString("javascript {\n" +
+                        "        maxScriptSizeBytes = 50000 # 50kB\n" +
+                        "        maxScriptExecutionTime = 500ms\n" +
+                        "        maxScriptStackDepth = 10\n" +
+                        "      }"));
 
-    private MessageMapper createMapper(final String maliciousStuff) {
-        final MessageMapper mapper = MessageMappers.createJavaScriptMessageMapper();
-        final Config mappingConfig = ConfigFactory.parseString("javascript {\n" +
-                "        maxScriptSizeBytes = 50000 # 50kB\n" +
-                "        maxScriptExecutionTime = 500ms\n" +
-                "        maxScriptStackDepth = 10\n" +
-                "      }");
         mapper.configure(mappingConfig,
                 JavaScriptMessageMapperFactory
-                        .createJavaScriptMessageMapperConfigurationBuilder(Collections.emptyMap())
-                        .contentType("text/plain")
+                        .createJavaScriptMessageMapperConfigurationBuilder("malicious", Collections.emptyMap())
                         .incomingScript(getMappingWrapperScript(maliciousStuff))
                         .build()
         );
@@ -108,7 +109,7 @@ public class JavaScriptMessageMapperRhinoSandboxingTest {
         return mapper;
     }
 
-    private ExternalMessage createMessage() {
+    private static ExternalMessage createMessage() {
         final String correlationId = UUID.randomUUID().toString();
         final Map<String, String> headers = new HashMap<>();
         headers.put("correlation-id", correlationId);
@@ -144,4 +145,5 @@ public class JavaScriptMessageMapperRhinoSandboxingTest {
                 "    );\n" +
                 "}";
     }
+
 }

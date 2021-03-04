@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -12,14 +14,16 @@ package org.eclipse.ditto.services.connectivity.mapping;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.services.connectivity.config.mapping.MappingConfig;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
-
-import com.typesafe.config.Config;
 
 /**
  * Defines a message mapper which maps a {@link ExternalMessage} to a {@link Adaptable} and vice versa.
@@ -32,44 +36,74 @@ import com.typesafe.config.Config;
 public interface MessageMapper {
 
     /**
-     * Applies configuration for this MessageMapper.
+     * Returns a unique ID of this mapper that can be used in sources and targets to reference this mapper.
      *
-     * @param mappingConfig the ActorSystem's Config scoped to the mapping section "ditto.connectivity.mapping"
-     * @param configuration the configuration to apply
-     * @throws MessageMapperConfigurationInvalidException if configuration is invalid
-     * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException if the configuration failed
-     * for a mapper specific reason
+     * @return a unique ID of this mapper.
      */
-    void configure(Config mappingConfig, MessageMapperConfiguration configuration);
+    String getId();
 
     /**
-     * Returns the content type of this mapper. This can be used as a hint for mapper selection.
+     * Returns a blocklist of content-types which shall not be handled by this message mapper.
+     * Is determined from the passed in {@code MessageMapperConfiguration} in
+     * {@link #configure(MappingConfig, MessageMapperConfiguration)}.
      *
-     * @return the content type
+     * @return a blocklist of content-types which shall not be handled by this message mapper.
      */
-    default Optional<String> getContentType() {
-        return Optional.empty();
-    }
+    Collection<String> getContentTypeBlocklist();
+
+    /**
+     * Applies configuration for this MessageMapper.
+     *
+     * @param mappingConfig the config scoped to the mapping section "ditto.connectivity.mapping".
+     * @param configuration the configuration to apply.
+     * @throws MessageMapperConfigurationInvalidException if configuration is invalid.
+     * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException if the configuration
+     * failed for a mapper specific reason.
+     */
+    void configure(MappingConfig mappingConfig, MessageMapperConfiguration configuration);
 
     /**
      * Maps an {@link ExternalMessage} to an {@link Adaptable}
      *
      * @param message the ExternalMessage to map
-     * @return the mapped Adaptable or an empty Optional if the ExternalMessage should not be mapped after all
+     * @return the mapped Adaptable or an empty List if the ExternalMessage should not be mapped after all
      * @throws org.eclipse.ditto.model.connectivity.MessageMappingFailedException if the given message can not be mapped
      * @throws org.eclipse.ditto.model.base.exceptions.DittoRuntimeException if anything during Ditto Adaptable creation
      * went wrong
      */
-    Optional<Adaptable> map(ExternalMessage message);
+    List<Adaptable> map(ExternalMessage message);
 
     /**
      * Maps an {@link Adaptable} to an {@link ExternalMessage}
      *
      * @param adaptable the Adaptable to map
-     * @return the ExternalMessage or an empty Optional if the Adaptable should not be mapped after all
+     * @return the ExternalMessage or an empty List if the Adaptable should not be mapped after all
      * @throws org.eclipse.ditto.model.connectivity.MessageMappingFailedException if the given adaptable can not be mapped
      */
-    Optional<ExternalMessage> map(Adaptable adaptable);
+    List<ExternalMessage> map(Adaptable adaptable);
+
+    /**
+     * @return a map of default options for this mapper
+     */
+    default JsonObject getDefaultOptions() {
+        return JsonObject.empty();
+    }
+
+    /**
+     * Returns the conditions to be checked before mapping incoming messages.
+     * @return the conditions.
+     *
+     * @since 1.3.0
+     */
+    Map<String, String> getIncomingConditions();
+
+    /**
+     * Returns the conditions to be checked before mapping outgoing messages.
+     * @return the conditions.
+     *
+     * @since 1.3.0
+     */
+    Map<String, String> getOutgoingConditions();
 
     /**
      * Finds the content-type header from the passed ExternalMessage.
@@ -90,9 +124,10 @@ public interface MessageMapper {
      */
     static Optional<String> findContentType(final Adaptable adaptable) {
         checkNotNull(adaptable);
-        return adaptable.getHeaders().map(h -> h.entrySet().stream()
+        return adaptable.getDittoHeaders().entrySet()
+                .stream()
                 .filter(e -> ExternalMessage.CONTENT_TYPE_HEADER.equalsIgnoreCase(e.getKey()))
                 .findFirst()
-                .map(Map.Entry::getValue).orElse(null));
+                .map(Map.Entry::getValue);
     }
 }

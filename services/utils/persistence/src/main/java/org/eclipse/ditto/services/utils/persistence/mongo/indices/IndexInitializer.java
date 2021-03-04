@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -25,7 +27,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mongodb.reactivestreams.client.MongoDatabase;
-import com.mongodb.reactivestreams.client.Success;
 
 import akka.Done;
 import akka.NotUsed;
@@ -102,7 +103,7 @@ public final class IndexInitializer {
                 .runWith(Sink.ignore(), materializer);
     }
 
-    private Source<Success, NotUsed> createIndices(final String collectionName, final List<Index> indices) {
+    private Source<Done, NotUsed> createIndices(final String collectionName, final List<Index> indices) {
         if (indices.isEmpty()) {
             return Source.empty();
         }
@@ -111,7 +112,7 @@ public final class IndexInitializer {
                 .flatMapConcat(index -> createIndex(collectionName, index));
     }
 
-    private Source<Success, NotUsed> createIndex(final String collectionName, final Index index) {
+    private Source<Done, NotUsed> createIndex(final String collectionName, final Index index) {
         LOGGER.info("Creating index: {}", index);
         return indexOperations.createIndex(collectionName, index);
     }
@@ -135,7 +136,7 @@ public final class IndexInitializer {
                 .collect(Collectors.toList());
     }
 
-    private Source<Success, NotUsed> dropIndices(final String collectionName, final List<String> indices) {
+    private Source<Done, NotUsed> dropIndices(final String collectionName, final List<String> indices) {
         if (indices.isEmpty()) {
             return Source.empty();
         }
@@ -144,7 +145,7 @@ public final class IndexInitializer {
                 .flatMapConcat(index -> dropIndex(collectionName, index));
     }
 
-    private Source<Success, NotUsed> dropIndex(final String collectionName, final String indexName) {
+    private Source<Done, NotUsed> dropIndex(final String collectionName, final String indexName) {
         LOGGER.info("Dropping index: {}", indexName);
         return indexOperations.dropIndex(collectionName, indexName);
     }

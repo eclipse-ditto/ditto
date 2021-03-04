@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -23,12 +25,14 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.things.TestConstants;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -43,7 +47,7 @@ public final class SudoRetrieveThingsResponseTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(SudoCommandResponse.JsonFields.TYPE, SudoRetrieveThingsResponse.TYPE)
-            .set(SudoCommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
+            .set(SudoCommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode())
 
             .set(SudoRetrieveThingsResponse.JSON_THINGS_PLAIN_JSON,
                     KNOWN_THINGS.stream()
@@ -83,7 +87,7 @@ public final class SudoRetrieveThingsResponseTest {
         final SudoRetrieveThingsResponse underTest = SudoRetrieveThingsResponse.of(KNOWN_THINGS, FieldType.notHidden(),
                 EMPTY_DITTO_HEADERS);
 
-        assertThat(underTest.getStatusCode()).isSameAs(HttpStatusCode.OK);
+        assertThat(underTest.getHttpStatus()).isSameAs(HttpStatus.OK);
     }
 
     /** */
@@ -116,10 +120,10 @@ public final class SudoRetrieveThingsResponseTest {
         final SudoRetrieveThingsResponse sudoRetrieveThingsResponse =
                 SudoRetrieveThingsResponse.fromJson(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
 
-        final SudoCommandResponse sudoCommandResponse =
-                SudoCommandResponseRegistry.newInstance().parse(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
+        final CommandResponse commandResponse =
+                GlobalCommandResponseRegistry.getInstance().parse(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
 
-        assertThat(sudoRetrieveThingsResponse).isEqualTo(sudoCommandResponse);
+        assertThat(sudoRetrieveThingsResponse).isEqualTo(commandResponse);
     }
 
 }

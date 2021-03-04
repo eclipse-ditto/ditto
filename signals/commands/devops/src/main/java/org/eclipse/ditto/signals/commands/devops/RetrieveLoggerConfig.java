@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -31,6 +33,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -38,6 +41,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * Command to retrieve the {@link org.eclipse.ditto.model.devops.LoggerConfig} for each configured Logger.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = RetrieveLoggerConfig.TYPE_PREFIX, name = RetrieveLoggerConfig.NAME)
 public final class RetrieveLoggerConfig extends AbstractDevOpsCommand<RetrieveLoggerConfig> {
 
     /**
@@ -61,7 +65,7 @@ public final class RetrieveLoggerConfig extends AbstractDevOpsCommand<RetrieveLo
     private final boolean allKnownLoggers;
     private final List<String> specificLoggers;
 
-    private RetrieveLoggerConfig(@Nullable final String serviceName, @Nullable final Integer instance,
+    private RetrieveLoggerConfig(@Nullable final String serviceName, @Nullable final String instance,
             final boolean allKnownLoggers, final List<String> specificLoggers, final DittoHeaders dittoHeaders) {
         super(TYPE, serviceName, instance, dittoHeaders);
         this.allKnownLoggers = allKnownLoggers;
@@ -99,7 +103,7 @@ public final class RetrieveLoggerConfig extends AbstractDevOpsCommand<RetrieveLo
      * @return a new RetrieveLoggerConfig command.
      */
     public static RetrieveLoggerConfig ofAllKnownLoggers(@Nullable final String serviceName,
-            @Nullable final Integer instance,
+            @Nullable final String instance,
             final DittoHeaders dittoHeaders) {
         return new RetrieveLoggerConfig(serviceName, instance, true, Collections.emptyList(), dittoHeaders);
     }
@@ -150,7 +154,7 @@ public final class RetrieveLoggerConfig extends AbstractDevOpsCommand<RetrieveLo
      * @param specificLoggers one or more loggers to be retrieved.
      * @return a new RetrieveLoggerConfig command.
      */
-    public static RetrieveLoggerConfig of(@Nullable final String serviceName, @Nullable final Integer instance,
+    public static RetrieveLoggerConfig of(@Nullable final String serviceName, @Nullable final String instance,
             final DittoHeaders dittoHeaders, final String... specificLoggers) {
         return new RetrieveLoggerConfig(serviceName, instance, false,
                 specificLoggers == null ? Collections.emptyList() : Arrays.asList(specificLoggers), dittoHeaders);
@@ -178,7 +182,7 @@ public final class RetrieveLoggerConfig extends AbstractDevOpsCommand<RetrieveLo
      * @param specificLoggers one or more loggers to be retrieved.
      * @return a new RetrieveLoggerConfig command.
      */
-    public static RetrieveLoggerConfig of(@Nullable final String serviceName, @Nullable final Integer instance,
+    public static RetrieveLoggerConfig of(@Nullable final String serviceName, @Nullable final String instance,
             final DittoHeaders dittoHeaders,
             final List<String> specificLoggers) {
         return new RetrieveLoggerConfig(serviceName, instance, false, specificLoggers, dittoHeaders);
@@ -211,7 +215,7 @@ public final class RetrieveLoggerConfig extends AbstractDevOpsCommand<RetrieveLo
     public static RetrieveLoggerConfig fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveLoggerConfig>(TYPE, jsonObject).deserialize(() -> {
             final String serviceName = jsonObject.getValue(DevOpsCommand.JsonFields.JSON_SERVICE_NAME).orElse(null);
-            final Integer instance = jsonObject.getValue(DevOpsCommand.JsonFields.JSON_INSTANCE).orElse(null);
+            final String instance = jsonObject.getValue(DevOpsCommand.JsonFields.JSON_INSTANCE).orElse(null);
             final boolean isAllKnownLoggers = jsonObject.getValueOrThrow(JSON_ALL_KNOWN_LOGGERS);
 
             if (isAllKnownLoggers) {

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -13,6 +15,7 @@ package org.eclipse.ditto.model.base.auth;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -22,6 +25,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -38,37 +42,48 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 @Immutable
 final class ImmutableAuthorizationContext implements AuthorizationContext {
 
+    private final AuthorizationContextType type;
     private final List<AuthorizationSubject> authorizationSubjects;
+    @Nullable private List<String> authorizationSubjectIds;
 
-    private ImmutableAuthorizationContext(final List<AuthorizationSubject> theAuthorizationSubjects) {
-        final ArrayList<AuthorizationSubject> theList = new ArrayList<>(theAuthorizationSubjects);
-        authorizationSubjects = Collections.unmodifiableList(theList);
+    private ImmutableAuthorizationContext(final AuthorizationContextType type,
+            final List<AuthorizationSubject> authorizationSubjects) {
+
+        this.type = type;
+        this.authorizationSubjects = authorizationSubjects;
+        authorizationSubjectIds = null;
     }
 
     /**
      * Returns a new instance of {@code ImmutableAuthorizationContext} with the given authorization subjects.
      *
+     * @param type the mandatory type defining which "kind" of authorization context should be created.
      * @param authorizationSubjects the authorization subjects of the new context.
      * @return the new {@code AuthorizationContext}.
-     * @throws NullPointerException if {@code authorizationSubjects} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      */
-    public static AuthorizationContext of(final List<AuthorizationSubject> authorizationSubjects) {
+    public static ImmutableAuthorizationContext of(final AuthorizationContextType type,
+            final List<AuthorizationSubject> authorizationSubjects) {
+        checkNotNull(type, "type");
         checkNotNull(authorizationSubjects, "authorization subjects");
 
-        return new ImmutableAuthorizationContext(authorizationSubjects);
+        return new ImmutableAuthorizationContext(type, Collections.unmodifiableList(authorizationSubjects));
     }
 
     /**
      * Returns a new instance of {@code ImmutableAuthorizationContext} with the given authorization subjects.
      *
+     * @param type the mandatory type defining which "kind" of authorization context should be created.
      * @param authorizationSubject the mandatory authorization subject of the new context.
      * @param furtherAuthorizationSubjects additional authorization subjects of the new context.
      * @return the new {@code AuthorizationContext}.
      * @throws NullPointerException if any argument is {@code null}.
      */
-
-    public static AuthorizationContext of(final AuthorizationSubject authorizationSubject,
+    public static ImmutableAuthorizationContext of(final AuthorizationContextType type,
+            final AuthorizationSubject authorizationSubject,
             final AuthorizationSubject... furtherAuthorizationSubjects) {
+
+        checkNotNull(type, "type");
         checkNotNull(authorizationSubject, "mandatory authorization subject");
         checkNotNull(furtherAuthorizationSubjects, "additional authorization subjects");
 
@@ -76,7 +91,7 @@ final class ImmutableAuthorizationContext implements AuthorizationContext {
         allAuthSubjects.add(authorizationSubject);
         Collections.addAll(allAuthSubjects, furtherAuthorizationSubjects);
 
-        return new ImmutableAuthorizationContext(allAuthSubjects);
+        return new ImmutableAuthorizationContext(type, allAuthSubjects);
     }
 
     /**
@@ -88,14 +103,25 @@ final class ImmutableAuthorizationContext implements AuthorizationContext {
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * 'AuthorizationContext' format.
      */
-    public static AuthorizationContext fromJson(final JsonObject jsonObject) {
-        final List<AuthorizationSubject> authSubjects = jsonObject.getValueOrThrow(JsonFields.AUTH_SUBJECTS)
-                .stream()
-                .map(JsonValue::asString)
-                .map(AuthorizationModelFactory::newAuthSubject)
-                .collect(Collectors.toList());
+    public static ImmutableAuthorizationContext fromJson(final JsonObject jsonObject) {
+        if (jsonObject.isEmpty()) {
+            return of(DittoAuthorizationContextType.UNSPECIFIED, Collections.emptyList());
+        } else {
+            final AuthorizationContextType type =
+                    ImmutableAuthorizationContextType.of(jsonObject.getValueOrThrow(JsonFields.TYPE));
+            final List<AuthorizationSubject> authSubjects = jsonObject.getValueOrThrow(JsonFields.AUTH_SUBJECTS)
+                    .stream()
+                    .map(JsonValue::asString)
+                    .map(AuthorizationModelFactory::newAuthSubject)
+                    .collect(Collectors.toList());
 
-        return of(authSubjects);
+            return of(type, authSubjects);
+        }
+    }
+
+    @Override
+    public AuthorizationContextType getType() {
+        return type;
     }
 
     @Override
@@ -104,8 +130,29 @@ final class ImmutableAuthorizationContext implements AuthorizationContext {
     }
 
     @Override
+    public List<String> getAuthorizationSubjectIds() {
+        List<String> result = authorizationSubjectIds;
+
+        // The AuthorizationSubject IDs are cached for performance reasons.
+        // Caching has not to be thread-safe as the result of this method is guaranteed to be always the same and thus
+        // it does not break immutability from a user's viewpoint (which is the crucial one).
+        // Making this method thread-safe would eliminate the performance gains.
+        if (null == result) {
+            result = Collections.unmodifiableList(authorizationSubjects.stream()
+                    .map(AuthorizationSubject::getId)
+                    .collect(Collectors.toList()));
+            authorizationSubjectIds = result;
+        }
+        return result;
+    }
+
+    @Override
     public Optional<AuthorizationSubject> getFirstAuthorizationSubject() {
-        return authorizationSubjects.stream().findFirst();
+        try {
+            return Optional.of(authorizationSubjects.get(0));
+        } catch (final IndexOutOfBoundsException e) {
+            return Optional.empty();
+        }
     }
 
     @Override
@@ -127,7 +174,7 @@ final class ImmutableAuthorizationContext implements AuthorizationContext {
         newAuthorizationSubjects.addAll(authorizationSubjects);
         newAuthorizationSubjects.addAll(this.authorizationSubjects);
 
-        return new ImmutableAuthorizationContext(newAuthorizationSubjects);
+        return new ImmutableAuthorizationContext(type, newAuthorizationSubjects);
     }
 
     @Override
@@ -139,14 +186,27 @@ final class ImmutableAuthorizationContext implements AuthorizationContext {
         newAuthorizationSubjects.addAll(this.authorizationSubjects);
         newAuthorizationSubjects.addAll(authorizationSubjects);
 
-        return new ImmutableAuthorizationContext(newAuthorizationSubjects);
+        return new ImmutableAuthorizationContext(type, newAuthorizationSubjects);
+    }
+
+    @Override
+    public boolean isAuthorized(final Collection<AuthorizationSubject> granted,
+            final Collection<AuthorizationSubject> revoked) {
+
+        checkNotNull(granted, "granted");
+        checkNotNull(revoked, "revoked");
+
+        final boolean isGranted = !Collections.disjoint(granted, authorizationSubjects);
+        final boolean isRevoked = !Collections.disjoint(revoked, authorizationSubjects);
+
+        return isGranted && !isRevoked;
     }
 
     @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         return JsonFactory.newObjectBuilder()
-                .set(JsonFields.JSON_SCHEMA_VERSION, schemaVersion.toInt(), predicate)
+                .set(JsonFields.TYPE, type.toString(), predicate)
                 .set(JsonFields.AUTH_SUBJECTS, authorizedSubjectsToJson(), predicate)
                 .build();
     }
@@ -168,28 +228,29 @@ final class ImmutableAuthorizationContext implements AuthorizationContext {
         return authorizationSubjects.stream();
     }
 
-    @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067"})
     @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof ImmutableAuthorizationContext)) {
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         final ImmutableAuthorizationContext that = (ImmutableAuthorizationContext) o;
-        return Objects.equals(authorizationSubjects, that.authorizationSubjects);
+        return type.equals(that.type) && authorizationSubjects.equals(that.authorizationSubjects);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(authorizationSubjects);
+        return Objects.hash(type, authorizationSubjects);
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [authorizationSubjects=" + authorizationSubjects + "]";
+        return getClass().getSimpleName() + " [" +
+                "type=" + type +
+                ", authorizationSubjects=" + authorizationSubjects +
+                "]";
     }
 
 }

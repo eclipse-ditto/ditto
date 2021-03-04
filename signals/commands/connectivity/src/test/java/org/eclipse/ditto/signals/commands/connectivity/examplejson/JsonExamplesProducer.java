@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -22,8 +24,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.signals.commands.connectivity.TestConstants;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
@@ -60,10 +62,6 @@ public class JsonExamplesProducer {
             System.exit(-1);
         }
         producer.produce(Paths.get(args[0]));
-    }
-
-    private void produce(final Path rootPath) throws IOException {
-        produceConnectivityCommands(rootPath.resolve("connectivity"));
     }
 
     private static void produceConnectivityCommands(final Path rootPath) throws IOException {
@@ -108,20 +106,12 @@ public class JsonExamplesProducer {
         Files.createDirectories(commandsDir);
 
         final TestConnectionResponse testConnectionResponse =
-                TestConnectionResponse.success(TestConstants.CONNECTION.getId(), "connected",  DittoHeaders.empty());
+                TestConnectionResponse.success(TestConstants.CONNECTION.getId(), "connected", DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("testConnectionResponse.json")), testConnectionResponse);
 
         final CreateConnectionResponse createConnectionResponse =
                 CreateConnectionResponse.of(TestConstants.CONNECTION, DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("createConnection.json")), createConnectionResponse);
-
-        final ModifyConnectionResponse modifyConnectionResponseCreated =
-                ModifyConnectionResponse.created(TestConstants.CONNECTION, DittoHeaders.empty());
-        writeJson(commandsDir.resolve(Paths.get("modifyConnectionCreated.json")), modifyConnectionResponseCreated);
-
-        final ModifyConnectionResponse modifyConnectionResponseModified =
-                ModifyConnectionResponse.created(TestConstants.CONNECTION, DittoHeaders.empty());
-        writeJson(commandsDir.resolve(Paths.get("modifyConnectionModified.json")), modifyConnectionResponseModified);
 
         final DeleteConnectionResponse deleteConnectionResponse =
                 DeleteConnectionResponse.of(TestConstants.ID, DittoHeaders.empty());
@@ -159,18 +149,32 @@ public class JsonExamplesProducer {
         Files.createDirectories(commandsDir);
 
         final RetrieveConnectionResponse retrieveConnectionResponse =
-                RetrieveConnectionResponse.of(TestConstants.CONNECTION, DittoHeaders.empty());
+                RetrieveConnectionResponse.of(TestConstants.CONNECTION.toJson(), DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("retrieveConnection.json")), retrieveConnectionResponse);
 
         final RetrieveConnectionStatusResponse retrieveConnectionStatusResponse =
-                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectionStatus.OPEN, DittoHeaders.empty());
+                RetrieveConnectionStatusResponse.getBuilder(TestConstants.ID, DittoHeaders.empty())
+                        .connectionStatus(ConnectivityStatus.OPEN)
+                        .liveStatus(ConnectivityStatus.CLOSED)
+                        .connectedSince(Instant.now())
+                        .clientStatus( Collections.emptyList())
+                        .sourceStatus(Collections.emptyList())
+                        .targetStatus(Collections.emptyList())
+                        .build();
+
         writeJson(commandsDir.resolve(Paths.get("retrieveConnectionStatus.json")), retrieveConnectionStatusResponse);
 
         final RetrieveConnectionMetricsResponse retrieveConnectionMetricsResponse =
-                RetrieveConnectionMetricsResponse.of(TestConstants.ID,
-                        ConnectivityModelFactory.newConnectionMetrics(ConnectionStatus.OPEN, "some status",
-                                Instant.now(), "CONNECTED",  Collections.emptyList(), Collections.emptyList()),
-                        DittoHeaders.empty());
+                RetrieveConnectionMetricsResponse.getBuilder(TestConstants.ID, DittoHeaders.empty())
+                        .connectionMetrics(ConnectivityModelFactory.newConnectionMetrics(
+                                ConnectivityModelFactory.newAddressMetric(Collections.emptySet()),
+                                ConnectivityModelFactory.newAddressMetric(Collections.emptySet()))
+                        )
+                        .sourceMetrics(ConnectivityModelFactory.newSourceMetrics(Collections.emptyMap()))
+                        .targetMetrics(ConnectivityModelFactory.newTargetMetrics(Collections.emptyMap()))
+                        .build();
+
+
         writeJson(commandsDir.resolve(Paths.get("retrieveConnectionMetrics.json")), retrieveConnectionMetricsResponse);
     }
 
@@ -182,13 +186,15 @@ public class JsonExamplesProducer {
                 connectionFailedException = ConnectionFailedException.newBuilder(TestConstants.ID).build();
         writeJson(exceptionsDir.resolve(Paths.get("connectionFailedException.json")), connectionFailedException);
 
-        final ConnectionNotAccessibleException
-                connectionNotAccessibleException = ConnectionNotAccessibleException.newBuilder(TestConstants.ID).build();
-        writeJson(exceptionsDir.resolve(Paths.get("connectionNotAccessibleException.json")), connectionNotAccessibleException);
+        final ConnectionNotAccessibleException connectionNotAccessibleException =
+                ConnectionNotAccessibleException.newBuilder(TestConstants.ID).build();
+        writeJson(exceptionsDir.resolve(Paths.get("connectionNotAccessibleException.json")),
+                connectionNotAccessibleException);
 
         final ConnectionUnavailableException
                 connectionUnavailableException = ConnectionUnavailableException.newBuilder(TestConstants.ID).build();
-        writeJson(exceptionsDir.resolve(Paths.get("connectionUnavailableException.json")), connectionUnavailableException);
+        writeJson(exceptionsDir.resolve(Paths.get("connectionUnavailableException.json")),
+                connectionUnavailableException);
     }
 
     private static void writeJson(final Path path, final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable)
@@ -201,6 +207,10 @@ public class JsonExamplesProducer {
         final String jsonString = jsonifiable.toJsonString(schemaVersion);
         System.out.println("Writing file: " + path.toAbsolutePath());
         Files.write(path, jsonString.getBytes());
+    }
+
+    private void produce(final Path rootPath) throws IOException {
+        produceConnectivityCommands(rootPath.resolve("connectivity"));
     }
 
 }

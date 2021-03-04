@@ -6,11 +6,17 @@
   "properties": {
     "thingId": {
       "type": "string",
-      "description": "Unique identifier representing the Thing - has to:\n * contain the mandatory namespace prefix (java package notation + `:` colon) - periods (`.`) may be used in namespace but not as first or last character\n * conform to [RFC-2396 (URI)](https://www.ietf.org/rfc/rfc2396.txt).\n\nExamples for a valid Thing ID:\n * `org.eclipse.ditto:xdk_53`\n * `foo:xdk_53`\n * `org.eclipse.vorto_42:xdk_thing`"
+      "description": "Unique identifier representing the Thing, has to conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).\n\nExamples for a valid Thing ID:\n * `org.eclipse.ditto:xdk_53`\n * `foo:xdk_53`\n * `org.eclipse.vorto_42:xdk_thing`"
     },
     "policyId": {
       "type": "string",
-      "description": "Links to the ID of an existing Policy which contains the authorization information applied for this Thing."
+      "description": "Links to the ID of an existing Policy which contains the authorization information applied for this Thing. The policy ID has to conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))."
+    },
+    "definition": {
+      "title": "Definition",
+      "type": "string",
+      "description": "The definition of this Thing declaring its model in the form 'namespace:name:version'.",
+      "pattern": "([_a-zA-Z0-9\\-.]+):([_a-zA-Z0-9\\-.]+):([_a-zA-Z0-9\\-.]+)"
     },
     "attributes": {
       "title": "Attributes",
@@ -20,7 +26,7 @@
     "features": {
       "title": "Features",
       "type": "object",
-      "description": "The Features belonging to this Thing. A Thing can handle any number of Features.\n The key of this object represents the `featureId`. Due to the fact that a Feature ID often needs to be set in the path of a HTTP request, we strongly recommend to use a restricted the set of characters (e.g. those for [Uniform Resource Identifiers (URI)](http://www.ietf.org/rfc/rfc2396.txt)).",
+      "description": "The Features belonging to this Thing. A Thing can handle any number of Features.\n The key of this object represents the `featureId`. Due to the fact that a Feature ID often needs to be set in the path of a HTTP request, we strongly recommend to use a restricted the set of characters (e.g. those for [Uniform Resource Identifiers (URI)](http://www.ietf.org/rfc/rfc3986.txt)).",
       "additionalProperties": {
         "title": "Feature",
         "type": "object",
@@ -32,19 +38,24 @@
             "definition": {
               "title": "Definition",
               "type": "array",
-              "description": "The Definition of the Feature, a list of Identifiers containing at least 1 Identifier in the form 'namespace:name:version'.",
+              "description": "The definition of the Feature declaring its model, a list of Identifiers containing at least 1 Identifier in the form 'namespace:name:version'.",
               "minItems": 1,
               "uniqueItems": true,
               "items": {
                 "type": "string",
-                "description": "A single fully qualified Identifier of a Feature Definition in the form 'namespace:name:version'.",
-                "pattern": "(?<namespace>[_a-zA-Z0-9\\-.]+):(?<name>[_a-zA-Z0-9\\-.]+):(?<version>[_a-zA-Z0-9\\-.]+)"
+                "description": "A single fully qualified Identifier of a Feature definition in the form 'namespace:name:version'.",
+                "pattern": "([_a-zA-Z0-9\\-.]+):([_a-zA-Z0-9\\-.]+):([_a-zA-Z0-9\\-.]+)"
               }
             },
             "properties": {
               "title": "Properties",
               "type": "object",
               "description": "The data related to a Feature is managed in form of a list of properties. Each property itself can be either a simple/scalar value or a complex object. Allowed is any JSON object."
+            },
+            "desiredProperties": {
+              "title": "Desired Properties",
+              "type": "object",
+              "description": "The desired data related to a Feature is managed in form of a list of desired properties. Each desired property itself can be either a simple/scalar value or a complex object. Allowed is any JSON object."
             }
           }
         }
@@ -58,9 +69,19 @@
       "type": "integer",
       "description": "_(read-only)_ The revision is a counter which is incremented on each modification of a Thing."
     },
+    "_created": {
+      "type": "string",
+      "description": "_(read-only)_ The created timestamp of the Thing in ISO-8601 UTC format. The timestamp is set on creation of a Thing.",
+      "format": "date-time"
+    },
     "_modified": {
       "type": "string",
-      "description": "_(read-only)_ The modified timestamp of the Thing in ISO-8601 UTC format. The timestamp is set on each modification of a Thing."
+      "description": "_(read-only)_ The modified timestamp of the Thing in ISO-8601 UTC format. The timestamp is set on each modification of a Thing.",
+      "format": "date-time"
+    },
+    "_metadata": {
+      "type": "object",
+      "description": "_(read-only)_ The Metadata of the Thing. This field is not returned by default but must be selected explicitly. The content is a JSON object having the Thing's JSON structure with the difference that the JSON leaves of the Thing are JSON objects containing the metadata."
     }
   },
   "required": [

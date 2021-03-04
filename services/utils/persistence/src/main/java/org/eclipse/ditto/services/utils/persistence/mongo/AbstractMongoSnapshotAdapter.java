@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -14,7 +16,6 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 
@@ -47,26 +48,26 @@ public abstract class AbstractMongoSnapshotAdapter<T extends Jsonifiable.WithFie
         this.logger = logger;
     }
 
+    @Override
+    public Object toSnapshotStore(final T snapshotEntity) {
+        final JsonObject json = convertToJson(checkNotNull(snapshotEntity, "snapshot entity"));
+
+        onSnapshotStoreConversion(snapshotEntity, json);
+
+        final DittoBsonJson dittoBsonJson = DittoBsonJson.getInstance();
+        return dittoBsonJson.parse(json);
+    }
+
     /**
-     * This method is called exactly once when a snapshot is created. It does nothing by default. Subclasses
-     * may override it to inject code.
+     * This method is called exactly once when a snapshot is created.
+     * It does nothing by default.
+     * Subclasses may override it to inject code.
      *
      * @param snapshotEntity The entity for which the snapshot is created.
      * @param json The JSON object to store as snapshot.
      */
     protected void onSnapshotStoreConversion(final T snapshotEntity, final JsonObject json) {
         // does nothing by default
-    }
-
-    @Override
-    public Object toSnapshotStore(final T snapshotEntity) {
-        checkNotNull(snapshotEntity, "snapshot entity");
-        final JsonObject json = convertToJson(snapshotEntity);
-
-        onSnapshotStoreConversion(snapshotEntity, json);
-
-        final DittoBsonJson dittoBsonJson = DittoBsonJson.getInstance();
-        return dittoBsonJson.parse(json);
     }
 
     @Override
@@ -99,19 +100,17 @@ public abstract class AbstractMongoSnapshotAdapter<T extends Jsonifiable.WithFie
      * @throws NullPointerException if {@code rawSnapshotEntity} is {@code null}.
      */
     @Nullable
-    private T convertSnapshotToJsonifiable(@Nonnull final Object rawSnapshotEntity) {
-        final JsonObject jsonObject = convertSnapshotEntityToJson(rawSnapshotEntity);
-        return tryToCreateJsonifiableFrom(jsonObject);
+    private T convertSnapshotToJsonifiable(final Object rawSnapshotEntity) {
+        return tryToCreateJsonifiableFrom(convertSnapshotEntityToJson(rawSnapshotEntity));
     }
 
-    private static JsonObject convertSnapshotEntityToJson(@Nonnull final Object rawSnapshotEntity) {
+    private static JsonObject convertSnapshotEntityToJson(final Object rawSnapshotEntity) {
         checkNotNull(rawSnapshotEntity, "raw snapshot entity");
         if (rawSnapshotEntity instanceof BsonValue) {
             return convertToJson((BsonValue) rawSnapshotEntity);
-        } else {
-            final String pattern = "Unable to create a Jsonifiable from <{0}>! Expected was a BsonDocument instance.";
-            throw new IllegalArgumentException(MessageFormat.format(pattern, rawSnapshotEntity.getClass()));
         }
+        final String pattern = "Unable to create a Jsonifiable from <{0}>! Expected was a BsonDocument instance.";
+        throw new IllegalArgumentException(MessageFormat.format(pattern, rawSnapshotEntity.getClass()));
     }
 
     /**
@@ -123,7 +122,7 @@ public abstract class AbstractMongoSnapshotAdapter<T extends Jsonifiable.WithFie
      * @throws DittoJsonException if {@code bsonValue} cannot be serialized to a
      * JsonObject.
      */
-    private static JsonObject convertToJson(@Nonnull final BsonValue bsonValue) {
+    private static JsonObject convertToJson(final BsonValue bsonValue) {
         checkNotNull(bsonValue, "BsonValue to be converted");
         final DittoBsonJson dittoBsonJson = DittoBsonJson.getInstance();
         final JsonObject jsonObject = dittoBsonJson.serialize(bsonValue).asObject();
@@ -131,7 +130,7 @@ public abstract class AbstractMongoSnapshotAdapter<T extends Jsonifiable.WithFie
     }
 
     @Nullable
-    private T tryToCreateJsonifiableFrom(@Nonnull final JsonObject jsonObject) {
+    private T tryToCreateJsonifiableFrom(final JsonObject jsonObject) {
         try {
             return createJsonifiableFrom(jsonObject);
         } catch (final JsonParseException | DittoRuntimeException e) {
@@ -148,6 +147,6 @@ public abstract class AbstractMongoSnapshotAdapter<T extends Jsonifiable.WithFie
      * @return the Jsonifiable which originates from {@code jsonObject}.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} does not have the correct format.
      */
-    protected abstract T createJsonifiableFrom(@Nonnull JsonObject jsonObject);
+    protected abstract T createJsonifiableFrom(JsonObject jsonObject);
 
 }

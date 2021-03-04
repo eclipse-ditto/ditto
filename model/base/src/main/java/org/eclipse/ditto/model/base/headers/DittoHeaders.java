@@ -1,27 +1,35 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.model.base.headers;
 
+import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.common.ResponseType;
+import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
@@ -35,10 +43,10 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     /**
      * Returns an empty {@code DittoHeaders} object.
      *
-     * @return empty ditto headers.
+     * @return empty DittoHeaders.
      */
     static DittoHeaders empty() {
-        return DefaultDittoHeadersBuilder.newInstance().build();
+        return DefaultDittoHeadersBuilder.getEmptyHeaders();
     }
 
     /**
@@ -50,6 +58,9 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * @throws IllegalArgumentException if {@code headers} contains an invalid key-value-pair.
      */
     static DittoHeaders of(final Map<String, String> headers) {
+        if (headers instanceof DittoHeaders) {
+            return (DittoHeaders) headers;
+        }
         return newBuilder(headers).build();
     }
 
@@ -88,16 +99,6 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     }
 
     /**
-     * Returns a mutable builder with a fluent API for immutable {@code DittoHeaders}. The builder is initialised with
-     * the entries of this instance.
-     *
-     * @return the new builder.
-     */
-    default DittoHeadersBuilder toBuilder() {
-        return DefaultDittoHeadersBuilder.of(this);
-    }
-
-    /**
      * Creates a single-line String representation of the passed {@code readSubjects} which were retrieved by the
      * {@link #getReadSubjects()} of the DittoHeaders instance. Used when transmitting via a messaging header.
      *
@@ -107,7 +108,7 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      */
     @Deprecated
     static String readSubjectsToString(final Set<String> readSubjects) {
-        return readSubjects.stream().collect(Collectors.joining(","));
+        return String.join(",", readSubjects);
     }
 
     /**
@@ -121,6 +122,16 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     @Deprecated
     static Set<String> readSubjectsFromString(final String readSubjectsString) {
         return new HashSet<>(Arrays.asList(readSubjectsString.split(",")));
+    }
+
+    /**
+     * Returns a mutable builder with a fluent API for immutable {@code DittoHeaders}. The builder is initialised with
+     * the entries of this instance.
+     *
+     * @return the new builder.
+     */
+    default DittoHeadersBuilder toBuilder() {
+        return DefaultDittoHeadersBuilder.of(this);
     }
 
     /**
@@ -138,11 +149,12 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     Optional<String> getContentType();
 
     /**
-     * Returns the source which caused the command, e.g. a "clientId".
+     * Returns the parsed content-type of the entity.
      *
-     * @return the source which caused the command.
+     * @return the parsed content-type.
+     * @since 1.3.0
      */
-    Optional<String> getSource();
+    Optional<ContentType> getDittoContentType();
 
     /**
      * Returns the json schema version.
@@ -156,7 +168,10 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * representation. Changes on the returned List are not reflected back to this headers object.
      *
      * @return the authorization subjects for the command.
+     * @deprecated as of 1.1.0, please use {@link #getAuthorizationContext()} instead for retrieving the
+     * {@code authorizationSubjects}
      */
+    @Deprecated
     List<String> getAuthorizationSubjects();
 
     /**
@@ -171,8 +186,30 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * Thing. Changes on the returned Set are not reflected back to this headers object.
      *
      * @return the read subjects for pointers in the Thing.
+     * @deprecated as of 1.1.0, please use {@link #getReadGrantedSubjects()} instead.
      */
+    @Deprecated
     Set<String> getReadSubjects();
+
+    /**
+     * Returns the authorization subjects with granted "READ" permissions for the key in the map defining a pointer in
+     * the Thing.
+     * Changes on the returned Set are not reflected back to this headers object.
+     *
+     * @return the read granted subjects for pointers in the Thing.
+     * @since 1.1.0
+     */
+    Set<AuthorizationSubject> getReadGrantedSubjects();
+
+    /**
+     * Returns the authorization subjects with explicitly revoked "READ" permissions for the key in the map defining a
+     * pointer in the Thing.
+     * Changes on the returned Set are not reflected back to this headers object.
+     *
+     * @return the read revoked subjects for pointers in the Thing.
+     * @since 1.1.0
+     */
+    Set<AuthorizationSubject> getReadRevokedSubjects();
 
     /**
      * Returns the channel (twin/live) on which a Signal/Exception was sent/occurred.
@@ -182,9 +219,10 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     Optional<String> getChannel();
 
     /**
-     * Returns whether a response to a command is required or if it may be omitted (fire and forget semantics)
+     * Returns whether a response to a command is required or if it may be omitted (fire and forget semantics).
+     * By default this method returns {@code true}.
      *
-     * @return the "response required" value.
+     * @return {@code true} if a response is required, {@code false} else.
      */
     boolean isResponseRequired();
 
@@ -222,4 +260,92 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * @return the entity-tags contained in the If-None-Match header.
      */
     Optional<EntityTagMatchers> getIfNoneMatch();
+
+    /**
+     * Returns the inbound {@code MessageMapper} ID which mapped incoming arbitrary payload from external sources.
+     *
+     * @return the {@code MessageMapper} which mapped incoming payload.
+     */
+    Optional<String> getInboundPayloadMapper();
+
+    /**
+     * @return the reply target of a command-response.
+     */
+    Optional<Integer> getReplyTarget();
+
+    /**
+     * @return the list of response types that should be published to the reply target.
+     * @since 1.2.0
+     */
+    Collection<ResponseType> getExpectedResponseTypes();
+
+    /**
+     * Indicates whether the size of the headers entries is greater than the specified size.
+     *
+     * @param size the size to compare to.
+     * @return {@code true} if the size of the headers entries exceeds {@code size}, {@code false} else.
+     * @throws IllegalArgumentException if {@code maxSizeBytes} is negative.
+     */
+    boolean isEntriesSizeGreaterThan(long size);
+
+    /**
+     * Truncates this headers to the specified size limit, keeping as many header entries as possible.
+     *
+     * @param maxSizeBytes the maximum allowed size in bytes.
+     * @return the headers within the size limit.
+     * @throws IllegalArgumentException if {@code maxSizeBytes} is negative.
+     */
+    DittoHeaders truncate(long maxSizeBytes);
+
+    /**
+     * Returns the acknowledgements ("ACK") which were requested together with an issued Ditto {@code Command}.
+     * Such ACKs are sent back to the issuer of the command so that it can be verified which steps were successful.
+     * <p>
+     * In addition to built-in ACK labels like
+     * {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel#TWIN_PERSISTED} also custom labels may be used
+     * which can be sent back even by external systems.
+     * </p>
+     *
+     * @return an unsorted Set of the requested acknowledgements.
+     * Changes on the set are not reflected back to this DittoHeaders instance.
+     * @since 1.1.0
+     */
+    Set<AcknowledgementRequest> getAcknowledgementRequests();
+
+    /**
+     * Returns the timeout of a command or message.
+     * <p>
+     * E.g. used for when {@code AcknowledgementLabel}s were requested as timeout defining how long to wait for those
+     * Acknowledgements.
+     * </p>
+     *
+     * @return the command timeout.
+     * @since 1.1.0
+     */
+    Optional<Duration> getTimeout();
+
+    /**
+     * Returns the metadata headers to put/set for the (modifying) command they were added to.
+     *
+     * @return the MetadataHeaders to put being a sorted set of {@code MetadataHeader}s.
+     * Changes on the returned set are not reflected back to this DittoHeaders instance.
+     * @since 1.2.0
+     */
+    MetadataHeaders getMetadataHeadersToPut();
+
+    /**
+     * Returns whether the policy lockout is allowed.
+     *
+     * @return {@code true} if the policy lockout is allowed
+     * @since 1.3.0
+     */
+    boolean isAllowPolicyLockout();
+
+    /**
+     * Return a copy of the headers with the original capitalization of header keys.
+     *
+     * @return headers map with the original capitalization.
+     * @since 2.0.0
+     */
+    Map<String, String> asCaseSensitiveMap();
 }

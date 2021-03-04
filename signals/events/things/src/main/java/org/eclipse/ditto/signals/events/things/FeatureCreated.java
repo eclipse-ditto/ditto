@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -27,10 +29,13 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Feature;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
@@ -39,6 +44,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a {@link Feature} was created.
  */
 @Immutable
+@JsonParsableEvent(name = FeatureCreated.NAME, typePrefix = FeatureCreated.TYPE_PREFIX)
 public final class FeatureCreated extends AbstractThingEvent<FeatureCreated> implements
         ThingModifiedEvent<FeatureCreated>, WithFeatureId {
 
@@ -58,13 +64,14 @@ public final class FeatureCreated extends AbstractThingEvent<FeatureCreated> imp
 
     private final Feature feature;
 
-    private FeatureCreated(final String thingId,
+    private FeatureCreated(final ThingId thingId,
             final Feature feature,
             final long revision,
             @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
 
-        super(TYPE, thingId, revision, timestamp, dittoHeaders);
+        super(TYPE, thingId, revision, timestamp, dittoHeaders, metadata);
         this.feature = feature;
     }
 
@@ -77,13 +84,38 @@ public final class FeatureCreated extends AbstractThingEvent<FeatureCreated> imp
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the FeatureCreated created.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.Feature, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
+     * instead.
      */
+    @Deprecated
     public static FeatureCreated of(final String thingId,
             final Feature feature,
             final long revision,
             final DittoHeaders dittoHeaders) {
 
-        return of(thingId, feature, revision, null, dittoHeaders);
+        return of(ThingId.of(thingId), feature, revision, null, dittoHeaders, null);
+    }
+
+    /**
+     * Constructs a new {@code FeatureCreated} object.
+     *
+     * @param thingId the ID of the Thing on which the Feature was created.
+     * @param feature the created {@link Feature}.
+     * @param revision the revision of the Thing.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the FeatureCreated created.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.Feature, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
+     * instead.
+     */
+    @Deprecated
+    public static FeatureCreated of(final ThingId thingId,
+            final Feature feature,
+            final long revision,
+            final DittoHeaders dittoHeaders) {
+
+        return of(thingId, feature, revision, null, dittoHeaders, null);
     }
 
     /**
@@ -96,15 +128,66 @@ public final class FeatureCreated extends AbstractThingEvent<FeatureCreated> imp
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the FeatureCreated created.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.Feature, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
+     * instead.
      */
+    @Deprecated
     public static FeatureCreated of(final String thingId,
             final Feature feature,
             final long revision,
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
 
+        return of(ThingId.of(thingId), feature, revision, timestamp, dittoHeaders, null);
+    }
+
+    /**
+     * Constructs a new {@code FeatureCreated} object.
+     *
+     * @param thingId the ID of the Thing on which the Feature was created.
+     * @param feature the created {@link Feature}.
+     * @param revision the revision of the Thing.
+     * @param timestamp the timestamp of this event.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the FeatureCreated created.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.Feature, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
+     * instead.
+     */
+    @Deprecated
+    public static FeatureCreated of(final ThingId thingId,
+            final Feature feature,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
         checkNotNull(feature, "Feature");
-        return new FeatureCreated(thingId, feature, revision, timestamp, dittoHeaders);
+        return of(thingId, feature, revision, timestamp, dittoHeaders, null);
+    }
+
+    /**
+     * Constructs a new {@code FeatureCreated} object.
+     *
+     * @param thingId the ID of the Thing on which the Feature was created.
+     * @param feature the created {@link Feature}.
+     * @param revision the revision of the Thing.
+     * @param timestamp the timestamp of this event.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @param metadata the metadata to apply for the event.
+     * @return the FeatureCreated created.
+     * @throws NullPointerException if any argument but {@code timestamp} and {@code metadata} is {@code null}.
+     * @since 1.3.0
+     */
+    public static FeatureCreated of(final ThingId thingId,
+            final Feature feature,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
+
+        checkNotNull(feature, "Feature");
+        return new FeatureCreated(thingId, feature, revision, timestamp, dittoHeaders, metadata);
     }
 
     /**
@@ -133,17 +216,19 @@ public final class FeatureCreated extends AbstractThingEvent<FeatureCreated> imp
      * 'FeatureCreated' format.
      */
     public static FeatureCreated fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<FeatureCreated>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
-            final String extractedFeatureId = jsonObject.getValueOrThrow(JsonFields.FEATURE_ID);
-            final JsonObject featureJsonObject = jsonObject.getValueOrThrow(JSON_FEATURE);
+        return new EventJsonDeserializer<FeatureCreated>(TYPE, jsonObject).deserialize(
+                (revision, timestamp, metadata) -> {
+                    final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
+                    final String extractedFeatureId = jsonObject.getValueOrThrow(JsonFields.FEATURE_ID);
+                    final JsonObject featureJsonObject = jsonObject.getValueOrThrow(JSON_FEATURE);
 
-            final Feature extractedFeature = !featureJsonObject.isNull()
-                    ? ThingsModelFactory.newFeatureBuilder(featureJsonObject).useId(extractedFeatureId).build()
-                    : ThingsModelFactory.nullFeature(extractedFeatureId);
+                    final Feature extractedFeature = !featureJsonObject.isNull()
+                            ? ThingsModelFactory.newFeatureBuilder(featureJsonObject).useId(extractedFeatureId).build()
+                            : ThingsModelFactory.nullFeature(extractedFeatureId);
 
-            return of(extractedThingId, extractedFeature, revision, timestamp, dittoHeaders);
-        });
+                    return of(thingId, extractedFeature, revision, timestamp, dittoHeaders, metadata);
+                });
     }
 
     /**
@@ -172,12 +257,14 @@ public final class FeatureCreated extends AbstractThingEvent<FeatureCreated> imp
 
     @Override
     public FeatureCreated setRevision(final long revision) {
-        return of(getThingId(), feature, revision, getTimestamp().orElse(null), getDittoHeaders());
+        return of(getThingEntityId(), feature, revision, getTimestamp().orElse(null), getDittoHeaders(),
+                getMetadata().orElse(null));
     }
 
     @Override
     public FeatureCreated setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingId(), feature, getRevision(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getThingEntityId(), feature, getRevision(), getTimestamp().orElse(null), dittoHeaders,
+                getMetadata().orElse(null));
     }
 
     @Override

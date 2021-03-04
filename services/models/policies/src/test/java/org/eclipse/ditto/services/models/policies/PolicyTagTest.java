@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -27,7 +29,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class PolicyTagTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(PolicyTag.JsonFields.ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyTag.JsonFields.ID, TestConstants.Policy.POLICY_ID.toString())
             .set(PolicyTag.JsonFields.REVISION, TestConstants.Policy.REVISION_NUMBER)
             .build();
 
@@ -57,7 +59,7 @@ public final class PolicyTagTest {
         final PolicyTag underTest = PolicyTag.fromJson(KNOWN_JSON);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Policy.POLICY_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Policy.POLICY_ID);
         assertThat(underTest.getRevision()).isEqualTo(TestConstants.Policy.REVISION_NUMBER);
     }
 

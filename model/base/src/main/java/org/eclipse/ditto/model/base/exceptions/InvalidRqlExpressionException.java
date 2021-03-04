@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -12,31 +14,38 @@ package org.eclipse.ditto.model.base.exceptions;
 
 import java.net.URI;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown if an RQL expression is invalid.
  */
-public class InvalidRqlExpressionException extends DittoRuntimeException {
+@JsonParsableException(errorCode = InvalidRqlExpressionException.ERROR_CODE)
+public final class InvalidRqlExpressionException extends DittoRuntimeException {
 
     /**
      * Error code of this exception.
      */
     public static final String ERROR_CODE = "rql.expression.invalid";
 
-    static final String DEFAULT_DESCRIPTION = "Ensure that all opening parentheses have also closing ones and that the " +
-            "RQL expression is valid.";
-    static final HttpStatusCode STATUS_CODE = HttpStatusCode.BAD_REQUEST;
+    static final String DEFAULT_DESCRIPTION = "Ensure that all opening parentheses have also closing ones and that " +
+            "the RQL expression is valid.";
+    static final HttpStatus HTTP_STATUS = HttpStatus.BAD_REQUEST;
 
     private static final long serialVersionUID = 8900314242209005665L;
 
-    private InvalidRqlExpressionException(final DittoHeaders dittoHeaders, final String message, final String description,
-            final Throwable cause, final URI href) {
-        super(ERROR_CODE, STATUS_CODE, dittoHeaders, message, description, cause, href);
+    private InvalidRqlExpressionException(final DittoHeaders dittoHeaders,
+            final String message,
+            final String description,
+            final Throwable cause,
+            final URI href) {
+
+        super(ERROR_CODE, HTTP_STATUS, dittoHeaders, message, description, cause, href);
     }
 
     @Override
@@ -59,12 +68,11 @@ public class InvalidRqlExpressionException extends DittoRuntimeException {
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new InvalidRqlExpressionException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static InvalidRqlExpressionException fromMessage(final String message, final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+    public static InvalidRqlExpressionException fromMessage(@Nullable final String message,
+            final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
@@ -74,21 +82,28 @@ public class InvalidRqlExpressionException extends DittoRuntimeException {
      * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new InvalidRqlExpressionException.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
-     * JsonFields#MESSAGE} field.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static InvalidRqlExpressionException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
+    }
+
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new Builder()
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
                 .dittoHeaders(dittoHeaders)
-                .message(readMessage(jsonObject))
-                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
-                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 
     /**
      * A mutable builder with a fluent API for a {@link InvalidRqlExpressionException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<InvalidRqlExpressionException> {
@@ -98,9 +113,15 @@ public class InvalidRqlExpressionException extends DittoRuntimeException {
         }
 
         @Override
-        protected InvalidRqlExpressionException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected InvalidRqlExpressionException doBuild(final DittoHeaders dittoHeaders,
+                final String message,
+                final String description,
+                final Throwable cause,
+                final URI href) {
+
             return new InvalidRqlExpressionException(dittoHeaders, message, description, cause, href);
         }
+
     }
+
 }

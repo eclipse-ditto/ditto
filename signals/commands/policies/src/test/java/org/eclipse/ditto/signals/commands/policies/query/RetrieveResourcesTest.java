@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -22,6 +24,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.TestConstants;
@@ -36,7 +39,7 @@ public final class RetrieveResourcesTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(PolicyCommand.JsonFields.TYPE, RetrieveResources.TYPE)
-            .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(RetrieveResources.JSON_LABEL, TestConstants.Policy.LABEL.toString())
             .build();
 
@@ -46,7 +49,7 @@ public final class RetrieveResourcesTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(RetrieveResources.class, areImmutable(),
-                provided(Label.class, JsonFieldSelector.class).isAlsoImmutable());
+                provided(Label.class, JsonFieldSelector.class, PolicyId.class).isAlsoImmutable());
     }
 
 
@@ -60,10 +63,16 @@ public final class RetrieveResourcesTest {
 
     @Test
     public void tryToCreateInstanceWithNullPolicyId() {
+        assertThatExceptionOfType(NullPointerException.class)
+                .isThrownBy(() -> RetrieveResources.of((PolicyId) null, TestConstants.Policy.LABEL,
+                        EMPTY_DITTO_HEADERS));
+    }
+
+    @Test
+    public void tryToCreateInstanceWithNullPolicyIdString() {
         assertThatExceptionOfType(PolicyIdInvalidException.class)
-                .isThrownBy(() -> RetrieveResources.of(null, TestConstants.Policy.LABEL,
-                        EMPTY_DITTO_HEADERS))
-                .withNoCause();
+                .isThrownBy(() -> RetrieveResources.of((String) null, TestConstants.Policy.LABEL,
+                        EMPTY_DITTO_HEADERS));
     }
 
 
@@ -71,8 +80,7 @@ public final class RetrieveResourcesTest {
     public void tryToCreateInstanceWithInvalidPolicyId() {
         assertThatExceptionOfType(PolicyIdInvalidException.class)
                 .isThrownBy(() -> RetrieveResources.of("undefined", TestConstants.Policy.LABEL,
-                        EMPTY_DITTO_HEADERS))
-                .withNoCause();
+                        EMPTY_DITTO_HEADERS));
     }
 
 
@@ -98,7 +106,7 @@ public final class RetrieveResourcesTest {
         final RetrieveResources underTest = RetrieveResources.fromJson(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Policy.POLICY_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Policy.POLICY_ID);
         assertThat(underTest.getLabel()).isEqualTo(TestConstants.Policy.LABEL);
     }
 

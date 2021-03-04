@@ -1,18 +1,23 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.live.query;
 
+import java.util.function.Predicate;
+
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.live.base.LiveCommandAnswerBuilder;
 import org.eclipse.ditto.signals.commands.live.base.LiveCommandResponseFactory;
@@ -31,6 +36,18 @@ public interface RetrieveThingLiveCommandAnswerBuilder extends
      */
     @ParametersAreNonnullByDefault
     interface ResponseFactory extends LiveCommandResponseFactory {
+
+        /**
+         * Creates a success response containing the retrieved value for the {@link RetrieveThing} command.
+         *
+         * @param thing the value of the requested Thing.
+         * @param predicate a predicate determining which fields from the provided Thing should be included in the
+         * response.
+         * @return the response.
+         * @throws NullPointerException if any argument is {@code null}.
+         */
+        @Nonnull
+        RetrieveThingResponse retrieved(Thing thing, Predicate<JsonField> predicate);
 
         /**
          * Creates a success response containing the retrieved value for the {@link RetrieveThing} command.

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -34,7 +36,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  * A list of {@code EntityIdWithRevision} batched together.
  */
 @Immutable
-public final class BatchedEntityIdWithRevisions<E extends EntityIdWithRevision>
+public final class BatchedEntityIdWithRevisions<E extends EntityIdWithRevision<?>>
         implements Jsonifiable<JsonObject>, StreamingMessage, WithManifest {
 
     static final JsonFieldDefinition<String> JSON_TYPE = Command.JsonFields.TYPE;
@@ -58,7 +60,7 @@ public final class BatchedEntityIdWithRevisions<E extends EntityIdWithRevision>
      * @param elements the batched elements.
      * @return a new {@code BatchedEntityIdWithRevisions} object.
      */
-    public static <T extends EntityIdWithRevision> BatchedEntityIdWithRevisions<T> of(final Class<T> elementClass,
+    public static <T extends EntityIdWithRevision<?>> BatchedEntityIdWithRevisions<T> of(final Class<T> elementClass,
             final List<T> elements) {
         return new BatchedEntityIdWithRevisions<>(typeOf(elementClass), elements);
     }
@@ -70,7 +72,7 @@ public final class BatchedEntityIdWithRevisions<E extends EntityIdWithRevision>
      * @param elementClass class of the elements.
      * @return type name of {@code BatchedEntityIdWithRevisions} with elements of type {@code T}.
      */
-    public static <T extends EntityIdWithRevision> String typeOf(final Class<T> elementClass) {
+    public static <T extends EntityIdWithRevision<?>> String typeOf(final Class<T> elementClass) {
         return TYPE_PREFIX + "batched" + elementClass.getSimpleName();
     }
 
@@ -81,7 +83,7 @@ public final class BatchedEntityIdWithRevisions<E extends EntityIdWithRevision>
      * @param elementDeserializer deserializer for the elements.
      * @return deserializer for {@code BatchedEntityIdWithRevisions} with elements of type {@code T}.
      */
-    public static <T extends EntityIdWithRevision> Function<JsonObject, Jsonifiable<?>> deserializer(
+    public static <T extends EntityIdWithRevision<?>> Function<JsonObject, Jsonifiable<?>> deserializer(
             final Function<JsonObject, T> elementDeserializer) {
         return jsonObject -> {
             final String type = jsonObject.getValueOrThrow(JSON_TYPE);
@@ -89,7 +91,7 @@ public final class BatchedEntityIdWithRevisions<E extends EntityIdWithRevision>
             final List<T> elements = jsonArray.stream()
                     .map(jsonValue -> elementDeserializer.apply(jsonValue.asObject()))
                     .collect(Collectors.toList());
-            return new BatchedEntityIdWithRevisions<T>(type, elements);
+            return new BatchedEntityIdWithRevisions<>(type, elements);
         };
     }
 

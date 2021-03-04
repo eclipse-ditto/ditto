@@ -1,23 +1,28 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.common;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -42,7 +47,7 @@ public final class PurgeNamespaceReasonTest {
         knownNamespace = "com.example.test";
         knownJsonRepresentation = JsonFactory.newObjectBuilder()
                 .set(ShutdownReason.JsonFields.TYPE, purgeNamespaceType.toString())
-                .set(ShutdownReason.JsonFields.DETAILS, knownNamespace)
+                .set(ShutdownReason.JsonFields.DETAILS, JsonValue.of(knownNamespace))
                 .build();
     }
 
@@ -69,16 +74,6 @@ public final class PurgeNamespaceReasonTest {
     }
 
     @Test
-    public void getDetailsReturnsNamespace() {
-        assertThat(underTest.getDetails()).contains(knownNamespace);
-    }
-
-    @Test
-    public void getNamespaceReturnsNamespace() {
-        assertThat(underTest.getNamespace()).isEqualTo(knownNamespace);
-    }
-
-    @Test
     public void tryToGetInstanceWithEmptyNamespace() {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> PurgeNamespaceReason.of(""))
@@ -98,10 +93,36 @@ public final class PurgeNamespaceReasonTest {
     }
 
     @Test
+    public void fromJson() {
+        assertThat(PurgeNamespaceReason.fromJson(knownJsonRepresentation)).isEqualTo(underTest);
+    }
+
+    @Test
+    public void fromJsonWithoutDetailsCausesException() {
+        final JsonObject shutDownNamespaceReasonWithoutDetails = knownJsonRepresentation.toBuilder()
+                .remove(ShutdownReason.JsonFields.DETAILS)
+                .build();
+
+        assertThatExceptionOfType(JsonMissingFieldException.class).isThrownBy(
+                () -> PurgeNamespaceReason.fromJson(shutDownNamespaceReasonWithoutDetails))
+                .withMessageContaining(ShutdownReason.JsonFields.DETAILS.getPointer().toString())
+                .withNoCause();
+    }
+
+    @Test
+    public void isRelevantForIsTrueIfNamespaceIsEqual() {
+        assertThat(underTest.isRelevantFor(knownNamespace)).isTrue();
+    }
+
+    @Test
+    public void isRelevantForIsFalseIfNamespaceIsNotEqual() {
+        assertThat(underTest.isRelevantFor(knownNamespace + "X")).isFalse();
+    }
+
+    @Test
     public void toStringContainsExpected() {
         assertThat(underTest.toString())
                 .contains(underTest.getClass().getSimpleName())
-                .contains(purgeNamespaceType)
                 .contains(knownNamespace);
     }
 

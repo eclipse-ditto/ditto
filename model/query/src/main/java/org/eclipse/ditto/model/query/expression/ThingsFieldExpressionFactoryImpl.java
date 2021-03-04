@@ -1,16 +1,19 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.model.query.expression;
 
 import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -48,59 +51,104 @@ public final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpres
     }
 
     @Override
-    public FilterFieldExpression filterBy(final String propertyName) throws IllegalArgumentException {
+    public FilterFieldExpression filterBy(final String propertyNameWithOptionalLeadingSlash)
+            throws IllegalArgumentException {
+
+        requireNonNull(propertyNameWithOptionalLeadingSlash);
+        final String propertyName = stripLeadingSlash(propertyNameWithOptionalLeadingSlash);
+
         final Supplier<FilterFieldExpression> defaultSupplier = () -> (FilterFieldExpression) common(propertyName);
         return FieldExpressionUtil.parseFeatureField(requireNonNull(propertyName))
-                .map(f -> f.getProperty()
-                        .map(property -> f.getFeatureId()
+                .<FilterFieldExpression>flatMap(f ->
+                        f.getProperty().isPresent()
+                                ? f.getProperty().flatMap(property ->
                                 // we have a feature id and a property path
-                                .map(id -> (FilterFieldExpression) new FeatureIdPropertyExpressionImpl(id, property))
-                                // we have a property path
-                                .orElseGet(() -> new FeaturePropertyExpressionImpl(property))
+                                f.getFeatureId().map(id -> new FeatureIdPropertyExpressionImpl(id, property))
                         )
-                        // we have a feature field but no property path, this is invalid for filter operations
-                        .orElseGet(defaultSupplier)
+                                : f.getDesiredProperty().flatMap(desiredProperty ->
+                                f.getFeatureId()
+                                        .map(id -> new FeatureIdDesiredPropertyExpressionImpl(id, desiredProperty))
+                        )
                 )
-                // we have no feature at all, continue with the other possibilities
                 .orElseGet(defaultSupplier);
     }
 
     @Override
-    public ExistsFieldExpression existsBy(final String propertyName) throws IllegalArgumentException {
-        return FieldExpressionUtil.parseFeatureField(requireNonNull(propertyName))
-                .map(f -> f.getFeatureId()
-                        .map(id -> f.getProperty()
-                                // we have a feature id and a property path
-                                .map(property -> (ExistsFieldExpression) new FeatureIdPropertyExpressionImpl(id,
-                                        property))
-                                // we have a feature id but no property path
-                                .orElseGet(() -> new FeatureExpressionImpl(id))
-                        )
-                        // we have a feature field but no feature id, means it must be a property path
-                        .orElseGet(() -> (ExistsFieldExpression) f.getProperty()
-                                .map((String property) -> (ExistsFieldExpression) new FeaturePropertyExpressionImpl(
-                                        property))
-                                // at this point, we know that there must be a property, so the following throw should
-                                // never happen and is only there to make the compiler happy:
-                                .orElseThrow(() ->
-                                        new IllegalStateException("Illegal state while parsing feature property path."))
+    public ExistsFieldExpression existsBy(final String propertyNameWithOptionalLeadingSlash) {
+        checkNotNull(propertyNameWithOptionalLeadingSlash, "propertyNameWithOptionalLeadingSlash");
+        final String propertyName = stripLeadingSlash(propertyNameWithOptionalLeadingSlash);
+
+        return FieldExpressionUtil.parseFeatureField(propertyName)
+                .flatMap(f -> f.getFeatureId()
+                        .map(id ->
+                                f.getProperty().<ExistsFieldExpression>map(
+
+                                        // property
+                                        property -> new FeatureIdPropertyExpressionImpl(id, property))
+
+                                        // desiredProperty
+                                        .orElse(f.getDesiredProperty().<ExistsFieldExpression>map(
+                                                desiredProperty -> new FeatureIdDesiredPropertyExpressionImpl(id,
+                                                        desiredProperty))
+                                                .orElseGet(() -> {
+                                                    if (f.isProperties()) {
+
+                                                        // we have a feature ID and the properties path,
+                                                        // but no property
+                                                        return new FeatureIdPropertiesExpressionImpl(id);
+                                                    } else if (f.isDesiredProperties()) {
+
+                                                        // we have a feature ID and the desired properties path,
+                                                        // but no desired property
+                                                        return new FeatureIdDesiredPropertiesExpressionImpl(id);
+                                                    } else {
+
+                                                        // we have a feature ID but no property path
+                                                        return new FeatureExpressionImpl(id);
+                                                    }
+                                                }))
                         )
                 )
+
                 // we have no feature at all, continue with the other possibilities
                 .orElseGet(() -> (ExistsFieldExpression) common(propertyName));
     }
 
     @Override
-    public SortFieldExpression sortBy(final String propertyName) throws IllegalArgumentException {
+    public SortFieldExpression sortBy(final String propertyNameWithOptionalLeadingSlash)
+            throws IllegalArgumentException {
+
+        requireNonNull(propertyNameWithOptionalLeadingSlash);
+        final String propertyName = stripLeadingSlash(propertyNameWithOptionalLeadingSlash);
+
         return FieldExpressionUtil.parseFeatureField(requireNonNull(propertyName))
                 .flatMap(f -> f.getFeatureId()
-                        .flatMap(id -> f.getProperty()
-                                .flatMap(property -> Optional
-                                        .of((SortFieldExpression) new FeatureIdPropertyExpressionImpl(id, property))
-                                )
+                        .flatMap(id ->
+                                f.getProperty().isPresent()
+                                        ? f.getProperty()
+                                        .flatMap(property -> Optional.of(
+                                                new FeatureIdPropertyExpressionImpl(id, property)))
+                                        : f.getDesiredProperty()
+                                        .flatMap(desiredProperty -> Optional.of(
+                                                new FeatureIdDesiredPropertyExpressionImpl(id, desiredProperty)))
                         )
                 )
                 .orElseGet(() -> (SortFieldExpression) common(propertyName));
+    }
+
+    /**
+     * Strip the optional leading slash of the propertyName, because it may be a Json Pointer.
+     *
+     * @param propertyName the property name which may start with a slash
+     * @return the propertyName without leading slash
+     */
+    private static String stripLeadingSlash(final String propertyName) {
+        requireNonNull(propertyName);
+        if (propertyName.startsWith("/")) {
+            return propertyName.substring(1);
+        } else {
+            return propertyName;
+        }
     }
 
     /**
@@ -109,9 +157,12 @@ public final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpres
      * @throws IllegalArgumentException if the property can not be mapped. Because of this, call this method last in the
      * workflow.
      */
-    private FieldExpression common(final String propertyName) throws IllegalArgumentException {
+    private FieldExpression common(final String propertyName) {
         if (FieldExpressionUtil.isAttributeFieldName(propertyName)) {
             return new AttributeExpressionImpl(FieldExpressionUtil.stripAttributesPrefix(propertyName));
+        }
+        if (FieldExpressionUtil.isDefinitionFieldName(propertyName)) {
+            return new SimpleFieldExpressionImpl(propertyName);
         }
 
         final String fieldName = simpleFieldMappings.get(propertyName);
@@ -122,73 +173,4 @@ public final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpres
         throw new IllegalArgumentException("Unknown property name: " + propertyName);
     }
 
-    @Override
-    public ExistsFieldExpression existsByFeatureId(final String featureId) {
-        return new FeatureExpressionImpl(featureId);
-    }
-
-    @Override
-    public FilterFieldExpression filterByFeatureProperty(final String property) {
-        return new FeaturePropertyExpressionImpl(property);
-    }
-
-    @Override
-    public ExistsFieldExpression existsByFeatureProperty(final String property) {
-        return new FeaturePropertyExpressionImpl(property);
-    }
-
-    @Override
-    public FilterFieldExpression filterByFeatureProperty(final String featureId, final String property) {
-        return new FeatureIdPropertyExpressionImpl(featureId, property);
-    }
-
-    @Override
-    public ExistsFieldExpression existsByFeatureProperty(final String featureId, final String property) {
-        return new FeatureIdPropertyExpressionImpl(featureId, property);
-    }
-
-    @Override
-    public SortFieldExpression sortByFeatureProperty(final String featureId, final String property) {
-        return new FeatureIdPropertyExpressionImpl(featureId, property);
-    }
-
-    @Override
-    public FilterFieldExpression filterByAttribute(final String key) {
-        return new AttributeExpressionImpl(key);
-    }
-
-    @Override
-    public ExistsFieldExpression existsByAttribute(final String key) {
-        return new AttributeExpressionImpl(key);
-    }
-
-    @Override
-    public SortFieldExpression sortByAttribute(final String key) {
-        return new AttributeExpressionImpl(requireNonNull(key));
-    }
-
-    @Override
-    public FilterFieldExpression filterByAcl() {
-        return new ThingsAclFieldExpressionImpl();
-    }
-
-    @Override
-    public FilterFieldExpression filterByGlobalRead() {
-        return new ThingsGlobalReadsFieldExpressionImpl();
-    }
-
-    @Override
-    public FilterFieldExpression filterByThingId() {
-        return new SimpleFieldExpressionImpl(FieldExpressionUtil.FIELD_ID);
-    }
-
-    @Override
-    public SortFieldExpression sortByThingId() {
-        return new SimpleFieldExpressionImpl(FieldExpressionUtil.FIELD_ID);
-    }
-
-    @Override
-    public FilterFieldExpression filterByNamespace() {
-        return new SimpleFieldExpressionImpl(FieldExpressionUtil.FIELD_NAMESPACE);
-    }
 }

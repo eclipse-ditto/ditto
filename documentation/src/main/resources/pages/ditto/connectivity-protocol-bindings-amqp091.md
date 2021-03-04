@@ -5,6 +5,11 @@ tags: [protocol, connectivity, rql]
 permalink: connectivity-protocol-bindings-amqp091.html
 ---
 
+Consume messages from AMQP 0.9.1 brokers via [sources](#source-format) and send messages to AMQP 0.9.1 brokers via 
+[targets](#target-format).
+
+## Content-type
+
 When messages are sent in [Ditto Protocol](protocol-overview.html) (as `UTF-8` encoded String payload), 
 the `content-type` of AMQP 0.9.1 messages must be set to:
 
@@ -12,7 +17,7 @@ the `content-type` of AMQP 0.9.1 messages must be set to:
 application/vnd.eclipse.ditto+json
 ```
 
-If messages which are not in Ditto Protocol should be processed, a [payload mapping](connectivity-mapping.html) must
+If messages, which are not in Ditto Protocol, should be processed, a [payload mapping](connectivity-mapping.html) must
 be configured for the AMQP 0.9.1 connection in order to transform the messages. 
 
 ## AMQP 0.9.1 properties
@@ -24,10 +29,14 @@ Supported AMQP 0.9.1 properties which are interpreted in a specific way are:
 
 ## Specific connection configuration
 
+The common configuration for connections in [Connections > Sources](basic-connections.html#sources) and 
+[Connections > Targets](basic-connections.html#targets) applies here as well. 
+Following are some specifics for AMQP 0.9.1 connections:
+
 ### Source format
 
 An AMQP 0.9.1 connection requires the protocol configuration source object to have an `addresses` property with a list
-of queue names and `authorizationContext` array that contains the authorization subjects in whose context 
+of queue names, and `authorizationContext` array that contains the authorization subjects, in whose context 
 incoming messages are processed. These subjects may contain placeholders, see 
 [placeholders](basic-connections.html#placeholder-for-source-authorization-subjects) section for more information.
 
@@ -42,49 +51,21 @@ incoming messages are processed. These subjects may contain placeholders, see
 }
 ```
 
-#### Enforcement
+#### Source acknowledgement handling
 
-{% include_relative connectivity-enforcement.md %}
+For AMQP 0.9.1 sources, when configuring 
+[acknowledgement requests](basic-connections.html#source-acknowledgement-requests), consumed messages from the AMQP 0.9.1
+broker are treated in the following way:
 
-The following placeholders are available for the `input` field:
+For Ditto acknowledgements with successful [status](protocol-specification-acks.html#combined-status-code):
+* Acknowledges a single AMQP 0.9.1 message with an `Ack` message for the received `deliveryTag`
 
-| Placeholder    | Description  | Example   |
-|-----------|-------|---------------|
-| `{%raw%}{{ header:<name> }}{%endraw%}` | Any header from the message received via the source. | `{%raw%}{{header:device_id }}{%endraw%}`  |
+For Ditto acknowledgements with mixed successful/failed [status](protocol-specification-acks.html#combined-status-code):
+* If some of the aggregated [acknowledgements](basic-acknowledgements.html#acknowledgements-acks) require redelivery (e.g. based on a timeout):
+   * Negatively acknowledges the AMQP 0.9.1 message with a `Nack` message for the received `deliveryTag` and setting `requeue` to `true`
+* If none of the aggregated [acknowledgements](basic-acknowledgements.html#acknowledgements-acks) require redelivery:
+   * Negatively acknowledges the AMQP 0.9.1 message with a `Nack` message for the received `deliveryTag` and setting `requeue` to `false` preventing redelivery by the AMQP 0.9.1 broker
 
-The following configuration demonstrates using an enforcement ensuring that the AMQP 0.9.1 header `device_id` matches a 
-set of whitelisted device ids:
-```json
-{
-  "addresses": [
-    "<queue_name>",
-    "..."
-  ],
-  "authorizationContext": ["ditto:inbound-auth-subject", "..."],
-  "enforcement": {
-    "input": "{%raw%}{{ header:device_id }}{%endraw%}",
-    "filters": [ "whitelisted-device-id-1", "whitelisted-device-id-2" ]
-  }
-}
-```
-
-#### Source header mapping
-
-For incoming AMQP 0.9.1 messages, an optional [header mapping](connectivity-header-mapping.html) may be applied.
-
-The JSON for an AMQP 0.9.1 source with header mapping could like this:
-```json
-{
-  "addresses": [
-    "<queue_name>"
-  ],
-  "authorizationContext": ["ditto:inbound-auth-subject"],
-  "headerMapping": {
-    "correlation-id": "{%raw%}{{ header:message-id }}{%endraw%}",
-    "content-type": "{%raw%}{{ header:content-type }}{%endraw%}"
-  }
-}
-```
 
 ### Target format
 
@@ -96,7 +77,7 @@ Further, `"topics"` is a list of strings, each list entry representing a subscri
 [Ditto protocol topics](protocol-specification-topic.html).
 
 Outbound messages are published to the configured target address if one of the subjects in `"authorizationContext"`
-have READ permission on the Thing that is associated with a message.
+has READ permission on the thing, which is associated with a message.
 
 
 ```json
@@ -110,55 +91,21 @@ have READ permission on the Thing that is associated with a message.
 }
 ```
 
-#### Filtering 
+#### Target acknowledgement handling
 
-In order to only consume specific events like described in [change notifications](basic-changenotifications.html), the
-following parameters can additionally be provided when specifying the `topics` of a target:
+For AMQP 0.9.1 targets, when configuring 
+[automatically issued acknowledgement labels](basic-connections.html#target-issued-acknowledgement-label), requested 
+acknowledgements are produced in the following way:
 
-| Description | Topic | Filter by namespaces | Filter by RQL expression |
-|-------------|-----------------|------------------|-----------|
-| Subscribe for [events/change notifications](basic-changenotifications.html) | `_/_/things/twin/events` | &#10004; | &#10004; |
-| Subscribe for [messages](basic-messages.html) | `_/_/things/live/messages` | &#10004; | &#10060; |
-| Subscribe for [live commands](protocol-twinlive.html) | `_/_/things/live/commands` | &#10004; | &#10060; |
-| Subscribe for [live events](protocol-twinlive.html) | `_/_/things/live/events` | &#10004; | &#10004; |
-
-The parameters are specified similar to HTTP query parameters, the first one separated with a `?` and all following ones
-with `&`. You have to URL encode the filter values before using them in a configuration.
-
-For example this way the connection session would register for all events in the namespace `org.eclipse.ditto` and which
-would match an attribute "counter" to be greater than 42. Additionally it would subscribe to messages in the namespace
-`org.eclipse.ditto`:
-```json
-{
-  "address": "<exchange_name>/<routing_key>",
-  "topics": [
-    "_/_/things/twin/events?namespaces=org.eclipse.ditto&filter=gt(attributes/counter,42)",
-    "_/_/things/live/messages?namespaces=org.eclipse.ditto"
-  ],
-  "authorizationContext": ["ditto:outbound-auth-subject", "..."]
-}
-```
-
-#### Target header mapping
-
-For outgoing AMQP 0.9.1 messages, an optional [header mapping](connectivity-header-mapping.html) may be applied.
-
-The JSON for an AMQP 0.9.1 target with header mapping could like this:
-```json
-{
-  "address": "<exchange_name>/<routing_key>",
-  "topics": [
-    "_/_/things/twin/events",
-    "_/_/things/live/messages?namespaces=org.eclipse.ditto"
-  ],
-  "authorizationContext": ["ditto:inbound-auth-subject"],
-  "headerMapping": {
-    "message-id": "{%raw%}{{ header:correlation-id }}{%endraw%}",
-    "content-type": "{%raw%}{{ header:content-type }}{%endraw%}"
-  }
-}
-```
-
+Once the AMQP 0.9.1 client signals that the message was acknowledged by the AMQP 0.9.1 broker, the following information 
+is mapped to the automatically created [acknowledgement](protocol-specification-acks.html#acknowledgement):
+* Acknowledgement.status: 
+   * will be `200`, if the message was successfully ACKed by the AMQP 0.9.1 broker
+   * will be `400`, if the AMQP 0.9.1 broker does not support publisher confirms
+   * will be `503`, if the AMQP 0.9.1 broker negatively confirmed receiving a message
+* Acknowledgement.value: 
+   * will be missing, for status `200`
+   * will contain more information, in case that an error `status` was set
 
 ### Specific configuration properties
 
@@ -203,11 +150,3 @@ Example connection configuration to create a new AMQP 0.9.1 connection (e.g. in 
   }
 }
 ```
-
-## Messages
-
-Messages consumed via the AMQP 0.9.1 binding are treated similar to the [WebSocket binding](httpapi-protocol-bindings-websocket.html)
-meaning that the messages are expected to be [Ditto Protocol](protocol-overview.html) messages serialized as JSON (as 
-shown for example in the [protocol examples](protocol-examples.html)). If your payload is not conform to the [Ditto
-Protocol](protocol-overview.html), you can configure a custom [payload mapping](connectivity-mapping.html).
- 

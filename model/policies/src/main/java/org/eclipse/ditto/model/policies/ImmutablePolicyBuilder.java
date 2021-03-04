@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -23,8 +25,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-
 /**
  * A mutable builder for a {@link ImmutablePolicy} with a fluent API.
  */
@@ -34,11 +34,12 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
     private final Map<Label, Map<SubjectId, Subject>> subjects;
     private final Map<Label, Map<ResourceKey, Permissions>> grantedPermissions;
     private final Map<Label, Map<ResourceKey, Permissions>> revokedPermissions;
-    @Nullable private String id;
+    @Nullable private PolicyId id;
     @Nullable private PolicyLifecycle lifecycle;
     @Nullable private PolicyRevision revision;
-    @Nullable private Instant modified;
     @Nullable private PolicyImports imports;
+    @Nullable private Instant modified;
+    @Nullable private Instant created;
 
     private ImmutablePolicyBuilder() {
         subjects = new LinkedHashMap<>();
@@ -47,8 +48,18 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
         id = null;
         lifecycle = null;
         revision = null;
-        modified = null;
         imports = null;
+        modified = null;
+        created = null;
+    }
+
+    /**
+     * Returns a new empty builder for a {@code Policy}.
+     *
+     * @return the new builder.
+     */
+    public static ImmutablePolicyBuilder newInstance() {
+        return new ImmutablePolicyBuilder();
     }
 
     /**
@@ -56,9 +67,10 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
      *
      * @param id the ID of the new Policy.
      * @return the new builder.
-     * @throws PolicyIdInvalidException if {@code policyId} did not comply to {@link Policy#ID_REGEX}.
+     * @throws PolicyIdInvalidException if {@code policyId} did not comply to
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
-    public static ImmutablePolicyBuilder of(final CharSequence id) {
+    public static ImmutablePolicyBuilder of(final PolicyId id) {
         return new ImmutablePolicyBuilder().setId(id);
     }
 
@@ -70,9 +82,10 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
      * @param policyEntries the initials entries of the new builder.
      * @return the new builder.
      * @throws NullPointerException if {@code policyEntries} is null;
-     * @throws PolicyIdInvalidException if {@code policyId} did not comply to {@link Policy#ID_REGEX}.
+     * @throws PolicyIdInvalidException if {@code policyId} did not comply to
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
-    public static PolicyBuilder of(final CharSequence id, final Iterable<PolicyEntry> policyEntries) {
+    public static PolicyBuilder of(final PolicyId id, final Iterable<PolicyEntry> policyEntries) {
         checkNotNull(policyEntries, "initial Policy entries");
 
         final ImmutablePolicyBuilder result = new ImmutablePolicyBuilder();
@@ -88,19 +101,19 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
      * @param existingPolicy the existing Policy to instantiate the builder with.
      * @return the new builder.
      * @throws NullPointerException if {@code existingPolicy} is {@code null}.
-     * @throws PolicyIdInvalidException if {@code policyId} did not comply to {@link Policy#ID_REGEX}.
+     * @throws PolicyIdInvalidException if {@code policyId} did not comply to
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static PolicyBuilder of(final Policy existingPolicy) {
         checkNotNull(existingPolicy, "existing Policy");
 
-        @SuppressWarnings("ConstantConditions")
         final ImmutablePolicyBuilder result = new ImmutablePolicyBuilder()
                 .setLifecycle(existingPolicy.getLifecycle().orElse(null))
                 .setRevision(existingPolicy.getRevision().orElse(null))
                 .setModified(existingPolicy.getModified().orElse(null))
                 .setImports(existingPolicy.getImports().orElse(null));
 
-        existingPolicy.getId().ifPresent(result::setId);
+        existingPolicy.getEntityId().ifPresent(result::setId);
         existingPolicy.forEach(result::set);
 
         return result;
@@ -112,9 +125,14 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
     }
 
     @Override
+    @Deprecated
     public ImmutablePolicyBuilder setId(final CharSequence id) {
-        PolicyIdValidator.getInstance().accept(id, DittoHeaders.empty());
-        this.id = String.valueOf(id);
+        return setId(PolicyId.of(id));
+    }
+
+    @Override
+    public ImmutablePolicyBuilder setId(final PolicyId id) {
+        this.id = checkNotNull(id, "Policy ID");
         return this;
     }
 
@@ -139,6 +157,12 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
     @Override
     public ImmutablePolicyBuilder setImports(@Nullable final PolicyImports imports) {
         this.imports = imports;
+        return this;
+    }
+
+    @Override
+    public ImmutablePolicyBuilder setCreated(@Nullable final Instant created) {
+        this.created = created;
         return this;
     }
 
@@ -327,7 +351,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
                 .map(lbl -> PoliciesModelFactory.newPolicyEntry(lbl, getFinalSubjects(lbl), getFinalResources(lbl)))
                 .collect(Collectors.toList());
 
-        return ImmutablePolicy.of(id, lifecycle, revision, modified, imports, policyEntries);
+        return ImmutablePolicy.of(id, lifecycle, revision, imports, modified, created, policyEntries);
     }
 
     @Nonnull

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -20,6 +22,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.junit.Test;
 
@@ -34,7 +38,8 @@ public final class AclEntryDeletedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.ID, AclEntryDeleted.NAME)
             .set(Event.JsonFields.REVISION, 2L)
-            .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID)
+            .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
+            .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(AclEntryDeleted.JSON_AUTHORIZATION_SUBJECT, TestConstants.Authorization.AUTH_SUBJECT_GRIMES.getId())
             .build();
 
@@ -52,9 +57,15 @@ public final class AclEntryDeletedTest {
                 .verify();
     }
 
+    @Test(expected = ThingIdInvalidException.class)
+    public void tryToCreateInstanceWithNullThingIdString() {
+        AclEntryDeleted.of((String) null, TestConstants.Authorization.AUTH_SUBJECT_GRIMES, TestConstants.Thing.REVISION_NUMBER,
+                TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        AclEntryDeleted.of(null, TestConstants.Authorization.AUTH_SUBJECT_GRIMES, TestConstants.Thing.REVISION_NUMBER,
+        AclEntryDeleted.of((ThingId) null, TestConstants.Authorization.AUTH_SUBJECT_GRIMES, TestConstants.Thing.REVISION_NUMBER,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
@@ -76,7 +87,7 @@ public final class AclEntryDeletedTest {
     public void toJsonReturnsExpected() {
         final AclEntryDeleted underTest =
                 AclEntryDeleted.of(TestConstants.Thing.THING_ID, TestConstants.Authorization.AUTH_SUBJECT_GRIMES,
-                        2, TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS);
+                        2, TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
         final JsonObject actualJson = underTest.toJson(JsonSchemaVersion.V_1, FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualToIgnoringFieldDefinitions(KNOWN_JSON

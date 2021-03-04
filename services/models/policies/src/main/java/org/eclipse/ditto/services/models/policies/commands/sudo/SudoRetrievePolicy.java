@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -23,7 +25,9 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
@@ -33,6 +37,7 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
  */
 @Immutable
 @AllValuesAreNonnullByDefault
+@JsonParsableCommand(typePrefix = SudoRetrievePolicy.TYPE_PREFIX, name = SudoRetrievePolicy.NAME)
 public final class SudoRetrievePolicy extends AbstractCommand<SudoRetrievePolicy>
         implements SudoCommand<SudoRetrievePolicy> {
 
@@ -46,9 +51,9 @@ public final class SudoRetrievePolicy extends AbstractCommand<SudoRetrievePolicy
      */
     public static final String TYPE = SudoCommand.TYPE_PREFIX + NAME;
 
-    private final String policyId;
+    private final PolicyId policyId;
 
-    private SudoRetrievePolicy(final String policyId, final DittoHeaders dittoHeaders) {
+    private SudoRetrievePolicy(final PolicyId policyId, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
 
         this.policyId = checkNotNull(policyId, "Policy identifier");
@@ -62,7 +67,7 @@ public final class SudoRetrievePolicy extends AbstractCommand<SudoRetrievePolicy
      * @return a Command for retrieving the Policy with the {@code policyId} as its ID.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static SudoRetrievePolicy of(final String policyId, final DittoHeaders dittoHeaders) {
+    public static SudoRetrievePolicy of(final PolicyId policyId, final DittoHeaders dittoHeaders) {
         return new SudoRetrievePolicy(policyId, dittoHeaders);
     }
 
@@ -95,8 +100,9 @@ public final class SudoRetrievePolicy extends AbstractCommand<SudoRetrievePolicy
      */
     public static SudoRetrievePolicy fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         final String extractedPolicyId = jsonObject.getValueOrThrow(SudoCommand.JsonFields.JSON_POLICY_ID);
+        final PolicyId policyId = PolicyId.of(extractedPolicyId);
 
-        return SudoRetrievePolicy.of(extractedPolicyId, dittoHeaders);
+        return SudoRetrievePolicy.of(policyId, dittoHeaders);
     }
 
     /**
@@ -105,7 +111,7 @@ public final class SudoRetrievePolicy extends AbstractCommand<SudoRetrievePolicy
      * @return the identifier of the Policy to retrieve.
      */
     @Override
-    public String getId() {
+    public PolicyId getEntityId() {
         return policyId;
     }
 
@@ -114,7 +120,7 @@ public final class SudoRetrievePolicy extends AbstractCommand<SudoRetrievePolicy
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(SudoCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(SudoCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
     }
 
     @Override

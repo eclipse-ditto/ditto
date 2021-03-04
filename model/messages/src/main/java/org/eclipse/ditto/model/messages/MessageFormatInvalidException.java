@@ -1,14 +1,18 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.model.messages;
+
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.net.URI;
 import java.util.Objects;
@@ -24,16 +28,18 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
  * Indicates that the performed validation on this message failed.
  */
+@JsonParsableException(errorCode = MessageFormatInvalidException.ERROR_CODE)
 public final class MessageFormatInvalidException extends DittoRuntimeException implements MessageException {
 
     /**
@@ -66,7 +72,7 @@ public final class MessageFormatInvalidException extends DittoRuntimeException i
             @Nullable final Throwable cause,
             @Nullable final URI href,
             @Nullable final JsonArray validationErrors) {
-        super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, HttpStatus.BAD_REQUEST, dittoHeaders, message, description, cause, href);
         this.validationErrors = validationErrors;
     }
 
@@ -113,14 +119,28 @@ public final class MessageFormatInvalidException extends DittoRuntimeException i
      * @param dittoHeaders the headers.
      * @return an instance of this class.
      * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static MessageFormatInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        checkNotNull(jsonObject, "jsonObject");
+        final Builder builder = new Builder();
+        jsonObject.getValue(VALIDATION_ERRORS)
+                .filter(JsonValue::isArray)
+                .map(JsonValue::asArray)
+                .ifPresent(builder::validationErrors);
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, builder);
+    }
+
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new Builder()
-                .loadJson(jsonObject)
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
                 .dittoHeaders(dittoHeaders)
-                .message(readMessage(jsonObject))
-                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
-                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 
@@ -148,6 +168,7 @@ public final class MessageFormatInvalidException extends DittoRuntimeException i
         }
 
         @Override
+        @Deprecated
         public Builder loadJson(final JsonObject jsonObject) {
             super.loadJson(jsonObject);
             jsonObject.getValue(VALIDATION_ERRORS)

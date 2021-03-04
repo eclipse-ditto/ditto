@@ -1,16 +1,20 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.utils.metrics.instruments.timer;
 
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import org.eclipse.ditto.services.utils.metrics.instruments.ResettableMetricInstrument;
 import org.eclipse.ditto.services.utils.metrics.instruments.TaggedMetricInstrument;
@@ -21,7 +25,7 @@ import org.eclipse.ditto.services.utils.metrics.instruments.TaggedMetricInstrume
 public interface PreparedTimer extends Timer, ResettableMetricInstrument, TaggedMetricInstrument<PreparedTimer> {
 
     /**
-     * Starts the Timer. This method is package private so only {@link DefaultTimerBuilder} can start
+     * Starts the Timer. This method is package private so only {@link Timers} can start
      * this timer.
      *
      * @return The started {@link StartedTimer timer}.
@@ -38,11 +42,11 @@ public interface PreparedTimer extends Timer, ResettableMetricInstrument, Tagged
     PreparedTimer record(long time, TimeUnit timeUnit);
 
     /**
-     * Gets recorded times in nanoseconds.
+     * Gets sum of all recorded times in nanoseconds.
      *
-     * @return recorded times in nanoseconds.
+     * @return sum of all recorded times in nanoseconds.
      */
-    Long[] getRecords();
+    Long getTotalTime();
 
     /**
      * Get number of records.
@@ -50,4 +54,22 @@ public interface PreparedTimer extends Timer, ResettableMetricInstrument, Tagged
      * @return The number of records for this timer.
      */
     Long getNumberOfRecords();
+
+    /**
+     * Specifies the maximum duration this timer should be running. It will expire after this time.
+     *
+     * @param maximumDuration The maximum duration.
+     * @return A new prepared timer with the new maximum duration.
+     */
+    PreparedTimer maximumDuration(Duration maximumDuration);
+
+    /**
+     * Sets the handling of a timer after expiration. This will be executed in addition to a default handling which
+     * stops the started timer.
+     *
+     * @param additionalExpirationHandling custom handling of timer expiration.
+     * @return A new prepared timer with the new expiration handling.
+     */
+    PreparedTimer onExpiration(final Consumer<StartedTimer> additionalExpirationHandling);
+
 }

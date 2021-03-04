@@ -1,60 +1,57 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.gateway.endpoints.directives.auth;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.concurrent.Executor;
 
-import org.eclipse.ditto.model.policies.SubjectIssuer;
-import org.eclipse.ditto.services.gateway.endpoints.directives.auth.dummy.DummyAuthenticationProvider;
-import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.DittoAuthorizationSubjectsProvider;
-import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.DittoPublicKeyProvider;
-import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.JwtAuthenticationDirective;
-import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.JwtSubjectIssuerConfig;
-import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.JwtSubjectIssuersConfig;
-import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.PublicKeyProvider;
-import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
-import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
+import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationChain;
+import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationFailureAggregator;
+import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationFailureAggregators;
+import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationProvider;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationFactory;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationProvider;
+import org.eclipse.ditto.services.gateway.security.authentication.preauth.PreAuthenticatedAuthenticationProvider;
+import org.eclipse.ditto.services.gateway.util.config.security.AuthenticationConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.typesafe.config.Config;
 
 /**
  * Ditto's default factory for building authentication directives.
  */
-public class DittoGatewayAuthenticationDirectiveFactory implements GatewayAuthenticationDirectiveFactory {
-
-    private static final String JWT_ISSUER_GOOGLE_DOMAIN = "accounts.google.com";
-    private static final String JWT_ISSUER_GOOGLE_URL = "https://accounts.google.com";
-    private static final String JWK_RESOURCE_GOOGLE = "https://www.googleapis.com/oauth2/v2/certs";
+public final class DittoGatewayAuthenticationDirectiveFactory implements GatewayAuthenticationDirectiveFactory {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DittoGatewayAuthenticationDirectiveFactory.class);
 
     private final GatewayAuthenticationDirective gatewayAuthenticationDirective;
 
-    public DittoGatewayAuthenticationDirectiveFactory(final Config config,
-            final HttpClientFacade httpClient) {
-        requireNonNull(config);
-        requireNonNull(httpClient);
+    public DittoGatewayAuthenticationDirectiveFactory(final AuthenticationConfig authConfig,
+            final JwtAuthenticationFactory jwtAuthenticationFactory,
+            final Executor authenticationDispatcher) {
+        checkNotNull(jwtAuthenticationFactory, "jwtAuthenticationFactory");
 
-        gatewayAuthenticationDirective = generateGatewayAuthenticationDirective(config, httpClient);
+        checkNotNull(authConfig, "AuthenticationConfig");
+        checkNotNull(authenticationDispatcher, "authentication dispatcher");
+
+        gatewayAuthenticationDirective = generateGatewayAuthenticationDirective(authConfig, jwtAuthenticationFactory,
+                authenticationDispatcher);
     }
 
     @Override
-    public GatewayAuthenticationDirective buildRestApiAuthentication() {
+    public GatewayAuthenticationDirective buildHttpAuthentication() {
         return gatewayAuthenticationDirective;
     }
 
@@ -63,39 +60,29 @@ public class DittoGatewayAuthenticationDirectiveFactory implements GatewayAuthen
         return gatewayAuthenticationDirective;
     }
 
-    private static GatewayAuthenticationDirective generateGatewayAuthenticationDirective(final Config config,
-            final HttpClientFacade httpClient) {
-        final boolean dummyAuthEnabled = config.getBoolean(ConfigKeys.AUTHENTICATION_DUMMY_ENABLED);
+    private static GatewayAuthenticationDirective generateGatewayAuthenticationDirective(
+            final AuthenticationConfig authConfig,
+            final JwtAuthenticationFactory jwtAuthenticationFactory,
+            final Executor authenticationDispatcher) {
 
-        final List<AuthenticationProvider> authenticationChain = new LinkedList<>();
-        if (dummyAuthEnabled) {
-            LOGGER.warn("Dummy authentication is enabled - Do not use this feature in production.");
-            authenticationChain.add(DummyAuthenticationProvider.INSTANCE);
+        final Collection<AuthenticationProvider<?>> authenticationProviders = new ArrayList<>();
+        if (authConfig.isPreAuthenticationEnabled()) {
+            LOGGER.info("Pre-authentication is enabled!");
+            authenticationProviders.add(PreAuthenticatedAuthenticationProvider.getInstance());
         }
 
+        authenticationProviders.add(
+                JwtAuthenticationProvider.newInstance(jwtAuthenticationFactory.newJwtAuthenticationResultProvider(),
+                        jwtAuthenticationFactory.getJwtValidator()));
 
-        final JwtSubjectIssuersConfig jwtSubjectIssuersConfig = buildJwtSubjectIssuersConfig();
+        final AuthenticationFailureAggregator authenticationFailureAggregator =
+                AuthenticationFailureAggregators.getDefault();
 
-        final PublicKeyProvider publicKeyProvider = DittoPublicKeyProvider.of(jwtSubjectIssuersConfig, httpClient,
-                config.getInt(ConfigKeys.CACHE_PUBLIC_KEYS_MAX),
-                config.getDuration(ConfigKeys.CACHE_PUBLIC_KEYS_EXPIRY), "ditto_authorization_jwt_publicKeys_cache");
-        final DittoAuthorizationSubjectsProvider authorizationSubjectsProvider =
-                DittoAuthorizationSubjectsProvider.of(jwtSubjectIssuersConfig);
-
-        authenticationChain.add(
-                new JwtAuthenticationDirective(publicKeyProvider, authorizationSubjectsProvider));
+        final AuthenticationChain authenticationChain =
+                AuthenticationChain.getInstance(authenticationProviders, authenticationFailureAggregator,
+                        authenticationDispatcher);
 
         return new GatewayAuthenticationDirective(authenticationChain);
     }
 
-    private static JwtSubjectIssuersConfig buildJwtSubjectIssuersConfig() {
-        final Set<JwtSubjectIssuerConfig> configItems = new HashSet<>();
-
-        configItems.add(new JwtSubjectIssuerConfig(SubjectIssuer.GOOGLE, JWT_ISSUER_GOOGLE_DOMAIN,
-                JWK_RESOURCE_GOOGLE));
-        configItems.add(new JwtSubjectIssuerConfig(SubjectIssuer.GOOGLE, JWT_ISSUER_GOOGLE_URL,
-                JWK_RESOURCE_GOOGLE));
-
-        return new JwtSubjectIssuersConfig(configItems);
-    }
 }

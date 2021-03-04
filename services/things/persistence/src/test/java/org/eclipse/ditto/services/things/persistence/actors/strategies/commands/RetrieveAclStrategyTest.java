@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -21,7 +23,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AccessControlList;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CommandStrategy.Context;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy.Context;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAcl;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclResponse;
 import org.junit.Before;
@@ -46,24 +49,25 @@ public final class RetrieveAclStrategyTest extends AbstractCommandStrategyTest {
 
     @Test
     public void resultContainsJsonOfExistingAcl() {
-        final Context context = getDefaultContext();
-        final RetrieveAcl command = RetrieveAcl.of(context.getThingId(), DittoHeaders.empty());
+        final Context<ThingId> context = getDefaultContext();
+        final RetrieveAcl command = RetrieveAcl.of(context.getState(), DittoHeaders.empty());
 
         final AccessControlList expectedAcl = THING_V1.getAccessControlList().get();
         final JsonObject expectedAclJson = expectedAcl.toJson(JsonSchemaVersion.V_1);
 
         final RetrieveAclResponse expectedResponse =
-                retrieveAclResponse(command.getThingId(), expectedAcl, expectedAclJson, command.getDittoHeaders());
+                retrieveAclResponse(command.getThingEntityId(), expectedAcl, expectedAclJson,
+                        command.getDittoHeaders());
 
         assertQueryResult(underTest, THING_V1, command, expectedResponse);
     }
 
     @Test
     public void resultContainsEmptyJsonObject() {
-        final Context context = getDefaultContext();
-        final RetrieveAcl command = RetrieveAcl.of(context.getThingId(), DittoHeaders.empty());
+        final Context<ThingId> context = getDefaultContext();
+        final RetrieveAcl command = RetrieveAcl.of(context.getState(), DittoHeaders.empty());
         final RetrieveAclResponse expectedResponse =
-                RetrieveAclResponse.of(command.getThingId(), JsonFactory.newObject(), command.getDittoHeaders());
+                RetrieveAclResponse.of(command.getThingEntityId(), JsonFactory.newObject(), command.getDittoHeaders());
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
     }

@@ -1,17 +1,18 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.model.things;
 
 import java.time.Instant;
-import java.util.UUID;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
@@ -21,6 +22,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
+import org.eclipse.ditto.model.policies.PolicyId;
 
 /**
  * Builder for instances of {@link Thing} which uses Object Scoping and Method Chaining to provide a convenient usage
@@ -29,19 +32,22 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 public interface ThingBuilder {
 
     /**
-     * Generates a random Thing ID with an empty namespace.
+     * Generates a random Thing ID without namespace.
      *
      * @return the ID
      */
+    @Deprecated
     static String generateRandomThingId() {
-        // for now: use "empty" namespace for generated IDs:
-        return ":" + UUID.randomUUID();
-        // this will change into using the "default" namespace of a solution instead later on
+        return generateRandomTypedThingId().toString();
     }
+
+    static ThingId generateRandomTypedThingId() {
+        return ThingId.generateRandom();
+    }
+
 
     /**
      * A mutable builder with a fluent API for an immutable {@link Thing} from scratch.
-     *
      */
     @NotThreadSafe
     interface FromScratch {
@@ -55,7 +61,9 @@ public interface ThingBuilder {
          * @param furtherPermissions additional permissions of the authorization subject to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromScratch setPermissions(AuthorizationSubject authorizationSubject, Permission permission,
                 Permission... furtherPermissions);
 
@@ -67,7 +75,9 @@ public interface ThingBuilder {
          * @param permissions the permission of of the authorization subject to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromScratch setPermissions(AuthorizationSubject authorizationSubject, Permissions permissions);
 
         /**
@@ -77,7 +87,9 @@ public interface ThingBuilder {
          * @param aclEntries the entries to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code aclEntries} is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromScratch setPermissions(Iterable<AclEntry> aclEntries);
 
         /**
@@ -87,9 +99,12 @@ public interface ThingBuilder {
          * @param accessControlListJsonObject the JSON object representation of an Access Control List.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code accessControlListJsonObject} is {@code null}.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code accessControlListJsonObject} cannot be parsed
+         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code accessControlListJsonObject}
+         * cannot be parsed
          * to {@link AccessControlList}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromScratch setPermissions(JsonObject accessControlListJsonObject);
 
         /**
@@ -98,10 +113,13 @@ public interface ThingBuilder {
          *
          * @param accessControlListJsonString the JSON string representation of an Access Control List.
          * @return this builder to allow method chaining.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code accessControlListJsonString} cannot be parsed
+         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code accessControlListJsonString}
+         * cannot be parsed
          * to {@link AccessControlList}.
          * @see #setPermissions(JsonObject)
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromScratch setPermissions(String accessControlListJsonString);
 
         /**
@@ -112,7 +130,9 @@ public interface ThingBuilder {
          * @param furtherAclEntries additional ACL entries to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromScratch setPermissions(AclEntry aclEntry, AclEntry... furtherAclEntries);
 
         /**
@@ -121,14 +141,18 @@ public interface ThingBuilder {
          * @param authorizationSubject the authorization subject of which all permissions are to be removed.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code authorizationSubject} is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromScratch removePermissionsOf(AuthorizationSubject authorizationSubject);
 
         /**
          * Removes all permissions from this builder.
          *
          * @return this builder to allow method chaining.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromScratch removeAllPermissions();
 
         /**
@@ -136,8 +160,20 @@ public interface ThingBuilder {
          *
          * @param policyId the Policy ID to set.
          * @return this builder to allow method chaining.
+         * @deprecated Policy ID of the Thing is now typed. Use {@link #setPolicyId(PolicyId)} instead.
          */
-        FromScratch setPolicyId(@Nullable String policyId);
+        @Deprecated
+        default FromScratch setPolicyId(@Nullable String policyId) {
+            return setPolicyId(policyId == null ? null : PolicyId.of(policyId));
+        }
+
+        /**
+         * Sets the given Policy ID to this builder.
+         *
+         * @param policyId the Policy ID to set.
+         * @return this builder to allow method chaining.
+         */
+        FromScratch setPolicyId(@Nullable PolicyId policyId);
 
         /**
          * Removes the Policy ID from this builder.
@@ -171,7 +207,8 @@ public interface ThingBuilder {
          *
          * @param attributesJsonString JSON string representation of the attributes to be set.
          * @return this builder to allow method chaining.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code attributesJsonString} is not a valid JSON
+         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code attributesJsonString} is not a
+         * valid JSON
          * object.
          */
         FromScratch setAttributes(String attributesJsonString);
@@ -219,12 +256,36 @@ public interface ThingBuilder {
         FromScratch removeAttribute(JsonPointer attributePath);
 
         /**
+         * Sets the given ThingDefinition to this builder.
+         *
+         * @param definition the Definition to set.
+         * @return this builder to allow method chaining.
+         */
+        FromScratch setDefinition(@Nullable ThingDefinition definition);
+
+        /**
+         * Sets the ThingDefinition to this builder which represent semantically {@code null}.
+         * An already set definition is discarded.
+         *
+         * @return this builder to allow method chaining.
+         */
+        FromScratch setNullDefinition();
+
+        /**
+         * Removes the Definition from this builder.
+         *
+         * @return this builder to allow method chaining.
+         */
+        FromScratch removeDefinition();
+
+        /**
          * Sets the given Feature to this builder. A previously set Feature with the same ID is replaced.
          *
          * @param feature the Feature to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code feature} is {@code null}.
          */
+
         FromScratch setFeature(Feature feature);
 
         /**
@@ -248,6 +309,23 @@ public interface ThingBuilder {
          */
         FromScratch setFeature(String featureId, FeatureDefinition featureDefinition,
                 FeatureProperties featureProperties);
+
+        /**
+         * Sets a Feature with the given ID and properties to this builder. A previously set Feature with the
+         * same ID is replaced.
+         *
+         * @param featureId the ID of the Feature to be set.
+         * @param featureDefinition the definition of the Feature to be set.
+         * @param featureProperties the properties of the Feature to be set.
+         * @param featureDesiredProperties the desired properties of the Feature to be set.
+         * @return this builder to allow method chaining.
+         * @throws NullPointerException if {@code featureId} is {@code null}.
+         * @since 1.5.0
+         */
+        FromScratch setFeature(CharSequence featureId,
+                @Nullable FeatureDefinition featureDefinition,
+                @Nullable FeatureProperties featureProperties,
+                @Nullable FeatureProperties featureDesiredProperties);
 
         /**
          * Sets a Feature with the given ID and properties to this builder. A previously set Feature with the
@@ -331,13 +409,59 @@ public interface ThingBuilder {
         FromScratch removeFeatureProperties(String featureId);
 
         /**
+         * Sets the given desired property to the Feature with the given ID on this builder.
+         *
+         * @param featureId the ID of the Feature.
+         * @param desiredPropertyPath the hierarchical path within the Feature to the desired property to be set.
+         * @param desiredPropertyValue the desired property value to be set.
+         * @return this builder to allow method chaining.
+         * @throws NullPointerException if any argument is {@code null}.
+         * @since 1.5.0
+         */
+        FromScratch setFeatureDesiredProperty(CharSequence featureId, JsonPointer desiredPropertyPath,
+                JsonValue desiredPropertyValue);
+
+        /**
+         * Removes the given desired property from the Feature with the given ID on this builder.
+         *
+         * @param featureId the ID of the Feature.
+         * @param desiredPropertyPath the hierarchical path to within the Feature to the desired property to be removed.
+         * @return this builder to allow method chaining.
+         * @throws NullPointerException if any argument is {@code null}.
+         * @since 1.5.0
+         */
+        FromScratch removeFeatureDesiredProperty(CharSequence featureId, JsonPointer desiredPropertyPath);
+
+        /**
+         * Sets the given desired properties to the Feature with the given ID on this builder.
+         *
+         * @param featureId the ID of the Feature.
+         * @param desiredFeatureProperties the desired properties to be set.
+         * @return this builder to allow method chaining.
+         * @throws NullPointerException if any argument is {@code null}.
+         * @since 1.5.0
+         */
+        FromScratch setFeatureDesiredProperties(CharSequence featureId, FeatureProperties desiredFeatureProperties);
+
+        /**
+         * Removes all desired properties from the Feature with the given ID on this builder.
+         *
+         * @param featureId the ID of the Feature.
+         * @return this builder to allow method chaining.
+         * @throws NullPointerException if {@code featureId} is {@code null}.
+         * @since 1.5.0
+         */
+        FromScratch removeFeatureDesiredProperties(CharSequence featureId);
+
+        /**
          * Sets the features to this builder. The features are parsed from the given JSON object representation of
          * {@link Features}.
          *
          * @param featuresJsonObject JSON object representation of the features to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code featuresJsonObject} is {@code null}.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code featuresJsonObject} cannot be parsed to
+         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code featuresJsonObject} cannot be
+         * parsed to
          * {@link Features}.
          */
         FromScratch setFeatures(JsonObject featuresJsonObject);
@@ -347,7 +471,8 @@ public interface ThingBuilder {
          *
          * @param featuresJsonString JSON string providing the Features of the Thing.
          * @return this builder to allow method chaining.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code featuresJsonString} cannot be parsed to
+         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code featuresJsonString} cannot be
+         * parsed to
          * {@link Features}.
          */
         FromScratch setFeatures(String featuresJsonString);
@@ -408,12 +533,30 @@ public interface ThingBuilder {
         FromScratch setRevision(long revisionNumber);
 
         /**
-         * Sets the given modified to this builder.
+         * Sets the given modified timestamp to this builder.
          *
-         * @param modified the modified to be set.
+         * @param modified the modified timestamp to be set.
          * @return this builder to allow method chaining.
          */
-        FromScratch setModified(Instant modified);
+        FromScratch setModified(@Nullable Instant modified);
+
+        /**
+         * Sets the given created timestamp to this builder.
+         *
+         * @param created the created timestamp to be set.
+         * @return this builder to allow method chaining.
+         * @since 1.2.0
+         */
+        FromScratch setCreated(@Nullable Instant created);
+
+        /**
+         * Sets the given Metadata to this builder.
+         *
+         * @param metadata the metadata to be set.
+         * @return this builder to allow method chaining.
+         * @since 1.2.0
+         */
+        FromScratch setMetadata(@Nullable Metadata metadata);
 
         /**
          * Sets the given Thing ID to this builder. The ID is required to include the Thing's namespace.
@@ -421,8 +564,20 @@ public interface ThingBuilder {
          * @param thingId the Thing ID to be set.
          * @return this builder to allow method chaining.
          * @throws ThingIdInvalidException if {@code thingId} does not comply to the required pattern.
+         * @deprecated thing ID is now typed. Use {@link #setId(ThingId)} instead.
          */
-        FromScratch setId(@Nullable String thingId);
+        @Deprecated
+        default FromScratch setId(@Nullable String thingId) {
+            return setId(ThingId.of(thingId));
+        }
+
+        /**
+         * Sets the given Thing ID to this builder. The ID is required to include the Thing's namespace.
+         *
+         * @param thingId the Thing ID to be set.
+         * @return this builder to allow method chaining.
+         */
+        FromScratch setId(@Nullable ThingId thingId);
 
         /**
          * Sets a generated Thing ID to this builder.
@@ -437,12 +592,12 @@ public interface ThingBuilder {
          * @return the new Thing.
          */
         Thing build();
+
     }
 
     /**
      * A mutable builder with a fluent API for an immutable {@link Thing}. This builder is initialised with the
      * properties of an existing Thing.
-     *
      */
     @NotThreadSafe
     interface FromCopy {
@@ -456,7 +611,9 @@ public interface ThingBuilder {
          * @param furtherPermissions additional permissions of the authorization subject to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         default FromCopy setPermissions(final AuthorizationSubject authorizationSubject, final Permission permission,
                 final Permission... furtherPermissions) {
             return setPermissions(existingAcl -> true, authorizationSubject, permission, furtherPermissions);
@@ -473,7 +630,9 @@ public interface ThingBuilder {
          * @param furtherPermissions additional permissions of the authorization subject to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromCopy setPermissions(Predicate<AccessControlList> existingAclPredicate,
                 AuthorizationSubject authorizationSubject, Permission permission, Permission... furtherPermissions);
 
@@ -485,7 +644,9 @@ public interface ThingBuilder {
          * @param permissions the permission of of the authorization subject to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         default FromCopy setPermissions(final AuthorizationSubject authorizationSubject,
                 final Permissions permissions) {
 
@@ -502,7 +663,9 @@ public interface ThingBuilder {
          * @param permissions the permission of of the authorization subject to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromCopy setPermissions(Predicate<AccessControlList> existingAclPredicate,
                 AuthorizationSubject authorizationSubject, Permissions permissions);
 
@@ -513,7 +676,9 @@ public interface ThingBuilder {
          * @param aclEntries the entries to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code aclEntries} is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         default FromCopy setPermissions(final Iterable<AclEntry> aclEntries) {
             return setPermissions(existingAcl -> true, aclEntries);
         }
@@ -527,7 +692,9 @@ public interface ThingBuilder {
          * @param aclEntries the entries to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromCopy setPermissions(Predicate<AccessControlList> existingAclPredicate, Iterable<AclEntry> aclEntries);
 
         /**
@@ -537,9 +704,11 @@ public interface ThingBuilder {
          * @param accessControlListJsonObject the JSON object representation of an Access Control List.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code accessControlListJsonObject} is {@code null}.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code accessControlListJsonObject} cannot be parsed
-         * to {@link AccessControlList}.
+         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code accessControlListJsonObject}
+         * cannot be parsed to {@link AccessControlList}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         default FromCopy setPermissions(final JsonObject accessControlListJsonObject) {
             return setPermissions(existingAcl -> true, accessControlListJsonObject);
         }
@@ -553,9 +722,12 @@ public interface ThingBuilder {
          * @param accessControlListJsonObject the JSON object representation of an Access Control List.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code accessControlListJsonObject} cannot be parsed
+         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code accessControlListJsonObject}
+         * cannot be parsed
          * to {@link AccessControlList}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromCopy setPermissions(Predicate<AccessControlList> existingAclPredicate,
                 JsonObject accessControlListJsonObject);
 
@@ -564,9 +736,11 @@ public interface ThingBuilder {
          *
          * @param accessControlListJsonString the JSON string representation of an Access Control List.
          * @return this builder to allow method chaining.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code accessControlListJsonString} cannot be parsed
-         * to {@link AccessControlList}.
+         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code accessControlListJsonString}
+         * cannot be parsed to {@link AccessControlList}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         default FromCopy setPermissions(final String accessControlListJsonString) {
             return setPermissions(existingAcl -> true, accessControlListJsonString);
         }
@@ -579,9 +753,11 @@ public interface ThingBuilder {
          * @param accessControlListJsonString the JSON string representation of an Access Control List.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code existingAclPredicate} is {@code null}.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code accessControlListJsonString} cannot be parsed
-         * to {@link AccessControlList}.
+         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code accessControlListJsonString}
+         * cannot be parsed to {@link AccessControlList}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromCopy setPermissions(Predicate<AccessControlList> existingAclPredicate, String accessControlListJsonString);
 
         /**
@@ -592,7 +768,9 @@ public interface ThingBuilder {
          * @param furtherAclEntries additional ACL entries to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         default FromCopy setPermissions(final AclEntry aclEntry, final AclEntry... furtherAclEntries) {
             return setPermissions(existingAcl -> true, aclEntry, furtherAclEntries);
         }
@@ -607,7 +785,9 @@ public interface ThingBuilder {
          * @param furtherAclEntries additional ACL entries to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromCopy setPermissions(Predicate<AccessControlList> existingAclPredicate, AclEntry aclEntry,
                 AclEntry... furtherAclEntries);
 
@@ -617,7 +797,9 @@ public interface ThingBuilder {
          * @param authorizationSubject the authorization subject of which all permissions are removed.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code authorizationSubject} is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         default FromCopy removePermissionsOf(final AuthorizationSubject authorizationSubject) {
             return removePermissionsOf(existingAcl -> true, authorizationSubject);
         }
@@ -630,7 +812,9 @@ public interface ThingBuilder {
          * @param authorizationSubject the authorization subject of which all permissions are removed.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromCopy removePermissionsOf(Predicate<AccessControlList> existingAclPredicate,
                 AuthorizationSubject authorizationSubject);
 
@@ -638,7 +822,9 @@ public interface ThingBuilder {
          * Removes all permissions from this builder.
          *
          * @return this builder to allow method chaining.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         default FromCopy removeAllPermissions() {
             return removeAllPermissions(existingAcl -> true);
         }
@@ -650,7 +836,9 @@ public interface ThingBuilder {
          * receives the ACL which consists of the currently set permissions.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code existingAclPredicate} is {@code null}.
+         * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
          */
+        @Deprecated
         FromCopy removeAllPermissions(Predicate<AccessControlList> existingAclPredicate);
 
         /**
@@ -658,8 +846,20 @@ public interface ThingBuilder {
          *
          * @param policyId the Policy ID to set.
          * @return this builder to allow method chaining.
+         * @deprecated Policy ID of the Thing is now typed. Use {@link #setPolicyId(PolicyId)} instead.
          */
-        FromCopy setPolicyId(@Nullable String policyId);
+        @Deprecated
+        default FromCopy setPolicyId(@Nullable String policyId) {
+            return setPolicyId(policyId == null ? null : PolicyId.of(policyId));
+        }
+
+        /**
+         * Sets the given Policy ID to this builder.
+         *
+         * @param policyId the Policy ID to set.
+         * @return this builder to allow method chaining.
+         */
+        FromCopy setPolicyId(@Nullable PolicyId policyId);
 
         /**
          * Removes the Policy ID from this builder.
@@ -720,8 +920,8 @@ public interface ThingBuilder {
          *
          * @param attributesJsonString JSON string representation of the attributes to be set.
          * @return this builder to allow method chaining.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code attributesJsonString} is not a valid JSON
-         * object.
+         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code attributesJsonString} is not a
+         * valid JSON object.
          */
         default FromCopy setAttributes(final String attributesJsonString) {
             return setAttributes(existingAttributes -> true, attributesJsonString);
@@ -736,8 +936,8 @@ public interface ThingBuilder {
          * @param attributesJsonString JSON string representation of the attributes to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code existingAttributesPredicate} is {@code null}.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code attributesJsonString} is not a valid JSON
-         * object.
+         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code attributesJsonString} is not a
+         * valid JSON object.
          */
         FromCopy setAttributes(Predicate<Attributes> existingAttributesPredicate, String attributesJsonString);
 
@@ -818,6 +1018,29 @@ public interface ThingBuilder {
         FromCopy removeAttribute(Predicate<Attributes> existingAttributesPredicate, JsonPointer attributePath);
 
         /**
+         * Sets the given definition to this builder.
+         *
+         * @param definition the Definition to set.
+         * @return this builder to allow method chaining.
+         */
+        FromCopy setDefinition(@Nullable ThingDefinition definition);
+
+        /**
+         * Sets the ThingDefinition to this builder which represent semantically {@code null}.
+         * An already set definition is discarded.
+         *
+         * @return this builder to allow method chaining.
+         */
+        FromCopy setNullDefinition();
+
+        /**
+         * Removes the ThingDefinition from this builder.
+         *
+         * @return this builder to allow method chaining.
+         */
+        FromCopy removeDefinition();
+
+        /**
          * Sets the given Feature to this builder. A previously set Feature with the same ID is replaced.
          *
          * @param feature the Feature to be set.
@@ -831,8 +1054,8 @@ public interface ThingBuilder {
         /**
          * Sets the given Feature to this builder. A previously set Feature with the same ID is replaced.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
-         * receives the currently set features.
+         * @param existingFeaturesPredicate a predicate which determines, based on the already set features,
+         * whether the provided Feature is set to the builder.
          * @param feature the Feature to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
@@ -853,8 +1076,8 @@ public interface ThingBuilder {
         /**
          * Sets a Feature with the given ID to this builder. A previously set Feature with the same ID is replaced.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
-         * receives the currently set features.
+         * @param existingFeaturesPredicate a predicate which determines, based on the already set features,
+         * whether the provided Feature is set to the builder.
          * @param featureId the ID of the Feature to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
@@ -875,7 +1098,7 @@ public interface ThingBuilder {
         /**
          * Removes the Feature with the given ID from this builder.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
+         * @param existingFeaturesPredicate a predicate to decide whether the given features exist. The predicate
          * receives the currently set features.
          * @param featureId the ID of the Feature to be removed.
          * @return this builder to allow method chaining.
@@ -900,8 +1123,8 @@ public interface ThingBuilder {
          * Sets a Feature with the given ID and properties to this builder. A previously set Feature with the
          * same ID is replaced.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
-         * receives the currently set features.
+         * @param existingFeaturesPredicate a predicate which determines, based on the already set features,
+         * whether the provided Feature is set to the builder.
          * @param featureId the ID of the Feature to be set.
          * @param featureProperties the properties of the Feature to be set.
          * @return this builder to allow method chaining.
@@ -930,7 +1153,28 @@ public interface ThingBuilder {
          * Sets a Feature with the given ID and properties to this builder. A previously set Feature with the
          * same ID is replaced.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
+         * @param featureId the ID of the Feature to be set.
+         * @param featureDefinition the definition of the Feature to be set.
+         * @param featureProperties the properties of the Feature to be set.
+         * @param featureDesiredProperties the desired properties of the Feature to be set.
+         * @return this builder to allow method chaining.
+         * @throws NullPointerException if {@code featureId} is {@code null}.
+         * @since 1.5.0
+         */
+        default FromCopy setFeature(final CharSequence featureId,
+                final FeatureDefinition featureDefinition,
+                final FeatureProperties featureProperties,
+                FeatureProperties featureDesiredProperties) {
+
+            return setFeature(existingFeatures -> true, featureId, featureDefinition, featureProperties,
+                    featureDesiredProperties);
+        }
+
+        /**
+         * Sets a Feature with the given ID and properties to this builder. A previously set Feature with the
+         * same ID is replaced.
+         *
+         * @param existingFeaturesPredicate a predicate to decide whether the given features exist. The predicate
          * receives the currently set features.
          * @param featureId the ID of the Feature to be set.
          * @param featureDefinition the definition of the Feature to be set.
@@ -942,6 +1186,26 @@ public interface ThingBuilder {
                 String featureId,
                 FeatureDefinition featureDefinition,
                 FeatureProperties featureProperties);
+
+        /**
+         * Sets a Feature with the given ID and properties to this builder. A previously set Feature with the
+         * same ID is replaced.
+         *
+         * @param existingFeaturesPredicate a predicate which determines, based on the already set features,
+         * whether the provided Feature is set to the builder.
+         * @param featureId the ID of the Feature to be set.
+         * @param featureDefinition the definition of the Feature to be set.
+         * @param featureProperties the properties of the Feature to be set.
+         * @param featureDesiredProperties the desired properties of the Feature to be set.
+         * @return this builder to allow method chaining.
+         * @throws NullPointerException if any argument is {@code null}.
+         * @since 1.5.0
+         */
+        FromCopy setFeature(Predicate<Features> existingFeaturesPredicate,
+                CharSequence featureId,
+                FeatureDefinition featureDefinition,
+                FeatureProperties featureProperties,
+                FeatureProperties featureDesiredProperties);
 
         /**
          * Sets the given definition to the Feature with the given ID on this builder.
@@ -995,7 +1259,7 @@ public interface ThingBuilder {
         /**
          * Sets the given property to the Feature with the given ID on this builder.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
+         * @param existingFeaturesPredicate a predicate to decide whether the given features exist. The predicate
          * receives the currently set features.
          * @param featureId the ID of the Feature.
          * @param propertyPath the hierarchical path within the Feature to the property to be set.
@@ -1021,8 +1285,8 @@ public interface ThingBuilder {
         /**
          * Removes the given property from the Feature with the given ID on this builder.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
-         * receives the currently set features.
+         * @param existingFeaturesPredicate a predicate which determines, based on the already set features,
+         * whether the provided feature property is removed from the builder.
          * @param featureId the ID of the Feature.
          * @param propertyPath the hierarchical path to within the Feature to the property to be removed.
          * @return this builder to allow method chaining.
@@ -1046,7 +1310,7 @@ public interface ThingBuilder {
         /**
          * Sets the given properties to the Feature with the given ID on this builder.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
+         * @param existingFeaturesPredicate a predicate to decide whether the given features exist. The predicate
          * receives the currently set features.
          * @param featureId the ID of the Feature.
          * @param featureProperties the properties to be set.
@@ -1070,13 +1334,125 @@ public interface ThingBuilder {
         /**
          * Removes all properties from the Feature with the given ID on this builder.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
-         * receives the currently set features.
+         * @param existingFeaturesPredicate a predicate which determines, based on the already set features,
+         * whether the provided feature properties are removed from the builder.
          * @param featureId the ID of the Feature.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
          */
         FromCopy removeFeatureProperties(Predicate<Features> existingFeaturesPredicate, String featureId);
+
+        /**
+         * Sets the given desired property to the Feature with the given ID on this builder.
+         *
+         * @param featureId the ID of the Feature.
+         * @param desiredPropertyPath the hierarchical path within the Feature to the desired property to be set.
+         * @param desiredPropertyValue the desired property value to be set.
+         * @return this builder to allow method chaining.
+         * @throws NullPointerException if any argument is {@code null}.
+         * @since 1.5.0
+         */
+        default FromCopy setFeatureDesiredProperty(final CharSequence featureId, final JsonPointer desiredPropertyPath,
+                final JsonValue desiredPropertyValue) {
+
+            return setFeatureDesiredProperty(existingFeatures -> true, featureId, desiredPropertyPath,
+                    desiredPropertyValue);
+        }
+
+        /**
+         * Sets the given desired property to the Feature with the given ID on this builder.
+         *
+         * @param existingFeaturesPredicate a predicate to decide whether the given features exist. The predicate
+         * receives the currently set features.
+         * @param featureId the ID of the Feature.
+         * @param desiredPropertyPath the hierarchical path within the Feature to the desired property to be set.
+         * @param desiredPropertyValue the desired property value to be set.
+         * @return this builder to allow method chaining.
+         * @throws NullPointerException if any argument is {@code null}.
+         * @since 1.5.0
+         */
+        FromCopy setFeatureDesiredProperty(Predicate<Features> existingFeaturesPredicate, CharSequence featureId,
+                JsonPointer desiredPropertyPath, JsonValue desiredPropertyValue);
+
+        /**
+         * Removes the given desired property from the Feature with the given ID on this builder.
+         *
+         * @param featureId the ID of the Feature.
+         * @param desiredPropertyPath the hierarchical path to within the Feature to the desired property to be removed.
+         * @return this builder to allow method chaining.
+         * @throws NullPointerException if any argument is {@code null}.
+         * @since 1.5.0
+         */
+        default FromCopy removeFeatureDesiredProperty(final CharSequence featureId, final JsonPointer desiredPropertyPath) {
+            return removeFeatureDesiredProperty(existingFeatures -> true, featureId, desiredPropertyPath);
+        }
+
+        /**
+         * Removes the given desired property from the Feature with the given ID on this builder.
+         *
+         * @param existingFeaturesPredicate a predicate which determines, based on the already set features,
+         * whether the provided desired feature property is removed from the builder.
+         * @param featureId the ID of the Feature.
+         * @param desiredPropertyPath the hierarchical path to within the Feature to the desired property to be removed.
+         * @return this builder to allow method chaining.
+         * @throws NullPointerException if any argument is {@code null}.
+         * @since 1.5.0
+         */
+        FromCopy removeFeatureDesiredProperty(Predicate<Features> existingFeaturesPredicate, CharSequence featureId,
+                JsonPointer desiredPropertyPath);
+
+        /**
+         * Sets the given desired properties to the Feature with the given ID on this builder.
+         *
+         * @param featureId the ID of the Feature.
+         * @param desiredFeatureProperties the desired properties to be set.
+         * @return this builder to allow method chaining.
+         * @throws NullPointerException if any argument is {@code null}.
+         * @since 1.5.0
+         */
+        default FromCopy setFeatureDesiredProperties(final CharSequence featureId,
+                final FeatureProperties desiredFeatureProperties) {
+
+            return setFeatureDesiredProperties(features -> true, featureId, desiredFeatureProperties);
+        }
+
+        /**
+         * Sets the given desired properties to the Feature with the given ID on this builder.
+         *
+         * @param existingFeaturesPredicate a predicate to decide whether the given features exist. The predicate
+         * receives the currently set features.
+         * @param featureId the ID of the Feature.
+         * @param desiredFeatureProperties the desired properties to be set.
+         * @return this builder to allow method chaining.
+         * @throws NullPointerException if any argument is {@code null}.
+         * @since 1.5.0
+         */
+        FromCopy setFeatureDesiredProperties(Predicate<Features> existingFeaturesPredicate, CharSequence featureId,
+                FeatureProperties desiredFeatureProperties);
+
+        /**
+         * Removes all desired properties from the Feature with the given ID on this builder.
+         *
+         * @param featureId the ID of the Feature.
+         * @return this builder to allow method chaining.
+         * @throws NullPointerException if {@code featureId} is {@code null}.
+         * @since 1.5.0
+         */
+        default FromCopy removeFeatureDesiredProperties(final CharSequence featureId) {
+            return removeFeatureDesiredProperties(existingFeatures -> true, featureId);
+        }
+
+        /**
+         * Removes all desired properties from the Feature with the given ID on this builder.
+         *
+         * @param existingFeaturesPredicate a predicate which determines, based on the already set features,
+         * whether the provided desired feature properties are removed from the builder.
+         * @param featureId the ID of the Feature.
+         * @return this builder to allow method chaining.
+         * @throws NullPointerException if any argument is {@code null}.
+         * @since 1.5.0
+         */
+        FromCopy removeFeatureDesiredProperties(Predicate<Features> existingFeaturesPredicate, CharSequence featureId);
 
         /**
          * Sets the features to this builder. The features are parsed from the given JSON object representation of
@@ -1096,7 +1472,7 @@ public interface ThingBuilder {
          * Sets the features to this builder. The features are parsed from the given JSON object representation of
          * {@link Features}.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
+         * @param existingFeaturesPredicate a predicate to decide whether the given features exist. The predicate
          * receives the currently set features.
          * @param featuresJsonObject JSON object representation of the features to be set.
          * @return this builder to allow method chaining.
@@ -1122,8 +1498,8 @@ public interface ThingBuilder {
         /**
          * Sets the Features of the Thing based on the given JSON object.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
-         * receives the currently set features.
+         * @param existingFeaturesPredicate a predicate which determines, based on the already set features,
+         * whether the provided features are set to the builder.
          * @param featuresJsonString JSON string providing the Features of the Thing.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
@@ -1146,7 +1522,7 @@ public interface ThingBuilder {
         /**
          * Sets the given Features to this builder.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
+         * @param existingFeaturesPredicate a predicate to decide whether the given features exist. The predicate
          * receives the currently set features.
          * @param features the Features to be set.
          * @return this builder to allow method chaining.
@@ -1166,8 +1542,8 @@ public interface ThingBuilder {
         /**
          * Removes all features from this builder.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
-         * receives the currently set features.
+         * @param existingFeaturesPredicate a predicate which determines, based on the already set features,
+         * whether all features are removed from the builder.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code existingFeaturesPredicate} is {@code null}.
          */
@@ -1255,15 +1631,76 @@ public interface ThingBuilder {
         }
 
         /**
-         * Sets the given modified to this builder.
+         * Sets the given modified timestamp to this builder.
          *
-         * @param existingModifiedPredicate a predicate to decide whether the given modified is set. The predicate
-         * receives the currently set modified.
-         * @param modified the modified to be set.
+         * @param existingModifiedPredicate a predicate to decide whether the given modified timestamp is set. The
+         * predicate
+         * receives the currently set modified timestamp.
+         * @param modified the modified timestamp to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code existingModifiedPredicate} is {@code null}.
          */
         FromCopy setModified(Predicate<Instant> existingModifiedPredicate, @Nullable Instant modified);
+
+
+        /**
+         * Sets the given created timestamp to this builder.
+         *
+         * @param created the created timestamp to be set.
+         * @return this builder to allow method chaining.
+         * @since 1.2.0
+         */
+        default FromCopy setCreated(@Nullable final Instant created) {
+            return setCreated(existingCreated -> true, created);
+        }
+
+        /**
+         * Sets the given created timestamp to this builder.
+         *
+         * @param existingCreatedPredicate a predicate to decide whether the given created timestamp is set. The
+         * predicate receives the currently set created timestamp.
+         * @param created the created to be set.
+         * @return this builder to allow method chaining.
+         * @throws NullPointerException if {@code existingCreatedPredicate} is {@code null}.
+         * @since 1.2.0
+         */
+        FromCopy setCreated(Predicate<Instant> existingCreatedPredicate, @Nullable Instant created);
+
+        /**
+         * Sets the given metadata to this builder.
+         *
+         * @param metadata the metadata to be set.
+         * @return this builder to allow method chaining.
+         * @since 1.2.0
+         */
+        default FromCopy setMetadata(@Nullable final Metadata metadata) {
+            return setMetadata(existingMetadata -> true, metadata);
+        }
+
+        /**
+         * Sets the given metadata to this builder.
+         *
+         * @param existingMetadataPredicate a predicate to decide whether the given metadata is set. The
+         * predicate receives the currently set metadata.
+         * @param metadata the metadata to be set.
+         * @return this builder to allow method chaining.
+         * @since 1.2.0
+         */
+        FromCopy setMetadata(Predicate<Metadata> existingMetadataPredicate, @Nullable Metadata metadata);
+
+        /**
+         * Sets the given Thing ID to this builder. The ID is required to include the Thing's namespace.
+         *
+         * @param thingId the Thing ID to be set.
+         * @return this builder to allow method chaining.
+         * @throws ThingIdInvalidException if {@code thingId} does not comply to
+         * the required pattern.
+         * @deprecated Thing ID is now typed. Use {@link #setId(ThingId)} instead.
+         */
+        @Deprecated
+        default FromCopy setId(@Nullable final String thingId) {
+            return setId(existingId -> true, thingId);
+        }
 
         /**
          * Sets the given Thing ID to this builder. The ID is required to include the Thing's namespace.
@@ -1273,7 +1710,7 @@ public interface ThingBuilder {
          * @throws ThingIdInvalidException if {@code thingId} does not comply to
          * the required pattern.
          */
-        default FromCopy setId(@Nullable final String thingId) {
+        default FromCopy setId(@Nullable final ThingId thingId) {
             return setId(existingId -> true, thingId);
         }
 
@@ -1287,8 +1724,28 @@ public interface ThingBuilder {
          * @throws NullPointerException if {@code existingIdPredicate} is {@code null}.
          * @throws ThingIdInvalidException if {@code thingId} does not comply to
          * the required pattern.
+         * @deprecated Thing ID is now typed. Use
+         * {@link #setId(java.util.function.Predicate, ThingId)}
+         * instead.
          */
-        FromCopy setId(Predicate<String> existingIdPredicate, @Nullable String thingId);
+        @Deprecated
+        default FromCopy setId(Predicate<String> existingIdPredicate, @Nullable String thingId) {
+            final Predicate<ThingId> thingIdPredicate = thingId1 -> existingIdPredicate.test(thingId1.toString());
+            return setId(thingIdPredicate, ThingId.of(thingId));
+        }
+
+        /**
+         * Sets the given Thing ID to this builder. The ID is required to include the Thing's namespace.
+         *
+         * @param existingIdPredicate a predicate to decide whether the given ID is set. The predicate receives
+         * the currently set Thing ID.
+         * @param thingId the Thing ID to be set.
+         * @return this builder to allow method chaining.
+         * @throws NullPointerException if {@code existingIdPredicate} is {@code null}.
+         * @throws ThingIdInvalidException if {@code thingId} does not comply to
+         * the required pattern.
+         */
+        FromCopy setId(Predicate<ThingId> existingIdPredicate, @Nullable ThingId thingId);
 
         /**
          * Sets a generated Thing ID to this builder.
@@ -1307,7 +1764,7 @@ public interface ThingBuilder {
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code existingIdPredicate} is {@code null}.
          */
-        FromCopy setGeneratedId(Predicate<String> existingIdPredicate);
+        FromCopy setGeneratedId(Predicate<ThingId> existingIdPredicate);
 
         /**
          * Creates a new Thing object based on the data which was provided to this builder.

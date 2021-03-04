@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -32,7 +34,9 @@ import org.eclipse.ditto.services.concierge.enforcement.placeholders.strategies.
  * its {@link DittoHeaders}.
  */
 @Immutable
-public final class PlaceholderSubstitution implements Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>>  {
+public final class PlaceholderSubstitution
+        implements Function<WithDittoHeaders<?>, CompletionStage<WithDittoHeaders<?>>> {
+
     private final HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm;
     private final SubstitutionStrategyRegistry substitutionStrategyRegistry;
 
@@ -88,8 +92,7 @@ public final class PlaceholderSubstitution implements Function<WithDittoHeaders,
         if (firstMatchingStrategyOpt.isPresent()) {
             final SubstitutionStrategy firstMatchingStrategy = firstMatchingStrategyOpt.get();
             return CompletableFuture.supplyAsync(() -> {
-                @SuppressWarnings("unchecked")
-                final WithDittoHeaders maybeSubstituted =
+                @SuppressWarnings("unchecked") final WithDittoHeaders maybeSubstituted =
                         firstMatchingStrategy.apply(withDittoHeaders, substitutionAlgorithm);
 
                 return maybeSubstituted;
@@ -101,7 +104,8 @@ public final class PlaceholderSubstitution implements Function<WithDittoHeaders,
 
     private static Map<String, Function<DittoHeaders, String>> createDefaultReplacementDefinitions() {
         final Map<String, Function<DittoHeaders, String>> defaultReplacementDefinitions = new LinkedHashMap<>();
-        defaultReplacementDefinitions.put(SubjectIdReplacementDefinition.REPLACER_NAME, SubjectIdReplacementDefinition.getInstance());
+        defaultReplacementDefinitions.put(SubjectIdReplacementDefinition.REPLACER_NAME,
+                SubjectIdReplacementDefinition.getInstance());
         defaultReplacementDefinitions.put(SubjectIdReplacementDefinition.LEGACY_REPLACER_NAME,
                 SubjectIdReplacementDefinition.getInstance());
         return Collections.unmodifiableMap(defaultReplacementDefinitions);

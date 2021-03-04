@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -18,6 +20,7 @@ import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Function;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -63,8 +66,8 @@ final class ImmutableSearchProperty implements SearchProperty {
         return result;
     }
 
-    private static String checkStringValue(final String value) {
-        return checkNotNull(value, "string value");
+    private static void checkStringValue(final String value) {
+        checkNotNull(value, "string value");
     }
 
     @Override
@@ -93,9 +96,7 @@ final class ImmutableSearchProperty implements SearchProperty {
     }
 
     @Override
-    public PropertySearchFilter eq(final String value) {
-        checkStringValue(value);
-
+    public PropertySearchFilter eq(@Nullable final String value) {
         return ImmutablePropertyFilter.of(SearchFilter.Type.EQ, propertyPath, JsonFactory.newValue(value));
     }
 
@@ -120,9 +121,7 @@ final class ImmutableSearchProperty implements SearchProperty {
     }
 
     @Override
-    public PropertySearchFilter ne(final String value) {
-        checkStringValue(value);
-
+    public PropertySearchFilter ne(@Nullable final String value) {
         return ImmutablePropertyFilter.of(SearchFilter.Type.NE, propertyPath, JsonFactory.newValue(value));
     }
 

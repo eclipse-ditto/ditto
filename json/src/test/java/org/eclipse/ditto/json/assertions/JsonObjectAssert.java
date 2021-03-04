@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -61,6 +63,7 @@ public final class JsonObjectAssert
      * @param expectedSize the expected size.
      * @return this assert to allow method chaining.
      */
+    @Override
     public JsonObjectAssert hasSize(final int expectedSize) {
         isNotNull();
         final int actualSize = actual.getSize();
@@ -78,45 +81,10 @@ public final class JsonObjectAssert
         return objectAssertFactory.createAssert(jsonField).as(description);
     }
 
-//    /**
-//     * Verifies that the actual JSON object is empty.
-//     *
-//     * @return this assert to allow method chaining.
-//     */
-//    public JsonObjectAssert isEmpty() {
-//        isNotNull();
-//
-//        Assertions.assertThat(actual.isEmpty())
-//                .overridingErrorMessage("Expected JSON object to be empty but it was not.")
-//                .isTrue();
-//
-//        return this;
-//    }
-
-//    /**
-//     * Verifies that the actual JSON object is not empty.
-//     *
-//     * @return this assert to allow method chaining.
-//     */
-//    public JsonObjectAssert isNotEmpty() {
-//        isNotNull();
-//
-//        Assertions.assertThat(actual.isEmpty())
-//                .overridingErrorMessage("Expected JSON object not to be empty but it was.")
-//                .isFalse();
-//
-//        return this;
-//    }
-
-//    /**
-//     * Verifies that the actual JSON object contains the expected JSON field.
-//     *
-//     * @param expectedJsonField the expected JSON field.
-//     * @return this assert to allow method chaining.
-//     */
-//    public JsonObjectAssert contains(final JsonField expectedJsonField) {
-//        return contains(expectedJsonField.getKey(), expectedJsonField.getValue());
-//    }
+    @Override
+    protected JsonObjectAssert newAbstractIterableAssert(final Iterable<? extends JsonField> iterable) {
+        return new JsonObjectAssert((JsonObject) iterable);
+    }
 
     /**
      * Verifies that the actual JSON object contains the expected value for the specified key.

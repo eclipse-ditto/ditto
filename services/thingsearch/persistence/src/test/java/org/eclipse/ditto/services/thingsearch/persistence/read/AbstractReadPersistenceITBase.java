@@ -1,22 +1,23 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.thingsearch.persistence.read;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -26,13 +27,17 @@ import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectType;
+import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 import org.eclipse.ditto.services.thingsearch.persistence.AbstractThingSearchPersistenceITBase;
 import org.junit.Before;
 
@@ -42,7 +47,7 @@ import org.junit.Before;
  */
 public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchPersistenceITBase {
 
-    static final String POLICY_ID = "global:policy";
+    static final PolicyId POLICY_ID = PolicyId.of("global", "policy");
 
     private Enforcer policyEnforcer;
 
@@ -51,6 +56,10 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
     public void before() {
         super.before();
         policyEnforcer = PolicyEnforcers.defaultEvaluator(createPolicy());
+    }
+
+    ResultList<ThingId> findForCriteria(final Criteria criteria) {
+        return findAll(qbf.newBuilder(criteria).build());
     }
 
     boolean isV1() {
@@ -66,6 +75,10 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
     }
 
     Thing createThing(final String thingId) {
+        return createThing(ThingId.of(thingId));
+    }
+
+    Thing createThing(final ThingId thingId) {
         if (isV1()) {
             return createThingV1(thingId);
         } else {
@@ -73,11 +86,27 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
         }
     }
 
-    List<Thing> createThings(final Collection<String> thingIds) {
+    List<Thing> createThings(final Collection<ThingId> thingIds) {
         return thingIds
                 .stream()
                 .map(this::createThing)
                 .collect(Collectors.toList());
+    }
+
+    void deleteThing(final Thing thing, final long policyRevision) {
+        deleteThing(thing.getEntityId()
+                        .orElseThrow(() -> new IllegalArgumentException("Thing should contain an entity id.")),
+                thing.getRevision()
+                        .orElseThrow(() -> new IllegalArgumentException("Thing should have a revision."))
+                        .toLong(),
+                thing.getPolicyEntityId().orElse(null),
+                policyRevision);
+    }
+
+    void deleteThing(final ThingId thingId, final long revision, @Nullable final PolicyId policyId,
+            final long policyRevision) {
+
+        runBlockingWithReturn(writePersistence.delete(thingId, revision, policyId, policyRevision));
     }
 
 
@@ -87,11 +116,11 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
      * @param id The id of the thing.
      * @return The created (not persisted) Thing object.
      */
-    Thing createThingV1(final String id) {
+    Thing createThingV1(final ThingId id) {
         return createThingV1(id, KNOWN_SUBJECTS);
     }
 
-    Thing createThingV1(final String id, final Collection<String> subjects) {
+    Thing createThingV1(final ThingId id, final Collection<String> subjects) {
         final List<AclEntry> aclEntries = subjects.stream()
                 .map(subject -> AclEntry.newInstance(AuthorizationSubject.newInstance(subject),
                         Collections.singletonList(Permission.READ)))
@@ -104,37 +133,21 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
     }
 
     Thing persistThingV1(final Thing thingV1) {
-        final long revision = thingV1.getRevision()
-                .orElseThrow(() ->
-                        new RuntimeException(MessageFormat.format("Thing <{}> does not contain revision", thingV1)))
-                .toLong();
-        assertThat(runBlockingWithReturn(writePersistence.insertOrUpdate(thingV1, revision, -1L)))
-                .isTrue();
+        log.info("EXECUTED {}", runBlockingWithReturn(writePersistence.writeThingWithAcl(thingV1)));
         return thingV1;
     }
 
-    Thing createThingV2(final String id) {
-        return createThingV2(id, POLICY_ID);
-    }
-
-    Thing createThingV2(final String id, final String policyId) {
+    Thing createThingV2(final ThingId id) {
         return Thing.newBuilder()
                 .setId(id)
-                .setPolicyId(policyId)
+                .setPolicyId(POLICY_ID)
                 .setRevision(0L)
                 .build();
     }
 
     Thing persistThingV2(final Thing thingV2) {
-        final long revision = thingV2.getRevision()
-                .orElseThrow(() ->
-                        new RuntimeException(MessageFormat.format("Thing <{}> does not contain revision", thingV2)))
-                .toLong();
-        assertThat(runBlockingWithReturn(writePersistence.insertOrUpdate(thingV2, revision, 0L)))
-                .isTrue();
-        assertThat(runBlockingWithReturn(writePersistence.updatePolicy(thingV2, getPolicyEnforcer(thingV2.getId()
-                .orElseThrow(() -> new IllegalStateException("not possible"))))))
-                .isTrue();
+        final Enforcer enforcer = getPolicyEnforcer(thingV2.getEntityId().orElseThrow(IllegalStateException::new));
+        log.info("EXECUTED {}", runBlockingWithReturn(writePersistence.write(thingV2, enforcer, 0L)));
         return thingV2;
     }
 
@@ -154,7 +167,7 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
      *
      * @param thingId The thingId for which the policy enforcer should be got
      */
-    Enforcer getPolicyEnforcer(final String thingId) {
+    Enforcer getPolicyEnforcer(final ThingId thingId) {
         return policyEnforcer;
     }
 

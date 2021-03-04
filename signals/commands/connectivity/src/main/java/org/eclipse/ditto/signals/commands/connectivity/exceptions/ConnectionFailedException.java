@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -18,17 +20,20 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityException;
 
 /**
  * Thrown if a {@link Connection} failed to connect.
  */
 @Immutable
+@JsonParsableException(errorCode = ConnectionFailedException.ERROR_CODE)
 public final class ConnectionFailedException extends DittoRuntimeException implements ConnectivityException {
 
     /**
@@ -48,7 +53,7 @@ public final class ConnectionFailedException extends DittoRuntimeException imple
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-        super(ERROR_CODE, HttpStatusCode.GATEWAY_TIMEOUT, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, HttpStatus.GATEWAY_TIMEOUT, dittoHeaders, message, description, cause, href);
     }
 
     /**
@@ -57,7 +62,7 @@ public final class ConnectionFailedException extends DittoRuntimeException imple
      * @param connectionId the ID of the connection.
      * @return the builder.
      */
-    public static Builder newBuilder(final String connectionId) {
+    public static Builder newBuilder(final ConnectionId connectionId) {
         return new Builder(connectionId);
     }
 
@@ -68,7 +73,9 @@ public final class ConnectionFailedException extends DittoRuntimeException imple
      * @param description error description, may be @{@code null}.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new ConnectionFailedException.
+     * @deprecated use {@code #fromMessage} instead.
      */
+    @Deprecated
     public static ConnectionFailedException from(final String message, @Nullable final String description,
             final DittoHeaders dittoHeaders) {
         return new Builder()
@@ -79,6 +86,22 @@ public final class ConnectionFailedException extends DittoRuntimeException imple
     }
 
     /**
+     * Constructs a new {@code ConnectionFailedException} object with given message.
+     *
+     * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
+     * @param description error description, may be @{@code null}.
+     * @param dittoHeaders the headers of the command which resulted in this exception.
+     * @return the new ConnectionFailedException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     */
+    public static ConnectionFailedException fromMessage(@Nullable final String message,
+            @Nullable final String description,
+            final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromMessage(message, dittoHeaders,
+                new Builder().description(() -> description != null ? description : DEFAULT_DESCRIPTION));
+    }
+
+    /**
      * Constructs a new {@code ConnectionFailedException} object with the exception message extracted from the
      * given JSON object.
      *
@@ -86,15 +109,23 @@ public final class ConnectionFailedException extends DittoRuntimeException imple
      * {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new ConnectionFailedException.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
-     * org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static ConnectionFailedException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
+    }
+
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new Builder()
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
                 .dittoHeaders(dittoHeaders)
-                .message(readMessage(jsonObject))
-                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
-                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 
@@ -108,9 +139,9 @@ public final class ConnectionFailedException extends DittoRuntimeException imple
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String connectionId) {
+        private Builder(final ConnectionId connectionId) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, connectionId));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, String.valueOf(connectionId)));
         }
 
         @Override
