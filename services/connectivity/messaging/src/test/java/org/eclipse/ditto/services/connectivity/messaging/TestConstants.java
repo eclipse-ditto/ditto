@@ -102,7 +102,6 @@ import org.eclipse.ditto.services.connectivity.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.config.MonitoringConfig;
-import org.eclipse.ditto.services.connectivity.config.ReconnectConfig;
 import org.eclipse.ditto.services.connectivity.config.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
@@ -112,6 +111,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.services.utils.persistentactors.config.PingConfig;
 import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
 import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.utils.pubsub.StreamingType;
@@ -151,7 +151,7 @@ public final class TestConstants {
     public static final MappingConfig MAPPING_CONFIG;
     public static final ConnectionConfig CONNECTION_CONFIG;
     public static final ClientConfig CLIENT_CONFIG;
-    public static final ReconnectConfig RECONNECT_CONFIG;
+    public static final PingConfig PING_CONFIG;
     public static final ProtocolConfig PROTOCOL_CONFIG;
     public static final MonitoringConfig MONITORING_CONFIG;
 
@@ -162,7 +162,7 @@ public final class TestConstants {
         MAPPING_CONFIG = CONNECTIVITY_CONFIG.getMappingConfig();
         CONNECTION_CONFIG = CONNECTIVITY_CONFIG.getConnectionConfig();
         CLIENT_CONFIG = CONNECTIVITY_CONFIG.getClientConfig();
-        RECONNECT_CONFIG = CONNECTIVITY_CONFIG.getReconnectConfig();
+        PING_CONFIG = CONNECTIVITY_CONFIG.getPingConfig();
         PROTOCOL_CONFIG = CONNECTIVITY_CONFIG.getProtocolConfig();
         MONITORING_CONFIG = CONNECTIVITY_CONFIG.getMonitoringConfig();
     }
@@ -250,14 +250,20 @@ public final class TestConstants {
             public CompletionStage<Void> updateLiveSubscriptions(final Collection<StreamingType> types,
                     final Collection<String> topics, final ActorRef subscriber) {
                 doDelegate(d -> d.updateLiveSubscriptions(types, topics, subscriber));
-                return CompletableFuture.completedFuture(null);
+                return CompletableFuture.completedStage(null);
             }
 
             @Override
             public CompletionStage<Void> removeTwinSubscriber(final ActorRef subscriber,
                     final Collection<String> topics) {
                 doDelegate(d -> d.removeTwinSubscriber(subscriber, topics));
-                return CompletableFuture.completedFuture(null);
+                return CompletableFuture.completedStage(null);
+            }
+
+            @Override
+            public CompletionStage<Void> removePolicyAnnouncementSubscriber(final ActorRef subscriber,
+                    final Collection<String> topics) {
+                return CompletableFuture.completedStage(null);
             }
 
             @Override

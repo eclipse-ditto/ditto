@@ -578,6 +578,17 @@
 
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-signals-announcements-base</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-signals-announcements-policies</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-protocol-adapter</artifactId>
                 <version>${project.version}</version>
             </dependency>

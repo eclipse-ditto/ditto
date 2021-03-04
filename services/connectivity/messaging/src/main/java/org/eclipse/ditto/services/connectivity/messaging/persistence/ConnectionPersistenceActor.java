@@ -29,6 +29,7 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -68,11 +69,13 @@ import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionVa
 import org.eclipse.ditto.services.connectivity.messaging.validation.DittoConnectivityCommandValidator;
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.connectivity.BaseClientState;
+import org.eclipse.ditto.services.utils.akka.PingCommand;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersistenceActor;
+import org.eclipse.ditto.services.utils.persistentactors.EmptyEvent;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
@@ -94,6 +97,11 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionM
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
+import org.eclipse.ditto.signals.events.connectivity.ConnectionClosed;
+import org.eclipse.ditto.signals.events.connectivity.ConnectionCreated;
+import org.eclipse.ditto.signals.events.connectivity.ConnectionDeleted;
+import org.eclipse.ditto.signals.events.connectivity.ConnectionModified;
+import org.eclipse.ditto.signals.events.connectivity.ConnectionOpened;
 import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
 
 import akka.actor.ActorRef;
@@ -310,21 +318,19 @@ public final class ConnectionPersistenceActor
     }
 
     @Override
+    protected boolean shouldSendResponse(final DittoHeaders dittoHeaders) {
+        return dittoHeaders.isResponseRequired();
+    }
+
+    @Override
+    protected boolean isEntityAlwaysAlive() {
+        return isDesiredStateOpen();
+    }
+
+    @Override
     public void postStop() throws Exception {
         log.info("stopped connection <{}>", entityId);
         super.postStop();
-    }
-
-    /**
-     * Keep 1 stale event for cleanup if the connection's desired state is open so that this actor's pid stays
-     * in the set of current persistence IDs known to the persistence plugin and will be woken up by the reconnect
-     * actor after service restart.
-     *
-     * @return number of stale events to keep after cleanup.
-     */
-    @Override
-    protected long staleEventsKeptAfterCleanup() {
-        return isDesiredStateOpen() ? 1 : 0;
     }
 
     @Override
@@ -337,7 +343,61 @@ public final class ConnectionPersistenceActor
             log.debug("Opening connection <{}> after recovery.", entityId);
             restoreOpenConnection();
         }
-        becomeCreatedOrDeletedHandler();
+        super.recoveryCompleted(event);
+    }
+
+    @Override
+    protected ConnectivityEvent<?> modifyEventBeforePersist(final ConnectivityEvent<?> event) {
+        final ConnectivityEvent<?> superEvent = super.modifyEventBeforePersist(event);
+
+        final ConnectivityStatus targetConnectionStatus;
+        if (event instanceof ConnectionCreated) {
+            targetConnectionStatus = ((ConnectionCreated) event).getConnection().getConnectionStatus();
+        } else if (event instanceof ConnectionModified) {
+            targetConnectionStatus = ((ConnectionModified) event).getConnection().getConnectionStatus();
+        } else if (event instanceof ConnectionDeleted) {
+            targetConnectionStatus = ConnectivityStatus.CLOSED;
+        } else if (event instanceof ConnectionOpened) {
+            targetConnectionStatus = ConnectivityStatus.OPEN;
+        } else if (event instanceof ConnectionClosed) {
+            targetConnectionStatus = ConnectivityStatus.CLOSED;
+        } else if (null != entity) {
+            targetConnectionStatus = entity.getConnectionStatus();
+        } else {
+            targetConnectionStatus = ConnectivityStatus.UNKNOWN;
+        }
+
+        if (alwaysAlive = (targetConnectionStatus == ConnectivityStatus.OPEN)) {
+            final DittoHeaders headersWithJournalTags = superEvent.getDittoHeaders().toBuilder()
+                    .journalTags(Set.of(JOURNAL_TAG_ALWAYS_ALIVE))
+                    .build();
+            return superEvent.setDittoHeaders(headersWithJournalTags);
+        }
+        return superEvent;
+    }
+
+    @Override
+    protected void processPingCommand(final PingCommand ping) {
+
+        super.processPingCommand(ping);
+        final String journalTag = ping.getPayload()
+                .filter(JsonValue::isString)
+                .map(JsonValue::asString)
+                .orElse(null);
+
+        if (journalTag != null && journalTag.isEmpty() && isDesiredStateOpen()) {
+            // persistence actor was sent a "ping" with empty journal tag:
+            //  build in adding the "always-alive" tag here by persisting an "empty" event which is just tagged to be
+            //  "always alive".  Stop persisting the empty event once every open connection has a tagged event, when
+            // the persistence ping actor will have a non-empty journal tag configured.
+            final EmptyEvent
+                    emptyEvent = new EmptyEvent(entityId, EmptyEvent.EFFECT_ALWAYS_ALIVE, getRevisionNumber() + 1,
+                    DittoHeaders.newBuilder()
+                            .correlationId(ping.getCorrelationId().orElse(null))
+                            .journalTags(Set.of(JOURNAL_TAG_ALWAYS_ALIVE))
+                            .build());
+            getSelf().tell(new PersistEmptyEvent(emptyEvent), ActorRef.noSender());
+        }
     }
 
     @Override

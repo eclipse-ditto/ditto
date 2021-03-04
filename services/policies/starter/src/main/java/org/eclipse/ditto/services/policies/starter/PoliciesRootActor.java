@@ -22,6 +22,7 @@ import org.eclipse.ditto.services.policies.persistence.actors.PoliciesPersistenc
 import org.eclipse.ditto.services.policies.persistence.actors.PolicyPersistenceOperationsActor;
 import org.eclipse.ditto.services.policies.persistence.actors.PolicySupervisorActor;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
@@ -33,6 +34,11 @@ import org.eclipse.ditto.services.utils.health.config.MetricsReporterConfig;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.TagsConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.services.utils.persistentactors.PersistencePingActor;
+import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.services.utils.pubsub.PolicyAnnouncementPubSubFactory;
+import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 
 import akka.actor.ActorRef;
@@ -67,7 +73,11 @@ public final class PoliciesRootActor extends DittoRootActor {
         final ClusterShardingSettings shardingSettings =
                 ClusterShardingSettings.create(actorSystem).withRole(CLUSTER_ROLE);
 
-        final Props policySupervisorProps = PolicySupervisorActor.props(pubSubMediator, snapshotAdapter);
+        final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub =
+                PolicyAnnouncementPubSubFactory.of(getContext(), actorSystem).startDistributedPub();
+
+        final Props policySupervisorProps =
+                PolicySupervisorActor.props(pubSubMediator, snapshotAdapter, policyAnnouncementPub);
 
         final TagsConfig tagsConfig = policiesConfig.getTagsConfig();
         final ActorRef persistenceStreamingActor = startChildActor(PoliciesPersistenceStreamingActorCreator.ACTOR_NAME,
@@ -80,6 +90,10 @@ public final class PoliciesRootActor extends DittoRootActor {
         final ActorRef policiesShardRegion = ClusterSharding.get(actorSystem)
                 .start(PoliciesMessagingConstants.SHARD_REGION, policySupervisorProps, shardingSettings,
                         ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorSystem));
+
+        startClusterSingletonActor(PersistencePingActor.props(policiesShardRegion,
+                        policiesConfig.getPingConfig(), MongoReadJournal.newInstance(actorSystem)),
+                PersistencePingActor.ACTOR_NAME);
 
         startChildActor(PolicyPersistenceOperationsActor.ACTOR_NAME,
                 PolicyPersistenceOperationsActor.props(pubSubMediator, policiesConfig.getMongoDbConfig(),
@@ -127,6 +141,10 @@ public final class PoliciesRootActor extends DittoRootActor {
         return ReceiveBuilder.create()
                 .match(RetrieveStatisticsDetails.class, this::handleRetrieveStatisticsDetails)
                 .build().orElse(super.createReceive());
+    }
+
+    private void startClusterSingletonActor(final Props props, final String name) {
+        ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, name, props);
     }
 
     private void handleRetrieveStatisticsDetails(final RetrieveStatisticsDetails command) {

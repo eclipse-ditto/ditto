@@ -35,6 +35,8 @@ import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbC
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.operations.DefaultPersistenceOperationsConfig;
 import org.eclipse.ditto.services.utils.persistence.operations.PersistenceOperationsConfig;
+import org.eclipse.ditto.services.utils.persistentactors.config.DefaultPingConfig;
+import org.eclipse.ditto.services.utils.persistentactors.config.PingConfig;
 import org.eclipse.ditto.services.utils.protocol.config.DefaultProtocolConfig;
 import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
 
@@ -51,7 +53,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
     private final MongoDbConfig mongoDbConfig;
     private final HealthCheckConfig healthCheckConfig;
     private final ConnectionConfig connectionConfig;
-    private final ReconnectConfig reconnectConfig;
+    private final PingConfig pingConfig;
     private final ConnectionIdsRetrievalConfig connectionIdsRetrievalConfig;
     private final ClientConfig clientConfig;
     private final ProtocolConfig protocolConfig;
@@ -67,7 +69,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
         healthCheckConfig = DefaultHealthCheckConfig.of(dittoScopedConfig);
         protocolConfig = DefaultProtocolConfig.of(dittoScopedConfig);
         connectionConfig = DefaultConnectionConfig.of(serviceSpecificConfig);
-        reconnectConfig = DefaultReconnectConfig.of(serviceSpecificConfig);
+        pingConfig = DefaultPingConfig.of(serviceSpecificConfig);
         connectionIdsRetrievalConfig = DefaultConnectionIdsRetrievalConfig.of(serviceSpecificConfig);
         clientConfig = DefaultClientConfig.of(serviceSpecificConfig);
         monitoringConfig = DefaultMonitoringConfig.of(serviceSpecificConfig);
@@ -94,8 +96,8 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
     }
 
     @Override
-    public ReconnectConfig getReconnectConfig() {
-        return reconnectConfig;
+    public PingConfig getPingConfig() {
+        return pingConfig;
     }
 
     @Override
@@ -183,7 +185,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
                 Objects.equals(mongoDbConfig, that.mongoDbConfig) &&
                 Objects.equals(healthCheckConfig, that.healthCheckConfig) &&
                 Objects.equals(connectionConfig, that.connectionConfig) &&
-                Objects.equals(reconnectConfig, that.reconnectConfig) &&
+                Objects.equals(pingConfig, that.pingConfig) &&
                 Objects.equals(connectionIdsRetrievalConfig, that.connectionIdsRetrievalConfig) &&
                 Objects.equals(clientConfig, that.clientConfig) &&
                 Objects.equals(protocolConfig, that.protocolConfig) &&
@@ -196,7 +198,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
     @Override
     public int hashCode() {
         return Objects.hash(serviceSpecificConfig, persistenceOperationsConfig, mongoDbConfig, healthCheckConfig,
-                connectionConfig, reconnectConfig, connectionIdsRetrievalConfig, clientConfig, protocolConfig,
+                connectionConfig, pingConfig, connectionIdsRetrievalConfig, clientConfig, protocolConfig,
                 monitoringConfig, mappingConfig, signalEnrichmentConfig, acknowledgementConfig);
     }
 
@@ -208,7 +210,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
                 ", mongoDbConfig=" + mongoDbConfig +
                 ", healthCheckConfig=" + healthCheckConfig +
                 ", connectionConfig=" + connectionConfig +
-                ", reconnectConfig=" + reconnectConfig +
+                ", pingConfig=" + pingConfig +
                 ", connectionIdsRetrievalConfig=" + connectionIdsRetrievalConfig +
                 ", clientConfig=" + clientConfig +
                 ", protocolConfig=" + protocolConfig +

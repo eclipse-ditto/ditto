@@ -110,6 +110,22 @@ public interface Subject extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
     }
 
     /**
+     * Returns a new {@code Subject}.
+     *
+     * @param subjectId the ID of the new Subject to create.
+     * @param subjectType the SubjectType of the new Subject to create.
+     * @param subjectExpiry the expiry timestamp of the new Subject.
+     * @param subjectAnnouncement settings for announcements to be made about this subject.
+     * @return the new {@code Subject}.
+     * @throws NullPointerException if the {@code subjectId} or {@code subjectType} argument is {@code null}.
+     * @since 2.0.0
+     */
+    static Subject newInstance(final SubjectId subjectId, final SubjectType subjectType,
+            @Nullable final SubjectExpiry subjectExpiry, @Nullable final SubjectAnnouncement subjectAnnouncement) {
+        return ImmutableSubject.of(subjectId, subjectType, subjectExpiry, subjectAnnouncement);
+    }
+
+    /**
      * Subject is only available in JsonSchemaVersion V_2.
      *
      * @return the supported JsonSchemaVersions of Subject.
@@ -141,6 +157,14 @@ public interface Subject extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @since 2.0.0
      */
     Optional<SubjectExpiry> getExpiry();
+
+    /**
+     * Returns the configuration of announcements to send for this Subject.
+     *
+     * @return the announcement config of this Subject.
+     * @since 2.0.0
+     */
+    Optional<SubjectAnnouncement> getAnnouncement();
 
     /**
      * Returns all non hidden marked fields of this Subject.
@@ -177,7 +201,16 @@ public interface Subject extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
                 JsonFactory.newStringFieldDefinition("type", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
+         * JSON field containing configuration for announcements related to the Subject.
+         *
+         * @since 2.0.0
+         */
+        public static final JsonFieldDefinition<JsonObject> ANNOUNCEMENT =
+                JsonFactory.newJsonObjectFieldDefinition("announcement", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        /**
          * JSON field containing the Subject's expiry time.
+         *
          * @since 2.0.0
          */
         public static final JsonFieldDefinition<String> EXPIRY =

@@ -40,14 +40,17 @@ public final class DefaultPolicyConfig implements PolicyConfig {
     private final ActivityCheckConfig activityCheckConfig;
     private final SnapshotConfig snapshotConfig;
     private final Duration policySubjectExpiryGranularity;
+    private final Duration policySubjectDeletionAnnouncementGranularity;
     private final String subjectIdResolver;
 
     private DefaultPolicyConfig(final ScopedConfig scopedConfig) {
         supervisorConfig = DefaultSupervisorConfig.of(scopedConfig);
         activityCheckConfig = DefaultActivityCheckConfig.of(scopedConfig);
         snapshotConfig = DefaultSnapshotConfig.of(scopedConfig);
-        policySubjectExpiryGranularity = scopedConfig.getDuration(
-                PolicyConfigValue.SUBJECT_EXPIRY_GRANULARITY.getConfigPath());
+        policySubjectExpiryGranularity =
+                scopedConfig.getDuration(PolicyConfigValue.SUBJECT_EXPIRY_GRANULARITY.getConfigPath());
+        policySubjectDeletionAnnouncementGranularity =
+                scopedConfig.getDuration(PolicyConfigValue.SUBJECT_DELETION_ANNOUNCEMENT_GRANULARITY.getConfigPath());
         subjectIdResolver = scopedConfig.getString(PolicyConfigValue.SUBJECT_ID_RESOLVER.getConfigPath());
     }
 
@@ -85,6 +88,11 @@ public final class DefaultPolicyConfig implements PolicyConfig {
     }
 
     @Override
+    public Duration getSubjectDeletionAnnouncementGranularity() {
+        return policySubjectDeletionAnnouncementGranularity;
+    }
+
+    @Override
     public String getSubjectIdResolver() {
         return subjectIdResolver;
     }
@@ -102,13 +110,15 @@ public final class DefaultPolicyConfig implements PolicyConfig {
                 Objects.equals(activityCheckConfig, that.activityCheckConfig) &&
                 Objects.equals(snapshotConfig, that.snapshotConfig) &&
                 Objects.equals(policySubjectExpiryGranularity, that.policySubjectExpiryGranularity) &&
+                Objects.equals(policySubjectDeletionAnnouncementGranularity,
+                        that.policySubjectDeletionAnnouncementGranularity) &&
                 Objects.equals(subjectIdResolver, that.subjectIdResolver);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(supervisorConfig, activityCheckConfig, snapshotConfig, policySubjectExpiryGranularity,
-                subjectIdResolver);
+                policySubjectDeletionAnnouncementGranularity, subjectIdResolver);
     }
 
     @Override
@@ -118,6 +128,7 @@ public final class DefaultPolicyConfig implements PolicyConfig {
                 ", activityCheckConfig=" + activityCheckConfig +
                 ", snapshotConfig=" + snapshotConfig +
                 ", policySubjectExpiryGranularity=" + policySubjectExpiryGranularity +
+                ", policySubjectDeletionAnnouncementGranularity=" + policySubjectDeletionAnnouncementGranularity +
                 ", subjectIdResolver=" + subjectIdResolver +
                 "]";
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.base.headers;
+package org.eclipse.ditto.model.base.common;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -25,7 +25,7 @@ import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.junit.Test;
 
 /**
- * Tests {@link org.eclipse.ditto.model.base.headers.DittoDuration}.
+ * Tests {@link DittoDuration}.
  */
 public final class DittoDurationTest {
 
@@ -33,7 +33,7 @@ public final class DittoDurationTest {
     public void assertImmutability() {
         assertInstancesOf(DittoDuration.class,
                 areImmutable(),
-                provided("org.eclipse.ditto.model.base.headers.DittoDuration$DittoTimeUnit").isAlsoImmutable());
+                provided("org.eclipse.ditto.model.base.common.DittoDuration$DittoTimeUnit").isAlsoImmutable());
     }
 
     @Test
@@ -114,12 +114,6 @@ public final class DittoDurationTest {
     }
 
     @Test
-    public void createDittoDurationFromStringHoursFails() {
-        assertThatExceptionOfType(NumberFormatException.class)
-                .isThrownBy(() -> DittoDuration.parseDuration("1h"));
-    }
-
-    @Test
     public void tryToParseEmptyString() {
         assertThatExceptionOfType(NumberFormatException.class)
                 .isThrownBy(() -> DittoDuration.parseDuration(""))
@@ -195,6 +189,21 @@ public final class DittoDurationTest {
                 .isThrownBy(() -> DittoDuration.parseDuration(durationString))
                 .withMessage("The duration must not be negative but was <%s>!", durationString)
                 .withNoCause();
+    }
+
+    @Test
+    public void testSetAmount() {
+        final DittoDuration hours = DittoDuration.parseDuration("1h");
+        final DittoDuration minutes = DittoDuration.parseDuration("1m");
+        final DittoDuration seconds = DittoDuration.parseDuration("1s");
+        final DittoDuration millis = DittoDuration.parseDuration("1ms");
+
+        final Duration duration = Duration.ofHours(10).plus(Duration.ofMillis(2030));
+
+        assertThat(hours.setAmount(duration)).isEqualTo(DittoDuration.parseDuration("10h"));
+        assertThat(minutes.setAmount(duration)).isEqualTo(DittoDuration.parseDuration("600m"));
+        assertThat(seconds.setAmount(duration)).isEqualTo(DittoDuration.parseDuration("36002s"));
+        assertThat(millis.setAmount(duration)).isEqualTo(DittoDuration.parseDuration("36002030ms"));
     }
 
 }

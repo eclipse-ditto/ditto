@@ -190,7 +190,10 @@ public final class StartStreaming implements StreamControlMessage {
          * @return this builder instance to allow method chaining.
          */
         public StartStreamingBuilder withFilter(@Nullable final CharSequence filter) {
-            this.filter = filter;
+            // policy announcements do not support filter.
+            if (streamingType != StreamingType.POLICY_ANNOUNCEMENTS) {
+                this.filter = filter;
+            }
             return this;
         }
 
@@ -201,7 +204,10 @@ public final class StartStreaming implements StreamControlMessage {
          * @return this builder instance to allow method chaining.
          */
         public StartStreamingBuilder withExtraFields(@Nullable final JsonFieldSelector extraFields) {
-            this.extraFields = extraFields;
+            // policy announcements do not support extra fields.
+            if (streamingType != StreamingType.POLICY_ANNOUNCEMENTS) {
+                this.extraFields = extraFields;
+            }
             return this;
         }
 

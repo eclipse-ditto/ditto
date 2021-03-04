@@ -45,6 +45,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.common.DittoDuration;
 import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -419,6 +420,14 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     @Override
     public boolean isAllowPolicyLockout() {
         return isExpectedBoolean(DittoHeaderDefinition.ALLOW_POLICY_LOCKOUT, Boolean.TRUE);
+    }
+
+    @Override
+    public Set<String> getJournalTags() {
+        final JsonArray jsonValueArray = getJsonArrayForDefinition(DittoHeaderDefinition.EVENT_JOURNAL_TAGS);
+        return jsonValueArray.stream()
+                .map(JsonValue::asString)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     @Override

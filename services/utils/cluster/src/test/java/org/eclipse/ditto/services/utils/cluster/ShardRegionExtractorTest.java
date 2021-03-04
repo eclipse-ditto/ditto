@@ -66,10 +66,7 @@ public final class ShardRegionExtractorTest {
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ShardRegionExtractor.class)
-                .usingGetClass()
-                .withRedefinedSuperclass()
-                .verify();
+        EqualsVerifier.forClass(ShardRegionExtractor.class).verify();
     }
 
     @Test

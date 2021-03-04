@@ -14,13 +14,18 @@ package org.eclipse.ditto.services.gateway.endpoints.routes.policies;
 
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.policies.PoliciesRoute.extractJwt;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.policies.PoliciesRoute.handleSubjectAnnouncement;
 
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
+import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyEntry;
@@ -29,6 +34,8 @@ import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Resources;
 import org.eclipse.ditto.model.policies.Subject;
+import org.eclipse.ditto.model.policies.SubjectAnnouncement;
+import org.eclipse.ditto.model.policies.SubjectExpiry;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
@@ -38,6 +45,7 @@ import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.DeactivateTokenIntegration;
+import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyActionFailedException;
 import org.eclipse.ditto.signals.commands.policies.modify.DeletePolicyEntry;
 import org.eclipse.ditto.signals.commands.policies.modify.DeleteResource;
 import org.eclipse.ditto.signals.commands.policies.modify.DeleteSubject;
@@ -366,17 +374,20 @@ final class PolicyEntriesRoute extends AbstractRoute {
                         rawPathPrefix(PathMatchers.slash().concat(ActivateTokenIntegration.NAME), () ->
                                 pathEndOrSingleSlash(() ->
                                         extractJwt(dittoHeaders, authResult, ActivateTokenIntegration.NAME, jwt ->
-                                                post(() -> handlePerRequest(ctx, activateTokenIntegration(
-                                                        dittoHeaders, policyId, label, jwt)))
+                                                post(() -> handleSubjectAnnouncement(this, dittoHeaders, sa ->
+                                                        activateTokenIntegration(dittoHeaders, policyId, label,
+                                                                jwt, sa))
+                                                )
                                         )
-                                )
-                        ),
+                                )),
                         // POST /entries/<label>/actions/deactivateTokenIntegration
                         rawPathPrefix(PathMatchers.slash().concat(DeactivateTokenIntegration.NAME), () ->
                                 pathEndOrSingleSlash(() ->
-                                        extractJwt(dittoHeaders, authResult, DeactivateTokenIntegration.NAME, jwt ->
-                                                post(() -> handlePerRequest(ctx, deactivateTokenIntegration(
-                                                        dittoHeaders, policyId, label, jwt)))
+                                        extractJwt(dittoHeaders, authResult, DeactivateTokenIntegration.NAME,
+                                                jwt ->
+                                                        post(() -> handlePerRequest(ctx,
+                                                                deactivateTokenIntegration(
+                                                                        dittoHeaders, policyId, label, jwt)))
                                         )
                                 )
                         )
@@ -385,16 +396,32 @@ final class PolicyEntriesRoute extends AbstractRoute {
     }
 
     private ActivateTokenIntegration activateTokenIntegration(final DittoHeaders dittoHeaders, final PolicyId policyId,
-            final String label, final JsonWebToken jwt) {
-        final Set<SubjectId> subjectIds = tokenIntegrationSubjectIdFactory.getSubjectIds(dittoHeaders, jwt);
-        return ActivateTokenIntegration.of(policyId, Label.of(label), subjectIds, jwt.getExpirationTime(),
+            final String label, final JsonWebToken jwt, @Nullable final SubjectAnnouncement subjectAnnouncement) {
+        final Set<SubjectId> subjectIds = resolveSubjectIdsForActivateTokenIntegrationAction(dittoHeaders, jwt);
+        final SubjectExpiry subjectExpiry = SubjectExpiry.newInstance(jwt.getExpirationTime());
+        return ActivateTokenIntegration.of(policyId, Label.of(label), subjectIds, subjectExpiry, subjectAnnouncement,
                 dittoHeaders);
     }
 
     private DeactivateTokenIntegration deactivateTokenIntegration(final DittoHeaders dittoHeaders,
             final PolicyId policyId, final String label, final JsonWebToken jwt) {
-        final Set<SubjectId> subjectIds = tokenIntegrationSubjectIdFactory.getSubjectIds(dittoHeaders, jwt);
+        final Set<SubjectId> subjectIds = resolveSubjectIdsForActivateTokenIntegrationAction(dittoHeaders, jwt);
         return DeactivateTokenIntegration.of(policyId, Label.of(label), subjectIds, dittoHeaders);
+    }
+
+    private Set<SubjectId> resolveSubjectIdsForActivateTokenIntegrationAction(final DittoHeaders dittoHeaders,
+            final JsonWebToken jwt) {
+
+        try {
+            return tokenIntegrationSubjectIdFactory.getSubjectIds(dittoHeaders, jwt);
+        } catch (final UnresolvedPlaceholderException e) {
+            throw PolicyActionFailedException.newBuilder()
+                    .action(ActivateTokenIntegration.NAME)
+                    .status(HttpStatus.BAD_REQUEST)
+                    .description("Mandatory placeholders could not be resolved, in detail: " + e.getMessage())
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
     }
 
     private static ResourceKey resourceKeyFromUnmatchedPath(final String resource) {

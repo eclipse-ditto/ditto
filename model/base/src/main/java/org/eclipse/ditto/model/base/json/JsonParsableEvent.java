@@ -30,7 +30,7 @@ import org.atteo.classindex.IndexAnnotated;
 public @interface JsonParsableEvent {
 
     /**
-     * Returns the name of the command.
+     * Returns the name of the event.
      *
      * @return the name.
      */

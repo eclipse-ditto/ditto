@@ -17,14 +17,17 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.services.utils.akka.PingCommand;
+import org.eclipse.ditto.services.utils.akka.PingCommandResponse;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
@@ -63,6 +66,12 @@ public abstract class AbstractShardedPersistenceActor<
         K,
         E extends Event<? extends E>> extends AbstractPersistentActorWithTimersAndCleanup implements ResultVisitor<E> {
 
+    /**
+     * An event journal {@code Tag} used to tag journal entries managed by a PersistenceActor as "always alive" meaning
+     * that those entities should be always kept in-memory and re-started on a cold-start of the cluster.
+     */
+    public static final String JOURNAL_TAG_ALWAYS_ALIVE = "always-alive";
+
     private final SnapshotAdapter<S> snapshotAdapter;
     private final Receive handleEvents;
     private final Receive handleCleanups;
@@ -79,6 +88,7 @@ public abstract class AbstractShardedPersistenceActor<
      * The entity ID.
      */
     protected final I entityId;
+    protected boolean alwaysAlive = false;
 
     private long accessCounter = 0L;
 
@@ -100,8 +110,9 @@ public abstract class AbstractShardedPersistenceActor<
         handleEvents = ReceiveBuilder.create()
                 .match(getEventClass(), event -> {
                     entity = getEventStrategy().handle((E) event, entity, getRevisionNumber());
-                    onEntityModified();
                 })
+                .match(EmptyEvent.class,
+                        event -> log.withCorrelationId(event).debug("Recovered EmptyEvent: <{}>", event))
                 .build();
 
         handleCleanups = super.createReceive();
@@ -186,12 +197,28 @@ public abstract class AbstractShardedPersistenceActor<
     protected abstract JsonSchemaVersion getEntitySchemaVersion(S entity);
 
     /**
+     * Check whether the headers indicate the necessity of a response for a mutation command.
+     *
+     * @param dittoHeaders headers of the mutation command.
+     * @return whether a response should be sent.
+     */
+    protected abstract boolean shouldSendResponse(DittoHeaders dittoHeaders);
+
+    /**
+     * Check if the present entity requires this actor to stay alive forever.
+     *
+     * @return whether this actor should always be alive.
+     */
+    protected abstract boolean isEntityAlwaysAlive();
+
+    /**
      * Callback at the end of recovery. Overridable in subclasses.
      *
      * @param event the event that recovery completed.
      */
     protected void recoveryCompleted(final RecoveryCompleted event) {
         // override to introduce additional logging and other side effects
+        alwaysAlive = isEntityAlwaysAlive();
         becomeCreatedOrDeletedHandler();
     }
 
@@ -257,7 +284,9 @@ public abstract class AbstractShardedPersistenceActor<
 
         final Receive receive = handleCleanups.orElse(ReceiveBuilder.create()
                 .match(commandStrategy.getMatchingClass(), commandStrategy::isDefined, this::handleByCommandStrategy)
+                .match(PersistEmptyEvent.class, this::handlePersistEmptyEvent)
                 .match(CheckForActivity.class, this::checkForActivity)
+                .match(PingCommand.class, this::processPingCommand)
                 .matchEquals(Control.TAKE_SNAPSHOT, this::takeSnapshotByInterval)
                 .match(SaveSnapshotSuccess.class, this::saveSnapshotSuccess)
                 .match(SaveSnapshotFailure.class, this::saveSnapshotFailure)
@@ -268,6 +297,24 @@ public abstract class AbstractShardedPersistenceActor<
 
         scheduleCheckForActivity(getActivityCheckConfig().getInactiveInterval());
         scheduleSnapshot();
+    }
+
+    /**
+     * Processes a received {@link PingCommand}.
+     * May be overwritten in order to hook into processing ping commands with additional functionality.
+     *
+     * @param ping the ping command.
+     */
+    protected void processPingCommand(final PingCommand ping) {
+
+        final String journalTag = ping.getPayload()
+                .filter(JsonValue::isString)
+                .map(JsonValue::asString)
+                .orElse(null);
+        final String correlationId = ping.getCorrelationId().orElse(null);
+        log.withCorrelationId(correlationId)
+                .debug("Received ping for this actor with tag <{}>", journalTag);
+        getSender().tell(PingCommandResponse.of(correlationId, JsonValue.nullLiteral()), getSelf());
     }
 
     protected void becomeDeletedHandler() {
@@ -289,17 +336,7 @@ public abstract class AbstractShardedPersistenceActor<
      */
     protected void persistAndApplyEvent(final E event, final BiConsumer<E, S> handler) {
 
-        final E modifiedEvent;
-        if (null != entity) {
-            // set version of event to the version of the entity
-            final DittoHeaders newHeaders = event.getDittoHeaders().toBuilder()
-                    .schemaVersion(getEntitySchemaVersion(entity))
-                    .build();
-            modifiedEvent = event.setDittoHeaders(newHeaders);
-        } else {
-            modifiedEvent = event;
-        }
-
+        final E modifiedEvent = modifyEventBeforePersist(event);
         if (modifiedEvent.getDittoHeaders().isDryRun()) {
             handler.accept(modifiedEvent, entity);
         } else {
@@ -312,20 +349,42 @@ public abstract class AbstractShardedPersistenceActor<
     }
 
     /**
+     * Allows to modify the passed in {@code event} before {@link #persistEvent(Event, Consumer)} is invoked.
+     * Overwrite this method and call the super method in order to additionally modify the event before persisting it.
+     *
+     * @param event the event to potentially modify.
+     * @return the modified or unmodified event to persist.
+     */
+    protected E modifyEventBeforePersist(final E event) {
+        final E modifiedEvent;
+        if (null != entity) {
+            // set version of event to the version of the entity
+            final DittoHeaders newHeaders = event.getDittoHeaders().toBuilder()
+                    .schemaVersion(getEntitySchemaVersion(entity))
+                    .build();
+            modifiedEvent = event.setDittoHeaders(newHeaders);
+        } else {
+            modifiedEvent = event;
+        }
+        return modifiedEvent;
+    }
+
+    /**
      * Check for activity. Shutdown actor if it is lacking.
      *
      * @param message the check-for-activity message.
      */
     protected void checkForActivity(final CheckForActivity message) {
+        scheduleCheckForActivity(getActivityCheckConfig().getDeletedInterval());
         if (entityExistsAsDeleted() && lastSnapshotRevision < getRevisionNumber()) {
             // take a snapshot after a period of inactivity if:
             // - entity is deleted,
             // - the latest snapshot is out of date or is still ongoing.
             takeSnapshot("the entity is deleted and has no up-to-date snapshot");
-            scheduleCheckForActivity(getActivityCheckConfig().getDeletedInterval());
         } else if (accessCounter > message.accessCounter) {
-            // if the entity was accessed in any way since the last check
-            scheduleCheckForActivity(getActivityCheckConfig().getInactiveInterval());
+            log.debug("Entity <{}> was accessed since last activity check, preventing Actor shutdown.", entityId);
+        } else if (isEntityActive() && alwaysAlive) {
+            log.debug("Entity <{}> is active and marked as 'always-alive', preventing Actor shutdown.", entityId);
         } else {
             // safe to shutdown after a period of inactivity if:
             // - entity is active (and taking regular snapshots of itself), or
@@ -336,6 +395,11 @@ public abstract class AbstractShardedPersistenceActor<
                 shutdown("Entity <{}> was deleted recently. Shutting Actor down ...", entityId);
             }
         }
+    }
+
+    private void handlePersistEmptyEvent(final PersistEmptyEvent persistEmptyEvent) {
+        log.debug("Received PersistEmptyEvent: <{}>", persistEmptyEvent);
+        persist(persistEmptyEvent.getEmptyEvent(), event -> log.debug("Persisted EmptyEvent: <{}>", event));
     }
 
     /**
@@ -365,7 +429,7 @@ public abstract class AbstractShardedPersistenceActor<
         if (interval.isNegative() || interval.isZero()) {
             log.debug("Activity check is disabled: <{}>", interval);
         } else {
-            log.debug("Scheduling for Activity Check in <{}> seconds.", interval);
+            log.debug("Scheduling for Activity Check in <{}>", interval);
             timers().startSingleTimer("activityCheck", new CheckForActivity(accessCounter), interval);
         }
     }
@@ -419,13 +483,6 @@ public abstract class AbstractShardedPersistenceActor<
         });
     }
 
-    private boolean shouldSendResponse(final DittoHeaders dittoHeaders) {
-        return dittoHeaders.isResponseRequired() ||
-                dittoHeaders.getAcknowledgementRequests()
-                        .stream()
-                        .anyMatch(ar -> DittoAcknowledgementLabel.TWIN_PERSISTED.equals(ar.getLabel()));
-    }
-
     @Override
     public void onQuery(final Command<?> command, final WithDittoHeaders<?> response) {
         if (command.getDittoHeaders().isResponseRequired()) {
@@ -438,6 +495,17 @@ public abstract class AbstractShardedPersistenceActor<
         if (shouldSendResponse(errorCausingCommand.getDittoHeaders())) {
             notifySender(error);
         }
+    }
+
+    /**
+     * Send a reply and increment access counter.
+     *
+     * @param sender recipient of the message.
+     * @param message the message.
+     */
+    protected void notifySender(final ActorRef sender, final WithDittoHeaders<?> message) {
+        accessCounter++;
+        sender.tell(message, getSelf());
     }
 
     private long getNextRevisionNumber() {
@@ -456,6 +524,7 @@ public abstract class AbstractShardedPersistenceActor<
                aftereffects.
              */
             handler.accept(persistedEvent);
+            onEntityModified();
 
             // save a snapshot if there were too many changes since the last snapshot
             if (snapshotThresholdPassed()) {
@@ -494,11 +563,6 @@ public abstract class AbstractShardedPersistenceActor<
 
     private void notifySender(final WithDittoHeaders<?> message) {
         notifySender(getSender(), message);
-    }
-
-    private void notifySender(final ActorRef sender, final WithDittoHeaders<?> message) {
-        accessCounter++;
-        sender.tell(message, getSelf());
     }
 
     private void takeSnapshotByInterval(final Control takeSnapshot) {
@@ -583,6 +647,32 @@ public abstract class AbstractShardedPersistenceActor<
 
     private enum Control {
         TAKE_SNAPSHOT
+    }
+
+
+    /**
+     * Local message this actor may sent to itself in order to persist an {@link EmptyEvent} to the event journal,
+     * e.g. in order to save a specific journal tag with that event to the event journal.
+     */
+    @Immutable
+    protected static final class PersistEmptyEvent {
+
+        private final EmptyEvent emptyEvent;
+
+        public PersistEmptyEvent(final EmptyEvent emptyEvent) {
+            this.emptyEvent = emptyEvent;
+        }
+
+        protected EmptyEvent getEmptyEvent() {
+            return emptyEvent;
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " [" +
+                    "emptyEvent=" + emptyEvent +
+                    "]";
+        }
     }
 
 }

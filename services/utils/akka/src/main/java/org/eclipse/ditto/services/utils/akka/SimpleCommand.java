@@ -15,12 +15,14 @@ package org.eclipse.ditto.services.utils.akka;
 import java.util.Objects;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -32,10 +34,10 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 public final class SimpleCommand implements Jsonifiable<JsonObject> {
 
     private final String commandName;
-    private final String correlationId;
-    private final JsonValue payload;
+    @Nullable private final String correlationId;
+    @Nullable private final JsonValue payload;
 
-    private SimpleCommand(final String commandName, final String correlationId, final JsonValue payload) {
+    private SimpleCommand(final String commandName, @Nullable final String correlationId, @Nullable final JsonValue payload) {
         this.commandName = ConditionChecker.checkNotNull(commandName, "command name");
         this.correlationId = correlationId;
         this.payload = payload;
@@ -49,7 +51,7 @@ public final class SimpleCommand implements Jsonifiable<JsonObject> {
      * @param payload optional payload to transmit with the SimpleCommand.
      * @return the new SimpleCommand instance.
      */
-    public static SimpleCommand of(final String commandName, final String correlationId, final JsonValue payload) {
+    public static SimpleCommand of(final String commandName, @Nullable final String correlationId, @Nullable final JsonValue payload) {
         return new SimpleCommand(commandName, correlationId, payload);
     }
 
@@ -117,11 +119,15 @@ public final class SimpleCommand implements Jsonifiable<JsonObject> {
 
     @Override
     public JsonObject toJson() {
-        return JsonFactory.newObjectBuilder()
-                .set(JsonFields.NAME, commandName)
-                .set(JsonFields.CORRELATION_ID, correlationId)
-                .set(JsonFields.PAYLOAD, payload)
-                .build();
+        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder()
+                .set(JsonFields.NAME, commandName);
+        if (null != correlationId) {
+            jsonObjectBuilder.set(JsonFields.CORRELATION_ID, correlationId);
+        }
+        if (null != payload) {
+            jsonObjectBuilder.set(JsonFields.PAYLOAD, payload);
+        }
+        return jsonObjectBuilder.build();
     }
 
     @Override

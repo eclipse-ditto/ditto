@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "description": "An Ditto Protocol announcement announces an event before it actually happens.",
+  "title": "Ditto Protocol announcement",
+  "properties": {
+    "topic": {
+      "type": "string",
+      "description": "Contains the topic of the announcement, ending with the announcement name."
+    },
+    "headers": {
+      "type": "object",
+      "description": "Additional headers."
+    },
+    "path": {
+      "type": "string",
+      "description": "The path is always the empty path `/` for an announcement."
+    },
+    "value": {
+      "type": ["object","string","number","array","boolean"],
+      "description": "The _value_ field contains the optional payload of the announcement."
+    }
+  },
+  "required": [ "topic", "headers", "path" ]
+}

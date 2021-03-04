@@ -1645,6 +1645,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private static StreamingType toStreamingTypes(final Topic topic) {
         switch (topic) {
+            case POLICY_ANNOUNCEMENTS:
+                return StreamingType.POLICY_ANNOUNCEMENTS;
             case LIVE_EVENTS:
                 return StreamingType.LIVE_EVENTS;
             case LIVE_COMMANDS:

@@ -24,7 +24,7 @@ entries:
         output: web
         folderitems:
           - title: 2.0.0
-            url: /release_notes_200.html
+            url: /release_notes_next.html
             output: web
           - title: 1.5.1
             url: /release_notes_151.html
@@ -183,6 +183,9 @@ entries:
                     output: web
                   - title: Event
                     url: /basic-signals-event.html
+                    output: web
+                  - title: Announcement
+                    url: /basic-signals-announcement.html
                     output: web
 
           - title: APIs
@@ -394,6 +397,9 @@ entries:
                     output: web
                   - title: Delete
                     url: /protocol-specification-policies-delete.html
+                    output: web
+                  - title: Announcement
+                    url: /protocol-specification-policies-announcement.html
                     output: web
 
           - title: Bindings
@@ -662,6 +668,9 @@ entries:
                     output: web
                   - title: Error responses
                     url: /protocol-examples-policies-errorresponses.html
+                    output: web
+                  - title: Announcement for subject deletion
+                    url: /protocol-examples-policies-announcement-subjectDeletion.html
                     output: web
           - title: → Search examples
             url: /protocol-examples-search.html

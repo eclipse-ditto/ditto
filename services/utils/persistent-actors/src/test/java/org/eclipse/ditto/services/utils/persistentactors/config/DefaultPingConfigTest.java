@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.config;
+package org.eclipse.ditto.services.utils.persistentactors.config;
 
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -29,86 +29,94 @@ import com.typesafe.config.ConfigFactory;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.connectivity.messaging.config.DefaultReconnectConfig}.
+ * Unit test for {@link DefaultPingConfig}.
  */
-public final class DefaultReconnectConfigTest {
+public final class DefaultPingConfigTest {
 
-    private static Config reconnectionTestConf;
+    private static Config pingTestConf;
 
     @Rule
     public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @BeforeClass
     public static void initTestFixture() {
-        reconnectionTestConf = ConfigFactory.load("reconnection-test");
+        pingTestConf = ConfigFactory.load("ping-test");
     }
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DefaultReconnectConfig.class,
+        assertInstancesOf(DefaultPingConfig.class,
                 areImmutable(),
-                provided(ReconnectConfig.RateConfig.class).isAlsoImmutable());
+                provided(RateConfig.class).isAlsoImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(DefaultReconnectConfig.class)
+        EqualsVerifier.forClass(DefaultPingConfig.class)
                 .usingGetClass()
                 .verify();
     }
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
-        final DefaultReconnectConfig underTest = DefaultReconnectConfig.of(ConfigFactory.empty());
+        final DefaultPingConfig underTest = DefaultPingConfig.of(ConfigFactory.empty());
+
+        softly.assertThat(underTest.getJournalTag())
+                .as(PingConfig.PingConfigValue.JOURNAL_TAG.getConfigPath())
+                .isEqualTo(PingConfig.PingConfigValue.JOURNAL_TAG.getDefaultValue());
 
         softly.assertThat(underTest.getInitialDelay())
-                .as(ReconnectConfig.ReconnectConfigValue.INITIAL_DELAY.getConfigPath())
-                .isEqualTo(ReconnectConfig.ReconnectConfigValue.INITIAL_DELAY.getDefaultValue());
+                .as(PingConfig.PingConfigValue.INITIAL_DELAY.getConfigPath())
+                .isEqualTo(PingConfig.PingConfigValue.INITIAL_DELAY.getDefaultValue());
 
         softly.assertThat(underTest.getInterval())
-                .as(ReconnectConfig.ReconnectConfigValue.INTERVAL.getConfigPath())
-                .isEqualTo(ReconnectConfig.ReconnectConfigValue.INTERVAL.getDefaultValue());
+                .as(PingConfig.PingConfigValue.INTERVAL.getConfigPath())
+                .isEqualTo(PingConfig.PingConfigValue.INTERVAL.getDefaultValue());
 
         softly.assertThat(underTest.getReadJournalBatchSize())
-                .as(ReconnectConfig.ReconnectConfigValue.READ_JOURNAL_BATCH_SIZE.getConfigPath())
-                .isEqualTo(ReconnectConfig.ReconnectConfigValue.READ_JOURNAL_BATCH_SIZE.getDefaultValue());
+                .as(PingConfig.PingConfigValue.READ_JOURNAL_BATCH_SIZE.getConfigPath())
+                .isEqualTo(PingConfig.PingConfigValue.READ_JOURNAL_BATCH_SIZE.getDefaultValue());
 
         softly.assertThat(underTest.getRateConfig())
                 .as("rateConfig")
                 .satisfies(rateConfig -> {
                     softly.assertThat(rateConfig.getEntityAmount())
-                            .as(ReconnectConfig.RateConfig.RateConfigValue.ENTITIES.getConfigPath())
-                            .isEqualTo(ReconnectConfig.RateConfig.RateConfigValue.ENTITIES.getDefaultValue());
+                            .as(RateConfig.RateConfigValue.ENTITIES.getConfigPath())
+                            .isEqualTo(RateConfig.RateConfigValue.ENTITIES.getDefaultValue());
                     softly.assertThat(rateConfig.getFrequency())
-                            .as(ReconnectConfig.RateConfig.RateConfigValue.FREQUENCY.getConfigPath())
-                            .isEqualTo(ReconnectConfig.RateConfig.RateConfigValue.FREQUENCY.getDefaultValue());
+                            .as(RateConfig.RateConfigValue.FREQUENCY.getConfigPath())
+                            .isEqualTo(RateConfig.RateConfigValue.FREQUENCY.getDefaultValue());
                 });
     }
 
     @Test
     public void underTestReturnsValuesOfConfigFile() {
-        final DefaultReconnectConfig underTest = DefaultReconnectConfig.of(reconnectionTestConf);
+        final DefaultPingConfig underTest = DefaultPingConfig.of(pingTestConf);
+
+        softly.assertThat(underTest.getJournalTag())
+                .as(PingConfig.PingConfigValue.JOURNAL_TAG.getConfigPath())
+                .isEqualTo("some-tag");
 
         softly.assertThat(underTest.getInitialDelay())
-                .as(ReconnectConfig.ReconnectConfigValue.INITIAL_DELAY.getConfigPath())
+                .as(PingConfig.PingConfigValue.INITIAL_DELAY.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(1L));
 
         softly.assertThat(underTest.getInterval())
-                .as(ReconnectConfig.ReconnectConfigValue.INTERVAL.getConfigPath())
+                .as(PingConfig.PingConfigValue.INTERVAL.getConfigPath())
                 .isEqualTo(Duration.ofMinutes(5L));
 
         softly.assertThat(underTest.getReadJournalBatchSize())
-                .as(ReconnectConfig.ReconnectConfigValue.READ_JOURNAL_BATCH_SIZE.getConfigPath())
+                .as(PingConfig.PingConfigValue.READ_JOURNAL_BATCH_SIZE.getConfigPath())
                 .isEqualTo(7);
 
         softly.assertThat(underTest.getRateConfig())
                 .as("rateConfig")
                 .satisfies(rateConfig -> {
                     softly.assertThat(rateConfig.getEntityAmount())
-                            .as(ReconnectConfig.RateConfig.RateConfigValue.ENTITIES.getConfigPath())
+                            .as(RateConfig.RateConfigValue.ENTITIES.getConfigPath())
                             .isEqualTo(2);
                     softly.assertThat(rateConfig.getFrequency())
-                            .as(ReconnectConfig.RateConfig.RateConfigValue.FREQUENCY.getConfigPath())
+                            .as(RateConfig.RateConfigValue.FREQUENCY.getConfigPath())
                             .isEqualTo(Duration.ofSeconds(2L));
                 });
     }

@@ -19,11 +19,8 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
-import org.slf4j.LoggerFactory;
 
 import akka.actor.ExtendedActorSystem;
 
@@ -36,16 +33,15 @@ public final class DefaultPolicyMongoEventAdapter extends AbstractPolicyMongoEve
     private final Map<String, Function<JsonObject, JsonObject>> migrationMappings;
 
     public DefaultPolicyMongoEventAdapter(@Nullable final ExtendedActorSystem system) {
-        super(LoggerFactory.getLogger(DefaultPolicyMongoEventAdapter.class), system);
+        super(system);
         migrationMappings = new HashMap<>();
     }
 
     @Override
-    protected Event createEventFrom(final JsonValue json) {
-        final JsonObject jsonObject = json.asObject()
-                .setValue(Event.JsonFields.REVISION.getPointer(), Event.DEFAULT_REVISION);
-        return eventRegistry.parse(migrateComplex(migratePayload(jsonObject)), DittoHeaders.empty());
+    protected JsonObject performFromJournalMigration(final JsonObject jsonObject) {
+        return migrateComplex(migratePayload(jsonObject));
     }
+
     @SuppressWarnings("squid:CallToDeprecatedMethod")
     private JsonObject migrateComplex(final JsonObject jsonObject) {
         return jsonObject.getValue(Event.JsonFields.ID)
