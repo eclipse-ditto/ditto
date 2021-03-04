@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -25,7 +27,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.policies.PolicyIdValidator;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -49,12 +51,11 @@ public final class DeletePolicyImport extends AbstractCommand<DeletePolicyImport
     static final JsonFieldDefinition<String> JSON_IMPORTED_POLICY_ID =
             JsonFactory.newStringFieldDefinition("importedPolicyId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final String policyId;
-    private final String importedPolicyId;
+    private final PolicyId policyId;
+    private final PolicyId importedPolicyId;
 
-    private DeletePolicyImport(final String policyId, final String importedPolicyId, final DittoHeaders dittoHeaders) {
+    private DeletePolicyImport(final PolicyId policyId, final PolicyId importedPolicyId, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
-        PolicyIdValidator.getInstance().accept(policyId, dittoHeaders);
         this.policyId = policyId;
         this.importedPolicyId = importedPolicyId;
     }
@@ -68,7 +69,7 @@ public final class DeletePolicyImport extends AbstractCommand<DeletePolicyImport
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static DeletePolicyImport of(final String policyId, final String importedPolicyId,
+    public static DeletePolicyImport of(final PolicyId policyId, final PolicyId importedPolicyId,
             final DittoHeaders dittoHeaders) {
         Objects.requireNonNull(policyId, "The Policy identifier must not be null!");
         Objects.requireNonNull(importedPolicyId, "The imported Policy ID must not be null!");
@@ -102,8 +103,8 @@ public final class DeletePolicyImport extends AbstractCommand<DeletePolicyImport
      */
     public static DeletePolicyImport fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<DeletePolicyImport>(TYPE, jsonObject).deserialize(() -> {
-            final String policyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
-            final String theImportedPolicyId = jsonObject.getValueOrThrow(JSON_IMPORTED_POLICY_ID);
+            final PolicyId policyId = PolicyId.of(jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID));
+            final PolicyId theImportedPolicyId = PolicyId.of(jsonObject.getValueOrThrow(JSON_IMPORTED_POLICY_ID));
 
             return of(policyId, theImportedPolicyId, dittoHeaders);
         });
@@ -114,18 +115,8 @@ public final class DeletePolicyImport extends AbstractCommand<DeletePolicyImport
      *
      * @return the id of the Policy Import to delete.
      */
-    public String getImportedPolicyId() {
+    public PolicyId getImportedPolicyId() {
         return importedPolicyId;
-    }
-
-    /**
-     * Returns the identifier of the {@code Policy}.
-     *
-     * @return the identifier of the Policy.
-     */
-    @Override
-    public String getId() {
-        return policyId;
     }
 
     @Override
@@ -139,13 +130,18 @@ public final class DeletePolicyImport extends AbstractCommand<DeletePolicyImport
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
-        jsonObjectBuilder.set(JSON_IMPORTED_POLICY_ID, importedPolicyId, predicate);
+        jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, policyId.toString(), predicate);
+        jsonObjectBuilder.set(JSON_IMPORTED_POLICY_ID, importedPolicyId.toString(), predicate);
     }
 
     @Override
     public Category getCategory() {
         return Category.DELETE;
+    }
+
+    @Override
+    public PolicyId getEntityId() {
+        return policyId;
     }
 
     @Override

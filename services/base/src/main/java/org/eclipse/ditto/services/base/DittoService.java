@@ -33,7 +33,6 @@ import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.DittoConfigError;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
-import org.eclipse.ditto.services.base.config.namespaces.NamespaceSuffixCollectionNames;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.services.utils.config.raw.RawConfigSupplier;
 import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -28,7 +30,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
-import org.eclipse.ditto.model.policies.PolicyIdValidator;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyImports;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
@@ -54,13 +56,12 @@ public final class ModifyPolicyImports extends AbstractCommand<ModifyPolicyImpor
     static final JsonFieldDefinition<JsonObject> JSON_POLICY_IMPORTS =
             JsonFactory.newJsonObjectFieldDefinition("policyImports", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final String policyId;
+    private final PolicyId policyId;
     private final PolicyImports policyImports;
 
-    private ModifyPolicyImports(final String policyId, final PolicyImports policyImports,
+    private ModifyPolicyImports(final PolicyId policyId, final PolicyImports policyImports,
             final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
-        PolicyIdValidator.getInstance().accept(policyId, dittoHeaders);
         this.policyId = policyId;
         this.policyImports = policyImports;
 
@@ -78,7 +79,7 @@ public final class ModifyPolicyImports extends AbstractCommand<ModifyPolicyImpor
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ModifyPolicyImports of(final String policyId, final PolicyImports policyEntries,
+    public static ModifyPolicyImports of(final PolicyId policyId, final PolicyImports policyEntries,
             final DittoHeaders dittoHeaders) {
 
         Objects.requireNonNull(policyId, "The Policy identifier must not be null!");
@@ -113,7 +114,8 @@ public final class ModifyPolicyImports extends AbstractCommand<ModifyPolicyImpor
      */
     public static ModifyPolicyImports fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifyPolicyImports>(TYPE, jsonObject).deserialize(() -> {
-            final String policyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+            final PolicyId policyId = PolicyId.of(
+                    jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID));
             final JsonObject policyImportsJsonObject = jsonObject.getValueOrThrow(JSON_POLICY_IMPORTS);
             final PolicyImports policyImports = PoliciesModelFactory.newPolicyImports(policyImportsJsonObject);
 
@@ -130,16 +132,6 @@ public final class ModifyPolicyImports extends AbstractCommand<ModifyPolicyImpor
         return policyImports;
     }
 
-    /**
-     * Returns the identifier of the {@code Policy} whose {@code PolicyImports} to modify.
-     *
-     * @return the identifier of the Policy whose PolicyImports to modify.
-     */
-    @Override
-    public String getId() {
-        return policyId;
-    }
-
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
         return Optional.of(policyImports.toJson(schemaVersion));
@@ -154,13 +146,18 @@ public final class ModifyPolicyImports extends AbstractCommand<ModifyPolicyImpor
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, policyId.toString(), predicate);
         jsonObjectBuilder.set(JSON_POLICY_IMPORTS, policyImports.toJson(schemaVersion, thePredicate), predicate);
     }
 
     @Override
     public Category getCategory() {
         return Category.MODIFY;
+    }
+
+    @Override
+    public PolicyId getEntityId() {
+        return policyId;
     }
 
     @Override

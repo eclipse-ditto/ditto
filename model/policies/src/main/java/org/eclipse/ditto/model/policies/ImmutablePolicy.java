@@ -96,7 +96,7 @@ final class ImmutablePolicy implements Policy {
      * @throws PolicyIdInvalidException if {@code policyId} did not comply to
      * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      * @deprecated Policy ID is now typed. Use
-     * {@link #of(PolicyId, PolicyLifecycle, PolicyRevision, java.time.Instant, java.time.Instant, Iterable)}
+     * {@link #of(PolicyId, PolicyLifecycle, PolicyRevision, java.time.Instant, java.time.Instant, PolicyImports, Iterable)}
      * instead
      */
     @Deprecated
@@ -105,9 +105,10 @@ final class ImmutablePolicy implements Policy {
             @Nullable final PolicyRevision revision,
             @Nullable final Instant modified,
             @Nullable final Instant created,
+            @Nullable final PolicyImports imports,
             final Iterable<PolicyEntry> entries) {
 
-        return of(PolicyId.of(policyId), lifecycle, revision, modified, created, entries);
+        return of(PolicyId.of(policyId), lifecycle, revision, modified, created, imports, entries);
     }
 
     /**
@@ -126,9 +127,9 @@ final class ImmutablePolicy implements Policy {
     public static Policy of(@Nullable final PolicyId policyId,
             @Nullable final PolicyLifecycle lifecycle,
             @Nullable final PolicyRevision revision,
-            @Nullable final PolicyImports imports,
             @Nullable final Instant modified,
             @Nullable final Instant created,
+            @Nullable final PolicyImports imports,
             final Iterable<PolicyEntry> entries) {
 
         checkNotNull(entries, "Policy entries");
@@ -190,7 +191,7 @@ final class ImmutablePolicy implements Policy {
                 .map(toPolicyEntry)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
 
-        return of(policyId, readLifecycle, readRevision, readImports, readModified, readCreated, policyEntries);
+        return of(policyId, readLifecycle, readRevision, readModified, readCreated, readImports, policyEntries);
     }
 
     private static Instant tryToParseModified(final CharSequence dateTime) {
@@ -293,7 +294,7 @@ final class ImmutablePolicy implements Policy {
         final Map<Label, PolicyEntry> entriesCopy = copyEntries();
         entriesCopy.remove(lbl);
 
-        return new ImmutablePolicy(policyId, imports, entriesCopy, lifecycle, revision, modified);
+        return new ImmutablePolicy(policyId, imports, entriesCopy, lifecycle, revision, modified, created);
     }
 
     @Override

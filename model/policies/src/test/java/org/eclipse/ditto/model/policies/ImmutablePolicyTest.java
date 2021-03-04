@@ -51,12 +51,12 @@ public final class ImmutablePolicyTest {
     private static final PolicyId POLICY_ID = PolicyId.of("com.example", "myPolicy");
 
     private static final PolicyImports POLICY_IMPORTS = PoliciesModelFactory.newPolicyImports(
-            PoliciesModelFactory.newPolicyImport("com.example:importedPolicy", false));
+            PoliciesModelFactory.newPolicyImport(PolicyId.of("com.example:importedPolicy"), false));
 
     private static Policy createPolicy() {
         final List<PolicyEntry> policyEntries = Arrays.asList(createPolicyEntry1(), createPolicyEntry2());
         return ImmutablePolicy.of(POLICY_ID, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1),
-                POLICY_IMPORTS, null, null, policyEntries);
+                null, null, POLICY_IMPORTS, policyEntries);
     }
 
     private static PolicyEntry createPolicyEntry2() {
@@ -93,13 +93,13 @@ public final class ImmutablePolicyTest {
 
     @Test(expected = PolicyIdInvalidException.class)
     public void testInvalidPolicyId() {
-        ImmutablePolicy.of("foo bar", PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(0), POLICY_IMPORTS, null, null,
+        ImmutablePolicy.of("foo bar", PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(0), null, null, POLICY_IMPORTS,
                 Collections.emptySet());
     }
 
     @Test(expected = PolicyIdInvalidException.class)
     public void testEmptyPolicyId() {
-        ImmutablePolicy.of("", PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(0), POLICY_IMPORTS, null, null, Collections.emptySet());
+        ImmutablePolicy.of("", PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(0), null, null, POLICY_IMPORTS, Collections.emptySet());
     }
 
     @Test
@@ -107,7 +107,7 @@ public final class ImmutablePolicyTest {
         final PolicyEntry policyEntry1 = createPolicyEntry1();
         final PolicyEntry policyEntry2 = createPolicyEntry2();
 
-        final Policy policy = ImmutablePolicy.of(POLICY_ID, null, null, POLICY_IMPORTS, null, null, Arrays.asList(policyEntry1,
+        final Policy policy = ImmutablePolicy.of(POLICY_ID, null, null, null, null, POLICY_IMPORTS, Arrays.asList(policyEntry1,
                 policyEntry2));
 
         final JsonObject policyJson = policy.toJson();
@@ -122,7 +122,7 @@ public final class ImmutablePolicyTest {
         final PolicyEntry policyEntry2 = createPolicyEntry2();
 
         final Policy policy = ImmutablePolicy.of(POLICY_ID, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1),
-                POLICY_IMPORTS, null, null, Arrays.asList(policyEntry1, policyEntry2));
+                null, null, POLICY_IMPORTS, Arrays.asList(policyEntry1, policyEntry2));
 
         final JsonObject policyJson = policy.toJson(FieldType.regularOrSpecial());
         final Policy policy1 = ImmutablePolicy.fromJson(policyJson);
@@ -332,7 +332,7 @@ public final class ImmutablePolicyTest {
     @Test
     public void modifyingTheEntrySetDoesNotModifyThePolicy() {
         final Policy policy = ImmutablePolicy.of(POLICY_ID, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1),
-                POLICY_IMPORTS, null, null, Collections.singleton(createPolicyEntry1()));
+                null, null, POLICY_IMPORTS, Collections.singleton(createPolicyEntry1()));
 
         final PolicyEntry policyEntry = createPolicyEntry2();
         final Set<PolicyEntry> entriesSet = policy.getEntriesSet();

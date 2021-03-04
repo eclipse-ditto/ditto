@@ -22,11 +22,9 @@ import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -40,16 +38,13 @@ import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
-import org.eclipse.ditto.model.policies.PolicyImportHelper;
-import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.PolicyImportHelper;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.services.models.caching.EntityId;
-import org.eclipse.ditto.services.models.caching.Entry;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.utils.cache.Cache;
-import org.eclipse.ditto.services.utils.cache.IdentityCache;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.InvalidateCacheEntry;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
@@ -326,10 +321,10 @@ public final class PolicyCommandEnforcement
         }
     }
 
-    private Optional<Policy> policyLoader(final String policyId) {
-        return policyCache.getBlocking(EntityId.of(PolicyCommand.RESOURCE_TYPE, policyId))
+    private Optional<Policy> policyLoader(final PolicyId policyId) {
+        return policyCache.getBlocking(EntityIdWithResourceType.of(PolicyCommand.RESOURCE_TYPE, policyId))
                 .filter(Entry::exists)
-                .map(Entry::getValue);
+                .map(Entry::getValueOrThrow);
     }
 
     /**

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -25,11 +27,12 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyImport;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
@@ -52,13 +55,13 @@ public final class RetrievePolicyImportResponse extends AbstractCommandResponse<
     static final JsonFieldDefinition<JsonObject> JSON_POLICY_IMPORT =
             JsonFactory.newJsonObjectFieldDefinition("policyImport", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final String policyId;
-    private final String importedPolicyId;
+    private final PolicyId policyId;
+    private final PolicyId importedPolicyId;
     private final JsonObject policyImport;
 
-    private RetrievePolicyImportResponse(final String policyId,
-            final HttpStatusCode statusCode,
-            final String importedPolicyId,
+    private RetrievePolicyImportResponse(final PolicyId policyId,
+            final HttpStatus statusCode,
+            final PolicyId importedPolicyId,
             final JsonObject policyImport,
             final DittoHeaders dittoHeaders) {
 
@@ -77,10 +80,10 @@ public final class RetrievePolicyImportResponse extends AbstractCommandResponse<
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrievePolicyImportResponse of(final String policyId, final PolicyImport policyImport,
+    public static RetrievePolicyImportResponse of(final PolicyId policyId, final PolicyImport policyImport,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrievePolicyImportResponse(policyId, HttpStatusCode.OK, policyImport.getImportedPolicyId(),
+        return new RetrievePolicyImportResponse(policyId, HttpStatus.OK, policyImport.getImportedPolicyId(),
                 checkNotNull(policyImport, "Policy Import")
                         .toJson(dittoHeaders.getSchemaVersion().orElse(policyImport.getLatestSchemaVersion())),
                 dittoHeaders);
@@ -96,12 +99,12 @@ public final class RetrievePolicyImportResponse extends AbstractCommandResponse<
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrievePolicyImportResponse of(final String policyId,
-            final String importedPolicyId,
+    public static RetrievePolicyImportResponse of(final PolicyId policyId,
+            final PolicyId importedPolicyId,
             final JsonObject policyImport,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrievePolicyImportResponse(policyId, HttpStatusCode.OK, importedPolicyId, policyImport,
+        return new RetrievePolicyImportResponse(policyId, HttpStatus.OK, importedPolicyId, policyImport,
                 dittoHeaders);
     }
 
@@ -135,18 +138,14 @@ public final class RetrievePolicyImportResponse extends AbstractCommandResponse<
 
         return new CommandResponseJsonDeserializer<RetrievePolicyImportResponse>(TYPE, jsonObject)
                 .deserialize(statusCode -> {
-                    final String policyId =
-                            jsonObject.getValueOrThrow(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID);
-                    final String extractedImportedPolicyId = jsonObject.getValueOrThrow(JSON_IMPORTED_POLICY_ID);
+                    final PolicyId policyId = PolicyId.of(
+                            jsonObject.getValueOrThrow(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID));
+                    final PolicyId extractedImportedPolicyId = PolicyId.of(
+                            jsonObject.getValueOrThrow(JSON_IMPORTED_POLICY_ID));
                     final JsonObject extractedPolicyImport = jsonObject.getValueOrThrow(JSON_POLICY_IMPORT);
 
                     return of(policyId, extractedImportedPolicyId, extractedPolicyImport, dittoHeaders);
                 });
-    }
-
-    @Override
-    public String getId() {
-        return policyId;
     }
 
     /**
@@ -175,6 +174,11 @@ public final class RetrievePolicyImportResponse extends AbstractCommandResponse<
     }
 
     @Override
+    public PolicyId getEntityId() {
+        return policyId;
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         final String path = "/imports/" + importedPolicyId;
         return JsonPointer.of(path);
@@ -185,8 +189,8 @@ public final class RetrievePolicyImportResponse extends AbstractCommandResponse<
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID, policyId, predicate);
-        jsonObjectBuilder.set(JSON_IMPORTED_POLICY_ID, importedPolicyId, predicate);
+        jsonObjectBuilder.set(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID, policyId.toString(), predicate);
+        jsonObjectBuilder.set(JSON_IMPORTED_POLICY_ID, importedPolicyId.toString(), predicate);
         jsonObjectBuilder.set(JSON_POLICY_IMPORT, policyImport, predicate);
     }
 

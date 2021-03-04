@@ -351,7 +351,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
                 .map(lbl -> PoliciesModelFactory.newPolicyEntry(lbl, getFinalSubjects(lbl), getFinalResources(lbl)))
                 .collect(Collectors.toList());
 
-        return ImmutablePolicy.of(id, lifecycle, revision, imports, modified, created, policyEntries);
+        return ImmutablePolicy.of(id, lifecycle, revision, modified, created, imports, policyEntries);
     }
 
     @Nonnull

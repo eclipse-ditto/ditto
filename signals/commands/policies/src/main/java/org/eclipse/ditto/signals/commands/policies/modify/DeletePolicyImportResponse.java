@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -24,10 +26,11 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -46,11 +49,11 @@ public final class DeletePolicyImportResponse extends AbstractCommandResponse<De
     static final JsonFieldDefinition<String> JSON_IMPORTED_POLICY_ID =
             JsonFactory.newStringFieldDefinition("importedPolicyId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final String policyId;
-    private final String importedPolicyId;
+    private final PolicyId policyId;
+    private final PolicyId importedPolicyId;
 
-    private DeletePolicyImportResponse(final String policyId, final String importedPolicyId,
-            final HttpStatusCode statusCode, final DittoHeaders dittoHeaders) {
+    private DeletePolicyImportResponse(final PolicyId policyId, final PolicyId importedPolicyId,
+            final HttpStatus statusCode, final DittoHeaders dittoHeaders) {
 
         super(TYPE, statusCode, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
@@ -66,10 +69,10 @@ public final class DeletePolicyImportResponse extends AbstractCommandResponse<De
      * @return the response.
      * @throws NullPointerException if {@code statusCode} or {@code dittoHeaders} is {@code null}.
      */
-    public static DeletePolicyImportResponse of(final String policyId, final String importedPolicyId,
+    public static DeletePolicyImportResponse of(final PolicyId policyId, final PolicyId importedPolicyId,
             final DittoHeaders dittoHeaders) {
 
-        return new DeletePolicyImportResponse(policyId, importedPolicyId, HttpStatusCode.NO_CONTENT, dittoHeaders);
+        return new DeletePolicyImportResponse(policyId, importedPolicyId, HttpStatus.NO_CONTENT, dittoHeaders);
     }
 
     /**
@@ -100,17 +103,12 @@ public final class DeletePolicyImportResponse extends AbstractCommandResponse<De
     public static DeletePolicyImportResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<DeletePolicyImportResponse>(TYPE, jsonObject)
                 .deserialize(statusCode -> {
-                    final String policyId =
-                            jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
-                    final String importedPolicyId = jsonObject.getValueOrThrow(JSON_IMPORTED_POLICY_ID);
+                    final PolicyId policyId = PolicyId.of(
+                            jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID));
+                    final PolicyId importedPolicyId = PolicyId.of(jsonObject.getValueOrThrow(JSON_IMPORTED_POLICY_ID));
 
                     return of(policyId, importedPolicyId, dittoHeaders);
                 });
-    }
-
-    @Override
-    public String getId() {
-        return policyId;
     }
 
     /**
@@ -118,7 +116,7 @@ public final class DeletePolicyImportResponse extends AbstractCommandResponse<De
      *
      * @return the imported Policy ID.
      */
-    public String getImportedPolicyId() {
+    public PolicyId getImportedPolicyId() {
         return importedPolicyId;
     }
 
@@ -132,13 +130,18 @@ public final class DeletePolicyImportResponse extends AbstractCommandResponse<De
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID, policyId, predicate);
-        jsonObjectBuilder.set(JSON_IMPORTED_POLICY_ID, importedPolicyId, predicate);
+        jsonObjectBuilder.set(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID, policyId.toString(), predicate);
+        jsonObjectBuilder.set(JSON_IMPORTED_POLICY_ID, importedPolicyId.toString(), predicate);
     }
 
     @Override
     public DeletePolicyImportResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(policyId, importedPolicyId, dittoHeaders);
+    }
+
+    @Override
+    public PolicyId getEntityId() {
+        return policyId;
     }
 
     @Override

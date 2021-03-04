@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -34,11 +36,11 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 @Immutable
 final class ImmutablePolicyImport implements PolicyImport {
 
-    private final String importedPolicyId;
+    private final PolicyId importedPolicyId;
     private final boolean isProtected;
     private final EffectedImports effectedImports;
 
-    private ImmutablePolicyImport(final String importedPolicyId, final boolean isProtected,
+    private ImmutablePolicyImport(final PolicyId importedPolicyId, final boolean isProtected,
             final EffectedImports effectedPermissions) {
         this.importedPolicyId = checkNotNull(importedPolicyId, "imported policy id");
         this.isProtected = isProtected;
@@ -54,7 +56,7 @@ final class ImmutablePolicyImport implements PolicyImport {
      * @return a new {@code PolicyImport} object.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static PolicyImport of(final String importedPolicyId, final boolean isProtected) {
+    public static PolicyImport of(final PolicyId importedPolicyId, final boolean isProtected) {
         return new ImmutablePolicyImport(importedPolicyId, isProtected,
                 PoliciesModelFactory.emptyEffectedImportedEntries());
     }
@@ -68,7 +70,7 @@ final class ImmutablePolicyImport implements PolicyImport {
      * @return a new {@code PolicyImport} object.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static PolicyImport of(final String importedPolicyId, final boolean isProtected,
+    public static PolicyImport of(final PolicyId importedPolicyId, final boolean isProtected,
             final EffectedImports effectedImports) {
         return new ImmutablePolicyImport(importedPolicyId, isProtected, effectedImports);
     }
@@ -83,7 +85,7 @@ final class ImmutablePolicyImport implements PolicyImport {
      * @throws NullPointerException if any argument is {@code null}.
      * @throws DittoJsonException if {@code jsonValue} is not a JSON object or the JSON has not the expected format.
      */
-    public static PolicyImport fromJson(final String importedPolicyId, final JsonValue jsonValue) {
+    public static PolicyImport fromJson(final PolicyId importedPolicyId, final JsonValue jsonValue) {
         checkNotNull(jsonValue, "JSON value");
 
         final Optional<JsonObject> jsonFields = Optional.of(jsonValue)
@@ -107,7 +109,7 @@ final class ImmutablePolicyImport implements PolicyImport {
     }
 
     @Override
-    public String getImportedPolicyId() {
+    public PolicyId getImportedPolicyId() {
         return importedPolicyId;
     }
 
@@ -155,7 +157,7 @@ final class ImmutablePolicyImport implements PolicyImport {
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "importedPolicyId=" + importedPolicyId +
-                "isProtected=" + isProtected +
+                ", isProtected=" + isProtected +
                 ", effectedImports=" + effectedImports +
                 "]";
     }

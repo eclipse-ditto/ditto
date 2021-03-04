@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -23,7 +25,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.policies.PolicyIdValidator;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -44,11 +46,10 @@ public final class RetrievePolicyImports extends AbstractCommand<RetrievePolicyI
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private final String policyId;
+    private final PolicyId policyId;
 
-    private RetrievePolicyImports(final String policyId, final DittoHeaders dittoHeaders) {
+    private RetrievePolicyImports(final PolicyId policyId, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
-        PolicyIdValidator.getInstance().accept(policyId, dittoHeaders);
         this.policyId = policyId;
     }
 
@@ -61,7 +62,7 @@ public final class RetrievePolicyImports extends AbstractCommand<RetrievePolicyI
      * authorization context.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrievePolicyImports of(final String policyId, final DittoHeaders dittoHeaders) {
+    public static RetrievePolicyImports of(final PolicyId policyId, final DittoHeaders dittoHeaders) {
         return new RetrievePolicyImports(policyId, dittoHeaders);
     }
 
@@ -94,20 +95,11 @@ public final class RetrievePolicyImports extends AbstractCommand<RetrievePolicyI
      */
     public static RetrievePolicyImports fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrievePolicyImports>(TYPE, jsonObject).deserialize(() -> {
-            final String policyId = jsonObject.getValueOrThrow(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
+            final PolicyId policyId = PolicyId.of(
+                    jsonObject.getValueOrThrow(PolicyQueryCommand.JsonFields.JSON_POLICY_ID));
 
             return of(policyId, dittoHeaders);
         });
-    }
-
-    /**
-     * Returns the identifier of the {@code Policy} to retrieve the {@code PolicyImports} from.
-     *
-     * @return the identifier of the Policy to retrieve the PolicyImports from.
-     */
-    @Override
-    public String getId() {
-        return policyId;
     }
 
     @Override
@@ -120,7 +112,12 @@ public final class RetrievePolicyImports extends AbstractCommand<RetrievePolicyI
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyQueryCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(PolicyQueryCommand.JsonFields.JSON_POLICY_ID, policyId.toString(), predicate);
+    }
+
+    @Override
+    public PolicyId getEntityId() {
+        return policyId;
     }
 
     @Override

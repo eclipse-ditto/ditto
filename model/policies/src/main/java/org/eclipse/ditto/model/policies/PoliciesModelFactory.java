@@ -663,7 +663,7 @@ public final class PoliciesModelFactory {
         Collections.addAll(allEntries, furtherEntries);
 
         return ImmutablePolicy.of(PolicyId.of(id), PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null,
-                allEntries);
+                null, allEntries);
     }
 
     /**
@@ -700,7 +700,7 @@ public final class PoliciesModelFactory {
     @Deprecated
     public static Policy newPolicy(final CharSequence id, final Iterable<PolicyEntry> entries) {
         return ImmutablePolicy.of(PolicyId.of(id), PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null,
-                entries);
+                null, entries);
     }
 
     /**
@@ -792,7 +792,7 @@ public final class PoliciesModelFactory {
      * @return the new {@link PolicyImport}.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static PolicyImport newPolicyImport(final String importedPolicyId, final boolean isProtected) {
+    public static PolicyImport newPolicyImport(final PolicyId importedPolicyId, final boolean isProtected) {
         return ImmutablePolicyImport.of(importedPolicyId, isProtected);
     }
 
@@ -805,7 +805,7 @@ public final class PoliciesModelFactory {
      * @return the new {@link PolicyImport}.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static PolicyImport newPolicyImport(final String importedPolicyId, final boolean isProtected,
+    public static PolicyImport newPolicyImport(final PolicyId importedPolicyId, final boolean isProtected,
             final EffectedImports effectedImports) {
         return ImmutablePolicyImport.of(importedPolicyId, isProtected, effectedImports);
     }
@@ -819,7 +819,7 @@ public final class PoliciesModelFactory {
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code jsonObject} cannot be parsed.
      */
-    public static PolicyImport newPolicyImport(final String importedPolicyId, final JsonObject jsonObject) {
+    public static PolicyImport newPolicyImport(final PolicyId importedPolicyId, final JsonObject jsonObject) {
         return ImmutablePolicyImport.fromJson(importedPolicyId, jsonObject);
     }
 

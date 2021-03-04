@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -37,7 +39,7 @@ public final class PolicyImportHelper {
      * TODO TJ doc
      */
     public static Set<PolicyEntry> mergeImportedPolicyEntries(final Policy policy,
-            final Function<String, Optional<Policy>> policyLoader) {
+            final Function<PolicyId, Optional<Policy>> policyLoader) {
         final Set<PolicyEntry> policyEntriesSet = new HashSet<>(policy.getEntriesSet());
 
         policy.getImports()
@@ -45,7 +47,7 @@ public final class PolicyImportHelper {
                 .map(stream -> stream
                         .map(policyImport -> {
 
-                            final String importedPolicyId = policyImport.getImportedPolicyId();
+                            final PolicyId importedPolicyId = policyImport.getImportedPolicyId();
                             final Optional<Policy> loadedPolicyOpt = policyLoader.apply(
                                     importedPolicyId);
                             return loadedPolicyOpt.map(loadedPolicy -> {
@@ -82,14 +84,14 @@ public final class PolicyImportHelper {
         return policyEntriesSet;
     }
 
-    private static Set<PolicyEntry> rewriteImportedLabels(final String importedPolicyId,
+    private static Set<PolicyEntry> rewriteImportedLabels(final PolicyId importedPolicyId,
             final Iterable<PolicyEntry> importedEntries) {
 
         return rewriteImportedLabels(importedPolicyId,
                 StreamSupport.stream(importedEntries.spliterator(), false)).collect(Collectors.toSet());
     }
 
-    private static Stream<PolicyEntry> rewriteImportedLabels(final String importedPolicyId,
+    private static Stream<PolicyEntry> rewriteImportedLabels(final PolicyId importedPolicyId,
             final Stream<PolicyEntry> importedEntriesStream) {
 
         return importedEntriesStream
