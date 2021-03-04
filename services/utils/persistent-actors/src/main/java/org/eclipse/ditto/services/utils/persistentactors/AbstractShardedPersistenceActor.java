@@ -110,7 +110,6 @@ public abstract class AbstractShardedPersistenceActor<
         handleEvents = ReceiveBuilder.create()
                 .match(getEventClass(), event -> {
                     entity = getEventStrategy().handle((E) event, entity, getRevisionNumber());
-                    onEntityModified();
                 })
                 .match(EmptyEvent.class,
                         event -> log.withCorrelationId(event).debug("Recovered EmptyEvent: <{}>", event))
@@ -525,6 +524,7 @@ public abstract class AbstractShardedPersistenceActor<
                aftereffects.
              */
             handler.accept(persistedEvent);
+            onEntityModified();
 
             // save a snapshot if there were too many changes since the last snapshot
             if (snapshotThresholdPassed()) {

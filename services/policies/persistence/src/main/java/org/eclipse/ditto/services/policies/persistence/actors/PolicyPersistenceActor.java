@@ -220,8 +220,8 @@ public final class PolicyPersistenceActor
 
         final Policy previousEntity = entity;
         persistAndApplyEvent(event, (persistedEvent, resultingEntity) -> {
-            announceSubjectDeletion(previousEntity, entity, persistedEvent.getDittoHeaders());
             sendPastDueAnnouncementsOfNewSubjects(previousEntity, entity);
+            announceSubjectDeletion(previousEntity, entity, persistedEvent.getDittoHeaders());
             if (shouldSendResponse(command.getDittoHeaders())) {
                 notifySender(getSender(), response);
             }

@@ -24,6 +24,7 @@ import static org.eclipse.ditto.services.policies.persistence.testhelper.ETagTes
 import static org.eclipse.ditto.services.policies.persistence.testhelper.ETagTestUtils.retrieveSubjectResponse;
 import static org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersistenceActor.JOURNAL_TAG_ALWAYS_ALIVE;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -935,7 +936,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
                 // THEN: announcements are published
                 final var captor = ArgumentCaptor.forClass(SubjectDeletionAnnouncement.class);
-                verify(policyAnnouncementPub, times(2)).publish(captor.capture(), any());
+                verify(policyAnnouncementPub, timeout(5000).times(2)).publish(captor.capture(), any());
                 final SubjectDeletionAnnouncement announcement1 = captor.getAllValues().get(0);
                 final SubjectDeletionAnnouncement announcement2 = captor.getAllValues().get(1);
                 Assertions.assertThat(announcement1.getSubjectIds()).containsExactly(subject1.getId());
