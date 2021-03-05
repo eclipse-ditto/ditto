@@ -16,12 +16,17 @@ import static akka.http.javadsl.model.ContentTypes.APPLICATION_JSON;
 
 import java.util.List;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.model.base.common.DittoDuration;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.SubjectAnnouncement;
+import org.eclipse.ditto.model.policies.SubjectExpiry;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
@@ -161,6 +166,50 @@ public final class PoliciesRouteTest extends EndpointTestBase {
     }
 
     @Test
+    public void activateTopLevelTokenIntegrationWithUnresolvedJwtPlaceholder() {
+        final JwtAuthenticationResult jwtAuthResultWithoutAudClaim =
+                JwtAuthenticationResult.successful(DittoHeaders.empty(), getDummyAuthorizationContext(),
+                        new DummyJwt() {
+                            @Override
+                            public JsonObject getBody() {
+                                return super.getBody().toBuilder()
+                                        .remove("aud")
+                                        .build();
+                            }
+                        });
+        getRoute(jwtAuthResultWithoutAudClaim).run(HttpRequest.POST("/policies/ns%3An/actions/activateTokenIntegration/"))
+                .assertStatusCode(StatusCodes.BAD_REQUEST)
+                .assertEntity(PolicyActionFailedException.newBuilder()
+                        .action("activateTokenIntegration")
+                        .status(HttpStatus.BAD_REQUEST)
+                        .description("Mandatory placeholders could not be resolved, in detail: " +
+                                "The placeholder 'jwt:aud' could not be resolved.")
+                        .build()
+                        .toJsonString());
+    }
+
+    @Test
+    public void activateTopLevelTokenIntegrationWithAnnouncement() {
+        final var subjectAnnouncement = SubjectAnnouncement.of(DittoDuration.parseDuration("1h"), true);
+        final JsonObject requestPayload = JsonObject.newBuilder()
+                .set("announcement", subjectAnnouncement.toJson())
+                .build();
+        getRoute(getTokenAuthResult()).run(HttpRequest.POST("/policies/ns%3An/actions/activateTokenIntegration/")
+                .withEntity(APPLICATION_JSON, requestPayload.toString()))
+                .assertStatusCode(StatusCodes.OK)
+                .assertEntity(TopLevelPolicyActionCommand.of(
+                        ActivateTokenIntegration.of(PolicyId.of("ns:n"),
+                                Label.of("-"),
+                                List.of(SubjectId.newInstance("integration:{{policy-entry:label}}:aud-1"),
+                                        SubjectId.newInstance("integration:{{policy-entry:label}}:aud-2")),
+                                SubjectExpiry.newInstance(DummyJwt.EXPIRY),
+                                subjectAnnouncement,
+                                DittoHeaders.empty()),
+                        List.of()
+                ).toJsonString());
+    }
+
+    @Test
     public void deactivateTopLevelTokenIntegration() {
         getRoute(getTokenAuthResult()).run(HttpRequest.POST("/policies/ns%3An/actions/deactivateTokenIntegration"))
                 .assertStatusCode(StatusCodes.OK)
@@ -191,6 +240,26 @@ public final class PoliciesRouteTest extends EndpointTestBase {
                         List.of(SubjectId.newInstance("integration:{{policy-entry:label}}:aud-1"),
                                 SubjectId.newInstance("integration:{{policy-entry:label}}:aud-2")),
                         DummyJwt.EXPIRY,
+                        DittoHeaders.empty()
+                ).toJsonString());
+    }
+
+    @Test
+    public void activateTokenIntegrationForEntryWithAnnouncement() {
+        final var subjectAnnouncement = SubjectAnnouncement.of(DittoDuration.parseDuration("1s"), true);
+        final JsonObject requestPayload = JsonObject.newBuilder()
+                .set("announcement", subjectAnnouncement.toJson())
+                .build();
+        getRoute(getTokenAuthResult()).run(HttpRequest.POST(
+                "/policies/ns%3An/entries/label/actions/activateTokenIntegration/")
+                .withEntity(APPLICATION_JSON, requestPayload.toString()))
+                .assertStatusCode(StatusCodes.OK)
+                .assertEntity(ActivateTokenIntegration.of(PolicyId.of("ns:n"),
+                        Label.of("label"),
+                        List.of(SubjectId.newInstance("integration:{{policy-entry:label}}:aud-1"),
+                                SubjectId.newInstance("integration:{{policy-entry:label}}:aud-2")),
+                        SubjectExpiry.newInstance(DummyJwt.EXPIRY),
+                        subjectAnnouncement,
                         DittoHeaders.empty()
                 ).toJsonString());
     }

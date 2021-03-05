@@ -28,7 +28,7 @@ import org.junit.Test;
 
 public class GlobalEventRegistryTest {
 
-    private GlobalEventRegistry underTest;
+    private GlobalEventRegistry<?> underTest;
     private DittoHeaders headers;
     private String testType;
 
@@ -55,7 +55,7 @@ public class GlobalEventRegistryTest {
                 .set("type", testType)
                 .build();
 
-        final Event parsedEvent = underTest.parse(testObject, headers);
+        final Event<?> parsedEvent = underTest.parse(testObject, headers);
 
         assertThat(parsedEvent).isExactlyInstanceOf(TestEvent.class);
         assertThat(parsedEvent.getType()).isEqualTo(testType);

@@ -23,7 +23,6 @@ import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ConnectionIdsRetrievalActor;
 import org.eclipse.ditto.services.connectivity.messaging.ConnectivityProxyActor;
-import org.eclipse.ditto.services.connectivity.messaging.ReconnectActor;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceOperationsActor;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceStreamingActorCreator;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionSupervisorActor;
@@ -41,6 +40,7 @@ import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
 import org.eclipse.ditto.services.utils.health.config.PersistenceConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.services.utils.persistentactors.PersistencePingActor;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 
@@ -94,9 +94,10 @@ public final class ConnectivityRootActor extends DittoRootActor {
         pubSubMediator.tell(DistPubSubAccess.put(persistenceStreamingActor), getSelf());
 
         startClusterSingletonActor(
-                ReconnectActor.props(getConnectionShardRegion(actorSystem, connectionSupervisorProps, clusterConfig),
-                        MongoReadJournal.newInstance(actorSystem)),
-                ReconnectActor.ACTOR_NAME);
+                PersistencePingActor.props(
+                        startConnectionShardRegion(actorSystem, connectionSupervisorProps, clusterConfig),
+                        connectivityConfig.getPingConfig(), MongoReadJournal.newInstance(actorSystem)),
+                PersistencePingActor.ACTOR_NAME);
 
         startClusterSingletonActor(
                 ConnectionIdsRetrievalActor.props(MongoReadJournal.newInstance(actorSystem)),
@@ -193,7 +194,7 @@ public final class ConnectivityRootActor extends DittoRootActor {
                         conciergeForwarderSignalTransformer));
     }
 
-    private static ActorRef getConnectionShardRegion(final ActorSystem actorSystem,
+    private static ActorRef startConnectionShardRegion(final ActorSystem actorSystem,
             final Props connectionSupervisorProps, final ClusterConfig clusterConfig) {
 
         final ClusterShardingSettings shardingSettings = ClusterShardingSettings.create(actorSystem)

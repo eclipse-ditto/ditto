@@ -97,13 +97,13 @@ public final class ThingCreatedTest {
 
     @Test
     public void parseThingCreatedEvent() {
-        final GlobalEventRegistry eventRegistry = GlobalEventRegistry.getInstance();
+        final GlobalEventRegistry<ThingEvent<?>> eventRegistry = GlobalEventRegistry.getInstance();
 
         final ThingCreated event = ThingCreated.of(TestConstants.Thing.THING, TestConstants.Thing.REVISION_NUMBER,
                 TestConstants.TIMESTAMP, TestConstants.DITTO_HEADERS, TestConstants.METADATA);
         final JsonObject jsonObject = event.toJson(FieldType.regularOrSpecial());
 
-        final Event parsedEvent = eventRegistry.parse(jsonObject, TestConstants.DITTO_HEADERS);
+        final ThingEvent<?> parsedEvent = eventRegistry.parse(jsonObject, TestConstants.DITTO_HEADERS);
 
         assertThat(parsedEvent).isEqualTo(event);
     }

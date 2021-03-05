@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -29,6 +30,9 @@ import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.indices.Index;
+import org.eclipse.ditto.services.utils.persistence.mongo.indices.IndexFactory;
+import org.eclipse.ditto.services.utils.persistence.mongo.indices.IndexInitializer;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 import com.mongodb.client.model.Accumulators;
@@ -39,6 +43,7 @@ import com.mongodb.client.model.Sorts;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.typesafe.config.Config;
 
+import akka.Done;
 import akka.NotUsed;
 import akka.actor.ActorSystem;
 import akka.contrib.persistence.mongodb.JournallingFieldNames$;
@@ -46,6 +51,8 @@ import akka.contrib.persistence.mongodb.SnapshottingFieldNames$;
 import akka.japi.Pair;
 import akka.stream.Attributes;
 import akka.stream.Materializer;
+import akka.stream.RestartSettings;
+import akka.stream.SystemMaterializer;
 import akka.stream.javadsl.RestartSource;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -71,7 +78,7 @@ public class MongoReadJournal {
     /**
      * ID field of documents delivered by the read journal.
      */
-    public static final String ID = JournallingFieldNames$.MODULE$.ID();
+    public static final String J_ID = JournallingFieldNames$.MODULE$.ID();
 
     private static final String AKKA_PERSISTENCE_JOURNAL_AUTO_START =
             "akka.persistence.journal.auto-start-journals";
@@ -81,24 +88,31 @@ public class MongoReadJournal {
     private static final String JOURNAL_COLLECTION_NAME_KEY = "overrides.journal-collection";
     private static final String SNAPS_COLLECTION_NAME_KEY = "overrides.snaps-collection";
 
-    private static final String PROCESSOR_ID = JournallingFieldNames$.MODULE$.PROCESSOR_ID();
-    private static final String SN = SnapshottingFieldNames$.MODULE$.SEQUENCE_NUMBER();
+    private static final String J_PROCESSOR_ID = JournallingFieldNames$.MODULE$.PROCESSOR_ID();
+    private static final String J_TAGS = JournallingFieldNames$.MODULE$.TAGS();
+    private static final String S_SN = SnapshottingFieldNames$.MODULE$.SEQUENCE_NUMBER();
 
     // Not working: SnapshottingFieldNames.V2$.MODULE$.SERIALIZED()
-    private static final String SERIALIZED_SNAPSHOT = "s2";
+    private static final String S_SERIALIZED_SNAPSHOT = "s2";
     private static final String LIFECYCLE = "__lifecycle";
 
     private static final Duration MAX_BACK_OFF_DURATION = Duration.ofSeconds(128L);
 
+    private static final Index TAG_PID_INDEX =
+            IndexFactory.newInstance("ditto_tag_pid", List.of(J_TAGS, J_PROCESSOR_ID), false, true);
+
     private final String journalCollection;
     private final String snapsCollection;
     private final DittoMongoClient mongoClient;
+    private final IndexInitializer indexInitializer;
 
     private MongoReadJournal(final String journalCollection, final String snapsCollection,
-            final DittoMongoClient mongoClient) {
+            final DittoMongoClient mongoClient, final ActorSystem actorSystem) {
         this.journalCollection = journalCollection;
         this.snapsCollection = snapsCollection;
         this.mongoClient = mongoClient;
+        final var materializer = SystemMaterializer.get(actorSystem).materializer();
+        indexInitializer = IndexInitializer.of(mongoClient.getDefaultDatabase(), materializer);
     }
 
     /**
@@ -111,21 +125,7 @@ public class MongoReadJournal {
         final Config config = system.settings().config();
         final MongoDbConfig mongoDbConfig =
                 DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(config));
-        return newInstance(config, MongoClientWrapper.newInstance(mongoDbConfig));
-    }
-
-    /**
-     * Instantiate a read journal from collection names and database client, primarily for tests.
-     *
-     * @param journalCollection the journal collection name.
-     * @param snapsCollection the snapshot collection name.
-     * @param dittoMongoClient the client.
-     * @return a read journal for the journal and snapshot collections.
-     */
-    public static MongoReadJournal newInstance(final String journalCollection, final String snapsCollection,
-            final DittoMongoClient dittoMongoClient) {
-
-        return new MongoReadJournal(journalCollection, snapsCollection, dittoMongoClient);
+        return newInstance(config, MongoClientWrapper.newInstance(mongoDbConfig), system);
     }
 
     /**
@@ -135,14 +135,24 @@ public class MongoReadJournal {
      * @param mongoClient The Mongo client wrapper.
      * @return A {@code MongoReadJournal} object.
      */
-    public static MongoReadJournal newInstance(final Config config, final DittoMongoClient mongoClient) {
+    public static MongoReadJournal newInstance(final Config config, final DittoMongoClient mongoClient,
+            final ActorSystem actorSystem) {
         final String autoStartJournalKey = extractAutoStartConfigKey(config, AKKA_PERSISTENCE_JOURNAL_AUTO_START);
         final String autoStartSnapsKey = extractAutoStartConfigKey(config, AKKA_PERSISTENCE_SNAPS_AUTO_START);
         final String journalCollection =
                 getOverrideCollectionName(config.getConfig(autoStartJournalKey), JOURNAL_COLLECTION_NAME_KEY);
         final String snapshotCollection =
                 getOverrideCollectionName(config.getConfig(autoStartSnapsKey), SNAPS_COLLECTION_NAME_KEY);
-        return new MongoReadJournal(journalCollection, snapshotCollection, mongoClient);
+        return new MongoReadJournal(journalCollection, snapshotCollection, mongoClient, actorSystem);
+    }
+
+    /**
+     * Ensure a compound index exists for journal PID streaming based on tags.
+     *
+     * @return a future that completes after index creation completes or fails when index creation fails.
+     */
+    public CompletionStage<Done> ensureTagPidIndex() {
+        return indexInitializer.createNonExistingIndices(journalCollection, List.of(TAG_PID_INDEX));
     }
 
     /**
@@ -162,7 +172,32 @@ public class MongoReadJournal {
         final int maxRestarts = computeMaxRestarts(maxIdleTime);
         return getJournal().withAttributes(Attributes.inputBuffer(1, 1))
                 .flatMapConcat(journal ->
-                        listPidsInJournal(journal, "", batchSize, mat, MAX_BACK_OFF_DURATION, maxRestarts)
+                        listPidsInJournal(journal, "", "", batchSize, mat, MAX_BACK_OFF_DURATION, maxRestarts)
+                )
+                .mapConcat(pids -> pids);
+    }
+
+    /**
+     * Retrieve all unique PIDs in journals selected by a provided {@code tag}.
+     * Does its best not to create long-living cursors on the database by reading {@code batchSize} events per query.
+     *
+     * @param tag the Tag name the journal entries have to contain in order to be selected, or an empty string to select
+     * all journal entries.
+     * @param batchSize how many events to read in one query.
+     * @param maxIdleTime how long the stream is allowed to idle without sending any element. Bounds the number of
+     * retries with exponential back-off.
+     * @param mat the actor materializer to run the query streams.
+     * @return Source of all persistence IDs such that each element contains the persistence IDs in {@code batchSize}
+     * events that do not occur in prior buckets.
+     */
+    public Source<String, NotUsed> getJournalPidsWithTag(final String tag, final int batchSize,
+            final Duration maxIdleTime,
+            final Materializer mat) {
+
+        final int maxRestarts = computeMaxRestarts(maxIdleTime);
+        return getJournal().withAttributes(Attributes.inputBuffer(1, 1))
+                .flatMapConcat(journal ->
+                        listPidsInJournal(journal, "", tag, batchSize, mat, MAX_BACK_OFF_DURATION, maxRestarts)
                 )
                 .mapConcat(pids -> pids);
     }
@@ -181,7 +216,28 @@ public class MongoReadJournal {
         return getJournal()
                 .withAttributes(Attributes.inputBuffer(1, 1))
                 .flatMapConcat(journal ->
-                        listPidsInJournal(journal, lowerBoundPid, batchSize, mat, MAX_BACK_OFF_DURATION, 0)
+                        listPidsInJournal(journal, lowerBoundPid, "", batchSize, mat, MAX_BACK_OFF_DURATION, 0)
+                )
+                .mapConcat(pids -> pids);
+    }
+
+    /**
+     * Retrieve all unique PIDs in journals selected by a provided {@code tag} above a lower bound.
+     * Does its best not to create long-living cursors on the database by reading {@code batchSize} events per query.
+     *
+     * @param lowerBoundPid the lower-bound PID.
+     * @param tag the Tag name the journal entries have to contain in order to be selected.
+     * @param batchSize how many events to read in one query.
+     * @param mat the actor materializer to run the query streams.
+     * @return Source of all persistence IDs such that each element contains the persistence IDs in {@code batchSize}
+     * events that do not occur in prior buckets.
+     */
+    public Source<String, NotUsed> getJournalPidsAboveWithTag(final String lowerBoundPid, final String tag,
+            final int batchSize, final Materializer mat) {
+
+        return getJournal().withAttributes(Attributes.inputBuffer(1, 1))
+                .flatMapConcat(journal ->
+                        listPidsInJournal(journal, lowerBoundPid, tag, batchSize, mat, MAX_BACK_OFF_DURATION, 0)
                 )
                 .mapConcat(pids -> pids);
     }
@@ -211,37 +267,38 @@ public class MongoReadJournal {
     }
 
     private Source<List<String>, NotUsed> listPidsInJournal(final MongoCollection<Document> journal,
-            final String lowerBound, final int batchSize, final Materializer mat, final Duration maxBackOff,
-            final int maxRestarts) {
+            final String lowerBoundPid, final String tag,
+            final int batchSize, final Materializer mat, final Duration maxBackOff, final int maxRestarts) {
 
-        return unfoldBatchedSource(lowerBound, mat, Function.identity(), actualStart ->
-                listJournalPidsAbove(journal, actualStart, batchSize, maxBackOff, maxRestarts)
+        return unfoldBatchedSource(lowerBoundPid, mat, Function.identity(), actualStartPid ->
+                listJournalPidsAbove(journal, actualStartPid, tag, batchSize, maxBackOff, maxRestarts)
         );
     }
 
     private Source<List<Document>, NotUsed> listNewestSnapshots(final MongoCollection<Document> snapshotStore,
-            final String lowerBound,
+            final String lowerBoundPid,
             final int batchSize,
             final Materializer mat,
             final String... snapshotFields) {
 
-        return this.unfoldBatchedSource(lowerBound,
+        return this.unfoldBatchedSource(lowerBoundPid,
                 mat,
                 SnapshotBatch::getMaxPid,
-                actualStart -> listNewestActiveSnapshotsByBatch(snapshotStore, actualStart, batchSize, snapshotFields))
+                actualStartPid -> listNewestActiveSnapshotsByBatch(snapshotStore, actualStartPid, batchSize,
+                        snapshotFields))
                 .mapConcat(x -> x)
                 .map(SnapshotBatch::getItems);
     }
 
     private <T> Source<List<T>, NotUsed> unfoldBatchedSource(
-            final String lowerBound,
+            final String lowerBoundPid,
             final Materializer mat,
             final Function<T, String> seedCreator,
             final Function<String, Source<T, ?>> sourceCreator) {
 
         return Source.unfoldAsync("",
-                start -> {
-                    final String actualStart = lowerBound.compareTo(start) >= 0 ? lowerBound : start;
+                startPid -> {
+                    final String actualStart = lowerBoundPid.compareTo(startPid) >= 0 ? lowerBoundPid : startPid;
                     return sourceCreator.apply(actualStart)
                             .runWith(Sink.seq(), mat)
                             .thenApply(list -> {
@@ -255,34 +312,39 @@ public class MongoReadJournal {
                 .withAttributes(Attributes.inputBuffer(1, 1));
     }
 
-    private Source<String, NotUsed> listJournalPidsAbove(final MongoCollection<Document> journal, final String start,
-            final int batchSize, final Duration maxBackOff, final int maxRestarts) {
+    private Source<String, NotUsed> listJournalPidsAbove(final MongoCollection<Document> journal, final String startPid,
+            final String tag, final int batchSize, final Duration maxBackOff, final int maxRestarts) {
 
         final List<Bson> pipeline = new ArrayList<>(5);
-        // optional match stage
-        if (!start.isEmpty()) {
-            pipeline.add(Aggregates.match(Filters.gt(PROCESSOR_ID, start)));
+        // optional match stages: consecutive match stages are optimized together ($match + $match coalescence)
+        if (!tag.isEmpty()) {
+            pipeline.add(Aggregates.match(Filters.eq(J_TAGS, tag)));
+        }
+        if (!startPid.isEmpty()) {
+            pipeline.add(Aggregates.match(Filters.gt(J_PROCESSOR_ID, startPid)));
         }
 
         // sort stage
-        pipeline.add(Aggregates.sort(Sorts.ascending(PROCESSOR_ID)));
+        pipeline.add(Aggregates.sort(Sorts.ascending(J_PROCESSOR_ID)));
 
         // limit stage. It should come before group stage or MongoDB would scan the entire journal collection.
         pipeline.add(Aggregates.limit(batchSize));
 
         // group stage
-        pipeline.add(Aggregates.group("$" + PROCESSOR_ID));
+        pipeline.add(Aggregates.group("$" + J_PROCESSOR_ID));
 
         // sort stage 2 -- order after group stage is not defined
-        pipeline.add(Aggregates.sort(Sorts.ascending(ID)));
+        pipeline.add(Aggregates.sort(Sorts.ascending(J_ID)));
 
         final Duration minBackOff = Duration.ofSeconds(1L);
         final double randomFactor = 0.1;
 
-        return RestartSource.onFailuresWithBackoff(minBackOff, maxBackOff, randomFactor, maxRestarts,
-                () -> Source.fromPublisher(journal.aggregate(pipeline))
+        final RestartSettings restartSettings = RestartSettings.create(minBackOff, maxBackOff, randomFactor)
+                .withMaxRestarts(maxRestarts, minBackOff);
+        return RestartSource.onFailuresWithBackoff(restartSettings, () ->
+                Source.fromPublisher(journal.aggregate(pipeline))
                         .flatMapConcat(document -> {
-                            final Object pid = document.get(ID);
+                            final Object pid = document.get(J_ID);
                             if (pid instanceof CharSequence) {
                                 return Source.single(pid.toString());
                             } else {
@@ -305,33 +367,33 @@ public class MongoReadJournal {
 
     private Source<SnapshotBatch, NotUsed> listNewestActiveSnapshotsByBatch(
             final MongoCollection<Document> snapshotStore,
-            final String start,
+            final String startPid,
             final int batchSize,
             final String... snapshotFields) {
 
         final List<Bson> pipeline = new ArrayList<>(5);
         // optional match stage
-        if (!start.isEmpty()) {
-            pipeline.add(Aggregates.match(Filters.gt(PROCESSOR_ID, start)));
+        if (!startPid.isEmpty()) {
+            pipeline.add(Aggregates.match(Filters.gt(J_PROCESSOR_ID, startPid)));
         }
 
         // sort stage
-        pipeline.add(Aggregates.sort(Sorts.orderBy(Sorts.ascending(PROCESSOR_ID), Sorts.descending(SN))));
+        pipeline.add(Aggregates.sort(Sorts.orderBy(Sorts.ascending(J_PROCESSOR_ID), Sorts.descending(S_SN))));
 
         // limit stage. It should come before group stage or MongoDB would scan the entire journal collection.
         pipeline.add(Aggregates.limit(batchSize));
 
         // group stage 1: by PID
-        pipeline.add(Aggregates.group("$" + PROCESSOR_ID, asFirstSnapshotBsonFields(snapshotFields)));
+        pipeline.add(Aggregates.group("$" + J_PROCESSOR_ID, asFirstSnapshotBsonFields(snapshotFields)));
 
         // sort stage 2 -- order after group stage is not defined
-        pipeline.add(Aggregates.sort(Sorts.ascending(ID)));
+        pipeline.add(Aggregates.sort(Sorts.ascending(J_ID)));
 
         // group stage 2: filter out pids whose latest snapshot is a deleted snapshot, but retain max encountered pid
         final String maxPid = "m";
         final String items = "i";
         pipeline.add(Aggregates.group(null,
-                Accumulators.max(maxPid, "$" + ID),
+                Accumulators.max(maxPid, "$" + J_ID),
                 Accumulators.push(
                         items,
                         new Document().append("$cond", new Document()
@@ -370,7 +432,7 @@ public class MongoReadJournal {
     private List<BsonField> asFirstSnapshotBsonFields(final String... snapshotFields) {
         return Stream.concat(Stream.of(LIFECYCLE), Arrays.stream(snapshotFields))
                 .map(fieldName -> {
-                    final String serializedFieldName = String.format("$%s.%s", SERIALIZED_SNAPSHOT, fieldName);
+                    final String serializedFieldName = String.format("$%s.%s", S_SERIALIZED_SNAPSHOT, fieldName);
                     return Accumulators.first(fieldName, serializedFieldName);
                 })
                 .collect(Collectors.toList());

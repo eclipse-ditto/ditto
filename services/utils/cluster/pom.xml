@@ -72,6 +72,10 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-devops</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-signals-announcements-base</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>com.typesafe.akka</groupId>
@@ -84,6 +88,12 @@
         <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-serialization-jackson_${scala.version}</artifactId>
+        </dependency>
+
+        <!-- annotations used in our code, so manually add the import: -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
         </dependency>
 
         <!-- ### Testing ### -->

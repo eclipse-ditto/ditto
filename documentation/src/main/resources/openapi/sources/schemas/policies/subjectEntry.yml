@@ -20,6 +20,11 @@ properties:
     type: string
     description: The optional expiry timestamp (formatted in ISO-8601) indicates how long this subject should be considered active before it is automatically deleted from the Policy.
     format: date-time
+  announcement:
+    $ref: 'subjectAnnouncement.yml'
 example:
   type: "This is some description for this subject, adjust as needed."
   expiry: "2020-12-07T11:36:40Z"
+  announcement:
+    beforeExpiry: "5m"
+    whenDeleted: true

@@ -28,6 +28,7 @@
 
     <modules>
         <module>acks</module>
+        <module>announcements</module>
         <module>base</module>
         <module>commands</module>
         <module>events</module>

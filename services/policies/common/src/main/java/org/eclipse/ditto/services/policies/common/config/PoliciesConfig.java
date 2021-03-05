@@ -19,6 +19,7 @@ import org.eclipse.ditto.services.utils.health.config.WithHealthCheckConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.WithMongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.WithTagsConfig;
 import org.eclipse.ditto.services.utils.persistence.operations.WithPersistenceOperationsConfig;
+import org.eclipse.ditto.services.utils.persistentactors.config.PingConfig;
 
 /**
  * Provides the configuration settings of the Policies service.
@@ -33,5 +34,13 @@ public interface PoliciesConfig extends ServiceSpecificConfig, WithHealthCheckCo
      * @return the config.
      */
     PolicyConfig getPolicyConfig();
+
+    /**
+     * Returns the config for Policy service's Policy wakeup behaviour. Some Policies must always be kept alive in
+     * memory.
+     *
+     * @return the config.
+     */
+    PingConfig getPingConfig();
 
 }

@@ -57,7 +57,7 @@ enum ProtocolMessageType {
     /**
      * Message indicating that the Websocket should start emitting live events.
      */
-    START_SEND_LIVE_EVENTS("START-SEND-LIVE-EVENTS",StreamingType.LIVE_EVENTS),
+    START_SEND_LIVE_EVENTS("START-SEND-LIVE-EVENTS", StreamingType.LIVE_EVENTS),
 
     /**
      * Message indicating that the Websocket should stop emitting live events.
@@ -67,13 +67,28 @@ enum ProtocolMessageType {
     /**
      * Message indicating that a new JSON Web Token was send.
      */
-    JWT("JWT-TOKEN", null);
+    JWT("JWT-TOKEN", null),
+
+    /**
+     * Message indicating that the Websocket should start emitting policy announcements.
+     *
+     * @since 2.0.0
+     */
+    START_SEND_POLICY_ANNOUNCEMENTS("START-SEND-POLICY-ANNOUNCEMENTS", StreamingType.POLICY_ANNOUNCEMENTS),
+
+    /**
+     * Message indicating that the Websocket should stop emitting policy announcements.
+     *
+     * @since 2.0.0
+     */
+    STOP_SEND_POLICY_ANNOUNCEMENTS("STOP-SEND-POLICY-ANNOUNCEMENTS", StreamingType.POLICY_ANNOUNCEMENTS);
 
     private final String identifier;
     @Nullable private final StreamingType streamingType;
 
     /**
      * Constructor.
+     *
      * @param identifier the string identifier that is sent over the wire
      * @param streamingType the associated {@link StreamingType}
      */

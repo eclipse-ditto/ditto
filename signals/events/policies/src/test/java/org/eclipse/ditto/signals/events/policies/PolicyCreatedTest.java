@@ -113,13 +113,13 @@ public final class PolicyCreatedTest {
 
     @Test
     public void parsePolicyCreatedEvent() {
-        final GlobalEventRegistry eventRegistry = GlobalEventRegistry.getInstance();
+        final GlobalEventRegistry<PolicyEvent<?>> eventRegistry = GlobalEventRegistry.getInstance();
 
         final PolicyCreated event = PolicyCreated.of(TestConstants.Policy.POLICY, TestConstants.Policy.REVISION_NUMBER,
                 TestConstants.DITTO_HEADERS);
         final JsonObject jsonObject = event.toJson(FieldType.regularOrSpecial());
 
-        final Event parsedEvent = eventRegistry.parse(jsonObject, TestConstants.DITTO_HEADERS);
+        final PolicyEvent<?> parsedEvent = eventRegistry.parse(jsonObject, TestConstants.DITTO_HEADERS);
 
         assertThat(parsedEvent).isEqualTo(event);
     }

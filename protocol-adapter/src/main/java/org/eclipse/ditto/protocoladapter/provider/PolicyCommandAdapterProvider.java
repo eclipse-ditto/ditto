@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.protocoladapter.provider;
 
+import org.eclipse.ditto.protocoladapter.Adapter;
+import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
 import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
 import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommand;
 import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommandResponse;
@@ -30,4 +32,11 @@ public interface PolicyCommandAdapterProvider
         ErrorResponseAdapterProvider<PolicyErrorResponse>,
         AdapterProvider {
 
+    /**
+     * Retrieve the announcement adapter.
+     *
+     * @return the announcement adapter.
+     * @since 2.0.0
+     */
+    Adapter<PolicyAnnouncement<?>> getAnnouncementAdapter();
 }

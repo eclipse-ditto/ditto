@@ -147,7 +147,7 @@ final class ImmutableFilteredTopic implements FilteredTopic {
         return "";
     }
 
-    private static String join(final String delimiter, final String ... elements) {
+    private static String join(final String delimiter, final String... elements) {
         final StringBuilder stringBuilder = new StringBuilder();
         String currentDelimiter = "";
         for (final String element : elements) {
@@ -205,13 +205,19 @@ final class ImmutableFilteredTopic implements FilteredTopic {
 
         @Override
         public ImmutableFilteredTopicBuilder withFilter(@Nullable final CharSequence filter) {
-            this.filter = filter;
+            // policy announcements do not support filter.
+            if (topic != Topic.POLICY_ANNOUNCEMENTS) {
+                this.filter = filter;
+            }
             return this;
         }
 
         @Override
         public ImmutableFilteredTopicBuilder withExtraFields(@Nullable final JsonFieldSelector extraFields) {
-            this.extraFields = extraFields;
+            // policy announcements do not support extra fields.
+            if (topic != Topic.POLICY_ANNOUNCEMENTS) {
+                this.extraFields = extraFields;
+            }
             return this;
         }
 

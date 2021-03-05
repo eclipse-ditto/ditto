@@ -25,6 +25,7 @@ import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.common.DittoDuration;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -34,6 +35,7 @@ import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Subject;
+import org.eclipse.ditto.model.policies.SubjectAnnouncement;
 import org.eclipse.ditto.model.policies.SubjectExpiry;
 import org.eclipse.ditto.model.policies.SubjectExpiryInvalidException;
 import org.eclipse.ditto.model.policies.Subjects;
@@ -62,10 +64,12 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
         extends AbstractConditionHeaderCheckingCommandStrategy<C, Policy, PolicyId, E> {
 
     private final PolicyExpiryGranularity policyExpiryGranularity;
+    private final Duration policyDeletionAnnouncementGranularity;
 
     AbstractPolicyCommandStrategy(final Class<C> theMatchingClass, final PolicyConfig policyConfig) {
         super(theMatchingClass);
         policyExpiryGranularity = calculateTemporalUnitAndAmount(policyConfig);
+        policyDeletionAnnouncementGranularity = policyConfig.getSubjectDeletionAnnouncementGranularity();
     }
 
     static PolicyExpiryGranularity calculateTemporalUnitAndAmount(final PolicyConfig policyConfig) {
@@ -126,6 +130,8 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
      * <ul>
      * <li>If a {@link SubjectExpiry} was contained in the Subject, it is rounded up according to the configured
      * {@link PolicyConfig#getSubjectExpiryGranularity()}.</li>
+     * <li>If a {@link SubjectAnnouncement} was contained in the Subject, its before-expiry duration is rounded up
+     * according to the configured {@link PolicyConfig#getSubjectDeletionAnnouncementGranularity()}.</li>
      * </ul>
      *
      * @param policyEntries the PolicyEntries to be potentially adjusted.
@@ -143,6 +149,8 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
      * <ul>
      * <li>If a {@link SubjectExpiry} was contained in the Subject, it is rounded up according to the configured
      * {@link PolicyConfig#getSubjectExpiryGranularity()}.</li>
+     * <li>If a {@link SubjectAnnouncement} was contained in the Subject, its before-expiry duration is rounded up
+     * according to the configured {@link PolicyConfig#getSubjectDeletionAnnouncementGranularity()}.</li>
      * </ul>
      *
      * @param policyEntry the PolicyEntry to be potentially adjusted.
@@ -158,6 +166,8 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
      * <ul>
      * <li>If a {@link SubjectExpiry} was contained in the Subject, it is rounded up according to the configured
      * {@link PolicyConfig#getSubjectExpiryGranularity()}.</li>
+     * <li>If a {@link SubjectAnnouncement} was contained in the Subject, its before-expiry duration is rounded up
+     * according to the configured {@link PolicyConfig#getSubjectDeletionAnnouncementGranularity()}.</li>
      * </ul>
      *
      * @param subjects the Subjects to be potentially adjusted.
@@ -175,6 +185,8 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
      * <ul>
      * <li>If a {@link SubjectExpiry} was contained in the Subject, it is rounded up according to the configured
      * {@link PolicyConfig#getSubjectExpiryGranularity()}.</li>
+     * <li>If a {@link SubjectAnnouncement} was contained in the Subject, its before-expiry duration is rounded up
+     * according to the configured {@link PolicyConfig#getSubjectDeletionAnnouncementGranularity()}.</li>
      * </ul>
      *
      * @param subject the Subject to be potentially adjusted.
@@ -182,16 +194,19 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
      */
     protected Subject potentiallyAdjustSubject(final Subject subject) {
         final Optional<SubjectExpiry> expiryOptional = subject.getExpiry();
-        if (expiryOptional.isPresent()) {
-            final SubjectExpiry subjectExpiry = expiryOptional.get();
-            return Subject.newInstance(subject.getId(), subject.getType(), roundPolicySubjectExpiry(subjectExpiry));
+        final Optional<SubjectAnnouncement> announcementOptional = subject.getAnnouncement();
+        if (expiryOptional.isPresent() || announcementOptional.isPresent()) {
+            final SubjectExpiry subjectExpiry = expiryOptional.map(this::roundPolicySubjectExpiry).orElse(null);
+            final SubjectAnnouncement subjectAnnouncement =
+                    announcementOptional.map(this::roundSubjectAnnouncement).orElse(null);
+            return Subject.newInstance(subject.getId(), subject.getType(), subjectExpiry, subjectAnnouncement);
         } else {
             return subject;
         }
     }
 
     /**
-     * Roundgs up the provided {@code expiry} according to the configured
+     * Rounds up the provided {@code expiry} according to the configured
      * {@link PolicyConfig#getSubjectExpiryGranularity()}.
      *
      * @param expiry the SubjectExpiry to round up.
@@ -223,6 +238,28 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
         final Instant roundedUp = truncated.plus(toAdd, policyExpiryGranularity.temporalUnit);
 
         return SubjectExpiry.newInstance(roundedUp);
+    }
+
+    /**
+     * Rounds up the before-expiry duration of a {@link SubjectAnnouncement}
+     * according to the configured {@link PolicyConfig#getSubjectDeletionAnnouncementGranularity()}.
+     *
+     * @param subjectAnnouncement the subject-announcement to adjust.
+     * @return the result of adjustment.
+     */
+    @Nullable
+    protected SubjectAnnouncement roundSubjectAnnouncement(@Nullable final SubjectAnnouncement subjectAnnouncement) {
+        final Optional<DittoDuration> beforeExpiry =
+                Optional.ofNullable(subjectAnnouncement).flatMap(SubjectAnnouncement::getBeforeExpiry);
+        if (beforeExpiry.isPresent()) {
+            final var dittoDuration = beforeExpiry.get();
+            final var roundedUpDuration =
+                    roundUpDuration(dittoDuration.getDuration(), policyDeletionAnnouncementGranularity);
+            final var roundedUpDittoDuration = dittoDuration.setAmount(roundedUpDuration);
+            return SubjectAnnouncement.of(roundedUpDittoDuration, subjectAnnouncement.isWhenDeleted());
+        } else {
+            return subjectAnnouncement;
+        }
     }
 
     /**
@@ -295,6 +332,14 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
                 .description(description)
                 .dittoHeaders(dittoHeaders)
                 .build();
+    }
+
+    private static Duration roundUpDuration(final Duration duration, final Duration granularity) {
+        final long granularitySeconds = Math.max(1L, granularity.getSeconds());
+        final long durationSeconds = Math.max(granularitySeconds, duration.getSeconds());
+        final long roundedUpSeconds =
+                ((durationSeconds + granularitySeconds - 1L) / granularitySeconds) * granularitySeconds;
+        return Duration.ofSeconds(roundedUpSeconds);
     }
 
     private static class PolicyExpiryGranularity {

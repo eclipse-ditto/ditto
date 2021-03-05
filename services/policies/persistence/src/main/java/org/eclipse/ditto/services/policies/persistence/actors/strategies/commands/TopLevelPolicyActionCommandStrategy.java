@@ -80,6 +80,7 @@ final class TopLevelPolicyActionCommandStrategy
                 policyActionCommandStrategyMap.get(actionCommand.getName());
 
         if (strategy == null) {
+            // builds an internal server error, 500
             final PolicyActionFailedException exception = PolicyActionFailedException.newBuilder()
                     .action(actionCommand.getName())
                     .dittoHeaders(dittoHeaders)
@@ -88,7 +89,9 @@ final class TopLevelPolicyActionCommandStrategy
                     .withCorrelationId(command)
                     .error(exception, "Strategy not found for top-level action <{}>", actionCommand.getName());
             return ResultFactory.newErrorResult(exception, command);
-        } else if (!entries.isEmpty()) {
+        } else if (entries.isEmpty()) {
+            return ResultFactory.newErrorResult(command.getNotApplicableException(dittoHeaders), command);
+        } else {
             final List<PolicyActionCommand<?>> commands = entries.stream()
                     .map(PolicyEntry::getLabel)
                     .map(actionCommand::setLabel)
@@ -103,10 +106,19 @@ final class TopLevelPolicyActionCommandStrategy
                     final TopLevelPolicyActionCommandResponse response =
                             TopLevelPolicyActionCommandResponse.of(context.getState(), dittoHeaders);
                     return ResultFactory.newMutationResult(command, event.get(), response);
+                } else {
+                    // builds an internal server error, 500
+                    final PolicyActionFailedException exception = PolicyActionFailedException.newBuilder()
+                            .action(actionCommand.getName())
+                            .dittoHeaders(dittoHeaders)
+                            .build();
+                    context.getLog()
+                            .withCorrelationId(command)
+                            .error(exception, "Visitor could not aggregate events for action <{}>", actionCommand.getName());
+                    return ResultFactory.newErrorResult(exception, command);
                 }
             }
         }
-        return ResultFactory.newErrorResult(command.getNotApplicableException(dittoHeaders), command);
     }
 
     @Override

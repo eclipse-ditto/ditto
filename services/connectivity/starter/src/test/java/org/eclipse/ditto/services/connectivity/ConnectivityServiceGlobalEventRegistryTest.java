@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.connectivity;
 
 import org.eclipse.ditto.services.models.things.DittoThingSnapshotTaken;
+import org.eclipse.ditto.services.utils.persistentactors.EmptyEvent;
 import org.eclipse.ditto.services.utils.test.GlobalEventRegistryTestCases;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionCreated;
 import org.eclipse.ditto.signals.events.policies.ResourceDeleted;
@@ -27,7 +28,8 @@ public final class ConnectivityServiceGlobalEventRegistryTest extends GlobalEven
                 ResourceDeleted.class,
                 FeatureDeleted.class,
                 SubscriptionCreated.class,
-                DittoThingSnapshotTaken.class
+                DittoThingSnapshotTaken.class,
+                EmptyEvent.class
         );
     }
 

@@ -8,8 +8,9 @@ permalink: basic-signals.html
 Ditto has a concept called `Signal` which combines common functionality of
 * [Commands](basic-signals-command.html),
 * [Command Responses](basic-signals-commandresponse.html),
-* [Error Responses](basic-signals-errorresponse.html) and
-* [Events](basic-signals-event.html).
+* [Error Responses](basic-signals-errorresponse.html),
+* [Events](basic-signals-event.html) and
+* [Announcements](basic-signals-announcement.html).
 
 Such common functionality is for example that all those have header fields in which they can be for example correlated
 to each other. 
@@ -52,6 +53,7 @@ other parts of the system.
    Interested parties can subscribe for such **events** and follow the evolving entity.
 
 {% include note.html
-   content="Events caused by commands from a **[connection](basic-connections.html)** are not published
+   content="Events caused by commands from a **[connection](basic-connections.html)** or a 
+            [websocket session](httpapi-protocol-bindings-websocket.html) are not published
             **to the same origin**. The connection can receive a response, but will not additionally get an event."
 %}

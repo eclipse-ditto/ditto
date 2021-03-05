@@ -38,13 +38,16 @@ final class ImmutableSubject implements Subject {
     private final SubjectId subjectId;
     private final SubjectType subjectType;
     @Nullable private final SubjectExpiry subjectExpiry;
+    @Nullable private final SubjectAnnouncement subjectAnnouncement;
 
-    private ImmutableSubject(final SubjectId theSubjectId,
-            final SubjectType theSubjectType,
-            @Nullable final SubjectExpiry theSubjectExpiry) {
-        subjectId = checkNotNull(theSubjectId, "subjectId");
-        subjectType = checkNotNull(theSubjectType, "subjectType");
-        subjectExpiry = theSubjectExpiry;
+    private ImmutableSubject(final SubjectId subjectId,
+            final SubjectType subjectType,
+            @Nullable final SubjectExpiry subjectExpiry,
+            @Nullable final SubjectAnnouncement subjectAnnouncement) {
+        this.subjectId = checkNotNull(subjectId, "subjectId");
+        this.subjectType = checkNotNull(subjectType, "subjectType");
+        this.subjectExpiry = subjectExpiry;
+        this.subjectAnnouncement = subjectAnnouncement;
     }
 
     /**
@@ -56,7 +59,7 @@ final class ImmutableSubject implements Subject {
      * @throws NullPointerException if {@code subjectId} is {@code null}.
      */
     public static Subject of(final SubjectId subjectId) {
-        return new ImmutableSubject(subjectId, SubjectType.GENERATED, null);
+        return new ImmutableSubject(subjectId, SubjectType.GENERATED, null, null);
     }
 
     /**
@@ -68,7 +71,7 @@ final class ImmutableSubject implements Subject {
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static Subject of(final SubjectId subjectId, final SubjectType subjectType) {
-        return new ImmutableSubject(subjectId, subjectType, null);
+        return new ImmutableSubject(subjectId, subjectType, null, null);
     }
 
     /**
@@ -84,7 +87,24 @@ final class ImmutableSubject implements Subject {
      */
     public static Subject of(final SubjectId subjectId, final SubjectType subjectType,
             @Nullable final SubjectExpiry subjectExpiry) {
-        return new ImmutableSubject(subjectId, subjectType, subjectExpiry);
+        return new ImmutableSubject(subjectId, subjectType, subjectExpiry, null);
+    }
+
+    /**
+     * Returns a new {@code Subject} object of the given {@code subjectId}, {@code subjectType},
+     * {@code subjectExpiry} and {@code subjectAnnouncement}.
+     *
+     * @param subjectId the ID of the new Subject.
+     * @param subjectType the type of the new Subject.
+     * @param subjectExpiry the expiry timestamp of the new Subject.
+     * @param subjectAnnouncement any announcement to publish for this subject.
+     * @return a new {@code Subject} object.
+     * @throws NullPointerException if the {@code subjectId} or {@code subjectType} argument is {@code null}.
+     * @since 2.0.0
+     */
+    public static Subject of(final SubjectId subjectId, final SubjectType subjectType,
+            @Nullable final SubjectExpiry subjectExpiry, @Nullable final SubjectAnnouncement subjectAnnouncement) {
+        return new ImmutableSubject(subjectId, subjectType, subjectExpiry, subjectAnnouncement);
     }
 
     /**
@@ -111,11 +131,16 @@ final class ImmutableSubject implements Subject {
                 .orElseThrow(() -> new DittoJsonException(JsonMissingFieldException.newBuilder()
                         .message("The 'type' for the 'subject' is missing.")
                         .build()));
+
         final SubjectExpiry subjectExpiry = jsonObject.getValue(JsonFields.EXPIRY)
                 .map(SubjectExpiry::newInstance)
                 .orElse(null);
+        final SubjectAnnouncement subjectAnnouncement = jsonObject.getValue(JsonFields.ANNOUNCEMENT)
+                .map(SubjectAnnouncement::fromJson)
+                .orElse(null);
 
-        return of(SubjectId.newInstance(subjectIssuerWithId), ImmutableSubjectType.of(subjectTypeValue), subjectExpiry);
+        return new ImmutableSubject(SubjectId.newInstance(subjectIssuerWithId),
+                ImmutableSubjectType.of(subjectTypeValue), subjectExpiry, subjectAnnouncement);
     }
 
     @Override
@@ -134,6 +159,11 @@ final class ImmutableSubject implements Subject {
     }
 
     @Override
+    public Optional<SubjectAnnouncement> getAnnouncement() {
+        return Optional.ofNullable(subjectAnnouncement);
+    }
+
+    @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder()
@@ -141,6 +171,9 @@ final class ImmutableSubject implements Subject {
                 .set(JsonFields.TYPE, subjectType.toString(), predicate);
         if (null != subjectExpiry) {
             jsonObjectBuilder.set(JsonFields.EXPIRY, subjectExpiry.toString());
+        }
+        if (null != subjectAnnouncement) {
+            jsonObjectBuilder.set(JsonFields.ANNOUNCEMENT, subjectAnnouncement.toJson());
         }
         return jsonObjectBuilder.build();
     }
@@ -154,13 +187,15 @@ final class ImmutableSubject implements Subject {
             return false;
         }
         final ImmutableSubject that = (ImmutableSubject) o;
-        return Objects.equals(subjectId, that.subjectId) && Objects.equals(subjectType, that.subjectType)
-                && Objects.equals(subjectExpiry, that.subjectExpiry);
+        return Objects.equals(subjectId, that.subjectId) &&
+                Objects.equals(subjectType, that.subjectType) &&
+                Objects.equals(subjectExpiry, that.subjectExpiry) &&
+                Objects.equals(subjectAnnouncement, that.subjectAnnouncement);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(subjectId, subjectType, subjectExpiry);
+        return Objects.hash(subjectId, subjectType, subjectExpiry, subjectAnnouncement);
     }
 
     @Override
@@ -169,6 +204,7 @@ final class ImmutableSubject implements Subject {
                 "subjectId=" + subjectId +
                 ", subjectType=" + subjectType +
                 ", subjectExpiry=" + subjectExpiry +
+                ", subjectAnnouncement=" + subjectAnnouncement +
                 "]";
     }
 

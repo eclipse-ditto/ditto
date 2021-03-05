@@ -94,13 +94,26 @@ public final class PolicyActionFailedException extends DittoRuntimeException imp
      * A mutable builder for a {@code PolicyActionFailedException} due to inappropriate authentication method.
      *
      * @param action the failed action.
-     * @return the exception builder.
+     * @return the builder.
      */
     public static DittoRuntimeExceptionBuilder<PolicyActionFailedException>
     newBuilderForInappropriateAuthenticationMethod(final String action) {
         return new Builder().action(action)
                 .status(HttpStatus.BAD_REQUEST)
                 .description("Policy action is only possible with JWT authentication.");
+    }
+
+    /**
+     * A mutable builder for a {@code PolicyActionFailedException} for a {@code TopLevelPolicyActionCommand}.
+     *
+     * @param action the failed action.
+     * @return the builder.
+     */
+    public static DittoRuntimeExceptionBuilder<PolicyActionFailedException> newBuilderForTopLevelAction(
+            final String action) {
+        return new Builder().action(action)
+                .status(HttpStatus.NOT_FOUND)
+                .description("No policy entry found for which the top level action could be applied.");
     }
 
     /**

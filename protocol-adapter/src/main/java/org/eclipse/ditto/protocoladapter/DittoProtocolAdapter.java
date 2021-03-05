@@ -56,6 +56,7 @@ import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingMerged;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
+import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
 
 /**
  * Adapter for the Ditto protocol.
@@ -168,6 +169,8 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
             return toAdaptable((CommandResponse<?>) signal, channel);
         } else if (signal instanceof Event) {
             return toAdaptable((Event<?>) signal, channel);
+        } else if (signal instanceof PolicyAnnouncement) {
+            return adaptPolicyAnnouncement((PolicyAnnouncement<?>) signal);
         }
         throw UnknownSignalException.newBuilder(signal.getName()).dittoHeaders(signal.getDittoHeaders()).build();
     }
@@ -298,10 +301,8 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
             return toAdaptable((ThingEvent<?>) event, channel);
         } else if (event instanceof SubscriptionEvent) {
             validateChannel(channel, event, TWIN);
-            return  toAdaptable((SubscriptionEvent<?>) event, channel);
-        }
-
-        else {
+            return toAdaptable((SubscriptionEvent<?>) event, channel);
+        } else {
             throw UnknownEventException.newBuilder(event.getName()).build();
         }
     }
@@ -316,7 +317,11 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         }
     }
 
-    public Adaptable toAdaptable(final SubscriptionEvent<?> subscriptionEvent, final TopicPath.Channel channel){
+    private Adaptable adaptPolicyAnnouncement(final PolicyAnnouncement<?> announcement) {
+        return policiesAdapters.getAnnouncementAdapter().toAdaptable(announcement);
+    }
+
+    public Adaptable toAdaptable(final SubscriptionEvent<?> subscriptionEvent, final TopicPath.Channel channel) {
         validateNotLive(subscriptionEvent);
         return thingsAdapters.getSubscriptionEventAdapter().toAdaptable(subscriptionEvent, channel);
     }

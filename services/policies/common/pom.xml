@@ -33,5 +33,9 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-persistence</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-utils-persistent-actors</artifactId>
+        </dependency>
     </dependencies>
 </project>

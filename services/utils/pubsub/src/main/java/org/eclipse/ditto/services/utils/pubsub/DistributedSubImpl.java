@@ -38,13 +38,6 @@ import akka.pattern.Patterns;
  */
 final class DistributedSubImpl implements DistributedSub {
 
-    /**
-     * Time buffer for distribution of ddata change on nodes.
-     * Should be larger than akka.cluster.distributed-data.notify-subscribers-interval
-     * in order for subscribers to have a high chance of receiving events immediately after acknowledgement.
-     */
-    private static final long LOCAL_NOTIFICATION_DELAY_BUFFER_MS = 1000;
-
     // package-private for unit tests
     final ActorRef subSupervisor;
 

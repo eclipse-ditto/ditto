@@ -25,6 +25,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.ThingConstants;
+import org.eclipse.ditto.services.utils.akka.PingCommand;
+import org.eclipse.ditto.services.utils.akka.PingCommandResponse;
 import org.eclipse.ditto.services.utils.akka.SimpleCommand;
 import org.eclipse.ditto.services.utils.akka.SimpleCommandResponse;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
@@ -71,6 +73,10 @@ public final class MappingStrategiesBuilder {
                 jsonObject -> SimpleCommand.fromJson(jsonObject)); // do not replace with lambda!
         builder.add(SimpleCommandResponse.class,
                 jsonObject -> SimpleCommandResponse.fromJson(jsonObject)); // do not replace with lambda!
+        builder.add(PingCommand.class,
+                jsonObject -> PingCommand.fromJson(jsonObject)); // do not replace with lambda!
+        builder.add(PingCommandResponse.class,
+                jsonObject -> PingCommandResponse.fromJson(jsonObject)); // do not replace with lambda!
         builder.add(StatusInfo.class,
                 jsonObject -> StatusInfo.fromJson(jsonObject)); // do not replace with lambda!
         // If there will be more than one acknowledgement types, do not add them here via builder.

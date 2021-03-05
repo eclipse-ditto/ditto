@@ -22,20 +22,22 @@ import org.eclipse.ditto.signals.base.JsonParsable;
 /**
  * This class is responsible for adding or replacing parse strategies from the {@link GlobalEventRegistry}.
  */
-public class CustomizedGlobalEventRegistry extends AbstractJsonParsableRegistry<Event> implements EventRegistry<Event> {
+public class CustomizedGlobalEventRegistry<T extends Event<?>> extends AbstractJsonParsableRegistry<T>
+        implements EventRegistry<T> {
 
-    private final GlobalEventRegistry globalEventRegistry;
+    private final GlobalEventRegistry<T> globalEventRegistry;
 
     CustomizedGlobalEventRegistry(
-            final GlobalEventRegistry globalEventRegistry,
-            final Map<String, JsonParsable<Event>> customParseStrategies) {
+            final GlobalEventRegistry<T> globalEventRegistry,
+            final Map<String, JsonParsable<T>> customParseStrategies) {
         super(mergeParseStrategy(globalEventRegistry, customParseStrategies));
         this.globalEventRegistry = globalEventRegistry;
     }
 
-    private static Map<String, JsonParsable<Event>> mergeParseStrategy(final GlobalEventRegistry globalEventRegistry,
-            final Map<String, JsonParsable<Event>> customParseStrategies) {
-        final Map<String, JsonParsable<Event>> combinedStrategy = new HashMap<>();
+    private static <T extends Event<?>> Map<String, JsonParsable<T>> mergeParseStrategy(
+            final GlobalEventRegistry<T> globalEventRegistry,
+            final Map<String, JsonParsable<T>> customParseStrategies) {
+        final Map<String, JsonParsable<T>> combinedStrategy = new HashMap<>();
         globalEventRegistry.getTypes().forEach(type -> combinedStrategy.put(type, globalEventRegistry));
         combinedStrategy.putAll(customParseStrategies);
         return combinedStrategy;

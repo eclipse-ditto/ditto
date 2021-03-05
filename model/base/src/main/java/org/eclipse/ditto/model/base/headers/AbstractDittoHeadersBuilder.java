@@ -40,6 +40,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.model.base.common.DittoDuration;
 import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
@@ -483,6 +484,14 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     @Override
     public S allowPolicyLockout(final boolean allowPolicyLockout) {
         putBoolean(DittoHeaderDefinition.ALLOW_POLICY_LOCKOUT, allowPolicyLockout);
+        return myself;
+    }
+
+    @Override
+    public S journalTags(final Collection<String> journalTags) {
+        putJsonValue(DittoHeaderDefinition.EVENT_JOURNAL_TAGS, journalTags.stream()
+                .map(JsonValue::of)
+                .collect(JsonCollectors.valuesToArray()));
         return myself;
     }
 

@@ -197,7 +197,7 @@ abstract class AbstractPolicyMappingStrategies<T extends Jsonifiable.WithPredica
     /**
      * @throws NullPointerException if the value is null.
      */
-    private static JsonObject getValueFromPayload(final Adaptable adaptable) {
+    protected static JsonObject getValueFromPayload(final Adaptable adaptable) {
         final JsonValue value = adaptable.getPayload().getValue()
                 .filter(JsonValue::isObject)
                 .orElseThrow(() -> new NullPointerException("Payload value must be a non-null object."));

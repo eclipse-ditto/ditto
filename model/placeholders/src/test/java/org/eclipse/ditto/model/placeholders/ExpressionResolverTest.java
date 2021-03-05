@@ -13,9 +13,12 @@
 package org.eclipse.ditto.model.placeholders;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.eclipse.ditto.model.things.ThingId;
 import org.junit.Before;
@@ -124,8 +127,22 @@ public class ExpressionResolverTest {
 
     @Test
     public void testPartialResolution() {
-        assertThat(expressionResolver.resolvePartially("{{header:header-name}}-{{unknown:placeholder|fn:unknown}}"))
+        assertThat(expressionResolver.resolvePartially("{{header:header-name}}-{{unknown:placeholder|fn:unknown}}",
+                Collections.singleton("header")))
                 .isEqualTo("header-val-{{unknown:placeholder|fn:unknown}}");
+    }
+
+    @Test
+    public void testPartialResolutionWithForbiddenUnresolvedExpression() {
+        final Set<String> forbiddenUnresolvedExpressionPrefixes = Collections.singleton("unknown");
+        assertThatThrownBy(() ->
+                expressionResolver.resolvePartially(
+                        "{{header:header-name}}-{{unknown:placeholder|fn:unknown}}",
+                        forbiddenUnresolvedExpressionPrefixes
+                )
+        ).isInstanceOf(UnresolvedPlaceholderException.class)
+                .withFailMessage("The placeholder 'unknown:placeholder' could not be resolved.")
+                .hasNoCause();
     }
 
 }

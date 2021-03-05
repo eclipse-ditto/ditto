@@ -14,21 +14,28 @@ package org.eclipse.ditto.services.gateway.endpoints.routes.policies;
 
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
+import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.Subject;
+import org.eclipse.ditto.model.policies.SubjectAnnouncement;
+import org.eclipse.ditto.model.policies.SubjectExpiry;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
@@ -36,6 +43,7 @@ import org.eclipse.ditto.services.gateway.security.authentication.Authentication
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationResult;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
+import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.DeactivateTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.TopLevelPolicyActionCommand;
@@ -62,6 +70,9 @@ public final class PoliciesRoute extends AbstractRoute {
     private static final String PATH_ENTRIES = "entries";
 
     private static final Label DUMMY_LABEL = Label.of("-");
+
+    private static final JsonFieldDefinition<JsonObject> ACTION_ACTIVATE_TOKEN_INTEGRATION_ANNOUNCEMENT =
+            Subject.JsonFields.ANNOUNCEMENT;
 
     private final PolicyEntriesRoute policyEntriesRoute;
     private final TokenIntegrationSubjectIdFactory tokenIntegrationSubjectIdFactory;
@@ -179,8 +190,9 @@ public final class PoliciesRoute extends AbstractRoute {
                 rawPathPrefix(PathMatchers.slash().concat(ActivateTokenIntegration.NAME), () ->
                         pathEndOrSingleSlash(() ->
                                 extractJwt(dittoHeaders, authenticationResult, ActivateTokenIntegration.NAME, jwt ->
-                                        post(() -> handlePerRequest(ctx, topLevelActivateTokenIntegration(
-                                                dittoHeaders, policyId, jwt)))
+                                        post(() -> handleSubjectAnnouncement(this, dittoHeaders, sa ->
+                                                topLevelActivateTokenIntegration(dittoHeaders, policyId, jwt, sa))
+                                        )
                                 )
                         )
                 ),
@@ -197,22 +209,49 @@ public final class PoliciesRoute extends AbstractRoute {
     }
 
     private TopLevelPolicyActionCommand topLevelActivateTokenIntegration(final DittoHeaders dittoHeaders,
-            final PolicyId policyId, final JsonWebToken jwt) {
+            final PolicyId policyId, final JsonWebToken jwt, @Nullable final SubjectAnnouncement subjectAnnouncement) {
 
-        final Set<SubjectId> subjectIds = tokenIntegrationSubjectIdFactory.getSubjectIds(dittoHeaders, jwt);
-        final Instant expiry = jwt.getExpirationTime();
+        final Set<SubjectId> subjectIds = resolveSubjectIdsForActivateTokenIntegrationAction(dittoHeaders, jwt);
+        final SubjectExpiry expiry = SubjectExpiry.newInstance(jwt.getExpirationTime());
         final ActivateTokenIntegration activateTokenIntegration =
-                ActivateTokenIntegration.of(policyId, DUMMY_LABEL, subjectIds, expiry, dittoHeaders);
+                ActivateTokenIntegration.of(policyId, DUMMY_LABEL, subjectIds, expiry, subjectAnnouncement,
+                        dittoHeaders);
         return TopLevelPolicyActionCommand.of(activateTokenIntegration, List.of());
     }
 
     private TopLevelPolicyActionCommand topLevelDeactivateTokenIntegration(final DittoHeaders dittoHeaders,
             final PolicyId policyId, final JsonWebToken jwt) {
 
-        final Set<SubjectId> subjectIds = tokenIntegrationSubjectIdFactory.getSubjectIds(dittoHeaders, jwt);
+        final Set<SubjectId> subjectIds = resolveSubjectIdsForActivateTokenIntegrationAction(dittoHeaders, jwt);
         final DeactivateTokenIntegration deactivateTokenIntegration =
                 DeactivateTokenIntegration.of(policyId, DUMMY_LABEL, subjectIds, dittoHeaders);
         return TopLevelPolicyActionCommand.of(deactivateTokenIntegration, List.of());
+    }
+
+    private Set<SubjectId> resolveSubjectIdsForActivateTokenIntegrationAction(final DittoHeaders dittoHeaders,
+            final JsonWebToken jwt) {
+
+        try {
+            return tokenIntegrationSubjectIdFactory.getSubjectIds(dittoHeaders, jwt);
+        } catch (final UnresolvedPlaceholderException e) {
+            throw PolicyActionFailedException.newBuilder()
+                    .action(ActivateTokenIntegration.NAME)
+                    .status(HttpStatus.BAD_REQUEST)
+                    .description("Mandatory placeholders could not be resolved, in detail: " + e.getMessage())
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+    }
+
+    @Nullable
+    private static SubjectAnnouncement toSubjectAnnouncement(final String body) {
+        if (body.isEmpty()) {
+            return null;
+        } else {
+            final Optional<JsonObject> announcement = JsonObject.of(body)
+                    .getValue(ACTION_ACTIVATE_TOKEN_INTEGRATION_ANNOUNCEMENT);
+            return announcement.map(SubjectAnnouncement::fromJson).orElse(null);
+        }
     }
 
     static Route extractJwt(final DittoHeaders dittoHeaders,
@@ -229,6 +268,13 @@ public final class PoliciesRoute extends AbstractRoute {
         throw PolicyActionFailedException.newBuilderForInappropriateAuthenticationMethod(actionName)
                 .dittoHeaders(dittoHeaders)
                 .build();
+    }
+
+    static Route handleSubjectAnnouncement(final AbstractRoute route, final DittoHeaders dittoHeaders,
+            final Function<SubjectAnnouncement, Command<?>> commandConstructor) {
+        return route.extractRequestContext(context ->
+                route.handlePerRequest(context, dittoHeaders, context.getRequest().entity().getDataBytes(),
+                        body -> commandConstructor.apply(toSubjectAnnouncement(body))));
     }
 
 }
