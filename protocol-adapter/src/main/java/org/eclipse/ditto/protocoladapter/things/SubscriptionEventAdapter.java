@@ -104,7 +104,7 @@ final class SubscriptionEventAdapter extends AbstractThingAdapter<SubscriptionEv
 
         return Adaptable.newBuilder(topicPath)
                 .withPayload(payloadBuilder.withValue(payloadContentBuilder.build()).build())
-                .withHeaders(ProtocolFactory.newHeadersWithDittoContentType(event.getDittoHeaders()))
+                .withHeaders(ProtocolFactory.newHeadersWithJsonContentType(event.getDittoHeaders()))
                 .build();
     }
 

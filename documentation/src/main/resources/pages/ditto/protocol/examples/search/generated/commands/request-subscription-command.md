@@ -4,7 +4,7 @@
 {
   "topic": "_/_/things/twin/search/request",
   "headers": {
-    "content-type": "application/vnd.eclipse.ditto+json"
+    "content-type": "application/json"
   },
   "path": "/",
   "value": {

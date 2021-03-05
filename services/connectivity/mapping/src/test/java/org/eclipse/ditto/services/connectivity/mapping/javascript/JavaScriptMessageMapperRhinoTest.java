@@ -436,7 +436,8 @@ public final class JavaScriptMessageMapperRhinoTest {
                         .build()
         );
 
-        javaScriptRhinoMapperPlainWithStatusAndExtra = JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
+        javaScriptRhinoMapperPlainWithStatusAndExtra =
+                JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
         javaScriptRhinoMapperPlainWithStatusAndExtra.configure(MAPPING_CONFIG,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder("plainStatus", Collections.emptyMap())
@@ -554,7 +555,7 @@ public final class JavaScriptMessageMapperRhinoTest {
                                 "{{topic:action-subject}}").build());
 
 
-        System.out.println("HEADERS: " + ProtocolFactory.newHeadersWithDittoContentType(createThing.getDittoHeaders()));
+        System.out.println("HEADERS: " + ProtocolFactory.newHeadersWithJsonContentType(createThing.getDittoHeaders()));
 
         System.out.println("CREATE THING :" + createThing);
 
@@ -599,7 +600,7 @@ public final class JavaScriptMessageMapperRhinoTest {
 
 
         System.out.println(
-                "HEADERS: " + ProtocolFactory.newHeadersWithDittoContentType(createThingResponse.getDittoHeaders()));
+                "HEADERS: " + ProtocolFactory.newHeadersWithJsonContentType(createThingResponse.getDittoHeaders()));
 
         System.out.println("CREATE THING RESPONSE :" + createThingResponse);
 
@@ -684,7 +685,8 @@ public final class JavaScriptMessageMapperRhinoTest {
         assertThat(adaptable.getTopicPath().getNamespace()).isEqualTo(MAPPING_INCOMING_NAMESPACE);
         assertThat(adaptable.getTopicPath().getId()).isEqualTo(MAPPING_INCOMING_ID);
         assertThat(adaptable.getPayload().getPath().toString()).isEqualTo(MAPPING_INCOMING_PATH);
-        assertThat(adaptable.getPayload().getValue()).map(JsonValue::asString).contains(modifyThingResponse.toJsonString());
+        assertThat(adaptable.getPayload().getValue()).map(JsonValue::asString)
+                .contains(modifyThingResponse.toJsonString());
         assertThat(adaptable.getPayload().getHttpStatus()).contains(HttpStatus.NO_CONTENT);
     }
 

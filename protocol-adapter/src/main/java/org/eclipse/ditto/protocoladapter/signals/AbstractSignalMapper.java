@@ -84,7 +84,7 @@ abstract class AbstractSignalMapper<T extends Signal<?>> implements SignalMapper
      * @param signal the {@code signal} that is processed
      */
     DittoHeaders enhanceHeaders(final T signal) {
-        return ProtocolFactory.newHeadersWithDittoContentType(signal.getDittoHeaders());
+        return ProtocolFactory.newHeadersWithJsonContentType(signal.getDittoHeaders());
     }
 
 }

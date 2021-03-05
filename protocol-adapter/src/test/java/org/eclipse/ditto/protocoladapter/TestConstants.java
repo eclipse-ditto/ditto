@@ -183,28 +183,25 @@ public final class TestConstants {
     public static final DittoHeaders DITTO_HEADERS_V_1 = DittoHeaders.newBuilder()
             .correlationId(CORRELATION_ID)
             .schemaVersion(JsonSchemaVersion.V_1)
-            .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
             .build();
 
     public static final DittoHeaders DITTO_HEADERS_V_2 = DittoHeaders.newBuilder()
             .correlationId(CORRELATION_ID)
             .schemaVersion(JsonSchemaVersion.V_2)
-            .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
             .putHeader(MessageHeaderDefinition.STATUS_CODE.getKey(), "200")
             .build();
 
     public static final DittoHeaders DITTO_HEADERS_V_2_NO_STATUS = DittoHeaders.newBuilder()
             .correlationId(CORRELATION_ID)
             .schemaVersion(JsonSchemaVersion.V_2)
-            .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
             .build();
 
-    public static final DittoHeaders HEADERS_V_1 = ProtocolFactory.newHeadersWithDittoContentType(DITTO_HEADERS_V_1);
+    public static final DittoHeaders HEADERS_V_1 = ProtocolFactory.newHeadersWithJsonContentType(DITTO_HEADERS_V_1);
 
     public static final DittoHeaders HEADERS_V_1_FOR_MERGE_COMMANDS =
             ProtocolFactory.newHeadersWithJsonMergePatchContentType(DITTO_HEADERS_V_1);
 
-    public static final DittoHeaders HEADERS_V_2 = ProtocolFactory.newHeadersWithDittoContentType(DITTO_HEADERS_V_2);
+    public static final DittoHeaders HEADERS_V_2 = ProtocolFactory.newHeadersWithJsonContentType(DITTO_HEADERS_V_2);
 
     public static final DittoHeaders HEADERS_V_2_FOR_MERGE_COMMANDS =
             ProtocolFactory.newHeadersWithJsonMergePatchContentType(DITTO_HEADERS_V_2);

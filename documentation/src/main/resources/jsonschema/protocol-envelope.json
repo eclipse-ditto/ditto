@@ -14,7 +14,7 @@
       "properties": {
         "content-type": {
           "type": "string",
-          "description": "The content-type of the message, for Ditto Protocol messages: `application/vnd.eclipse.ditto+json`."
+          "description": "The content-type which describes the value of Ditto Protocol messages."
         },
         "correlation-id": {
           "type": "string",

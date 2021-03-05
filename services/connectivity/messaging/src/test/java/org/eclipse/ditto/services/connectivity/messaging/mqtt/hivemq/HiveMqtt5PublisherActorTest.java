@@ -85,7 +85,7 @@ public class HiveMqtt5PublisherActorTest extends AbstractPublisherActorTest {
                         prop.getValue().toString().equals("ditto"))).isTrue();
         assertThat(ByteBufferUtils.toUtf8String(mqttMessage.getCorrelationData().get())).isEqualTo(
                 TestConstants.CORRELATION_ID);
-        assertThat(mqttMessage.getContentType().get().toString()).isEqualTo("application/vnd.eclipse.ditto+json");
+        assertThat(mqttMessage.getContentType()).isEmpty();
     }
 
     @Override

@@ -16,7 +16,6 @@ package org.eclipse.ditto.services.connectivity.mapping;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.fail;
-import static org.eclipse.ditto.model.base.common.DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE;
 import static org.eclipse.ditto.services.models.things.Permission.READ;
 import static org.eclipse.ditto.services.models.things.Permission.WRITE;
 
@@ -139,7 +138,6 @@ public final class ImplicitThingCreationMessageMapperTest {
         assertThat(createThing.getThing().getAttributes()).isEqualTo(expectedThing.getAttributes());
         assertThat(createThing.getDittoHeaders().get("other-test-header")).isEqualTo(GATEWAY_ID);
         assertThat(createThing.getDittoHeaders().get("test-header")).isEqualTo("this-is-a-test-header");
-        assertThat(createThing.getDittoHeaders().getContentType()).contains(DITTO_PROTOCOL_CONTENT_TYPE);
         assertThat(createThing.getDittoHeaders().isAllowPolicyLockout()).isTrue();
         assertThat(createThing.getDittoHeaders().getIfNoneMatch()).contains(EntityTagMatchers.fromStrings("*"));
         assertThat(createThing.getPolicyIdOrPlaceholder()).contains(GATEWAY_ID);
@@ -161,7 +159,6 @@ public final class ImplicitThingCreationMessageMapperTest {
         assertThat(createThing.getThing().getEntityId()).isEqualTo(expectedThing.getEntityId());
         assertThat(createThing.getThing().getPolicyEntityId()).isEmpty();
         assertThat(createThing.getThing().getAttributes()).isEqualTo(expectedThing.getAttributes());
-        assertThat(createThing.getDittoHeaders().getContentType()).contains(DITTO_PROTOCOL_CONTENT_TYPE);
         assertThat(createThing.getPolicyIdOrPlaceholder()).contains(GATEWAY_ID);
         assertThat(createThing.getDittoHeaders().isAllowPolicyLockout()).isTrue();
         assertThat(createThing.getDittoHeaders().getIfNoneMatch()).contains(EntityTagMatchers.fromStrings("*"));

@@ -300,7 +300,6 @@ final class ConnectionMigrationUtil {
 
         private static final JsonObject LEGACY_DEFAULT_TARGET_HEADER_MAPPING = JsonObject.newBuilder()
                 .set("correlation-id", "{{header:correlation-id}}")
-                .set("content-type", "{{header:content-type}}")
                 .set("reply-to", "{{header:reply-to}}")
                 .build();
 

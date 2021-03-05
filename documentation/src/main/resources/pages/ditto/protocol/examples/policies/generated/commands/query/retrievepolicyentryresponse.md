@@ -4,7 +4,7 @@
 {
   "topic": "com.acme/the_policy_id/policies/commands/retrieve",
   "headers": {
-    "content-type": "application/vnd.eclipse.ditto+json"
+    "content-type": "application/json"
   },
   "path": "/entries/the_label",
   "value": {

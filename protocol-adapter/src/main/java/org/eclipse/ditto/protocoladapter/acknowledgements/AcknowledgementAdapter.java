@@ -101,7 +101,7 @@ final class AcknowledgementAdapter implements Adapter<Acknowledgement> {
         final TopicPath topicPath = adaptable.getTopicPath();
         return topicPath.getSubject()
                 .map(AcknowledgementLabel::of)
-                .map(ackLabel ->  {
+                .map(ackLabel -> {
                     if (DittoAcknowledgementLabel.contains(ackLabel)) {
                         throw new DittoAcknowledgementLabelExternalUseForbiddenException(ackLabel);
                     }
@@ -175,10 +175,7 @@ final class AcknowledgementAdapter implements Adapter<Acknowledgement> {
 
     private DittoHeaders getExternalHeaders(final DittoHeaders acknowledgementHeaders) {
         final Map<String, String> externalHeaders = headerTranslator.toExternalHeaders(acknowledgementHeaders);
-        if (externalHeaders.containsKey(DittoHeaderDefinition.CONTENT_TYPE.getKey())) {
-            return DittoHeaders.of(externalHeaders);
-        }
-        return ProtocolFactory.newHeadersWithDittoContentType(externalHeaders);
+        return DittoHeaders.of(externalHeaders);
     }
 
 }

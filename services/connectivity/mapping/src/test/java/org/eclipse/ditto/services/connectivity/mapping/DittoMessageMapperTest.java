@@ -91,7 +91,6 @@ public final class DittoMessageMapperTest {
     private static Map.Entry<ExternalMessage, List<Adaptable>> valid1() {
         final Map<String, String> headers = new HashMap<>();
         headers.put("header-key", "header-value");
-        headers.put(ExternalMessage.CONTENT_TYPE_HEADER, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
         final ThingId thingId = ThingId.of("org.eclipse.ditto:thing1");
         final JsonifiableAdaptable adaptable =
                 ProtocolFactory.wrapAsJsonifiableAdaptable(ProtocolFactory.newAdaptableBuilder
@@ -105,7 +104,8 @@ public final class DittoMessageMapperTest {
 
         // by default, the DittoMessageMapper should not automatically use all headers from the ExternalMessage
         //  those would have to be mapped by an explicit header mapping
-        final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
+        final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(
+                Map.of(ExternalMessage.CONTENT_TYPE_HEADER, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE))
                 .withTopicPath(adaptable.getTopicPath())
                 .withText(adaptable.toJsonString())
                 .build();
@@ -165,8 +165,9 @@ public final class DittoMessageMapperTest {
                 .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
                 .correlationId(correlationId)
                 .build();
-        final DittoHeaders adaptableHeaders = expectedMessageHeaders.toBuilder()
+        final DittoHeaders adaptableHeaders = DittoHeaders.newBuilder()
                 .putHeader("header-key", "header-value")
+                .correlationId(correlationId)
                 .build();
 
 
