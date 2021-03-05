@@ -27,7 +27,7 @@
 
     <properties>
         <scala.version>2.13</scala.version> <!-- for scala libraries the scala version is used in their artifactId -->
-        <scala.full.version>2.13.3</scala.full.version>
+        <scala.full.version>2.13.5</scala.full.version>
 
         <javac.source>11</javac.source>
         <javac.target>11</javac.target>
@@ -36,11 +36,11 @@
         <minimal-json.version>0.9.5</minimal-json.version>
         <jackson-bom.version>2.11.4</jackson-bom.version>
         <typesafe-config.version>1.4.0</typesafe-config.version>
-        <ssl-config-core.version>0.4.1</ssl-config-core.version>
-        <akka-bom.version>2.6.12</akka-bom.version>
+        <ssl-config-core.version>0.4.2</ssl-config-core.version>
+        <akka-bom.version>2.6.13</akka-bom.version>
         <akka-persistence-mongo.version>3.0.6</akka-persistence-mongo.version>
-        <akka-http-bom.version>10.2.3</akka-http-bom.version>
-        <akka-management.version>1.0.9</akka-management.version>
+        <akka-http-bom.version>10.2.4</akka-http-bom.version>
+        <akka-management.version>1.0.10</akka-management.version>
         <hivemq-mqtt-client.version>1.2.1</hivemq-mqtt-client.version>
         <kafka-clients.version>2.5.1</kafka-clients.version>
 
@@ -56,7 +56,7 @@
         <netty-bom.version>4.1.59.Final</netty-bom.version>
         <cloundevents.version>2.0.0</cloundevents.version>
 
-        <slf4j.version>1.7.28</slf4j.version>
+        <slf4j.version>1.7.30</slf4j.version>
         <logback.version>1.2.3</logback.version>
 
         <!-- ### Metrics and Tracing -->
@@ -80,11 +80,11 @@
         -->
         <js.long.version>3.2.0</js.long.version>
 
-        <caffeine.version>2.8.5</caffeine.version>
+        <caffeine.version>2.8.8</caffeine.version>
         <classindex.version>3.8</classindex.version>
 
         <!-- ### Testing dependencies versions -->
-        <junit.version>4.13.1</junit.version>
+        <junit.version>4.13.2</junit.version>
         <junit-jupiter.version>5.7.0</junit-jupiter.version>
         <assertj.version>3.19.0</assertj.version>
         <mutability-detector.version>0.10.4</mutability-detector.version>
@@ -96,7 +96,7 @@
 
         <jmh.version>1.27</jmh.version>
 
-        <scalatest.version>3.1.2</scalatest.version>
+        <scalatest.version>3.1.4</scalatest.version>
         <docker-java.version>3.2.6</docker-java.version>
         <system-rules.version>1.19.0</system-rules.version>
     </properties>
