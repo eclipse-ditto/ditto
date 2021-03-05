@@ -44,7 +44,8 @@ public final class EventSendNotAllowedException extends DittoRuntimeException im
             "You are not allowed to send events for the Thing with id ''{0}''!";
 
     private static final String DEFAULT_DESCRIPTION =
-            "Please make sure that the Thing exists and that you have a WRITE permission on the Thing.";
+            "Please make sure that the Thing exists and that you have WRITE permissions on the message resource in " +
+                    "the policy of the Thing.";
 
     private static final long serialVersionUID = 9055307625270596757L;
 
