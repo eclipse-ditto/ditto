@@ -14,6 +14,8 @@ package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 import org.eclipse.ditto.services.connectivity.config.DefaultAmqp10Config;
@@ -29,7 +31,7 @@ public final class AmqpSpecificConfigTest {
 
     @Test
     public void decodeDoublyEncodedUsernameAndPassword() {
-        final var uri = "amqps://%2525u%2525s%2525e%2525r:%2525p%2525a%2525s%2525s@localhost:1234/";
+        final var uri = "amqps://%2525u%2525s%2525e%2525r:%2525p%2525a%2525%252Bs%2525s@localhost:1234/";
         final var connection = TestConstants.createConnection()
                 .toBuilder()
                 .uri(uri)
@@ -39,7 +41,26 @@ public final class AmqpSpecificConfigTest {
 
         assertThat(underTest.render("amqps://localhost:1234/"))
                 .isEqualTo("failover:(amqps://localhost:1234/?amqp.saslMechanisms=PLAIN)" +
-                        "?jms.clientID=CID&jms.username=%25u%25s%25e%25r&jms.password=%25p%25a%25s%25s" +
+                        "?jms.clientID=CID&jms.username=%25u%25s%25e%25r&jms.password=%25p%25a%25%2Bs%25s" +
+                        "&failover.startupMaxReconnectAttempts=5&failover.maxReconnectAttempts=-1" +
+                        "&failover.initialReconnectDelay=128&failover.reconnectDelay=128" +
+                        "&failover.maxReconnectDelay=900000&failover.reconnectBackOffMultiplier=2" +
+                        "&failover.useReconnectBackOff=true");
+    }
+
+    @Test
+    public void decodeSinglyEncodedUsernameAndPasswordContainingPercentageSign() {
+        final var uri = "amqps://%25u%25s%25e%25r:%25p%25a%25%2Bs%25s@localhost:1234/";
+        final var connection = TestConstants.createConnection()
+                .toBuilder()
+                .uri(uri)
+                .build();
+
+        final var underTest = AmqpSpecificConfig.withDefault("CID", connection, Map.of());
+
+        assertThat(underTest.render("amqps://localhost:1234/"))
+                .isEqualTo("failover:(amqps://localhost:1234/?amqp.saslMechanisms=PLAIN)" +
+                        "?jms.clientID=CID&jms.username=%25u%25s%25e%25r&jms.password=%25p%25a%25%2Bs%25s" +
                         "&failover.startupMaxReconnectAttempts=5&failover.maxReconnectAttempts=-1" +
                         "&failover.initialReconnectDelay=128&failover.reconnectDelay=128" +
                         "&failover.maxReconnectDelay=900000&failover.reconnectBackOffMultiplier=2" +
@@ -48,7 +69,7 @@ public final class AmqpSpecificConfigTest {
 
     @Test
     public void decodeSinglyEncodedUsernameAndPassword() {
-        final var uri = "amqps://%25u%25s%25e%25r:%25p%25a%25s%25s@localhost:1234/";
+        final var uri = "amqps://user:pa%2Bss@localhost:1234/";
         final var connection = TestConstants.createConnection()
                 .toBuilder()
                 .uri(uri)
@@ -58,7 +79,7 @@ public final class AmqpSpecificConfigTest {
 
         assertThat(underTest.render("amqps://localhost:1234/"))
                 .isEqualTo("failover:(amqps://localhost:1234/?amqp.saslMechanisms=PLAIN)" +
-                        "?jms.clientID=CID&jms.username=%25u%25s%25e%25r&jms.password=%25p%25a%25s%25s" +
+                        "?jms.clientID=CID&jms.username=user&jms.password=pa%2Bss" +
                         "&failover.startupMaxReconnectAttempts=5&failover.maxReconnectAttempts=-1" +
                         "&failover.initialReconnectDelay=128&failover.reconnectDelay=128" +
                         "&failover.maxReconnectDelay=900000&failover.reconnectBackOffMultiplier=2" +

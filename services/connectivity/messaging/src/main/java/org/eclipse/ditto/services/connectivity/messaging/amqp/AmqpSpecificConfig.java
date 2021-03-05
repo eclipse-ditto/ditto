@@ -148,8 +148,8 @@ public final class AmqpSpecificConfig {
         final var password = connection.getPassword();
         if (username.isPresent() && password.isPresent()) {
             // URL-decode the username and password to preserve previous behavior (no apparent encoding of parameters)
-            addParameter(parameters, USERNAME, tryDecode(username.get()));
-            addParameter(parameters, PASSWORD, tryDecode(password.get()));
+            addParameter(parameters, USERNAME, username.get());
+            addParameter(parameters, PASSWORD, password.get());
         }
     }
 
@@ -169,14 +169,6 @@ public final class AmqpSpecificConfig {
 
     private static String encode(final String string) {
         return URLEncoder.encode(string, StandardCharsets.UTF_8);
-    }
-
-    private static String tryDecode(final String string) {
-        try {
-            return URLDecoder.decode(string, StandardCharsets.UTF_8);
-        } catch (final IllegalArgumentException e) {
-            return string;
-        }
     }
 
     private static boolean isSecuredConnection(final Connection connection) {
