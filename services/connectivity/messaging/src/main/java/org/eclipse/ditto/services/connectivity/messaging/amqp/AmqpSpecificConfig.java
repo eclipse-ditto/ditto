@@ -147,7 +147,6 @@ public final class AmqpSpecificConfig {
         final var username = connection.getUsername();
         final var password = connection.getPassword();
         if (username.isPresent() && password.isPresent()) {
-            // URL-decode the username and password to preserve previous behavior (no apparent encoding of parameters)
             addParameter(parameters, USERNAME, username.get());
             addParameter(parameters, PASSWORD, password.get());
         }
