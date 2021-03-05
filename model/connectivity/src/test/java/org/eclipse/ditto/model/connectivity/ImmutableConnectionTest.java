@@ -230,7 +230,7 @@ public final class ImmutableConnectionTest {
         assertInstancesOf(ImmutableConnection.class, areImmutable(),
                 provided(AuthorizationContext.class, Source.class, Target.class,
                         MappingContext.class, Credentials.class, ConnectionId.class,
-                        PayloadMappingDefinition.class).isAlsoImmutable(),
+                        PayloadMappingDefinition.class, SshTunnel.class).isAlsoImmutable(),
                 assumingFields("mappings").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
@@ -352,6 +352,7 @@ public final class ImmutableConnectionTest {
                 .clientCount(2)
                 .payloadMappingDefinition(ConnectivityModelFactory.newPayloadMappingDefinition(definitions))
                 .tags(KNOWN_TAGS)
+                .sshTunnel(SSH_TUNNEL)
                 .build();
 
         final Connection actual = ImmutableConnection.fromJson(KNOWN_LEGACY_JSON);

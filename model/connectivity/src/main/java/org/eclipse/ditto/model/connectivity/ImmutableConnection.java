@@ -72,7 +72,7 @@ final class ImmutableConnection implements Connection {
     private final Map<String, String> specificConfig;
     private final PayloadMappingDefinition payloadMappingDefinition;
     private final Set<String> tags;
-    @Nullable private SshTunnel sshTunnel;
+    @Nullable final private SshTunnel sshTunnel;
 
     private ImmutableConnection(final Builder builder) {
         id = checkNotNull(builder.id, "id");
