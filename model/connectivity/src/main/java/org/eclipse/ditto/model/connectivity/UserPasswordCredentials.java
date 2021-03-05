@@ -118,6 +118,15 @@ public final class UserPasswordCredentials implements Credentials {
     }
 
     /**
+     * Create a new builder initialized with fields of this object.
+     *
+     * @return a new builder.
+     */
+    public static Builder newBuilder(final String username, final String password) {
+        return new Builder(username, password);
+    }
+
+    /**
      * Builder of {@code UserPasswordCredentials}.
      */
     public static final class Builder {
