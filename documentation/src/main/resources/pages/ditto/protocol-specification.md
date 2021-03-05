@@ -79,7 +79,7 @@ There are some pre-defined headers, which have a special meaning for Ditto:
 
 | Header Key | Description                    | Possible values           |
 |------------|--------------------------------|---------------------------|
-| `content-type` | The content-type which describes the [value](#Value) of Ditto Protocol messages. | `String` |
+| `content-type` | The content-type which describes the [value](#value) of Ditto Protocol messages. | `String` |
 | `correlation-id` | Used for correlating protocol messages (e.g. a **command** would have the same correlation-id as the sent back **response** message. | `String` |
 | `ditto-originator` | Contains the first authorization subject of the command that caused the sending of this message. Set by Ditto. | `String` |
 | `if-match` | Has the same semantics as defined for the [HTTP API](httpapi-concepts.html#conditional-requests). | `String` |

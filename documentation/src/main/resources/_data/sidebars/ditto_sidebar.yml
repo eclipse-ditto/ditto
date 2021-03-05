@@ -24,7 +24,7 @@ entries:
         output: web
         folderitems:
           - title: 2.0.0
-            url: /release_notes_200.html
+            url: /release_notes_next.html
             output: web
           - title: 1.5.1
             url: /release_notes_151.html
