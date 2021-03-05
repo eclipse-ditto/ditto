@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import javax.annotation.concurrent.Immutable;
@@ -20,6 +21,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
+import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 
@@ -55,23 +57,23 @@ public final class Mqtt3Validator extends AbstractMqttValidator {
         validatePayloadMappings(connection, actorSystem, dittoHeaders);
     }
 
-  private static void validateClientCount(final Connection connection, final DittoHeaders dittoHeaders) {
-    if (connection.getClientCount() > 1) {
-      throw ConnectionConfigurationInvalidException
-              .newBuilder("Client count limited to 1 for MQTT 3.1.1 connections.")
-              .description("MQTT 3.1.1 does not support load-balancing; starting more than 1 client will only " +
-                      "result in duplicate incoming messages.")
-              .dittoHeaders(dittoHeaders)
-              .build();
+    private static void validateClientCount(final Connection connection, final DittoHeaders dittoHeaders) {
+        if (connection.getClientCount() > 1) {
+            throw ConnectionConfigurationInvalidException
+                    .newBuilder("Client count limited to 1 for MQTT 3.1.1 connections.")
+                    .description("MQTT 3.1.1 does not support load-balancing; starting more than 1 client will only " +
+                            "result in duplicate incoming messages.")
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
     }
-  }
 
     @Override
     protected void validateSource(final Source source, final DittoHeaders dittoHeaders,
             final Supplier<String> sourceDescription) {
         super.validateSource(source, dittoHeaders, sourceDescription);
 
-        if (source.getHeaderMapping().isPresent()) {
+        if (containsMappings(source.getHeaderMapping())) {
             throw ConnectionConfigurationInvalidException.newBuilder(
                     "Header mapping is not supported for MQTT 3.1.1 sources.")
                     .dittoHeaders(dittoHeaders).build();
@@ -84,11 +86,15 @@ public final class Mqtt3Validator extends AbstractMqttValidator {
             final Supplier<String> targetDescription) {
         super.validateTarget(target, dittoHeaders, targetDescription);
 
-        if (target.getHeaderMapping().isPresent()) {
+        if (containsMappings(target.getHeaderMapping())) {
             throw ConnectionConfigurationInvalidException.newBuilder(
                     "Header mapping is not supported for MQTT 3.1.1 targets.")
                     .dittoHeaders(dittoHeaders).build();
         }
+    }
+
+    private static boolean containsMappings(final Optional<HeaderMapping> headerMappingOptional) {
+        return headerMappingOptional.map(HeaderMapping::getMapping).filter(mappings -> !mappings.isEmpty()).isPresent();
     }
 
     private static void validateConsumerCount(final Source source, final DittoHeaders dittoHeaders) {
