@@ -103,14 +103,8 @@ public abstract class AbstractCommand<T extends AbstractCommand<T>> implements C
     @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
-
-        // for types containing the exchange separated with ":" :
-        if (type.contains(":")) {
-            // backward compatibility to V1!
-            jsonObjectBuilder.set(JsonFields.ID, getName(), predicate);
-        }
-        jsonObjectBuilder.set(JsonFields.TYPE, type, predicate);
+        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder()
+                .set(JsonFields.TYPE, type, predicate);
 
         appendPayload(jsonObjectBuilder, schemaVersion, thePredicate);
 

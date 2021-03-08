@@ -21,7 +21,6 @@ import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandToExceptionRegistry;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
-import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeature;
@@ -33,8 +32,6 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatures;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingDefinition;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyAcl;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
@@ -176,18 +173,6 @@ public final class ThingCommandToModifyExceptionRegistry
         mappingStrategies.put(DeleteFeatureDesiredProperty.TYPE,
                 command -> FeatureDesiredPropertyNotModifiableException.newBuilder(command.getThingEntityId(),
                         ((WithFeatureId) command).getFeatureId(), command.getResourcePath())
-                        .dittoHeaders(command.getDittoHeaders())
-                        .build());
-        mappingStrategies.put(ModifyAcl.TYPE,
-                command -> AclNotModifiableException.newBuilder(command.getThingEntityId())
-                        .dittoHeaders(command.getDittoHeaders())
-                        .build());
-        mappingStrategies.put(ModifyAclEntry.TYPE,
-                command -> AclNotModifiableException.newBuilder(command.getThingEntityId())
-                        .dittoHeaders(command.getDittoHeaders())
-                        .build());
-        mappingStrategies.put(DeleteAclEntry.TYPE,
-                command -> AclNotModifiableException.newBuilder(command.getThingEntityId())
                         .dittoHeaders(command.getDittoHeaders())
                         .build());
         mappingStrategies.put(ModifyPolicyId.TYPE,

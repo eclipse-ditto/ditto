@@ -98,7 +98,7 @@ public final class GatewayHttpConfigTest {
 
     @Test
     public void getConfiguredSchemaVersions() {
-        final EnumSet<JsonSchemaVersion> expected = EnumSet.of(JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        final EnumSet<JsonSchemaVersion> expected = EnumSet.of(JsonSchemaVersion.V_2);
         final GatewayHttpConfig underTest = GatewayHttpConfig.of(gatewayHttpTestConfig);
 
         final Set<JsonSchemaVersion> actual = underTest.getSupportedSchemaVersions();
@@ -109,8 +109,7 @@ public final class GatewayHttpConfigTest {
     @Test
     public void tryToGetInstanceWithUnknownSchemaVersions() {
         final int unknownVersionNumber = -1;
-        final Collection<Integer> knownSchemaVersions =
-                List.of(JsonSchemaVersion.V_1.toInt(), JsonSchemaVersion.V_2.toInt());
+        final Collection<Integer> knownSchemaVersions = List.of(JsonSchemaVersion.V_2.toInt());
         final Collection<Integer> allSchemaVersions = new ArrayList<>(knownSchemaVersions);
         allSchemaVersions.add(unknownVersionNumber);
         final String configPath = "http." + HttpConfig.GatewayHttpConfigValue.SCHEMA_VERSIONS.getConfigPath();
@@ -194,7 +193,8 @@ public final class GatewayHttpConfigTest {
 
     @Test
     public void testNonParsableMediaType() {
-        final Config gatewayTestConfig = ConfigFactory.parseString("http {\n additional-accepted-media-types = \"application-json\"\n}");
+        final Config gatewayTestConfig =
+                ConfigFactory.parseString("http {\n additional-accepted-media-types = \"application-json\"\n}");
 
         final GatewayHttpConfig underTest = GatewayHttpConfig.of(gatewayTestConfig);
 

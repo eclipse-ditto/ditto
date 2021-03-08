@@ -334,21 +334,21 @@ public final class RetrieveConnectionLogsResponse
          * JSON field containing when logging was enabled.
          */
         public static final JsonFieldDefinition<String> ENABLED_SINCE =
-                JsonFactory.newStringFieldDefinition("enabledSince", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("enabledSince", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing when logging gets disabled.
          */
         public static final JsonFieldDefinition<String> ENABLED_UNTIL =
-                JsonFactory.newStringFieldDefinition("enabledUntil", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("enabledUntil", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the logs.
          */
         public static final JsonFieldDefinition<JsonArray> CONNECTION_LOGS =
-                JsonFactory.newJsonArrayFieldDefinition("connectionLogs", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonArrayFieldDefinition("connectionLogs", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

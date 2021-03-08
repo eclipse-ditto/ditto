@@ -123,17 +123,6 @@ public final class ThingEventToThingConverter {
         mappers.put(ThingDeleted.class,
                 (te, tb) -> tb.build());
 
-        mappers.put(AclModified.class,
-                (te, tb) -> tb.setPermissions(((AclModified) te).getAccessControlList()).build());
-        mappers.put(AclEntryCreated.class,
-                (te, tb) -> tb.setPermissions(((AclEntryCreated) te).getAclEntry()).build());
-        mappers.put(AclEntryModified.class,
-                (te, tb) -> tb.setPermissions(((AclEntryModified) te).getAclEntry()).build());
-        mappers.put(AclEntryDeleted.class,
-                (te, tb) -> tb.build());
-
-        mappers.put(PolicyIdCreated.class,
-                (te, tb) -> tb.setPolicyId(((PolicyIdCreated) te).getPolicyEntityId()).build());
         mappers.put(PolicyIdModified.class,
                 (te, tb) -> tb.setPolicyId(((PolicyIdModified) te).getPolicyEntityId()).build());
 

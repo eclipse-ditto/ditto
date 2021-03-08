@@ -64,14 +64,14 @@ public interface ConnectionMetrics extends Jsonifiable.WithFieldSelectorAndPredi
          * JSON field containing the inbound metrics.
          */
         public static final JsonFieldDefinition<JsonObject> INBOUND_METRICS =
-                JsonFactory.newJsonObjectFieldDefinition("inbound", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonObjectFieldDefinition("inbound", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the inbound metrics.
          */
         public static final JsonFieldDefinition<JsonObject> OUTBOUND_METRICS =
-                JsonFactory.newJsonObjectFieldDefinition("outbound", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonObjectFieldDefinition("outbound", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

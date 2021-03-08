@@ -310,18 +310,6 @@ public final class TestConstants {
         private static final AuthorizationContext UNAUTHORIZED_AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
                 DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION, UNAUTHORIZED_SUBJECT);
 
-
-        public static AuthorizationContext withUnprefixedSubjects(final AuthorizationContext authorizationContext) {
-            final List<AuthorizationSubject> mergedSubjects =
-                    new ArrayList<>(authorizationContext.getAuthorizationSubjects());
-            authorizationContext.getAuthorizationSubjectIds().stream()
-                    .map(subject -> subject.split(":", 2)[1])
-                    .map(AuthorizationSubject::newInstance)
-                    .forEach(mergedSubjects::add);
-
-            return AuthorizationModelFactory.newAuthContext(authorizationContext.getType(), mergedSubjects);
-        }
-
     }
 
     public static final class Sources {

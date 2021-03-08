@@ -15,9 +15,11 @@ package org.eclipse.ditto.model.enforcers.testbench.scenarios.scenario3;
 import java.util.Collections;
 import java.util.function.Function;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.enforcers.testbench.algorithms.PolicyAlgorithm;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.Scenario;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.ScenarioSetup;
+import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
@@ -44,9 +46,9 @@ public class Scenario3Revoke15 implements Scenario3Revoke {
                 resource,
                 Collections.emptySet(),
                 policyAlgorithm -> // as the subject has READ revoked on "/features/foo/properties/special" he shall NOT be able to read "/features/foo/properties/special" partially
-                        !policyAlgorithm.getSubjectIdsWithPartialPermission(
-                                PoliciesResourceType.thingResource(resource), "READ")
-                                .contains(EXPECTED_NONRANTED_SUBJECT),
+                        !policyAlgorithm.getSubjectsWithPartialPermission(
+                                PoliciesResourceType.thingResource(resource), Permissions.newInstance("READ"))
+                                .contains(AuthorizationSubject.newInstance(EXPECTED_NONRANTED_SUBJECT)),
                 "READ");
     }
 

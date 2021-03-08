@@ -36,8 +36,6 @@ final class ThingResourceNames {
 
     static {
         resourceNames.put(ThingResource.THING, "thing");
-        resourceNames.put(ThingResource.ACL, "acl");
-        resourceNames.put(ThingResource.ACL_ENTRY, "aclEntry");
         resourceNames.put(ThingResource.POLICY_ID, "policyId");
         resourceNames.put(ThingResource.POLICY, "policy");
         resourceNames.put(ThingResource.POLICY_ENTRIES, "policyEntries");

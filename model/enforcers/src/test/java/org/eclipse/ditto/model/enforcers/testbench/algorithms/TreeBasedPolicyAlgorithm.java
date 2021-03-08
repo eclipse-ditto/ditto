@@ -18,7 +18,6 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.enforcers.EffectedSubjectIds;
 import org.eclipse.ditto.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.model.enforcers.tree.TreeBasedPolicyEnforcer;
 import org.eclipse.ditto.model.policies.Permissions;
@@ -41,22 +40,8 @@ public final class TreeBasedPolicyAlgorithm implements PolicyAlgorithm {
     }
 
     @Override
-    public EffectedSubjectIds getSubjectIdsWithPermission(final ResourceKey resourceKey,
-            final Permissions permissions) {
-
-        return treeBasedPolicyEvaluator.getSubjectIdsWithPermission(resourceKey, permissions);
-    }
-
-    @Override
     public EffectedSubjects getSubjectsWithPermission(final ResourceKey resourceKey, final Permissions permissions) {
         return treeBasedPolicyEvaluator.getSubjectsWithPermission(resourceKey, permissions);
-    }
-
-    @Override
-    public Set<String> getSubjectIdsWithPartialPermission(final ResourceKey resourceKey,
-            final Permissions permissions) {
-
-        return treeBasedPolicyEvaluator.getSubjectIdsWithPartialPermission(resourceKey, permissions);
     }
 
     @Override

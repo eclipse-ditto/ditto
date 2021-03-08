@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.utils.cacheloaders;
 
 import java.time.Duration;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.BiFunction;
@@ -24,9 +23,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.utils.cache.CacheLookupContext;
@@ -78,21 +75,13 @@ public final class ThingEnforcementIdCacheLoader
         if (response instanceof SudoRetrieveThingResponse) {
             final SudoRetrieveThingResponse sudoRetrieveThingResponse = (SudoRetrieveThingResponse) response;
             final Thing thing = sudoRetrieveThingResponse.getThing();
-            final ThingId thingId = thing.getEntityId().orElseThrow(badThingResponse("no ThingId"));
             final long revision = thing.getRevision().map(ThingRevision::toLong)
                     .orElseThrow(badThingResponse("no revision"));
-            final Optional<AccessControlList> accessControlListOptional = thing.getAccessControlList();
-            if (accessControlListOptional.isPresent()) {
-                final EntityIdWithResourceType resourceKey =
-                        EntityIdWithResourceType.of(ThingCommand.RESOURCE_TYPE, thingId);
-                return Entry.of(revision, resourceKey);
-            } else {
-                final PolicyId policyId = thing.getPolicyEntityId()
-                        .orElseThrow(badThingResponse("no PolicyId or ACL"));
-                final EntityIdWithResourceType resourceKey =
-                        EntityIdWithResourceType.of(PolicyCommand.RESOURCE_TYPE, policyId);
-                return Entry.of(revision, resourceKey);
-            }
+            final PolicyId policyId = thing.getPolicyEntityId()
+                    .orElseThrow(badThingResponse("no PolicyId"));
+            final EntityIdWithResourceType resourceKey =
+                    EntityIdWithResourceType.of(PolicyCommand.RESOURCE_TYPE, policyId);
+            return Entry.of(revision, resourceKey);
         } else if (response instanceof ThingNotAccessibleException) {
             return Entry.nonexistent();
         } else {

@@ -130,21 +130,21 @@ public interface OutboundSignal extends Jsonifiable.WithFieldSelectorAndPredicat
          * JSON field containing the {@code OutboundSignal} {@code source} {@link Signal}.
          */
         static final JsonFieldDefinition<JsonObject> SOURCE =
-                JsonFactory.newJsonObjectFieldDefinition("source", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonObjectFieldDefinition("source", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code OutboundSignal} {@code target}.
          */
         static final JsonFieldDefinition<JsonArray> TARGETS =
-                JsonFactory.newJsonArrayFieldDefinition("targets", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonArrayFieldDefinition("targets", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code DittoHeaders} of the {@code source} {@link Signal}.
          */
         static final JsonFieldDefinition<JsonObject> JSON_DITTO_HEADERS =
-                JsonFactory.newJsonObjectFieldDefinition("dittoHeaders", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonObjectFieldDefinition("dittoHeaders", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

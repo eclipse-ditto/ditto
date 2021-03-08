@@ -23,10 +23,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.enforcers.DefaultEffectedSubjects;
-import org.eclipse.ditto.model.enforcers.EffectedSubjectIds;
 import org.eclipse.ditto.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.model.enforcers.Enforcer;
-import org.eclipse.ditto.model.enforcers.ImmutableEffectedSubjectIds;
 import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.ResourceKey;
 
@@ -50,22 +48,8 @@ final class AuthorizedSubjectsEnforcer implements Enforcer {
     }
 
     @Override
-    public EffectedSubjectIds getSubjectIdsWithPermission(final ResourceKey resourceKey,
-            final Permissions permissions) {
-
-        return ImmutableEffectedSubjectIds.of(authorizationContext.getAuthorizationSubjectIds(), Collections.emptySet());
-    }
-
-    @Override
     public EffectedSubjects getSubjectsWithPermission(final ResourceKey resourceKey, final Permissions permissions) {
         return DefaultEffectedSubjects.of(authorizationContext.getAuthorizationSubjects(), Collections.emptyList());
-    }
-
-    @Override
-    public Set<String> getSubjectIdsWithPartialPermission(final ResourceKey resourceKey,
-            final Permissions permissions) {
-
-        return new HashSet<>(authorizationContext.getAuthorizationSubjectIds());
     }
 
     @Override

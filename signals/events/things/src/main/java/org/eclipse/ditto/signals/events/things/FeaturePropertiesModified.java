@@ -59,7 +59,7 @@ public final class FeaturePropertiesModified extends AbstractThingEvent<FeatureP
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<JsonObject> JSON_PROPERTIES =
-            JsonFactory.newJsonObjectFieldDefinition("properties", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonObjectFieldDefinition("properties", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final String featureId;

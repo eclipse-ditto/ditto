@@ -12,7 +12,7 @@
  */
 
 /**
- * Components for authorization by enforcement of policies or ACLs.
+ * Components for authorization by enforcement of policies.
  */
 @org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault
 package org.eclipse.ditto.services.concierge.enforcement;

@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V1;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
 import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.mergeThingResponse;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -26,13 +25,11 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
-import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
 import org.eclipse.ditto.signals.commands.things.modify.MergeThingResponse;
 import org.eclipse.ditto.signals.events.things.ThingMerged;
@@ -77,17 +74,6 @@ public final class MergeThingStrategyTest extends AbstractCommandStrategyTest {
         final MergeThingResponse expectedCommandResponse =
                 mergeThingResponse(existing, path, mergeThing.getDittoHeaders());
         assertModificationResult(underTest, existing, mergeThing, ThingMerged.class, expectedCommandResponse);
-    }
-
-    @Test
-    public void mergeV1ThingWithV2CommandExpectCommandNotSupportedException() {
-        final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final ThingId thingId = context.getState();
-        final Thing existing = THING_V1.toBuilder().setRevision(NEXT_REVISION - 1).build();
-        final MergeThing mergeThing = MergeThing.withAttribute(thingId, JsonPointer.of("path"), JsonObject.empty(),
-                DittoHeaders.empty());
-        assertErrorResult(underTest, existing, mergeThing,
-                CommandNotSupportedException.newBuilder(JsonSchemaVersion.V_1.toInt()).build());
     }
 
     @Test

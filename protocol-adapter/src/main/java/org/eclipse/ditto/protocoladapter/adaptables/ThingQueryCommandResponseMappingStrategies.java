@@ -20,8 +20,6 @@ import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableMapper;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntryResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveAclResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributesResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinitionResponse;
@@ -63,14 +61,6 @@ final class ThingQueryCommandResponseMappingStrategies
         mappingStrategies.put(RetrieveThingsResponse.TYPE,
                 adaptable -> RetrieveThingsResponse.of(thingsArrayFrom(adaptable),
                         namespaceFrom(adaptable), dittoHeadersFrom(adaptable)));
-
-        mappingStrategies.put(RetrieveAclResponse.TYPE,
-                adaptable -> RetrieveAclResponse.of(thingIdFrom(adaptable), aclFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
-
-        mappingStrategies.put(RetrieveAclEntryResponse.TYPE,
-                adaptable -> RetrieveAclEntryResponse.of(thingIdFrom(adaptable), aclEntryFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
 
         mappingStrategies.put(RetrieveAttributesResponse.TYPE,
                 adaptable -> RetrieveAttributesResponse.of(thingIdFrom(adaptable), attributesFrom(adaptable),

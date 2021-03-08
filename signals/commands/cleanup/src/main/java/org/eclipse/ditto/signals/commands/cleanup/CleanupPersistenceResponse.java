@@ -101,7 +101,7 @@ public final class CleanupPersistenceResponse extends AbstractCommandResponse<Cl
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain
-     * {@link Command.JsonFields#ID}.
+     * {@link Command.JsonFields#TYPE}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */

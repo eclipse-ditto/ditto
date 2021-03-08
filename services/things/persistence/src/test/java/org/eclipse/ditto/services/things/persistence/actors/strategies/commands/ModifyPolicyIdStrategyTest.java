@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
 import static org.eclipse.ditto.model.things.TestConstants.Thing.POLICY_ID;
-import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V1;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
 import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.modifyPolicyIdResponse;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -23,7 +22,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyId;
-import org.eclipse.ditto.signals.events.things.PolicyIdCreated;
 import org.eclipse.ditto.signals.events.things.PolicyIdModified;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,16 +41,6 @@ public final class ModifyPolicyIdStrategyTest extends AbstractCommandStrategyTes
     @Test
     public void assertImmutability() {
         assertInstancesOf(ModifyPolicyIdStrategy.class, areImmutable());
-    }
-
-    @Test
-    public void modifyPolicyIdOnThingWithoutPolicyId() {
-        final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final ModifyPolicyId command = ModifyPolicyId.of(context.getState(), POLICY_ID, DittoHeaders.empty());
-
-        assertModificationResult(underTest, THING_V1, command, PolicyIdCreated.class,
-                modifyPolicyIdResponse(context.getState(), command.getPolicyEntityId(),
-                        command.getDittoHeaders(), true));
     }
 
     @Test

@@ -43,7 +43,7 @@ public final class ChangeLogLevelResponse extends AbstractDevOpsCommandResponse<
     public static final String TYPE = TYPE_PREFIX + ChangeLogLevel.NAME;
 
     static final JsonFieldDefinition<Boolean> JSON_SUCCESSFUL =
-            JsonFactory.newBooleanFieldDefinition("successful", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newBooleanFieldDefinition("successful", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final boolean successful;

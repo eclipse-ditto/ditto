@@ -50,7 +50,7 @@ public final class RetrieveConnectionResponse extends AbstractCommandResponse<Re
     public static final String TYPE = TYPE_PREFIX + RetrieveConnection.NAME;
 
     static final JsonFieldDefinition<JsonObject> JSON_CONNECTION =
-            JsonFactory.newJsonObjectFieldDefinition("connection", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonObjectFieldDefinition("connection", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final JsonObject jsonObject;

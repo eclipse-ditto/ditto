@@ -56,11 +56,11 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
     public static final String TYPE = TYPE_PREFIX + RetrieveThing.NAME;
 
     static final JsonFieldDefinition<JsonObject> JSON_THING =
-            JsonFactory.newJsonObjectFieldDefinition("thing", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonObjectFieldDefinition("thing", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<String> JSON_THING_PLAIN_JSON =
-            JsonFactory.newStringFieldDefinition("thingPlainJson", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("thingPlainJson", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final ThingId thingId;

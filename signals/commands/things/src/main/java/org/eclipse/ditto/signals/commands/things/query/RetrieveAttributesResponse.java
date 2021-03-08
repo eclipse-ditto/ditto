@@ -53,7 +53,7 @@ public final class RetrieveAttributesResponse extends AbstractCommandResponse<Re
     public static final String TYPE = TYPE_PREFIX + RetrieveAttributes.NAME;
 
     static final JsonFieldDefinition<JsonObject> JSON_ATTRIBUTES =
-            JsonFactory.newJsonObjectFieldDefinition("attributes", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonObjectFieldDefinition("attributes", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final ThingId thingId;

@@ -51,66 +51,10 @@ public final class TraceUriGeneratorTest {
     }
 
     @Test
-    public void api1ThingsMessagesUriReturnsCorrectSuffix() {
-        final String path =
-                "/api/1/things/abc:1a4ed3df-308b-462e-9cfc-b78891f18c39/inbox/messages/randomMessageSubject";
-        final String expectedUri = "/api/1/things" + MESSAGES_PATH_SUFFIX;
-        final String expectedPath = expectedUri;
-        assertTraceUri(path,
-                TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.REQUEST_PATH, expectedPath)
-                        .build());
-    }
-
-    @Test
-    public void api1FeatureUpdate() {
-        final String path = "/api/1/things/abc:1a4ed3df-308b-462e-9cfc-b78891f18c39/features/Vehicle";
-        final String expectedUri = "/api/1/things" + SHORTENED_PATH_SUFFIX;
-        final String expectedPath = expectedUri + "/features" + SHORTENED_PATH_SUFFIX;
-        assertTraceUri(path,
-                TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.REQUEST_PATH, expectedPath)
-                        .build());
-    }
-
-    @Test
-    public void api1FeaturesUpdate() {
-        final String path = "/api/1/things/abc:1a4ed3df-308b-462e-9cfc-b78891f18c39/features";
-        final String expectedUri = "/api/1/things" + SHORTENED_PATH_SUFFIX;
-        final String expectedPath = expectedUri + "/features" + SHORTENED_PATH_SUFFIX;
-        assertTraceUri(path,
-                TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.REQUEST_PATH, expectedPath)
-                        .build());
-    }
-
-    @Test
-    public void api1AttributesUpdate() {
-        final String path = "/api/1/things/abc:1a4ed3df-308b-462e-9cfc-b78891f18c39/attributes";
-        final String expectedUri = "/api/1/things" + SHORTENED_PATH_SUFFIX;
-        final String expectedPath = expectedUri + "/attributes" + SHORTENED_PATH_SUFFIX;
-        assertTraceUri(path,
-                TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.REQUEST_PATH, expectedPath)
-                        .build());
-    }
-
-    @Test
-    public void api1AttributeUpdate() {
-        final String path = "/api/1/things/abc:1a4ed3df-308b-462e-9cfc-b78891f18c39/attributes/firmware-version";
-        final String expectedUri = "/api/1/things" + SHORTENED_PATH_SUFFIX;
-        final String expectedPath = expectedUri + "/attributes" + SHORTENED_PATH_SUFFIX;
-        assertTraceUri(path,
-                TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.REQUEST_PATH, expectedPath)
-                        .build());
-    }
-
-    @Test
     public void api2FeaturePropertyUpdate() {
         final String path =
-                "/api/1/things/abc:1a4ed3df-308b-462e-9cfc-b78891f18c39/features/Vehicle/properties/Engine/max-speed";
-        final String expectedUri = "/api/1/things" + SHORTENED_PATH_SUFFIX;
+                "/api/2/things/abc:1a4ed3df-308b-462e-9cfc-b78891f18c39/features/Vehicle/properties/Engine/max-speed";
+        final String expectedUri = "/api/2/things" + SHORTENED_PATH_SUFFIX;
         final String expectedPath = expectedUri + "/features" + SHORTENED_PATH_SUFFIX;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
@@ -120,31 +64,9 @@ public final class TraceUriGeneratorTest {
 
     @Test
     public void api2FeatureDefinitionUpdate() {
-        final String path = "/api/1/things/abc:1a4ed3df-308b-462e-9cfc-b78891f18c39/features/Vehicle/definition";
-        final String expectedUri = "/api/1/things" + SHORTENED_PATH_SUFFIX;
+        final String path = "/api/2/things/abc:1a4ed3df-308b-462e-9cfc-b78891f18c39/features/Vehicle/definition";
+        final String expectedUri = "/api/2/things" + SHORTENED_PATH_SUFFIX;
         final String expectedPath = expectedUri + "/features" + SHORTENED_PATH_SUFFIX;
-        assertTraceUri(path,
-                TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.REQUEST_PATH, expectedPath)
-                        .build());
-    }
-
-    @Test
-    public void api1ThingsClaimMessagesUriReturnsCorrectSuffix() {
-        final String path = "api/1/things/abcdefgh:fancy-car/inbox/claim";
-        final String expectedUri = "/api/1/things" + MESSAGES_PATH_SUFFIX;
-        final String expectedPath = expectedUri;
-        assertTraceUri(path,
-                TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.REQUEST_PATH, expectedPath)
-                        .build());
-    }
-
-    @Test
-    public void api1MessageToFeature() {
-        final String path = "api/1/things/abcdefgh:fancy-car/features/Vehicle/inbox/messages/shutdown";
-        final String expectedUri = "/api/1/things" + MESSAGES_PATH_SUFFIX;
-        final String expectedPath = expectedUri;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
                         .tag(TracingTags.REQUEST_PATH, expectedPath)

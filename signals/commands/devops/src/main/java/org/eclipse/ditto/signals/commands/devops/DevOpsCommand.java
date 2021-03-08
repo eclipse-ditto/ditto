@@ -84,14 +84,14 @@ public interface DevOpsCommand<T extends DevOpsCommand<T>> extends Command<T>, W
          * JSON field containing the serviceName to which to send the DevOpsCommand.
          */
         public static final JsonFieldDefinition<String> JSON_SERVICE_NAME =
-                JsonFactory.newStringFieldDefinition("serviceName", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("serviceName", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the instance index of the serviceName serviceName to which to send the DevOpsCommand.
          */
         public static final JsonFieldDefinition<String> JSON_INSTANCE =
-                JsonFactory.newStringFieldDefinition("instance", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("instance", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
     }

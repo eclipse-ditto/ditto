@@ -50,10 +50,10 @@ public final class AggregatedDevOpsCommandResponse
     public static final String TYPE = TYPE_PREFIX + "aggregatedResponse";
 
     private static final JsonFieldDefinition<String> JSON_RESPONSES_TYPE =
-            JsonFactory.newStringFieldDefinition("responsesType", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("responsesType", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<JsonObject> JSON_AGGREGATED_RESPONSES =
-            JsonFactory.newJsonObjectFieldDefinition("responses", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonObjectFieldDefinition("responses", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final JsonObject aggregatedResponses;

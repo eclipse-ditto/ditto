@@ -107,13 +107,13 @@ public interface MappingContext extends Jsonifiable.WithFieldSelectorAndPredicat
          */
         public static final JsonFieldDefinition<String> MAPPING_ENGINE =
                 JsonFactory.newStringFieldDefinition("mappingEngine", FieldType.REGULAR,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the options for the mapping.
          */
         public static final JsonFieldDefinition<JsonObject> OPTIONS =
-                JsonFactory.newJsonObjectFieldDefinition("options", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonObjectFieldDefinition("options", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
@@ -123,7 +123,7 @@ public interface MappingContext extends Jsonifiable.WithFieldSelectorAndPredicat
          */
         public static final JsonFieldDefinition<JsonObject> INCOMING_CONDITIONS =
                 JsonFactory.newJsonObjectFieldDefinition("incomingConditions", FieldType.REGULAR,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code conditions} to check before mapping outgoing messages.
@@ -132,7 +132,7 @@ public interface MappingContext extends Jsonifiable.WithFieldSelectorAndPredicat
          */
         public static final JsonFieldDefinition<JsonObject> OUTGOING_CONDITIONS =
                 JsonFactory.newJsonObjectFieldDefinition("outgoingConditions", FieldType.REGULAR,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

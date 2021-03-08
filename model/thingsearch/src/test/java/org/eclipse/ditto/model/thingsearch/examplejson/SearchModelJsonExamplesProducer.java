@@ -13,7 +13,6 @@
 package org.eclipse.ditto.model.thingsearch.examplejson;
 
 import static org.eclipse.ditto.model.base.auth.AuthorizationModelFactory.newAuthSubject;
-import static org.eclipse.ditto.model.things.ThingsModelFactory.newAclEntry;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -32,8 +31,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.model.things.AccessControlList;
-import org.eclipse.ditto.model.things.Permission;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
@@ -71,19 +69,17 @@ public final class SearchModelJsonExamplesProducer {
         Files.createDirectories(modelDir);
         final String namespace = "org.eclipse.ditto.example";
         final ThingId thingId1 = ThingId.of(namespace, "thing1");
+        final PolicyId policyId1 = PolicyId.of(thingId1);
         final ThingId thingId2 = ThingId.of(namespace, "thing2");
+        final PolicyId policyId2 = PolicyId.of(thingId2);
 
-        final AuthorizationSubject authorizationSubject = newAuthSubject("the_acl_subject");
-        final AccessControlList accessControlList = ThingsModelFactory.newAclBuilder() //
-                .set(newAclEntry(authorizationSubject, Permission.READ, Permission.WRITE, Permission.ADMINISTRATE)) //
-                .build();
         final Thing thing1 = ThingsModelFactory.newThingBuilder() //
                 .setId(thingId1) //
-                .setPermissions(accessControlList) //
+                .setPolicyId(policyId1) //
                 .build();
         final Thing thing2 = ThingsModelFactory.newThingBuilder() //
                 .setId(thingId2) //
-                .setPermissions(accessControlList) //
+                .setPolicyId(policyId2) //
                 .build();
 
         final JsonArray items = JsonFactory.newArrayBuilder(Arrays.asList(thing1.toJson(), thing2.toJson())).build();

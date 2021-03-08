@@ -169,12 +169,6 @@ public final class GlobalErrorRegistry
         private ExceptionParsingStrategyFactory() {}
 
         @Override
-        @Deprecated
-        protected String getV1FallbackKeyFor(final JsonParsableException annotation) {
-            return annotation.errorCode();
-        }
-
-        @Override
         protected String getKeyFor(final JsonParsableException annotation) {
             return annotation.errorCode();
         }

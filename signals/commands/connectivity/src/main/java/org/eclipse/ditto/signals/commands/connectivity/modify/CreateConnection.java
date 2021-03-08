@@ -54,7 +54,7 @@ public final class CreateConnection extends AbstractCommand<CreateConnection>
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<JsonObject> JSON_CONNECTION =
-            JsonFactory.newJsonObjectFieldDefinition("connection", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonObjectFieldDefinition("connection", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final Connection connection;

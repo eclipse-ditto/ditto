@@ -156,7 +156,7 @@ public final class Shutdown extends CommonCommand<Shutdown> {
     public static final class JsonFields extends Command.JsonFields {
 
         public static final JsonFieldDefinition<JsonObject> REASON = JsonFactory.newJsonObjectFieldDefinition("reason",
-                FieldType.REGULAR, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

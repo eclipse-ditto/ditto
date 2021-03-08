@@ -52,7 +52,7 @@ public final class CreateConnectionResponse extends AbstractCommandResponse<Crea
     public static final String TYPE = TYPE_PREFIX + CreateConnection.NAME;
 
     static final JsonFieldDefinition<JsonObject> JSON_CONNECTION =
-            JsonFactory.newJsonObjectFieldDefinition("connection", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonObjectFieldDefinition("connection", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final Connection connection;

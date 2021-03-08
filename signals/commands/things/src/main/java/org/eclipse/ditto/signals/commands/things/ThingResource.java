@@ -34,8 +34,6 @@ import org.eclipse.ditto.signals.commands.base.ResourceMap;
 public enum ThingResource {
 
     THING,
-    ACL,
-    ACL_ENTRY,
     POLICY_ID,
     POLICY,
     POLICY_ENTRIES,
@@ -59,9 +57,6 @@ public enum ThingResource {
 
     static {
         resources = ResourceMap.newBuilder(THING)
-                .add(Thing.JsonFields.ACL,
-                        ResourceMap.newBuilder(ACL)
-                                .addOne(ACL_ENTRY))
                 .add(Thing.JsonFields.POLICY_ID, POLICY_ID)
                 .add(Thing.JsonFields.DEFINITION, DEFINITION)
                 .add(JsonKey.of(Policy.INLINED_FIELD_NAME),

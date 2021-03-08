@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
@@ -79,7 +80,7 @@ public class PolicyIdReferencePlaceholderResolverTest {
         assertThat(retrieveThing.getSelectedFields()).contains(JsonFieldSelector.newInstance("policyId"));
 
         conciergeForwarderActorProbe.reply(RetrieveThingResponse.of(THING_ID,
-                Thing.newBuilder().setPolicyId("namespace:myPolicy").build(), DittoHeaders.empty()));
+                Thing.newBuilder().setPolicyId(PolicyId.of("namespace:myPolicy")).build(), DittoHeaders.empty()));
 
         Awaitility.await()
                 .atMost(Duration.ofSeconds(1))

@@ -15,7 +15,6 @@ package org.eclipse.ditto.model.things.examplejson;
 import static org.eclipse.ditto.json.JsonFactory.newPointer;
 import static org.eclipse.ditto.json.JsonFactory.newValue;
 import static org.eclipse.ditto.model.base.auth.AuthorizationModelFactory.newAuthSubject;
-import static org.eclipse.ditto.model.things.ThingsModelFactory.newAclEntry;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -34,11 +33,10 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.model.things.AccessControlList;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureProperties;
-import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingLifecycle;
@@ -75,13 +73,13 @@ public final class ThingModelJsonExamplesProducer {
         Files.createDirectories(modelDir);
 
         final ThingId thingId = ThingId.of("org.eclipse.ditto.example", "the_thingId");
-        final AuthorizationSubject authorizationSubject1 = newAuthSubject("the_acl_subject");
+        final PolicyId policyId = PolicyId.of(thingId);
 
         final Thing thing = ThingsModelFactory.newThingBuilder()
                 .setLifecycle(ThingLifecycle.ACTIVE)
                 .setRevision(1)
                 .setModified(Instant.now())
-                .setPermissions(authorizationSubject1, Permission.READ, Permission.WRITE, Permission.ADMINISTRATE)
+                .setPolicyId(policyId)
                 .setId(thingId)
                 .build();
         writeJson(modelDir.resolve(Paths.get("thing.json")), thing);
@@ -92,19 +90,12 @@ public final class ThingModelJsonExamplesProducer {
                 .set(newPointer("maker"), newValue("Bosch"))
                 .build();
 
-        final AuthorizationSubject authorizationSubject = newAuthSubject("the_acl_subject");
-        final AuthorizationSubject anotherAuthorizationSubject = newAuthSubject("another_acl_subject");
-        final AccessControlList accessControlList = ThingsModelFactory.newAclBuilder()
-                .set(newAclEntry(authorizationSubject, Permission.READ, Permission.WRITE, Permission.ADMINISTRATE))
-                .set(newAclEntry(anotherAuthorizationSubject, Permission.READ, Permission.WRITE))
-                .build();
-
         final Thing thingFilled = ThingsModelFactory.newThingBuilder()
                 .setAttributes(thingAttributes)
                 .setLifecycle(ThingLifecycle.ACTIVE)
                 .setRevision(1)
                 .setModified(Instant.now())
-                .setPermissions(accessControlList)
+                .setPolicyId(policyId)
                 .setId(thingId)
                 .build();
         writeJson(modelDir.resolve(Paths.get("thing-filled.json")), thingFilled);
@@ -130,7 +121,7 @@ public final class ThingModelJsonExamplesProducer {
                 .setLifecycle(ThingLifecycle.ACTIVE)
                 .setRevision(42)
                 .setModified(Instant.now())
-                .setPermissions(accessControlList)
+                .setPolicyId(policyId)
                 .setId(thingId)
                 .build();
         writeJson(modelDir.resolve(Paths.get("thing-filled-features.json")), thingFilledAndFeatures);

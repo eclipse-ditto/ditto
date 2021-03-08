@@ -120,23 +120,13 @@ public final class EventJsonDeserializer<T extends Event> {
 
     private void validateEventType() {
         final String type = jsonObject.getValue(Event.JsonFields.TYPE)
-                .orElseGet(() -> // if type was not present (was included in V2)
-                        // take event instead and transform to V2 format, fail if "event" is not present, too
-                        extractEventTypeV1()
-                                .orElseThrow(() -> new JsonMissingFieldException(Event.JsonFields.TYPE.getPointer()))
-                );
+                .orElseThrow(() -> new JsonMissingFieldException(Event.JsonFields.TYPE.getPointer()));
 
         if (!expectedType.equals(type)) {
             final String msgPattern = "Event JSON was not a <{0}> event but a <{1}>!";
             final String msg = MessageFormat.format(msgPattern, expectedType, type);
             throw new DittoJsonException(new JsonParseException(msg));
         }
-    }
-
-    @SuppressWarnings("squid:CallToDeprecatedMethod")
-    private Optional<String> extractEventTypeV1() {
-        return jsonObject.getValue(Event.JsonFields.ID)
-                .map(event -> eventTypePrefix + ':' + event);
     }
 
     private static Instant tryToParseModified(final CharSequence dateTime) {

@@ -136,19 +136,19 @@ public interface CommandResponse<T extends CommandResponse<T>> extends Signal<T>
          * JSON field containing the response type as String.
          */
         public static final JsonFieldDefinition<String> TYPE = JsonFactory.newStringFieldDefinition("type",
-                FieldType.REGULAR, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the message's status code as int.
          */
         public static final JsonFieldDefinition<Integer> STATUS = JsonFactory.newIntFieldDefinition("status",
-                FieldType.REGULAR, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the message's payload as {@link JsonValue}.
          */
         public static final JsonFieldDefinition<JsonValue> PAYLOAD = JsonFactory.newJsonValueFieldDefinition("payload",
-                FieldType.REGULAR, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * Constructs a new {@code JsonFields} object.

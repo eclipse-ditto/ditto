@@ -34,7 +34,6 @@ import org.eclipse.ditto.protocoladapter.TestConstants;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.protocoladapter.UnknownCommandException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
-import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeature;
@@ -46,8 +45,6 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatures;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingDefinition;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyAcl;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
@@ -330,117 +327,6 @@ public final class ThingModifyCommandAdapterTest extends LiveTwinTest implements
                 ModifyPolicyId.of(TestConstants.THING_ID, TestConstants.Policies.POLICY_ID,
                         TestConstants.DITTO_HEADERS_V_2);
         final ThingModifyCommand<?> actual = underTest.fromAdaptable(adaptable);
-
-        assertWithExternalHeadersThat(actual).isEqualTo(expected);
-    }
-
-    @Test
-    public void modifyAclFromAdaptable() {
-        final ModifyAcl expected =
-                ModifyAcl.of(TestConstants.THING_ID, TestConstants.ACL, TestConstants.DITTO_HEADERS_V_1);
-
-        final TopicPath topicPath = topicPath(TopicPath.Action.MODIFY);
-        final JsonPointer path = JsonPointer.of("/acl");
-
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
-                .withPayload(Payload.newBuilder(path)
-                        .withValue(TestConstants.ACL.toJson(FieldType.regularOrSpecial()))
-                        .build())
-                .withHeaders(TestConstants.HEADERS_V_1)
-                .build();
-        final ThingModifyCommand<?> actual = underTest.fromAdaptable(adaptable);
-
-        assertWithExternalHeadersThat(actual).isEqualTo(expected);
-    }
-
-    @Test
-    public void modifyAclToAdaptable() {
-        final TopicPath topicPath = topicPath(TopicPath.Action.MODIFY);
-        final JsonPointer path = JsonPointer.of("/acl");
-
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
-                .withPayload(Payload.newBuilder(path)
-                        .withValue(TestConstants.ACL.toJson(FieldType.regularOrSpecial()))
-                        .build())
-                .withHeaders(TestConstants.HEADERS_V_1)
-                .build();
-
-        final ModifyAcl modifyAcl =
-                ModifyAcl.of(TestConstants.THING_ID, TestConstants.ACL, TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(modifyAcl, channel);
-
-        assertWithExternalHeadersThat(actual).isEqualTo(expected);
-    }
-
-    @Test
-    public void modifyAclEntryFromAdaptable() {
-        final ModifyAclEntry expected =
-                ModifyAclEntry.of(TestConstants.THING_ID, TestConstants.ACL_ENTRY, TestConstants.DITTO_HEADERS_V_1);
-
-        final TopicPath topicPath = topicPath(TopicPath.Action.MODIFY);
-        final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
-
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
-                .withPayload(Payload.newBuilder(path)
-                        .withValue(TestConstants.ACL_ENTRY.getPermissions().toJson())
-                        .build())
-                .withHeaders(TestConstants.HEADERS_V_1)
-                .build();
-        final ThingModifyCommand<?> actual = underTest.fromAdaptable(adaptable);
-
-        assertWithExternalHeadersThat(actual).isEqualTo(expected);
-    }
-
-    @Test
-    public void modifyAclEntryToAdaptable() {
-        final TopicPath topicPath = topicPath(TopicPath.Action.MODIFY);
-        final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
-
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
-                .withPayload(Payload.newBuilder(path)
-                        .withValue(TestConstants.ACL_ENTRY.toJson(FieldType.regularOrSpecial()))
-                        .build())
-                .withHeaders(TestConstants.HEADERS_V_1)
-                .build();
-
-        final ModifyAclEntry modifyAclEntry =
-                ModifyAclEntry.of(TestConstants.THING_ID, TestConstants.ACL_ENTRY,
-                        TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(modifyAclEntry, channel);
-
-        assertWithExternalHeadersThat(actual).isEqualTo(expected);
-    }
-
-    @Test
-    public void deleteAclEntryFromAdaptable() {
-        final DeleteAclEntry expected = DeleteAclEntry.of(TestConstants.THING_ID, TestConstants.AUTHORIZATION_SUBJECT,
-                TestConstants.DITTO_HEADERS_V_1);
-
-        final TopicPath topicPath = topicPath(TopicPath.Action.DELETE);
-        final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
-
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
-                .withPayload(Payload.newBuilder(path).build())
-                .withHeaders(TestConstants.HEADERS_V_1)
-                .build();
-        final ThingModifyCommand<?> actual = underTest.fromAdaptable(adaptable);
-
-        assertWithExternalHeadersThat(actual).isEqualTo(expected);
-    }
-
-    @Test
-    public void deleteAclEntryToAdaptable() {
-        final TopicPath topicPath = topicPath(TopicPath.Action.DELETE);
-        final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
-
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
-                .withPayload(Payload.newBuilder(path).build())
-                .withHeaders(TestConstants.HEADERS_V_1)
-                .build();
-
-        final DeleteAclEntry deleteAclEntry = DeleteAclEntry.of(TestConstants.THING_ID,
-                TestConstants.AUTHORIZATION_SUBJECT, TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(deleteAclEntry, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }

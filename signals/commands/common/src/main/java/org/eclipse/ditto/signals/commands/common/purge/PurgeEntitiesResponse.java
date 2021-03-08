@@ -171,13 +171,13 @@ public final class PurgeEntitiesResponse extends CommonCommandResponse<PurgeEnti
          * The type of the entities affected by this response.
          */
         public static final JsonFieldDefinition<String> ENTITY_TYPE =
-                JsonFactory.newStringFieldDefinition("entityType", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("entityType", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
         /**
          * This JSON field indicates whether the entities were purged successfully.
          */
         public static final JsonFieldDefinition<Boolean> SUCCESSFUL =
-                JsonFactory.newBooleanFieldDefinition("successful", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newBooleanFieldDefinition("successful", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

@@ -93,8 +93,8 @@ public final class ModifyFeatureDesiredPropertiesStrategyTest extends AbstractCo
     }
 
     @Test
-    public void modifyFeatureDesiredPropertiesOfFeatureWithoutProperties() {
-        final Feature featureWithoutProperties = TestConstants.Feature.FLUX_CAPACITOR.removeProperties();
+    public void modifyFeatureDesiredPropertiesOfFeatureWithoutDesiredProperties() {
+        final Feature featureWithoutProperties = TestConstants.Feature.FLUX_CAPACITOR.removeDesiredProperties();
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatureDesiredProperties command =
                 ModifyFeatureDesiredProperties.of(context.getState(), featureId, modifiedFeatureDesiredProperties,

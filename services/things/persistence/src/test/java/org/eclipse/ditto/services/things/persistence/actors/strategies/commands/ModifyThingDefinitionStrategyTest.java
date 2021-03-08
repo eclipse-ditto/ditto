@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
 import static org.eclipse.ditto.model.things.TestConstants.Thing.DEFINITION;
-import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V1;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
 import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.modifyThingDefinitionResponse;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -51,8 +50,8 @@ public final class ModifyThingDefinitionStrategyTest extends AbstractCommandStra
         final ModifyThingDefinition command = ModifyThingDefinition.of(context.getState(), DEFINITION,
                 DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V1, command, ThingDefinitionCreated.class,
-                modifyThingDefinitionResponse(context.getState(), command.getDefinition(),
+        assertModificationResult(underTest, THING_V2.toBuilder().setDefinition(null).build(), command,
+                ThingDefinitionCreated.class, modifyThingDefinitionResponse(context.getState(), command.getDefinition(),
                         command.getDittoHeaders(), true));
     }
 

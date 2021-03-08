@@ -499,8 +499,8 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     @Test
     public void testConsumeMessageAndExpectForwardToProxyActor() throws JMSException {
         testConsumeMessageAndExpectForwardToProxyActor(connection, 1,
-                c -> assertThat(c.getDittoHeaders().getAuthorizationContext()).isEqualTo(
-                        TestConstants.Authorization.withUnprefixedSubjects(Authorization.SOURCE_SPECIFIC_CONTEXT)));
+                c -> assertThat(c.getDittoHeaders().getAuthorizationContext())
+                        .isEqualTo(Authorization.SOURCE_SPECIFIC_CONTEXT));
     }
 
     @Test
@@ -516,14 +516,12 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                 c -> {
                     if (c.getDittoHeaders()
                             .getAuthorizationContext()
-                            .equals(TestConstants.Authorization.withUnprefixedSubjects(
-                                    Authorization.SOURCE_SPECIFIC_CONTEXT))) {
+                            .equals(Authorization.SOURCE_SPECIFIC_CONTEXT)) {
                         messageReceivedForSourceContext.set(true);
                     }
                     if (c.getDittoHeaders()
                             .getAuthorizationContext()
-                            .equals(TestConstants.Authorization.withUnprefixedSubjects(
-                                    Authorization.SOURCE_SPECIFIC_CONTEXT))) {
+                            .equals(Authorization.SOURCE_SPECIFIC_CONTEXT)) {
                         messageReceivedForGlobalContext.set(true);
                     }
                 });
@@ -538,8 +536,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                         TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT);
         testConsumeMessageAndExpectForwardToProxyActor(connection, 1,
                 c -> assertThat(c.getDittoHeaders().getAuthorizationContext())
-                        .isEqualTo(TestConstants.Authorization.withUnprefixedSubjects(
-                                Authorization.SOURCE_SPECIFIC_CONTEXT)));
+                        .isEqualTo(Authorization.SOURCE_SPECIFIC_CONTEXT));
     }
 
     private void testConsumeMessageAndExpectForwardToProxyActor(final Connection connection,

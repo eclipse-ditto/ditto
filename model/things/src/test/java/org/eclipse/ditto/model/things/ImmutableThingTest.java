@@ -14,11 +14,9 @@ package org.eclipse.ditto.model.things;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FEATURES;
-import static org.eclipse.ditto.model.things.TestConstants.Feature.FEATURES_V2;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_ID;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES;
 import static org.eclipse.ditto.model.things.TestConstants.Metadata.METADATA;
-import static org.eclipse.ditto.model.things.TestConstants.Thing.ACL;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.ATTRIBUTES;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.CREATED;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.DEFINITION;
@@ -58,8 +56,6 @@ public final class ImmutableThingTest {
 
     private static final Features EMPTY_FEATURES = ThingsModelFactory.emptyFeatures();
 
-    private static final Thing KNOWN_THING_V1 =
-            ImmutableThing.of(THING_ID, ACL, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION, MODIFIED, CREATED, METADATA);
     private static final JsonPointer KNOWN_FEATURE_PROPERTY_PATH = JsonFactory.newPointer("target_year_1");
     private static final JsonValue KNOWN_FEATURE_PROPERTY_VALUE = JsonFactory.newValue(1955);
 
@@ -86,7 +82,6 @@ public final class ImmutableThingTest {
                 Features.class,
                 Metadata.class,
                 JsonObject.class,
-                AccessControlList.class,
                 ThingRevision.class,
                 ThingId.class,
                 PolicyId.class
@@ -99,31 +94,13 @@ public final class ImmutableThingTest {
 
     @Test
     public void createThingWithoutId() {
-        final Thing thing =
-                ImmutableThing.of((ThingId) null, ACL, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION, MODIFIED,
-                        CREATED, METADATA);
+        final Thing thing = ImmutableThing.of(null, POLICY_ID, DEFINITION, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION,
+                MODIFIED, CREATED, METADATA);
 
         assertThat(thing)
                 .hasNoId()
-                .hasAcl(ACL)
-                .hasAttributes(ATTRIBUTES)
-                .hasFeatures(FEATURES)
-                .hasLifecycle(LIFECYCLE)
-                .hasRevision(REVISION)
-                .hasModified(MODIFIED)
-                .hasCreated(CREATED)
-                .hasMetadata(METADATA);
-    }
-
-    @Test
-    public void createThingWithoutACL() {
-        final Thing thing =
-                ImmutableThing.of(THING_ID, null, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION, MODIFIED, CREATED,
-                        METADATA);
-
-        assertThat(thing)
-                .hasId(THING_ID)
-                .hasNoAcl()
+                .hasPolicyId(POLICY_ID)
+                .hasDefinition(DEFINITION)
                 .hasAttributes(ATTRIBUTES)
                 .hasFeatures(FEATURES)
                 .hasLifecycle(LIFECYCLE)
@@ -169,17 +146,20 @@ public final class ImmutableThingTest {
                 .hasRevision(REVISION)
                 .hasModified(MODIFIED)
                 .hasCreated(CREATED)
-                .hasMetadata(METADATA);;
+                .hasMetadata(METADATA);
+        ;
     }
 
     @Test
     public void createThingWithoutAttributes() {
-        final Thing thing = ImmutableThing.of(THING_ID, ACL, null, FEATURES, LIFECYCLE, REVISION, MODIFIED, CREATED,
-                METADATA);
+        final Thing thing =
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, null, FEATURES, LIFECYCLE, REVISION, MODIFIED,
+                        CREATED, METADATA);
 
         assertThat(thing)
                 .hasId(THING_ID)
-                .hasAcl(ACL)
+                .hasPolicyId(POLICY_ID)
+                .hasDefinition(DEFINITION)
                 .hasNoAttributes()
                 .hasFeatures(FEATURES)
                 .hasLifecycle(LIFECYCLE)
@@ -191,12 +171,15 @@ public final class ImmutableThingTest {
 
     @Test
     public void createThingWithoutFeatures() {
-        final Thing thing = ImmutableThing.of(THING_ID, ACL, ATTRIBUTES, null, LIFECYCLE, REVISION, MODIFIED, CREATED,
-                METADATA);
+        final Thing thing =
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, null, LIFECYCLE, REVISION, MODIFIED,
+                        CREATED,
+                        METADATA);
 
         assertThat(thing)
                 .hasId(THING_ID)
-                .hasAcl(ACL)
+                .hasPolicyId(POLICY_ID)
+                .hasDefinition(DEFINITION)
                 .hasAttributes(ATTRIBUTES)
                 .hasNoFeatures()
                 .hasLifecycle(LIFECYCLE)
@@ -208,12 +191,14 @@ public final class ImmutableThingTest {
 
     @Test
     public void createThingWithoutLifecycle() {
-        final Thing thing = ImmutableThing.of(THING_ID, ACL, ATTRIBUTES, FEATURES, null, REVISION, MODIFIED, CREATED,
-                METADATA);
+        final Thing thing =
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, FEATURES, null, REVISION, MODIFIED,
+                        CREATED, METADATA);
 
         assertThat(thing)
                 .hasId(THING_ID)
-                .hasAcl(ACL)
+                .hasPolicyId(POLICY_ID)
+                .hasDefinition(DEFINITION)
                 .hasAttributes(ATTRIBUTES)
                 .hasFeatures(FEATURES)
                 .hasNoLifecycle()
@@ -319,12 +304,14 @@ public final class ImmutableThingTest {
 
     @Test
     public void createThingWithoutRevision() {
-        final Thing thing = ImmutableThing.of(THING_ID, ACL, ATTRIBUTES, FEATURES, LIFECYCLE, null, MODIFIED, CREATED,
-                METADATA);
+        final Thing thing =
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, FEATURES, LIFECYCLE, null, MODIFIED,
+                        CREATED, METADATA);
 
         assertThat(thing)
                 .hasId(THING_ID)
-                .hasAcl(ACL)
+                .hasPolicyId(POLICY_ID)
+                .hasDefinition(DEFINITION)
                 .hasAttributes(ATTRIBUTES)
                 .hasFeatures(FEATURES)
                 .hasLifecycle(LIFECYCLE)
@@ -336,12 +323,14 @@ public final class ImmutableThingTest {
 
     @Test
     public void createThingWithoutModified() {
-        final Thing thing = ImmutableThing.of(THING_ID, ACL, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION, null, CREATED,
-                METADATA);
+        final Thing thing =
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION, null,
+                        CREATED, METADATA);
 
         assertThat(thing)
                 .hasId(THING_ID)
-                .hasAcl(ACL)
+                .hasPolicyId(POLICY_ID)
+                .hasDefinition(DEFINITION)
                 .hasAttributes(ATTRIBUTES)
                 .hasFeatures(FEATURES)
                 .hasLifecycle(LIFECYCLE)
@@ -353,75 +342,20 @@ public final class ImmutableThingTest {
 
     @Test
     public void createThingWithoutCreated() {
-        final Thing thing = ImmutableThing.of(THING_ID, ACL, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION, MODIFIED, null, 
-                METADATA);
+        final Thing thing =
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION, MODIFIED,
+                        null, METADATA);
 
         assertThat(thing)
                 .hasId(THING_ID)
-                .hasAcl(ACL)
+                .hasPolicyId(POLICY_ID)
+                .hasDefinition(DEFINITION)
                 .hasAttributes(ATTRIBUTES)
                 .hasFeatures(FEATURES)
                 .hasLifecycle(LIFECYCLE)
                 .hasRevision(REVISION)
                 .hasModified(MODIFIED)
                 .hasNoCreated();
-    }
-
-    @Test
-    public void setAclWorksAsExpected() {
-        final AccessControlList newAcl = ThingsModelFactory.newAclBuilder(ACL)
-                .set(ThingsModelFactory.newAclEntry(TestConstants.Authorization.AUTH_SUBJECT_GRIMES, Permission.WRITE))
-                .build();
-
-        final Thing changedThing = KNOWN_THING_V1.setAccessControlList(newAcl);
-
-        assertThat(changedThing)
-                .isNotSameAs(KNOWN_THING_V1)
-                .hasId(THING_ID)
-                .hasAcl(newAcl)
-                .hasAttributes(ATTRIBUTES)
-                .hasFeatures(FEATURES)
-                .hasLifecycle(LIFECYCLE)
-                .hasRevision(REVISION);
-    }
-
-    @Test
-    public void setAclEntryWorksAsExpected() {
-        final AclEntry newAclEntry =
-                ThingsModelFactory.newAclEntry(TestConstants.Authorization.AUTH_SUBJECT_GRIMES, Permission.WRITE);
-        final AccessControlList newAcl = ThingsModelFactory.newAclBuilder(ACL)
-                .set(newAclEntry)
-                .build();
-
-        final Thing changedThing = KNOWN_THING_V1.setAclEntry(newAclEntry);
-
-        assertThat(changedThing)
-                .isNotSameAs(KNOWN_THING_V1)
-                .hasId(THING_ID)
-                .hasAcl(newAcl)
-                .hasAttributes(ATTRIBUTES)
-                .hasFeatures(FEATURES)
-                .hasLifecycle(LIFECYCLE)
-                .hasRevision(REVISION);
-    }
-
-    @Test
-    public void removeAllPermissionsWorksAsExpected() {
-        final AccessControlList newAcl = ThingsModelFactory.newAclBuilder(ACL)
-                .remove(TestConstants.Authorization.AUTH_SUBJECT_GRIMES)
-                .build();
-
-        final Thing changedThing =
-                KNOWN_THING_V1.removeAllPermissionsOf(TestConstants.Authorization.AUTH_SUBJECT_GRIMES);
-
-        assertThat(changedThing)
-                .isNotSameAs(KNOWN_THING_V1)
-                .hasId(THING_ID)
-                .hasAcl(newAcl)
-                .hasAttributes(ATTRIBUTES)
-                .hasFeatures(FEATURES)
-                .hasLifecycle(LIFECYCLE)
-                .hasRevision(REVISION);
     }
 
     @Test
@@ -495,12 +429,13 @@ public final class ImmutableThingTest {
 
     @Test
     public void setFeaturesWorksAsExpected() {
-        final Thing changedThing = KNOWN_THING_V1.setFeatures(EMPTY_FEATURES);
+        final Thing changedThing = KNOWN_THING_V2.setFeatures(EMPTY_FEATURES);
 
         assertThat(changedThing)
-                .isNotSameAs(KNOWN_THING_V1)
+                .isNotSameAs(KNOWN_THING_V2)
                 .hasId(THING_ID)
-                .hasAcl(ACL)
+                .hasPolicyId(POLICY_ID)
+                .hasDefinition(DEFINITION)
                 .hasAttributes(ATTRIBUTES)
                 .hasFeatures(EMPTY_FEATURES)
                 .hasLifecycle(LIFECYCLE)
@@ -509,12 +444,13 @@ public final class ImmutableThingTest {
 
     @Test
     public void removeFeaturesWorksAsExpected() {
-        final Thing changedThing = KNOWN_THING_V1.removeFeatures();
+        final Thing changedThing = KNOWN_THING_V2.removeFeatures();
 
         assertThat(changedThing)
-                .isNotSameAs(KNOWN_THING_V1)
+                .isNotSameAs(KNOWN_THING_V2)
                 .hasId(THING_ID)
-                .hasAcl(ACL)
+                .hasPolicyId(POLICY_ID)
+                .hasDefinition(DEFINITION)
                 .hasAttributes(ATTRIBUTES)
                 .hasNoFeatures()
                 .hasLifecycle(LIFECYCLE)
@@ -528,12 +464,13 @@ public final class ImmutableThingTest {
                         .set("target_year_4", 1337)
                         .build();
 
-        final Thing changedThing = KNOWN_THING_V1.setFeatureProperties(FLUX_CAPACITOR_ID, newFeatureProperties);
+        final Thing changedThing = KNOWN_THING_V2.setFeatureProperties(FLUX_CAPACITOR_ID, newFeatureProperties);
 
         assertThat(changedThing)
-                .isNotSameAs(KNOWN_THING_V1)
+                .isNotSameAs(KNOWN_THING_V2)
                 .hasId(THING_ID)
-                .hasAcl(ACL)
+                .hasPolicyId(POLICY_ID)
+                .hasDefinition(DEFINITION)
                 .hasAttributes(ATTRIBUTES)
                 .hasFeatureProperties(FLUX_CAPACITOR_ID, newFeatureProperties)
                 .hasLifecycle(LIFECYCLE)
@@ -542,12 +479,13 @@ public final class ImmutableThingTest {
 
     @Test
     public void removeFeaturePropertiesWorksAsExpected() {
-        final Thing changedThing = KNOWN_THING_V1.removeFeatureProperties(FLUX_CAPACITOR_ID);
+        final Thing changedThing = KNOWN_THING_V2.removeFeatureProperties(FLUX_CAPACITOR_ID);
 
         assertThat(changedThing)
-                .isNotSameAs(KNOWN_THING_V1)
+                .isNotSameAs(KNOWN_THING_V2)
                 .hasId(THING_ID)
-                .hasAcl(ACL)
+                .hasPolicyId(POLICY_ID)
+                .hasDefinition(DEFINITION)
                 .hasAttributes(ATTRIBUTES)
                 .featureHasNoProperties(FLUX_CAPACITOR_ID)
                 .hasLifecycle(LIFECYCLE)
@@ -556,12 +494,13 @@ public final class ImmutableThingTest {
 
     @Test
     public void setLifecycleWorksAsExpected() {
-        final Thing changedThing = KNOWN_THING_V1.setLifecycle(ThingLifecycle.DELETED);
+        final Thing changedThing = KNOWN_THING_V2.setLifecycle(ThingLifecycle.DELETED);
 
         assertThat(changedThing)
-                .isNotSameAs(KNOWN_THING_V1)
+                .isNotSameAs(KNOWN_THING_V2)
                 .hasId(THING_ID)
-                .hasAcl(ACL)
+                .hasPolicyId(POLICY_ID)
+                .hasDefinition(DEFINITION)
                 .hasAttributes(ATTRIBUTES)
                 .hasFeatures(FEATURES)
                 .hasLifecycle(ThingLifecycle.DELETED)
@@ -574,12 +513,13 @@ public final class ImmutableThingTest {
                 .set("manufacturer", "Bosch SI")
                 .build();
 
-        final Thing changedThing = KNOWN_THING_V1.setAttributes(newAttributes);
+        final Thing changedThing = KNOWN_THING_V2.setAttributes(newAttributes);
 
         assertThat(changedThing)
-                .isNotSameAs(KNOWN_THING_V1)
+                .isNotSameAs(KNOWN_THING_V2)
                 .hasId(THING_ID)
-                .hasAcl(ACL)
+                .hasPolicyId(POLICY_ID)
+                .hasDefinition(DEFINITION)
                 .hasAttributes(newAttributes)
                 .hasFeatures(FEATURES)
                 .hasLifecycle(LIFECYCLE)
@@ -591,12 +531,13 @@ public final class ImmutableThingTest {
         final JsonPointer attributePath = JsonFactory.newPointer("maker");
         final JsonValue newAttributeValue = JsonFactory.newValue("Bosch SI");
 
-        final Thing changedThing = KNOWN_THING_V1.setAttribute(attributePath, newAttributeValue);
+        final Thing changedThing = KNOWN_THING_V2.setAttribute(attributePath, newAttributeValue);
 
         assertThat(changedThing)
-                .isNotSameAs(KNOWN_THING_V1)
+                .isNotSameAs(KNOWN_THING_V2)
                 .hasId(THING_ID)
-                .hasAcl(ACL)
+                .hasPolicyId(POLICY_ID)
+                .hasDefinition(DEFINITION)
                 .hasAttribute(attributePath, newAttributeValue)
                 .hasFeatures(FEATURES)
                 .hasLifecycle(LIFECYCLE)
@@ -605,12 +546,13 @@ public final class ImmutableThingTest {
 
     @Test
     public void removeAttributesWorksAsExpected() {
-        final Thing changedThing = KNOWN_THING_V1.removeAttributes();
+        final Thing changedThing = KNOWN_THING_V2.removeAttributes();
 
         assertThat(changedThing)
-                .isNotSameAs(KNOWN_THING_V1)
+                .isNotSameAs(KNOWN_THING_V2)
                 .hasId(THING_ID)
-                .hasAcl(ACL)
+                .hasPolicyId(POLICY_ID)
+                .hasDefinition(DEFINITION)
                 .hasNoAttributes()
                 .hasFeatures(FEATURES)
                 .hasLifecycle(LIFECYCLE)
@@ -621,12 +563,13 @@ public final class ImmutableThingTest {
     public void removeAttributeWorksAsExpected() {
         final JsonPointer attributePath = JsonFactory.newPointer("maker");
 
-        final Thing changedThing = KNOWN_THING_V1.removeAttribute(attributePath);
+        final Thing changedThing = KNOWN_THING_V2.removeAttribute(attributePath);
 
         assertThat(changedThing)
-                .isNotSameAs(KNOWN_THING_V1)
+                .isNotSameAs(KNOWN_THING_V2)
                 .hasId(THING_ID)
-                .hasAcl(ACL)
+                .hasPolicyId(POLICY_ID)
+                .hasDefinition(DEFINITION)
                 .hasNotAttribute(attributePath)
                 .hasFeatures(FEATURES)
                 .hasLifecycle(LIFECYCLE)
@@ -642,12 +585,13 @@ public final class ImmutableThingTest {
                 .set(newFeature)
                 .build();
 
-        final Thing changedThing = KNOWN_THING_V1.setFeature(newFeature);
+        final Thing changedThing = KNOWN_THING_V2.setFeature(newFeature);
 
         assertThat(changedThing)
-                .isNotSameAs(KNOWN_THING_V1)
+                .isNotSameAs(KNOWN_THING_V2)
                 .hasId(THING_ID)
-                .hasAcl(ACL)
+                .hasPolicyId(POLICY_ID)
+                .hasDefinition(DEFINITION)
                 .hasAttributes(ATTRIBUTES)
                 .hasFeatures(newFeatures)
                 .hasLifecycle(LIFECYCLE)
@@ -656,12 +600,13 @@ public final class ImmutableThingTest {
 
     @Test
     public void removeFeatureWorksAsExpected() {
-        final Thing changedThing = KNOWN_THING_V1.removeFeature(FLUX_CAPACITOR_ID);
+        final Thing changedThing = KNOWN_THING_V2.removeFeature(FLUX_CAPACITOR_ID);
 
         assertThat(changedThing)
-                .isNotSameAs(KNOWN_THING_V1)
+                .isNotSameAs(KNOWN_THING_V2)
                 .hasId(THING_ID)
-                .hasAcl(ACL)
+                .hasPolicyId(POLICY_ID)
+                .hasDefinition(DEFINITION)
                 .hasAttributes(ATTRIBUTES)
                 .hasFeatures(EMPTY_FEATURES)
                 .hasLifecycle(LIFECYCLE)
@@ -673,12 +618,13 @@ public final class ImmutableThingTest {
         final JsonPointer propertyPath = JsonFactory.newPointer("target_year_4");
         final JsonValue newPropertyValue = JsonFactory.newValue(1337);
 
-        final Thing changedThing = KNOWN_THING_V1.setFeatureProperty(FLUX_CAPACITOR_ID, propertyPath, newPropertyValue);
+        final Thing changedThing = KNOWN_THING_V2.setFeatureProperty(FLUX_CAPACITOR_ID, propertyPath, newPropertyValue);
 
         assertThat(changedThing)
-                .isNotSameAs(KNOWN_THING_V1)
+                .isNotSameAs(KNOWN_THING_V2)
                 .hasId(THING_ID)
-                .hasAcl(ACL)
+                .hasPolicyId(POLICY_ID)
+                .hasDefinition(DEFINITION)
                 .hasAttributes(ATTRIBUTES)
                 .hasFeatureProperty(FLUX_CAPACITOR_ID, propertyPath, newPropertyValue)
                 .hasLifecycle(LIFECYCLE)
@@ -690,12 +636,13 @@ public final class ImmutableThingTest {
         final JsonPointer propertyPath = JsonFactory.newPointer("target_year_2");
 
         final Thing changedThing =
-                KNOWN_THING_V1.removeFeatureProperty(FLUX_CAPACITOR_ID, propertyPath);
+                KNOWN_THING_V2.removeFeatureProperty(FLUX_CAPACITOR_ID, propertyPath);
 
         assertThat(changedThing)
-                .isNotSameAs(KNOWN_THING_V1)
+                .isNotSameAs(KNOWN_THING_V2)
                 .hasId(THING_ID)
-                .hasAcl(ACL)
+                .hasPolicyId(POLICY_ID)
+                .hasDefinition(DEFINITION)
                 .hasAttributes(ATTRIBUTES)
                 .hasNotFeatureProperty(FLUX_CAPACITOR_ID, propertyPath)
                 .hasLifecycle(LIFECYCLE)
@@ -704,69 +651,26 @@ public final class ImmutableThingTest {
 
     @Test
     public void tryToCreateThingWithValidThingIdNamespace() {
-        ImmutableThing.of(ThingId.of("foo.bar", "foobar2000"), ACL, ATTRIBUTES, EMPTY_FEATURES, LIFECYCLE, REVISION,
-                MODIFIED, CREATED, METADATA);
+        ImmutableThing.of(ThingId.of("foo.bar", "foobar2000"), POLICY_ID, DEFINITION, ATTRIBUTES, EMPTY_FEATURES,
+                LIFECYCLE, REVISION, MODIFIED, CREATED, METADATA);
     }
 
     @Test
     public void tryToCreateThingWithValidThingIdNamespace2() {
-        ImmutableThing.of(ThingId.of("foo.a42", "foobar2000"), ACL, ATTRIBUTES, EMPTY_FEATURES, LIFECYCLE, REVISION,
-                MODIFIED, CREATED, METADATA);
+        ImmutableThing.of(ThingId.of("foo.a42", "foobar2000"), POLICY_ID, DEFINITION, ATTRIBUTES, EMPTY_FEATURES,
+                LIFECYCLE, REVISION, MODIFIED, CREATED, METADATA);
     }
 
     @Test
     public void tryToCreateThingWithValidThingIdNamespace3() {
-        ImmutableThing.of(ThingId.of("ad", "foobar2000"), ACL, ATTRIBUTES, EMPTY_FEATURES, LIFECYCLE, REVISION,
-                MODIFIED, CREATED, METADATA);
+        ImmutableThing.of(ThingId.of("ad", "foobar2000"), POLICY_ID, DEFINITION, ATTRIBUTES, EMPTY_FEATURES, LIFECYCLE,
+                REVISION, MODIFIED, CREATED, METADATA);
     }
 
     @Test
     public void tryToCreateThingWithValidThingIdNamespace4() {
-        ImmutableThing.of(ThingId.of("da23", "foobar2000"), ACL, ATTRIBUTES, EMPTY_FEATURES, LIFECYCLE, REVISION,
-                MODIFIED, CREATED, METADATA);
-    }
-
-    @Test
-    public void setAclEntryToThingWithoutAcl() {
-        final Thing withoutAcl =
-                ImmutableThing.of(THING_ID, null, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION,
-                        MODIFIED, CREATED, METADATA);
-        final Thing withAcl = withoutAcl.setAclEntry(TestConstants.Authorization.ACL_ENTRY_GRIMES);
-
-        assertThat(withAcl).hasAclEntry(TestConstants.Authorization.ACL_ENTRY_GRIMES);
-    }
-
-    @Test
-    public void setSameAclEntryAgain() {
-        final Thing withAcl = ImmutableThing.of(THING_ID, ACL, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION, MODIFIED,
-                CREATED, METADATA);
-
-        assertThat(withAcl.setAclEntry(TestConstants.Authorization.ACL_ENTRY_OLDMAN)).isSameAs(withAcl);
-    }
-
-    @Test
-    public void removeAllPermissionsOfAuthSubjectFromThingWithoutAcl() {
-        final Thing withoutAcl =
-                ImmutableThing.of(THING_ID, null, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION,
-                        MODIFIED, CREATED, METADATA);
-        final Thing withoutPermissionsForGrimes =
-                withoutAcl.removeAllPermissionsOf(TestConstants.Authorization.AUTH_SUBJECT_GRIMES);
-
-        assertThat(withoutPermissionsForGrimes).isSameAs(withoutAcl);
-    }
-
-    @Test
-    public void removeAllPermissionsOfAuthSubjectWhichIsNotInAcl() {
-        final Thing thing = ThingsModelFactory.newThingBuilder()
-                .setId(THING_ID)
-                .setAttributes(ATTRIBUTES)
-                .setFeatures(FEATURES)
-                .setPermissions(TestConstants.Authorization.ACL_ENTRY_OLDMAN)
-                .setLifecycle(LIFECYCLE)
-                .setRevision(REVISION)
-                .build();
-
-        assertThat(thing.removeAllPermissionsOf(TestConstants.Authorization.AUTH_SUBJECT_GRIMES)).isSameAs(thing);
+        ImmutableThing.of(ThingId.of("da23", "foobar2000"), POLICY_ID, DEFINITION, ATTRIBUTES, EMPTY_FEATURES,
+                LIFECYCLE, REVISION, MODIFIED, CREATED, METADATA);
     }
 
     @Test
@@ -774,8 +678,9 @@ public final class ImmutableThingTest {
         final JsonPointer latitudePath = JsonFactory.newPointer("location/latitude");
         final JsonValue latitudeValue = JsonFactory.newValue(42.0D);
 
-        final Thing withoutAttributes = ImmutableThing.of(THING_ID, ACL, null, FEATURES, LIFECYCLE, REVISION, MODIFIED,
-                CREATED, METADATA);
+        final Thing withoutAttributes =
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, null, FEATURES, LIFECYCLE, REVISION, MODIFIED,
+                        CREATED, METADATA);
         final Thing withAttribute = withoutAttributes.setAttribute(latitudePath, latitudeValue);
 
         assertThat(withAttribute).hasAttribute(latitudePath, latitudeValue);
@@ -783,8 +688,9 @@ public final class ImmutableThingTest {
 
     @Test
     public void removeAttributeFromThingWithoutAttributes() {
-        final Thing withoutAttributes = ImmutableThing.of(THING_ID, ACL, null, FEATURES, LIFECYCLE, REVISION, MODIFIED,
-                CREATED, METADATA);
+        final Thing withoutAttributes =
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, null, FEATURES, LIFECYCLE, REVISION, MODIFIED,
+                        CREATED, METADATA);
         final Thing withoutVersionAttribute =
                 withoutAttributes.removeAttribute(JsonFactory.newPointer("model/version"));
 
@@ -794,7 +700,7 @@ public final class ImmutableThingTest {
     @Test
     public void setSameAttributesAgain() {
         final Thing withAttributes =
-                ImmutableThing.of(THING_ID, ACL, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION, MODIFIED,
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION, MODIFIED,
                         CREATED, METADATA);
 
         assertThat(withAttributes.setAttributes(ATTRIBUTES)).isSameAs(withAttributes);
@@ -802,8 +708,9 @@ public final class ImmutableThingTest {
 
     @Test
     public void setSameAttributeAgain() {
-        final Thing withAttributes = ImmutableThing.of(THING_ID, ACL, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION,
-                MODIFIED, CREATED, METADATA);
+        final Thing withAttributes =
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION,
+                        MODIFIED, CREATED, METADATA);
 
         final JsonPointer latitudePath = JsonFactory.newPointer("location/latitude");
         final JsonValue latitudeValue = JsonFactory.newValue(44.673856D);
@@ -815,8 +722,9 @@ public final class ImmutableThingTest {
 
     @Test
     public void setAttributesToThingWithoutAttributes() {
-        final Thing withoutAttributes = ImmutableThing.of(THING_ID, ACL, null, FEATURES, LIFECYCLE, REVISION, MODIFIED,
-                CREATED, METADATA);
+        final Thing withoutAttributes =
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, null, FEATURES, LIFECYCLE, REVISION, MODIFIED,
+                        CREATED, METADATA);
         final Thing withAttributes = withoutAttributes.setAttributes(ATTRIBUTES);
 
         assertThat(withAttributes).hasAttributes(ATTRIBUTES);
@@ -824,8 +732,9 @@ public final class ImmutableThingTest {
 
     @Test
     public void removeAttributesFromThingWithoutAttributes() {
-        final Thing withoutAttributes = ImmutableThing.of(THING_ID, ACL, null, FEATURES, LIFECYCLE, REVISION,
-                MODIFIED, CREATED, METADATA);
+        final Thing withoutAttributes =
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, null, FEATURES, LIFECYCLE, REVISION,
+                        MODIFIED, CREATED, METADATA);
         final Thing stillWithoutAttributes = withoutAttributes.removeAttributes();
 
         assertThat(stillWithoutAttributes).isSameAs(withoutAttributes);
@@ -833,8 +742,9 @@ public final class ImmutableThingTest {
 
     @Test
     public void setFeaturesToThingWithoutFeatures() {
-        final Thing withoutFeatures = ImmutableThing.of(THING_ID, ACL, ATTRIBUTES, null, LIFECYCLE, REVISION, MODIFIED,
-                CREATED, METADATA);
+        final Thing withoutFeatures =
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, null, LIFECYCLE, REVISION, MODIFIED,
+                        CREATED, METADATA);
         final Thing withFeatures = withoutFeatures.setFeatures(FEATURES);
 
         assertThat(withFeatures).hasFeatures(FEATURES);
@@ -842,8 +752,9 @@ public final class ImmutableThingTest {
 
     @Test
     public void removeFeaturesFromThingWithoutFeatures() {
-        final Thing withoutFeatures = ImmutableThing.of(THING_ID, ACL, ATTRIBUTES, null, LIFECYCLE, REVISION, MODIFIED,
-                CREATED, METADATA);
+        final Thing withoutFeatures =
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, null, LIFECYCLE, REVISION, MODIFIED,
+                        CREATED, METADATA);
         final Thing stillWithoutFeatures = withoutFeatures.removeFeatures();
 
         assertThat(stillWithoutFeatures).isSameAs(withoutFeatures);
@@ -852,7 +763,7 @@ public final class ImmutableThingTest {
     @Test
     public void setSameFeaturesAgain() {
         final Thing withFeatures =
-                ImmutableThing.of(THING_ID, ACL, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION, MODIFIED,
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION, MODIFIED,
                         CREATED, METADATA);
 
         assertThat(withFeatures.setFeatures(FEATURES)).isSameAs(withFeatures);
@@ -860,8 +771,9 @@ public final class ImmutableThingTest {
 
     @Test
     public void setFeatureToThingWithoutFeatures() {
-        final Thing withoutFeatures = ImmutableThing.of(THING_ID, ACL, ATTRIBUTES, null, LIFECYCLE, REVISION, MODIFIED,
-                CREATED, METADATA);
+        final Thing withoutFeatures =
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, null, LIFECYCLE, REVISION, MODIFIED,
+                        CREATED, METADATA);
         final Thing withFeature = withoutFeatures.setFeature(TestConstants.Feature.FLUX_CAPACITOR);
 
         assertThat(withFeature).hasFeature(TestConstants.Feature.FLUX_CAPACITOR);
@@ -870,7 +782,7 @@ public final class ImmutableThingTest {
     @Test
     public void setSameFeatureAgain() {
         final Thing withFeatures =
-                ImmutableThing.of(THING_ID, ACL, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION, MODIFIED,
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION, MODIFIED,
                         CREATED, METADATA);
 
         assertThat(withFeatures.setFeature(TestConstants.Feature.FLUX_CAPACITOR)).isSameAs(withFeatures);
@@ -878,8 +790,9 @@ public final class ImmutableThingTest {
 
     @Test
     public void removeFeatureFromThingWithoutFeatures() {
-        final Thing withoutFeatures = ImmutableThing.of(THING_ID, ACL, ATTRIBUTES, null, LIFECYCLE, REVISION, MODIFIED,
-                CREATED, METADATA);
+        final Thing withoutFeatures =
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, null, LIFECYCLE, REVISION, MODIFIED,
+                        CREATED, METADATA);
 
         assertThat(withoutFeatures.removeFeature(FLUX_CAPACITOR_ID)).isSameAs(withoutFeatures);
     }
@@ -887,7 +800,7 @@ public final class ImmutableThingTest {
     @Test
     public void removeFeature() {
         final Thing withFeatures =
-                ImmutableThing.of(THING_ID, ACL, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION, MODIFIED,
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION, MODIFIED,
                         CREATED, METADATA);
         final Thing withoutFluxCapacitor = withFeatures.removeFeature(FLUX_CAPACITOR_ID);
 
@@ -897,7 +810,7 @@ public final class ImmutableThingTest {
     @Test
     public void removeNonExistingFeature() {
         final Thing withFeatures =
-                ImmutableThing.of(THING_ID, ACL, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION, MODIFIED,
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION, MODIFIED,
                         CREATED, METADATA);
 
         assertThat(withFeatures.removeFeature("Waldo")).isSameAs(withFeatures);
@@ -907,8 +820,9 @@ public final class ImmutableThingTest {
     public void setFeatureDefinitionToThingWithoutFeatures() {
         final FeatureDefinition definition = TestConstants.Feature.FLUX_CAPACITOR_DEFINITION;
         final Feature expected = ThingsModelFactory.newFeature(FLUX_CAPACITOR_ID, definition);
-        final Thing withoutFeatures = ImmutableThing.of(THING_ID, ACL, ATTRIBUTES, null, LIFECYCLE, REVISION, MODIFIED,
-                CREATED, METADATA);
+        final Thing withoutFeatures =
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, null, LIFECYCLE, REVISION, MODIFIED,
+                        CREATED, METADATA);
 
         final Thing withFluxCapacitor = withoutFeatures.setFeatureDefinition(FLUX_CAPACITOR_ID, definition);
 
@@ -919,17 +833,20 @@ public final class ImmutableThingTest {
     public void removeFeatureDefinitionFromExistingFeature() {
         final String featureId = FLUX_CAPACITOR_ID;
         final Feature expected = ThingsModelFactory.newFeature(featureId);
-        final Thing underTest = ImmutableThing.of(THING_ID, ACL, ATTRIBUTES, ThingsModelFactory.newFeatures(
-                ThingsModelFactory.newFeature(featureId, TestConstants.Feature.FLUX_CAPACITOR_DEFINITION)), LIFECYCLE,
-                REVISION, MODIFIED, CREATED, METADATA);
+        final Thing underTest =
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, ThingsModelFactory.newFeatures(
+                        ThingsModelFactory.newFeature(featureId, TestConstants.Feature.FLUX_CAPACITOR_DEFINITION)),
+                        LIFECYCLE,
+                        REVISION, MODIFIED, CREATED, METADATA);
 
         assertThat(underTest.removeFeatureDefinition(featureId)).hasFeature(expected);
     }
 
     @Test
     public void setFeaturePropertiesToThingWithoutFeatures() {
-        final Thing withoutFeatures = ImmutableThing.of(THING_ID, ACL, ATTRIBUTES, null, LIFECYCLE, REVISION, MODIFIED,
-                CREATED, METADATA);
+        final Thing withoutFeatures =
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, null, LIFECYCLE, REVISION, MODIFIED,
+                        CREATED, METADATA);
         final Thing withFluxCapacitor =
                 withoutFeatures.setFeatureProperties(FLUX_CAPACITOR_ID, FLUX_CAPACITOR_PROPERTIES);
 
@@ -938,8 +855,9 @@ public final class ImmutableThingTest {
 
     @Test
     public void setFeatureDesiredPropertiesToThingWithoutFeatures() {
-        final Thing withoutFeatures = ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, null, LIFECYCLE, REVISION, MODIFIED,
-                CREATED, METADATA);
+        final Thing withoutFeatures =
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, null, LIFECYCLE, REVISION, MODIFIED,
+                        CREATED, METADATA);
         final Thing withFluxCapacitor =
                 withoutFeatures.setFeatureDesiredProperties(FLUX_CAPACITOR_ID, FLUX_CAPACITOR_PROPERTIES);
 
@@ -949,7 +867,7 @@ public final class ImmutableThingTest {
     @Test
     public void setSameFeaturePropertiesAgain() {
         final Thing withFeatures =
-                ImmutableThing.of(THING_ID, ACL, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION, MODIFIED,
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION, MODIFIED,
                         CREATED, METADATA);
 
         assertThat(withFeatures.setFeatureProperties(FLUX_CAPACITOR_ID, FLUX_CAPACITOR_PROPERTIES)).isSameAs(
@@ -959,7 +877,8 @@ public final class ImmutableThingTest {
     @Test
     public void setSameFeatureDesiredPropertiesAgain() {
         final Thing withFeatures =
-                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, FEATURES_V2, LIFECYCLE, REVISION, MODIFIED,
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION,
+                        MODIFIED,
                         CREATED, METADATA);
 
         assertThat(withFeatures.setFeatureDesiredProperties(FLUX_CAPACITOR_ID, FLUX_CAPACITOR_PROPERTIES)).isSameAs(
@@ -968,16 +887,18 @@ public final class ImmutableThingTest {
 
     @Test
     public void removeFeaturePropertiesFromThingWithoutFeatures() {
-        final Thing withoutFeatures = ImmutableThing.of(THING_ID, ACL, ATTRIBUTES, null, LIFECYCLE, REVISION, MODIFIED,
-                CREATED, METADATA);
+        final Thing withoutFeatures =
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, null, LIFECYCLE, REVISION, MODIFIED,
+                        CREATED, METADATA);
 
         assertThat(withoutFeatures.removeFeatureProperties(FLUX_CAPACITOR_ID)).isSameAs(withoutFeatures);
     }
 
     @Test
     public void removeFeatureDesiredPropertiesFromThingWithoutFeatures() {
-        final Thing withoutFeatures = ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, null, LIFECYCLE, REVISION, MODIFIED,
-                CREATED, METADATA);
+        final Thing withoutFeatures =
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, null, LIFECYCLE, REVISION, MODIFIED,
+                        CREATED, METADATA);
 
         assertThat(withoutFeatures.removeFeatureDesiredProperties(FLUX_CAPACITOR_ID)).isSameAs(withoutFeatures);
     }
@@ -988,7 +909,8 @@ public final class ImmutableThingTest {
                 .setId(THING_ID)
                 .setAttributes(ATTRIBUTES)
                 .setFeature(FLUX_CAPACITOR_ID)
-                .setPermissions(ACL)
+                .setPolicyId(POLICY_ID)
+                .setDefinition(DEFINITION)
                 .setLifecycle(LIFECYCLE)
                 .setRevision(REVISION)
                 .build();
@@ -1020,8 +942,9 @@ public final class ImmutableThingTest {
 
     @Test
     public void setFeaturePropertyToThingWithoutFeatures() {
-        final Thing withoutFeatures = ImmutableThing.of(THING_ID, ACL, ATTRIBUTES, null, LIFECYCLE, REVISION, MODIFIED,
-                CREATED, METADATA);
+        final Thing withoutFeatures =
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, null, LIFECYCLE, REVISION, MODIFIED,
+                        CREATED, METADATA);
         final Thing withFeature = withoutFeatures.setFeatureProperty(FLUX_CAPACITOR_ID, KNOWN_FEATURE_PROPERTY_PATH,
                 KNOWN_FEATURE_PROPERTY_VALUE);
 
@@ -1031,10 +954,12 @@ public final class ImmutableThingTest {
 
     @Test
     public void setFeatureDesiredPropertyToThingWithoutFeatures() {
-        final Thing withoutFeatures = ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, null, LIFECYCLE, REVISION, MODIFIED,
-                CREATED, METADATA);
-        final Thing withFeature = withoutFeatures.setFeatureDesiredProperty(FLUX_CAPACITOR_ID, KNOWN_FEATURE_PROPERTY_PATH,
-                KNOWN_FEATURE_PROPERTY_VALUE);
+        final Thing withoutFeatures =
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, null, LIFECYCLE, REVISION, MODIFIED,
+                        CREATED, METADATA);
+        final Thing withFeature =
+                withoutFeatures.setFeatureDesiredProperty(FLUX_CAPACITOR_ID, KNOWN_FEATURE_PROPERTY_PATH,
+                        KNOWN_FEATURE_PROPERTY_VALUE);
 
         assertThat(withFeature).hasFeatureDesiredProperty(FLUX_CAPACITOR_ID, KNOWN_FEATURE_PROPERTY_PATH,
                 KNOWN_FEATURE_PROPERTY_VALUE);
@@ -1046,7 +971,8 @@ public final class ImmutableThingTest {
                 .setId(THING_ID)
                 .setAttributes(ATTRIBUTES)
                 .setFeature(FLUX_CAPACITOR_ID)
-                .setPermissions(ACL)
+                .setPolicyId(POLICY_ID)
+                .setDefinition(DEFINITION)
                 .setLifecycle(LIFECYCLE)
                 .setRevision(REVISION)
                 .build();
@@ -1078,8 +1004,9 @@ public final class ImmutableThingTest {
 
     @Test
     public void setSameFeaturePropertyAgain() {
-        final Thing withFeatures = ImmutableThing.of(THING_ID, ACL, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION,
-                MODIFIED, CREATED, METADATA);
+        final Thing withFeatures =
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION,
+                        MODIFIED, CREATED, METADATA);
 
         assertThat(withFeatures.setFeatureProperty(FLUX_CAPACITOR_ID, KNOWN_FEATURE_PROPERTY_PATH,
                 KNOWN_FEATURE_PROPERTY_VALUE)).isSameAs(withFeatures);
@@ -1087,8 +1014,9 @@ public final class ImmutableThingTest {
 
     @Test
     public void setSameFeatureDesiredPropertyAgain() {
-        final Thing withFeatures = ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, FEATURES_V2, LIFECYCLE, REVISION,
-                MODIFIED, CREATED, METADATA);
+        final Thing withFeatures =
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION,
+                        MODIFIED, CREATED, METADATA);
 
         assertThat(withFeatures.setFeatureDesiredProperty(FLUX_CAPACITOR_ID, KNOWN_FEATURE_PROPERTY_PATH,
                 KNOWN_FEATURE_PROPERTY_VALUE)).isSameAs(withFeatures);
@@ -1096,8 +1024,9 @@ public final class ImmutableThingTest {
 
     @Test
     public void removeFeaturePropertyFromThingWithoutFeatures() {
-        final Thing withoutFeatures = ImmutableThing.of(THING_ID, ACL, ATTRIBUTES, null, LIFECYCLE, REVISION, MODIFIED,
-                CREATED, METADATA);
+        final Thing withoutFeatures =
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, null, LIFECYCLE, REVISION, MODIFIED,
+                        CREATED, METADATA);
 
         assertThat(withoutFeatures.removeFeatureProperty(FLUX_CAPACITOR_ID, KNOWN_FEATURE_PROPERTY_PATH)).isSameAs(
                 withoutFeatures);
@@ -1105,10 +1034,12 @@ public final class ImmutableThingTest {
 
     @Test
     public void removeFeatureDesiredPropertyFromThingWithoutFeatures() {
-        final Thing withoutFeatures = ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, null, LIFECYCLE, REVISION, MODIFIED,
-                CREATED, METADATA);
+        final Thing withoutFeatures =
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, null, LIFECYCLE, REVISION, MODIFIED,
+                        CREATED, METADATA);
 
-        assertThat(withoutFeatures.removeFeatureDesiredProperty(FLUX_CAPACITOR_ID, KNOWN_FEATURE_PROPERTY_PATH)).isSameAs(
+        assertThat(
+                withoutFeatures.removeFeatureDesiredProperty(FLUX_CAPACITOR_ID, KNOWN_FEATURE_PROPERTY_PATH)).isSameAs(
                 withoutFeatures);
     }
 
@@ -1118,7 +1049,8 @@ public final class ImmutableThingTest {
                 .setId(THING_ID)
                 .setAttributes(ATTRIBUTES)
                 .setFeature(FLUX_CAPACITOR_ID)
-                .setPermissions(ACL)
+                .setPolicyId(POLICY_ID)
+                .setDefinition(DEFINITION)
                 .setLifecycle(LIFECYCLE)
                 .setRevision(REVISION)
                 .build();
@@ -1142,8 +1074,9 @@ public final class ImmutableThingTest {
 
     @Test
     public void removeFeatureProperty() {
-        final Thing withFeatures = ImmutableThing.of(THING_ID, ACL, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION,
-                MODIFIED, CREATED, METADATA);
+        final Thing withFeatures =
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION,
+                        MODIFIED, CREATED, METADATA);
         final Thing withoutFeatureProperty =
                 withFeatures.removeFeatureProperty(FLUX_CAPACITOR_ID, KNOWN_FEATURE_PROPERTY_PATH);
 
@@ -1152,28 +1085,13 @@ public final class ImmutableThingTest {
 
     @Test
     public void removeFeatureDesiredProperty() {
-        final Thing withFeatures = ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, FEATURES_V2, LIFECYCLE, REVISION,
-                MODIFIED, CREATED, METADATA);
+        final Thing withFeatures =
+                ImmutableThing.of(THING_ID, POLICY_ID, DEFINITION, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION,
+                        MODIFIED, CREATED, METADATA);
         final Thing withoutDesiredProperty =
                 withFeatures.removeFeatureDesiredProperty(FLUX_CAPACITOR_ID, KNOWN_FEATURE_PROPERTY_PATH);
 
         assertThat(withoutDesiredProperty).hasNotFeatureDesiredProperty(FLUX_CAPACITOR_ID, KNOWN_FEATURE_PROPERTY_PATH);
-    }
-
-    @Test
-    public void ensureThingsNewBuilderWorksV1() {
-        final Thing thing = Thing.newBuilder()
-                .setId(THING_ID)
-                .setPermissions(ACL)
-                .setAttributes(ATTRIBUTES)
-                .setFeatures(FEATURES)
-                .setLifecycle(LIFECYCLE)
-                .setRevision(REVISION)
-                .setModified(MODIFIED)
-                .setCreated(CREATED)
-                .build();
-
-        assertThat(thing).isEqualTo(TestConstants.Thing.THING_V1);
     }
 
     @Test
@@ -1183,7 +1101,7 @@ public final class ImmutableThingTest {
                 .setPolicyId(TestConstants.Thing.POLICY_ID)
                 .setAttributes(ATTRIBUTES)
                 .setDefinition(DEFINITION)
-                .setFeatures(FEATURES_V2)
+                .setFeatures(FEATURES)
                 .setLifecycle(LIFECYCLE)
                 .setRevision(REVISION)
                 .setModified(MODIFIED)
@@ -1194,49 +1112,9 @@ public final class ImmutableThingTest {
     }
 
     @Test
-    public void ensureThingsToBuilderWorksV1() {
-        DittoJsonAssertions.assertThat(TestConstants.Thing.THING_V1)
-                .isEqualTo(TestConstants.Thing.THING_V1.toBuilder().build());
-    }
-
-    @Test
     public void ensureThingsToBuilderWorksV2() {
         DittoJsonAssertions.assertThat(TestConstants.Thing.THING_V2)
                 .isEqualTo(TestConstants.Thing.THING_V2.toBuilder().build());
-    }
-
-    @Test
-    public void ensureThingToJsonContainsNonHiddenFieldsV1() {
-        final JsonObject jsonObject = TestConstants.Thing.THING_V1.toJson(JsonSchemaVersion.V_1);
-        DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ID, THING_ID.toString());
-        DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ATTRIBUTES, ATTRIBUTES);
-        DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.FEATURES, FEATURES.toJson());
-        DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ACL, ACL.toJson());
-        DittoJsonAssertions.assertThat(jsonObject).doesNotContain(Thing.JsonFields.SCHEMA_VERSION);
-        DittoJsonAssertions.assertThat(jsonObject).doesNotContain(Thing.JsonFields.REVISION);
-        DittoJsonAssertions.assertThat(jsonObject).doesNotContain(Thing.JsonFields.LIFECYCLE);
-        DittoJsonAssertions.assertThat(jsonObject).doesNotContain(Thing.JsonFields.NAMESPACE);
-        DittoJsonAssertions.assertThat(jsonObject).doesNotContain(Thing.JsonFields.MODIFIED);
-        DittoJsonAssertions.assertThat(jsonObject).doesNotContain(Thing.JsonFields.POLICY_ID);
-    }
-
-    @Test
-    public void ensureThingToJsonWithSpecialContainsAllFieldsV1() {
-        final JsonObject jsonObject =
-                TestConstants.Thing.THING_V1.toJson(JsonSchemaVersion.V_1, FieldType.regularOrSpecial());
-        DittoJsonAssertions.assertThat(jsonObject)
-                .contains(Thing.JsonFields.SCHEMA_VERSION, JsonValue.of(JsonSchemaVersion.V_1.toInt()));
-        DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ID, THING_ID.toString());
-        DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ATTRIBUTES, ATTRIBUTES);
-        DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.FEATURES, FEATURES.toJson());
-        DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ACL, ACL.toJson());
-        DittoJsonAssertions.assertThat(jsonObject)
-                .contains(Thing.JsonFields.REVISION, JsonValue.of(TestConstants.Thing.REVISION_NUMBER));
-        DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.LIFECYCLE, JsonValue.of(LIFECYCLE.name()));
-        DittoJsonAssertions.assertThat(jsonObject)
-                .contains(Thing.JsonFields.NAMESPACE, JsonValue.of(TestConstants.Thing.NAMESPACE));
-        DittoJsonAssertions.assertThat(jsonObject)
-                .contains(Thing.JsonFields.MODIFIED, JsonValue.of(MODIFIED.toString()));
     }
 
     @Test
@@ -1250,9 +1128,8 @@ public final class ImmutableThingTest {
         DittoJsonAssertions.assertThat(jsonObject)
                 .contains(Thing.JsonFields.DEFINITION, JsonValue.of(DEFINITION.toString()));
         DittoJsonAssertions.assertThat(jsonObject)
-                .contains(Thing.JsonFields.FEATURES, FEATURES_V2.toJson());
+                .contains(Thing.JsonFields.FEATURES, FEATURES.toJson());
         DittoJsonAssertions.assertThat(jsonObject).doesNotContain(Thing.JsonFields.SCHEMA_VERSION);
-        DittoJsonAssertions.assertThat(jsonObject).doesNotContain(Thing.JsonFields.ACL);
         DittoJsonAssertions.assertThat(jsonObject).doesNotContain(Thing.JsonFields.REVISION);
         DittoJsonAssertions.assertThat(jsonObject).doesNotContain(Thing.JsonFields.NAMESPACE);
         DittoJsonAssertions.assertThat(jsonObject).doesNotContain(Thing.JsonFields.LIFECYCLE);
@@ -1271,7 +1148,7 @@ public final class ImmutableThingTest {
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ATTRIBUTES, ATTRIBUTES);
         DittoJsonAssertions.assertThat(jsonObject)
                 .contains(Thing.JsonFields.DEFINITION, JsonValue.of(DEFINITION.toString()));
-        DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.FEATURES, FEATURES_V2.toJson());
+        DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.FEATURES, FEATURES.toJson());
         DittoJsonAssertions.assertThat(jsonObject)
                 .contains(Thing.JsonFields.REVISION, JsonValue.of(TestConstants.Thing.REVISION_NUMBER));
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.LIFECYCLE, JsonValue.of(LIFECYCLE.name()));
@@ -1291,23 +1168,6 @@ public final class ImmutableThingTest {
         invalidThingIds.forEach(invalidId -> assertThatExceptionOfType(ThingIdInvalidException.class).isThrownBy(
                 () -> ThingId.of(invalidId)));
 
-    }
-
-    @Test
-    public void createThingWithInvalidCharactersInId() {
-        final String invalidCharacter = "/";
-        assertThatExceptionOfType(ThingIdInvalidException.class).isThrownBy(() ->
-                ImmutableThing.of(
-                        "ns:thingIdWithAnd" + invalidCharacter,
-                        ACL,
-                        ATTRIBUTES,
-                        FEATURES,
-                        LIFECYCLE,
-                        REVISION,
-                        MODIFIED,
-                        CREATED,
-                        METADATA)
-        );
     }
 
     @Test

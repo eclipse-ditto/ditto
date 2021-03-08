@@ -27,7 +27,6 @@ import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableMapper;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingIdNotExplicitlySettableException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
-import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeature;
@@ -39,8 +38,6 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatures;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingDefinition;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyAcl;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
@@ -69,7 +66,6 @@ final class ThingModifyCommandMappingStrategies extends AbstractThingMappingStra
     private static Map<String, JsonifiableMapper<ThingModifyCommand<?>>> initMappingStrategies() {
         final Map<String, JsonifiableMapper<ThingModifyCommand<?>>> mappingStrategies = new HashMap<>();
         addTopLevelMappingStrategies(mappingStrategies);
-        addAclMappingStrategies(mappingStrategies);
         addAttributeMappingStrategies(mappingStrategies);
         addDefinitionMappingStrategies(mappingStrategies);
         addFeatureMappingStrategies(mappingStrategies);
@@ -91,17 +87,6 @@ final class ThingModifyCommandMappingStrategies extends AbstractThingMappingStra
                 thingDefinitionFrom(adaptable), dittoHeadersFrom(adaptable)));
         mappingStrategies.put(DeleteThingDefinition.TYPE,
                 adaptable -> DeleteThingDefinition.of(thingIdFrom(adaptable), dittoHeadersFrom(adaptable)));
-    }
-
-    private static void addAclMappingStrategies(
-            final Map<String, JsonifiableMapper<ThingModifyCommand<?>>> mappingStrategies) {
-        mappingStrategies.put(ModifyAcl.TYPE,
-                adaptable -> ModifyAcl.of(thingIdFrom(adaptable), aclFrom(adaptable), dittoHeadersFrom(adaptable)));
-
-        mappingStrategies.put(ModifyAclEntry.TYPE, adaptable -> ModifyAclEntry.of(thingIdFrom(adaptable),
-                aclEntryFrom(adaptable), dittoHeadersFrom(adaptable)));
-        mappingStrategies.put(DeleteAclEntry.TYPE, adaptable -> DeleteAclEntry.of(thingIdFrom(adaptable),
-                authorizationSubjectFrom(adaptable), dittoHeadersFrom(adaptable)));
     }
 
     private static void addAttributeMappingStrategies(
@@ -150,16 +135,16 @@ final class ThingModifyCommandMappingStrategies extends AbstractThingMappingStra
                         dittoHeadersFrom(adaptable)));
 
         mappingStrategies.put(ModifyFeatureProperty.TYPE,
-                        adaptable -> ModifyFeatureProperty.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
-                                featurePropertyPointerFrom(adaptable), featurePropertyValueFrom(adaptable),
-                                dittoHeadersFrom(adaptable)));
+                adaptable -> ModifyFeatureProperty.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
+                        featurePropertyPointerFrom(adaptable), featurePropertyValueFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
         mappingStrategies.put(DeleteFeatureProperty.TYPE, adaptable -> DeleteFeatureProperty.of(thingIdFrom(adaptable),
                 featureIdFrom(adaptable), featurePropertyPointerFrom(adaptable), dittoHeadersFrom(adaptable)));
 
         mappingStrategies.put(ModifyFeatureDesiredProperty.TYPE,
-                        adaptable -> ModifyFeatureDesiredProperty.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
-                                featurePropertyPointerFrom(adaptable), featurePropertyValueFrom(adaptable),
-                                dittoHeadersFrom(adaptable)));
+                adaptable -> ModifyFeatureDesiredProperty.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
+                        featurePropertyPointerFrom(adaptable), featurePropertyValueFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
         mappingStrategies.put(DeleteFeatureDesiredProperty.TYPE,
                 adaptable -> DeleteFeatureDesiredProperty.of(thingIdFrom(adaptable),
                         featureIdFrom(adaptable), featurePropertyPointerFrom(adaptable), dittoHeadersFrom(adaptable)));

@@ -19,9 +19,11 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.enforcers.testbench.algorithms.PolicyAlgorithm;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.Scenario;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.ScenarioSetup;
+import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
@@ -57,15 +59,15 @@ public class Scenario4MultipleSubjects4 implements Scenario4MultipleSubjects {
                 resource,
                 Collections.emptySet(),
                 policyAlgorithm -> { // as those subjects have some READ granted somewhere they shall be able to read "/" partially
-                    final Set<String> sids = policyAlgorithm.getSubjectIdsWithPartialPermission(
-                            PoliciesResourceType.thingResource(resource), "READ");
-                    final Collection<String> expectedSids = new HashSet<>();
+                    final Set<AuthorizationSubject> sids = policyAlgorithm.getSubjectsWithPartialPermission(
+                            PoliciesResourceType.thingResource(resource), Permissions.newInstance("READ"));
+                    final Collection<AuthorizationSubject> expectedSids = new HashSet<>();
                     Collections.addAll(expectedSids,
-                            createSubjectString(SUBJECT_1),
-                            createSubjectString(SUBJECT_2),
-                            createSubjectString(SUBJECT_3),
+                            AuthorizationSubject.newInstance(createSubjectString(SUBJECT_1)),
+                            AuthorizationSubject.newInstance(createSubjectString(SUBJECT_2)),
+                            AuthorizationSubject.newInstance(createSubjectString(SUBJECT_3)),
 //                                        createSubjectString(SUBJECT_4), // only READ on "/attributes"
-                            createSubjectString(SUBJECT_5)
+                            AuthorizationSubject.newInstance(createSubjectString(SUBJECT_5))
 //                                        createSubjectString(SUBJECT_6), // only READ on "/attributes"
 //                                        createSubjectString(SUBJECT_7), // no READ granted
 //                                        createSubjectString(SUBJECT_8) // only READ on "/attributes"

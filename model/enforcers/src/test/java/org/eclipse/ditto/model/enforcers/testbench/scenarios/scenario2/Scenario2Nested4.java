@@ -15,6 +15,7 @@ package org.eclipse.ditto.model.enforcers.testbench.scenarios.scenario2;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.Scenario;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.ScenarioSetup;
 import org.eclipse.ditto.model.policies.SubjectId;
@@ -35,8 +36,9 @@ public class Scenario2Nested4 implements Scenario2Nested {
                 getPolicy(), //
                 Scenario.newAuthorizationContext(SUBJECT_ATTRIBUTES_ALL_GRANTED), //
                 "/attributes/foo", //
-                Stream.of(SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ATTRIBUTES_ALL_GRANTED)
-                        .toString()).collect(Collectors.toSet()),
+                Stream.of(SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ATTRIBUTES_ALL_GRANTED))
+                        .map(AuthorizationSubject::newInstance)
+                        .collect(Collectors.toSet()),
                 "READ", "WRITE");
     }
 

@@ -39,6 +39,7 @@ import org.eclipse.ditto.json.JsonNumber;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.enforcers.Enforcer;
+import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.things.Thing;
@@ -59,8 +60,8 @@ public final class EnforcedThingMapper {
      * Map a Thing JSON into a search index entry with synthesized metadata.
      *
      * @param thing the Thing in JSON format.
-     * @param enforcer the policy- or ACL-enforcer of the Thing.
-     * @param policyRevision revision of the policy for an policy enforcer, or any number for an ACL enforcer.
+     * @param enforcer the policy-enforcer of the Thing.
+     * @param policyRevision revision of the policy for an policy enforcer.
      * @return BSON document to write into the search index.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if Thing ID or revision is missing.
      */
@@ -72,8 +73,8 @@ public final class EnforcedThingMapper {
      * Map a Thing JSON into a search index write model.
      *
      * @param thing the Thing in JSON format.
-     * @param enforcer the policy- or ACL-enforcer of the Thing.
-     * @param policyRevision revision of the policy for an policy enforcer, or any number for an ACL enforcer.
+     * @param enforcer the policy-enforcer of the Thing.
+     * @param policyRevision revision of the policy for an policy enforcer.
      * @return BSON document to write into the search index.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if Thing ID or revision is missing.
      */
@@ -88,8 +89,8 @@ public final class EnforcedThingMapper {
      * Map a Thing JSON into a search index write model.
      *
      * @param thing the Thing in JSON format.
-     * @param enforcer the policy- or ACL-enforcer of the Thing.
-     * @param policyRevision revision of the policy for an policy enforcer, or any number for an ACL enforcer.
+     * @param enforcer the policy-enforcer of the Thing.
+     * @param policyRevision revision of the policy for an policy enforcer.
      * @param maxArraySize only arrays smaller than this are indexed.
      * @param oldMetadata the meatadata that triggered the search update, possibly containing sender information.
      * @return BSON document to write into the search index.
@@ -134,8 +135,9 @@ public final class EnforcedThingMapper {
 
         final BsonArray bsonArray = new BsonArray();
 
-        enforcer.getSubjectIdsWithPartialPermission(THING_ROOT_RESOURCE_KEY, Permission.READ)
+        enforcer.getSubjectsWithPartialPermission(THING_ROOT_RESOURCE_KEY, Permissions.newInstance(Permission.READ))
                 .stream()
+                .map(Object::toString)
                 .map(BsonString::new)
                 .forEach(bsonArray::add);
 

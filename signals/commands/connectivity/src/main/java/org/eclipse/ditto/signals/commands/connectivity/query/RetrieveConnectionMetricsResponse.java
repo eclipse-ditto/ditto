@@ -240,16 +240,16 @@ public final class RetrieveConnectionMetricsResponse
          * Whether the connection metrics contain any failures - derived from connectionMetrics.
          */
         static final JsonFieldDefinition<Boolean> CONTAINS_FAILURES =
-                JsonFactory.newBooleanFieldDefinition("containsFailures", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newBooleanFieldDefinition("containsFailures", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
         static final JsonFieldDefinition<JsonObject> CONNECTION_METRICS =
-                JsonFactory.newJsonObjectFieldDefinition("connectionMetrics", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonObjectFieldDefinition("connectionMetrics", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
         static final JsonFieldDefinition<JsonObject> SOURCE_METRICS =
-                JsonFactory.newJsonObjectFieldDefinition("sourceMetrics", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonObjectFieldDefinition("sourceMetrics", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
         static final JsonFieldDefinition<JsonObject> TARGET_METRICS =
-                JsonFactory.newJsonObjectFieldDefinition("targetMetrics", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonObjectFieldDefinition("targetMetrics", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
     }
 

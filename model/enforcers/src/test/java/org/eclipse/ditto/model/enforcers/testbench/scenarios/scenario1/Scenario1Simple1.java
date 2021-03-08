@@ -14,8 +14,10 @@ package org.eclipse.ditto.model.enforcers.testbench.scenarios.scenario1;
 
 import java.util.Collections;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.Scenario;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.ScenarioSetup;
+import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
@@ -29,7 +31,8 @@ public class Scenario1Simple1 implements Scenario1Simple {
     private final ScenarioSetup setup;
 
     public Scenario1Simple1() {
-        final String subjectId = SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ALL_GRANTED).toString();
+        final AuthorizationSubject subjectId =
+                AuthorizationSubject.newInstance(SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ALL_GRANTED));
         final String resource = "/";
         setup = Scenario.newScenarioSetup(
                 true,
@@ -38,8 +41,9 @@ public class Scenario1Simple1 implements Scenario1Simple {
                 Scenario.newAuthorizationContext(SUBJECT_ALL_GRANTED),
                 resource,
                 Collections.singleton(subjectId),
-                policyAlgorithm -> policyAlgorithm.getSubjectIdsWithPartialPermission(
-                        PoliciesResourceType.thingResource(resource), "READ").contains(subjectId),
+                policyAlgorithm -> policyAlgorithm.getSubjectsWithPartialPermission(
+                        PoliciesResourceType.thingResource(resource), Permissions.newInstance("READ"))
+                        .contains(subjectId),
                 "READ", "WRITE");
     }
 

@@ -32,8 +32,6 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.things.AccessControlList;
-import org.eclipse.ditto.model.things.AclNotAllowedException;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.AttributesModelFactory;
 import org.eclipse.ditto.model.things.Feature;
@@ -114,7 +112,6 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
      */
     public static MergeThing withThing(final ThingId thingId, final Thing thing, final DittoHeaders dittoHeaders) {
         ensureThingIdMatches(thingId, thing);
-        ensureAuthorizationMatchesSchemaVersion(thingId, thing, dittoHeaders);
         ensureThingIsNotNullOrEmpty(thing, dittoHeaders);
         final JsonObject mergePatch = thing.toJson();
         return new MergeThing(thingId, JsonPointer.empty(), mergePatch, dittoHeaders);
@@ -333,28 +330,6 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
     }
 
     /**
-     * Ensures that the command will not contain inconsistent authorization information.
-     * <ul>
-     *  <li>{@link org.eclipse.ditto.model.base.json.JsonSchemaVersion#LATEST} commands may not contain
-     *  ACL information.</li>
-     * </ul>
-     */
-    private static void ensureAuthorizationMatchesSchemaVersion(final ThingId thingId, final Thing thing,
-            final DittoHeaders dittoHeaders) {
-        // v2 commands may not contain ACL information
-        final boolean isCommandAclEmpty = thing
-                .getAccessControlList()
-                .map(AccessControlList::isEmpty)
-                .orElse(true);
-        if (!isCommandAclEmpty) {
-            throw AclNotAllowedException
-                    .newBuilder(thingId)
-                    .dittoHeaders(dittoHeaders)
-                    .build();
-        }
-    }
-
-    /**
      * Ensures that the thingId is consistent with the id of the thing.
      *
      * @throws org.eclipse.ditto.signals.commands.things.exceptions.ThingIdNotExplicitlySettableException if ids do not match.
@@ -371,7 +346,8 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
      * @throws org.eclipse.ditto.signals.commands.things.exceptions.ThingMergeInvalidException if the thing is null or empty.
      */
     private static void ensureThingIsNotNullOrEmpty(final Thing thing, final DittoHeaders dittoHeaders) {
-        if (thing.toJson().isEmpty() && dittoHeaders.getSchemaVersion().filter(JsonSchemaVersion.V_2::equals).isPresent()) {
+        if (thing.toJson().isEmpty() &&
+                dittoHeaders.getSchemaVersion().filter(JsonSchemaVersion.V_2::equals).isPresent()) {
             throw ThingMergeInvalidException.fromMessage(
                     "The provided json value can not be applied at this resource", dittoHeaders);
         }

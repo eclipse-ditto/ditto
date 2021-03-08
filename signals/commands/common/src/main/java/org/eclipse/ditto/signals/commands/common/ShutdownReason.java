@@ -71,14 +71,14 @@ public interface ShutdownReason extends Jsonifiable.WithPredicate<JsonObject, Js
          * JSON field containing the type of the reason, type: {@code String}, name: {@code "type"}.
          */
         public static final JsonFieldDefinition<String> TYPE = JsonFactory.newStringFieldDefinition("type",
-                FieldType.REGULAR, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the <em>optional</em> details of the reason, type: {@code String},
          * name: {@code "details"}.
          */
         public static final JsonFieldDefinition<JsonValue> DETAILS =
-                JsonFactory.newJsonValueFieldDefinition("details", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonValueFieldDefinition("details", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

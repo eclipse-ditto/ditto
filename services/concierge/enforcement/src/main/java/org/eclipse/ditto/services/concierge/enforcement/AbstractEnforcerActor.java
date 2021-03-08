@@ -61,8 +61,6 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
     @Nullable
     private final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache;
     @Nullable
-    private final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache;
-    @Nullable
     private final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache;
 
 
@@ -71,14 +69,12 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
      *
      * @param pubSubMediator Akka pub-sub-mediator.
      * @param conciergeForwarder the concierge forwarder.
-     * @param thingIdCache the cache for Thing IDs to either ACL or Policy ID.
-     * @param aclEnforcerCache the ACL cache.
+     * @param thingIdCache the cache for Thing IDs to Policy ID.
      * @param policyEnforcerCache the Policy cache.
      */
     protected AbstractEnforcerActor(final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
             @Nullable final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
-            @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache,
             @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache) {
 
         super(WithDittoHeaders.class);
@@ -89,7 +85,6 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
         enforcementConfig = conciergeConfig.getEnforcementConfig();
 
         this.thingIdCache = thingIdCache;
-        this.aclEnforcerCache = aclEnforcerCache;
         this.policyEnforcerCache = policyEnforcerCache;
 
         contextual = Contextual.forActor(getSelf(), getContext().getSystem().deadLetters(),
@@ -125,10 +120,6 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
         if (thingIdCache != null) {
             final boolean invalidated = thingIdCache.invalidate(entityId);
             logger.debug("Thing ID cache for entity ID <{}> was invalidated: {}", entityId, invalidated);
-        }
-        if (aclEnforcerCache != null) {
-            final boolean invalidated = aclEnforcerCache.invalidate(entityId);
-            logger.debug("ACL enforcer cache for entity ID <{}> was invalidated: {}", entityId, invalidated);
         }
         if (policyEnforcerCache != null) {
             final boolean invalidated = policyEnforcerCache.invalidate(entityId);

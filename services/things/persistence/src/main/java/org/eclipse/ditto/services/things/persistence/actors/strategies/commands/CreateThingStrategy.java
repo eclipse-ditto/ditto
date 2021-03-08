@@ -22,9 +22,6 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.common.Validator;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -32,13 +29,8 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.things.AccessControlList;
-import org.eclipse.ditto.model.things.AclInvalidException;
-import org.eclipse.ditto.model.things.AclNotAllowedException;
-import org.eclipse.ditto.model.things.AclValidator;
 import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
@@ -100,16 +92,8 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
             return newErrorResult(e, command);
         }
 
-        // before persisting, check if the Thing is valid and reject if not:
-        final Result<ThingEvent<?>> validateThingError =
-                validateThing(context, command.getImplementedSchemaVersion(), newThing, command);
-        if (validateThingError != null) {
-            return validateThingError;
-        }
-
         // for v2 upwards, set the policy-id to the thing-id if none is specified:
-        final boolean isV2Upwards = !JsonSchemaVersion.V_1.equals(command.getImplementedSchemaVersion());
-        if (isV2Upwards && newThing.getPolicyEntityId().isEmpty()) {
+        if (newThing.getPolicyEntityId().isEmpty()) {
             newThing = newThing.setPolicyId(PolicyId.of(context.getState()));
         }
 
@@ -133,24 +117,12 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
             final Thing thing,
             final DittoHeaders dittoHeaders) {
 
-        if (JsonSchemaVersion.V_1.equals(version)) {
-            return enhanceNewThingWithFallbackAcl(setLifecycleActive(thing),
-                    dittoHeaders.getAuthorizationContext());
+        // policyId is required for v2
+        if (thing.getPolicyEntityId().isEmpty()) {
+            throw PolicyIdMissingException.fromThingIdOnCreate(context.getState(), dittoHeaders);
         }
-        // default case handle as v2 and upwards:
-        else {
-            //acl is not allowed to be set in v2
-            if (thing.getAccessControlList().isPresent()) {
-                throw AclNotAllowedException.newBuilder(context.getState()).dittoHeaders(dittoHeaders).build();
-            }
 
-            // policyId is required for v2
-            if (thing.getPolicyEntityId().isEmpty()) {
-                throw PolicyIdMissingException.fromThingIdOnCreate(context.getState(), dittoHeaders);
-            }
-
-            return setLifecycleActive(thing);
-        }
+        return setLifecycleActive(thing);
     }
 
     private static Thing setLifecycleActive(final Thing thing) {
@@ -160,59 +132,6 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
         return ThingsModelFactory.newThingBuilder(thing)
                 .setLifecycle(ThingLifecycle.ACTIVE)
                 .build();
-    }
-
-    /**
-     * Retrieves the Thing with first authorization subjects as fallback for the ACL of the Thing if the passed
-     * {@code newThing} has no ACL set.
-     *
-     * @param newThing the new Thing to take as a "base" and to check for presence of ACL inside.
-     * @param authContext the AuthorizationContext to take the first AuthorizationSubject as fallback from.
-     * @return the really new Thing with guaranteed ACL.
-     */
-    private Thing enhanceNewThingWithFallbackAcl(final Thing newThing, final AuthorizationContext authContext) {
-        final ThingBuilder.FromCopy newThingBuilder = ThingsModelFactory.newThingBuilder(newThing);
-
-        final Boolean isAclEmpty = newThing.getAccessControlList()
-                .map(AccessControlList::isEmpty)
-                .orElse(true);
-        if (isAclEmpty) {
-            // do the fallback and use the first authorized subject and give all permissions to it:
-            final AuthorizationSubject authorizationSubject = authContext.getFirstAuthorizationSubject()
-                    .orElseThrow(() -> new NullPointerException("AuthorizationContext does not contain an " +
-                            "AuthorizationSubject!"));
-            newThingBuilder.setPermissions(authorizationSubject, Thing.MIN_REQUIRED_PERMISSIONS);
-        }
-
-        return newThingBuilder.build();
-    }
-
-    @Nullable
-    private Result<ThingEvent<?>> validateThing(final Context<ThingId> context, final JsonSchemaVersion version,
-            final Thing thing, final CreateThing command) {
-        final DittoHeaders headers = command.getDittoHeaders();
-        final Optional<AccessControlList> accessControlList = thing.getAccessControlList();
-        if (JsonSchemaVersion.V_1.equals(version)) {
-            if (accessControlList.isPresent()) {
-                final Validator aclValidator =
-                        AclValidator.newInstance(accessControlList.get(), Thing.MIN_REQUIRED_PERMISSIONS);
-                // before persisting, check if the ACL is valid and reject if not:
-                if (!aclValidator.isValid()) {
-                    final AclInvalidException aclInvalidException =
-                            AclInvalidException.newBuilder(context.getState())
-                                    .dittoHeaders(headers)
-                                    .build();
-                    return newErrorResult(aclInvalidException, command);
-                }
-            } else {
-                final AclInvalidException aclInvalidException =
-                        AclInvalidException.newBuilder(context.getState())
-                                .dittoHeaders(headers)
-                                .build();
-                return newErrorResult(aclInvalidException, command);
-            }
-        }
-        return null;
     }
 
     @Override

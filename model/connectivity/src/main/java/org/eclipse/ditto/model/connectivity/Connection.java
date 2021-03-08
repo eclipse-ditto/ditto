@@ -248,103 +248,103 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
          */
         public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
                 JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Connection's lifecycle.
          */
         public static final JsonFieldDefinition<String> LIFECYCLE =
                 JsonFactory.newStringFieldDefinition("__lifecycle", FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Connection} identifier.
          */
         public static final JsonFieldDefinition<String> ID =
-                JsonFactory.newStringFieldDefinition("id", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("id", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Connection} name.
          */
         public static final JsonFieldDefinition<String> NAME =
-                JsonFactory.newStringFieldDefinition("name", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("name", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code ConnectionType}.
          */
         public static final JsonFieldDefinition<String> CONNECTION_TYPE =
-                JsonFactory.newStringFieldDefinition("connectionType", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("connectionType", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code ConnectionStatus}.
          */
         public static final JsonFieldDefinition<String> CONNECTION_STATUS =
-                JsonFactory.newStringFieldDefinition("connectionStatus", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("connectionStatus", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing credentials.
          */
         public static final JsonFieldDefinition<JsonObject> CREDENTIALS =
-                JsonFactory.newJsonObjectFieldDefinition("credentials", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonObjectFieldDefinition("credentials", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Connection} uri.
          */
         public static final JsonFieldDefinition<String> URI =
-                JsonFactory.newStringFieldDefinition("uri", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("uri", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Connection} sources configuration.
          */
         public static final JsonFieldDefinition<JsonArray> SOURCES =
-                JsonFactory.newJsonArrayFieldDefinition("sources", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonArrayFieldDefinition("sources", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
         /**
          * JSON field containing the {@code Connection} targets configuration.
          */
         public static final JsonFieldDefinition<JsonArray> TARGETS =
-                JsonFactory.newJsonArrayFieldDefinition("targets", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonArrayFieldDefinition("targets", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Connection} client count.
          */
         public static final JsonFieldDefinition<Integer> CLIENT_COUNT =
-                JsonFactory.newIntFieldDefinition("clientCount", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newIntFieldDefinition("clientCount", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Connection} failover enabled.
          */
         public static final JsonFieldDefinition<Boolean> FAILOVER_ENABLED =
-                JsonFactory.newBooleanFieldDefinition("failoverEnabled", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newBooleanFieldDefinition("failoverEnabled", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Connection} trust all certificates.
          */
         public static final JsonFieldDefinition<Boolean> VALIDATE_CERTIFICATES =
-                JsonFactory.newBooleanFieldDefinition("validateCertificates", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newBooleanFieldDefinition("validateCertificates", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Connection} processor pool size.
          */
         public static final JsonFieldDefinition<Integer> PROCESSOR_POOL_SIZE =
-                JsonFactory.newIntFieldDefinition("processorPoolSize", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newIntFieldDefinition("processorPoolSize", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Connection} {@link ConnectionType} specific config.
          */
         public static final JsonFieldDefinition<JsonObject> SPECIFIC_CONFIG =
-                JsonFactory.newJsonObjectFieldDefinition("specificConfig", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonObjectFieldDefinition("specificConfig", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
@@ -353,28 +353,28 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
          */
         @Deprecated
         public static final JsonFieldDefinition<JsonObject> MAPPING_CONTEXT =
-                JsonFactory.newJsonObjectFieldDefinition("mappingContext", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonObjectFieldDefinition("mappingContext", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the definitions of {@code Connection} mappings.
          */
         public static final JsonFieldDefinition<JsonObject> MAPPING_DEFINITIONS =
-                JsonFactory.newJsonObjectFieldDefinition("mappingDefinitions", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonObjectFieldDefinition("mappingDefinitions", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Connection} tags configuration.
          */
         public static final JsonFieldDefinition<JsonArray> TAGS =
-                JsonFactory.newJsonArrayFieldDefinition("tags", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonArrayFieldDefinition("tags", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field definition of trusted certificates.
          */
         public static final JsonFieldDefinition<String> TRUSTED_CERTIFICATES =
-                JsonFieldDefinition.ofString("ca", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFieldDefinition.ofString("ca", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

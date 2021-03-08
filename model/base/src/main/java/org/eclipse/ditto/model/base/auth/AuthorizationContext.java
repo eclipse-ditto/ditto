@@ -201,7 +201,7 @@ public interface AuthorizationContext
         @Deprecated
         public static final JsonFieldDefinition<Integer> JSON_SCHEMA_VERSION =
                 JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the authorization context's type.
@@ -209,14 +209,14 @@ public interface AuthorizationContext
          * @since 1.1.0
          */
         public static final JsonFieldDefinition<String> TYPE =
-                JsonFactory.newStringFieldDefinition("type", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("type", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the authorized subjects as JSON array.
          */
         public static final JsonFieldDefinition<JsonArray> AUTH_SUBJECTS =
-                JsonFactory.newJsonArrayFieldDefinition("subjects", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonArrayFieldDefinition("subjects", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

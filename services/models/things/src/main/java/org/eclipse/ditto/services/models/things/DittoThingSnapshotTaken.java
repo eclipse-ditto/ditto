@@ -46,7 +46,7 @@ public final class DittoThingSnapshotTaken implements ThingSnapshotTaken, Event<
     static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<String> JSON_THING_ID =
-            JsonFactory.newStringFieldDefinition("id", JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+            JsonFactory.newStringFieldDefinition("id", JsonSchemaVersion.V_2);
 
     private final ThingId thingId;
 

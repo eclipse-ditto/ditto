@@ -297,25 +297,25 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
     public static final class JsonFields extends CommandResponse.JsonFields {
 
         public static final JsonFieldDefinition<String> CONNECTION_STATUS =
-                JsonFactory.newStringFieldDefinition("connectionStatus", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("connectionStatus", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         public static final JsonFieldDefinition<String> LIVE_STATUS =
-                JsonFactory.newStringFieldDefinition("liveStatus", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("liveStatus", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         public static final JsonFieldDefinition<String> CONNECTED_SINCE =
-                JsonFactory.newStringFieldDefinition("connectedSince", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("connectedSince", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         public static final JsonFieldDefinition<JsonArray> CLIENT_STATUS =
-                JsonFactory.newJsonArrayFieldDefinition("clientStatus", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonArrayFieldDefinition("clientStatus", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
         public static final JsonFieldDefinition<JsonArray> SOURCE_STATUS =
-                JsonFactory.newJsonArrayFieldDefinition("sourceStatus", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonArrayFieldDefinition("sourceStatus", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
         public static final JsonFieldDefinition<JsonArray> TARGET_STATUS =
-                JsonFactory.newJsonArrayFieldDefinition("targetStatus", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonArrayFieldDefinition("targetStatus", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
     }
 

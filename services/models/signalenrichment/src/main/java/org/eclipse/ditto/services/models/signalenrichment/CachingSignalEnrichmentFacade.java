@@ -159,8 +159,7 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
             final JsonObjectBuilder jsonObjectBuilder) {
 
         final JsonPointer resourcePath = thingEvent.getResourcePath();
-        if (Thing.JsonFields.POLICY_ID.getPointer().equals(resourcePath) ||
-                resourcePath.toString().startsWith(Thing.JsonFields.ACL.getPointer().toString())) {
+        if (Thing.JsonFields.POLICY_ID.getPointer().equals(resourcePath)) {
             // invalidate the cache
             extraFieldsCache.invalidate(idWithResourceType);
             // and to another cache lookup (via roundtrip):

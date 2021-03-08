@@ -33,21 +33,9 @@ public abstract class AbstractAnnotationBasedJsonParsableFactory<T, A extends An
     AnnotationBasedJsonParsable<T> fromAnnotation(final A annotation, final Class<? extends T> classToParse) {
         final String methodName = getMethodNameFor(annotation);
         final String key = getKeyFor(annotation);
-        final String v1FallbackKey = getV1FallbackKeyFor(annotation);
 
-        return new AnnotationBasedJsonParsable<>(key, v1FallbackKey, classToParse, methodName);
+        return new AnnotationBasedJsonParsable<>(key, classToParse, methodName);
     }
-
-    /**
-     * The fallback key for API v1 deserialization strategies. If there is no fallback required this method returns
-     * the same as {@link #getKeyFor(java.lang.annotation.Annotation)}.
-     *
-     * @param annotation the annotation that holds the information to build an annotation based json parsable.
-     * @return the fallback key for v1 deserialization strategies or the v2 key if no fallback is required.
-     * @deprecated Part of deprecated API 1. Use API 2 {@link #getKeyFor(java.lang.annotation.Annotation)}}
-     */
-    @Deprecated
-    protected abstract String getV1FallbackKeyFor(A annotation);
 
     /**
      * The key for v2 deserialization strategies.

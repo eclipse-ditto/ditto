@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.models.streaming;
 
 import static org.eclipse.ditto.model.base.json.FieldType.REGULAR;
-import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_1;
 import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_2;
 
 import java.util.Objects;
@@ -53,13 +52,13 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<Integer> JSON_BURST =
-            JsonFactory.newIntFieldDefinition("payload/burst", REGULAR, V_1, V_2);
+            JsonFactory.newIntFieldDefinition("payload/burst", REGULAR, V_2);
 
     static final JsonFieldDefinition<Long> JSON_TIMEOUT_MILLIS =
-            JsonFactory.newLongFieldDefinition("payload/timeoutMillis", REGULAR, V_1, V_2);
+            JsonFactory.newLongFieldDefinition("payload/timeoutMillis", REGULAR, V_2);
 
     static final JsonFieldDefinition<JsonObject> JSON_LOWER_BOUND =
-            JsonFactory.newJsonObjectFieldDefinition("payload/lowerBound", REGULAR, V_1, V_2);
+            JsonFactory.newJsonObjectFieldDefinition("payload/lowerBound", REGULAR, V_2);
 
     private final int burst;
 

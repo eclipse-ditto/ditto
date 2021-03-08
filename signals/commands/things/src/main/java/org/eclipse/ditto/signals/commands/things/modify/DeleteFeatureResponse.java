@@ -50,7 +50,7 @@ public final class DeleteFeatureResponse extends AbstractCommandResponse<DeleteF
     public static final String TYPE = TYPE_PREFIX + DeleteFeature.NAME;
 
     static final JsonFieldDefinition<String> JSON_FEATURE_ID =
-            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final ThingId thingId;

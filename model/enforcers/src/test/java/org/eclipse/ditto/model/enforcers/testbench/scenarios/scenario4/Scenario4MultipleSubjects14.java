@@ -16,6 +16,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.enforcers.testbench.algorithms.PolicyAlgorithm;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.Scenario;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.ScenarioSetup;
@@ -39,10 +40,10 @@ public class Scenario4MultipleSubjects14 implements Scenario4MultipleSubjects {
                 getPolicy(), //
                 Scenario.newAuthorizationContext(SUBJECT_5), //
                 "/features/public", //
-                Stream.of(
-                        SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_1).toString(),
-                        SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_2).toString(),
-                        SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_3).toString())
+                Stream.of(SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_1),
+                        SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_2),
+                        SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_3))
+                        .map(AuthorizationSubject::newInstance)
                         .collect(Collectors.toSet()),
                 "READ");
     }

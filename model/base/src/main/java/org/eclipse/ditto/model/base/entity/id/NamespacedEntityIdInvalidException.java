@@ -155,7 +155,7 @@ public final class NamespacedEntityIdInvalidException extends DittoRuntimeExcept
          * JSON field containing the HTTP status code of the exception.
          */
         static final JsonFieldDefinition<String> ENTITY_ID =
-                JsonFactory.newStringFieldDefinition("entityId", FieldType.HIDDEN, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("entityId", FieldType.HIDDEN,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

@@ -105,14 +105,14 @@ public interface ConnectivityEvent<T extends ConnectivityEvent<T>> extends Event
          * Payload JSON field containing the Connection ID.
          */
         public static final JsonFieldDefinition<String> CONNECTION_ID =
-                JsonFactory.newStringFieldDefinition("connectionId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("connectionId", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * Payload JSON field containing the Connection.
          */
         public static final JsonFieldDefinition<JsonObject> CONNECTION =
-                JsonFactory.newJsonObjectFieldDefinition("connection", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonObjectFieldDefinition("connection", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

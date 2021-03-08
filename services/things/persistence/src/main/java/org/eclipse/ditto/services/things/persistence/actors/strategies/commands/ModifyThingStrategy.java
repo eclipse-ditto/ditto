@@ -25,9 +25,6 @@ import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.AccessControlList;
-import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingId;
@@ -70,128 +67,13 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
                 command::getDittoHeaders);
 
         final Instant eventTs = getEventTimestamp();
-        if (JsonSchemaVersion.V_1.equals(command.getImplementedSchemaVersion())) {
-            return handleModifyExistingWithV1Command(context, nonNullThing, eventTs, nextRevision, command, metadata);
-        }
 
-        // from V2 upwards, use this logic:
         return handleModifyExistingWithV2Command(context, nonNullThing, eventTs, nextRevision, command, metadata);
-    }
-
-    private Result<ThingEvent<?>> handleModifyExistingWithV1Command(final Context<ThingId> context, final Thing thing,
-            final Instant eventTs, final long nextRevision, final ModifyThing command,
-            @Nullable final Metadata metadata) {
-
-        if (JsonSchemaVersion.V_1.equals(thing.getImplementedSchemaVersion())) {
-            return handleModifyExistingV1WithV1Command(context, thing, eventTs, nextRevision, command, metadata);
-        } else {
-            return handleModifyExistingV2WithV1Command(context, thing, eventTs, nextRevision, command, metadata);
-        }
-    }
-
-    private Result<ThingEvent<?>> handleModifyExistingV1WithV1Command(final Context<ThingId> context,
-            final Thing thing, final Instant eventTs, final long nextRevision, final ModifyThing command,
-            @Nullable final Metadata metadata) {
-
-        final ThingId thingId = context.getState();
-
-        // if the ACL was modified together with the Thing, an additional check is necessary
-        final boolean isCommandAclEmpty = command.getThing()
-                .getAccessControlList()
-                .map(AccessControlList::isEmpty)
-                .orElse(true);
-
-        if (!isCommandAclEmpty) {
-            return applyModifyCommand(context, thing, eventTs, nextRevision, command, metadata);
-        } else {
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
-            final Optional<AccessControlList> existingAccessControlList = thing.getAccessControlList();
-            if (existingAccessControlList.isPresent()) {
-                // special apply - take the ACL of the persisted thing instead of the new one in the command:
-                final Thing newThingWithoutAcl = command.getThing().toBuilder().removeAllPermissions().build();
-                final Thing mergedThing = mergeThingModifications(newThingWithoutAcl, thing, eventTs, nextRevision);
-
-                final ThingEvent<?> thingModified =
-                        ThingModified.of(mergedThing, nextRevision, eventTs, dittoHeaders, metadata);
-                final WithDittoHeaders response =
-                        appendETagHeaderIfProvided(command, ModifyThingResponse.modified(thingId, dittoHeaders),
-                                mergedThing);
-                return ResultFactory.newMutationResult(command, thingModified, response);
-            } else {
-                context.getLog().withCorrelationId(command)
-                        .error("Thing <{}> has no ACL entries even though it is of schema version 1. " +
-                                "Persisting the event nevertheless to not block the user because of an " +
-                                "unknown internal state.", thingId);
-                final Thing modifiedThing = command.getThing().toBuilder()
-                        .setModified(eventTs)
-                        .setRevision(nextRevision)
-                        .build();
-                final ThingEvent<?> thingModified =
-                        ThingModified.of(modifiedThing, nextRevision, eventTs, dittoHeaders, metadata);
-                final WithDittoHeaders response =
-                        appendETagHeaderIfProvided(command, ModifyThingResponse.modified(thingId, dittoHeaders),
-                                modifiedThing);
-                return ResultFactory.newMutationResult(command, thingModified, response);
-            }
-        }
-    }
-
-    private Result<ThingEvent<?>> handleModifyExistingV2WithV1Command(final Context<ThingId> context,
-            final Thing thing, final Instant eventTs, final long nextRevision,
-            final ModifyThing command, @Nullable final Metadata metadata) {
-
-        final ThingId thingId = context.getState();
-        // remove any acl information from command and add the current policy Id
-        final Thing thingWithoutAcl = removeACL(copyPolicyId(context, thing, command.getThing()), nextRevision);
-        final ThingEvent<?> thingModified =
-                ThingModified.of(thingWithoutAcl, nextRevision, eventTs, command.getDittoHeaders(), metadata);
-        final WithDittoHeaders response =
-                appendETagHeaderIfProvided(command, ModifyThingResponse.modified(thingId, command.getDittoHeaders()),
-                        thingWithoutAcl);
-        return ResultFactory.newMutationResult(command, thingModified, response);
-    }
-
-    private static Thing removeACL(final Thing thing, final long nextRevision) {
-        return thing.toBuilder()
-                .removeAllPermissions()
-                .setRevision(nextRevision)
-                .build();
     }
 
     private Result<ThingEvent<?>> handleModifyExistingWithV2Command(final Context<ThingId> context, final Thing thing,
             final Instant eventTs, final long nextRevision, final ModifyThing command,
             @Nullable final Metadata metadata) {
-
-        if (JsonSchemaVersion.V_1.equals(thing.getImplementedSchemaVersion())) {
-            return handleModifyExistingV1WithV2Command(context, thing, eventTs, nextRevision, command, metadata);
-        } else {
-            return handleModifyExistingV2WithV2Command(context, thing, eventTs, nextRevision, command, metadata);
-        }
-    }
-
-    /**
-     * Handles a {@link ModifyThing} command that was sent via API v2 and targets a Thing with API version V1.
-     */
-    private Result<ThingEvent<?>> handleModifyExistingV1WithV2Command(final Context<ThingId> context,
-            final Thing thing, final Instant eventTs, final long nextRevision, final ModifyThing command,
-            @Nullable final Metadata metadata) {
-
-        if (containsPolicyId(command)) {
-            final Thing thingWithoutAcl = thing.toBuilder().removeAllPermissions().build();
-            return applyModifyCommand(context, thingWithoutAcl, eventTs, nextRevision, command, metadata);
-        } else {
-            return newErrorResult(
-                    PolicyIdMissingException.fromThingIdOnUpdate(context.getState(),
-                            command.getDittoHeaders()), command);
-        }
-    }
-
-    /**
-     * Handles a {@link ModifyThing} command that was sent via API v2 and targets a Thing with API version V2.
-     */
-    private Result<ThingEvent<?>> handleModifyExistingV2WithV2Command(final Context<ThingId> context,
-            final Thing thing, final Instant eventTs, final long nextRevision,
-            final ModifyThing command, @Nullable final Metadata metadata) {
 
         // ensure the Thing contains a policy ID
         final Thing thingWithPolicyId = containsPolicyId(command)
@@ -241,7 +123,6 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
                 .setRevision(nextRevision);
 
         thingWithModifications.getPolicyEntityId().ifPresent(builder::setPolicyId);
-        thingWithModifications.getAccessControlList().ifPresent(builder::setPermissions);
         thingWithModifications.getDefinition().ifPresent(builder::setDefinition);
         thingWithModifications.getAttributes().ifPresent(builder::setAttributes);
         thingWithModifications.getFeatures().ifPresent(builder::setFeatures);
