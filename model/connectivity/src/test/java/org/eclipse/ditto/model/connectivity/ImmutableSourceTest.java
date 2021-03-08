@@ -153,6 +153,7 @@ public final class ImmutableSourceTest {
                             .set(FilteredAcknowledgementRequest.JsonFields.FILTER,
                                     FILTERED_ACKNOWLEDGEMENT_REQUEST.getFilter().orElse(null))
                             .build())
+            .set(Source.JsonFields.HEADER_MAPPING, JsonObject.empty())
             .build();
 
 

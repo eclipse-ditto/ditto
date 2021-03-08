@@ -4,7 +4,7 @@
 {
   "topic": "unknown/unknown/policies/errors",
   "headers": {
-    "content-type": "application/vnd.eclipse.ditto+json"
+    "content-type": "application/json"
   },
   "path": "/",
   "value": {

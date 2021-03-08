@@ -43,7 +43,8 @@ public final class MessageSendNotAllowedException extends DittoRuntimeException 
             "You are not allowed to send messages for the Thing with id ''{0}''!";
 
     private static final String DEFAULT_DESCRIPTION =
-            "Please make sure that the Thing exists and that you have a WRITE permission on the Thing.";
+            "Please make sure that the Thing exists and that you have WRITE permissions on the message resource in " +
+                    "the policy of the Thing.";
 
     private static final long serialVersionUID = -7767643705375184154L;
 

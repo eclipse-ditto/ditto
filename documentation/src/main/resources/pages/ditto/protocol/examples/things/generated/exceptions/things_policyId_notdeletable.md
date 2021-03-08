@@ -5,7 +5,7 @@
   "topic": "unknown/unknown/things/twin/errors",
   "headers": {
     "response-required": false,
-    "content-type": "application/vnd.eclipse.ditto+json"
+    "content-type": "application/json"
   },
   "path": "/",
   "value": {

@@ -101,7 +101,7 @@ Events are mapped to a nested sparse JSON.
 ```json
 {
   "topic": "thing/id/things/twin/events/modified",
-  "headers": { "content-type": "application/vnd.eclipse.ditto+json" },
+  "headers": { "content-type": "application/json" },
   "path": "/features/sensors/properties/temperature/indoor/value",
   "value": 42
 }
@@ -127,7 +127,7 @@ would result in the following normalized JSON representation:
     "topic": "thing/id/things/twin/events/modified",
     "path": "/features/sensors/properties/temperature/indoor/value",
     "headers": {
-      "content-type": "application/vnd.eclipse.ditto+json"
+      "content-type": "application/json"
     }
   }
 }

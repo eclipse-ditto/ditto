@@ -48,6 +48,9 @@ public final class ConnectivityModelFactory {
      */
     public static final String SOURCE_ADDRESS_ENFORCEMENT = "{{ source:address }}";
 
+    private static final HeaderMapping EMPTY_HEADER_MAPPING =
+            ConnectivityModelFactory.newHeaderMapping(new HashMap<>());
+
     private ConnectivityModelFactory() {
         throw new AssertionError();
     }
@@ -380,7 +383,6 @@ public final class ConnectivityModelFactory {
      * @param options the mapping options required to instantiate a mapper.
      * @return the created MappingContext.
      * @throws NullPointerException if any argument is {@code null}.
-     *
      * @since 1.3.0
      */
     public static MappingContextBuilder newMappingContextBuilder(final String mappingEngine,
@@ -990,6 +992,15 @@ public final class ConnectivityModelFactory {
      */
     public static Enforcement newEnforcement(final Enforcement enforcement) {
         return ImmutableEnforcement.of(enforcement.getInput(), enforcement.getFilters());
+    }
+
+    /**
+     * Returns singleton of a header mapping without any mappings defined
+     *
+     * @return the empty header mapping
+     */
+    public static HeaderMapping emptyHeaderMapping() {
+        return EMPTY_HEADER_MAPPING;
     }
 
     /**
