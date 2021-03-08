@@ -410,6 +410,24 @@ public final class ImmutableConnectionTest {
     }
 
     @Test
+    public void parsePasswordWithPlusSign() {
+        final ConnectionUri underTest = ConnectionUri.of("amqps://foo:bar+baz@hono.eclipse.org:5671/vhost");
+        assertThat(underTest.getPassword()).contains("bar+baz");
+    }
+
+    @Test
+    public void parsePasswordWithPlusSignEncoded() {
+        final ConnectionUri underTest = ConnectionUri.of("amqps://foo:bar%2Bbaz@hono.eclipse.org:5671/vhost");
+        assertThat(underTest.getPassword()).contains("bar+baz");
+    }
+
+    @Test
+    public void parsePasswordWithPlusSignDoubleEncoded() {
+        final ConnectionUri underTest = ConnectionUri.of("amqps://foo:bar%252Bbaz@hono.eclipse.org:5671/vhost");
+        assertThat(underTest.getPassword()).contains("bar+baz");
+    }
+
+    @Test
     public void parseUriWithoutCredentials() {
         final ConnectionUri underTest = ConnectionUri.of("amqps://hono.eclipse.org:5671");
 
