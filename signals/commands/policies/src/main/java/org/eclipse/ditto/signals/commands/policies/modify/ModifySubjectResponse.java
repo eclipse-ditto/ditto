@@ -79,8 +79,8 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
 
         super(TYPE, httpStatus, dittoHeaders);
         this.policyId = checkNotNull(policyId, "policyId");
-        this.subjectId = checkNotNull(subjectId, "subjectId");
         this.label = checkNotNull(label, "label");
+        this.subjectId = checkNotNull(subjectId, "subjectId");
         this.subjectCreated = subjectCreated;
     }
 

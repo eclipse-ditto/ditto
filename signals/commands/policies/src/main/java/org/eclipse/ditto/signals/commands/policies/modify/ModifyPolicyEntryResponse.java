@@ -72,8 +72,8 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
 
         super(TYPE, httpStatus, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
-        this.policyEntryCreated = policyEntryCreated;
         this.label = checkNotNull(label, "label");
+        this.policyEntryCreated = policyEntryCreated;
     }
 
     /**
@@ -185,8 +185,7 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId),
-                predicate);
+        jsonObjectBuilder.set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
         if (null != policyEntryCreated) {
             jsonObjectBuilder.set(JSON_POLICY_ENTRY, policyEntryCreated.toJson(schemaVersion, thePredicate), predicate);
