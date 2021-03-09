@@ -123,7 +123,7 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
                 }).build();
     }
 
-    private void getAllConnectionIDs(final WithDittoHeaders<RetrieveAllConnectionIds> cmd) {
+    private void getAllConnectionIDs(final WithDittoHeaders cmd) {
         try {
             final Source<String, NotUsed> idsFromSnapshots = getIdsFromSnapshotsSource();
             final Source<String, NotUsed> idsFromJournal = persistenceIdsFromJournalSourceSupplier.get();
@@ -149,7 +149,7 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
                 .map(Optional::get);
     }
 
-    private CommandResponse buildResponse(final WithDittoHeaders<RetrieveAllConnectionIds> cmd,
+    private CommandResponse buildResponse(final WithDittoHeaders cmd,
             final Set<String> ids) {
         return RetrieveAllConnectionIdsResponse.of(ids, cmd.getDittoHeaders());
     }

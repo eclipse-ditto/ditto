@@ -173,7 +173,7 @@ public abstract class AbstractPolicyCommandStrategyTest {
         final List<E> box = new ArrayList<>(1);
         result.accept(new ResultVisitor<>() {
             @Override
-            public void onMutation(final Command<?> command, final E event, final WithDittoHeaders<?> response,
+            public void onMutation(final Command<?> command, final E event, final WithDittoHeaders response,
                     final boolean becomeCreated,
                     final boolean becomeDeleted) {
 
@@ -181,7 +181,7 @@ public abstract class AbstractPolicyCommandStrategyTest {
             }
 
             @Override
-            public void onQuery(final Command<?> command, final WithDittoHeaders<?> response) {
+            public void onQuery(final Command<?> command, final WithDittoHeaders response) {
                 throw new AssertionError("Expect mutation result, got query response: " + response);
             }
 

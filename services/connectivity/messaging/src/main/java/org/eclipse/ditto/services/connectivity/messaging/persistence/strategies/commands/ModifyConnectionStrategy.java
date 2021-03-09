@@ -73,7 +73,7 @@ final class ModifyConnectionStrategy extends AbstractConnectivityCommandStrategy
         }
         final ConnectivityEvent<?> event =
                 ConnectionModified.of(connection, getEventTimestamp(), command.getDittoHeaders());
-        final WithDittoHeaders<?> response =
+        final WithDittoHeaders response =
                 ModifyConnectionResponse.of(context.getState().id(), command.getDittoHeaders());
         final boolean isCurrentConnectionOpen = Optional.ofNullable(entity)
                 .map(c -> c.getConnectionStatus() == ConnectivityStatus.OPEN)

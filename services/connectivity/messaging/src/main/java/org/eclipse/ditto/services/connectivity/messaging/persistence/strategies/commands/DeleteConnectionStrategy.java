@@ -54,7 +54,7 @@ final class DeleteConnectionStrategy extends AbstractConnectivityCommandStrategy
             @Nullable final Metadata metadata) {
 
         final ConnectivityEvent<?> event = ConnectionDeleted.of(context.getState().id(), command.getDittoHeaders());
-        final WithDittoHeaders<?> response =
+        final WithDittoHeaders response =
                 DeleteConnectionResponse.of(context.getState().id(), command.getDittoHeaders());
         // Not closing the connection asynchronously; rely on client actors to cleanup all resources when stopped.
         final List<ConnectionAction> actions =

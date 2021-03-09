@@ -51,7 +51,7 @@ public final class RetrieveAllConnectionIdsResponse extends AbstractCommandRespo
      */
     public static final String TYPE = TYPE_PREFIX + RetrieveAllConnectionIds.NAME;
     static final JsonFieldDefinition<JsonArray> CONNECTION_IDS =
-            JsonFactory.newJsonArrayFieldDefinition("connectionIds", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonArrayFieldDefinition("connectionIds", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final Set<String> connectionIds;
