@@ -216,12 +216,15 @@ public final class AggregatedDevOpsCommandResponse
     private static JsonObject buildJsonRepresentation(final List<CommandResponse<?>> commandResponses,
             final DittoHeaders dittoHeaders) {
 
+        final JsonSchemaVersion schemaVersion = dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST);
         final JsonObjectBuilder builder = JsonObject.newBuilder();
 
         int i = 0;
         for (final CommandResponse<?> cmdR : commandResponses) {
-            builder.set("/" + calculateServiceName(cmdR) + "/" + calculateInstance(cmdR, i++),
-                    cmdR.toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST)));
+            final String key = String.format("/%s/%s", calculateServiceName(cmdR), calculateInstance(cmdR, i++));
+            // include both regular and special fields for devops command responses
+            final JsonObject responseJson = cmdR.toJson(schemaVersion, FieldType.regularOrSpecial());
+            builder.set(key, responseJson);
         }
 
         if (builder.isEmpty()) {

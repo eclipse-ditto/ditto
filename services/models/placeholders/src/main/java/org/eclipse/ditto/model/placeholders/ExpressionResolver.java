@@ -13,6 +13,7 @@
 package org.eclipse.ditto.model.placeholders;
 
 
+import java.util.Collection;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -66,19 +67,35 @@ public interface ExpressionResolver {
      *
      * @param expressionTemplate the expressionTemplate to resolve {@link Placeholder}s and and execute optional
      * pipeline stages
+     * @param forbiddenUnresolvedExpressionPrefixes a collection of expression prefixes which must be resolved
      * @return the resolved String, a signifier for resolution failure, or one for deletion.
      * @throws PlaceholderFunctionTooComplexException thrown if the {@code expressionTemplate} contains a placeholder
      * function chain which is too complex (e.g. too much chained function calls)
+     * @throws UnresolvedPlaceholderException if placeholders could not be resolved which contained prefixed in the a
+     * provided {@code forbiddenUnresolvedExpressionPrefixes} list.
      * @since 2.0.0
      */
-    default String resolvePartially(final String expressionTemplate) {
+    default String resolvePartially(final String expressionTemplate,
+            final Collection<String> forbiddenUnresolvedExpressionPrefixes) {
         return ExpressionResolver.substitute(expressionTemplate, expression -> {
+            final PipelineElement pipelineElement;
             try {
-                return resolveAsPipelineElement(expression).onUnresolved(() -> PipelineElement.resolved(expression));
+                pipelineElement = resolveAsPipelineElement(expression);
             } catch (final UnresolvedPlaceholderException e) {
-                // placeholder is not supported; return the expression without resolution.
-                return PipelineElement.resolved("{{" + expression + "}}");
+                if (forbiddenUnresolvedExpressionPrefixes.stream().anyMatch(expression::startsWith)) {
+                    throw e;
+                } else {
+                    // placeholder is not supported; return the expression without resolution.
+                    return PipelineElement.resolved("{{" + expression + "}}");
+                }
             }
+
+            return pipelineElement.onUnresolved(() -> {
+                        if (forbiddenUnresolvedExpressionPrefixes.stream().anyMatch(expression::startsWith)) {
+                            throw UnresolvedPlaceholderException.newBuilder(expression).build();
+                        }
+                        return PipelineElement.resolved("{{" + expression + "}}");
+                    });
         }).toOptional().orElseThrow(() -> new IllegalStateException("Impossible"));
     }
 

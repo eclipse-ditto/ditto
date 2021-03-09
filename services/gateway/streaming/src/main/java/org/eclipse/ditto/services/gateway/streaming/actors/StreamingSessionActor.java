@@ -66,6 +66,7 @@ import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.services.utils.search.SubscriptionManager;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -248,8 +249,9 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 )
                 .match(Signal.class, signal -> {
                     // check if this session is "allowed" to receive the Signal
-                    @Nullable final StreamingSession session = streamingSessions.get(determineStreamingType(signal));
-                    if (null != session && isSessionAllowedToReceiveSignal(signal, session)) {
+                    final var streamingType = determineStreamingType(signal);
+                    @Nullable final StreamingSession session = streamingSessions.get(streamingType);
+                    if (null != session && isSessionAllowedToReceiveSignal(signal, session, streamingType)) {
                         logger.withCorrelationId(signal)
                                 .debug("Got Signal in <{}> session, publishing: {}", type, signal);
 
@@ -331,14 +333,24 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                     final ConfirmUnsubscription unsubscribeConfirmation =
                             new ConfirmUnsubscription(stopStreaming.getStreamingType());
                     final Collection<StreamingType> currentStreamingTypes = streamingSessions.keySet();
-                    if (stopStreaming.getStreamingType() != StreamingType.EVENTS) {
-                        dittoProtocolSub.updateLiveSubscriptions(currentStreamingTypes,
-                                authorizationContext.getAuthorizationSubjectIds(), getSelf())
-                                .thenAccept(ack -> getSelf().tell(unsubscribeConfirmation, getSelf()));
-                    } else {
-                        dittoProtocolSub.removeTwinSubscriber(getSelf(),
-                                authorizationContext.getAuthorizationSubjectIds())
-                                .thenAccept(ack -> getSelf().tell(unsubscribeConfirmation, getSelf()));
+                    switch (stopStreaming.getStreamingType()) {
+                        case EVENTS:
+                            dittoProtocolSub.removeTwinSubscriber(getSelf(),
+                                    authorizationContext.getAuthorizationSubjectIds())
+                                    .thenAccept(ack -> getSelf().tell(unsubscribeConfirmation, getSelf()));
+                            break;
+                        case POLICY_ANNOUNCEMENTS:
+                            dittoProtocolSub.removePolicyAnnouncementSubscriber(getSelf(),
+                                    authorizationContext.getAuthorizationSubjectIds())
+                                    .thenAccept(ack -> getSelf().tell(unsubscribeConfirmation, getSelf()));
+                            break;
+                        case LIVE_COMMANDS:
+                        case LIVE_EVENTS:
+                        case MESSAGES:
+                        default:
+                            dittoProtocolSub.updateLiveSubscriptions(currentStreamingTypes,
+                                    authorizationContext.getAuthorizationSubjectIds(), getSelf())
+                                    .thenAccept(ack -> getSelf().tell(unsubscribeConfirmation, getSelf()));
                     }
                 })
                 .match(ConfirmSubscription.class, msg -> confirmSubscription(msg.getStreamingType()))
@@ -499,12 +511,18 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         subscriptionManager.tell(searchCommand, getSelf());
     }
 
-    private boolean isSessionAllowedToReceiveSignal(final Signal<?> signal, final StreamingSession session) {
-        final DittoHeaders headers = signal.getDittoHeaders();
-        final boolean isAuthorizedToRead = authorizationContext.isAuthorized(headers.getReadGrantedSubjects(),
-                headers.getReadRevokedSubjects());
-        final boolean matchesNamespace = matchesNamespaces(signal, session);
-        return isAuthorizedToRead && matchesNamespace;
+    private boolean isSessionAllowedToReceiveSignal(final Signal<?> signal, final StreamingSession session,
+            final StreamingType streamingType) {
+        if (streamingType == StreamingType.POLICY_ANNOUNCEMENTS) {
+            // recipients of policy announcements are authorized because the affected subjects are the pubsub topics
+            return true;
+        } else {
+            final DittoHeaders headers = signal.getDittoHeaders();
+            final boolean isAuthorizedToRead = authorizationContext.isAuthorized(headers.getReadGrantedSubjects(),
+                    headers.getReadRevokedSubjects());
+            final boolean matchesNamespace = matchesNamespaces(signal, session);
+            return isAuthorizedToRead && matchesNamespace;
+        }
     }
 
     private void startSessionTimeout(final Instant sessionExpirationTime) {
@@ -630,6 +648,8 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                     : StreamingType.LIVE_EVENTS;
         } else if (signal instanceof MessageCommand) {
             streamingType = StreamingType.MESSAGES;
+        } else if (signal instanceof PolicyAnnouncement) {
+            streamingType = StreamingType.POLICY_ANNOUNCEMENTS;
         } else {
             streamingType = StreamingType.LIVE_COMMANDS;
         }

@@ -159,7 +159,8 @@ public final class ProtocolFactory {
                     return ImmutableTopicPath.of(namespace, id, group, channel, criterion);
                 case MESSAGES:
                 case ACKS:
-                    // messages should always contain a non-empty subject:
+                case ANNOUNCEMENTS:
+                    // messages and announcements should always contain a non-empty subject:
                     // ACK Paths contain a custom acknowledgement label or an empty subject for aggregated ACKs:
                     final String subject = String.join(TopicPath.PATH_DELIMITER, parts);
                     if (subject.isEmpty()) {
@@ -167,6 +168,7 @@ public final class ProtocolFactory {
                     } else {
                         return ImmutableTopicPath.of(namespace, id, group, channel, criterion, subject);
                     }
+
                 default:
                     throw UnknownTopicPathException.newBuilder(path).build();
             }
@@ -307,6 +309,19 @@ public final class ProtocolFactory {
     public static DittoHeaders newHeadersWithDittoContentType(final Map<String, String> headers) {
         return DittoHeaders.newBuilder(headers)
                 .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
+                .build();
+    }
+
+    /**
+     * Returns new {@code Headers} for the specified {@code headers} map with having
+     * {@link ContentType#APPLICATION_JSON} set for the content-type header.
+     *
+     * @param headers the headers map.
+     * @return the headers.
+     */
+    public static DittoHeaders newHeadersWithJsonContentType(final Map<String, String> headers) {
+        return DittoHeaders.newBuilder(headers)
+                .contentType(ContentType.APPLICATION_JSON)
                 .build();
     }
 

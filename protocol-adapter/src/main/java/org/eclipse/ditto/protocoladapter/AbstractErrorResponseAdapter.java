@@ -93,7 +93,7 @@ public abstract class AbstractErrorResponseAdapter<T extends ErrorResponse<T>> i
         }
 
         final DittoHeaders responseHeaders =
-                ProtocolFactory.newHeadersWithDittoContentType(errorResponse.getDittoHeaders());
+                ProtocolFactory.newHeadersWithJsonContentType(errorResponse.getDittoHeaders());
 
         return Adaptable.newBuilder(topicPathBuildable.build())
                 .withPayload(payload)

@@ -1,0 +1,24 @@
+# Copyright (c) 2021 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+type: object
+description: Settings for announcements to be made about the subject.
+properties:
+  beforeExpiry:
+    type: string
+    description: |-
+      The duration before expiry when an announcement should be made.
+      Must be a positive integer followed by one of `h` (hour), `m` (minute) or `s` (second).
+  whenDeleted:
+    type: boolean
+    description: Whether an announcement should be made when this subject is deleted.
+example:
+  beforeExpiry: "5m"
+  whenDeleted: true

@@ -292,6 +292,14 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     boolean isAllowPolicyLockout();
 
     /**
+     * Returns the tags which should be applied by persistence actors when appending an event into the event journal.
+     *
+     * @return the tags to apply for event journal persistence.
+     * @since 2.0.0
+     */
+    Set<String> getJournalTags();
+
+    /**
      * Return a copy of the headers with the original capitalization of header keys.
      *
      * @return headers map with the original capitalization.

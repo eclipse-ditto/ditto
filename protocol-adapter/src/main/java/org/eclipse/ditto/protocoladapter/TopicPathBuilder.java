@@ -48,6 +48,14 @@ public interface TopicPathBuilder {
     CommandsTopicPathBuilder commands();
 
     /**
+     * Sets the {@code Criterion} of this builder to {@link TopicPath.Criterion#ANNOUNCEMENTS}.
+     *
+     * @return this builder.
+     * @since 2.0.0
+     */
+    AnnouncementsTopicPathBuilder announcements();
+
+    /**
      * Sets the {@code Channel} of this builder to {@link TopicPath.Channel#TWIN}. A previously set channel is
      * replaced.
      *

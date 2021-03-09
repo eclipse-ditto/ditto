@@ -86,8 +86,14 @@ public final class IndexInitializer {
                 });
     }
 
-    private CompletionStage<Done> createNonExistingIndices(final String collectionName,
-            final List<Index> indices) {
+    /**
+     * Create defined indices whose names are not among the indexes of the collection.
+     *
+     * @param collectionName name of the collection.
+     * @param indices the defined indices.
+     * @return a future that completes after index creation or fails when index creation fails.
+     */
+    public CompletionStage<Done> createNonExistingIndices(final String collectionName, final List<Index> indices) {
         if (indices.isEmpty()) {
             LOGGER.warn("No indices are defined, thus no indices are created.");
             return CompletableFuture.completedFuture(Done.getInstance());

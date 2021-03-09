@@ -142,7 +142,8 @@ public final class HeaderValueValidators {
     }
 
     /**
-     * Returns a validator for checking if a CharSequence represents a {@link DittoDuration}.
+     * Returns a validator for checking if a CharSequence represents a
+     * {@link org.eclipse.ditto.model.base.common.DittoDuration}.
      *
      * @return the validator.
      */
@@ -151,7 +152,8 @@ public final class HeaderValueValidators {
     }
 
     /**
-     * Returns a validator for checking if a CharSequence represents a timeout in form of a {@link DittoDuration}.
+     * Returns a validator for checking if a CharSequence represents a timeout in form of a
+     * {@link org.eclipse.ditto.model.base.common.DittoDuration}.
      *
      * @return the validator.
      * @since 1.2.0

@@ -15,18 +15,19 @@ package org.eclipse.ditto.model.messages;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
+import nl.jqno.equalsverifier.Warning;
 
 /**
  * Unit test for {@link MessageFormatInvalidException}.
  */
 public final class MessageFormatInvalidExceptionTest {
 
-
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(MessageFormatInvalidException.class)
                 .usingGetClass()
-                .withIgnoredFields("detailMessage", "cause", "stackTrace", "suppressedExceptions")
+                .withIgnoredFields("cause", "stackTrace", "suppressedExceptions")
+                .suppress(Warning.NONFINAL_FIELDS)
                 .verify();
     }
 

@@ -39,6 +39,7 @@ import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
+import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -106,9 +107,14 @@ public final class SignalFilter {
     }
 
     private static boolean isTargetAuthorized(final Target target, final Signal<?> signal) {
-        final AuthorizationContext authorizationContext = target.getAuthorizationContext();
-        final DittoHeaders headers = signal.getDittoHeaders();
-        return authorizationContext.isAuthorized(headers.getReadGrantedSubjects(), headers.getReadRevokedSubjects());
+        if (signal instanceof PolicyAnnouncement) {
+            return true;
+        } else {
+            final AuthorizationContext authorizationContext = target.getAuthorizationContext();
+            final DittoHeaders headers = signal.getDittoHeaders();
+            return authorizationContext.isAuthorized(headers.getReadGrantedSubjects(),
+                    headers.getReadRevokedSubjects());
+        }
     }
 
     private static boolean isTargetSubscribedForTopicGenerally(final Target target, final Signal<?> signal) {
@@ -163,7 +169,10 @@ public final class SignalFilter {
     }
 
     private static Optional<Topic> topicFromSignal(final Signal<?> signal) {
-        // only things as group supported
+        if (signal instanceof PolicyAnnouncement) {
+            return Optional.of(Topic.POLICY_ANNOUNCEMENTS);
+        }
+        // check things group
         final TopicPath.Group group = signal instanceof WithThingId ? TopicPath.Group.THINGS : null;
         final TopicPath.Channel channel = signal.getDittoHeaders()
                 .getChannel()

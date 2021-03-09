@@ -81,7 +81,7 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
      * Defines an optional header mapping e.g. rename, combine etc. headers for inbound message. Mapping is
      * applied after payload mapping is applied. The mapping may contain {@code thing:*} and {@code header:*}
      * placeholders.
-     *
+     * TODO: make this non-optional.
      * @return the optional header mappings
      */
     Optional<HeaderMapping> getHeaderMapping();

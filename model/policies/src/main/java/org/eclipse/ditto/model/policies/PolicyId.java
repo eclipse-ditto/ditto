@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.model.policies;
 
-import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -21,19 +20,19 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
+import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdWithType;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 
 /**
  * Java representation of a policy ID.
  */
 @Immutable
-public final class PolicyId implements NamespacedEntityId {
+public final class PolicyId extends NamespacedEntityIdWithType {
 
     private static final PolicyId DUMMY_ID = PolicyId.of(DefaultNamespacedEntityId.dummy());
 
-    private final NamespacedEntityId entityId;
-
     private PolicyId(final NamespacedEntityId entityId) {
-        this.entityId = entityId;
+        super(entityId);
     }
 
     /**
@@ -97,40 +96,7 @@ public final class PolicyId implements NamespacedEntityId {
     }
 
     @Override
-    public String getName() {
-        return entityId.getName();
+    public EntityType getEntityType() {
+        return PolicyConstants.ENTITY_TYPE;
     }
-
-    @Override
-    public String getNamespace() {
-        return entityId.getNamespace();
-    }
-
-    @Override
-    public boolean equals(final Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        final PolicyId that = (PolicyId) o;
-        return Objects.equals(entityId, that.entityId);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(entityId);
-    }
-
-    @Override
-    public String toString() {
-        return entityId.toString();
-    }
-
-    @Override
-    public boolean isDummy() {
-        return entityId.isDummy();
-    }
-
 }

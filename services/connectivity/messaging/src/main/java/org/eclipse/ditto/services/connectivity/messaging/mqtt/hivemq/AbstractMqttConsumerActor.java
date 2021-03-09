@@ -186,17 +186,15 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
             headers = extractHeadersMapFromMqttMessage(message);
 
             final Map<String, String> headerMappingMap = new HashMap<>();
+            final Map<String, String> mqttMappings = Map.of(
+                    MQTT_TOPIC_HEADER, getHeaderPlaceholder(MQTT_TOPIC_HEADER),
+                    MQTT_QOS_HEADER, getHeaderPlaceholder(MQTT_QOS_HEADER),
+                    MQTT_RETAIN_HEADER, getHeaderPlaceholder(MQTT_RETAIN_HEADER)
+            );
 
             final Optional<HeaderMapping> sourceHeaderMapping = source.getHeaderMapping();
-            if (sourceHeaderMapping.isPresent()) {
-                headerMappingMap.putAll(sourceHeaderMapping.get().getMapping());
-            } else {
-                // apply fallback header mapping when headerMapping was "null"/not present in order to stay backwards
-                //  compatible:
-                headerMappingMap.put(MQTT_TOPIC_HEADER, getHeaderPlaceholder(MQTT_TOPIC_HEADER));
-                headerMappingMap.put(MQTT_QOS_HEADER, getHeaderPlaceholder(MQTT_QOS_HEADER));
-                headerMappingMap.put(MQTT_RETAIN_HEADER, getHeaderPlaceholder(MQTT_RETAIN_HEADER));
-            }
+            sourceHeaderMapping.ifPresent(headerMapping -> headerMappingMap.putAll(headerMapping.getMapping()));
+            headerMappingMap.putAll(mqttMappings);
 
             final HeaderMapping mqttTopicHeaderMapping = ConnectivityModelFactory.newHeaderMapping(headerMappingMap);
             final ExternalMessage externalMessage = ExternalMessageFactory

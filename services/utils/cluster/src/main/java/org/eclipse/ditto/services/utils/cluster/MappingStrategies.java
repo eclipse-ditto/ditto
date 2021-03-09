@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.utils.cluster;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.AbstractMap;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -42,7 +42,7 @@ import akka.actor.ActorSystem;
  * participate in cluster communication.
  */
 @Immutable
-public abstract class MappingStrategies extends AbstractMap<String, JsonParsable<Jsonifiable<?>>> {
+public abstract class MappingStrategies implements Map<String, JsonParsable<Jsonifiable<?>>> {
 
     private static final String CONFIG_KEY_DITTO_MAPPING_STRATEGY_IMPLEMENTATION =
             "ditto.mapping-strategy.implementation";
@@ -91,6 +91,62 @@ public abstract class MappingStrategies extends AbstractMap<String, JsonParsable
     }
 
     @Override
+    public int size() {
+        return strategies.size();
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return strategies.isEmpty();
+    }
+
+    @Override
+    public boolean containsKey(final Object o) {
+        return strategies.containsKey(o);
+    }
+
+    @Override
+    public boolean containsValue(final Object o) {
+        return strategies.containsValue(o);
+    }
+
+    @Override
+    public JsonParsable<Jsonifiable<?>> get(final Object o) {
+        return strategies.get(o);
+    }
+
+    @Override
+    public JsonParsable<Jsonifiable<?>> put(final String s,
+            final JsonParsable<Jsonifiable<?>> jsonifiableJsonParsable) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public JsonParsable<Jsonifiable<?>> remove(final Object o) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void putAll(final Map<? extends String, ? extends JsonParsable<Jsonifiable<?>>> map) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void clear() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Set<String> keySet() {
+        return strategies.keySet();
+    }
+
+    @Override
+    public Collection<JsonParsable<Jsonifiable<?>>> values() {
+        return strategies.values();
+    }
+
+    @Override
     public Set<Entry<String, JsonParsable<Jsonifiable<?>>>> entrySet() {
         return strategies.entrySet();
     }
@@ -99,15 +155,11 @@ public abstract class MappingStrategies extends AbstractMap<String, JsonParsable
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
+        } else if (o instanceof Map) {
+            return strategies.equals(o);
+        } else {
             return false;
         }
-        if (!super.equals(o)) {
-            return false;
-        }
-        final MappingStrategies that = (MappingStrategies) o;
-        return strategies.equals(that.strategies);
     }
 
     @Override

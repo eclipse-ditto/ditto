@@ -18,12 +18,14 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
+import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
@@ -32,6 +34,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
+import org.mockito.Mockito;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -63,10 +66,7 @@ public final class ShardRegionExtractorTest {
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ShardRegionExtractor.class)
-                .usingGetClass()
-                .withRedefinedSuperclass()
-                .verify();
+        EqualsVerifier.forClass(ShardRegionExtractor.class).verify();
     }
 
     @Test
@@ -113,6 +113,35 @@ public final class ShardRegionExtractorTest {
         final Object actual = underTest.entityMessage(messageEnvelope);
 
         assertThat(actual).isEqualTo(errorResponse);
+    }
+
+    @Test
+    public void shardIdForNull() {
+        assertThat(underTest.shardId(null)).isNull();
+    }
+
+    @Test
+    public void shardIdForMessageWhoseIdHashCodeIsIntegerMinValue() {
+        final var message = Mockito.mock(WithId.class);
+        final var entityId = Mockito.mock(EntityId.class);
+        final var stringWithMinHashCode = "polygenelubricants";
+        Mockito.when(entityId.toString()).thenReturn(stringWithMinHashCode);
+        Mockito.when(message.getEntityId()).thenReturn(entityId);
+
+        assertThat(underTest.shardId(message)).isEqualTo(String.valueOf(0));
+    }
+
+    @Test
+    public void shardIdReturnsExpected() {
+        final var numberOfShards = 10;
+        final var message = Mockito.mock(WithId.class);
+        final var entityId = Mockito.mock(EntityId.class);
+        Mockito.when(entityId.toString()).thenReturn("Plumbus");
+        Mockito.when(message.getEntityId()).thenReturn(entityId);
+
+        final var underTest = ShardRegionExtractor.of(numberOfShards, GlobalMappingStrategies.getInstance());
+
+        assertThat(underTest.shardId(message)).isEqualTo("2");
     }
 
 }

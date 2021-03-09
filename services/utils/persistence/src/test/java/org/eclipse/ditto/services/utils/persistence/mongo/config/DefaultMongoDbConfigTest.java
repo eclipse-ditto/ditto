@@ -80,8 +80,10 @@ public final class DefaultMongoDbConfigTest {
         final DefaultMongoDbConfig underTest = DefaultMongoDbConfig.of(rawMongoDbConfig);
 
         softly.assertThat(underTest.getMaxQueryTime()).isEqualTo(Duration.ofSeconds(10));
+        // query options from the configured Mongo URI in "mongodb_test.conf" must be preserved
+        // exception is the "ssl" option where the configured value in the config has priority
         softly.assertThat(underTest.getMongoDbUri())
-                .isEqualTo("mongodb://foo:bar@mongodb:27017/test");
+                .isEqualTo("mongodb://foo:bar@mongodb:27017/test?w=1&ssl=false&sslInvalidHostNameAllowed=true");
         softly.assertThat(underTest.getOptionsConfig()).satisfies(optionsConfig -> {
             softly.assertThat(optionsConfig.isSslEnabled()).isFalse();
         });
@@ -113,7 +115,7 @@ public final class DefaultMongoDbConfigTest {
         final DefaultMongoDbConfig underTest = DefaultMongoDbConfig.of(originalMongoDbConfig);
 
         softly.assertThat(underTest.getMaxQueryTime()).as("maxQueryTime").isEqualTo(Duration.ofMinutes(1));
-        softly.assertThat(underTest.getMongoDbUri()).as("mongoDbUri").isEqualTo("mongodb://foo:bar@mongodb:27017/test");
+        softly.assertThat(underTest.getMongoDbUri()).as("mongoDbUri").isEqualTo("mongodb://foo:bar@mongodb:27017/test?ssl=false");
         softly.assertThat(underTest.getOptionsConfig()).satisfies(optionsConfig -> {
             softly.assertThat(optionsConfig.isSslEnabled()).as("ssl").isFalse();
             softly.assertThat(optionsConfig.readPreference())

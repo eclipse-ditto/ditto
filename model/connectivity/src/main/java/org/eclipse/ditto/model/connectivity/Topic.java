@@ -25,7 +25,14 @@ public enum Topic {
     TWIN_EVENTS("_/_/things/twin/events", "things.events:"),
     LIVE_MESSAGES("_/_/things/live/messages", "messages.commands:"),
     LIVE_EVENTS("_/_/things/live/events", "things-live-events"),
-    LIVE_COMMANDS("_/_/things/live/commands", "things-live-commands");
+    LIVE_COMMANDS("_/_/things/live/commands", "things-live-commands"),
+
+    /**
+     * Connection target topic for policy announcements.
+     *
+     * @since 2.0.0
+     */
+    POLICY_ANNOUNCEMENTS("_/_/policies/announcements", "policy-announcements");
 
     private final String name;
     private final String pubSubTopic;

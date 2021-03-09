@@ -106,6 +106,8 @@ public final class ImmutableDittoHeadersTest {
     private static final boolean KNOWN_ALLOW_POLICY_LOCKOUT = true;
     private static final boolean KNOWN_IS_WEAK_ACK = false;
     private static final boolean KNOWN_POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY = true;
+    private static final List<String> KNOWN_JOURNAL_TAGS = Lists.list("tag-a", "tag-b");
+
 
     static {
         KNOWN_METADATA_HEADERS = MetadataHeaders.newInstance();
@@ -160,6 +162,8 @@ public final class ImmutableDittoHeadersTest {
                 .putHeader(DittoHeaderDefinition.WEAK_ACK.getKey(), String.valueOf(KNOWN_IS_WEAK_ACK))
                 .putHeader(DittoHeaderDefinition.POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY.getKey(),
                         String.valueOf(KNOWN_POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY))
+                .putHeader(DittoHeaderDefinition.EVENT_JOURNAL_TAGS.getKey(),
+                        charSequencesToJsonArray(KNOWN_JOURNAL_TAGS).toString())
                 .build();
 
         assertThat(underTest).isEqualTo(expectedHeaderMap);
@@ -376,6 +380,8 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.WEAK_ACK.getKey(), KNOWN_IS_WEAK_ACK)
                 .set(DittoHeaderDefinition.POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY.getKey(),
                         KNOWN_POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY)
+                .set(DittoHeaderDefinition.EVENT_JOURNAL_TAGS.getKey(),
+                        charSequencesToJsonArray(KNOWN_JOURNAL_TAGS))
                 .build();
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
 
@@ -597,6 +603,8 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.WEAK_ACK.getKey(), String.valueOf(KNOWN_IS_WEAK_ACK));
         result.put(DittoHeaderDefinition.POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY.getKey(),
                 String.valueOf(KNOWN_POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY));
+        result.put(DittoHeaderDefinition.EVENT_JOURNAL_TAGS.getKey(),
+                charSequencesToJsonArray(KNOWN_JOURNAL_TAGS).toString());
 
         return result;
     }

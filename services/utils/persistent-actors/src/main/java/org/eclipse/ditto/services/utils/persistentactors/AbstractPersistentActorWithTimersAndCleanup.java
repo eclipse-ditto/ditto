@@ -40,7 +40,11 @@ import akka.persistence.SnapshotSelectionCriteria;
  */
 public abstract class AbstractPersistentActorWithTimersAndCleanup extends AbstractPersistentActorWithTimers {
 
-    private static final int STALE_EVENTS_KEPT_AFTER_CLEANUP = 0;
+    /**
+     * Keep 1 stale event after cleanup in order to e.g. preserve journal {@code tags} on that event - as journal tags
+     * are not stored in snapshots, they will be lost if all events are deleted on cleanup.
+     */
+    private static final int STALE_EVENTS_KEPT_AFTER_CLEANUP = 1;
 
     /**
      * Logger of the actor.

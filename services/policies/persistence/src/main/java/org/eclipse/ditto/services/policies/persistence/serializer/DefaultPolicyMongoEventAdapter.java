@@ -30,14 +30,7 @@ import akka.actor.ExtendedActorSystem;
 public final class DefaultPolicyMongoEventAdapter extends AbstractPolicyMongoEventAdapter {
 
     public DefaultPolicyMongoEventAdapter(@Nullable final ExtendedActorSystem system) {
-        super(LoggerFactory.getLogger(DefaultPolicyMongoEventAdapter.class));
-    }
-
-    @Override
-    protected Event createEventFrom(final JsonValue json) {
-        final JsonObject jsonObject = json.asObject()
-                .setValue(Event.JsonFields.REVISION.getPointer(), Event.DEFAULT_REVISION);
-        return eventRegistry.parse(jsonObject, DittoHeaders.empty());
+        super(system);
     }
 
 }

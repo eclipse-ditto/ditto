@@ -39,16 +39,25 @@ public final class DefaultSubjectIdFromActionResolver implements SubjectIdFromAc
         return resolveSubjectId(entry, command.getSubjectIds());
     }
 
-    Set<SubjectId> resolveSubjectId(final PolicyEntry entry, final Collection<SubjectId> subjectIdsWithPlaceholder) {
+    static Set<SubjectId> resolveSubjectId(final PolicyEntry entry,
+            final Collection<SubjectId> subjectIdsWithPlaceholder) {
         final ExpressionResolver expressionResolver = PlaceholderFactory.newExpressionResolver(
                 PlaceholderFactory.newPlaceholderResolver(PoliciesPlaceholders.newPolicyEntryPlaceholder(), entry)
         );
         return subjectIdsWithPlaceholder.stream()
-                .map(subjectId -> expressionResolver
-                        .resolve(subjectId.toString())
-                        .toOptional()
-                        .map(SubjectId::newInstance)
-                        .orElseThrow(() -> UnresolvedPlaceholderException.newBuilder(subjectId.toString()).build()))
+                .map(subjectId -> {
+                    try {
+                        return expressionResolver
+                                .resolve(subjectId.toString())
+                                .toOptional()
+                                .map(SubjectId::newInstance)
+                                .orElseThrow(
+                                        () -> UnresolvedPlaceholderException.newBuilder(subjectId.toString()).build());
+                    } catch (final UnresolvedPlaceholderException e) {
+                        // Possible encounter of malformed UnresolvedPlaceholderException from expressionResolver.
+                        throw UnresolvedPlaceholderException.newBuilder(subjectId.toString()).build();
+                    }
+                })
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 

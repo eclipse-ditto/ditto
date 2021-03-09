@@ -12,7 +12,9 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors;
 
+import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
@@ -174,13 +176,26 @@ public final class ThingPersistenceActor
         if (entity != null) {
             entity = enhanceThingWithLifecycle(entity);
             log.info("Thing <{}> was recovered.", entityId);
-            becomeCreatedOrDeletedHandler();
         }
+        super.recoveryCompleted(event);
     }
 
     @Override
     protected void publishEvent(final ThingEvent<?> event) {
         distributedPub.publishWithAcks(event, ACK_EXTRACTOR, getSender());
+    }
+
+    @Override
+    protected boolean shouldSendResponse(final DittoHeaders dittoHeaders) {
+        return dittoHeaders.isResponseRequired() ||
+                dittoHeaders.getAcknowledgementRequests()
+                        .stream()
+                        .anyMatch(ar -> DittoAcknowledgementLabel.TWIN_PERSISTED.equals(ar.getLabel()));
+    }
+
+    @Override
+    protected boolean isEntityAlwaysAlive() {
+        return false;
     }
 
     @Override

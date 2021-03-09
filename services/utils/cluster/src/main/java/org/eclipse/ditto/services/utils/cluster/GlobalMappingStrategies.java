@@ -23,6 +23,7 @@ import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
 import org.eclipse.ditto.signals.events.base.GlobalEventRegistry;
+import org.eclipse.ditto.signals.announcements.base.GlobalAnnouncementRegistry;
 
 @Immutable
 public final class GlobalMappingStrategies extends MappingStrategies {
@@ -61,6 +62,7 @@ public final class GlobalMappingStrategies extends MappingStrategies {
                 .add(GlobalCommandRegistry.getInstance())
                 .add(GlobalCommandResponseRegistry.getInstance())
                 .add(GlobalEventRegistry.getInstance())
+                .add(GlobalAnnouncementRegistry.getInstance())
                 .build();
     }
 

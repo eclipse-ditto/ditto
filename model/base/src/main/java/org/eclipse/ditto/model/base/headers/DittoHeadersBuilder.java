@@ -327,6 +327,15 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder<B, R>, R exte
     B allowPolicyLockout(boolean allowPolicyLockout);
 
     /**
+     * Sets the tags which should be applied by persistence actors when appending an event into the event journal.
+     *
+     * @param journalTags the tags to apply for event journal persistence.
+     * @return this builder for method chaining.
+     * @since 2.0.0
+     */
+    B journalTags(Collection<String> journalTags);
+
+    /**
      * Puts an arbitrary header with the specified {@code name} and String {@code value} to this builder.
      *
      * @param key the header name to use.

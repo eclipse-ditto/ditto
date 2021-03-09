@@ -40,7 +40,7 @@ public interface OAuthConfig {
      *
      * @return the issuers.
      */
-    Map<SubjectIssuer, String> getOpenIdConnectIssuers();
+    Map<SubjectIssuer, SubjectIssuerConfig> getOpenIdConnectIssuers();
 
     /**
      * Returns all additionally supported openid connect issuers. This can be useful during migration phases e.g. if
@@ -48,7 +48,7 @@ public interface OAuthConfig {
      *
      * @return the additional issuers.
      */
-    Map<SubjectIssuer, String> getOpenIdConnectIssuersExtension();
+    Map<SubjectIssuer, SubjectIssuerConfig> getOpenIdConnectIssuersExtension();
 
     /**
      * Returns the template of the subject activated via token integration. May contain placeholders.

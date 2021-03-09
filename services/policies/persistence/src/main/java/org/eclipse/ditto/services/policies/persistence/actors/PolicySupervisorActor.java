@@ -27,6 +27,8 @@ import org.eclipse.ditto.services.policies.common.config.DittoPoliciesConfig;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistentactors.AbstractPersistenceSupervisor;
+import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyUnavailableException;
 
 import akka.actor.ActorKilledException;
@@ -44,10 +46,13 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
 
     private final ActorRef pubSubMediator;
     private final SnapshotAdapter<Policy> snapshotAdapter;
+    private final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub;
 
-    private PolicySupervisorActor(final ActorRef pubSubMediator, final SnapshotAdapter<Policy> snapshotAdapter) {
+    private PolicySupervisorActor(final ActorRef pubSubMediator, final SnapshotAdapter<Policy> snapshotAdapter,
+            DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub) {
         this.pubSubMediator = pubSubMediator;
         this.snapshotAdapter = snapshotAdapter;
+        this.policyAnnouncementPub = policyAnnouncementPub;
     }
 
     /**
@@ -59,11 +64,13 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
      *
      * @param pubSubMediator the PubSub mediator actor.
      * @param snapshotAdapter the adapter to serialize snapshots.
+     * @param policyAnnouncementPub publisher interface of policy announcements.
      * @return the {@link Props} to create this actor.
      */
-    public static Props props(final ActorRef pubSubMediator, final SnapshotAdapter<Policy> snapshotAdapter) {
+    public static Props props(final ActorRef pubSubMediator, final SnapshotAdapter<Policy> snapshotAdapter,
+            final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub) {
 
-        return Props.create(PolicySupervisorActor.class, pubSubMediator, snapshotAdapter);
+        return Props.create(PolicySupervisorActor.class, pubSubMediator, snapshotAdapter, policyAnnouncementPub);
     }
 
     @Override
@@ -73,7 +80,7 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
 
     @Override
     protected Props getPersistenceActorProps(final PolicyId entityId) {
-        return PolicyPersistenceActor.props(entityId, snapshotAdapter, pubSubMediator);
+        return PolicyPersistenceActor.props(entityId, snapshotAdapter, pubSubMediator, policyAnnouncementPub);
     }
 
     @Override

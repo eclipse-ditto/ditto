@@ -23,7 +23,6 @@
 
     <artifactId>ditto-signals-commands</artifactId>
     <packaging>pom</packaging>
-
     <name>Eclipse Ditto :: Signals :: Commands</name>
 
     <modules>

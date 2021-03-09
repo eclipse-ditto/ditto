@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.concierge.actors.cleanup.credits;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,7 +36,7 @@ import scala.util.Right;
  * Retrieve cluster status when prompted by a tick.
  * <ul>
  * <li>
- * Deliver the number of instances in the expected roles ({@code connectivity}, {@code policies}, {@code things}) in
+ * Deliver the number of instances in the expected roles {@code things}) in
  * outlet 0 if the cluster has no unreachable members and all expected roles are present.
  * </li>
  * <li>
@@ -47,7 +46,7 @@ import scala.util.Right;
  */
 final class ClusterStatusStage {
 
-    private static final List<String> EXPECTED_ROLES = Arrays.asList("connectivity", "policies", "things");
+    private static final List<String> EXPECTED_ROLES = List.of("things");
 
     private ClusterStatusStage() {
         throw new AssertionError();

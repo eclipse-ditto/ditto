@@ -8,8 +8,7 @@ info:
     The Eclipse Ditto HTTP API uses response status codes (see [RFC 7231](https://tools.ietf.org/html/rfc7231#section-6))
     to indicate whether a specific request has been successfully completed, or not.
 
-    However, the descriptions we provide additionally to the status code (e.g. in our API docs, or error codes like. "things.entitiy.tooLarge")
-    might change without advance notice. These are not be considered as official API, and must therefore not be applied in your applications or tests.
+    However, the descriptions we provide additionally to the status code (e.g. in our API docs, or error codes like. "things.entitiy.tooLarge") might change without advance notice. These are not be considered as official API, and must therefore not be applied in your applications or tests.
 servers:
   - url: 'https://ditto.eclipseprojects.io/api/2'
     description: online Ditto Sandbox
@@ -94,11 +93,9 @@ paths:
 
         The default `thingId` consists of your default namespace and a UUID.
 
-        The default `policyId` is identical with the default `thingId`, and
-        allows the currently authorized subject all permissions.
+        The default `policyId` is identical with the default `thingId`, and allows the currently authorized subject all permissions.
 
-        In case you need to create a thing with a specific ID, use a *PUT* request instead,
-        as any `thingId` specified in the request body will be ignored.
+        In case you need to create a thing with a specific ID, use a *PUT* request instead, as any `thingId` specified in the request body will be ignored.
 
         The field `_created` is filled automatically with the timestamp of the creation. The field is read-only and can
         be retrieved later by explicitly selecting it or used in search filters.
@@ -168,8 +165,6 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/json:
@@ -209,8 +204,7 @@ paths:
         Optionally, you can use the field selectors (see parameter `fields`) to only get specific
         fields, which you are interested in.
 
-        ### Example:
-        Use the field selector `_policy` to retrieve the content of the policy.
+        Example: Use the field selector `_policy` to retrieve the content of the policy.
       tags:
         - Things
       parameters:
@@ -253,7 +247,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The thing with the given ID was not found.
+            The request could not be completed. The thing with the given ID was
+            not found.
           content:
             application/json:
               schema:
@@ -263,7 +258,8 @@ paths:
     put:
       summary: Create or update a thing with a specified ID
       description: |-
-        Create or update the thing specified by the `thingId` path parameter and the optional JSON body.
+        Create or update the thing specified by the `thingId` path parameter and
+        the optional JSON body.
 
         * If you set a new `thingId` in the path, a thing will be created.
         * If you set an existing `thingId` in the path, the thing will be updated.
@@ -273,7 +269,7 @@ paths:
         At the initial creation of a thing, only a valid `thingId` is required.
         However, you can create a full-fledged thing all at once.
 
-        ### Example:
+        Example:
         To create a coffee maker thing, set the `thingId` in the path, e.g. to "com.acme.coffeemaker:BE-42"
         and the body part, like in the following snippet.
 
@@ -460,8 +456,6 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/json:
@@ -491,210 +485,6 @@ paths:
                       waterAmount: 731
                       temperature: 44
         description: JSON representation of the thing to be modified.
-    patch:
-      summary: Patch a thing with a specified ID
-      description: |-
-        Patch an existing thing specified by the `thingId` path parameter.
-
-        Patching a thing will merge the provided request body with the exisiting thing.
-        This makes it possible to change only some parts of a thing in single request without providing the full thing
-        structure in the request body.
-
-
-        ### Patch a thing
-
-        With this resource it is possible to add, update or delete parts of an existing thing.
-        The request body provided in *JSON merge patch* (RFC-7396) format will be merged with the existing thing.
-        Notice that the `null` value in the JSON body will delete the specified JSON key from the thing.
-        The `Content-Type` header for this request must be "application/merge-patch+json".
-        For further documentation of JSON merge patch see [RFC 7396](https://tools.ietf.org/html/rfc7396).
-
-
-        ### Example
-        A Thing already exists with the following content:
-
-        ```
-        {
-          "thingId": "com.acme:coffeebrewer",
-          "policyId": "com.acme:coffeebrewer-policy",
-          "definition": "com.acme:coffeebrewer:0.1.0",
-          "attributes": {
-            "manufacturer": "ACME demo corp.",
-            "location": "Berlin, main floor",
-            "serialno": "42",
-            "model": "Speaking coffee machine"
-          },
-          "features": {
-            "coffee-brewer": {
-              "definition": ["com.acme:coffeebrewer:0.1.0"],
-              "properties": {
-                "brewed-coffees": 0
-              }
-            },
-            "water-tank": {
-              "properties": {
-                "configuration": {
-                  "smartMode": true,
-                  "brewingTemp": 87,
-                  "tempToHold": 44,
-                  "timeoutSeconds": 6000
-                },
-                "status": {
-                  "waterAmount": 731,
-                  "temperature": 44
-                }
-              }
-            }
-          }
-        }
-        ```
-
-        To make changes that only affect parts of the existing thing, e.g. add some attribute and delete a
-        specific feature property, the content of the request body could look like this:
-
-        ```
-        {
-          "attributes": {
-            "manufacturingYear": "2020"
-          },
-          "features": {
-            "water-tank": {
-              "properties": {
-                "configuration": {
-                  "smartMode": null,
-                  "tempToHold": 50
-                }
-              }
-            }
-          }
-        }
-        ```
-
-        The request body will be merged with the existing thing and the result will be the following thing:
-
-        ```
-        {
-          "definition": "com.acme:coffeebrewer:0.1.0",
-          "attributes": {
-            "manufacturer": "ACME demo corp.",
-            "manufacturingYear": "2020",
-            "location": "Berlin, main floor",
-            "serialno": "42",
-            "model": "Speaking coffee machine"
-          },
-          "features": {
-            "coffee-brewer": {
-              "definition": ["com.acme:coffeebrewer:0.1.0"],
-              "properties": {
-                "brewed-coffees": 0
-              }
-            },
-            "water-tank": {
-              "properties": {
-                "configuration": {
-                  "brewingTemp": 87,
-                  "tempToHold": 50,
-                  "timeoutSeconds": 6000
-                },
-                "status": {
-                  "waterAmount": 731,
-                  "temperature": 44
-                }
-              }
-            }
-          }
-        }
-        ```
-
-        ### Permissions for patching an existing Thing
-
-        For updating an existing thing, the authorized subject needs **WRITE** permission on those parts of the thing
-        that are affected by the merge update.
-
-        For example, to successfully execute the above example the authorized subject needs to have unrestricted
-        *WRITE* permissions on all affected paths of the JSON merge patch: `attributes/manufacturingYear`,
-        `features/water-tank/properties/configuration/smartMode`,
-        `features/water-tank/properties/configuration/tempToHold`. The *WRITE* permission must not be revoked on any
-        level further down the hierarchy. Consequently, it is also sufficient for the authorized subject to have
-        unrestricted *WRITE* permission at root level or unrestricted *WRITE* permission at `/attributes` and
-        `/features` etc.
-      tags:
-        - Things
-      parameters:
-        - $ref: '#/components/parameters/ThingIdPathParam'
-        - $ref: '#/components/parameters/IfMatchHeaderParam'
-        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
-        - $ref: '#/components/parameters/PutMetadataParam'
-        - $ref: '#/components/parameters/RequestedAcksParam'
-        - $ref: '#/components/parameters/TimeoutParam'
-        - $ref: '#/components/parameters/ResponseRequiredParam'
-      responses:
-        '204':
-          description: The thing was successfully patched.
-          headers:
-            ETag:
-              description: |-
-                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
-                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
-              schema:
-                type: string
-        '400':
-          description: |-
-            The request could not be completed. Possible reasons:
-
-              * the JSON body of the thing to be patched is invalid
-              * the JSON body of the thing to be patched contains a `thingId` which does not match the ID in the path
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '401':
-          description: The request could not be completed due to missing authentication.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '403':
-          description: |-
-            The request could not be completed. Possible reasons:
-              * the caller would not have access to the thing after creating it with the given policy
-              * the caller has insufficient permissions.
-                For modifying an existing thing, an unrestricted `WRITE` permission on the thing's root resource is required.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '404':
-          description: |-
-            The request could not be completed. Possible reasons:
-              * the referenced thing does not exist.
-              * the caller has insufficient permissions to read the referenced thing.
-              * the policy that should be copied does not exist.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '412':
-          $ref: '#/components/responses/PreconditionFailed'
-        '413':
-          $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
-      requestBody:
-        content:
-          application/merge-patch+json:
-            schema:
-              $ref: '#/components/schemas/PatchThing'
-            example:
-              attributes:
-                manufacturingYear: '2020'
-              features:
-                water-tank:
-                  properties:
-                    configuration:
-                      smartMode: null
-                      tempToHold: 50
-        description: JSON representation of the thing to be patched.
     delete:
       summary: Delete a specific thing
       description: |-
@@ -740,7 +530,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The thing with the given ID was not found.
+            The request could not be completed. The thing with the given ID was
+            not found.
           content:
             application/json:
               schema:
@@ -801,7 +592,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The thing with the given ID was not found.
+            The request could not be completed. The thing with the given ID was
+            not found.
           content:
             application/json:
               schema:
@@ -878,7 +670,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The thing with the given ID was not found.
+            The request could not be completed. The thing with the given ID was
+            not found.
           content:
             application/json:
               schema:
@@ -887,94 +680,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         $ref: '#/components/requestBodies/Definition'
-    patch:
-      summary: Patch the definition of a specific thing
-      description: |-
-        * If the thing does not have a definition yet, this request will create it.
-        * If the thing already has a definition you can replace it by providing the new definition in the request body.
-        * If the request body is set to `null` then the defintion will be deleted.
-
-        Notice that the `null` value in the JSON body has a special meaning and will delete the definition from the thing.
-        The `Content-Type` header for this request must be "application/merge-patch+json".
-        For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
-      tags:
-        - Things
-      parameters:
-        - $ref: '#/components/parameters/ThingIdPathParam'
-        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
-        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
-        - $ref: '#/components/parameters/RequestedAcksParam'
-        - $ref: '#/components/parameters/TimeoutParam'
-        - $ref: '#/components/parameters/ResponseRequiredParam'
-      responses:
-        '204':
-          description: The definition was successfully patched.
-          headers:
-            ETag:
-              description: |-
-                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
-                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
-              schema:
-                type: string
-        '400':
-          description: |-
-            The request could not be completed. Possible reasons:
-
-              * the `thingId` does not conform to the namespaced entity ID notation
-                (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
-              * the JSON was invalid
-              * the request body was not a JSON object.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '401':
-          description: The request could not be completed due to missing authentication.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '403':
-          description: |-
-            The request could not be completed. Possible reasons:
-              * the caller has insufficient permissions.
-                For modifying a definition of an existing thing, `WRITE` permission is required.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '404':
-          description: |-
-            The request could not be completed. The thing with the given ID was not found.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '412':
-          $ref: '#/components/responses/PreconditionFailed'
-        '413':
-          $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
-      requestBody:
-        content:
-          application/merge-patch+json:
-            schema:
-              $ref: '#/components/schemas/Definition'
-            example: '"example:test:definition"'
-        description: |-
-          JSON string representation of the definition to be patched.
-
-          Consider that the value has to be a JSON string.
-          Examples:
-
-            * an string: `"value"` - Currently the definition should follow the pattern: [_a-zA-Z0-9\-]:[_a-zA-Z0-9\-]:[_a-zA-Z0-9\-]
-            * an empty string: `""`
-            * `null`: the definition will be deleted
     delete:
       summary: Delete the definition of a specific thing
       description: Deletes the definition of the thing identified by the `thingId`.
@@ -1015,7 +722,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The thing with the given ID or its definition was not found.
+            The request could not be completed. The thing with the given ID or
+            its definition was not found.
           content:
             application/json:
               schema:
@@ -1136,7 +844,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The thing with the given ID was not found in the context of the authenticated user.
+            The request could not be completed. The thing with the given ID was
+            not found in the context of the authenticated user.
           content:
             application/json:
               schema:
@@ -1145,8 +854,6 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/json:
@@ -1156,74 +863,6 @@ paths:
         description: |-
           The policy is used for controlling access to this thing. It is managed by
           resource `/policies/{policyId}`.
-
-          The ID of a policy needs to conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
-        required: true
-    patch:
-      summary: Patch the policy ID of a thing
-      description: |-
-        Patch the policy ID of the thing identified by the `thingId` path parameter.
-
-        The `policyId` of the thing will be updated.
-        Notice that for this resource it is not possible to remove the `policyId` from the thing by setting the
-        payload to `null`.
-        The `Content-Type` header for this request must be "application/merge-patch+json".
-      tags:
-        - Things
-      parameters:
-        - $ref: '#/components/parameters/ThingIdPathParam'
-        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
-        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
-        - $ref: '#/components/parameters/RequestedAcksParam'
-        - $ref: '#/components/parameters/TimeoutParam'
-        - $ref: '#/components/parameters/ResponseRequiredParam'
-      responses:
-        '204':
-          description: 'The policy ID was successfully patched. Note: You will need to create the policy content separately.'
-          headers:
-            ETag:
-              description: |-
-                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
-                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
-              schema:
-                type: string
-        '400':
-          description: |-
-            The request could not be completed. Possible reasons:
-
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
-              * the `policyId` can not be removed from a thing.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '401':
-          description: The request could not be completed due to missing authentication.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '404':
-          description: |-
-            The request could not be completed. The thing with the given ID was not found in the context of the authenticated user.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '412':
-          $ref: '#/components/responses/PreconditionFailed'
-        '413':
-          $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
-      requestBody:
-        content:
-          application/merge-patch+json:
-            schema:
-              type: string
-              example: '"your.namespace:your-policy-name"'
-        description: |-
-          The policy is used for controlling access to this thing. It is managed by resource `/policies/{policyId}`.
 
           The ID of a policy needs to conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
         required: true
@@ -1281,8 +920,9 @@ paths:
     put:
       summary: Create or update all attributes of a specific thing at once
       description: |-
-        Create or update the attributes of a thing identified by the `thingId` path parameter.
-        The attributes will be overwritten - all at once - with the content (JSON) set in the request body.
+        Create or update the attributes of a thing identified by the `thingId`
+        path parameter. The attributes will be overwritten - all at once - with the
+        content (JSON) set in the request body.
       tags:
         - Things
       parameters:
@@ -1345,7 +985,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The thing with the given ID was not found.
+            The request could not be completed. The thing with the given ID was
+            not found.
           content:
             application/json:
               schema:
@@ -1354,102 +995,13 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         $ref: '#/components/requestBodies/Attributes'
-    patch:
-      summary: Patch all attributes of a specific thing
-      description: |-
-        Patch the attributes of a thing identified by the `thingId` path parameter.
-        The existing attributes will be merged with the JSON content set in the request body.
-
-        Notice that the `null` value has a special meaning and can be used to delete all or specific attributes from a thing.
-        The `Content-Type` header for this request must be "application/merge-patch+json".
-        For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
-
-        **Note**: In contrast to the "PUT things/{thingId}/attributes" request,
-        a partial update is supported here and request body is merged with the existing attributes.
-      tags:
-        - Things
-      parameters:
-        - $ref: '#/components/parameters/ThingIdPathParam'
-        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
-        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
-        - $ref: '#/components/parameters/RequestedAcksParam'
-        - $ref: '#/components/parameters/TimeoutParam'
-        - $ref: '#/components/parameters/ResponseRequiredParam'
-      responses:
-        '204':
-          description: The attributes were successfully patched.
-          headers:
-            ETag:
-              description: |-
-                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
-                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
-              schema:
-                type: string
-        '400':
-          description: |-
-            The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
-              * the JSON body of the attributes to be patched is invalid
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '401':
-          description: The request could not be completed due to missing authentication.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '403':
-          description: |-
-            The request could not be completed. Possible reasons:
-              * the caller has insufficient permissions.
-                For modifying the attributes of an existing thing, `WRITE` permission is required.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '404':
-          description: |-
-            The request could not be completed. The thing with the given ID was not found.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '412':
-          $ref: '#/components/responses/PreconditionFailed'
-        '413':
-          $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
-      requestBody:
-        content:
-          application/merge-patch+json:
-            schema:
-              $ref: '#/components/schemas/Attributes'
-            example:
-              manufacturer:
-                name: ACME demo corp.
-                location: 'Berlin, main floor'
-              coffeemaker:
-                serialno: '42'
-                model: Speaking coffee machine
-        description: |-
-          JSON object of all attributes to be patched. Consider that the value has to be a [JSON merge patch](https://tools.ietf.org/html/rfc7396).
-
-            Examples:
-              * a simple object: `{ "key": "value"}` - We strongly recommend to use a restricted set of characters for the key (identifier), as the key might be needed for the (URL) path later.<br> Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
-              * a nested object as shown in the example value
-              * `null`: deletes all attributes
-        required: true
     delete:
       summary: Delete all attributes of a specific thing at once
       description: |-
-        Deletes all attributes of the thing identified by the `thingId` path parameter.
+        Deletes all attributes of the thing identified by the `thingId` path
+        parameter.
       tags:
         - Things
       parameters:
@@ -1487,7 +1039,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The thing with the given ID or its attributes were not found.
+            The request could not be completed. The thing with the given ID or
+            its attributes were not found.
           content:
             application/json:
               schema:
@@ -1498,14 +1051,16 @@ paths:
     get:
       summary: Retrieve a specific attribute of a specific thing
       description: |-
-        Returns a specific attribute of the thing identified by the `thingId` path parameter.
+        Returns a specific attribute of the thing identified by the `thingId`
+        path parameter.
 
-        The attribute (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901).
+        The attribute (JSON) can be referenced hierarchically, by
+        applying JSON Pointer notation (RFC-6901).
 
-        ### Example:
-
+        Example:
         In order to retrieve the `name` field of an `manufacturer` attribute,
-        the full path would be `/things/{thingId}/attributes/manufacturer/name`
+        the full path would be
+        `/things/{thingId}/attributes/manufacturer/name`
       tags:
         - Things
       parameters:
@@ -1542,7 +1097,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The thing with the given ID or the attribute at the specified path was not found.
+            The request could not be completed. The thing with the given ID or
+            the attribute at the specified path was not found.
           content:
             application/json:
               schema:
@@ -1552,16 +1108,15 @@ paths:
     put:
       summary: Create or update a specific attribute of a specific thing
       description: |-
-        Create or update a specific attribute of the thing identified by the `thingId` path parameter.
+        Create or update a specific attribute of the thing identified by the
+        `thingId` path parameter.
 
         * If you specify a new attribute path, this will be created
         * If you specify an existing attribute path, this will be updated
 
         The attribute (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901).
 
-        ### Example:
-
-        In order to put the `name` field of an `manufacturer` attribute, the full path would be
+        Example: In order to put the `name` field of an `manufacturer` attribute, the full path would be
         `/things/{thingId}/attributes/manufacturer/name`
       tags:
         - Things
@@ -1621,7 +1176,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The thing with the given ID was not found.
+            The request could not be completed. The thing with the given ID was
+            not found.
           content:
             application/json:
               schema:
@@ -1630,98 +1186,18 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         $ref: '#/components/requestBodies/Value'
-    patch:
-      summary: Patch a specific attribute of a specific thing
-      description: |-
-        Patch a specific attribute of a thing identified by the `thingId` path parameter.
-
-        * If you specify a new attribute path, this will be created
-        * If you specify an existing attribute path, this will be merged
-        * If you set the request body to `null` for an existing attribute path then the attribute will be deleted.
-          For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
-
-        The `Content-Type` header for this request must be "application/merge-patch+json".
-
-
-        The attribute (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901).
-
-        ### Example:
-
-        In order to patch the `name` field of an `manufacturer` attribute, the full path would be
-        `/things/{thingId}/attributes/manufacturer/name`
-      tags:
-        - Things
-      parameters:
-        - $ref: '#/components/parameters/ThingIdPathParam'
-        - $ref: '#/components/parameters/AttributesPathPathParam'
-        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
-        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
-        - $ref: '#/components/parameters/RequestedAcksParam'
-        - $ref: '#/components/parameters/TimeoutParam'
-        - $ref: '#/components/parameters/ResponseRequiredParam'
-      responses:
-        '204':
-          description: The attribute was successfully patched.
-          headers:
-            ETag:
-              description: |-
-                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
-                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
-              schema:
-                type: string
-        '400':
-          description: |-
-            The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '401':
-          description: The request could not be completed due to missing authentication.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '403':
-          description: |-
-            The request could not be completed. Possible reasons:
-              * the caller has insufficient permissions.
-                For modifying an attribute of an existing thing, `WRITE` permission is required.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '404':
-          description: |-
-            The request could not be completed. The thing with the given ID was not found.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '412':
-          $ref: '#/components/responses/PreconditionFailed'
-        '413':
-          $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
-      requestBody:
-        $ref: '#/components/requestBodies/PatchValue'
     delete:
       summary: Delete a specific attribute of a specific thing
       description: |-
-        Deletes a specific attribute of the thing identified by the `thingId` path parameter.
+        Deletes a specific attribute of the thing identified by the `thingId`
+        path parameter.
 
         The attribute (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901).
 
-        ### Example:
-
-        In order to delete the `name` field of an `manufacturer` attribute, the full path would be
-        `/things/{thingId}/attributes/manufacturer/name`
+        Example: In order to delete the `name` field of an `manufacturer` attribute, the full path would be
+                `/things/{thingId}/attributes/manufacturer/name`
       tags:
         - Things
       parameters:
@@ -1760,7 +1236,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The thing with the given ID or the attribute at the specified path was not found.
+            The request could not be completed. The thing with the given ID or
+            the attribute at the specified path was not found.
           content:
             application/json:
               schema:
@@ -1771,7 +1248,8 @@ paths:
     get:
       summary: List all features of a specific thing
       description: |-
-        Returns all features of the thing identified by the `thingId` path parameter.
+        Returns all features of the thing identified by the `thingId` path
+        parameter.
       tags:
         - Features
       parameters:
@@ -1783,7 +1261,8 @@ paths:
       responses:
         '200':
           description: |-
-            The list of features of the specific thing were successfully retrieved.
+            The list of features of the specific thing were successfully
+            retrieved.
           headers:
             ETag:
               description: |-
@@ -1825,7 +1304,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The thing with the given ID was not found or the features have not been defined.
+            The request could not be completed. The thing with the given ID was
+            not found or the features have not been defined.
           content:
             application/json:
               schema:
@@ -1835,8 +1315,8 @@ paths:
     put:
       summary: Create or modify all features of a specific thing at once
       description: |-
-        Create or modify all features of a thing identified by the `thingId` path parameter.
-
+        Create or modify all features of a thing identified by the `thingId`
+        path parameter.
         ### Create all features at once
         In case at the initial creation of your thing you have not specified any features, these can be created here.
 
@@ -1847,7 +1327,7 @@ paths:
         but the content will be **overwritten**.
         If you need to update single features or their paths, please use the sub-resources instead.
 
-        ### Example:
+        Example:
 
         ```
         {
@@ -1936,7 +1416,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The thing with the given ID was not found.
+            The request could not be completed. The thing with the given ID was
+            not found.
           content:
             application/json:
               schema:
@@ -1945,8 +1426,6 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/json:
@@ -1980,132 +1459,11 @@ paths:
 
           * a nested object with multiple features as shown in the example value field
         required: true
-    patch:
-      summary: Patch all features of a specific thing
-      description: |-
-        Patch all features of a thing identified by the `thingId` path parameter.
-
-        The existing features will be merged with the JSON content set in the request body.
-
-        Notice that the `null` value has a special meaning and can be used to delete specific features from the thing.
-        The `Content-Type` header for this request must be "application/merge-patch+json".
-        For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
-
-        **Note**: In contrast to the "PUT thing/{thingId}/features" request, a partial update is supported here
-        and request body is merged with the existing features.
-
-        ### Example
-
-        The following example will add/update the properties `brewed-coffees`, `tempToHold` and `failState`.
-        The configuration property `smartMode` will be deleted from the thing.
-
-
-        ```
-        {
-          "coffee-brewer": {
-            "properties": {
-              "brewed-coffees": 10
-            }
-          },
-          "water-tank": {
-            "properties": {
-              "configuration": {
-                "smartMode": null,
-                "tempToHold": 50,
-              },
-              "status": {
-                "failState": true
-              }
-            }
-          }
-        }
-        ```
-      tags:
-        - Features
-      parameters:
-        - $ref: '#/components/parameters/ThingIdPathParam'
-        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
-        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
-        - $ref: '#/components/parameters/RequestedAcksParam'
-        - $ref: '#/components/parameters/TimeoutParam'
-        - $ref: '#/components/parameters/ResponseRequiredParam'
-      responses:
-        '204':
-          description: The features were successfully patched.
-          headers:
-            ETag:
-              description: |-
-                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
-                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
-              schema:
-                type: string
-        '400':
-          description: |-
-            The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
-              * the JSON body of the feature to be created/modified is invalid
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '401':
-          description: The request could not be completed due to missing authentication.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '403':
-          description: |-
-            The request could not be completed. Possible reasons:
-              * the caller has insufficient permissions.
-                For modifying all features of an existing thing, `WRITE` permission is required.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '404':
-          description: |-
-            The request could not be completed. The thing with the given ID was not found.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '412':
-          $ref: '#/components/responses/PreconditionFailed'
-        '413':
-          $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
-      requestBody:
-        content:
-          application/merge-patch+json:
-            schema:
-              $ref: '#/components/schemas/Features'
-            example:
-              coffee-brewer:
-                properties:
-                  brewed-coffees: 10
-              water-tank:
-                properties:
-                  configuration:
-                    smartMode: null
-                    tempToHold: 50
-                  status:
-                    failState: true
-        description: |-
-          JSON object of all features to be patched. Consider that the value has to be a [JSON merge patch](https://tools.ietf.org/html/rfc7396).
-
-          Examples:
-
-          * a nested object with multiple features as shown in the example value field
-
-          * **Note**: To delete certain entries of a feature the `null` value can be used.
-            For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
-        required: true
     delete:
       summary: Delete all features of a specific thing
       description: |-
-        Deletes all features of the thing identified by the `thingId` path parameter.
+        Deletes all features of the thing identified by the `thingId` path
+        parameter.
       tags:
         - Features
       parameters:
@@ -2143,7 +1501,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The thing with the given ID was not found or the features have not been defined.
+            The request could not be completed. The thing with the given ID was
+            not found or the features have not been defined.
           content:
             application/json:
               schema:
@@ -2154,7 +1513,8 @@ paths:
     get:
       summary: Retrieve a specific feature of a specific thing
       description: |-
-        Returns a specific feature identified by the `featureId` path parameter of the thing identified by the `thingId` path parameter.
+        Returns a specific feature identified by the `featureId` path parameter
+        of the thing identified by the `thingId` path parameter.
       tags:
         - Features
       parameters:
@@ -2197,7 +1557,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The thing with the given ID or the feature with the specified `featureId` was not found.
+            The request could not be completed. The thing with the given ID or
+            the feature with the specified `featureId` was not found.
           content:
             application/json:
               schema:
@@ -2207,7 +1568,8 @@ paths:
     put:
       summary: Create or modify a specific feature of a specific thing
       description: |-
-        Create or modify a specific feature identified by the `featureId` path  parameter of the thing identified by the `thingId` path parameter.
+        Create or modify a specific feature identified by the `featureId` path
+        parameter of the thing identified by the `thingId` path parameter.
 
         ### Create feature
         If the feature ID is new, the feature and all content from the JSON body will be created
@@ -2216,8 +1578,7 @@ paths:
         If the feature ID is used already in this thing, the feature will be overwrittern
         with the content from the JSON body.
 
-        ### Example:
-        Set the `featureId` to **coffee-brewer** and all properties in the body part.
+        Example: Set the `featureId` to **coffee-brewer** and all properties in the body part.
 
         ```
         {
@@ -2290,7 +1651,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The thing with the given ID was not found.
+            The request could not be completed. The thing with the given ID was
+            not found.
           content:
             application/json:
               schema:
@@ -2299,8 +1661,6 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/json:
@@ -2314,118 +1674,18 @@ paths:
                 connected: true
                 brewed-coffees: 0
         description: |-
-          JSON representation of the feature to be created/modified. Consider that the value has to be a JSON object or null.
+          JSON representation of the feature to be created/modified.
+          Consider that the value has to be a JSON object or null.
 
           Examples:
           * an empty object: {} - would just create the featureID but would delete all content of the feature
           * a nested object with multiple model definitions and multiple properties as shown in the example value field
         required: true
-    patch:
-      summary: Patch a specific feature of a specific thing
-      description: |-
-        Patch a specific feature identified by the `featureId` path parameter of a thing identified by the `thingId` path parameter.
-
-        The existing feature will be merged with the JSON content set in the request body.
-
-        Notice that the `null` value can be used to delete the whole feature or specific parts of it.
-        The `Content-Type` header for this request must be "application/merge-patch+json".
-        For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
-
-        **Note**: In contrast to the "PUT things/{thingId}/features/{featureId}" request,
-        a partial update is supported here and request body is merged with the existing feature.
-
-        ### Example
-
-        Set the `featureId` to **coffee-brewer** and all properties in the body part
-        to update the `brewed-coffees` property and delete the definition.
-
-        ```
-        {
-          "definition": null,
-          "properties": {
-            "brewed-coffees": 42
-          }
-        }
-        ```
-      tags:
-        - Features
-      parameters:
-        - $ref: '#/components/parameters/ThingIdPathParam'
-        - $ref: '#/components/parameters/FeatureIdPathPathParam'
-        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
-        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
-        - $ref: '#/components/parameters/RequestedAcksParam'
-        - $ref: '#/components/parameters/TimeoutParam'
-        - $ref: '#/components/parameters/ResponseRequiredParam'
-      responses:
-        '204':
-          description: The feature was successfully patched.
-          headers:
-            ETag:
-              description: |-
-                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
-                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
-              schema:
-                type: string
-        '400':
-          description: |-
-            The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
-              * the JSON body of the feature to be created/modified is invalid
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '401':
-          description: The request could not be completed due to missing authentication.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '403':
-          description: |-
-            The request could not be completed. Possible reasons:
-              * the caller has insufficient permissions.
-                For modifying a single feature of an existing thing, `WRITE` permission is required.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '404':
-          description: |-
-            The request could not be completed. The thing with the given ID was not found.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '412':
-          $ref: '#/components/responses/PreconditionFailed'
-        '413':
-          $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
-      requestBody:
-        content:
-          application/merge-patch+json:
-            schema:
-              $ref: '#/components/schemas/Feature'
-            example:
-              definition: null
-              properties:
-                connected: true
-                brewed-coffees: 0
-        description: |-
-          JSON representation of the feature to be patched. Consider that the value has to be a [JSON merge patch](https://tools.ietf.org/html/rfc7396).
-
-          Examples:
-          * a nested object with multiple model definitions and multiple properties as shown in the example value field
-          * **Note**: To delete certain properties of a feature the `null` value can be used.
-            For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
-        required: true
     delete:
       summary: Delete a specific feature of a specific thing
       description: |-
-        Deletes a specific feature identified by the `featureId` path parameter of the thing identified by the `thingId` path parameter.
+        Deletes a specific feature identified by the `featureId` path parameter
+        of the thing identified by the `thingId` path parameter.
       tags:
         - Features
       parameters:
@@ -2464,7 +1724,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The thing with the given ID or the feature at the specified path was not found.
+            The request could not be completed. The thing with the given ID or
+            the feature at the specified path was not found.
           content:
             application/json:
               schema:
@@ -2475,7 +1736,8 @@ paths:
     get:
       summary: List the definition of a feature
       description: |-
-        Returns the complete definition field of the feature identified by the `thingId` and `featureId` path parameter.
+        Returns the complete definition field of the feature identified by the `thingId` and
+        `featureId` path parameter.
       tags:
         - Features
       parameters:
@@ -2517,8 +1779,9 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The specified feature has no definition or
-            the thing with the specified `thingId` or the feature with `featureId` was not found.
+            The request could not be completed. The specified feature has no
+            definition or the thing with the specified `thingId` or the feature
+            with `featureId` was not found.
           content:
             application/json:
               schema:
@@ -2528,7 +1791,8 @@ paths:
     put:
       summary: Create or update the definition of a feature
       description: |-
-        Create or update the complete definition of a feature identified by the `thingId` and `featureId` path parameter.
+        Create or update the complete definition of a feature identified by the `thingId`
+        and `featureId` path parameter.
 
         The definition field will be overwritten with the JSON array set in the request body
       tags:
@@ -2594,7 +1858,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The thing or the feature with the given ID was not found.
+            The request could not be completed. The thing or the feature with
+            the given ID was not found.
           content:
             application/json:
               schema:
@@ -2603,8 +1868,6 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/json:
@@ -2617,93 +1880,15 @@ paths:
           JSON array of the complete definition to be updated. Consider that the
           value has to be a JSON array or `null`.
 
-          The content of the JSON array are strings in the format `"namespace:name:version"` which is enforced.
-        required: true
-    patch:
-      summary: Patch the definition of a feature
-      description: |-
-        Patch the definition of a feature identified by the `thingId` and `featureId` path parameter.
-
-        The existing definition field will be overwritten with the JSON array set in the request body.
-
-        Notice that the `null` value can be used to delete the definition of a feature.
-        The `Content-Type` header for this request must be "application/merge-patch+json".
-        For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
-      tags:
-        - Features
-      parameters:
-        - $ref: '#/components/parameters/ThingIdPathParam'
-        - $ref: '#/components/parameters/FeatureIdPathPathParam'
-        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
-        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
-        - $ref: '#/components/parameters/RequestedAcksParam'
-        - $ref: '#/components/parameters/TimeoutParam'
-        - $ref: '#/components/parameters/ResponseRequiredParam'
-      responses:
-        '204':
-          description: The definition was successfully patched.
-          headers:
-            ETag:
-              description: |-
-                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
-                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
-              schema:
-                type: string
-        '400':
-          description: |-
-            The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
-              * the JSON body is invalid
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '401':
-          description: The request could not be completed due to missing authentication.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '403':
-          description: |-
-            The request could not be completed. Possible reasons:
-              * the caller has insufficient permissions.
-                For modifying the definition of an existing feature, `WRITE` permission is required.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '404':
-          description: |-
-            The request could not be completed. The thing or the feature with the given ID was not found.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '412':
-          $ref: '#/components/responses/PreconditionFailed'
-        '413':
-          $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
-      requestBody:
-        content:
-          application/merge-patch+json:
-            schema:
-              $ref: '#/components/schemas/FeatureDefinition'
-            example:
-              - 'com.acme:coffeebrewer:0.1.0'
-              - 'com.acme:coffeebrewer:1.1.0'
-        description: |-
-          JSON array of the complete definition to be patched. Consider that the value has to be a JSON array.
-
-          The content of the JSON array are strings in the format `"namespace:name:version"` which is enforced.
-          To delete the definition use `null` as content in the request body.
+          The content of the JSON array
+          are strings in the format `"namespace:name:version"` which is
+          enforced.
         required: true
     delete:
       summary: Delete the definition of a feature
       description: |-
-        Deletes the complete definition of the feature identified by the `thingId` and `featureId` path parameter.
+        Deletes the complete definition of the feature identified by the `thingId` and
+        `featureId` path parameter.
       tags:
         - Features
       parameters:
@@ -2743,7 +1928,8 @@ paths:
         '404':
           description: |-
             The request could not be completed. The specified feature has no
-            definition or the thing with the specified `thingId` or the feature with `featureId` was not found.
+            definition or the thing with the specified `thingId` or the feature
+            with `featureId` was not found.
           content:
             application/json:
               schema:
@@ -2754,7 +1940,8 @@ paths:
     get:
       summary: List all properties of a feature
       description: |-
-        Returns all properties of the feature identified by the `thingId` and `featureId` path parameter.
+        Returns all properties of the feature identified by the `thingId` and
+        `featureId` path parameter.
       tags:
         - Features
       parameters:
@@ -2797,8 +1984,9 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The specified feature has no properties or
-            the thing with the specified `thingId` or the feature with `featureId` was not found.
+            The request could not be completed. The specified feature has no
+            properties or the thing with the specified `thingId` or the feature
+            with `featureId` was not found.
           content:
             application/json:
               schema:
@@ -2808,7 +1996,8 @@ paths:
     put:
       summary: Create or update all properties of a feature at once
       description: |-
-        Create or update the properties of a feature identified by the `thingId` and `featureId` path parameter.
+        Create or update the properties of a feature identified by the `thingId`
+        and `featureId` path parameter.
 
         The properties will be overwritten with the JSON content from the request body.
       tags:
@@ -2870,7 +2059,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The thing or the feature with the given ID was not found.
+            The request could not be completed. The thing or the feature with
+            the given ID was not found.
           content:
             application/json:
               schema:
@@ -2879,8 +2069,6 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/json:
@@ -2903,101 +2091,11 @@ paths:
 
           Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
         required: true
-    patch:
-      summary: Patch all properties of a feature
-      description: |-
-        Patch the properties of a feature identified by the `thingId` and `featureId` path parameter.
-
-        The existing properties will be merged with the JSON content set in the request body.
-
-        Notice that the `null` value can be used to delete specific feature properties.
-        The `Content-Type` header for this request must be "application/merge-patch+json".
-        For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
-
-        **Note**: In contrast to the "PUT things/{thingId}/features/{featureId}/properties" request,
-        a partial update is supported here and request body is merged with the existing properties.
-      tags:
-        - Features
-      parameters:
-        - $ref: '#/components/parameters/ThingIdPathParam'
-        - $ref: '#/components/parameters/FeatureIdPathPathParam'
-        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
-        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
-        - $ref: '#/components/parameters/RequestedAcksParam'
-        - $ref: '#/components/parameters/TimeoutParam'
-        - $ref: '#/components/parameters/ResponseRequiredParam'
-      responses:
-        '204':
-          description: The properties were successfully patched.
-          headers:
-            ETag:
-              description: |-
-                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
-                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
-              schema:
-                type: string
-        '400':
-          description: |-
-            The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
-              * the JSON body of the feature properties to be created/modified is invalid
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '401':
-          description: The request could not be completed due to missing authentication.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '403':
-          description: |-
-            The request could not be completed. Possible reasons:
-              * the caller has insufficient permissions.
-                For modifying the properties of an existing feature, `WRITE` permission is required.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '404':
-          description: |-
-            The request could not be completed. The thing or the feature with the given ID was not found.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '412':
-          $ref: '#/components/responses/PreconditionFailed'
-        '413':
-          $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
-      requestBody:
-        content:
-          application/merge-patch+json:
-            schema:
-              $ref: '#/components/schemas/FeatureProperties'
-            example:
-              configuration:
-                smartMode: null
-                brewingTemp: 87
-                tempToHold: 44
-                timeoutSeconds: 6000
-              status:
-                waterAmount: 731
-                temperature: 44
-        description: |-
-          JSON object of all properties to be patched.
-
-          Consider that the value has to be a [JSON merge patch](https://tools.ietf.org/html/rfc7396). We strongly recommend to use a restricted set of characters for the key (identifier).
-
-          Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
-        required: true
     delete:
       summary: Delete all properties of a feature
       description: |-
-        Deletes all properties of the feature identified by the `thingId` and `featureId` path parameter.
+        Deletes all properties of the feature identified by the `thingId` and
+        `featureId` path parameter.
       tags:
         - Features
       parameters:
@@ -3036,8 +2134,9 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The specified feature has no properties or
-            the thing with the specified `thingId` or the feature with `featureId` was not found.
+            The request could not be completed. The specified feature has no
+            properties or the thing with the specified `thingId` or the feature
+            with `featureId` was not found.
           content:
             application/json:
               schema:
@@ -3048,9 +2147,11 @@ paths:
     get:
       summary: Retrieve a specific property of a feature
       description: |-
-        Returns the a specific property path of the feature identified by the `thingId` and `featureId` path parameter.
+        Returns the a specific property path of the feature identified by the `thingId` and
+        `featureId` path parameter.
 
-        The property (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901)
+        The property (JSON) can be referenced
+        hierarchically, by applying JSON Pointer notation (RFC-6901)
 
         ### Example
         To retrieve the value of the `brewingTemp` in the `water-tank` of our coffeemaker example the full path is:
@@ -3093,8 +2194,9 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The specified property or the thing with the specified `thingId`
-            or the feature with `featureId` was not found.
+            The request could not be completed. The specified property or the
+            thing with the specified `thingId` or the feature with `featureId`
+            was not found.
           content:
             application/json:
               schema:
@@ -3104,11 +2206,14 @@ paths:
     put:
       summary: Create or update a specific property of a feature
       description: |-
-        Create or update a specific property of a feature identified by the `thingId` and `featureId` path parameter.
+        Create or update a specific property of a feature identified by the
+        `thingId` and `featureId` path parameter.
 
-        The property will be created if it doesn't exist or else updated.
+        The property will be created
+        if it doesn't exist or else updated.
 
-        The property (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901),
+        The property (JSON) can be
+        referenced hierarchically, by applying JSON Pointer notation (RFC-6901),
 
         ### Example
         To set the value of the brewingTemp in the water-tank of our coffeemaker example the full path is:
@@ -3170,7 +2275,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The thing or the feature with the given ID was not found.
+            The request could not be completed. The thing or the feature with
+            the given ID was not found.
           content:
             application/json:
               schema:
@@ -3179,96 +2285,20 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         $ref: '#/components/requestBodies/Value'
-    patch:
-      summary: Patch a specific property of a feature
-      description: |-
-        Patch a specific property of a feature identified by the `thingId` and `featureId` path parameter.
-
-        The existing property will be merged with the existing one of the thing.
-
-        Notice that the `null` value can be used to delete the specified propertyPath.
-        The `Content-Type` header for this request must be "application/merge-patch+json".
-        For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
-
-        The property (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901).
-
-        ### Example
-        To set the value of the brewingTemp in the water-tank of our coffeemaker example the full path is:
-
-        `/things/{thingId}/features/water-tank/properties/configuration/brewingTemp`
-      tags:
-        - Features
-      parameters:
-        - $ref: '#/components/parameters/ThingIdPathParam'
-        - $ref: '#/components/parameters/FeatureIdPathPathParam'
-        - $ref: '#/components/parameters/PropertyPathPathParam'
-        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
-        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
-        - $ref: '#/components/parameters/RequestedAcksParam'
-        - $ref: '#/components/parameters/TimeoutParam'
-        - $ref: '#/components/parameters/ResponseRequiredParam'
-      responses:
-        '204':
-          description: The property was successfully patched.
-          headers:
-            ETag:
-              description: |-
-                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
-                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
-              schema:
-                type: string
-        '400':
-          description: |-
-            The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
-              * the JSON body is invalid
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '401':
-          description: The request could not be completed due to missing authentication.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '403':
-          description: |-
-            The request could not be completed. Possible reasons:
-              * the caller has insufficient permissions.
-                For creating/updating a property of an existing feature, `WRITE` permission is required.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '404':
-          description: |-
-            The request could not be completed. The thing or the feature with the given ID was not found.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '412':
-          $ref: '#/components/responses/PreconditionFailed'
-        '413':
-          $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
-      requestBody:
-        $ref: '#/components/requestBodies/PatchValue'
     delete:
       summary: Delete a specific property of a feature
       description: |-
-        Deletes a specific property of the feature identified by the `thingId` and `featureId` path parameter.
+        Deletes a specific property of the feature identified by the `thingId`
+        and `featureId` path parameter.
 
-        The property (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901)
+        The property (JSON) can be referenced
+        hierarchically, by applying JSON Pointer notation (RFC-6901)
 
         ### Example
         To delete the value of the brewingTemp in the water-tank of our coffeemaker example the full path is:
+
         `/things/{thingId}/features/water-tank/properties/configuration/brewingTemp`
       tags:
         - Features
@@ -3300,8 +2330,9 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The specified property or the thing with the specified `thingId`
-            or the feature with `featureId` was not found.
+            The request could not be completed. The specified property or the
+            thing with the specified `thingId` or the feature with `featureId`
+            was not found.
           content:
             application/json:
               schema:
@@ -3312,7 +2343,8 @@ paths:
     get:
       summary: List all desired properties of a feature
       description: |-
-        Returns all desired properties of the feature identified by the `thingId` and `featureId` path parameter.
+        Returns all desired properties of the feature identified by the `thingId` and
+        `featureId` path parameter.
       tags:
         - Features
       parameters:
@@ -3355,8 +2387,9 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The specified feature has no desired properties or
-            the thing with the specified `thingId` or the feature with `featureId` was not found.
+            The request could not be completed. The specified feature has no desired
+            properties or the thing with the specified `thingId` or the feature
+            with `featureId` was not found.
           content:
             application/json:
               schema:
@@ -3366,7 +2399,8 @@ paths:
     put:
       summary: Create or update all desired properties of a feature at once
       description: |-
-        Create or update the desired properties of a feature identified by the `thingId` and `featureId` path parameter.
+        Create or update the desired properties of a feature identified by the `thingId`
+        and `featureId` path parameter.
 
         The desired properties will be overwritten with the JSON content from the request body.
       tags:
@@ -3428,7 +2462,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The thing or the feature with the given ID was not found.
+            The request could not be completed. The thing or the feature with
+            the given ID was not found.
           content:
             application/json:
               schema:
@@ -3437,8 +2472,6 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/json:
@@ -3461,102 +2494,11 @@ paths:
 
           Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
         required: true
-    patch:
-      summary: Patch all desired properties of a feature
-      description: |-
-        Patch the desired properties of a feature identified by the `thingId` and `featureId` path parameter.
-
-        The existing desired properties will be merged with the JSON content set in the request body.
-
-        Notice that the `null` value can be used to delete the whole feature or specific parts of it.
-        The `Content-Type` header for this request must be "application/merge-patch+json".
-        For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
-
-        **Note**: In contrast to the "PUT things/{thingId}/features/{featureId}/desiredProperties" request,
-        a partial update is supported here and request body is merged with the existing desired properties.
-      tags:
-        - Features
-      parameters:
-        - $ref: '#/components/parameters/ThingIdPathParam'
-        - $ref: '#/components/parameters/FeatureIdPathPathParam'
-        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
-        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
-        - $ref: '#/components/parameters/RequestedAcksParam'
-        - $ref: '#/components/parameters/TimeoutParam'
-        - $ref: '#/components/parameters/ResponseRequiredParam'
-      responses:
-        '204':
-          description: The desired properties were successfully patched.
-          headers:
-            ETag:
-              description: |-
-                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
-                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
-              schema:
-                type: string
-        '400':
-          description: |-
-            The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
-              * the JSON body of the desired feature roperties to be created/modified is invalid
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '401':
-          description: The request could not be completed due to missing authentication.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '403':
-          description: |-
-            The request could not be completed. Possible reasons:
-              * the caller has insufficient permissions.
-                For modifying the desired properties of an existing feature, `WRITE` permission is required.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '404':
-          description: |-
-            The request could not be completed. The thing or the feature with the given ID was not found.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '412':
-          $ref: '#/components/responses/PreconditionFailed'
-        '413':
-          $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
-      requestBody:
-        content:
-          application/merge-patch+json:
-            schema:
-              $ref: '#/components/schemas/FeatureProperties'
-            example:
-              configuration:
-                smartMode: null
-                brewingTemp: 87
-                tempToHold: 44
-                timeoutSeconds: 6000
-              status:
-                waterAmount: 731
-                temperature: 44
-        description: |-
-          JSON object of all desried properties to be patched.
-
-          Consider that the value has to be a [JSON merge patch](https://tools.ietf.org/html/rfc7396). We strongly recommend to use
-          a restricted set of characters for the key (identifier).
-
-          Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
-        required: true
     delete:
       summary: Delete all desired properties of a feature
       description: |-
-        Deletes all desired properties of the feature identified by the `thingId` and `featureId` path parameter.
+        Deletes all desired properties of the feature identified by the `thingId` and
+        `featureId` path parameter.
       tags:
         - Features
       parameters:
@@ -3595,8 +2537,9 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The specified feature has no desired properties
-            or the thing with the specified `thingId` or the feature with `featureId` was not found.
+            The request could not be completed. The specified feature has no desired
+            properties or the thing with the specified `thingId` or the feature
+            with `featureId` was not found.
           content:
             application/json:
               schema:
@@ -3607,9 +2550,11 @@ paths:
     get:
       summary: Retrieve a specific desired property of a feature
       description: |-
-        Returns the a specific desired property path of the feature identified by the `thingId` and `featureId` path parameter.
+        Returns the a specific desired property path of the feature identified by the `thingId` and
+        `featureId` path parameter.
 
-        The desired property (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901)
+        The desired property (JSON) can be referenced
+        hierarchically, by applying JSON Pointer notation (RFC-6901)
 
         ### Example
         To retrieve the value of the `brewingTemp` in the `water-tank` of our coffeemaker example the full path is:
@@ -3653,7 +2598,8 @@ paths:
         '404':
           description: |-
             The request could not be completed. The specified desired property or the
-            thing with the specified `thingId` or the feature with `featureId` was not found.
+            thing with the specified `thingId` or the feature with `featureId`
+            was not found.
           content:
             application/json:
               schema:
@@ -3663,11 +2609,14 @@ paths:
     put:
       summary: Create or update a specific desired property of a feature
       description: |-
-        Create or update a specific desired property of a feature identified by the `thingId` and `featureId` path parameter.
+        Create or update a specific desired property of a feature identified by the
+        `thingId` and `featureId` path parameter.
 
-        The desired property will be created if it doesn't exist or else updated.
+        The desired property will be created
+        if it doesn't exist or else updated.
 
-        The desired property (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901).
+        The desired property (JSON) can be
+        referenced hierarchically, by applying JSON Pointer notation (RFC-6901),
 
         ### Example
         To set the value of the brewingTemp in the water-tank of our coffeemaker example the full path is:
@@ -3729,7 +2678,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The thing or the feature with the given ID was not found.
+            The request could not be completed. The thing or the feature with
+            the given ID was not found.
           content:
             application/json:
               schema:
@@ -3738,95 +2688,20 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         $ref: '#/components/requestBodies/Value'
-    patch:
-      summary: Patch a specific desired property of a feature
-      description: |-
-        Patch a specific desired property of a feature identified by the `thingId` and `featureId` path parameter.
-
-        The exisiting desired property of a feature will be merged with the JSON content set in the request body.
-
-        Notice that the `null` value can be used to delete the specified propertyPath.
-        The `Content-Type` header for this request must be "application/merge-patch+json".
-        For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
-
-        The desired property (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901).
-
-        ### Example
-        To set the value of the brewingTemp in the water-tank of our coffeemaker example the full path is:
-        `/things/{thingId}/features/water-tank/desiredProperties/configuration/brewingTemp`
-      tags:
-        - Features
-      parameters:
-        - $ref: '#/components/parameters/ThingIdPathParam'
-        - $ref: '#/components/parameters/FeatureIdPathPathParam'
-        - $ref: '#/components/parameters/PropertyPathPathParam'
-        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
-        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
-        - $ref: '#/components/parameters/RequestedAcksParam'
-        - $ref: '#/components/parameters/TimeoutParam'
-        - $ref: '#/components/parameters/ResponseRequiredParam'
-      responses:
-        '204':
-          description: The desired property was successfully patched.
-          headers:
-            ETag:
-              description: |-
-                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
-                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
-              schema:
-                type: string
-        '400':
-          description: |-
-            The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
-              * the JSON body is invalid
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '401':
-          description: The request could not be completed due to missing authentication.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '403':
-          description: |-
-            The request could not be completed. Possible reasons:
-              * the caller has insufficient permissions.
-                For creating/updating a desired property of an existing feature, `WRITE` permission is required.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '404':
-          description: |-
-            The request could not be completed. The thing or the feature with the given ID was not found.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
-        '412':
-          $ref: '#/components/responses/PreconditionFailed'
-        '413':
-          $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
-      requestBody:
-        $ref: '#/components/requestBodies/PatchValue'
     delete:
       summary: Delete a specific desired property of a feature
       description: |-
-        Deletes a specific desired property of the feature identified by the `thingId` and `featureId` path parameter.
+        Deletes a specific desired property of the feature identified by the `thingId`
+        and `featureId` path parameter.
 
-        The desired property (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901)
+        The desired property (JSON) can be referenced
+        hierarchically, by applying JSON Pointer notation (RFC-6901)
 
         ### Example
         To delete the value of the brewingTemp in the water-tank of our coffeemaker example the full path is:
+
         `/things/{thingId}/features/water-tank/desiredProperties/configuration/brewingTemp`
       tags:
         - Features
@@ -3859,7 +2734,8 @@ paths:
         '404':
           description: |-
             The request could not be completed. The specified desired property or the
-            thing with the specified `thingId` or the feature with `featureId` was not found.
+            thing with the specified `thingId` or the feature with `featureId`
+            was not found.
           content:
             application/json:
               schema:
@@ -3911,13 +2787,15 @@ paths:
       responses:
         '200':
           description: |-
-            The Claim message was processed successfully and the response body contains the custom response.
-            The response body may contain arbitrary data chosen by the recipient. The response code defaults
+            The Claim message was processed successfully and the response body
+            contains the custom response. The response body may contain
+            arbitrary data chosen by the recipient. The response code defaults
             to `200` but may be chosen by the recipient too.
         '204':
           description: |-
-            The Claim message was processed successfully and no custom response body was set.
-            The response code defaults to `204` but may be chosen by the recipient.
+            The Claim message was processed successfully and no custom response
+            body was set. The response code defaults to `204` but may be chosen
+            by the recipient.
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -3951,7 +2829,8 @@ paths:
           $ref: '#/components/responses/MessageTooLarge'
         '429':
           description: |-
-            The user has sent too many requests in a given amount of time ("rate limiting").
+            The user has sent too many requests in a given amount of time ("rate
+            limiting").
           content:
             application/json:
               schema:
@@ -3968,23 +2847,25 @@ paths:
         A message can be sent to a thing or one of its features in order to invoke an operation on the device.
 
         ### How
-        Send a message with a `messageSubject` **to** the thing identified by the `thingId` path parameter.
-        The request body contains the message payload and the `Content-Type` header defines its type.
+        Send a message with a `messageSubject` **to** the thing
+        identified by the `thingId` path parameter. The request body contains
+        the message payload and the `Content-Type` header defines its type.
 
         The HTTP request blocks until all acknowledgement requests are fulfilled.
-        By default, it blocks until a response to the message is available or until the `timeout` is expired.
-        If many clients respond to the issued message, the first response will complete the HTTP request.
+        By default, it blocks until a response to the message is available
+        or until the `timeout` is expired. If many clients respond to
+        the issued message, the first response will complete the HTTP request.
 
-        In order to handle the message in a fire and forget manner, add a query-parameter `timeout=0` to the request.
+        In order to handle the message in a fire and forget manner, add
+        a query-parameter `timeout=0` to the request.
 
-        Note that the client chooses which HTTP status code it wants to return.
-        Ditto will forward the status code to you. (Also note that '204 - No Content' status code
+        Note that the client chooses which HTTP status code it wants to return. Ditto
+        will forward the status code to you. (Also note that '204 - No Content' status code
         will never return a body, even if the client responded with a body).
 
         ### Who
-        You will need `WRITE` permission on the root "message:/" resource,
-        or at least the resource `message:/inbox/messages/messageSubject`.
-        The receiving device needs `READ` permission on the resource.
+        You will need `WRITE` permission on the root "message:/" resource, or at least
+        the resource `message:/inbox/messages/messageSubject`. The receiving device needs `READ` permission on the resource.
         Such permission is managed within the policy which controls the access on the thing.
 
         ### Example
@@ -4054,17 +2935,20 @@ paths:
     post:
       summary: Send a message FROM a specific thing
       description: |-
-        Send a message with the subject `messageSubject` **from** the thing identified by the `thingId` path parameter.
-        The request body contains the message payload and the `Content-Type` header defines its type.
+        Send a message with the subject `messageSubject` **from** the thing
+        identified by the `thingId` path parameter. The request body contains
+        the message payload and the `Content-Type` header defines its type.
 
         The HTTP request blocks until all acknowledgement requests are fulfilled.
-        By default, it blocks until a response to the message is available or until the `timeout` is expired.
-        If many clients respond to the issued message, the first response will complete the HTTP request.
+        By default, it blocks until a response to the message is available
+        or until the `timeout` is expired. If many clients respond to
+        the issued message, the first response will complete the HTTP request.
 
-        In order to handle the message in a fire and forget manner, add a query-parameter `timeout=0` to the request.
+        In order to handle the message in a fire and forget manner, add
+        a query-parameter `timeout=0` to the request.
 
-        Note that the client chooses which HTTP status code it wants to return.
-        Ditto will forward the status code to you. (Also note that '204 - No Content' status code
+        Note that the client chooses which HTTP status code it wants to return. Ditto
+        will forward the status code to you. (Also note that '204 - No Content' status code
         will never return a body, even if the client responded with a body).
 
         ### Who
@@ -4130,17 +3014,21 @@ paths:
     post:
       summary: Send a message TO a specific feature of a specific thing
       description: |-
-        Send a message with the subject `messageSubject` **to** the feature specified by the `featureId` and `thingId` path parameter.
-        The request body contains the message payload and the `Content-Type` header defines its type.
+        Send a message with the subject `messageSubject` **to** the feature
+        specified by the `featureId` and `thingId` path parameter. The request
+        body contains the message payload and the `Content-Type` header defines
+        its type.
 
         The HTTP request blocks until all acknowledgement requests are fulfilled.
-        By default, it blocks until a response to the message is available or until the `timeout` is expired.
-        If many clients respond to the issued message, the first response will complete the HTTP request.
+        By default, it blocks until a response to the message is available
+        or until the `timeout` is expired. If many clients respond to
+        the issued message, the first response will complete the HTTP request.
 
-        In order to handle the message in a fire and forget manner, add a query-parameter `timeout=0` to the request.
+        In order to handle the message in a fire and forget manner, add
+        a query-parameter `timeout=0` to the request.
 
-        Note that the client chooses which HTTP status code it wants to return.
-        Ditto will forward the status code to you. (Also note that '204 - No Content' status code
+        Note that the client chooses which HTTP status code it wants to return. Ditto
+        will forward the status code to you. (Also note that '204 - No Content' status code
         will never return a body, even if the client responded with a body).
 
         ### Who
@@ -4158,7 +3046,8 @@ paths:
       responses:
         '202':
           description: |-
-            The message was sent but not necessarily received by the feature (fire and forget).
+            The message was sent but not necessarily received by the feature
+            (fire and forget).
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -4208,17 +3097,21 @@ paths:
     post:
       summary: Send a message FROM a specific feature of a specific thing
       description: |-
-        Send a message with the subject `messageSubject` **from** the feature specified by the `featureId` and `thingId` path parameter.
-        The request body contains the message payload and the `Content-Type` header defines its type.
+        Send a message with the subject `messageSubject` **from** the feature
+        specified by the `featureId` and `thingId` path parameter. The request
+        body contains the message payload and the `Content-Type` header defines
+        its type.
 
         The HTTP request blocks until all acknowledgement requests are fulfilled.
-        By default, it blocks until a response to the message is available or until the `timeout` is expired.
-        If many clients respond to the issued message, the first response will complete the HTTP request.
+        By default, it blocks until a response to the message is available
+        or until the `timeout` is expired. If many clients respond to
+        the issued message, the first response will complete the HTTP request.
 
-        In order to handle the message in a fire and forget manner, add a query-parameter `timeout=0` to the request.
+        In order to handle the message in a fire and forget manner, add
+        a query-parameter `timeout=0` to the request.
 
-        Note that the client chooses which HTTP status code it wants to return.
-        Ditto will forward the status code to you. (Also note that '204 - No Content' status code
+        Note that the client chooses which HTTP status code it wants to return. Ditto
+        will forward the status code to you. (Also note that '204 - No Content' status code
         will never return a body, even if the client responded with a body).
 
         ### Who
@@ -4285,8 +3178,8 @@ paths:
     get:
       summary: Retrieve a specific policy
       description: |-
-        Returns the complete policy identified by the `policyId` path parameter.
-        The response contains the policy as JSON object.
+        Returns the complete policy identified by the `policyId` path parameter. The
+        response contains the policy as JSON object.
 
         Tip: If you don't know the policy ID of a thing, request it via GET `/things/{thingId}`.
       tags:
@@ -4299,7 +3192,8 @@ paths:
       responses:
         '200':
           description: |-
-            The request successfully returned completed and returned is the policy.
+            The request successfully returned completed and returned is the
+            policy.
           headers:
             ETag:
               description: |-
@@ -4330,7 +3224,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The policy with the given ID was not found in the context of the authenticated user.
+            The request could not be completed. The policy with the given ID was
+            not found in the context of the authenticated user.
           content:
             application/json:
               schema:
@@ -4347,10 +3242,10 @@ paths:
         ### Create a new policy
         At the initial creation of a policy, at least one valid entry is required. However, you can create a full-fledged policy all at once.
 
-        By default the authorized subject needs WRITE permission on the root resource of the created policy.
-        You can however omit this check by setting the parameter `allow-policy-lockout` to `true`.
+        By default the authorized subject needs WRITE permission on the root resource of the created policy. You can
+        however omit this check by setting the parameter `allow-policy-lockout` to `true`.
 
-        ### Example: To create a policy for multiple coffee maker things,
+        Example: To create a policy for multiple coffee maker things,
         which gives **yourself** all permissions on all resources, set the policyId in the path,
         e.g. to "com.acme.coffeemaker:policy-01" and the body part, like in the following snippet.
 
@@ -4465,7 +3360,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The policy with the given ID was not found in the context of the authenticated user.
+            The request could not be completed. The policy with the given ID was
+            not found in the context of the authenticated user.
           content:
             application/json:
               schema:
@@ -4474,8 +3370,6 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/json:
@@ -4505,17 +3399,20 @@ paths:
                       revoke: []
         description: |-
           JSON representation of the policy.
-          Use the placeholder `{{ request:subjectId }}` in order to let the backend insert the authenticated subjectId of the HTTP request.
+          Use the placeholder `{{ request:subjectId }}` in order to let the
+          backend insert the authenticated subjectId of the HTTP request.
         required: true
     delete:
       summary: Delete a specific policy
       description: |-
-        Deletes the policy identified by the `policyId` path parameter.
-        Deleting a policy does not implicitly delete other entities (e.g. things) which use this policy.
+        Deletes the policy identified by the `policyId` path parameter. Deleting
+        a policy does not implicitly delete other entities (e.g. things) which
+        use this policy.
 
-        Note: Delete the respective things **before** deleting the policy,
-        otherwise nobody has permission to read, update, or delete the things.
-        If you accidentally run into such a scenario, re-create the policy via PUT `/policies/{policyId}`.
+        Note: Delete the respective things **before** deleting the
+        policy, otherwise nobody has permission to read, update, or delete the things.
+        If you accidentally run into such a scenario, re-create the policy via
+        PUT `/policies/{policyId}`.
       tags:
         - Policies
       parameters:
@@ -4554,7 +3451,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The policy with the given ID was not found in the context of the authenticated user.
+            The request could not be completed. The policy with the given ID was
+            not found in the context of the authenticated user.
           content:
             application/json:
               schema:
@@ -4594,6 +3492,8 @@ paths:
             The request could not be completed because no policy entry matched the following conditions:
             * containing a a subject ID matching the JWT's authenticated subject
             * containing a `READ` permission granted to a `thing:/` resource path
+      requestBody:
+        $ref: '#/components/requestBodies/ActivateTokenIntegration'
   '/policies/{policyId}/actions/deactivateTokenIntegration':
     post:
       summary: Deactivate subjects for this policy derived from the token
@@ -4627,7 +3527,8 @@ paths:
     get:
       summary: Retrieve the entries of a specific policy
       description: |-
-        Returns all policy entries of the policy identified by the `policyId` path parameter.
+        Returns all policy entries of the policy identified by the `policyId`
+        path parameter.
       tags:
         - Policies
       parameters:
@@ -4638,7 +3539,8 @@ paths:
       responses:
         '200':
           description: |-
-            The request successfully returned completed and returned are the policy entries.
+            The request successfully returned completed and returned are the
+            policy entries.
           headers:
             ETag:
               description: |-
@@ -4669,7 +3571,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The policy with the given ID was not found in the context of the authenticated user.
+            The request could not be completed. The policy with the given ID was
+            not found in the context of the authenticated user.
           content:
             application/json:
               schema:
@@ -4679,7 +3582,8 @@ paths:
     put:
       summary: Modify the entries of a specific policy
       description: |-
-        Modify the policy entries of the policy identified by the `policyId` path parameter.
+        Modify the policy entries of the policy identified by the `policyId`
+        path parameter.
 
         Note: Take care to not lock yourself out. Use the placeholder {{ request:subjectId }}
         in order to let the backend insert the authenticated subjectId of the HTTP request.
@@ -4729,7 +3633,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The policy with the given ID was not found in the context of the authenticated user.
+            The request could not be completed. The policy with the given ID was
+            not found in the context of the authenticated user.
           content:
             application/json:
               schema:
@@ -4738,8 +3643,6 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/json:
@@ -4768,16 +3671,16 @@ paths:
                     revoke: []
         description: |-
           JSON representation of the policy entries.
-          Use the placeholder `{{ request:subjectId }}` in order to let the backend insert the authenticated subjectId of the HTTP request.
+          Use the placeholder `{{ request:subjectId }}` in order to let the
+          backend insert the authenticated subjectId of the HTTP request.
         required: true
   '/policies/{policyId}/entries/{label}':
     get:
       summary: Retrieve the entries of a specific Label of a specific policy
       description: |-
-        Returns all entries (subjects, resources, etc.) of the policy identified by the `policyId` path parameter,
-        and by the `label` path parameter.
-
-        ### Example label: DEFAULT.
+        Returns all entries (subjects, resources, etc.) of the policy identified by the `policyId` path
+        parameter, and by the `label` path parameter.
+        Example label: DEFAULT.
       tags:
         - Policies
       parameters:
@@ -4789,7 +3692,8 @@ paths:
       responses:
         '200':
           description: |-
-            The request successfully returned completed and returned is the policy entry.
+            The request successfully returned completed and returned is the
+            policy entry.
           headers:
             ETag:
               description: |-
@@ -4832,9 +3736,9 @@ paths:
     put:
       summary: Create or modify the entries of a specific Label of a specific policy
       description: |-
-        Create or modify the policy entry identified by the `policyId` path parameter and
-        with the label identified by the `label` path parameter.
-
+        Create or modify the policy entry identified by the
+        `policyId` path parameter and with the label identified by the `label`
+        path parameter.
         * If you specify a new label, the respective policy entry will be created
         * If you specify an existig label, the respective policy entry will be updated
       tags:
@@ -4901,7 +3805,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The policy with the given ID was not found in the context of the authenticated user.
+            The request could not be completed. The policy with the given ID was
+            not found in the context of the authenticated user.
           content:
             application/json:
               schema:
@@ -4910,8 +3815,6 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/json:
@@ -4939,11 +3842,12 @@ paths:
                   revoke: []
         description: |-
           JSON representation of the policy entry.
-          Use the placeholder `{{ request:subjectId }}` in order to let the backend insert the authenticated subjectId of the HTTP request.
-
+          Use the placeholder `{{ request:subjectId }}` in order to let the
+          backend insert the authenticated subjectId of the HTTP request.
           ### Example
-          Given your policy "com.acme.coffeemaker:policy-01" only has the DEFAULT entry,
-          and you want to add a "Consumer" section which additionally allows USER-01 (managed within a Nginx reverse proxy) to
+          Given your policy "com.acme.coffeemaker:policy-01" only has the
+          DEFAULT entry, and you want to add a "Consumer" section which additionally allows USER-01
+          (managed within a Nginx reverse proxy) to
           *read* the thing and to trigger a "makeCoffee" operation (i.e. POST such a message - see
           POST /things/{thingId}/inbox/messages/{messageSubject}).
           Set the label value to **Consumer** and the following request body:
@@ -4974,7 +3878,8 @@ paths:
     delete:
       summary: Delete the entries of a specific Label of a specific policy
       description: |-
-        Deletes the entry of the policy identified by the `policyId` path parameter and with the label identified by the `label` path parameter.
+        Deletes the entry of the policy identified by the `policyId` path
+        parameter and with the label identified by the `label` path parameter.
       tags:
         - Policies
       parameters:
@@ -5014,7 +3919,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The policy with the given ID was not found in the context of the authenticated user.
+            The request could not be completed. The policy with the given ID was
+            not found in the context of the authenticated user.
           content:
             application/json:
               schema:
@@ -5055,6 +3961,8 @@ paths:
             The request could not be completed because this policy entry did not match the following conditions:
             * containing a a subject ID matching the JWT's authenticated subject
             * containing a `READ` permission granted to a `thing:/` resource path
+      requestBody:
+        $ref: '#/components/requestBodies/ActivateTokenIntegration'
   '/policies/{policyId}/entries/{label}/actions/deactivateTokenIntegration':
     post:
       summary: Deactivate a subject for this policy entry derived from the token
@@ -5087,7 +3995,9 @@ paths:
     get:
       summary: Retrieve all Subjects for a specific Label of a specific policy
       description: |-
-        Returns all subject entries of the policy identified by the `policyId` path parameter, and by the `label` path parameter.
+        Returns all subject entries of the policy identified by the
+        `policyId` path parameter, and by the `label`
+        path parameter.
       tags:
         - Policies
       parameters:
@@ -5130,7 +4040,8 @@ paths:
         '404':
           description: |-
             The request could not be completed. The policy with the given ID or
-            the policy entry was not found in the context of the authenticated user.
+            the policy entry was not found in the context of the authenticated
+            user.
           content:
             application/json:
               schema:
@@ -5140,7 +4051,8 @@ paths:
     put:
       summary: Create or modify all Subjects for a specific Label of a specific policy
       description: |-
-        Create or modify at once ALL subjects of the policy entry identified by the `policyId` path parameter, and by the `label` path parameter.
+        Create or modify at once ALL subjects of the policy entry identified
+        by the `policyId` path parameter, and by the `label` path parameter.
 
         ### Example - delete all subjects
         To delete all subjects set an empty body { }
@@ -5202,7 +4114,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The policy with the given ID was not found in the context of the authenticated user.
+            The request could not be completed. The policy with the given ID was
+            not found in the context of the authenticated user.
           content:
             application/json:
               schema:
@@ -5211,8 +4124,6 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/json:
@@ -5229,7 +4140,8 @@ paths:
     get:
       summary: Retrieve one specific Subject for a specific Label of a specific policy
       description: |-
-        Returns the subject with ID `subjectId` of the policy entry identified by the `policyId` path parameter, and by the `label` path parameter.
+        Returns the subject with ID `subjectId` of the policy entry identified
+        by the `policyId` path parameter, and by the `label` path parameter.
       tags:
         - Policies
       parameters:
@@ -5242,7 +4154,8 @@ paths:
       responses:
         '200':
           description: |-
-            The request successfully returned completed and returned is the subject.
+            The request successfully returned completed and returned is the
+            Subject.
           headers:
             ETag:
               description: |-
@@ -5274,7 +4187,8 @@ paths:
         '404':
           description: |-
             The request could not be completed. The policy with the given ID,
-            the policy entry or the Subject was not found in the context of the authenticated user.
+            the policy entry or the Subject was not found in the context of the
+            authenticated user.
           content:
             application/json:
               schema:
@@ -5284,7 +4198,8 @@ paths:
     put:
       summary: Create or modify one specific Subject for a specific Label of a specific policy
       description: |-
-        Create or modify the subject with ID `subjectId` of the policy identified by the `policyId` path parameter, and by the `label` path parameter.
+        Create or modify the subject with ID `subjectId` of the policy identified
+        by the `policyId` path parameter, and by the `label` path parameter.
       tags:
         - Policies
       parameters:
@@ -5351,7 +4266,8 @@ paths:
         '404':
           description: |-
             The request could not be completed. The policy with the given ID or
-            the policy entry was not found in the context of the authenticated user.
+            the policy entry was not found in the context of the authenticated
+            user.
           content:
             application/json:
               schema:
@@ -5360,8 +4276,6 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/json:
@@ -5372,11 +4286,13 @@ paths:
     delete:
       summary: Delete one specific Subject for a specific Label of a specific policy
       description: |-
-        Deletes the subject with ID `subjectId` from the policy identified by the `policyId` path parameter and
+        Deletes the subject with ID `subjectId` from the policy identified
+        by the `policyId` path parameter and
         by the `label` path parameter.
 
         Note: If the subject is used in other labels, it will not be deleted there,
-        i.e. it will not lose those permissions, but only the permissions defined in the label specified at this path.
+        i.e. it will not lose those permissions, but only the permissions defined in the
+        label specified at this path.
       tags:
         - Policies
       parameters:
@@ -5418,7 +4334,8 @@ paths:
         '404':
           description: |-
             The request could not be completed. The policy with the given ID,
-            the policy entry or the Subject was not found in the context of the authenticated user.
+            the policy entry or the Subject was not found in the context of the
+            authenticated user.
           content:
             application/json:
               schema:
@@ -5429,7 +4346,9 @@ paths:
     get:
       summary: Retrieve all Resources for a specific Label of a specific policy
       description: |-
-        Returns all resource entries of the policy identified by the `policyId` path parameter, and by the `label` path parameter.
+        Returns all resource entries of the policy identified by
+        the `policyId` path parameter,
+        and by the `label` path parameter.
       tags:
         - Policies
       parameters:
@@ -5483,7 +4402,9 @@ paths:
     put:
       summary: Create or modify all Resources for a specific Label of a specific policy
       description: |-
-        Create or modify all resources of the policy identified by the `policyId` path parameter, and by the `label` path parameter.
+        Create or modify all resources of the policy
+        identified by the `policyId` path parameter,
+        and by the `label` path parameter.
 
         ### Delete all resource entries
 
@@ -5580,7 +4501,8 @@ paths:
         '404':
           description: |-
             The request could not be completed. The policy with the given ID or
-            the policy entry was not found in the context of the authenticated user.
+            the policy entry was not found in the context of the authenticated
+            user.
           content:
             application/json:
               schema:
@@ -5589,8 +4511,6 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/json:
@@ -5603,7 +4523,8 @@ paths:
       summary: Retrieve one specific Resource for a specific Label of a specific policy
       description: |-
         Returns the resource with path `resourcePath` of the policy identified
-        by the `policyId` path parameter, and by the `label` path parameter.
+        by the `policyId` path parameter, and
+        by the `label` path parameter.
       tags:
         - Policies
       parameters:
@@ -5616,7 +4537,8 @@ paths:
       responses:
         '200':
           description: |-
-            The request successfully returned completed and returned is the resource.
+            The request successfully returned completed and returned is the
+            Resource.
           headers:
             ETag:
               description: |-
@@ -5648,7 +4570,8 @@ paths:
         '404':
           description: |-
             The request could not be completed. The policy with the given ID,
-            the policy entry or the Resource was not found in the context of the authenticated user.
+            the policy entry or the Resource was not found in the context of the
+            authenticated user.
           content:
             application/json:
               schema:
@@ -5658,8 +4581,9 @@ paths:
     put:
       summary: Create or modify one specific Resource for a specific Label of a specific policy
       description: |-
-        Create or modify the Resource with path `resourcePath` of the policy entry identified by the `label` path parameter
-        belonging to the policy identified by the `policyId` path parameter.
+        Create or modify the Resource with path `resourcePath` of the policy
+        entry identified by the `label` path parameter belonging to the policy
+        identified by the `policyId` path parameter.
       tags:
         - Policies
       parameters:
@@ -5689,7 +4613,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ResourceEntry'
         '204':
-          description: The resource was successfully updated.
+          description: The Resource was successfully updated.
           headers:
             ETag:
               description: |-
@@ -5728,7 +4652,8 @@ paths:
         '404':
           description: |-
             The request could not be completed. The policy with the given ID or
-            the policy entry was not found in the context of the authenticated user.
+            the policy entry was not found in the context of the authenticated
+            user.
           content:
             application/json:
               schema:
@@ -5737,8 +4662,6 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
-        '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/json:
@@ -5749,8 +4672,9 @@ paths:
     delete:
       summary: Delete one specific Resource for a specific Label of a specific policy
       description: |-
-        Deletes the resource with path `resourcePath` from the policy identified by the the `policyId` path parameter,
-        and by the `label` path parameter.
+        Deletes the resource with path `resourcePath` from the policy
+        identified by the the `policyId` path parameter, and by the
+        `label` path parameter.
       tags:
         - Policies
       parameters:
@@ -5792,7 +4716,8 @@ paths:
         '404':
           description: |-
             The request could not be completed. The policy with the given ID,
-            the policy entry or the Resource was not found in the context of the authenticated user.
+            the policy entry or the Resource was not found in the context of the
+            authenticated user.
           content:
             application/json:
               schema:
@@ -5832,7 +4757,8 @@ paths:
           notation instead of *eq* for filtering.
 
         * The resource supports sorting and paging. If paging is not explicitly
-          specified by means of the `size` option, a default count of `25` documents is returned.
+          specified by means of the `size` option, a default count of `25`
+          documents is returned.
 
         * The internal search index is "eventually consistent".  Consistency with the latest
           thing updates should recover within milliseconds.
@@ -5923,11 +4849,13 @@ paths:
         This resource can be used to count things.
 
         The query parameter `filter` is not mandatory. If it is not set there is
-        returned the total amount of things which the logged in user is allowed to read.
+        returned the total amount of things which the logged in user is allowed
+        to read.
 
-        To search for nested properties, we use JSON Pointer notation (RFC-6901).
-        See the following example how to search for the sub property `location` of the parent property `attributes`
-        with a forward slash as  separator:
+        To search for nested properties, we use JSON Pointer notation
+        (RFC-6901). See the following example how to search for the sub property
+        `location` of the parent property `attributes` with a forward slash as
+        separator:
 
         ```eq(attributes/location,"kitchen")```
       parameters:
@@ -5945,7 +4873,8 @@ paths:
                 type: integer
         '400':
           description: |-
-            The request could not be completed. A provided parameter is in a wrong format.
+            The request could not be completed. A provided parameter is in a
+            wrong format.
           content:
             application/json:
               schema:
@@ -6066,7 +4995,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '415':
-          $ref: '#/components/responses/MediaTypeNotSupported'
+          description: The `Content-Type` of the request was not supported.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
       requestBody:
         content:
           application/vnd.eclipse.ditto+json:
@@ -6130,9 +5063,10 @@ components:
               serialno: '42'
               model: Speaking coffee machine
       description: |-
-        JSON object of all attributes to be modified at once. Consider that the value has to be a JSON object or `null`.
+        JSON object of all attributes to be modified at once. Consider that the
+        value has to be a JSON object or `null`.
 
-        ### Examples:
+        Examples:
          * an empty object: `{}` - would just delete all old attributes
          * a simple object: `{ "key": "value"}` - We strongly recommend to use a restricted set of characters for the key (identifier), as the key might be needed for the (URL) path later.<br> Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
          * a nested object as shown in the example value
@@ -6144,10 +5078,10 @@ components:
             $ref: '#/components/schemas/Definition'
           example: '"example:test:definition"'
       description: |-
-        JSON string of the definition to be modified. Consider that the value has to be a JSON string or `null`,
-        examples:
+        JSON string of the definition to be modified. Consider that the
+        value has to be a JSON string or `null`, examples:
 
-          * an string: `"value"` - Currently the definition should follow the pattern: [_a-zA-Z0-9\-]:[_a-zA-Z0-9\-]:[_a-zA-Z0-9\-]
+          * an string: `{ ""value"}` -}. Currently the definition should follow the pattern: [_a-zA-Z0-9\-]:[_a-zA-Z0-9\-]:[_a-zA-Z0-9\-]
           * an empty string: `""`
     Payload:
       content:
@@ -6164,7 +5098,8 @@ components:
             type: string
             example: ''
       description: |-
-        Payload of the message with max size of 250 kB. It can be any HTTP supported content, including binary content.
+        Payload of the message with max size of 250 kB. It can be any HTTP
+        supported content, including binary content.
     Value:
       content:
         application/json:
@@ -6172,36 +5107,34 @@ components:
             type: object
             example: {}
       description: |-
-        JSON representation of the value to be created/updated. This may be as well `null` or an empty object.
+        JSON representation of the value to be created/updated. This may be as
+        well `null` or an empty object.
 
-        Consider that the value has to be a JSON value.
+        Consider that the value has to be a JSON value, examples:
 
-        Examples:
           * for a number, the JSON value is the number: `42`
+
           * for a string, the JSON value must be quoted: `"aString"`
+
           * for a boolean, the JSON value is the boolean: `true`
+
           * for an object, the JSON value is the object: `{ "key": "value"}` -} We strongly recommend to use a restricted set of characters for the key (identifier). Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
+
           * for an list, the JSON value is the list: `[ 1,2,3 ]`
       required: true
-    PatchValue:
+    ActivateTokenIntegration:
       content:
-        application/merge-patch+json:
+        application/json:
           schema:
-            type: object
-            example: {}
-      description: |-
-        JSON representation of the value to be patched. This may be as well an empty object.
-
-        Consider that the value has to be a JSON value.
-
-        Examples:
-          * for a number, the JSON value is the number: `42`
-          * for a string, the JSON value must be quoted: `"aString"`
-          * for a boolean, the JSON value is the boolean: `true`
-          * for an object, the JSON value is the object: `{ "key": "value"}` -} We strongly recommend to use a restricted set of characters for the key (identifier). Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
-          * for an list, the JSON value is the list: `[ 1,2,3 ]`
-          * special value `null` will delete the referenced key. For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
-      required: true
+            properties:
+              announcement:
+                $ref: '#/components/schemas/SubjectAnnouncement'
+          example:
+            announcement:
+              beforeExpiry: 5m
+              whenDeleted: true
+      description: Optional request payload for `activateTokenIntegration` policy action.
+      required: false
   responses:
     EntityTooLarge:
       description: The created or modified entity is larger than the accepted limit of 100 kB.
@@ -6217,12 +5150,6 @@ components:
             $ref: '#/components/schemas/AdvancedError'
     MessageTooLarge:
       description: The size of the send message is larger than the accepted limit of 250 kB.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/AdvancedError'
-    MediaTypeNotSupported:
-      description: The Media-Type send in the `Content-Type` header is not supported for this resource.
       content:
         application/json:
           schema:
@@ -6278,7 +5205,8 @@ components:
       name: fields
       in: query
       description: |-
-        Contains a comma-separated list of fields from the attributes to be included in the returned JSON.
+        Contains a comma-separated list of fields from the attributes to be
+        included in the returned JSON.
 
         #### Selectable fields
 
@@ -6343,7 +5271,8 @@ components:
       name: fields
       in: query
       description: |-
-        Contains a comma-separated list of fields from the selected feature to be included in the returned JSON.
+        Contains a comma-separated list of fields from the selected feature to be
+        included in the returned JSON.
 
         #### Selectable fields
 
@@ -6381,7 +5310,8 @@ components:
       name: fields
       in: query
       description: |-
-        Contains a comma-separated list of fields from one or more features to be included in the returned JSON.
+        Contains a comma-separated list of fields from one or more features to be
+        included in the returned JSON.
 
         #### Selectable fields
 
@@ -6484,7 +5414,9 @@ components:
       name: namespaces
       in: query
       description: |-
-        A comma-separated list of namespaces. This list is used to limit the query to things in the given namespaces only.
+        A comma-separated list of namespaces. This list is used to limit the query to things in the given namespaces
+        only.
+
 
         #### Examples:
 
@@ -6509,7 +5441,8 @@ components:
       name: fields
       in: query
       description: |-
-        Contains a comma-separated list of fields from the properties to be included in the returned JSON.
+        Contains a comma-separated list of fields from the properties to be
+        included in the returned JSON.
 
         #### Selectable fields
 
@@ -6671,8 +5604,8 @@ components:
       name: fields
       in: query
       description: |-
-        Contains a comma-separated list of fields to be included in the returned JSON.
-        Attributes can be selected in the same manner.
+        Contains a comma-separated list of fields to be included in the returned
+        JSON. attributes can be selected in the same manner.
 
         #### Selectable fields
 
@@ -6922,24 +5855,6 @@ components:
       required:
         - thingId
         - policyId
-    PatchThing:
-      type: object
-      properties:
-        thingId:
-          type: string
-          description: Unique identifier representing the thing
-        policyId:
-          type: string
-          description: 'The ID of the policy which controls the access to this thing. policies are managed by resource `/policies/{policyId}`'
-        definition:
-          $ref: '#/components/schemas/Definition'
-        attributes:
-          $ref: '#/components/schemas/Attributes'
-        features:
-          $ref: '#/components/schemas/Features'
-      required:
-        - thingId
-        - policyId
     NewPolicy:
       type: object
       description: Policy consisting of policy entries
@@ -7000,9 +5915,14 @@ components:
           type: string
           description: The optional expiry timestamp (formatted in ISO-8601) indicates how long this subject should be considered active before it is automatically deleted from the Policy.
           format: date-time
+        announcement:
+          $ref: '#/components/schemas/SubjectAnnouncement'
       example:
         type: 'This is some description for this subject, adjust as needed.'
         expiry: '2020-12-07T11:36:40Z'
+        announcement:
+          beforeExpiry: 5m
+          whenDeleted: true
     Resources:
       type: object
       description: |-
@@ -7050,6 +5970,21 @@ components:
       enum:
         - READ
         - WRITE
+    SubjectAnnouncement:
+      type: object
+      description: Settings for announcements to be made about the subject.
+      properties:
+        beforeExpiry:
+          type: string
+          description: |-
+            The duration before expiry when an announcement should be made.
+            Must be a positive integer followed by one of `h` (hour), `m` (minute) or `s` (second).
+        whenDeleted:
+          type: boolean
+          description: Whether an announcement should be made when this subject is deleted.
+      example:
+        beforeExpiry: 5m
+        whenDeleted: true
     Features:
       type: object
       description: |-

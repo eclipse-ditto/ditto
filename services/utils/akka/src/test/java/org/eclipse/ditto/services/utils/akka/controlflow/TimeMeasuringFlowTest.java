@@ -70,7 +70,7 @@ public final class TimeMeasuringFlowTest {
     }
 
     @Test
-    public void timeMeasuringInaccuracyIsLessThanTwoMS() {
+    public void timeMeasuringInaccuracyIsLessThanFiveMS() {
         final Duration sleepDuration = Duration.ofMillis(5);
         final Flow<String, String, NotUsed> flowThatNeedsSomeTime = Flow.fromFunction(x -> {
             TimeUnit.MILLISECONDS.sleep(sleepDuration.toMillis());
@@ -98,8 +98,8 @@ public final class TimeMeasuringFlowTest {
                     .mapToLong(Duration::toNanos)
                     .average()
                     .orElseThrow();
-            final Offset<Double> twoMsOffset = Offset.offset((double) Duration.ofMillis(2).toNanos());
-            assertThat(averageDurationInNanos).isCloseTo(sleepDuration.toNanos(), twoMsOffset);
+            final Offset<Double> fiveMsOffset = Offset.offset((double) Duration.ofMillis(5).toNanos());
+            assertThat(averageDurationInNanos).isCloseTo(sleepDuration.toNanos(), fiveMsOffset);
             verify(timerMock, times(10)).start();
         }};
     }

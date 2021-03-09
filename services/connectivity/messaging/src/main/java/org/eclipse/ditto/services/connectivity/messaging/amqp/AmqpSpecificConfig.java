@@ -14,11 +14,13 @@ package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
 import static org.apache.qpid.jms.provider.failover.FailoverProviderFactory.FAILOVER_OPTION_PREFIX;
 
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.time.Duration;
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
@@ -49,8 +51,8 @@ public final class AmqpSpecificConfig {
 
     private AmqpSpecificConfig(final Map<String, String> amqpParameters, final Map<String, String> jmsParameters,
             final boolean failoverEnabled) {
-        this.amqpParameters = Map.copyOf(amqpParameters);
-        this.jmsParameters = Map.copyOf(jmsParameters);
+        this.amqpParameters = Collections.unmodifiableMap(new LinkedHashMap<>(amqpParameters));
+        this.jmsParameters = Collections.unmodifiableMap(new LinkedHashMap<>(jmsParameters));
         this.failoverEnabled = failoverEnabled;
     }
 
@@ -64,15 +66,15 @@ public final class AmqpSpecificConfig {
      */
     public static AmqpSpecificConfig withDefault(final String clientId, final Connection connection,
             final Map<String, String> defaultConfig) {
-        final var amqpParameters = new HashMap<>(filterForAmqpParameters(defaultConfig));
+        final var amqpParameters = new LinkedHashMap<>(filterForAmqpParameters(defaultConfig));
         addSaslMechanisms(amqpParameters, connection);
         addTransportParameters(amqpParameters, connection);
         addSpecificConfigParameters(amqpParameters, connection, AmqpSpecificConfig::isPermittedAmqpConfig);
 
-        final var jmsParameters = new HashMap<>(filterForJmsParameters(defaultConfig));
+        final var jmsParameters = new LinkedHashMap<>(filterForJmsParameters(defaultConfig));
         addParameter(jmsParameters, CLIENT_ID, clientId);
         addCredentials(jmsParameters, connection);
-        addFailoverParameters(jmsParameters);
+        addFailoverParameters(jmsParameters, connection);
         addSpecificConfigParameters(jmsParameters, connection, AmqpSpecificConfig::isPermittedJmsConfig);
 
         return new AmqpSpecificConfig(amqpParameters, jmsParameters, connection.isFailoverEnabled());
@@ -85,7 +87,7 @@ public final class AmqpSpecificConfig {
      * @return the relevant config values.
      */
     public static Map<String, String> toDefaultConfig(final Amqp10Config config) {
-        final HashMap<String, String> defaultConfig = new HashMap<>();
+        final LinkedHashMap<String, String> defaultConfig = new LinkedHashMap<>();
         addParameter(defaultConfig, CONNECT_TIMEOUT, config.getGlobalConnectTimeout().toMillis());
         addParameter(defaultConfig, SEND_TIMEOUT, config.getGlobalSendTimeout().toMillis());
         addParameter(defaultConfig, REQUEST_TIMEOUT, config.getGlobalRequestTimeout().toMillis());
@@ -124,7 +126,7 @@ public final class AmqpSpecificConfig {
         return key.startsWith("amqp") || key.startsWith("transport");
     }
 
-    private static void addSpecificConfigParameters(final HashMap<String, String> parameters,
+    private static void addSpecificConfigParameters(final LinkedHashMap<String, String> parameters,
             final Connection connection, final Predicate<String> keyFilter) {
         connection.getSpecificConfig().forEach((key, value) -> {
             if (keyFilter.test(key)) {
@@ -133,7 +135,7 @@ public final class AmqpSpecificConfig {
         });
     }
 
-    private static void addSaslMechanisms(final HashMap<String, String> parameters, final Connection connection) {
+    private static void addSaslMechanisms(final LinkedHashMap<String, String> parameters, final Connection connection) {
         if (connection.getUsername().isPresent() && connection.getPassword().isPresent()) {
             addParameter(parameters, SASL_MECHANISMS, "PLAIN");
         } else {
@@ -141,7 +143,7 @@ public final class AmqpSpecificConfig {
         }
     }
 
-    private static void addCredentials(final HashMap<String, String> parameters, final Connection connection) {
+    private static void addCredentials(final LinkedHashMap<String, String> parameters, final Connection connection) {
         final var username = connection.getUsername();
         final var password = connection.getPassword();
         if (username.isPresent() && password.isPresent()) {
@@ -150,7 +152,8 @@ public final class AmqpSpecificConfig {
         }
     }
 
-    private static void addTransportParameters(final HashMap<String, String> parameters, final Connection connection) {
+    private static void addTransportParameters(final LinkedHashMap<String, String> parameters,
+            final Connection connection) {
         if (isSecuredConnection(connection) && !connection.isValidateCertificates()) {
             // these setting can only be applied for amqps connections:
             addParameter(parameters, TRUST_ALL, true);
@@ -158,7 +161,8 @@ public final class AmqpSpecificConfig {
         }
     }
 
-    private static void addParameter(final HashMap<String, String> parameters, final String key, final Object value) {
+    private static void addParameter(final LinkedHashMap<String, String> parameters, final String key,
+            final Object value) {
         parameters.put(key, String.valueOf(value));
     }
 
@@ -170,22 +174,25 @@ public final class AmqpSpecificConfig {
         return ConnectionBasedJmsConnectionFactory.isSecuredConnection(connection);
     }
 
-    private static void addFailoverParameters(final HashMap<String, String> parameters) {
-        final long fifteenMinutes = Duration.ofMinutes(15L).toMillis();
+    private static void addFailoverParameters(final LinkedHashMap<String, String> parameters,
+            final Connection connection) {
 
-        // Important: we cannot interrupt connection initiation.
-        // These failover parameters ensure qpid client gives up after at most
-        // 128 + 256 + 512 + 1024 + 2048 + 4096 = 8064 ms < 10_000 ms = 10 s
-        // at the first attempt. The client will retry endlessly after the connection
-        // is established with reasonable max reconnect delay until the user terminates
-        // the connection manually.
-        addParameter(parameters, FAILOVER_OPTION_PREFIX + "startupMaxReconnectAttempts", 5);
-        addParameter(parameters, FAILOVER_OPTION_PREFIX + "maxReconnectAttempts", -1);
-        addParameter(parameters, FAILOVER_OPTION_PREFIX + "initialReconnectDelay", 128);
-        addParameter(parameters, FAILOVER_OPTION_PREFIX + "reconnectDelay", 128);
-        addParameter(parameters, FAILOVER_OPTION_PREFIX + "maxReconnectDelay", fifteenMinutes);
-        addParameter(parameters, FAILOVER_OPTION_PREFIX + "reconnectBackOffMultiplier", 2);
-        addParameter(parameters, FAILOVER_OPTION_PREFIX + "useReconnectBackOff", true);
+        if (connection.isFailoverEnabled()) {
+            final long fifteenMinutes = Duration.ofMinutes(15L).toMillis();
+            // Important: we cannot interrupt connection initiation.
+            // These failover parameters ensure qpid client gives up after at most
+            // 128 + 256 + 512 + 1024 + 2048 + 4096 = 8064 ms < 10_000 ms = 10 s
+            // at the first attempt. The client will retry endlessly after the connection
+            // is established with reasonable max reconnect delay until the user terminates
+            // the connection manually.
+            addParameter(parameters, FAILOVER_OPTION_PREFIX + "startupMaxReconnectAttempts", 5);
+            addParameter(parameters, FAILOVER_OPTION_PREFIX + "maxReconnectAttempts", -1);
+            addParameter(parameters, FAILOVER_OPTION_PREFIX + "initialReconnectDelay", 128);
+            addParameter(parameters, FAILOVER_OPTION_PREFIX + "reconnectDelay", 128);
+            addParameter(parameters, FAILOVER_OPTION_PREFIX + "maxReconnectDelay", fifteenMinutes);
+            addParameter(parameters, FAILOVER_OPTION_PREFIX + "reconnectBackOffMultiplier", 2);
+            addParameter(parameters, FAILOVER_OPTION_PREFIX + "useReconnectBackOff", true);
+        }
     }
 
     private static Map<String, String> filterForAmqpParameters(final Map<String, String> defaultConfig) {

@@ -27,7 +27,6 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonRuntimeException;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
@@ -51,6 +50,7 @@ import org.eclipse.ditto.services.models.acks.AcknowledgementAggregatorActorStar
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.cluster.JsonValueSourceRef;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
@@ -178,6 +178,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
     private void handleCommand(final Command<?> command) {
         try {
+            logger.setCorrelationId(command);
             incomingCommandHeaders = command.getDittoHeaders();
             ackregatorStarter.start(command,
                     this::onAggregatedResponseOrError,
@@ -200,7 +201,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private Void handleCommandWithAckregator(final Signal<?> command, final ActorRef aggregator) {
-        logger.withCorrelationId(command).debug("Got <{}>. Telling the target actor about it.", command);
+        logger.debug("Got <{}>. Telling the target actor about it.", command);
         proxyActor.tell(command, aggregator);
         return null;
     }
@@ -220,8 +221,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private void handleCommandAndAcceptImmediately(final Signal<?> command) {
-        logger.withCorrelationId(command)
-                .debug("Received <{}> that doesn't expect a response. Answering with status code 202 ..", command);
+        logger.debug("Received <{}> that doesn't expect a response. Answering with status code 202 ...", command);
         proxyActor.tell(command, getSelf());
         completeWithResult(createHttpResponse(HttpStatus.ACCEPTED));
     }
@@ -287,7 +287,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private void handleCommandWithResponse(final Signal<?> command, final Receive awaitCommandResponseBehavior) {
-        logger.withCorrelationId(command).debug("Got <{}>. Telling the target actor about it.", command);
+        logger.debug("Got <{}>. Telling the target actor about it.", command);
         proxyActor.tell(command, getSelf());
 
         final ActorContext context = getContext();
@@ -335,7 +335,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                                 entityPlainStringOptional.get(), contentType);
                     } else {
                         response = addEntityAccordingToContentType(responseWithoutBody,
-                                withEntity.getEntity(commandResponse.getImplementedSchemaVersion()),
+                                withEntity.getEntity(commandResponse.getImplementedSchemaVersion()).toString(),
                                 contentType);
                     }
                     completeWithResult(response);
@@ -355,6 +355,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                                     " 'WithOptionalEntity': <{}>!", commandResponse);
                     completeWithResult(createHttpResponse(HttpStatus.INTERNAL_SERVER_ERROR));
                 })
+                .match(JsonValueSourceRef.class, this::handleJsonValueSourceRef)
                 .match(Status.Failure.class, f -> f.cause() instanceof AskTimeoutException, failure -> {
                     final Throwable cause = failure.cause();
                     logger.error(cause, "Got <{}> when a command response was expected: <{}>!",
@@ -531,20 +532,6 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         return response.withEntity(ContentTypes.parse(contentType.getValue()), byteString);
     }
 
-    private static HttpResponse addEntityAccordingToContentType(final HttpResponse response, final JsonValue entity,
-            final ContentType contentType) {
-
-        final String entityString;
-
-        if (contentType.isJson()) {
-            entityString = entity.toString();
-        } else {
-            entityString = entity.asString();
-        }
-
-        return addEntityAccordingToContentType(response, entityString, contentType);
-    }
-
     private static ContentType getContentType(final DittoHeaders dittoHeaders) {
         return dittoHeaders.getDittoContentType().orElse(ContentType.APPLICATION_JSON);
     }
@@ -570,7 +557,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             final JsonSchemaVersion schemaVersion = dittoHeaders.getSchemaVersion()
                     .orElse(dittoHeaders.getImplementedSchemaVersion());
             return withOptionalEntity.getEntity(schemaVersion)
-                    .map(entity -> addEntityAccordingToContentType(response, entity, getContentType(dittoHeaders)))
+                    .map(entity -> addEntityAccordingToContentType(response, entity.toString(),
+                            getContentType(dittoHeaders)))
                     .orElse(response);
         };
     }
@@ -639,6 +627,14 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     private static boolean shallAcceptImmediately(final WithDittoHeaders withDittoHeaders) {
         final DittoHeaders dittoHeaders = withDittoHeaders.getDittoHeaders();
         return !dittoHeaders.isResponseRequired() && dittoHeaders.getAcknowledgementRequests().isEmpty();
+    }
+
+    private void handleJsonValueSourceRef(final JsonValueSourceRef jsonValueSourceRef) {
+        logger.debug("Received <{}> from <{}>.", jsonValueSourceRef.getClass().getSimpleName(), getSender());
+        final var jsonValueSourceToHttpResponse = JsonValueSourceToHttpResponse.getInstance();
+        final var httpResponse = jsonValueSourceToHttpResponse.apply(jsonValueSourceRef.getSource());
+        enhanceResponseWithExternalDittoHeaders(httpResponse, incomingCommandHeaders);
+        completeWithResult(httpResponse);
     }
 
     private static final class HttpAcknowledgementConfig implements AcknowledgementConfig {

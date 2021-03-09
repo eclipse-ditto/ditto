@@ -153,6 +153,8 @@ components:
       $ref: "./requests/payload.yml"
     Value:
       $ref: "./requests/value.yml"
+    ActivateTokenIntegration:
+      $ref: "./requests/policies/actions/activateTokenIntegration.yml"
 
   responses:
     EntityTooLarge:
@@ -267,6 +269,8 @@ components:
       $ref: "./schemas/policies/resourceEntry.yml"
     Permission:
       $ref: "./schemas/policies/permission.yml"
+    SubjectAnnouncement:
+      $ref: "./schemas/policies/subjectAnnouncement.yml"
     Features:
       $ref: "./schemas/features/features.yml"
     WhoAmI:

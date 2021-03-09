@@ -66,7 +66,7 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
         final MongoDbConfig mongoDbConfig =
                 DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(config));
         mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
-        readJournal = MongoReadJournal.newInstance(config, mongoClient);
+        readJournal = MongoReadJournal.newInstance(config, mongoClient, getContext().getSystem());
     }
 
     /**

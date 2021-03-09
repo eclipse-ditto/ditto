@@ -12,10 +12,13 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.policies;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import java.util.Set;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.services.gateway.util.config.security.DefaultOAuthConfig;
 import org.junit.Test;
@@ -53,6 +56,19 @@ public class OAuthTokenIntegrationSubjectIdFactoryTest {
         Assertions.assertThat(subjectIds).hasSize(1);
         final SubjectId subjectId = subjectIds.stream().findFirst().orElseThrow();
         Assertions.assertThat(subjectId).hasToString("dummy-issuer:{{policy-entry:label}}:dummy-subject:foo");
+    }
+
+    @Test
+    public void resolveSubjectIdWithUnresolvedJwtPlaceholder() {
+        final String subjectPattern = "{{jwt:iss}}:{{policy-entry:label}}:{{jwt:foobar}}";
+        final OAuthTokenIntegrationSubjectIdFactory sut = createSut(subjectPattern);
+        final DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final DummyJwt jwt = new DummyJwt();
+        assertThatThrownBy(() ->
+                sut.getSubjectIds(dittoHeaders, jwt)
+        ).isInstanceOf(UnresolvedPlaceholderException.class)
+                .withFailMessage("The placeholder 'jwt:foobar' could not be resolved.")
+                .hasNoCause();
     }
 
     @Test

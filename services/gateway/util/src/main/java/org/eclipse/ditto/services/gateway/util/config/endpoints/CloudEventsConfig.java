@@ -55,7 +55,8 @@ public interface CloudEventsConfig {
         /**
          * Set of allowed data types
          */
-        DATA_TYPES("data-types", Set.of(MediaTypes.APPLICATION_JSON.toString(), DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE));
+        DATA_TYPES("data-types",
+                Set.of(MediaTypes.APPLICATION_JSON.toString(), DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE));
 
         private final String path;
         private final Object defaultValue;

@@ -13,6 +13,8 @@
 package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -40,9 +42,20 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
     private final DefaultMonitoringConfig monitoringConfig;
 
     private DefaultMongoDbConfig(final ConfigWithFallback config) {
-        mongoDbUri = config.getString(MongoDbConfigValue.URI.getConfigPath());
         maxQueryTime = config.getDuration(MongoDbConfigValue.MAX_QUERY_TIME.getConfigPath());
         optionsConfig = DefaultOptionsConfig.of(config);
+        final String configuredUri = config.getString(MongoDbConfigValue.URI.getConfigPath());
+        final Map<String, Object> configuredExtraUriOptions = optionsConfig.extraUriOptions();
+
+        final String sslKey = OptionsConfig.OptionsConfigValue.SSL_ENABLED.getConfigPath();
+        final Map<String, Object> extraUriOptions;
+        if (configuredExtraUriOptions.containsKey(sslKey)) {
+            extraUriOptions = configuredExtraUriOptions;
+        } else {
+            extraUriOptions = new HashMap<>(configuredExtraUriOptions);
+            extraUriOptions.put(sslKey, optionsConfig.isSslEnabled());
+        }
+        mongoDbUri = determineMongoDbUri(configuredUri, extraUriOptions);
         connectionPoolConfig = DefaultConnectionPoolConfig.of(config);
         circuitBreakerConfig = DefaultCircuitBreakerConfig.of(config);
         monitoringConfig = DefaultMonitoringConfig.of(config);
@@ -56,11 +69,18 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultMongoDbConfig of(final Config config) {
-        return new DefaultMongoDbConfig(appendFallbackValues(config));
+        final ConfigWithFallback configWithFallback = appendFallbackValues(config);
+        return new DefaultMongoDbConfig(configWithFallback);
     }
 
     private static ConfigWithFallback appendFallbackValues(final Config config) {
         return ConfigWithFallback.newInstance(config, CONFIG_PATH, MongoDbConfigValue.values());
+    }
+
+    private static String determineMongoDbUri(final String configuredMongoUri,
+            final Map<String, Object> extraUriOptions) {
+        final MongoDbUriSupplier mongoDbUriSupplier = MongoDbUriSupplier.of(configuredMongoUri, extraUriOptions);
+        return mongoDbUriSupplier.get();
     }
 
     @Override

@@ -19,22 +19,34 @@ import static org.eclipse.ditto.protocoladapter.TestConstants.DITTO_HEADERS_V_2_
 import static org.eclipse.ditto.protocoladapter.TestConstants.POLICY_ID;
 import static org.eclipse.ditto.protocoladapter.TestConstants.THING_ID;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Set;
+import java.util.UUID;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
+import org.eclipse.ditto.signals.announcements.policies.SubjectDeletionAnnouncement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
@@ -418,7 +430,8 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                 "org.eclipse.ditto.client.test/7a96e7a4-b20c-43eb-b669-f75514af30d0/things/twin/commands/modify";
         final TopicPath topicPath = ProtocolFactory.newTopicPath(topicPathString);
 
-        final String jsonString = "{\"path\":\"/features/feature_id_2/desiredProperties/complex/bum\",\"value\":\"bar\"}";
+        final String jsonString =
+                "{\"path\":\"/features/feature_id_2/desiredProperties/complex/bum\",\"value\":\"bar\"}";
         final Payload payload = ProtocolFactory.newPayload(jsonString);
 
         final Adaptable adaptable = ProtocolFactory.newAdaptableBuilder(topicPath).withPayload(payload).build();
@@ -504,7 +517,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                 "    \"the-ack-label\": { \"status\": 508,\"headers\":{\"response-required\":false} }\n" +
                 "  },\n" +
                 "  \"status\": 424,\n" +
-                "  \"headers\": { \"content-type\": \"" + DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE +
+                "  \"headers\": { \"content-type\": \"" + ContentType.APPLICATION_JSON.getValue() +
                 "\",\"response-required\":false }\n" +
                 "}"));
 
@@ -517,13 +530,71 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                                 HttpStatus.LOOP_DETECTED, DittoHeaders.empty())
                 ),
                 DittoHeaders.newBuilder()
-                        .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
+                        .contentType(ContentType.APPLICATION_JSON)
                         .build()
         ));
 
         final Adaptable reverseAdaptable =
                 ProtocolFactory.wrapAsJsonifiableAdaptable(underTest.toAdaptable(acknowledgement));
         assertThat(reverseAdaptable).isEqualTo(adaptable);
+    }
+
+    @Test
+    public void policyAnnouncementToAdaptable() {
+        final PolicyId policyId = PolicyId.of("policy:id");
+        final Instant expiry = Instant.now();
+        final List<SubjectId> expiringSubjects =
+                Arrays.asList(SubjectId.newInstance("ditto:sub1"), SubjectId.newInstance("ditto:sub2"));
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
+        final SubjectDeletionAnnouncement announcement =
+                SubjectDeletionAnnouncement.of(policyId, expiry, expiringSubjects, dittoHeaders);
+
+        final Adaptable adaptable = underTest.toAdaptable(announcement);
+
+        assertThat(adaptable.getTopicPath().getPath()).isEqualTo("policy/id/policies/announcements/subjectDeletion");
+        assertThat(adaptable.getDittoHeaders().getCorrelationId()).isEqualTo(dittoHeaders.getCorrelationId());
+        assertThat(adaptable.getPayload().getPath().isEmpty()).isTrue();
+
+        final JsonValue payload = adaptable.getPayload().getValue().orElseThrow(NoSuchElementException::new);
+        final JsonValue expectedPayload = JsonObject.newBuilder()
+                .set(SubjectDeletionAnnouncement.JsonFields.DELETE_AT, expiry.toString())
+                .set(SubjectDeletionAnnouncement.JsonFields.SUBJECT_IDS,
+                        JsonArray.of("[\"ditto:sub1\",\"ditto:sub2\"]"))
+                .build();
+
+        assertThat(payload).isEqualTo(expectedPayload);
+    }
+
+    @Test
+    public void policyAnnouncementFromAdaptable() {
+        final Instant expiry = Instant.now();
+        final String correlationId = UUID.randomUUID().toString();
+        final JsonObject json = JsonObject.of(String.format("{\n" +
+                        "  \"topic\": \"policy/id/policies/announcements/subjectDeletion\",\n" +
+                        "  \"headers\": {\"correlation-id\": \"%s\"},\n" +
+                        "  \"path\": \"/\",\n" +
+                        "  \"value\": {\n" +
+                        "    \"deleteAt\": \"%s\",\n" +
+                        "    \"subjectIds\": [\n" +
+                        "      \"ditto:sub1\",\n" +
+                        "      \"ditto:sub2\"\n" +
+                        "    ]\n" +
+                        "  }\n" +
+                        "}",
+                correlationId,
+                expiry
+        ));
+
+        final Adaptable adaptable = ProtocolFactory.jsonifiableAdaptableFromJson(json);
+        final SubjectDeletionAnnouncement announcement =
+                (SubjectDeletionAnnouncement) underTest.fromAdaptable(adaptable);
+        final Set<SubjectId> expectedSubjectIds = new LinkedHashSet<>(
+                Arrays.asList(SubjectId.newInstance("ditto:sub1"), SubjectId.newInstance("ditto:sub2")));
+
+        assertThat((CharSequence) announcement.getEntityId()).isEqualTo(PolicyId.of("policy:id"));
+        assertThat(announcement.getDeleteAt()).isEqualTo(expiry);
+        assertThat(announcement.getSubjectIds()).isEqualTo(expectedSubjectIds);
+        assertThat(announcement.getDittoHeaders().getCorrelationId()).contains(correlationId);
     }
 
 }

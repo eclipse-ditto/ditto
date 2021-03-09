@@ -17,11 +17,14 @@ A valid topic consists of five elements, describing the policy affected by this 
 1. `namespace`: the namespace of the Policy.
 2. `policyName`: the name of the Policy.
 3. `group`: the group for addressing Policies is `policies`.
-4. `criterion`: the type of Protocol message addressing Policies is `commands`.
-5. `action`: the action executed on the Policy:
+4. `criterion`: the type of Protocol messages addressing Policies is `commands`, 
+    for [announcements](basic-signals-announcement.html) it is 
+   [`announcements`](protocol-specification-policies-announcement.html).
+5. `action`: the action executed on the Policy via `commands` criterion:
        [`create/modify`](protocol-specification-policies-create-or-modify.html),
        [`retrieve`](protocol-specification-policies-retrieve.html) or
        [`delete`](protocol-specification-policies-delete.html).
+6. `subject`: for [announcements](basic-signals-announcement.html) the `subject` contains the announcement name
        
 {% include note.html content="The topic path of the *policies* group does not contain a channel unlike the *things* group." %}
   

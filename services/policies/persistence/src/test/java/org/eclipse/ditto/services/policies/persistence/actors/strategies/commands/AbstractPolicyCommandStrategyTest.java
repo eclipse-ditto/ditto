@@ -18,6 +18,8 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
@@ -158,13 +160,37 @@ public abstract class AbstractPolicyCommandStrategyTest {
         return event.getValue();
     }
 
-    private static <C extends Command<?>> Result<?> applyStrategy(
-            final CommandStrategy<C, Policy, PolicyId, ?> underTest,
+    static <C extends Command<?>, E extends Event<?>> Result<E> applyStrategy(
+            final CommandStrategy<C, Policy, PolicyId, E> underTest,
             final CommandStrategy.Context<PolicyId> context,
             @Nullable final Policy policy,
             final C command) {
 
         return underTest.apply(context, policy, NEXT_REVISION, command);
+    }
+
+    static <E extends Event<?>> E getEvent(final Result<E> result) {
+        final List<E> box = new ArrayList<>(1);
+        result.accept(new ResultVisitor<>() {
+            @Override
+            public void onMutation(final Command<?> command, final E event, final WithDittoHeaders<?> response,
+                    final boolean becomeCreated,
+                    final boolean becomeDeleted) {
+
+                box.add(event);
+            }
+
+            @Override
+            public void onQuery(final Command<?> command, final WithDittoHeaders<?> response) {
+                throw new AssertionError("Expect mutation result, got query response: " + response);
+            }
+
+            @Override
+            public void onError(final DittoRuntimeException error, final Command<?> errorCausingCommand) {
+                throw new AssertionError("Expect mutation result, got error: " + error);
+            }
+        });
+        return box.get(0);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

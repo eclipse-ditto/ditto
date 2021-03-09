@@ -21,6 +21,7 @@ import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentConfig
 import org.eclipse.ditto.services.utils.health.config.WithHealthCheckConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.WithMongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.operations.WithPersistenceOperationsConfig;
+import org.eclipse.ditto.services.utils.persistentactors.config.PingConfig;
 import org.eclipse.ditto.services.utils.protocol.config.WithProtocolConfig;
 
 /**
@@ -38,11 +39,18 @@ public interface ConnectivityConfig extends ServiceSpecificConfig, WithHealthChe
     ConnectionConfig getConnectionConfig();
 
     /**
-     * Returns the config for Connectivity service's reconnect behaviour.
+     * Returns the config for Connectivity service's reconnect (wakeup for connection persistence actors) behaviour.
      *
      * @return the config.
      */
-    ReconnectConfig getReconnectConfig();
+    PingConfig getPingConfig();
+
+    /**
+     * Returns the config for Connectivity service's behaviour for retrieval of connection ids.
+     *
+     * @return the config.
+     */
+    ConnectionIdsRetrievalConfig getConnectionIdsRetrievalConfig();
 
     /**
      * Returns the config for the Connectivity service's client.

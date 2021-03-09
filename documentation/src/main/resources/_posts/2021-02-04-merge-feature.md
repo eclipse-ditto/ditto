@@ -163,7 +163,7 @@ Applying the following Ditto merge command to the existing thing will lead to th
 {
   "topic": "com.acme/coffeebrewer/things/twin/commands/merge",
   "headers": {
-    "content-type": "application/vnd.eclipse.ditto+json"
+    "content-type": "application/merge-patch+json"
   },
   "path": "/",
   "value": {
@@ -191,7 +191,7 @@ Another Ditto protocol example to merge a feature property:
 {
   "topic": "com.acme/coffeebrewer/things/twin/commands/merge",
   "headers": {
-    "content-type": "application/vnd.eclipse.ditto+json"
+    "content-type": "application/merge-patch+json"
   },
   "path": "/features/coffee-brewer/properties/brewed-coffees",
   "value": 42

@@ -40,3 +40,5 @@ post:
         The request could not be completed because no policy entry matched the following conditions:
         * containing a a subject ID matching the JWT's authenticated subject
         * containing a `READ` permission granted to a `thing:/` resource path
+  requestBody:
+    $ref: '../../requests/policies/actions/activateTokenIntegration.yml'

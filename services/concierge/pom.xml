@@ -26,6 +26,7 @@
     <name>Eclipse Ditto :: Services :: Concierge</name>
 
     <modules>
+        <module>config</module>
         <module>actors</module>
         <module>common</module>
         <module>enforcement</module>

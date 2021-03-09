@@ -29,14 +29,13 @@ import org.eclipse.ditto.signals.base.JsonParsable;
  * {@link JsonObject} and {@link DittoHeaders}.
  */
 @Immutable
-public final class GlobalEventRegistry
-        extends AbstractGlobalJsonParsableRegistry<Event, JsonParsableEvent>
-        implements EventRegistry<Event> {
+public final class GlobalEventRegistry<T extends Event<?>>
+        extends AbstractGlobalJsonParsableRegistry<T, JsonParsableEvent> implements EventRegistry<T> {
 
-    private static final GlobalEventRegistry INSTANCE = new GlobalEventRegistry();
+    private static final GlobalEventRegistry<?> INSTANCE = new GlobalEventRegistry<>();
 
     private GlobalEventRegistry() {
-        super(Event.class, JsonParsableEvent.class, new EventParsingStrategyFactory());
+        super(Event.class, JsonParsableEvent.class, new EventParsingStrategyFactory<>());
     }
 
     /**
@@ -44,8 +43,8 @@ public final class GlobalEventRegistry
      *
      * @return the instance of GlobalEventRegistry.
      */
-    public static GlobalEventRegistry getInstance() {
-        return INSTANCE;
+    public static <T extends Event<?>> GlobalEventRegistry<T> getInstance() {
+        return (GlobalEventRegistry<T>) INSTANCE;
     }
 
     /**
@@ -55,8 +54,8 @@ public final class GlobalEventRegistry
      * @param parseStrategies The new strategies.
      * @return A Registry containing the merged strategies.
      */
-    public CustomizedGlobalEventRegistry customize(final Map<String, JsonParsable<Event>> parseStrategies) {
-        return new CustomizedGlobalEventRegistry(this, parseStrategies);
+    public CustomizedGlobalEventRegistry<T> customize(final Map<String, JsonParsable<T>> parseStrategies) {
+        return new CustomizedGlobalEventRegistry<>(this, parseStrategies);
     }
 
     @Override
@@ -69,8 +68,8 @@ public final class GlobalEventRegistry
      * Contains all strategies to deserialize {@link Event} annotated with {@link JsonParsableEvent}
      * from a combination of {@link JsonObject} and {@link DittoHeaders}.
      */
-    private static final class EventParsingStrategyFactory extends
-            AbstractAnnotationBasedJsonParsableFactory<Event, JsonParsableEvent> {
+    private static final class EventParsingStrategyFactory<T extends Event<?>> extends
+            AbstractAnnotationBasedJsonParsableFactory<T, JsonParsableEvent> {
 
         private EventParsingStrategyFactory() {}
 

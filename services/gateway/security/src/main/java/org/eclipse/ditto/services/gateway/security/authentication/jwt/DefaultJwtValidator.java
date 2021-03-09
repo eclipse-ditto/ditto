@@ -25,7 +25,7 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationF
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.jsonwebtoken.JwtParser;
+import io.jsonwebtoken.JwtParserBuilder;
 import io.jsonwebtoken.Jwts;
 
 /**
@@ -78,9 +78,10 @@ public final class DefaultJwtValidator implements JwtValidator {
 
     @SuppressWarnings("unchecked")
     private BinaryValidationResult validateWithPublicKey(final JsonWebToken jsonWebToken, final Key publicKey) {
-        final JwtParser jwtParser = Jwts.parser();
-        jwtParser.deserializeJsonWith(JjwtDeserializer.getInstance())
+        final JwtParserBuilder jwtParserBuilder = Jwts.parserBuilder();
+        jwtParserBuilder.deserializeJsonWith(JjwtDeserializer.getInstance())
                 .setSigningKey(publicKey)
+                .build()
                 .parse(jsonWebToken.getToken());
 
         return BinaryValidationResult.valid();
