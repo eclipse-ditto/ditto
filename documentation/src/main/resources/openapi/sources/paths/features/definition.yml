@@ -11,8 +11,7 @@
 get:
   summary: List the definition of a feature
   description: |-
-    Returns the complete definition field of the feature identified by the `thingId` and
-    `featureId` path parameter.
+    Returns the complete definition field of the feature identified by the `thingId` and `featureId` path parameter.
   tags:
     - Features
   parameters:
@@ -66,8 +65,7 @@ get:
 put:
   summary: Create or update the definition of a feature
   description: |-
-    Create or update the complete definition of a feature identified by the `thingId`
-    and `featureId` path parameter.
+    Create or update the complete definition of a feature identified by the `thingId` and `featureId` path parameter.
 
     The definition field will be overwritten with the JSON array set in the request body
   tags:
@@ -133,8 +131,7 @@ put:
             $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
-        The request could not be completed. The thing or the feature with
-        the given ID was not found.
+        The request could not be completed. The thing or the feature with the given ID was not found.
       content:
         application/json:
           schema:
@@ -150,18 +147,94 @@ put:
           $ref: '../../schemas/features/featureDefinition.yml'
         example: [ "com.acme:coffeebrewer:0.1.0", "com.acme:coffeebrewer:1.0.0" ]
     description: |-
-      JSON array of the complete definition to be updated. Consider that the
-      value has to be a JSON array or `null`.
+      JSON array of the complete definition to be updated.
 
-      The content of the JSON array
-      are strings in the format `"namespace:name:version"` which is
-      enforced.
+      Consider that the value has to be a JSON array or `null`.
+
+      The content of the JSON array are strings in the format `"namespace:name:version"` which is enforced.
+    required: true
+patch:
+  summary: Patch the definition of a feature
+  description: |-
+    Patch the definition of a feature identified by the `thingId` and `featureId` path parameter.
+
+    The existing definition field will be overwritten with the JSON array set in the request body.
+
+    Notice that the `null` value can be used to delete the definition of a feature.
+    For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
+  tags:
+    - Features
+  parameters:
+    - $ref: '../../parameters/thingIdPathParam.yml'
+    - $ref: '../../parameters/featureIdPathPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/requestedAcksParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+    - $ref: '../../parameters/responseRequiredParam.yml'
+  responses:
+    '204':
+      description: The definition was successfully patched.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+          * the JSON body is invalid
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the caller has insufficient permissions.
+            For modifying the definition of an existing feature, `WRITE` permission is required.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The thing or the feature with the given ID was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'
+    '413':
+      $ref: '../../responses/entityTooLarge.yml'
+  requestBody:
+    content:
+      application/merge-patch+json:
+        schema:
+          $ref: '../../schemas/features/featureDefinition.yml'
+        example:
+          - 'com.acme:coffeebrewer:0.1.0'
+          - 'com.acme:coffeebrewer:1.1.0'
+    description: |-
+      JSON array of the complete definition to be patched. Consider that the value has to be a JSON array.
+
+      The content of the JSON array are strings in the format `"namespace:name:version"` which is enforced.
+      To delete the definition use `null` as content in the request body.
     required: true
 delete:
   summary: Delete the definition of a feature
   description: |-
-    Deletes the complete definition of the feature identified by the `thingId` and
-    `featureId` path parameter.
+    Deletes the complete definition of the feature identified by the `thingId` and `featureId` path parameter.
   tags:
     - Features
   parameters:
@@ -200,9 +273,8 @@ delete:
             $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
-        The request could not be completed. The specified feature has no
-        definition or the thing with the specified `thingId` or the feature
-        with `featureId` was not found.
+        The request could not be completed. The specified feature has no definition or
+        the thing with the specified `thingId` or the feature with `featureId` was not found.
       content:
         application/json:
           schema:

@@ -60,19 +60,17 @@ get:
 put:
   summary: Create or update the policy ID of a thing
   description: |-
-    Create or update the policy ID of the thing identified by the `thingId`
-    path parameter.
+    Create or update the policy ID of the thing identified by the `thingId` path parameter.
 
     ### Create
-    If the thing does not have a `policyId` yet, it is
-    considered to have been created via API version 1, where the access control list `acl`
-    mechanism is used. In that case, this request will create the `policyId`.
+    If the thing does not have a `policyId` yet, it is considered to have been created via API version 1,
+    where the access control list `acl` mechanism is used. In that case, this request will create the `policyId`.
 
     Note: You will need to create the policy content separately.
 
     ### Update
-    If the thing already has a `policyId` you can assign it to an existing policy by setting
-    the new `policyId` in the request body.
+    If the thing already has a `policyId` you can assign it to an existing policy by setting the new `policyId`
+    in the request body.
   tags:
     - Things
   parameters:
@@ -142,6 +140,71 @@ put:
     description: |-
       The policy is used for controlling access to this thing. It is managed by
       resource `/policies/{policyId}`.
+
+      The ID of a policy needs to conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+    required: true
+patch:
+  summary: Patch the policy ID of a thing
+  description: |-
+    Patch the policy ID of the thing identified by the `thingId` path parameter.
+
+    The `policyId` of the thing will be updated.
+    Notice that for this resource it is not possible to remove the `policyId` from the thing by setting the
+    payload to `null`.
+  tags:
+    - Things
+  parameters:
+    - $ref: '../../parameters/thingIdPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/requestedAcksParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+    - $ref: '../../parameters/responseRequiredParam.yml'
+  responses:
+    '204':
+      description: 'The policy ID was successfully patched. Note: You will need to create the policy content separately.'
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+          * the `policyId` can not be removed from a thing.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The thing with the given ID was not found in the context of the authenticated user.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'
+    '413':
+      $ref: '../../responses/entityTooLarge.yml'
+  requestBody:
+    content:
+      application/merge-patch+json:
+        schema:
+          type: string
+          example: '"your.namespace:your-policy-name"'
+    description: |-
+      The policy is used for controlling access to this thing. It is managed by resource `/policies/{policyId}`.
 
       The ID of a policy needs to conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
     required: true
