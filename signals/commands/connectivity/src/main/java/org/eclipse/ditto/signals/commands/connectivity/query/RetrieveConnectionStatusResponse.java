@@ -213,6 +213,13 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
         return readAddressStatus(jsonObject.getValue(JsonFields.TARGET_STATUS).orElse(JsonArray.empty()));
     }
 
+    /**
+     * @return the ssh tunnne {@link ResourceStatus}.
+     */
+    public List<ResourceStatus> getSshTunnelStatus() {
+        return readAddressStatus(jsonObject.getValue(JsonFields.SSH_TUNNEL_STATUS).orElse(JsonArray.empty()));
+    }
+
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
@@ -317,6 +324,9 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
         public static final JsonFieldDefinition<JsonArray> TARGET_STATUS =
                 JsonFactory.newJsonArrayFieldDefinition("targetStatus", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<JsonArray> SSH_TUNNEL_STATUS =
+                JsonFactory.newJsonArrayFieldDefinition("sshTunnelStatus", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
     }
 
     /**
@@ -333,6 +343,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
         private List<ResourceStatus> clientStatus;
         private List<ResourceStatus> sourceStatus;
         private List<ResourceStatus> targetStatus;
+        private List<ResourceStatus> sshTunnelStatus;
 
         private Builder(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
             this.connectionId = connectionId;
@@ -369,41 +380,33 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
             return this;
         }
 
-        public Builder withAddressStatus(final ResourceStatus resourceStatus) {
-            final List<ResourceStatus> newClientStatus;
-            final List<ResourceStatus> newSourceStatus;
-            final List<ResourceStatus> newTargetStatus;
-            switch (resourceStatus.getResourceType()) {
-                case SOURCE:
-                    newClientStatus = this.clientStatus;
-                    newSourceStatus = addToList(this.sourceStatus, resourceStatus);
-                    newTargetStatus = this.targetStatus;
-                    break;
-                case TARGET:
-                    newClientStatus = this.clientStatus;
-                    newSourceStatus = this.sourceStatus;
-                    newTargetStatus = addToList(this.targetStatus, resourceStatus);
-                    break;
-                case CLIENT:
-                    newClientStatus = addToList(this.clientStatus, resourceStatus);
-                    newSourceStatus = this.sourceStatus;
-                    newTargetStatus = this.targetStatus;
-                    break;
-                default:
-                    newClientStatus = this.clientStatus;
-                    newSourceStatus = this.sourceStatus;
-                    newTargetStatus = this.targetStatus;
-                    break;
-            }
-            this.clientStatus = newClientStatus;
-            this.sourceStatus = newSourceStatus;
-            this.targetStatus = newTargetStatus;
+        public Builder sshTunnelStatus(final List<ResourceStatus> sshTunnelStatus) {
+            this.sshTunnelStatus = sshTunnelStatus;
             return this;
         }
 
-        private List<ResourceStatus> addToList(List<ResourceStatus> existing,
+        public Builder withAddressStatus(final ResourceStatus resourceStatus) {
+
+            switch (resourceStatus.getResourceType()) {
+                case SOURCE:
+                    sourceStatus = addToList(sourceStatus, resourceStatus);
+                    break;
+                case TARGET:
+                    targetStatus = addToList(targetStatus, resourceStatus);
+                    break;
+                case CLIENT:
+                    clientStatus = addToList(clientStatus, resourceStatus);
+                    break;
+                case SSH_TUNNEL:
+                    sshTunnelStatus = addToList(sshTunnelStatus, resourceStatus);
+                    break;
+            }
+            return this;
+        }
+
+        private List<ResourceStatus> addToList(@Nullable final List<ResourceStatus> existing,
                 final ResourceStatus resourceStatus) {
-            final List<ResourceStatus> list = new ArrayList<>(existing);
+            final List<ResourceStatus> list = existing == null ? new ArrayList<>() : new ArrayList<>(existing);
             list.add(resourceStatus);
             return list;
         }
@@ -441,6 +444,12 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
 
             if (targetStatus != null) {
                 jsonObjectBuilder.set(JsonFields.TARGET_STATUS, targetStatus.stream()
+                        .map(ResourceStatus::toJson)
+                        .collect(JsonCollectors.valuesToArray()));
+            }
+
+            if (sshTunnelStatus != null) {
+                jsonObjectBuilder.set(JsonFields.SSH_TUNNEL_STATUS, sshTunnelStatus.stream()
                         .map(ResourceStatus::toJson)
                         .collect(JsonCollectors.valuesToArray()));
             }

@@ -45,6 +45,14 @@ public interface SshTunnelBuilder {
     SshTunnelBuilder knownHosts(List<String> knownHosts);
 
     /**
+     * Enables/disables host validation.
+     *
+     * @param validateHost {@code true} if host validation is enabled
+     * @return this builder
+     */
+    SshTunnelBuilder validateHost(boolean validateHost);
+
+    /**
      * Sets the URI to use in the {@code SshTunnel}.
      *
      * @param uri the URI.

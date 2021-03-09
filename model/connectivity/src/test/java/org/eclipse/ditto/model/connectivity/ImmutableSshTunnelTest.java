@@ -20,6 +20,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
@@ -38,7 +39,7 @@ public final class ImmutableSshTunnelTest {
     private static final String PASSWORD = "Password";
 
     private static final SshTunnel SSH_TUNNEL_WITH_USERNAME_PW_CREDENTIALS_AND_EMPTY_KNOWN_HOSTS =
-            ConnectivityModelFactory.newSshTunnel(true, UserPasswordCredentials.newInstance(USER, PASSWORD),
+            ConnectivityModelFactory.newSshTunnel(true, UserPasswordCredentials.newInstance(USER, PASSWORD), false,
                     Collections.emptyList(), URI);
 
     private static final JsonObject SSH_TUNNEL_JSON_WITH_USERNAME_PW_CREDENTIALS_AND_EMPTY_KNOWN_HOSTS = JsonObject
@@ -49,6 +50,7 @@ public final class ImmutableSshTunnelTest {
                     .set(UserPasswordCredentials.JsonFields.USERNAME, USER)
                     .set(UserPasswordCredentials.JsonFields.PASSWORD, PASSWORD)
                     .build())
+            .set(SshTunnel.JsonFields.VALIDATE_HOST, false)
             .set(SshTunnel.JsonFields.KNOWN_HOSTS, JsonArray.empty())
             .set(SshTunnel.JsonFields.URI, URI)
             .build();
@@ -81,7 +83,7 @@ public final class ImmutableSshTunnelTest {
 
     @Test
     public void addKnownHostsToExistingSshTunnel() {
-        final ArrayList<String> knownHosts = new ArrayList<>();
+        final List<String> knownHosts = new ArrayList<>();
         final String aKnownHost = "aKnownHost";
         knownHosts.add(aKnownHost);
         final SshTunnel sshTunnelWithKnownHosts = new ImmutableSshTunnel

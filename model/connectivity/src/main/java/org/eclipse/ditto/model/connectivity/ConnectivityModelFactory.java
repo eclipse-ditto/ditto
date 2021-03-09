@@ -240,6 +240,27 @@ public final class ConnectivityModelFactory {
                 inStateSince);
     }
 
+
+    /**
+     * Returns a new ssh tunnel {@code ResourceStatus}.
+     *
+     * @param client a client identifier e.g. on which node this client is running
+     * @param status the ConnectionStatus of the source metrics to create
+     * @param statusDetails the optional details about the connection status
+     * @param inStateSince the instant since the resource is in the given state
+     * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if any parameter is {@code null}.
+     */
+    public static ResourceStatus newSshTunnelStatus(final String client,
+            final ConnectivityStatus status,
+            @Nullable final String statusDetails,
+            final Instant inStateSince) {
+
+        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.SSH_TUNNEL, client, status, null, statusDetails,
+                inStateSince);
+    }
+
+
     /**
      * Returns a new source {@code ResourceStatus}.
      *
@@ -795,14 +816,15 @@ public final class ConnectivityModelFactory {
      *
      * @param enabled sets if the ssh tunnel is active
      * @param credentials the credentials of the ssh tunnel
+     * @param validateHost {@code true} if host validation is enabled
      * @param knownHosts the known hosts of the ssh tunnel
      * @param uri the uri of the ssh tunnel
      * @return the created {@link org.eclipse.ditto.model.connectivity.SshTunnel}
      * @since 2.0.0
      */
     public static SshTunnel newSshTunnel(final Boolean enabled, final Credentials credentials,
-            final List<String> knownHosts, final String uri) {
-        return new ImmutableSshTunnel.Builder(enabled, credentials, knownHosts, uri).build();
+            final boolean validateHost, final List<String> knownHosts, final String uri) {
+        return new ImmutableSshTunnel.Builder(enabled, credentials, validateHost, knownHosts, uri).build();
     }
 
     /**

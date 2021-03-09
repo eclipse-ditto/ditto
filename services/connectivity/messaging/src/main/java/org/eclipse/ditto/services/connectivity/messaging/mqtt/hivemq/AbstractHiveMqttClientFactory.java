@@ -17,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.KeyManagerFactory;
@@ -25,6 +26,7 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.DittoTrustManagerFactory;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.KeyManagerFactoryFactory;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.services.connectivity.messaging.tunnel.SshTunnelState;
 
 import com.hivemq.client.mqtt.MqttClientBuilderBase;
 import com.hivemq.client.mqtt.MqttClientSslConfig;
@@ -40,6 +42,11 @@ import com.hivemq.client.mqtt.mqtt5.message.auth.Mqtt5SimpleAuthBuilder;
 abstract class AbstractHiveMqttClientFactory {
 
     private static final List<String> MQTT_SECURE_SCHEMES = Arrays.asList("ssl", "wss");
+    private final Supplier<SshTunnelState> tunnelStateSupplier;
+
+    protected AbstractHiveMqttClientFactory(final Supplier<SshTunnelState> tunnelStateSupplier) {
+        this.tunnelStateSupplier = tunnelStateSupplier;
+    }
 
     // duplicate code unavoidable because there is no common interface
     // between Mqtt3SimpleAuthBuilder.Nested and Mqtt5SimpleAuthBuilder.Nested
@@ -75,7 +82,9 @@ abstract class AbstractHiveMqttClientFactory {
             @Nullable final MqttClientConnectedListener connectedListener,
             @Nullable final MqttClientDisconnectedListener disconnectedListener,
             final ConnectionLogger connectionLogger) {
-        final URI uri = URI.create(connection.getUri());
+
+        final URI uri = tunnelStateSupplier.get().getURI(connection);
+
         T builder = newBuilder.serverHost(uri.getHost()).serverPort(uri.getPort());
 
         if (allowReconnect && connection.isFailoverEnabled()) {

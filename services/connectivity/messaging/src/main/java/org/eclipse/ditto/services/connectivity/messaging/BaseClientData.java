@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
+import org.eclipse.ditto.services.connectivity.messaging.tunnel.SshTunnelState;
 
 import akka.actor.ActorRef;
 import akka.japi.Pair;
@@ -43,6 +44,7 @@ public final class BaseClientData {
     @Nullable private final String connectionStatusDetails;
     private final Instant inConnectionStatusSince;
     private final List<Pair<ActorRef, DittoHeaders>> sessionSenders;
+    private final SshTunnelState sshTunnelState;
 
     /**
      * Constructs new instance of BaseClientData, the data of the {@link BaseClientActor}.
@@ -54,28 +56,21 @@ public final class BaseClientData {
      * @param connectionStatusDetails the optional details about the ConnectionStatus.
      * @param inConnectionStatusSince the instant since when the Client is in its current ConnectionStatus.
      */
-    BaseClientData(final ConnectionId connectionId, final Connection connection,
-            final ConnectivityStatus connectionStatus,
-            final ConnectivityStatus desiredConnectionStatus,
-            @Nullable final String connectionStatusDetails,
-            final Instant inConnectionStatusSince) {
-        this(connectionId, connection, connectionStatus, desiredConnectionStatus, connectionStatusDetails,
-                inConnectionStatusSince, Collections.emptyList());
-    }
-
     private BaseClientData(final ConnectionId connectionId, final Connection connection,
             final ConnectivityStatus connectionStatus,
             final ConnectivityStatus desiredConnectionStatus,
             @Nullable final String connectionStatusDetails,
             final Instant inConnectionStatusSince,
-            final List<Pair<ActorRef, DittoHeaders>> sessionSenders) {
+            final List<Pair<ActorRef, DittoHeaders>> sessionSenders,
+            final SshTunnelState sshTunnelState) {
         this.connectionId = connectionId;
         this.connection = connection;
         this.connectionStatus = connectionStatus;
         this.desiredConnectionStatus = desiredConnectionStatus;
         this.connectionStatusDetails = connectionStatusDetails;
         this.inConnectionStatusSince = inConnectionStatusSince;
-        this.sessionSenders = Collections.unmodifiableList(new ArrayList<>(sessionSenders));
+        this.sessionSenders = List.copyOf(sessionSenders);
+        this.sshTunnelState = sshTunnelState;
     }
 
     /**
@@ -128,14 +123,25 @@ public final class BaseClientData {
     }
 
     /**
+     *
+     * @return
+     */
+    SshTunnelState getSshTunnelState() {
+        return sshTunnelState;
+    }
+
+    BaseClientData setSshTunnelState(final SshTunnelState sshTunnelState) {
+        return BaseClientDataBuilder.from(this).setSshTunnelState(sshTunnelState).build();
+    }
+
+    /**
      * Updates the managed connection returning a new instance of BaseClientData.
      *
      * @param connection the new connection to use
      * @return the new instance of BaseClientData
      */
     public BaseClientData setConnection(final Connection connection) {
-        return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, inConnectionStatusSince, sessionSenders);
+        return BaseClientDataBuilder.from(this).setConnection(connection).build();
     }
 
     /**
@@ -145,24 +151,21 @@ public final class BaseClientData {
      * @return the new instance of BaseClientData
      */
     public BaseClientData setConnectionStatus(final ConnectivityStatus connectionStatus) {
-        return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, Instant.now(), sessionSenders);
+        return BaseClientDataBuilder.from(this).setConnectionStatus(connectionStatus).build();
     }
 
     /**
-     * Updates the desired connection staus returning a new instance of BaseClientData.
+     * Updates the desired connection status returning a new instance of BaseClientData.
      *
      * @param desiredConnectionStatus the new desired connection status to use
      * @return the new instance of BaseClientData
      */
     BaseClientData setDesiredConnectionStatus(final ConnectivityStatus desiredConnectionStatus) {
-        return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, inConnectionStatusSince, sessionSenders);
+        return BaseClientDataBuilder.from(this).setDesiredConnectionStatus(desiredConnectionStatus).build();
     }
 
     public BaseClientData setConnectionStatusDetails(@Nullable final String connectionStatusDetails) {
-        return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, inConnectionStatusSince, sessionSenders);
+        return BaseClientDataBuilder.from(this).setConnectionStatusDetails(connectionStatusDetails).build();
     }
 
     /**
@@ -177,8 +180,7 @@ public final class BaseClientData {
         if (origin != null) {
             final List<Pair<ActorRef, DittoHeaders>> newSessionSenders = new ArrayList<>(sessionSenders);
             newSessionSenders.add(Pair.create(origin, dittoHeaders));
-            return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                    connectionStatusDetails, inConnectionStatusSince, newSessionSenders);
+            return BaseClientDataBuilder.from(this).setSessionSenders(newSessionSenders).build();
         } else {
             return this;
         }
@@ -191,8 +193,7 @@ public final class BaseClientData {
      * @return data without info related to the last command.
      */
     BaseClientData resetSession() {
-        return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, inConnectionStatusSince, Collections.emptyList());
+        return BaseClientDataBuilder.from(this).setSessionSenders(Collections.emptyList()).build();
     }
 
     @Override
@@ -206,13 +207,14 @@ public final class BaseClientData {
                 desiredConnectionStatus == that.desiredConnectionStatus &&
                 Objects.equals(connectionStatusDetails, that.connectionStatusDetails) &&
                 Objects.equals(inConnectionStatusSince, that.inConnectionStatusSince) &&
-                Objects.equals(sessionSenders, that.sessionSenders);
+                Objects.equals(sessionSenders, that.sessionSenders) &&
+                Objects.equals(sshTunnelState, that.sshTunnelState);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, inConnectionStatusSince, sessionSenders);
+                connectionStatusDetails, inConnectionStatusSince, sessionSenders, sshTunnelState);
     }
 
     @Override
@@ -225,7 +227,103 @@ public final class BaseClientData {
                 ", connectionStatusDetails=" + connectionStatusDetails +
                 ", inConnectionStatusSince=" + inConnectionStatusSince +
                 ", sessionSenders=" + sessionSenders +
+                ", sshTunnelState=" + sshTunnelState +
                 "]";
     }
+
+    static final class BaseClientDataBuilder {
+
+        private ConnectionId connectionId;
+        private Connection connection;
+        private ConnectivityStatus connectionStatus;
+        private ConnectivityStatus desiredConnectionStatus;
+        private String connectionStatusDetails;
+        private Instant inConnectionStatusSince;
+        private List<Pair<ActorRef, DittoHeaders>> sessionSenders = Collections.emptyList();
+        private SshTunnelState sshTunnelState;
+
+        static BaseClientDataBuilder from(final BaseClientData data) {
+            return new BaseClientDataBuilder(data);
+        }
+
+        static BaseClientDataBuilder from(final ConnectionId connectionId, final Connection connection,
+                final ConnectivityStatus connectionStatus,
+                final ConnectivityStatus desiredConnectionStatus,
+                @Nullable final String connectionStatusDetails,
+                final Instant inConnectionStatusSince) {
+            return new BaseClientDataBuilder(connectionId, connection, connectionStatus, desiredConnectionStatus, connectionStatusDetails, inConnectionStatusSince);
+        }
+
+        private BaseClientDataBuilder(final BaseClientData data) {
+            connectionId = data.getConnectionId();
+            connection = data.getConnection();
+            connectionStatus = data.getConnectionStatus();
+            connectionStatusDetails = data.getConnectionStatusDetails().orElse(null);
+            desiredConnectionStatus = data.getDesiredConnectionStatus();
+            inConnectionStatusSince = data.getInConnectionStatusSince();
+            sessionSenders = data.getSessionSenders();
+            sshTunnelState = data.getSshTunnelState();
+        }
+
+        private BaseClientDataBuilder(final ConnectionId connectionId, final Connection connection,
+                final ConnectivityStatus connectionStatus,
+                final ConnectivityStatus desiredConnectionStatus,
+                @Nullable final String connectionStatusDetails,
+                final Instant inConnectionStatusSince) {
+            this.connectionId = connectionId;
+            this.connection = connection;
+            this.connectionStatus = connectionStatus;
+            this.connectionStatusDetails = connectionStatusDetails;
+            this.desiredConnectionStatus = desiredConnectionStatus;
+            this.inConnectionStatusSince = inConnectionStatusSince;
+            this.sshTunnelState = SshTunnelState.from(connection);
+        }
+
+        public BaseClientDataBuilder setConnectionId(final ConnectionId connectionId) {
+            this.connectionId = connectionId;
+            return this;
+        }
+
+        public BaseClientDataBuilder setConnection(final Connection connection) {
+            this.connection = connection;
+            return this;
+        }
+
+        public BaseClientDataBuilder setConnectionStatus(final ConnectivityStatus connectionStatus) {
+            this.connectionStatus = connectionStatus;
+            return this;
+        }
+
+        public BaseClientDataBuilder setDesiredConnectionStatus(final ConnectivityStatus desiredConnectionStatus) {
+            this.desiredConnectionStatus = desiredConnectionStatus;
+            return this;
+        }
+
+        public BaseClientDataBuilder setConnectionStatusDetails(final String connectionStatusDetails) {
+            this.connectionStatusDetails = connectionStatusDetails;
+            return this;
+        }
+
+        public BaseClientDataBuilder setInConnectionStatusSince(final Instant inConnectionStatusSince) {
+            this.inConnectionStatusSince = inConnectionStatusSince;
+            return this;
+        }
+
+        public BaseClientDataBuilder setSessionSenders(final List<Pair<ActorRef, DittoHeaders>> sessionSenders) {
+            this.sessionSenders = sessionSenders;
+            return this;
+        }
+
+        public BaseClientDataBuilder setSshTunnelState(final SshTunnelState sshTunnelState) {
+            this.sshTunnelState = sshTunnelState;
+            return this;
+        }
+
+        public BaseClientData build() {
+            return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
+                    connectionStatusDetails, inConnectionStatusSince, sessionSenders, sshTunnelState);
+        }
+    }
+
 }
 

@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 
+import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
@@ -22,6 +24,8 @@ import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttSpecificConfig
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 
 import com.hivemq.client.mqtt.mqtt3.Mqtt3AsyncClient;
+import com.hivemq.client.mqtt.mqtt3.message.connect.Mqtt3ConnectBuilder;
+import com.hivemq.client.mqtt.mqtt3.message.connect.connack.Mqtt3ConnAck;
 import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
 import com.hivemq.client.mqtt.mqtt3.message.subscribe.Mqtt3Subscribe;
 import com.hivemq.client.mqtt.mqtt3.message.subscribe.suback.Mqtt3SubAck;
@@ -35,19 +39,27 @@ import akka.actor.Props;
 public final class HiveMqtt3ClientActor
         extends AbstractMqttClientActor<Mqtt3Subscribe, Mqtt3Publish, Mqtt3AsyncClient, Mqtt3SubAck> {
 
+    private final HiveMqtt3ClientFactory clientFactory;
+
     @SuppressWarnings("unused") // used by `props` via reflection
     private HiveMqtt3ClientActor(final Connection connection,
             @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor,
             final HiveMqtt3ClientFactory clientFactory) {
-
-        super(connection, proxyActor, connectionActor, clientFactory);
+        super(connection, proxyActor, connectionActor);
+        this.clientFactory = clientFactory;
     }
 
     @SuppressWarnings("unused") // used by `props` via reflection
     private HiveMqtt3ClientActor(final Connection connection, @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor) {
-        this(connection, proxyActor, connectionActor, DefaultHiveMqtt3ClientFactory.getInstance());
+        super(connection, proxyActor, connectionActor);
+        clientFactory = DefaultHiveMqtt3ClientFactory.getInstance(this::getSshTunnelState);
+    }
+
+    @Override
+    HiveMqttClientFactory<Mqtt3AsyncClient, ?> getClientFactory() {
+        return clientFactory;
     }
 
     /**
@@ -85,8 +97,13 @@ public final class HiveMqtt3ClientActor
     }
 
     @Override
-    CompletionStage<?> sendConn(final Mqtt3AsyncClient client, final boolean cleanSession) {
-        return client.connectWith().cleanSession(cleanSession).send();
+    CompletionStage<?> sendConn(final Mqtt3AsyncClient client, final boolean cleanSession,
+            @Nullable final Duration keepAliveInterval) {
+        final Mqtt3ConnectBuilder.Send<CompletableFuture<Mqtt3ConnAck>> connectWith = client.connectWith();
+        if (keepAliveInterval != null) {
+            connectWith.keepAlive((int) keepAliveInterval.getSeconds());
+        }
+        return connectWith.cleanSession(cleanSession).send();
     }
 
     @Override

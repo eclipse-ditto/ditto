@@ -59,6 +59,7 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.DisconnectClie
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RecoverSession;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.services.connectivity.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.connectivity.BaseClientState;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
@@ -125,7 +126,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         final Amqp10Config amqp10Config = connectionConfig.getAmqp10Config();
 
         this.jmsConnectionFactory =
-                ConnectionBasedJmsConnectionFactory.getInstance(AmqpSpecificConfig.toDefaultConfig(amqp10Config));
+                ConnectionBasedJmsConnectionFactory.getInstance(AmqpSpecificConfig.toDefaultConfig(amqp10Config),
+                        this::getSshTunnelState);
         connectionListener = new StatusReportingListener(getSelf(), logger, connectionLogger);
         consumerByNamePrefix = new HashMap<>();
         recoverSessionOnSessionClosed = isRecoverSessionOnSessionClosedEnabled(connection);
@@ -202,8 +204,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
     private static Connection validateConnection(final Connection connection) {
         try {
-            ProviderFactory.create(URI.create(ConnectionBasedJmsConnectionFactory
-                    .buildAmqpConnectionUriFromConnection(connection, Map.of())));
+            final String connectionUri = ConnectionBasedJmsConnectionFactory.buildAmqpConnectionUri(connection,
+                    connection.getId().toString(),
+                    SshTunnelState::disabled, Map.of());
+            ProviderFactory.create(URI.create(connectionUri));
             // it is safe to pass an empty map as default config as only default values are loaded via that config
             // of which we can be certain that they are always valid
             return connection;

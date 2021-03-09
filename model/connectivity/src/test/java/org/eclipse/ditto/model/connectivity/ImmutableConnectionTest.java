@@ -92,7 +92,7 @@ public final class ImmutableConnectionTest {
     private static final List<Target> TARGETS = Arrays.asList(TARGET1, TARGET2, TARGET3);
 
     private static final SshTunnel SSH_TUNNEL = ConnectivityModelFactory.newSshTunnel(true,
-            UserPasswordCredentials.newInstance("User", "Password"), Collections.emptyList(), URI);
+            UserPasswordCredentials.newInstance("User", "Password"), false, Collections.emptyList(), URI);
 
     private static final JsonArray KNOWN_SOURCES_JSON =
             SOURCES.stream().map(Source::toJson).collect(JsonCollectors.valuesToArray());

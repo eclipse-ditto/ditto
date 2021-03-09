@@ -44,6 +44,11 @@ public interface SshTunnel extends Jsonifiable.WithFieldSelectorAndPredicate<Jso
     Credentials getCredentials();
 
     /**
+     * @return {@code true} if host should be validated
+     */
+    boolean isValidateHost();
+
+    /**
      * @return the known hosts for the ssh tunnel
      */
     List<String> getKnownHosts();
@@ -77,35 +82,37 @@ public interface SshTunnel extends Jsonifiable.WithFieldSelectorAndPredicate<Jso
          */
         public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
                 JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code SshTunnel} enabled.
          */
         public static final JsonFieldDefinition<Boolean> ENABLED =
-                JsonFactory.newBooleanFieldDefinition("enabled", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newBooleanFieldDefinition("enabled", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Credentials} for {@code SshTunnel}.
          */
         public static final JsonFieldDefinition<JsonObject> CREDENTIALS =
-                JsonFactory.newJsonObjectFieldDefinition("credentials", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonObjectFieldDefinition("credentials", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code SshTunnel} known hosts.
+         */
+        public static final JsonFieldDefinition<Boolean> VALIDATE_HOST =
+                JsonFactory.newBooleanFieldDefinition("validateHost", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code SshTunnel} known hosts.
          */
         public static final JsonFieldDefinition<JsonArray> KNOWN_HOSTS =
-                JsonFactory.newJsonArrayFieldDefinition("knownHosts", FieldType.REGULAR,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                JsonFactory.newJsonArrayFieldDefinition("knownHosts", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code SshTunnel} uri.
          */
         public static final JsonFieldDefinition<String> URI =
-                JsonFactory.newStringFieldDefinition("uri", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newStringFieldDefinition("uri", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         JsonFields() {
             throw new AssertionError();

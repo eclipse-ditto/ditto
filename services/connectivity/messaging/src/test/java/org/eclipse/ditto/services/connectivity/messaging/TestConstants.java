@@ -24,6 +24,8 @@ import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.security.PublicKey;
+import java.security.cert.Certificate;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -54,6 +56,7 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
@@ -83,9 +86,11 @@ import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.ReplyTarget;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
+import org.eclipse.ditto.model.connectivity.SshTunnel;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
 import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.model.connectivity.UserPasswordCredentials;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaders;
@@ -103,6 +108,8 @@ import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.config.MonitoringConfig;
 import org.eclipse.ditto.services.connectivity.config.mapping.MappingConfig;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ExceptionMapper;
+import org.eclipse.ditto.services.connectivity.messaging.internal.KeyExtractor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.ConnectivityCounterRegistry;
@@ -468,11 +475,21 @@ public final class TestConstants {
 
     public static final class Certificates {
 
+        private static final TestCertificates CERTIFICATE_EXTRACTOR = new TestCertificates();
+
         public static final String CA_CRT = getCert("ca.crt");
         // signed by CA_CRT
         // CN=localhost
         public static final String SERVER_KEY = getCert("server.key");
         public static final String SERVER_CRT = getCert("server.crt");
+        public static final PublicKey SERVER_PUBKEY = CERTIFICATE_EXTRACTOR.getCertificate(SERVER_CRT).getPublicKey();
+        public static final String SERVER_PUBKEY_FINGERPRINT_SHA256_NOPREFIX =
+                "ae:2e:29:7b:11:93:ef:b3:4b:55:c6:83:28:8b:91" +
+                        ":a4:12:c6:42:ca:21:f8:30:4d:3d:36:b5:4c:c3:b3:0f:44";
+        public static final String SERVER_PUBKEY_FINGERPRINT_SHA256 =
+                "SHA256:" + SERVER_PUBKEY_FINGERPRINT_SHA256_NOPREFIX;
+        public static final String SERVER_PUBKEY_FINGERPRINT_MD5 =
+                "MD5:c5:64:48:5c:3a:fc:e1:2e:05:29:4d:78:1e:0f:ed:63";
 
         // signed by CA_CRT
         // no CN
@@ -493,13 +510,24 @@ public final class TestConstants {
         public static final String SERVER_WITH_ALT_NAMES_KEY = getCert("server-alt.key");
         public static final String SERVER_WITH_ALT_NAMES_CRT = getCert("server-alt.crt");
 
-        private static String getCert(final String cert) {
+        public static String getCert(final String cert) {
             final String path = "/certificates/" + cert;
             try (final InputStream inputStream = Certificates.class.getResourceAsStream(path)) {
                 final Scanner scanner = new Scanner(inputStream, StandardCharsets.US_ASCII.name()).useDelimiter("\\A");
                 return scanner.next();
             } catch (final IOException e) {
                 throw new IllegalStateException(e);
+            }
+        }
+
+        private static class TestCertificates extends KeyExtractor {
+
+            private TestCertificates() {
+                super(new ExceptionMapper(null), JsonPointer.empty(), JsonPointer.empty());
+            }
+
+            Certificate getCertificate(final String certificate) {
+                return getClientCertificate(certificate);
             }
         }
 
@@ -795,6 +823,15 @@ public final class TestConstants {
         return createConnection(TestConstants.createRandomConnectionId(), Sources.SOURCES_WITH_AUTH_CONTEXT);
     }
 
+    public static Connection createConnection(final String uri) {
+        return ConnectivityModelFactory.newConnectionBuilder(createRandomConnectionId(), TYPE,
+                ConnectivityStatus.OPEN, uri)
+                .sources(Sources.SOURCES_WITH_AUTH_CONTEXT)
+                .targets(Targets.TARGETS)
+                .lifecycle(ConnectionLifecycle.ACTIVE)
+                .build();
+    }
+
     public static Connection createConnectionWithDebugEnabled() {
         return ConnectivityModelFactory.newConnectionBuilder(createRandomConnectionId(), TYPE, ConnectivityStatus.OPEN,
                 getUriOfNewMockServer())
@@ -806,6 +843,16 @@ public final class TestConstants {
 
     public static Connection createConnectionWithAcknowledgements() {
         return createConnection(TestConstants.createRandomConnectionId(), Sources.SOURCES_WITH_ACKNOWLEDGEMENTS);
+    }
+
+    public static Connection createConnectionWithTunnel(final boolean enabled) {
+        final SshTunnel sshTunnel =
+                ConnectivityModelFactory.newSshTunnelBuilder(enabled, UserPasswordCredentials.newInstance(
+                        "username", "password"), "localhost:2222").build();
+        return createConnection()
+                .toBuilder()
+                .sshTunnel(sshTunnel)
+                .build();
     }
 
     public static Connection createConnection(final ConnectionId connectionId) {

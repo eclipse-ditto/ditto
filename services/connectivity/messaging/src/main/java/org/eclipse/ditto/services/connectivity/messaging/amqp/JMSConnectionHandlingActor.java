@@ -357,20 +357,13 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
      */
     private JmsConnection createJmsConnection(final String clientId) {
         return safelyExecuteJmsOperation(null, "create JMS connection", () -> {
+            final JmsConnection jmsConnection =
+                    jmsConnectionFactory.createConnection(connection, exceptionListener, connectionLogger, clientId);
             if (log.isDebugEnabled()) {
-                final ConnectionConfig connectionConfig =
-                        DittoConnectivityConfig.of(
-                                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
-                                .getConnectionConfig();
-                final Map<String, String> defaultConfig =
-                        AmqpSpecificConfig.toDefaultConfig(connectionConfig.getAmqp10Config());
-                if (log.isDebugEnabled()) {
-                    log.debug("Attempt to create connection {} for URI [{}]", connection.getId(),
-                            ConnectionBasedJmsConnectionFactory
-                                    .buildAmqpConnectionUriFromConnection(connection, defaultConfig, clientId));
-                }
+                log.debug("Attempt to create connection {} for URI [{}]", connection.getId(),
+                        jmsConnection.getConfiguredURI());
             }
-            return jmsConnectionFactory.createConnection(connection, exceptionListener, connectionLogger, clientId);
+            return jmsConnection;
         });
     }
 

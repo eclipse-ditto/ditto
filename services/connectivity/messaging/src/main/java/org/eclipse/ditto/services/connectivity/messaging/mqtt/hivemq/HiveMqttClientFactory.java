@@ -37,12 +37,12 @@ interface HiveMqttClientFactory<Q, B> {
      * be disabled for testing a connection
      * @param connectedListener the connected listener passed to the created client
      * @param disconnectedListener the disconnected listener passed to the created client
+     * @param connectionLogger TODO
      * @return the new client.
      */
     Q newClient(Connection connection, String identifier, boolean allowReconnect,
             @Nullable MqttClientConnectedListener connectedListener,
-            @Nullable MqttClientDisconnectedListener disconnectedListener,
-            ConnectionLogger connectionLogger);
+            @Nullable MqttClientDisconnectedListener disconnectedListener, ConnectionLogger connectionLogger);
 
     /**
      * Creates a new MQTT client builder.
@@ -53,12 +53,12 @@ interface HiveMqttClientFactory<Q, B> {
      * be disabled for testing a connection
      * @param connectedListener the connected listener passed to the created client
      * @param disconnectedListener the disconnected listener passed to the created client
+     * @param connectionLogger TODO
      * @return the new {@link com.hivemq.client.mqtt.mqtt3.Mqtt3ClientBuilder}
      */
     B newClientBuilder(Connection connection, String identifier, boolean allowReconnect,
             @Nullable MqttClientConnectedListener connectedListener,
-            @Nullable MqttClientDisconnectedListener disconnectedListener,
-            ConnectionLogger connectionLogger);
+            @Nullable MqttClientDisconnectedListener disconnectedListener, ConnectionLogger connectionLogger);
 
     /**
      * Creates a new client.
@@ -66,6 +66,7 @@ interface HiveMqttClientFactory<Q, B> {
      * @param connection the connection containing the configuration
      * @param identifier the identifier of the client
      * @param allowReconnect whether client can be configured with automatic reconnect enabled
+     * @param connectionLogger TODO
      * @return the new client.
      */
     default Q newClient(final Connection connection, final String identifier, final boolean allowReconnect,

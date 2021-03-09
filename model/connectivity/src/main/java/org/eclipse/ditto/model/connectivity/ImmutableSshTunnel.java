@@ -40,20 +40,23 @@ final class ImmutableSshTunnel implements SshTunnel {
 
     private final Boolean enabled;
     private final Credentials credentials;
+    private final boolean validateHost;
     private final List<String> knownHosts;
     private final String uri;
 
     private ImmutableSshTunnel(final Builder builder) {
         enabled = checkNotNull(builder.enabled, "enabled");
         credentials = checkNotNull(builder.credentials, "credentials");
+        validateHost = builder.validateHost;
         knownHosts = Collections.unmodifiableList(new ArrayList<>(checkNotNull(builder.knownHosts, "knownHosts")));
         uri = checkNotNull(builder.uri, "uri");
     }
 
-    private ImmutableSshTunnel(final Boolean enabled, final Credentials credentials,
+    private ImmutableSshTunnel(final Boolean enabled, final Credentials credentials, final boolean validateHost,
             final List<String> knownHosts, final String uri) {
         this.enabled = checkNotNull(enabled, "enabled");
         this.credentials = checkNotNull(credentials, "credentials");
+        this.validateHost = validateHost;
         this.knownHosts = Collections.unmodifiableList(new ArrayList<>(checkNotNull(knownHosts, "knownHosts")));
         this.uri = checkNotNull(uri, "uri");
     }
@@ -63,6 +66,7 @@ final class ImmutableSshTunnel implements SshTunnel {
      *
      * @param enabled the enabled status.
      * @param credentials the credentials.
+     * @param validateHost {@code true} if host validation is enabled
      * @param knownHosts the known hosts.
      * @param uri the URI.
      * @return new instance of {@code SshTunnelBuilder}.
@@ -70,10 +74,11 @@ final class ImmutableSshTunnel implements SshTunnel {
      */
     public static SshTunnelBuilder getBuilder(final Boolean enabled,
             final Credentials credentials,
+            final boolean validateHost,
             final List<String> knownHosts,
             final String uri) {
 
-        return new Builder(enabled, credentials, knownHosts, uri);
+        return new Builder(enabled, credentials, validateHost, knownHosts, uri);
     }
 
     /**
@@ -104,6 +109,11 @@ final class ImmutableSshTunnel implements SshTunnel {
     }
 
     @Override
+    public boolean isValidateHost() {
+        return validateHost;
+    }
+
+    @Override
     public List<String> getKnownHosts() {
         return knownHosts;
     }
@@ -123,7 +133,8 @@ final class ImmutableSshTunnel implements SshTunnel {
      */
     public static SshTunnel fromJson(final JsonObject jsonObject) {
         checkNotNull(jsonObject, "ssh tunnel");
-        return new Builder(extractEnabled(jsonObject), extractCredentials(jsonObject), extractKnownHosts(jsonObject),
+        return new Builder(extractEnabled(jsonObject), extractCredentials(jsonObject), extractValidateHost(jsonObject),
+                extractKnownHosts(jsonObject),
                 extractUri(jsonObject)).build();
     }
 
@@ -142,6 +153,10 @@ final class ImmutableSshTunnel implements SshTunnel {
                 .collect(Collectors.toList());
     }
 
+    private static boolean extractValidateHost(final JsonObject jsonObject) {
+        return jsonObject.getValueOrThrow(JsonFields.VALIDATE_HOST);
+    }
+
     private static String extractUri(final JsonObject jsonObject) {
         return jsonObject.getValueOrThrow(JsonFields.URI);
     }
@@ -155,6 +170,7 @@ final class ImmutableSshTunnel implements SshTunnel {
 
         jsonObjectBuilder.set(JsonFields.ENABLED, enabled);
         jsonObjectBuilder.set(JsonFields.CREDENTIALS, credentials.toJson());
+        jsonObjectBuilder.set(JsonFields.VALIDATE_HOST, validateHost);
         jsonObjectBuilder.set(JsonFields.KNOWN_HOSTS, JsonArray.of(knownHosts));
         jsonObjectBuilder.set(JsonFields.URI, uri);
         return jsonObjectBuilder.build();
@@ -172,13 +188,14 @@ final class ImmutableSshTunnel implements SshTunnel {
         final ImmutableSshTunnel that = (ImmutableSshTunnel) o;
         return Objects.equals(enabled, that.enabled) &&
                 Objects.equals(credentials, that.credentials) &&
+                Objects.equals(validateHost, that.validateHost) &&
                 Objects.equals(knownHosts, that.knownHosts) &&
                 Objects.equals(uri, that.uri);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(enabled, credentials, knownHosts, uri);
+        return Objects.hash(enabled, credentials, validateHost, knownHosts, uri);
     }
 
     @Override
@@ -186,6 +203,7 @@ final class ImmutableSshTunnel implements SshTunnel {
         return getClass().getSimpleName() + " [" +
                 "enabled=" + enabled +
                 ", credentials=" + credentials +
+                ", validateHost=" + validateHost +
                 ", knownHosts=" + knownHosts +
                 ", uri=" + uri +
                 "]";
@@ -203,6 +221,7 @@ final class ImmutableSshTunnel implements SshTunnel {
         private String uri;
 
         // optional with Default:
+        private boolean validateHost = false;
         private List<String> knownHosts = new ArrayList<>();
 
         Builder(final Boolean enabled, final Credentials credentials, final String uri) {
@@ -211,10 +230,12 @@ final class ImmutableSshTunnel implements SshTunnel {
             this.uri = uri;
         }
 
-        Builder(final Boolean enabled, final Credentials credentials, final List<String> knownHosts, final String uri) {
+        Builder(final Boolean enabled, final Credentials credentials, final boolean validateHost,
+                final List<String> knownHosts, final String uri) {
             this.enabled = enabled;
             this.credentials = credentials;
             this.uri = uri;
+            this.validateHost = validateHost;
             this.knownHosts = knownHosts;
         }
 
@@ -222,6 +243,7 @@ final class ImmutableSshTunnel implements SshTunnel {
             this.enabled = sshTunnel.isSshTunnelActive();
             this.credentials = sshTunnel.getCredentials();
             this.uri = sshTunnel.getUri();
+            this.validateHost = sshTunnel.isValidateHost();
             this.knownHosts = sshTunnel.getKnownHosts();
         }
 
@@ -234,6 +256,12 @@ final class ImmutableSshTunnel implements SshTunnel {
         @Override
         public SshTunnelBuilder credentials(final Credentials credentials) {
             this.credentials = credentials;
+            return this;
+        }
+
+        @Override
+        public SshTunnelBuilder validateHost(final boolean validateHost) {
+            this.validateHost = validateHost;
             return this;
         }
 

@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
@@ -39,6 +40,8 @@ import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.connectivity.BaseClientState;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
+
+import com.hivemq.client.mqtt.lifecycle.MqttClientDisconnectedListener;
 
 import akka.actor.ActorRef;
 import akka.actor.FSM;
@@ -60,22 +63,19 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
     private static final Status.Success CONSUMERS_CREATED = new Status.Success("consumers created");
 
     private final Connection connection;
-    private final HiveMqttClientFactory<Q, ?> clientFactory;
     private final MqttSpecificConfig mqttSpecificConfig;
 
-    @Nullable private Q publisherClient;
-    @Nullable private Q client;
     @Nullable private AbstractMqttSubscriptionHandler<S, P, R> subscriptionHandler;
+
+    @Nullable private ClientWithCancelSwitch client;
+    @Nullable private ClientWithCancelSwitch publisherClient;
+
     @Nullable private ActorRef publisherActor;
 
-    AbstractMqttClientActor(final Connection connection,
-            @Nullable final ActorRef proxyActor,
-            final ActorRef connectionActor,
-            final HiveMqttClientFactory<Q, ?> clientFactory) {
-
+    AbstractMqttClientActor(final Connection connection, @Nullable final ActorRef proxyActor,
+            final ActorRef connectionActor) {
         super(connection, proxyActor, connectionActor);
         this.connection = connection;
-        this.clientFactory = clientFactory;
         mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection);
     }
 
@@ -95,9 +95,11 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
      *
      * @param client the client to send the message with.
      * @param cleanSession whether to set the clean-session/clean-start flag.
+     * @param keepAliveInterval the time interval in which the client sends a ping to the broker (client default
+     * is used for {@code null} value, {@code 0} value disables sending keep alive pings)
      * @return the CONNACK future.
      */
-    abstract CompletionStage<?> sendConn(Q client, boolean cleanSession);
+    abstract CompletionStage<?> sendConn(Q client, boolean cleanSession, @Nullable final Duration keepAliveInterval);
 
     /**
      * Disconnect the client.
@@ -128,17 +130,21 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
     abstract ActorRef startConsumerActor(boolean dryRun, Source source, ActorRef inboundMessageProcessor,
             MqttSpecificConfig specificConfig);
 
+    /**
+     * TODO
+     */
+    abstract HiveMqttClientFactory<Q, ?> getClientFactory();
+
     @Override
     protected void doInit() {
-        createClientAndSubscriptionHandler();
+        // do nothing, client is created on demand
     }
 
     @Override
     public void postStop() {
-        safelyDisconnectClient(client);
-        if (publisherClient != client) {
-            safelyDisconnectClient(publisherClient);
-        }
+        logger.info("actor stopped, stopping clients");
+        safelyDisconnectClient(client, "consumer");
+        safelyDisconnectClient(publisherClient, "publisher");
         super.postStop();
     }
 
@@ -183,9 +189,9 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
     private FSM.State<BaseClientState, BaseClientData> doReconnectConsumerClient(final Control reconnectConsumerClient,
             final BaseClientData data) {
 
-        final Q oldClient = getClient();
+        final ClientWithCancelSwitch oldClient = getClient();
         final AbstractMqttSubscriptionHandler<S, P, R> oldSubscriptionHandler = getSubscriptionHandler();
-        safelyDisconnectClient(oldClient);
+        safelyDisconnectClient(oldClient, "consumer");
         createSubscriberClientAndSubscriptionHandler();
         oldSubscriptionHandler.stream().forEach(getSubscriptionHandler()::handleMqttConsumer);
         subscribeAndSendConn(false).whenComplete(
@@ -237,7 +243,12 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
             createSubscriberClientAndSubscriptionHandler();
             if (mqttSpecificConfig.separatePublisherClient()) {
                 final String publisherClientId = resolvePublisherClientId(connection, mqttSpecificConfig);
-                publisherClient = clientFactory.newClient(connection, publisherClientId, true, connectionLogger);
+                final AtomicBoolean cancelReconnect = new AtomicBoolean(false);
+                final Q createdClient = getClientFactory().newClient(connection, publisherClientId, true,
+                        null,
+                        getMqttClientDisconnectedListener(cancelReconnect),
+                        connectionLogger);
+                publisherClient = new ClientWithCancelSwitch(createdClient, cancelReconnect);
             } else {
                 // use the same client for subscribers and publisher
                 publisherClient = client;
@@ -249,10 +260,24 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
         }
     }
 
+    private MqttClientDisconnectedListener getMqttClientDisconnectedListener(final AtomicBoolean cancelReconnect) {
+        return context -> {
+            if (cancelReconnect.get()) {
+                logger.debug("client disconnected, cancelling automatic reconnect.");
+                context.getReconnector().reconnect(false);
+            }
+        };
+    }
+
     private void createSubscriberClientAndSubscriptionHandler() {
         final String mqttClientId = resolveMqttClientId(connection, mqttSpecificConfig);
-        client = clientFactory.newClient(connection, mqttClientId, true, connectionLogger);
-        subscriptionHandler = createSubscriptionHandler(connection, client, logger);
+        final AtomicBoolean cancelReconnect = new AtomicBoolean(false);
+        final Q createdClient = getClientFactory().newClient(connection, mqttClientId, true,
+                null,
+                getMqttClientDisconnectedListener(cancelReconnect),
+                connectionLogger);
+        client = new ClientWithCancelSwitch(createdClient, cancelReconnect);
+        subscriptionHandler = createSubscriptionHandler(connection, createdClient, logger);
     }
 
     private void resetClientAndSubscriptionHandler() {
@@ -269,7 +294,7 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
         // attention: do not use reconnect, otherwise the future never returns
         final Q testClient;
         try {
-            testClient = clientFactory.newClient(connectionToBeTested, mqttClientId, false, connectionLogger);
+            testClient = getClientFactory().newClient(connectionToBeTested, mqttClientId, false, connectionLogger);
         } catch (final Exception e) {
             return CompletableFuture.completedFuture(new Status.Failure(e.getCause()));
         }
@@ -279,7 +304,7 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
                 createSubscriptionHandler(connectionToBeTested, testClient, l);
         // always use clean session for tests to not have broker persist anything
         final boolean cleanSession = true;
-        return sendConn(testClient, cleanSession)
+        return sendConn(testClient, cleanSession, Duration.ZERO)
                 .thenApply(connAck -> {
                     final String url = connectionToBeTested.getUri();
                     final String message = "MQTT connection to " + url + " established successfully.";
@@ -308,7 +333,7 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
                     }
                     stopCommandConsumers(testSubscriptions);
                     stopChildActor(publisherActor);
-                    safelyDisconnectClient(testClient);
+                    safelyDisconnectClient(new ClientWithCancelSwitch(testClient, new AtomicBoolean(false)), "test");
                     return status;
                 });
     }
@@ -355,15 +380,16 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
 
     private CompletableFuture<InitializationResult> sendConnAndExpectConnAck(final Duration delay,
             final boolean connectPublisher) {
-        final Q client = getClient();
+        final Q client = getClient().getMqttClient();
         final CompletableFuture<Void> delayFuture = new CompletableFuture<>();
         delayFuture.completeOnTimeout(null, delay.toMillis(), TimeUnit.MILLISECONDS);
         final CompletableFuture<?> publisherConnFuture = connectPublisherClient(connectPublisher);
         // if there is no reconnect-redelivery, do not use a persistent session, since redelivered messages
         // will only arrive after
         final boolean cleanSession = mqttSpecificConfig.cleanSession();
+        final Duration keepAlive = mqttSpecificConfig.getKeepAliveInterval().orElse(null);
         return CompletableFuture.allOf(delayFuture, publisherConnFuture)
-                .thenCompose(_void -> sendConn(client, cleanSession).handle(this::handleConnAck));
+                .thenCompose(_void -> sendConn(client, cleanSession, keepAlive).handle(this::handleConnAck));
     }
 
     private InitializationResult handleConnAck(@Nullable final Object connAck, @Nullable final Throwable throwable) {
@@ -379,7 +405,8 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
     private CompletableFuture<?> connectPublisherClient(final boolean connectPublisher) {
         if (connectPublisher && publisherClient != null && client != publisherClient) {
             // if publisher client is separate, start with clean session.
-            return sendConn(publisherClient, false).toCompletableFuture();
+            final Duration keepAlive = mqttSpecificConfig.getKeepAliveInterval().orElse(null);
+            return sendConn(publisherClient.getMqttClient(), false, keepAlive).toCompletableFuture();
         } else {
             return CompletableFuture.completedFuture(null);
         }
@@ -398,14 +425,15 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
 
     @Override
     protected CompletionStage<Status.Status> startPublisherActor() {
-        publisherActor = startPublisherActor(connection(), checkNotNull(publisherClient, "publisherClient"));
+        publisherActor = startPublisherActor(connection(), checkNotNull(publisherClient, "publisherClient").getMqttClient());
         return CompletableFuture.completedFuture(DONE);
     }
 
     @Override
     protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin) {
+        logger.info("doDisconnectClient");
         if (client != null) {
-            final CompletionStage<ClientDisconnected> disconnectFuture = disconnectClient(getClient())
+            final CompletionStage<ClientDisconnected> disconnectFuture = getClient().disconnect()
                     .handle((aVoid, throwable) -> {
                         if (null != throwable) {
                             logger.info("Error while disconnecting: {}", throwable);
@@ -427,12 +455,11 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
 
     @Override
     protected void cleanupResourcesForConnection() {
+        logger.info("doDisconnectClient");
         stopCommandConsumers(subscriptionHandler);
         stopChildActor(publisherActor);
-        safelyDisconnectClient(client);
-        if (publisherClient != client) {
-            safelyDisconnectClient(publisherClient);
-        }
+        safelyDisconnectClient(client, "consumer");
+        safelyDisconnectClient(publisherClient, "publisher");
         resetClientAndSubscriptionHandler();
     }
 
@@ -446,13 +473,15 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
      * Call only in case of a failure to make sure the client is closed properly. E.g. when subscribing to a topic
      * failed the connection is already established and must be closed to avoid resource leaks.
      *
-     * @param client the client to disconnect
+     * @param clientToDisconnect the client to disconnect
+     * @param name a name describing the client's purpose
      */
-    private CompletionStage<Void> safelyDisconnectClient(@Nullable final Q client) {
-        if (client != null) {
+    private CompletionStage<Void> safelyDisconnectClient(@Nullable final ClientWithCancelSwitch clientToDisconnect,
+            final String name) {
+        if (clientToDisconnect != null) {
             try {
-                logger.debug("Disconnecting mqtt client, ignoring any errors.");
-                return disconnectClient(client);
+                logger.debug("Disconnecting mqtt " + name + " client, ignoring any errors.");
+                return clientToDisconnect.disconnect();
             } catch (final Exception e) {
                 logger.debug("Disconnecting client failed, it was probably already closed: {}", e);
             }
@@ -473,7 +502,7 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
         }
     }
 
-    private Q getClient() {
+    private ClientWithCancelSwitch getClient() {
         if (null == client) {
             throw new IllegalStateException("MqttClient not initialized!");
         }
@@ -511,5 +540,30 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
     enum Control {
         RECONNECT_CONSUMER_CLIENT,
         DO_RECONNECT_CONSUMER_CLIENT
+    }
+
+    /**
+     * This class associates an mqtt client with an {@link java.util.concurrent.atomic.AtomicBoolean} that cancels
+     * the automatic reconnect mechanism in case the client is not disconnected properly.
+     */
+    private final class ClientWithCancelSwitch {
+
+        private final Q mqttClient;
+        private final AtomicBoolean cancelReconnect;
+
+        private ClientWithCancelSwitch(final Q mqttClient, final AtomicBoolean cancelReconnect) {
+            this.mqttClient = mqttClient;
+            this.cancelReconnect = cancelReconnect;
+        }
+
+        private Q getMqttClient() {
+            return mqttClient;
+        }
+
+        private CompletionStage<Void> disconnect() {
+            // cancel reconnecting before sending disconnect message
+            cancelReconnect.set(true);
+            return disconnectClient(mqttClient);
+        }
     }
 }
