@@ -4,6 +4,10 @@ This folder contains the OpenAPI [OpenAPI](https://www.openapis.org) [Specificat
 
 You can view it as nicely rendered HTML by importing one of the files (for API version 1 or 2) into the [Swagger Online Editor](https://editor.swagger.io).
 
+### Extend/update api docs
+
+To extend or update the OpenAPI of Ditto you can add or change the files in the `sources` directory.
+
 ### Build api docs
 
 1. Install `swagger-cli`: `$ cd sources && npm install`

@@ -1,0 +1,27 @@
+# Copyright (c) 2021 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+type: object
+properties:
+  thingId:
+    type: string
+    description: Unique identifier representing the thing
+  policyId:
+    type: string
+    description: 'The ID of the policy which controls the access to this thing. policies are managed by resource `/policies/{policyId}`'
+  definition:
+    $ref: 'definition.yml'
+  attributes:
+    $ref: 'attributes.yml'
+  features:
+    $ref: '../features/features.yml'
+required:
+  - thingId
+  - policyId
