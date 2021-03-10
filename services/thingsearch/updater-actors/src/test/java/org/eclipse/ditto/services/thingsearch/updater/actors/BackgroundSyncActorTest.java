@@ -144,8 +144,9 @@ public final class BackgroundSyncActorTest {
         }};
     }
 
+    // TODO: test failing
     @Test
-    public void providesHealthWarningWhenSyncStreamFails() {
+    public void providesHealthWarningWhenSyncStreamFails() throws Exception {
 
         new TestKit(actorSystem) {{
             whenSearchPersistenceHasIndexedThings();
@@ -194,6 +195,49 @@ public final class BackgroundSyncActorTest {
                         assertThat(events).contains(indexedThingMetadata.toString());
                     });
         }};
+    }
+
+    @Test
+    public void noHealthWarningAfterSuccessfulStream() {
+        final Metadata indexedThingMetadata = Metadata.of(THING_ID, 2, null, null, null);
+        final long persistedRevision = indexedThingMetadata.getThingRevision() + 1;
+        final Metadata persistedThingMetadata = Metadata.of(THING_ID, persistedRevision, null, null, null);
+        final var streamedSnapshots = List.of(createStreamedSnapshot(THING_ID, persistedRevision));
+        final var streamedSnapshotsWithoutPolicyId =
+                List.of(createStreamedSnapshotWithoutPolicyId(THING_ID, persistedRevision));
+
+        new TestKit(actorSystem) {{
+            whenSearchPersistenceHasIndexedThings(List.of(indexedThingMetadata));
+            whenTimestampPersistenceProvidesTaggedTimestamp();
+
+            final ActorRef underTest = thenCreateBackgroundSyncActor(this);
+
+            // first synchronization stream
+            expectSyncActorToStartStreaming(pubSub);
+            thenRespondWithPersistedThingsStream(pubSub, streamedSnapshots);
+            expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, List.of(THING_ID));
+
+            // second synchronization stream
+            whenSearchPersistenceHasIndexedThings(List.of(indexedThingMetadata));
+            expectSyncActorToStartStreaming(pubSub, backgroundSyncConfig.getIdleTimeout());
+            thenRespondWithPersistedThingsStream(pubSub, streamedSnapshots);
+            expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, List.of(THING_ID));
+
+            // third synchronization stream
+            whenSearchPersistenceHasIndexedThings(List.of(persistedThingMetadata));
+            expectSyncActorToStartStreaming(pubSub, backgroundSyncConfig.getIdleTimeout());
+            thenRespondWithPersistedThingsStream(pubSub, streamedSnapshotsWithoutPolicyId);
+            thingsUpdater.expectNoMessage();
+
+            // fourth synchronization stream
+            whenSearchPersistenceHasIndexedThings(List.of(indexedThingMetadata));
+            expectSyncActorToStartStreaming(pubSub, backgroundSyncConfig.getIdleTimeout());
+            thenRespondWithPersistedThingsStream(pubSub, streamedSnapshotsWithoutPolicyId);
+
+            // expect health to recover after successful sync
+            expectSyncActorToBeUpAndHealthy(underTest, this);
+        }};
+
     }
 
     @Test
@@ -422,6 +466,14 @@ public final class BackgroundSyncActorTest {
                 .setId(ThingId.of(id))
                 .setRevision(revision)
                 .setPolicyId(PolicyId.of(id))
+                .build()
+                .toJson(FieldType.all()));
+    }
+
+    private static StreamedSnapshot createStreamedSnapshotWithoutPolicyId(final EntityId id, final long revision) {
+        return StreamedSnapshot.of(ThingId.of(id), Thing.newBuilder()
+                .setId(ThingId.of(id))
+                .setRevision(revision)
                 .build()
                 .toJson(FieldType.all()));
     }
