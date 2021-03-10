@@ -144,9 +144,8 @@ public final class BackgroundSyncActorTest {
         }};
     }
 
-    // TODO: test failing
     @Test
-    public void providesHealthWarningWhenSyncStreamFails() throws Exception {
+    public void providesHealthWarningWhenSyncStreamFails() {
 
         new TestKit(actorSystem) {{
             whenSearchPersistenceHasIndexedThings();

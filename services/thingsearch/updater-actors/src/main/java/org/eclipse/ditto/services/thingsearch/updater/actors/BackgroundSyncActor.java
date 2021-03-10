@@ -159,13 +159,10 @@ public final class BackgroundSyncActor
         int terminationCount = 0;
         for (final var pair : events) {
             final var event = pair.second();
-            if (event instanceof StreamTerminated) {
-                if (++terminationCount > 1) {
-                    break;
-                }
-            } else {
-                final var eventLevel = event.level();
-                level = level.compareTo(eventLevel) >= 0 ? level : eventLevel;
+            final var eventLevel = event.level();
+            level = level.compareTo(eventLevel) >= 0 ? level : eventLevel;
+            if (event instanceof StreamTerminated && ++terminationCount > 1) {
+                break;
             }
         }
         return level;
@@ -283,10 +280,6 @@ public final class BackgroundSyncActor
             this.thingId = thingId;
             this.thingRevision = thingRevision;
             this.level = level;
-        }
-
-        private Event setLevelInfo() {
-            return new SyncEvent(description, thingId, thingRevision, StatusDetailMessage.Level.INFO);
         }
 
         private static Event inconsistency(final Metadata metadata) {
