@@ -1681,24 +1681,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
       requestBody:
-        content:
-          application/merge-patch+json:
-            schema:
-              type: object
-              example: {}
-        description: |-
-          JSON representation of the value to be patched. This may be as well an empty object.
-
-          Consider that the value has to be a JSON value.
-
-          Examples:
-            * for a number, the JSON value is the number: `42`
-            * for a string, the JSON value must be quoted: `"aString"`
-            * for a boolean, the JSON value is the boolean: `true`
-            * for an object, the JSON value is the object: `{ "key": "value"}` -} We strongly recommend to use a restricted set of characters for the key (identifier). Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
-            * for an list, the JSON value is the list: `[ 1,2,3 ]`
-            * special value `null` will delete the referenced key. For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
-        required: true
+        $ref: '#/components/requestBodies/PatchValue'
     delete:
       summary: Delete a specific attribute of a specific thing
       description: |-
@@ -3214,7 +3197,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
       requestBody:
-        $ref: '#/paths/~1things~1%7BthingId%7D~1attributes~1%7BattributePath%7D/patch/requestBody'
+        $ref: '#/components/requestBodies/PatchValue'
     delete:
       summary: Delete a specific property of a feature
       description: |-
@@ -3771,7 +3754,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
       requestBody:
-        $ref: '#/paths/~1things~1%7BthingId%7D~1attributes~1%7BattributePath%7D/patch/requestBody'
+        $ref: '#/components/requestBodies/PatchValue'
     delete:
       summary: Delete a specific desired property of a feature
       description: |-
@@ -6211,6 +6194,25 @@ components:
           * for an object, the JSON value is the object: `{ "key": "value"}` -} We strongly recommend to use a restricted set of characters for the key (identifier). Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
 
           * for an list, the JSON value is the list: `[ 1,2,3 ]`
+      required: true
+    PatchValue:
+      content:
+        application/merge-patch+json:
+          schema:
+            type: object
+            example: {}
+      description: |-
+        JSON representation of the value to be patched. This may be as well an empty object.
+
+        Consider that the value has to be a JSON value.
+
+        Examples:
+          * for a number, the JSON value is the number: `42`
+          * for a string, the JSON value must be quoted: `"aString"`
+          * for a boolean, the JSON value is the boolean: `true`
+          * for an object, the JSON value is the object: `{ "key": "value"}` -} We strongly recommend to use a restricted set of characters for the key (identifier). Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
+          * for an list, the JSON value is the list: `[ 1,2,3 ]`
+          * special value `null` will delete the referenced key. For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
       required: true
     ActivateTokenIntegration:
       content:
