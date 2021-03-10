@@ -36,6 +36,14 @@ public interface EventsourcedEvent<T extends EventsourcedEvent<T>> extends Event
      */
     long getRevision();
 
+    /**
+     * Sets the event's revision.
+     *
+     * @param revision the revision to be set.
+     * @return the event with the revision set.
+     */
+    T setRevision(long revision);
+
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);
 

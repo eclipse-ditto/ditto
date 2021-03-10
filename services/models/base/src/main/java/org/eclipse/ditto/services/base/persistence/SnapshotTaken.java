@@ -134,6 +134,21 @@ public abstract class SnapshotTaken<T extends SnapshotTaken<T>>
         return revision;
     }
 
+    @Override
+    public T setRevision(final long revision) {
+        return setRevision(revision, entityOfSnapshot);
+    }
+
+    /**
+     * Helps subclasses to implement {@link #setRevision(long)} as it provides the entity JSON for constructing a new
+     * SnapshotTaken event.
+     *
+     * @param revisionNumber the new revision number to be set.
+     * @param entityOfSnapshot the JSON representation of the entity of which a snapshot was taken.
+     * @return the new SnapshotTaken event with {@code revisionNumber} set.
+     */
+    protected abstract T setRevision(long revisionNumber, JsonObject entityOfSnapshot);
+
     /**
      * Gets the type of the event.
      *
@@ -201,7 +216,7 @@ public abstract class SnapshotTaken<T extends SnapshotTaken<T>>
                         getTimestamp().map(Instant::toString).orElse(null),
                         predicate.and(JsonField.isValueNonNull()))
                 .set(Event.JsonFields.METADATA,
-                        getMetadata().map(m -> m.toJson(schemaVersion, thePredicate)).orElse(null),
+                        getMetadata().map(m -> m.toJson(schemaVersion, predicate)).orElse(null),
                         predicate.and(JsonField.isValueNonNull()))
                 .set(JsonFields.ENTITY_ID, String.valueOf(getEntityId()), predicate)
                 .set(JsonFields.ENTITY, entityOfSnapshot)

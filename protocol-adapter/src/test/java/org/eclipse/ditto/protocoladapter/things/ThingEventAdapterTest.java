@@ -1636,6 +1636,11 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
         }
 
         @Override
+        public UnknownThingEvent setRevision(final long revision) {
+            return this;
+        }
+
+        @Override
         public UnknownThingEvent setDittoHeaders(final DittoHeaders dittoHeaders) {
             return this;
         }
