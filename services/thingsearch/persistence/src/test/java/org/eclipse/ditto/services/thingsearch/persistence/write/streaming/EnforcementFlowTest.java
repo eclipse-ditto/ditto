@@ -51,6 +51,9 @@ import akka.stream.testkit.javadsl.TestSource;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
+/**
+ * Unit tests for {@link EnforcementFlow}.
+ */
 public final class EnforcementFlowTest {
 
     private static ActorSystem system;

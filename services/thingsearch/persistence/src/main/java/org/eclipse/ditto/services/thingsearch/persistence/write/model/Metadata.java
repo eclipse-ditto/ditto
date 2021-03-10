@@ -53,7 +53,8 @@ public final class Metadata {
             @Nullable final Long policyRevision,
             @Nullable final Instant modified,
             final Collection<StartedTimer> timers,
-            final Collection<ActorRef> senders, final boolean invalidateCache) {
+            final Collection<ActorRef> senders,
+            final boolean invalidateCache) {
 
         this.thingId = thingId;
         this.thingRevision = thingRevision;
@@ -279,7 +280,7 @@ public final class Metadata {
                 Stream.concat(newMetadata.senders.stream(), senders.stream()).collect(Collectors.toList());
         return new Metadata(newMetadata.thingId, newMetadata.thingRevision, newMetadata.policyId,
                 newMetadata.policyRevision, newMetadata.modified, newTimers, newSenders,
-                invalidateCache | newMetadata.invalidateCache);
+                invalidateCache || newMetadata.invalidateCache);
     }
 
     /**
