@@ -1,5 +1,5 @@
 ---
-title: "Use Eclipse Ditto with Azure IoT Hub as broker"
+title: "Use Eclipse Ditto with Azure IoT Hub as message broker"
 published: true
 permalink: 2021-3-04-azure-iot-hub-integration.html
 layout: post
@@ -15,19 +15,20 @@ This blogpost is based upon Eclipse Ditto Version **1.5.0**, the Azure IoT Suite
 
 # Connecting devices to Eclipse Ditto via Azure IoT Hub
 This blog post elaborates on connecting and managing devices in Eclipse Ditto by using the Azure IoT Hub 
-as a broker.
+as a message broker.
 
 The basic functionality that can be used at the moment of creating this blogpost are:
 
-- \[D2C\] Sending telemetry data from the device to update its digital-twin representation.
+- \[D2C\] Sending telemetry data from the device to update its ditto digital-twin representation.
 - \[D2C\] Same ID enforcement based on the Azure IoT Hub device-id to prevent spoofing other digital-twins.
 - \[C2D\] Sending live-messages to the device.
 - \[D2C\] Sending feedback to live messages to the service.
 
 ## Setting up connections in Ditto
 The features described above will work with an "out-of-the-box" Azure IoT Hub subscription, 
-so no additional configuration is needed in the IoT Hub. In order to connect Ditto to the IoT Hub you have to set up two connections.
-One for receiving telemetry data, the other for sending live-messages and receiving live-message feedback.
+so no additional configuration is needed in the IoT Hub. In order to connect Ditto to the IoT Hub you have to set up 
+two AMQP 1.0 connections. One for receiving telemetry data, the other for sending live-messages and receiving 
+live-message feedback.
 
 ### Telemetry Connection
 
@@ -43,43 +44,38 @@ To establish this connection the placeholder below have to be substituted by:
 ```{{password}}```: The SharedAccessKey in your Event Hub-compatible endpoint.
 
 ```{{endpoint}}```: The Endpoint in your Event Hub-compatible endpoint. (Cut away leading "sb://" and trailing slash)
+(i.e. ihsuprodblres055dednamespace.servicebus.windows.net)
 
-```{{entityPath}}```: The EntitiyPath in your Event Hub-compatible endpoint.
+```{{entityPath}}```: The EntitiyPath in your Event Hub-compatible endpoint. (i.e. hubname-8584619-2e72252706)
 
-*Note: I would suggest using the "service" policy instead of the "iothubowner" policy, since this is more restricitve 
+*Note: I would suggest using the "service" IoT Hub policy instead of the "iothubowner" policy, since this is more restricitve 
 and represents the actual use of Ditto as a  northbound service.*
 
 ```json
 {
-  "targetActorSelection": "/system/sharding/connection",
-  "headers": {},
-  "piggybackCommand": {
-    "type": "connectivity.commands:createConnection",
-    "connection": {
-      "id": "azure-example-connection-telemetry",
-      "connectionType": "amqp-10",
-      "connectionStatus": "open",
-      "failoverEnabled": false,
-      "uri": "amqps://{{userName}}:{{password}}@{{endpoint}}:5671",
-      "source": [
-        {
-          "addresses": [
-          "{{entityPath}}/ConsumerGroups/$Default/Partitions/0",
-          "{{entityPath}}/ConsumerGroups/$Default/Partitions/1"
-        ],
-          "authorizationContext": ["ditto"],
-          "enforcement": {
-            "input": "{{ header:iothub-connection-device-id }}",
-            "filters": [
-              "{{ thing:id }}"
-            ]
-          }
-        }
-      ]
+  "id": "azure-example-connection-telemetry",
+  "connectionType": "amqp-10",
+  "connectionStatus": "open",
+  "failoverEnabled": false,
+  "uri": "amqps://{{userName}}:{{password}}@{{endpoint}}:5671",
+  "source": [
+    {
+      "addresses": [
+        "{{entityPath}}/ConsumerGroups/$Default/Partitions/0",
+        "{{entityPath}}/ConsumerGroups/$Default/Partitions/1"
+      ],
+      "authorizationContext": ["ditto"],
+      "enforcement": {
+        "input": "{{ header:iothub-connection-device-id }}",
+        "filters": [
+          "{{ thing:id }}"
+        ]
+      }
     }
-  }
+  ]
 }
 ```
+[Further information on creating connections](https://www.eclipse.org/ditto/connectivity-manage-connections.html)
 
 [Further information on D2C messaging capabilities of Azure IoT Hub](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-devguide-messages-d2c)
 
@@ -87,16 +83,18 @@ and represents the actual use of Ditto as a  northbound service.*
 
 ### Message connection
 
-This connection enables forwarding live messages to the Azure IoT Hub (which forwards it to the message)
+This connection enables forwarding live messages to the Azure IoT Hub (which forwards it to the device)
 and receiving feedback to these live-messages from the device.
 
 Adding the header-mapping ```"message_id": "{{header:correlation-id}}"``` enables Azure IoT Hub to correlate messages.
 Adding the header-mapping ```"to": "/devices/{{ header:ditto-message-thing-id }}/messages/deviceInbound"``` is 
-necessary for correct message routing by Azure IoT Hub.
+necessary for correct message routing by Azure IoT Hub. The header ditto-message-thing-id will be set as a 
+default header by ditto.
 
 To establish this connection the placeholder below have to be substituted by:
 
-```{{userName}}```: The name of the chosen policy + "@sas.root." + the name of your IoT Hub (i.e. service@sas.root.my-hub)
+```{{userName}}```: The name of the chosen IoT Hub policy + "@sas.root." + the name of your IoT Hub 
+(i.e. service@sas.root.my-hub)
 
 ```{{hostName}}```: The Hostname of your IoT Hub (i.e. my-hub.azure-devices.net)
 
@@ -104,39 +102,66 @@ To establish this connection the placeholder below have to be substituted by:
 The generated token has to be additional URL encoded. (browser console -> ```encodeURI('{{generatedToken}}')```)
 
 *Note: The generated SAS token has a maximum TTL of 365 days, so the token has to be changed to a newly generated before expiry. 
-Otherwise, the connection closes automatically.*
+Otherwise, the connection tries to reconnect or closes automatically, when ```failoverEnabled``` is set to ```false```.*
 
 ```json
 {
-  "targetActorSelection": "/system/sharding/connection",
-  "headers": {},
-  "piggybackCommand": {
-    "type": "connectivity.commands:createConnection",
-    "connection": {
-      "id": "azure-example-connection-messages",
-      "connectionType": "amqp-10",
-      "connectionStatus": "open",
-      "failoverEnabled": false,
-      "uri": "amqps://{{userName}}:{{encodedSasToken}}@{{hostName}}:5671",
-      "target": [
-        {"address": "/messages/devicebound",
-          "topics": [
-            "_/_/things/live/messages"
-          ],
-          "authorizationContext": ["ditto"],
-          "headerMapping": {
-            "message_id": "{{header:correlation-id}}",
-            "to": "/devices/{{ header:ditto-message-thing-id }}/messages/deviceInbound"
-          }
-        }
-      ]
+  "id": "azure-example-connection-messages",
+  "connectionType": "amqp-10",
+  "connectionStatus": "open",
+  "failoverEnabled": false,
+  "uri": "amqps://{{userName}}:{{encodedSasToken}}@{{hostName}}:5671",
+  "target": [
+    {"address": "/messages/devicebound",
+      "topics": [
+        "_/_/things/live/messages"
+      ],
+      "authorizationContext": ["ditto"],
+      "headerMapping": {
+        "message_id": "{{header:correlation-id}}",
+        "to": "/devices/{{ header:ditto-message-thing-id }}/messages/deviceInbound"
+      }
     }
-  }
+  ]
 }
 ```
 
-**The java azure-iot-device-client currently can not be used to receive messages from Eclipse Ditto. Further information can 
-be found in the corresponding [GitHub Issue](https://github.com/Azure/azure-iot-sdk-java/issues/1138).**
+**The java azure-iot-device-client currently can not be used to receive messages with JSON as body. 
+Thus, the messages' payload has to be byte-encoded.**
+
+This can be achieved i.e. by configuring an outgoing JavaScript payload mapper in the message connection:
+```javascript
+function mapFromDittoProtocolMsg(
+  namespace,
+  id,
+  group,
+  channel,
+  criterion,
+  action,
+  path,
+  dittoHeaders,
+  value,
+  status,
+  extra
+) {
+
+  let headers = dittoHeaders;
+  let textPayload = null;
+  let bytePayload = Ditto.stringToArrayBuffer(Ditto.buildDittoProtocolMsg(namespace, id, group, channel, criterion, action, path, dittoHeaders, value).toString());
+  let contentType = 'application/octet-stream';
+
+  return Ditto.buildExternalMsg(
+    headers,
+    textPayload,
+    bytePayload,
+    contentType
+  );
+}
+```
+
+[Further information on creating connections](https://www.eclipse.org/ditto/connectivity-manage-connections.html)
+
+[Further information on payload-mapping](https://www.eclipse.org/ditto/connectivity-mapping.html)
 
 [Further information on C2D messaging capabilities of Azure IoT Hub](https://docs.microsoft.com/de-de/azure/iot-hub/iot-hub-devguide-messages-c2d)
 
@@ -150,7 +175,7 @@ Some features of Ditto could be used in combination with Azure IoT Hub with some
 
 ### Using the ImplicitThingCreation and ConnectionStatus features based on Azure IoT Hub events
 
-Azure IoT Hub has the possibility to publish Events for ConnectionStatus changes of devices and the creation/removal of new devices.
+Azure IoT Hub has the possibility to publish Events for status changes of device connections and the creation/removal of new devices.
 These events are published via an Azure EventGrid to another chosen Azure Application. 
 By publishing these Events to an Azure Event Hub, a Ditto AMQP connection can subscribe for them.
 
@@ -163,10 +188,16 @@ create new Things/ update the ConnectionStatus feature depending on the received
 
 Azure IoT Hub provides an endpoint for directly invoking methods on a device, which can be compared to live-commands. 
 This can only be done via HTTP however. The authentication mechanism that has to be used 
-is SAS authentication. This authentication however is not yet implemented for HTTP Push 
+is SAS authentication. This authentication however is not yet implemented for HTTP Push of Eclipse Ditto 
 connections.
 
 [Further information on direct method invocations](https://docs.microsoft.com/de-de/azure/iot-hub/iot-hub-devguide-direct-methods)
+
+## Implementing an automatic refresh mechanism for SASL tokens
+
+The connectionString provided by an Azure IoT Hub device's policy could be used to generate and refresh a SASL token. 
+This would require a new connection setting, which could store such an connectionString, and an algorithm which can 
+generate a SAS token out of that string.
 
 ## Overall connection schema
 ![Connection Overview](images/blog/2021-03-04-azure-iot-hub-integration-overview.png)
