@@ -48,7 +48,6 @@ public final class ResetHealthEventsResponse extends AbstractCommandResponse<Res
     /**
      * Create a ResetHealthEventsResponse.
      *
-     * @param statusInfo the status info.
      * @param dittoHeaders the Ditto headers.
      * @return the ResetHealthEventsResponse.
      */
@@ -64,6 +63,7 @@ public final class ResetHealthEventsResponse extends AbstractCommandResponse<Res
      * @return the response.
      */
     public static ResetHealthEventsResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        // Json object is ignored -- this command response has no payload.
         return of(dittoHeaders);
     }
 
