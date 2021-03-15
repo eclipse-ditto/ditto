@@ -33,6 +33,7 @@ import javax.annotation.Nullable;
 
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
@@ -52,6 +53,8 @@ import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 import org.eclipse.ditto.services.thingsearch.persistence.read.ThingsSearchPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
 import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
+import org.eclipse.ditto.services.utils.health.ResetHealthEvents;
+import org.eclipse.ditto.services.utils.health.ResetHealthEventsResponse;
 import org.eclipse.ditto.services.utils.health.RetrieveHealth;
 import org.eclipse.ditto.services.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.services.utils.health.StatusDetailMessage;
@@ -158,6 +161,32 @@ public final class BackgroundSyncActorTest {
             thenRespondWithFailingPersistedThingsStream(pubSub);
 
             expectSyncActorToBeUpWithWarning(underTest, this);
+        }};
+
+    }
+
+    @Test
+    public void resettingHealthEventsAfterSyncStreamFailureClearsErrors() {
+        final Metadata indexedThingMetadata = Metadata.of(THING_ID, 2, null, null, null);
+        final long persistedRevision = indexedThingMetadata.getThingRevision() + 1;
+
+        new TestKit(actorSystem) {{
+            whenSearchPersistenceHasIndexedThings(List.of(indexedThingMetadata));
+            whenTimestampPersistenceProvidesTaggedTimestamp();
+
+            final ActorRef underTest = thenCreateBackgroundSyncActor(this);
+
+            expectSyncActorToStartStreaming(pubSub);
+            thenRespondWithPersistedThingsStream(pubSub, List.of(createStreamedSnapshot(THING_ID, persistedRevision + 1)));
+            expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, List.of(THING_ID));
+
+            expectSyncActorToBeUpWithWarning(underTest, this);
+
+            underTest.tell(ResetHealthEvents.newInstance(), getRef());
+            final ResetHealthEventsResponse response = expectMsgClass(ResetHealthEventsResponse.class);
+            assertThat(response.getHttpStatus()).isEqualTo(HttpStatus.NO_CONTENT);
+
+            expectSyncActorToBeUpAndHealthy(underTest, this);
         }};
 
     }

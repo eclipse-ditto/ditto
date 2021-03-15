@@ -185,6 +185,7 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
         return sleepingReceiveBuilder.match(WokeUp.class, this::wokeUp)
                 .match(Event.class, this::addCustomEventToLog)
                 .match(RetrieveHealth.class, this::retrieveHealth)
+                .match(ResetHealthEvents.class, this::resetHealthEvents)
                 .match(Shutdown.class, this::shutdownStream)
                 .build()
                 .orElse(retrieveConfigBehavior())
@@ -198,6 +199,7 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
                 .match(StreamTerminated.class, this::streamTerminated)
                 .match(Event.class, this::addCustomEventToLog)
                 .match(RetrieveHealth.class, this::retrieveHealth)
+                .match(ResetHealthEvents.class, this::resetHealthEvents)
                 .match(Shutdown.class, this::shutdownStream)
                 .build()
                 .orElse(retrieveConfigBehavior())
@@ -240,7 +242,7 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
     }
 
     private void scheduleWakeUp(final Duration when) {
-        getTimers().startSingleTimer(WokeUp.class, WokeUp.ENABLED, when);
+        getTimers().startSingleTimer(WokeUp.class, WokeUp.ENABLED_INSTANCE, when);
     }
 
     private void shutdownStream(final Shutdown shutdown) {
@@ -300,6 +302,11 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
 
     private void retrieveHealth(final RetrieveHealth trigger) {
         getSender().tell(RetrieveHealthResponse.of(renderStatusInfo(), trigger.getDittoHeaders()), getSelf());
+    }
+
+    private void resetHealthEvents(final ResetHealthEvents resetHealthEvents) {
+        events.clear();
+        getSender().tell(ResetHealthEventsResponse.of(resetHealthEvents.getDittoHeaders()), getSelf());
     }
 
     private StatusInfo renderStatusInfo() {
@@ -370,7 +377,7 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
      */
     protected static final class WokeUp implements Event {
 
-        private static final WokeUp ENABLED = new WokeUp(true);
+        private static final WokeUp ENABLED_INSTANCE = new WokeUp(true);
 
         private final boolean enabled;
 
