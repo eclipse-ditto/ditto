@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.utils.health;
 
 import static akka.http.javadsl.server.Directives.completeWithFuture;
 
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
@@ -24,9 +24,7 @@ import akka.event.LoggingAdapter;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.server.Route;
-import akka.pattern.PatternsCS;
-import akka.util.Timeout;
-import scala.concurrent.duration.Duration;
+import akka.pattern.Patterns;
 
 /**
  * Function for Akka HTTP Routes to transform a RequestContext into a RouteResult with the expected status code for
@@ -35,7 +33,7 @@ import scala.concurrent.duration.Duration;
 public class HealthRouteSupplier implements Supplier<Route> {
 
     private static final int HEALTH_CHECK_TIMEOUT = 60;
-    private static final Timeout TIMEOUT = new Timeout(Duration.create(HEALTH_CHECK_TIMEOUT, TimeUnit.SECONDS));
+    private static final Duration TIMEOUT = Duration.ofSeconds(HEALTH_CHECK_TIMEOUT);
 
     private static final int HTTP_STATUS_OK = 200;
     private static final int HTTP_STATUS_SERVICE_UNAVAILABLE = 503;
@@ -47,6 +45,7 @@ public class HealthRouteSupplier implements Supplier<Route> {
      * Constructs a new {@code HealthRouteFunction}.
      *
      * @param healthCheckingActor the Actor selection to the health-checking actor to use.
+     * @param log the logging adatper to use.
      */
     public HealthRouteSupplier(final ActorRef healthCheckingActor, final LoggingAdapter log) {
         this.healthCheckingActor = healthCheckingActor;
@@ -56,8 +55,7 @@ public class HealthRouteSupplier implements Supplier<Route> {
     @Override
     public Route get() {
         return completeWithFuture(
-                PatternsCS
-                        .ask(healthCheckingActor, RetrieveHealth.newInstance(), TIMEOUT)
+                Patterns.ask(healthCheckingActor, RetrieveHealth.newInstance(), TIMEOUT)
                         .handle(this::handleHealthResult)
         );
     }

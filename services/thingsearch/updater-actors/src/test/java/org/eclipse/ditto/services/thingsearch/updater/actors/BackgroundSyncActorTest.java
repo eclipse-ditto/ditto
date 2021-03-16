@@ -33,6 +33,7 @@ import javax.annotation.Nullable;
 
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
@@ -52,6 +53,8 @@ import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 import org.eclipse.ditto.services.thingsearch.persistence.read.ThingsSearchPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
 import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
+import org.eclipse.ditto.services.utils.health.ResetHealthEvents;
+import org.eclipse.ditto.services.utils.health.ResetHealthEventsResponse;
 import org.eclipse.ditto.services.utils.health.RetrieveHealth;
 import org.eclipse.ditto.services.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.services.utils.health.StatusDetailMessage;
@@ -163,6 +166,32 @@ public final class BackgroundSyncActorTest {
     }
 
     @Test
+    public void resettingHealthEventsAfterSyncStreamFailureClearsErrors() {
+        final Metadata indexedThingMetadata = Metadata.of(THING_ID, 2, null, null, null);
+        final long persistedRevision = indexedThingMetadata.getThingRevision() + 1;
+
+        new TestKit(actorSystem) {{
+            whenSearchPersistenceHasIndexedThings(List.of(indexedThingMetadata));
+            whenTimestampPersistenceProvidesTaggedTimestamp();
+
+            final ActorRef underTest = thenCreateBackgroundSyncActor(this);
+
+            expectSyncActorToStartStreaming(pubSub);
+            thenRespondWithPersistedThingsStream(pubSub, List.of(createStreamedSnapshot(THING_ID, persistedRevision + 1)));
+            expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, List.of(THING_ID));
+
+            expectSyncActorToBeUpWithWarning(underTest, this);
+
+            underTest.tell(ResetHealthEvents.newInstance(), getRef());
+            final ResetHealthEventsResponse response = expectMsgClass(ResetHealthEventsResponse.class);
+            assertThat(response.getHttpStatus()).isEqualTo(HttpStatus.NO_CONTENT);
+
+            expectSyncActorToBeUpAndHealthy(underTest, this);
+        }};
+
+    }
+
+    @Test
     public void providesHealthWarningWhenSameThingIsSynchronizedTwice() {
         final Metadata indexedThingMetadata = Metadata.of(THING_ID, 2, null, null, null);
         final long persistedRevision = indexedThingMetadata.getThingRevision() + 1;
@@ -194,6 +223,49 @@ public final class BackgroundSyncActorTest {
                         assertThat(events).contains(indexedThingMetadata.toString());
                     });
         }};
+    }
+
+    @Test
+    public void noHealthWarningAfterSuccessfulStream() {
+        final Metadata indexedThingMetadata = Metadata.of(THING_ID, 2, null, null, null);
+        final long persistedRevision = indexedThingMetadata.getThingRevision() + 1;
+        final Metadata persistedThingMetadata = Metadata.of(THING_ID, persistedRevision, null, null, null);
+        final var streamedSnapshots = List.of(createStreamedSnapshot(THING_ID, persistedRevision));
+        final var streamedSnapshotsWithoutPolicyId =
+                List.of(createStreamedSnapshotWithoutPolicyId(THING_ID, persistedRevision));
+
+        new TestKit(actorSystem) {{
+            whenSearchPersistenceHasIndexedThings(List.of(indexedThingMetadata));
+            whenTimestampPersistenceProvidesTaggedTimestamp();
+
+            final ActorRef underTest = thenCreateBackgroundSyncActor(this);
+
+            // first synchronization stream
+            expectSyncActorToStartStreaming(pubSub);
+            thenRespondWithPersistedThingsStream(pubSub, streamedSnapshots);
+            expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, List.of(THING_ID));
+
+            // second synchronization stream
+            whenSearchPersistenceHasIndexedThings(List.of(indexedThingMetadata));
+            expectSyncActorToStartStreaming(pubSub, backgroundSyncConfig.getIdleTimeout());
+            thenRespondWithPersistedThingsStream(pubSub, streamedSnapshots);
+            expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, List.of(THING_ID));
+
+            // third synchronization stream
+            whenSearchPersistenceHasIndexedThings(List.of(persistedThingMetadata));
+            expectSyncActorToStartStreaming(pubSub, backgroundSyncConfig.getIdleTimeout());
+            thenRespondWithPersistedThingsStream(pubSub, streamedSnapshotsWithoutPolicyId);
+            thingsUpdater.expectNoMessage();
+
+            // fourth synchronization stream
+            whenSearchPersistenceHasIndexedThings(List.of(indexedThingMetadata));
+            expectSyncActorToStartStreaming(pubSub, backgroundSyncConfig.getIdleTimeout());
+            thenRespondWithPersistedThingsStream(pubSub, streamedSnapshotsWithoutPolicyId);
+
+            // expect health to recover after successful sync
+            expectSyncActorToBeUpAndHealthy(underTest, this);
+        }};
+
     }
 
     @Test
@@ -422,6 +494,14 @@ public final class BackgroundSyncActorTest {
                 .setId(ThingId.of(id))
                 .setRevision(revision)
                 .setPolicyId(PolicyId.of(id))
+                .build()
+                .toJson(FieldType.all()));
+    }
+
+    private static StreamedSnapshot createStreamedSnapshotWithoutPolicyId(final EntityId id, final long revision) {
+        return StreamedSnapshot.of(ThingId.of(id), Thing.newBuilder()
+                .setId(ThingId.of(id))
+                .setRevision(revision)
                 .build()
                 .toJson(FieldType.all()));
     }
