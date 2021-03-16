@@ -153,6 +153,8 @@ components:
       $ref: "./requests/payload.yml"
     Value:
       $ref: "./requests/value.yml"
+    PatchValue:
+      $ref: "./requests/patchValue.yml"
     ActivateTokenIntegration:
       $ref: "./requests/policies/actions/activateTokenIntegration.yml"
 

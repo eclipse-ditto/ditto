@@ -161,7 +161,7 @@ final class ThingUpdater extends AbstractActor {
     private void updateThing(final UpdateThing updateThing) {
         log.withCorrelationId(updateThing)
                 .info("Requested to update search index <{}> by <{}>", updateThing, getSender());
-        enqueueMetadata();
+        enqueueMetadata(exportMetadata(null).invalidateCache());
     }
 
     private void processUpdateThingResponse(final UpdateThingResponse response) {
@@ -211,8 +211,7 @@ final class ThingUpdater extends AbstractActor {
             final StartedTimer timer = DittoMetrics.timer(ConsistencyLag.TIMER_NAME)
                     .tag(ConsistencyLag.TAG_SHOULD_ACK, Boolean.toString(shouldAcknowledge))
                     .onExpiration(startedTimer ->
-                            l.warning("Timer measuring consistency lag timed out for event <{}>",
-                            thingEvent))
+                            l.warning("Timer measuring consistency lag timed out for event <{}>", thingEvent))
                     .start();
             ConsistencyLag.startS0InUpdater(timer);
             enqueueMetadata(exportMetadataWithSender(shouldAcknowledge, getSender(), timer));
