@@ -30,6 +30,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -147,10 +148,10 @@ final class ImmutableSshTunnel implements SshTunnel {
     }
 
     private static List<String> extractKnownHosts(final JsonObject jsonObject) {
-        return jsonObject.getValueOrThrow(JsonFields.KNOWN_HOSTS)
-                .stream()
-                .map(Objects::toString)
-                .collect(Collectors.toList());
+        return jsonObject.getValue(JsonFields.KNOWN_HOSTS)
+                .map(array -> array.stream()
+                        .map(JsonValue::asString)
+                        .collect(Collectors.toList())).orElse(Collections.emptyList());
     }
 
     private static boolean extractValidateHost(final JsonObject jsonObject) {

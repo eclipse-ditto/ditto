@@ -30,7 +30,7 @@ public final class UserPasswordCredentials implements Credentials {
     /**
      * Credential type name.
      */
-    public static final String TYPE = "username-password-credentials";
+    public static final String TYPE = "plain";
 
     private final String username;
     private final String password;
