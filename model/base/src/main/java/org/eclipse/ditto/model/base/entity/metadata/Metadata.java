@@ -17,6 +17,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointerInvalidException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -44,6 +45,7 @@ public interface Metadata extends JsonObject, Jsonifiable.WithFieldSelectorAndPr
      * @param jsonObject provides the initial values of the result.
      * @return the new immutable initialised {@code Metadata}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws JsonPointerInvalidException if {@code jsonObject} contained leading or trailing slashes.
      * @since 1.3.0
      */
     static Metadata newMetadata(final JsonObject jsonObject) {

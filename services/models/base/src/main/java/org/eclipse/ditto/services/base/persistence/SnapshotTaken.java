@@ -213,7 +213,7 @@ public abstract class SnapshotTaken<T extends SnapshotTaken<T>> implements Event
                         getTimestamp().map(Instant::toString).orElse(null),
                         predicate.and(JsonField.isValueNonNull()))
                 .set(Event.JsonFields.METADATA,
-                        getMetadata().map(m -> m.toJson(predicate)).orElse(null),
+                        getMetadata().map(m -> m.toJson(schemaVersion, thePredicate)).orElse(null),
                         predicate.and(JsonField.isValueNonNull()))
                 .set(JsonFields.ENTITY_ID, String.valueOf(getEntityId()), predicate)
                 .set(JsonFields.ENTITY, entityOfSnapshot)
@@ -317,8 +317,11 @@ public abstract class SnapshotTaken<T extends SnapshotTaken<T>> implements Event
          * {@link Event.JsonFields#TYPE}.
          * @throws JsonParseException if {@code jsonObject} contained a different value than {@code type} for
          * {@link Event.JsonFields#TYPE}.
+         * @throws NullPointerException if any argument is {@code null}.
          */
         public static JsonDeserializer of(final JsonObject jsonObject, final String eventType) {
+            checkNotNull(eventType, "eventType");
+            checkNotNull(jsonObject, "jsonObject");
             validateType(eventType, deserializeType(jsonObject));
             return new JsonDeserializer(jsonObject);
         }
@@ -371,7 +374,7 @@ public abstract class SnapshotTaken<T extends SnapshotTaken<T>> implements Event
         /**
          * Returns the value for {@link Event.JsonFields#METADATA} from the wrapped JSON object.
          *
-         * @return the timestamp or {@code null}.
+         * @return the metadata or {@code null}.
          * @throws JsonParseException if the value of the JSON field was no {@code Metadata}.
          */
         @Nullable
@@ -426,10 +429,14 @@ public abstract class SnapshotTaken<T extends SnapshotTaken<T>> implements Event
          * @param targetType the type which should have been deserialized from the value of {@code jsonFieldDefinition}.
          * @param cause the cause of the deserialization problem.
          * @return the JsonParseException.
+         * @throws NullPointerException if any argument is {@code null}.
          */
         public static JsonParseException getJsonParseException(final JsonFieldDefinition<?> jsonFieldDefinition,
                 final Class<?> targetType,
                 final Throwable cause) {
+            checkNotNull(jsonFieldDefinition, "jsonFieldDefinition");
+            checkNotNull(targetType, "targetType");
+            checkNotNull(cause, "cause");
 
             return JsonParseException.newBuilder()
                     .message(MessageFormat.format("Failed to deserialize field <{0}> as {1}: {2}",
