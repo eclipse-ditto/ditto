@@ -391,6 +391,11 @@ public interface TopicPath {
 
         NEXT(SubscriptionHasNextPage.NAME),
 
+        /**
+         * SearchAction for search errors.
+         *
+         * @since 2.0.0
+         */
         ERROR("error");
 
         private final String name;
