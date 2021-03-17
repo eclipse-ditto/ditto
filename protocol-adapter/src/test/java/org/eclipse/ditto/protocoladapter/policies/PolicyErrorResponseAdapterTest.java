@@ -49,7 +49,6 @@ public final class PolicyErrorResponseAdapterTest implements ProtocolAdapterTest
 
     @Test
     public void testFromAdaptable() {
-
         final PolicyErrorResponse expected =
                 PolicyErrorResponse.of(TestConstants.Policies.POLICY_ID, dittoRuntimeException);
 
@@ -64,6 +63,7 @@ public final class PolicyErrorResponseAdapterTest implements ProtocolAdapterTest
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
         final PolicyErrorResponse actual = underTest.fromAdaptable(adaptable);
+
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
@@ -85,6 +85,7 @@ public final class PolicyErrorResponseAdapterTest implements ProtocolAdapterTest
                 .build();
 
         final Adaptable actual = underTest.toAdaptable(policyErrorResponse, TopicPath.Channel.NONE);
+
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 }

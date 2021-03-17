@@ -86,8 +86,8 @@ public class DittoRuntimeException extends RuntimeException
             @Nullable final Throwable cause,
             @Nullable final URI href) {
 
-        this(errorCode, checkNotNull(statusCode, "HTTP status").getAsHttpStatus(), dittoHeaders, message, description,
-                cause, href);
+        this(errorCode, checkNotNull(statusCode, "HTTP status").getAsHttpStatus(), dittoHeaders, message,
+                description, cause, href);
     }
 
     /**

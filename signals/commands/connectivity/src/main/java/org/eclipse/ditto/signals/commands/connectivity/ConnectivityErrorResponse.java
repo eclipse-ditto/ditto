@@ -33,17 +33,16 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
-import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
+import org.eclipse.ditto.signals.commands.base.AbstractErrorResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
-import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 
 /**
  * Response to a {@link ConnectivityCommand} which wraps the exception thrown when processing the command.
  */
 @Immutable
 @JsonParsableCommandResponse(type = ConnectivityErrorResponse.TYPE)
-public final class ConnectivityErrorResponse extends AbstractCommandResponse<ConnectivityErrorResponse>
-        implements ConnectivityCommandResponse<ConnectivityErrorResponse>, ErrorResponse<ConnectivityErrorResponse> {
+public final class ConnectivityErrorResponse extends AbstractErrorResponse<ConnectivityErrorResponse>
+        implements ConnectivityCommandResponse<ConnectivityErrorResponse> {
 
     /**
      * Type of this response.

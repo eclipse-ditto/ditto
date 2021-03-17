@@ -32,8 +32,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
-import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
-import org.eclipse.ditto.signals.commands.base.ErrorResponse;
+import org.eclipse.ditto.signals.commands.base.AbstractErrorResponse;
 
 /**
  * Response to a {@link ThingSearchCommand} which wraps the exception thrown by SearchService when processing the
@@ -41,8 +40,8 @@ import org.eclipse.ditto.signals.commands.base.ErrorResponse;
  */
 @Immutable
 @JsonParsableCommandResponse(type = SearchErrorResponse.TYPE)
-public final class SearchErrorResponse extends AbstractCommandResponse<SearchErrorResponse>
-        implements ThingSearchCommandResponse<SearchErrorResponse>, ErrorResponse<SearchErrorResponse> {
+public final class SearchErrorResponse extends AbstractErrorResponse<SearchErrorResponse>
+        implements ThingSearchCommandResponse<SearchErrorResponse> {
 
     /**
      * Type of this response.
