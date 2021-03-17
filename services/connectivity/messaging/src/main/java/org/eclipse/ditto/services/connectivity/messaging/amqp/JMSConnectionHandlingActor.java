@@ -26,6 +26,7 @@ import javax.annotation.Nullable;
 import javax.jms.Destination;
 import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
+import javax.jms.JMSSecurityException;
 import javax.jms.MessageConsumer;
 import javax.jms.Session;
 import javax.naming.NamingException;
@@ -34,7 +35,6 @@ import org.apache.qpid.jms.JmsConnection;
 import org.apache.qpid.jms.JmsQueue;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Source;
-import org.eclipse.ditto.services.connectivity.config.Amqp10Config;
 import org.eclipse.ditto.services.connectivity.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
@@ -42,6 +42,7 @@ import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.Connect
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
+import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnauthorizedException;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -213,7 +214,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
                         new AmqpClientActor.JmsSessionRecovered(origin, session, consumers);
                 sender.tell(r, self);
                 log.debug("Session of connection <{}> recovered successfully.", connection.getId());
-            } catch (final ConnectionFailedException e) {
+            } catch (final ConnectionFailedException | ConnectionUnauthorizedException e) {
                 sender.tell(new ImmutableConnectionFailure(origin, e, e.getMessage()), self);
                 log.warning(e.getMessage());
             } catch (final Exception e) {
@@ -250,7 +251,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
             final AmqpClientActor.JmsConnected connectedMessage = tryConnect(origin, clientId);
             sender.tell(connectedMessage, self);
             log.debug("Connection <{}> established successfully.", connection.getId());
-        } catch (final ConnectionFailedException e) {
+        } catch (final ConnectionFailedException | ConnectionUnauthorizedException e) {
             sender.tell(new ImmutableConnectionFailure(origin, e, e.getMessage()), self);
             log.warning(e.getMessage());
         } catch (final Exception e) {
@@ -266,7 +267,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
             final Session session = createSession(jmsConnection);
             final List<ConsumerData> consumers = createConsumers(session);
             return new AmqpClientActor.JmsConnected(origin, jmsConnection, session, consumers);
-        } catch (final ConnectionFailedException e) {
+        } catch (final ConnectionFailedException | ConnectionUnauthorizedException e) {
             // thrown by createConsumers
             terminateConnection(jmsConnection);
             throw e;
@@ -297,6 +298,9 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
 
         try {
             return jmsOperation.get();
+        } catch (final JMSSecurityException e) {
+            terminateConnection(jmsConnection);
+            throw ConnectionUnauthorizedException.forConnectionId(connection.getId(), e.getMessage());
         } catch (final JMSException | NamingException e) {
             terminateConnection(jmsConnection);
             throw ConnectionFailedException.newBuilder(connection.getId())
