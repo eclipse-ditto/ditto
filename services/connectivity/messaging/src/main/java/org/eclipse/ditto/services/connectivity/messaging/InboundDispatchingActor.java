@@ -47,6 +47,7 @@ import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
@@ -376,9 +377,9 @@ public final class InboundDispatchingActor extends AbstractActor
     private int dispatchIncomingSignal(final IncomingSignal incomingSignal) {
         final Signal<?> signal = incomingSignal.signal;
         final ActorRef sender = incomingSignal.sender;
-        if (incomingSignal.isAckRequesting) {
+        if (incomingSignal.isAckRequesting && signal instanceof WithThingId) {
             try {
-                startAckregatorAndForwardSignal(signal, sender);
+                startAckregatorAndForwardSignal((Signal<?> & WithThingId) signal, sender);
             } catch (final DittoRuntimeException e) {
                 handleErrorDuringStartingOfAckregator(e, signal.getDittoHeaders(), sender);
             }
@@ -419,7 +420,8 @@ public final class InboundDispatchingActor extends AbstractActor
                 (signal instanceof ThingCommand && ProtocolAdapter.isLiveSignal(signal)));
     }
 
-    private void startAckregatorAndForwardSignal(final Signal<?> signal, @Nullable final ActorRef sender) {
+    private <S extends Signal<?> & WithThingId> void startAckregatorAndForwardSignal(final S signal,
+            @Nullable final ActorRef sender) {
         ackregatorStarter.doStart(signal,
                 responseSignal -> {
                     // potentially publish response/aggregated acks to reply target

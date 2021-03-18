@@ -29,9 +29,11 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.WithEntityId;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
@@ -105,8 +107,8 @@ public final class AcknowledgementAggregatorActorStarter {
 
         return preprocess(signal,
                 (s, shouldStart) -> {
-                    if (shouldStart) {
-                        return doStart(s, responseSignalConsumer::apply,
+                    if (shouldStart && s instanceof WithThingId) {
+                        return doStart((Signal<?> & WithThingId) s, responseSignalConsumer::apply,
                                 ackregator -> ackregatorStartedFunction.apply(s, ackregator));
                     } else {
                         return ackregatorNotStartedFunction.apply(s);
@@ -144,13 +146,13 @@ public final class AcknowledgementAggregatorActorStarter {
      * @param <T> type of results.
      * @return the result.
      */
-    public <T> T doStart(final Signal<?> signalToForward,
+    public <S extends Signal<?> & WithThingId, T> T doStart(final S signalToForward,
             final Consumer<Object> responseSignalConsumer,
             final Function<ActorRef, T> forwarderStartedFunction) {
         return forwarderStartedFunction.apply(startAckAggregatorActor(signalToForward, responseSignalConsumer));
     }
 
-    private ActorRef startAckAggregatorActor(final Signal<?> signal,
+    private <S extends Signal<?> & WithThingId> ActorRef startAckAggregatorActor(final S signal,
             final Consumer<Object> responseSignalConsumer) {
         final Props props = AcknowledgementAggregatorActor.props(signal, acknowledgementConfig, headerTranslator,
                 responseSignalConsumer);

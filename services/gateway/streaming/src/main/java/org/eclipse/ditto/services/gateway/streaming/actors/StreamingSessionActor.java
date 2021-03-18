@@ -430,11 +430,12 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
 
         return ackregatorStarter.preprocess(signal,
                 (s, shouldStart) -> {
-                    if (shouldStart) {
+                    if (shouldStart && s instanceof WithThingId) {
                         // websocket-specific header check: acks requested with response-required=false are forbidden
                         final Optional<DittoHeaderInvalidException> headerInvalid = checkForAcksWithoutResponse(s);
                         return headerInvalid.map(this::publishResponseOrError)
-                                .orElseGet(() -> ackregatorStarter.doStart(s, this::publishResponseOrError,
+                                .orElseGet(() -> ackregatorStarter.doStart((Signal<?> & WithThingId) s,
+                                        this::publishResponseOrError,
                                         ackregator -> forwardToCommandRouterAndReturnDone(s, ackregator)));
                     } else {
                         return doNothing(s);
@@ -659,13 +660,11 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
 
     @Nullable
     private static String namespaceFromId(final Signal<?> signal) {
-        // TODO: <j.bartelheimer>
-        if (signal instanceof SignalWithEntityId<?>) {
-            final SignalWithEntityId<?> signalWithEntityId = (SignalWithEntityId<?>) signal;
-            return NamespaceReader.fromEntityId(signalWithEntityId.getEntityId()).orElse(null);
-        } else {
-            return null;
-        }
+        return Optional.of(signal)
+                .map(WithEntityId.class::cast)
+                .map(WithEntityId::getEntityId)
+                .flatMap(NamespaceReader::fromEntityId)
+                .orElse(null);
     }
 
     private static Criteria parseCriteria(final String filter, final DittoHeaders dittoHeaders) {

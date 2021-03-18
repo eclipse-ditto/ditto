@@ -41,7 +41,6 @@ import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.acks.things.ThingAcknowledgementFactory;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.base.WithEntityId;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayCommandTimeoutException;
@@ -109,15 +108,12 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
      * @throws org.eclipse.ditto.model.base.acks.AcknowledgementRequestParseException if a contained acknowledgement
      * request could not be parsed.
      */
-    static Props props(final Signal<?> signal,
+    static <S extends Signal<?> & WithThingId> Props props(final S signal,
             final AcknowledgementConfig acknowledgementConfig,
             final HeaderTranslator headerTranslator,
             final Consumer<Object> responseSignalConsumer) {
 
-        // TODO: <j.bartelheimer> safe cast? was the thingId cast safe before?
-        final WithEntityId signalWithEntityId = (WithEntityId) signal;
-        final ThingId thingId = (ThingId) signalWithEntityId.getEntityId();
-        return props(thingId, signal.getDittoHeaders(), acknowledgementConfig,
+        return props(signal.getThingEntityId(), signal.getDittoHeaders(), acknowledgementConfig,
                 headerTranslator, responseSignalConsumer);
     }
 
