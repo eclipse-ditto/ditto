@@ -18,11 +18,11 @@ import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingFieldSelector;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 
@@ -35,11 +35,11 @@ public final class StreamingSession {
 
     private final List<String> namespaces;
     private final Predicate<Thing> thingPredicate;
-    @Nullable private final JsonFieldSelector extraFields;
+    @Nullable private final ThingFieldSelector extraFields;
     private final ActorRef streamingSessionActor;
 
     private StreamingSession(final List<String> namespaces, @Nullable final Criteria eventFilterCriteria,
-            @Nullable final JsonFieldSelector extraFields, final ActorRef streamingSessionActor) {
+            @Nullable final ThingFieldSelector extraFields, final ActorRef streamingSessionActor) {
         this.namespaces = namespaces;
         thingPredicate = eventFilterCriteria == null
                 ? thing -> true
@@ -49,7 +49,7 @@ public final class StreamingSession {
     }
 
     static StreamingSession of(final List<String> namespaces, @Nullable final Criteria eventFilterCriteria,
-            @Nullable final JsonFieldSelector extraFields, final ActorRef streamingSessionActor) {
+            @Nullable final ThingFieldSelector extraFields, final ActorRef streamingSessionActor) {
 
         return new StreamingSession(namespaces, eventFilterCriteria, extraFields, streamingSessionActor);
     }
@@ -64,7 +64,7 @@ public final class StreamingSession {
     /**
      * @return extra fields of the session if any is given.
      */
-    public Optional<JsonFieldSelector> getExtraFields() {
+    public Optional<ThingFieldSelector> getExtraFields() {
         return Optional.ofNullable(extraFields);
     }
 
