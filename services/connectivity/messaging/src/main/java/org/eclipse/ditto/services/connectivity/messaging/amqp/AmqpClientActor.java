@@ -206,7 +206,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         try {
             final String connectionUri = ConnectionBasedJmsConnectionFactory.buildAmqpConnectionUri(connection,
                     connection.getId().toString(),
-                    SshTunnelState::disabled, Map.of());
+                    // fake established tunnel state for uri validation
+                    () -> SshTunnelState.from(connection).established(22222), Map.of());
             ProviderFactory.create(URI.create(connectionUri));
             // it is safe to pass an empty map as default config as only default values are loaded via that config
             // of which we can be certain that they are always valid

@@ -100,10 +100,10 @@ public final class HiveMqtt5ClientActor
     }
 
     @Override
-    CompletionStage<?> sendConn(final Mqtt5AsyncClient client, final boolean cleanSession,
+    CompletionStage<Mqtt5ConnAck> sendConn(final Mqtt5AsyncClient client, final boolean cleanSession,
             @Nullable final Duration keepAliveInterval) {
         final Mqtt5ConnectBuilder.Send<CompletableFuture<Mqtt5ConnAck>> connectWith = client.connectWith();
-        if (keepAliveInterval != null){
+        if (keepAliveInterval != null) {
             connectWith.keepAlive((int) keepAliveInterval.getSeconds());
         }
         return connectWith.cleanStart(cleanSession).send();

@@ -210,6 +210,10 @@
             <groupId>org.apache.sshd</groupId>
             <artifactId>sshd-core</artifactId>
         </dependency>
+        <dependency>
+            <groupId>net.i2p.crypto</groupId>
+            <artifactId>eddsa</artifactId>
+        </dependency>
 
         <!-- ### TESTING ### -->
         <dependency>

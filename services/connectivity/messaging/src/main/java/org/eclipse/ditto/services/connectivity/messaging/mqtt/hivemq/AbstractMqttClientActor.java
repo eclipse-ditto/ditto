@@ -41,6 +41,7 @@ import org.eclipse.ditto.services.models.connectivity.BaseClientState;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 
+import com.hivemq.client.mqtt.MqttClientState;
 import com.hivemq.client.mqtt.lifecycle.MqttClientDisconnectedListener;
 
 import akka.actor.ActorRef;
@@ -263,7 +264,17 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
     private MqttClientDisconnectedListener getMqttClientDisconnectedListener(final AtomicBoolean cancelReconnect) {
         return context -> {
             if (cancelReconnect.get()) {
-                logger.debug("client disconnected, cancelling automatic reconnect.");
+                // the cancel switch is triggered when the client is disconnected intentionally. in case the
+                // disconnect message cannot be processed properly (e.g. the connection was never established), the
+                // client would try to reconnect indefinitely if automatic reconnecting is not cancelled here.
+                logger.debug("Client disconnected, cancelling automatic reconnect.");
+                context.getReconnector().reconnect(false);
+            }
+            if (context.getClientConfig().getState() == MqttClientState.CONNECTING) {
+                // if the client is in initial CONNECTING state (i.e. was never connected, not reconnecting) we disable
+                // the automatic reconnect because the client would continue to connect and the caller would never see
+                // the cause why the connection failed
+                logger.info("Initial connect failed, disabling automatic reconnect.");
                 context.getReconnector().reconnect(false);
             }
         };
@@ -373,23 +384,40 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
         final CompletableFuture<InitializationResult> connAckFuture =
                 sendConnAndExpectConnAck(Duration.ofSeconds(1L), connectPublisher);
 
-        return CompletableFuture.allOf(connAckFuture, subAckFuture.toCompletableFuture())
-                .thenApply(_void -> connAckFuture.join())
+        return connAckFuture.thenCompose(connResult -> {
+            if (connResult.isSuccess()) {
+                // compose with subAckFuture only if connection was successful,
+                // otherwise subAckFuture never completes!
+                return subAckFuture
+                        // discard subAck result and return connection result instead
+                        .thenApply(l -> connResult);
+            } else {
+                // otherwise return the connection failure directly
+                return connAckFuture;
+            }
+        })
                 .exceptionally(InitializationResult::failed);
     }
 
     private CompletableFuture<InitializationResult> sendConnAndExpectConnAck(final Duration delay,
             final boolean connectPublisher) {
         final Q client = getClient().getMqttClient();
-        final CompletableFuture<Void> delayFuture = new CompletableFuture<>();
-        delayFuture.completeOnTimeout(null, delay.toMillis(), TimeUnit.MILLISECONDS);
+
+        final CompletableFuture<Object> delayFuture = new CompletableFuture<>()
+                .completeOnTimeout(null, delay.toMillis(), TimeUnit.MILLISECONDS);
+
         final CompletableFuture<?> publisherConnFuture = connectPublisherClient(connectPublisher);
-        // if there is no reconnect-redelivery, do not use a persistent session, since redelivered messages
-        // will only arrive after
-        final boolean cleanSession = mqttSpecificConfig.cleanSession();
-        final Duration keepAlive = mqttSpecificConfig.getKeepAliveInterval().orElse(null);
-        return CompletableFuture.allOf(delayFuture, publisherConnFuture)
-                .thenCompose(_void -> sendConn(client, cleanSession, keepAlive).handle(this::handleConnAck));
+
+        return delayFuture
+                .thenCompose(_void -> publisherConnFuture)
+                .thenCompose(_void -> {
+                    // if there is no reconnect-redelivery, do not use a persistent session, since redelivered messages
+                    // will only arrive after
+                    final boolean cleanSession = mqttSpecificConfig.cleanSession();
+                    final Duration keepAlive = mqttSpecificConfig.getKeepAliveInterval().orElse(null);
+                    return sendConn(client, cleanSession, keepAlive);
+                })
+                .handle((connAck, throwable) -> handleConnAck(connAck, throwable));
     }
 
     private InitializationResult handleConnAck(@Nullable final Object connAck, @Nullable final Throwable throwable) {
@@ -425,7 +453,8 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
 
     @Override
     protected CompletionStage<Status.Status> startPublisherActor() {
-        publisherActor = startPublisherActor(connection(), checkNotNull(publisherClient, "publisherClient").getMqttClient());
+        checkNotNull(publisherClient, "publisherClient");
+        publisherActor = startPublisherActor(connection(), publisherClient.getMqttClient());
         return CompletableFuture.completedFuture(DONE);
     }
 

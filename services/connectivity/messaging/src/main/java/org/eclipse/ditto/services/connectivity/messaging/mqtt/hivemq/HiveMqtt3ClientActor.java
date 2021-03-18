@@ -97,7 +97,7 @@ public final class HiveMqtt3ClientActor
     }
 
     @Override
-    CompletionStage<?> sendConn(final Mqtt3AsyncClient client, final boolean cleanSession,
+    CompletionStage<Mqtt3ConnAck> sendConn(final Mqtt3AsyncClient client, final boolean cleanSession,
             @Nullable final Duration keepAliveInterval) {
         final Mqtt3ConnectBuilder.Send<CompletableFuture<Mqtt3ConnAck>> connectWith = client.connectWith();
         if (keepAliveInterval != null) {

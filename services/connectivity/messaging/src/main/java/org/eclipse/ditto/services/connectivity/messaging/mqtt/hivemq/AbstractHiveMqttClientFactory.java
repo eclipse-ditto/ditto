@@ -17,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
@@ -85,7 +86,13 @@ abstract class AbstractHiveMqttClientFactory {
 
         final URI uri = tunnelStateSupplier.get().getURI(connection);
 
-        T builder = newBuilder.serverHost(uri.getHost()).serverPort(uri.getPort());
+        T builder = newBuilder
+                .transportConfig()
+                // TODO configurable?
+                .mqttConnectTimeout(5, TimeUnit.SECONDS)
+                .socketConnectTimeout(2, TimeUnit.SECONDS)
+                .applyTransportConfig()
+                .serverHost(uri.getHost()).serverPort(uri.getPort());
 
         if (allowReconnect && connection.isFailoverEnabled()) {
             builder = builder.automaticReconnectWithDefaultConfig();
