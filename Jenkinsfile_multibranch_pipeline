@@ -67,7 +67,7 @@ pipeline {
             }
             when {
                 expression {
-                    return params.SKIP_SONAR_SCAN
+                    return !params.SKIP_SONAR_SCAN
                 }
             }
             steps {
