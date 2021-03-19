@@ -548,6 +548,7 @@ public final class JsonFactory {
      * @return a new JSON pointer consisting of the JSON keys which were extracted from {@code
      * slashDelimitedCharSequence}.
      * @throws NullPointerException if {@code slashDelimitedCharSequence} is {@code null}.
+     * @throws JsonPointerInvalidException if the passed {@code slashDelimitedCharSequence} contained double slashes.
      */
     public static JsonPointer newPointer(final CharSequence slashDelimitedCharSequence) {
         return ImmutableJsonPointer.ofParsed(slashDelimitedCharSequence);
@@ -656,6 +657,7 @@ public final class JsonFactory {
      * @param furtherPointerStrings additional JSON pointers to form the field selector to be created by this method.
      * @return a new JSON field selector.
      * @throws NullPointerException if any argument is {@code null}.
+     * @throws JsonPointerInvalidException if any passed {@code pointerString} contained double slashes.
      */
     public static JsonFieldSelector newFieldSelector(final CharSequence pointerString,
             final CharSequence... furtherPointerStrings) {
@@ -907,6 +909,7 @@ public final class JsonFactory {
      * @return the pointer.
      * @throws NullPointerException if {@code keyOrPointer} is {@code null}.
      * @throws IllegalArgumentException if {@code keyOrPointer} would lead to an empty JsonPointer.
+     * @throws JsonPointerInvalidException if the passed {@code keyOrPointer} contained double slashes.
      */
     static JsonPointer getNonEmptyPointer(final CharSequence keyOrPointer) {
         requireNonNull(keyOrPointer, "The key or pointer char sequence must not be null!");

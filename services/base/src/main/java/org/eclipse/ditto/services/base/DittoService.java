@@ -42,7 +42,7 @@ import org.eclipse.ditto.services.utils.metrics.config.MetricsConfig;
 import org.eclipse.ditto.services.utils.metrics.prometheus.PrometheusReporterRoute;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.WithMongoDbConfig;
-import org.eclipse.ditto.signals.base.MergeToggle;
+import org.eclipse.ditto.signals.base.FeatureToggle;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
@@ -431,8 +431,8 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
                 Long.toString(limitsConfig.getPoliciesMaxSize()));
         System.setProperty(MessageCommandSizeValidator.DITTO_LIMITS_MESSAGES_MAX_SIZE_BYTES,
                 Long.toString(limitsConfig.getMessagesMaxSize()));
-        System.setProperty(MergeToggle.MERGE_THINGS_ENABLED,
-                Boolean.toString(rawConfig.getBoolean(MergeToggle.MERGE_THINGS_ENABLED)));
+        System.setProperty(FeatureToggle.MERGE_THINGS_ENABLED,
+                Boolean.toString(rawConfig.getBoolean(FeatureToggle.MERGE_THINGS_ENABLED)));
     }
 
     private static ActorRef getDistributedPubSubMediatorActor(final ActorSystem actorSystem) {
