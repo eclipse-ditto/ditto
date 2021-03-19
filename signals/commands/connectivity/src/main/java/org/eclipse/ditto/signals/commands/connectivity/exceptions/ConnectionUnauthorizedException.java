@@ -28,6 +28,9 @@ import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityException;
 
+/**
+ * Thrown for authorization errors on Connections.
+ */
 @Immutable
 @JsonParsableException(errorCode = ConnectionUnauthorizedException.ERROR_CODE)
 public final class ConnectionUnauthorizedException extends DittoRuntimeException implements ConnectivityException {
@@ -46,13 +49,20 @@ public final class ConnectionUnauthorizedException extends DittoRuntimeException
 
     private static final long serialVersionUID = -4525302146760945435L;
 
-    protected ConnectionUnauthorizedException(
+    private ConnectionUnauthorizedException(
             final DittoHeaders dittoHeaders,
             @Nullable final String message, @Nullable final String description,
             @Nullable final Throwable cause, @Nullable final URI href) {
         super(ERROR_CODE, HttpStatus.UNAUTHORIZED, dittoHeaders, message, description, cause, href);
     }
 
+    /**
+     * Constructs a new {@code ConnectionUnauthorizedException}.
+     *
+     * @param connectionId the ConnectionId for which no authorization failed.
+     * @param reason a detail reason why the authorization failed.
+     * @return the new ConnectionUnauthorizedException.
+     */
     public static ConnectionUnauthorizedException forConnectionId(final ConnectionId connectionId,
             final String reason) {
         return new ConnectionUnauthorizedException.Builder(connectionId, reason).build();
