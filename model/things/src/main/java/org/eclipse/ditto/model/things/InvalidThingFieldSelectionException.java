@@ -25,6 +25,11 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 
+/**
+ * Thrown when a {@link ThingFieldSelector} was not valid.
+ *
+ * @since 2.0.0
+ */
 @JsonParsableException(errorCode = InvalidThingFieldSelectionException.ERROR_CODE)
 public final class InvalidThingFieldSelectionException extends DittoRuntimeException implements ThingException {
 

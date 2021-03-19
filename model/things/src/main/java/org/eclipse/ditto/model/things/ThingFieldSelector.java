@@ -27,6 +27,8 @@ import org.eclipse.ditto.json.JsonPointer;
 /**
  * A Json field selector which validates that only valid fields of a thing can be selected.
  * Commas in keys are not supported by this selector.
+ *
+ * @since 2.0.0
  */
 public final class ThingFieldSelector implements JsonFieldSelector {
 
@@ -43,7 +45,9 @@ public final class ThingFieldSelector implements JsonFieldSelector {
     private final JsonFieldSelector jsonFieldSelector;
 
 
-    private ThingFieldSelector(final JsonFieldSelector jsonFieldSelector) {this.jsonFieldSelector = jsonFieldSelector;}
+    private ThingFieldSelector(final JsonFieldSelector jsonFieldSelector) {
+        this.jsonFieldSelector = jsonFieldSelector;
+    }
 
     /**
      * Creates a thing field selector based on the more generic json field selector. Selected fields are validated.
@@ -52,7 +56,8 @@ public final class ThingFieldSelector implements JsonFieldSelector {
      *
      * @param jsonFieldSelector the generic json field selector.
      * @return the ThingFieldSelector.
-     * @throws InvalidThingFieldSelectionException when the given json field selector is null or contains invalid fields.
+     * @throws InvalidThingFieldSelectionException when the given json field selector is {@code null} or contains
+     * invalid fields.
      */
     public static ThingFieldSelector fromJsonFieldSelector(final JsonFieldSelector jsonFieldSelector) {
         if (jsonFieldSelector instanceof ThingFieldSelector) {
@@ -72,7 +77,7 @@ public final class ThingFieldSelector implements JsonFieldSelector {
      *
      * @param selectionString the string representation of a json field selector.
      * @return the ThingFieldSelector.
-     * @throws InvalidThingFieldSelectionException when the given string is null or contains invalid fields.
+     * @throws InvalidThingFieldSelectionException when the given string is {@code null} or contains invalid fields.
      */
     public static ThingFieldSelector fromString(final String selectionString) {
         if (selectionString == null) {
@@ -83,6 +88,11 @@ public final class ThingFieldSelector implements JsonFieldSelector {
         throw InvalidThingFieldSelectionException.forExtraFieldSelectionString(selectionString);
     }
 
+    /**
+     * Returns the underlying JsonFieldSelector.
+     *
+     * @return the underlying JsonFieldSelector.
+     */
     public JsonFieldSelector getJsonFieldSelector() {
         return jsonFieldSelector;
     }

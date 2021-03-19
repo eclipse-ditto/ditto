@@ -81,6 +81,8 @@ final class ImmutableFilteredTopic implements FilteredTopic {
      * @param filteredTopicString the string representation of a FilteredTopic.
      * @return instance.
      * @throws NullPointerException if {@code filteredTopicString} is {@code null}.
+     * @throws org.eclipse.ditto.model.things.InvalidThingFieldSelectionException when the given
+     * {@code filteredTopicString} contained a field selector with invalid fields.
      */
     public static ImmutableFilteredTopic fromString(final String filteredTopicString) {
         checkNotNull(filteredTopicString, "filteredTopicString");
