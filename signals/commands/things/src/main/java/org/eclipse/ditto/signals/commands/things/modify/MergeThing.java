@@ -44,7 +44,7 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingDefinition;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.signals.base.MergeToggle;
+import org.eclipse.ditto.signals.base.FeatureToggle;
 import org.eclipse.ditto.signals.base.UnsupportedSchemaVersionException;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
@@ -82,7 +82,7 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
 
     private MergeThing(final ThingId thingId, final JsonPointer path, final JsonValue value,
             final DittoHeaders dittoHeaders) {
-        super(TYPE, MergeToggle.checkMergeFeatureEnabled(TYPE, dittoHeaders));
+        super(TYPE, FeatureToggle.checkMergeFeatureEnabled(TYPE, dittoHeaders));
         this.thingId = checkNotNull(thingId, "thingId");
         this.path = checkNotNull(path, "path");
         this.value = checkJsonSize(checkNotNull(value, "value"), dittoHeaders);

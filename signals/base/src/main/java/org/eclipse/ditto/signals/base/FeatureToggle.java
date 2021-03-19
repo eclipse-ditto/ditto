@@ -15,11 +15,12 @@ package org.eclipse.ditto.signals.base;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 /**
- * Decides based on the system property {@value MERGE_THINGS_ENABLED} whether the merge thing feature
- * is enabled and throws an {@link org.eclipse.ditto.signals.base.UnsupportedSignalException} if the property is set
- * to {@code false}.
+ * Decides based on system properties whether certain features of Ditto are enabled or throws an
+ * {@link UnsupportedSignalException} if a feature is disabled.
+ *
+ * @since 2.0.0
  */
-public final class MergeToggle {
+public final class FeatureToggle {
 
     /**
      * System property name of the property defining whether the merge feature is enabled.
@@ -29,14 +30,16 @@ public final class MergeToggle {
     /**
      * Resolves the system property {@value MERGE_THINGS_ENABLED}.
      */
-    private static final boolean IS_MERGE_THINGS_ENABLED = resolveProperty();
+    private static final boolean IS_MERGE_THINGS_ENABLED = resolveProperty(MERGE_THINGS_ENABLED);
 
-    private static boolean resolveProperty() {
-        final String propertyValue = System.getProperty(MERGE_THINGS_ENABLED, Boolean.TRUE.toString());
+    private static boolean resolveProperty(final String propertyName) {
+        final String propertyValue = System.getProperty(propertyName, Boolean.TRUE.toString());
         return !Boolean.FALSE.toString().equalsIgnoreCase(propertyValue);
     }
 
-    private MergeToggle() {}
+    private FeatureToggle() {
+        throw new AssertionError();
+    }
 
     /**
      * Checks if the merge feature is enabled based on the system property {@value MERGE_THINGS_ENABLED}.
@@ -44,7 +47,7 @@ public final class MergeToggle {
      * @param signal the name of the signal that was supposed to be processed
      * @param dittoHeaders headers used to build exception
      * @return the unmodified headers parameters
-     * @throws org.eclipse.ditto.signals.base.UnsupportedSignalException if the system property
+     * @throws UnsupportedSignalException if the system property
      * {@value MERGE_THINGS_ENABLED} resolves to {@code false}
      */
     public static DittoHeaders checkMergeFeatureEnabled(final String signal, final DittoHeaders dittoHeaders) {
