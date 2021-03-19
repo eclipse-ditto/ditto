@@ -30,11 +30,15 @@ import org.apache.sshd.client.keyverifier.ServerKeyVerifier;
 import org.apache.sshd.client.session.ClientSession;
 import org.apache.sshd.common.future.SshFuture;
 import org.apache.sshd.common.util.net.SshdSocketAddress;
+import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
+import org.eclipse.ditto.model.connectivity.CredentialsVisitor;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
+import org.eclipse.ditto.model.connectivity.SshPublicKeyAuthentication;
 import org.eclipse.ditto.model.connectivity.SshTunnel;
+import org.eclipse.ditto.model.connectivity.UserPasswordCredentials;
 import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.config.MonitoringConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
@@ -53,7 +57,7 @@ import akka.pattern.Patterns;
 /**
  * TODO DG
  */
-public final class SshTunnelActor extends AbstractActorWithTimers {
+public final class SshTunnelActor extends AbstractActorWithTimers implements CredentialsVisitor<Void> {
 
     /**
      * The name of this Actor in the ActorSystem.
@@ -66,8 +70,7 @@ public final class SshTunnelActor extends AbstractActorWithTimers {
     private final SshClient sshClient;
     private final String sshHost;
     private final int sshPort;
-    // TODO username
-    private final String sshUser = "test";
+    private String sshUser = "test";
     private final ServerKeyVerifier serverKeyVerifier;
 
     @Nullable private ClientSession sshSession = null;
@@ -93,6 +96,10 @@ public final class SshTunnelActor extends AbstractActorWithTimers {
         final URI sshUri = URI.create(sshTunnel.getUri());
         sshHost = sshUri.getHost();
         sshPort = sshUri.getPort();
+
+        this.connection.getSshTunnel()
+                .map(SshTunnel::getCredentials)
+                .ifPresent(credentials -> credentials.accept(this));
 
         if (sshTunnel.isValidateHost()) {
             serverKeyVerifier = new FingerprintVerifier(sshTunnel.getKnownHosts());
@@ -127,7 +134,6 @@ public final class SshTunnelActor extends AbstractActorWithTimers {
             try {
                 logger.debug("Connecting to ssh server at {}:{}", sshHost, sshPort);
                 final ConnectFuture connectFuture;
-                // TODO username
                 connectFuture = sshClient.connect(sshUser, sshHost, sshPort);
                 pipeToSelf(connectFuture);
             } catch (final IOException ioException) {
@@ -153,12 +159,9 @@ public final class SshTunnelActor extends AbstractActorWithTimers {
             sshSession.addSessionListener(new TunnelSessionListener(getSelf(), logger));
             sshSession.addChannelListener(new TunnelChannelListener(getSelf()));
             sshSession.setServerKeyVerifier(serverKeyVerifier);
-
-            // TODO private/public key
             connection.getSshTunnel()
                     .map(SshTunnel::getCredentials)
                     .ifPresent(c -> c.accept(new ClientSessionCredentialsVisitor(sshSession)));
-
             pipeToSelf(sshSession.auth());
         } else {
             connectionLogger.failure("SSH connection failed: {}", getMessage(connectFuture.getException()));
@@ -191,6 +194,20 @@ public final class SshTunnelActor extends AbstractActorWithTimers {
     }
 
     private void handleTunnelClosed(final TunnelClosed tunnelClosed) {
+
+        logger.info("Received tunnel closed. ");
+
+        if (sshSession != null) {
+            logger.info("Tunnel is connected {}", sshSession.isOpen());
+            logger.info("Session state {}", sshSession.getSessionState());
+            logger.info("StartedLocalPortForwards {}", sshSession.getStartedLocalPortForwards());
+
+            if (sshSession.isOpen() && !sshSession.getStartedLocalPortForwards().isEmpty()) {
+                logger.info("!!! do not report !!!");
+            }
+
+        }
+
         if (tunnelClosed.getError() != null) {
             connectionLogger.failure("SSH Tunnel failed: ", getMessage(tunnelClosed.getError()));
         } else {
@@ -271,6 +288,24 @@ public final class SshTunnelActor extends AbstractActorWithTimers {
                 .get(), status, statusDetail, inStateSince);
     }
 
+    @Override
+    public Void clientCertificate(final ClientCertificateCredentials credentials) {
+        // not supported
+        return null;
+    }
+
+    @Override
+    public Void usernamePassword(final UserPasswordCredentials credentials) {
+        this.sshUser = credentials.getUsername();
+        return null;
+    }
+
+    @Override
+    public Void sshPublicKeyAuthentication(final SshPublicKeyAuthentication credentials) {
+        this.sshUser = credentials.getUsername();
+        return null;
+    }
+
     /**
      * TODO
      */
@@ -315,6 +350,13 @@ public final class SshTunnelActor extends AbstractActorWithTimers {
             return reason;
         }
 
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " [" +
+                    "message=" + message +
+                    ", reason=" + reason +
+                    "]";
+        }
     }
 
     /**

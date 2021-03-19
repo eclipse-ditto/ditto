@@ -12,11 +12,14 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.tunnel;
 
+import java.security.KeyPair;
+
 import org.apache.sshd.client.session.ClientSession;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.CredentialsVisitor;
-import org.eclipse.ditto.model.connectivity.KeyPairCredentials;
+import org.eclipse.ditto.model.connectivity.SshPublicKeyAuthentication;
 import org.eclipse.ditto.model.connectivity.UserPasswordCredentials;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.KeyPairCreator;
 
 /**
  * TODO
@@ -31,8 +34,8 @@ class ClientSessionCredentialsVisitor implements CredentialsVisitor<Void> {
 
     @Override
     public Void clientCertificate(final ClientCertificateCredentials credentials) {
-        // TODO
-        throw new UnsupportedOperationException();
+        // not supported
+        return null;
     }
 
     @Override
@@ -42,8 +45,9 @@ class ClientSessionCredentialsVisitor implements CredentialsVisitor<Void> {
     }
 
     @Override
-    public Void keyPair(final KeyPairCredentials credentials) {
-        // TODO
-        throw new UnsupportedOperationException();
+    public Void sshPublicKeyAuthentication(final SshPublicKeyAuthentication credentials) {
+        final KeyPair keyPair = KeyPairCreator.getInstance().createKeyPair(credentials);
+        clientSession.addPublicKeyIdentity(keyPair);
+        return null;
     }
 }
