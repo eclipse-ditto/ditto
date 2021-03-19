@@ -480,13 +480,10 @@ public final class TestConstants {
         public static final String SERVER_KEY = getCert("server.key");
         public static final String SERVER_CRT = getCert("server.crt");
         public static final PublicKey SERVER_PUBKEY = CERTIFICATE_EXTRACTOR.getCertificate(SERVER_CRT).getPublicKey();
-        public static final String SERVER_PUBKEY_FINGERPRINT_SHA256_NOPREFIX =
-                "ae:2e:29:7b:11:93:ef:b3:4b:55:c6:83:28:8b:91" +
-                        ":a4:12:c6:42:ca:21:f8:30:4d:3d:36:b5:4c:c3:b3:0f:44";
         public static final String SERVER_PUBKEY_FINGERPRINT_SHA256 =
-                "SHA256:" + SERVER_PUBKEY_FINGERPRINT_SHA256_NOPREFIX;
+                "SHA256:MEULjymCqsBH6TkmQzKmA+G2qd+AJwarKwr84vUsQ+Y";
         public static final String SERVER_PUBKEY_FINGERPRINT_MD5 =
-                "MD5:c5:64:48:5c:3a:fc:e1:2e:05:29:4d:78:1e:0f:ed:63";
+                "MD5:69:d8:52:ef:3d:df:c5:d1:10:fb:d4:3b:66:00:a8:f5";
 
         // signed by CA_CRT
         // no CN

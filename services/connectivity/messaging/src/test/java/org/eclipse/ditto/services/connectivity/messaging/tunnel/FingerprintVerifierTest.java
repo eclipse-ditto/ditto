@@ -16,7 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Certificates.SERVER_PUBKEY;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Certificates.SERVER_PUBKEY_FINGERPRINT_MD5;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Certificates.SERVER_PUBKEY_FINGERPRINT_SHA256;
-import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Certificates.SERVER_PUBKEY_FINGERPRINT_SHA256_NOPREFIX;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -33,6 +32,10 @@ import org.mockito.Mockito;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 public class FingerprintVerifierTest {
+
+    private static final String MD5 = "MD5";
+    private static final String SHA256 = "SHA256";
+    private static final String SHA512 = "SHA512";
 
     private ClientSession mockSession;
     private SocketAddress mockAddress;
@@ -60,35 +63,15 @@ public class FingerprintVerifierTest {
     }
 
     @Test
-    public void verifyServerKeySHA256Lowercase() {
-        final List<String> knownHosts = List.of("sha256:" + SERVER_PUBKEY_FINGERPRINT_SHA256_NOPREFIX.toLowerCase());
-        final ServerKeyVerifier underTest = new FingerprintVerifier(knownHosts);
-        assertThat(underTest.verifyServerKey(mockSession, mockAddress, SERVER_PUBKEY)).isTrue();
-    }
-
-    @Test
-    public void verifyServerKeySHA256Uppercase() {
-        final List<String> knownHosts = List.of("sha256:" + SERVER_PUBKEY_FINGERPRINT_SHA256_NOPREFIX.toUpperCase());
-        final ServerKeyVerifier underTest = new FingerprintVerifier(knownHosts);
-        assertThat(underTest.verifyServerKey(mockSession, mockAddress, SERVER_PUBKEY)).isTrue();
-    }
-
-    @Test
-    public void verifyServerKeySHA_256() {
-        final List<String> knownHosts = List.of("SHA-256:" + SERVER_PUBKEY_FINGERPRINT_SHA256_NOPREFIX);
-        final ServerKeyVerifier underTest = new FingerprintVerifier(knownHosts);
-        assertThat(underTest.verifyServerKey(mockSession, mockAddress, SERVER_PUBKEY)).isTrue();
-    }
-
-    @Test
     public void verifyServerKeyMD5() {
         final ServerKeyVerifier underTest = new FingerprintVerifier(List.of(SERVER_PUBKEY_FINGERPRINT_MD5));
         assertThat(underTest.verifyServerKey(mockSession, mockAddress, SERVER_PUBKEY)).isTrue();
     }
 
     @Test
-    public void verifyServerKeyDefault() {
-        final ServerKeyVerifier underTest = new FingerprintVerifier(List.of(SERVER_PUBKEY_FINGERPRINT_SHA256_NOPREFIX));
+    public void verifyServerKeyDefaultMD5() {
+        final String noPrefix = SERVER_PUBKEY_FINGERPRINT_MD5.replaceFirst(MD5 + ":", "");
+        final ServerKeyVerifier underTest = new FingerprintVerifier(List.of(noPrefix));
         assertThat(underTest.verifyServerKey(mockSession, mockAddress, SERVER_PUBKEY)).isTrue();
     }
 
@@ -100,29 +83,16 @@ public class FingerprintVerifierTest {
 
     @Test
     public void verifyServerKeyFailsForWrongAlgorithm() {
-        final List<String> knownHosts = List.of("SHA512:" + SERVER_PUBKEY_FINGERPRINT_SHA256_NOPREFIX);
-        final ServerKeyVerifier fingerPrintVerifier = new FingerprintVerifier(knownHosts);
-        assertThat(fingerPrintVerifier.verifyServerKey(mockSession, mockAddress, SERVER_PUBKEY)).isFalse();
-    }
-
-    @Test
-    public void verifyServerKeyFailsForUnknownAlgorithm() {
-        final List<String> knownHosts = List.of("MURMUR:" + SERVER_PUBKEY_FINGERPRINT_SHA256_NOPREFIX);
+        final List<String> knownHosts = List.of(SERVER_PUBKEY_FINGERPRINT_SHA256.replaceFirst(SHA256, SHA512));
         final ServerKeyVerifier fingerPrintVerifier = new FingerprintVerifier(knownHosts);
         assertThat(fingerPrintVerifier.verifyServerKey(mockSession, mockAddress, SERVER_PUBKEY)).isFalse();
     }
 
     @Test
     public void verifyServerKeyFailsForEmptyAlgorithm() {
-        final List<String> knownHosts = List.of(":" + SERVER_PUBKEY_FINGERPRINT_SHA256_NOPREFIX);
+        final List<String> knownHosts = List.of(SERVER_PUBKEY_FINGERPRINT_SHA256.replaceFirst(SHA256, SHA512));
         final ServerKeyVerifier fingerPrintVerifier = new FingerprintVerifier(knownHosts);
         assertThat(fingerPrintVerifier.verifyServerKey(mockSession, mockAddress, SERVER_PUBKEY)).isFalse();
     }
 
-    @Test
-    public void verifyServerKeyFailsForWrongFingerprint() {
-        final List<String> knownHosts = List.of("MD5:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00");
-        final ServerKeyVerifier fingerPrintVerifier = new FingerprintVerifier(knownHosts);
-        assertThat(fingerPrintVerifier.verifyServerKey(mockSession, mockAddress, SERVER_PUBKEY)).isFalse();
-    }
 }
