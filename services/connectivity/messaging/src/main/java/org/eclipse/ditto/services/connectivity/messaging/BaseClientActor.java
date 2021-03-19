@@ -22,7 +22,10 @@ import static org.eclipse.ditto.services.models.connectivity.BaseClientState.INI
 import static org.eclipse.ditto.services.models.connectivity.BaseClientState.TESTING;
 import static org.eclipse.ditto.services.models.connectivity.BaseClientState.UNKNOWN;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -252,7 +255,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         subscriptionIdPrefixLength =
                 ConnectionPersistenceActor.getSubscriptionPrefixLength(connection.getClientCount());
 
-        if (connection.getSshTunnel().map(SshTunnel::isSshTunnelActive).orElse(false)) {
+        if (connection.getSshTunnel().map(SshTunnel::isEnabled).orElse(false)) {
             tunnelActor = startChildActor(SshTunnelActor.ACTOR_NAME, SshTunnelActor.props(connection));
         } else {
             tunnelActor = null;

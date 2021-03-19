@@ -81,7 +81,7 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
                                             * source.getConsumerCount()
                                             * source.getAddresses().size())
                             .sum());
-            if (connection.getSshTunnel().map(SshTunnel::isSshTunnelActive).orElse(false)) {
+            if (connection.getSshTunnel().map(SshTunnel::isEnabled).orElse(false)) {
                 expectedResponses.put(ResourceStatus.ResourceType.SSH_TUNNEL, connection.getClientCount());
             }
         }

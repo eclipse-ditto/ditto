@@ -25,10 +25,8 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.CredentialsVisitor;
-import org.eclipse.ditto.model.connectivity.KeyPairCredentials;
+import org.eclipse.ditto.model.connectivity.SshPublicKeyAuthentication;
 import org.eclipse.ditto.model.connectivity.UserPasswordCredentials;
-import org.eclipse.ditto.services.connectivity.messaging.internal.ExceptionMapper;
-import org.eclipse.ditto.services.connectivity.messaging.internal.KeyExtractor;
 
 /**
  * Factory class to create {@link javax.net.ssl.KeyManagerFactory}s.
@@ -39,7 +37,8 @@ public final class KeyManagerFactoryFactory extends KeyExtractor implements Cred
             .append(ClientCertificateCredentials.JsonFields.CLIENT_KEY.getPointer());
     private static final JsonPointer privateKeyErrorLocation = Connection.JsonFields.CREDENTIALS.getPointer()
             .append(ClientCertificateCredentials.JsonFields.CLIENT_KEY.getPointer());
-    private KeyStoreFactory keyStoreFactory;
+
+    private final KeyStoreFactory keyStoreFactory;
 
     /**
      * @return new instance with empty {@link DittoHeaders}
@@ -112,9 +111,8 @@ public final class KeyManagerFactoryFactory extends KeyExtractor implements Cred
     }
 
     @Override
-    public KeyManagerFactory keyPair(final KeyPairCredentials credentials) {
+    public KeyManagerFactory sshPublicKeyAuthentication(final SshPublicKeyAuthentication credentials) {
         throw new UnsupportedOperationException(
-                "Key pair authentication is not supported on certificate " +
-                        "credentials authentication");
+                "Key pair authentication is not supported on certificate credentials authentication");
     }
 }

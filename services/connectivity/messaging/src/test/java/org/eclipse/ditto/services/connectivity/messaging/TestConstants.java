@@ -25,7 +25,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.security.PublicKey;
-import java.security.cert.Certificate;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -56,7 +55,6 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
@@ -108,8 +106,7 @@ import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.config.MonitoringConfig;
 import org.eclipse.ditto.services.connectivity.config.mapping.MappingConfig;
-import org.eclipse.ditto.services.connectivity.messaging.internal.ExceptionMapper;
-import org.eclipse.ditto.services.connectivity.messaging.internal.KeyExtractor;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.TestCertificates;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.ConnectivityCounterRegistry;
@@ -519,18 +516,6 @@ public final class TestConstants {
                 throw new IllegalStateException(e);
             }
         }
-
-        private static class TestCertificates extends KeyExtractor {
-
-            private TestCertificates() {
-                super(new ExceptionMapper(null), JsonPointer.empty(), JsonPointer.empty());
-            }
-
-            Certificate getCertificate(final String certificate) {
-                return getClientCertificate(certificate);
-            }
-        }
-
     }
 
     public static final class Monitoring {

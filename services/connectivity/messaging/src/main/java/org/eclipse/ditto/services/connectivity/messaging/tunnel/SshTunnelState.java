@@ -158,7 +158,7 @@ public final class SshTunnelState {
     }
 
     private static Boolean isSshTunnelEnabled(final Connection connection) {
-        return connection.getSshTunnel().map(SshTunnel::isSshTunnelActive).orElse(false);
+        return connection.getSshTunnel().map(SshTunnel::isEnabled).orElse(false);
     }
 
     @Override

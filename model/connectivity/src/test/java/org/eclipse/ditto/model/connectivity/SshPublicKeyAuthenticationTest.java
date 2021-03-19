@@ -21,24 +21,23 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Tests {@link org.eclipse.ditto.model.connectivity.KeyPairCredentials}.
+ * Tests {@link SshPublicKeyAuthentication}.
  */
-public final class KeyPairCredentialsTest {
+public final class SshPublicKeyAuthenticationTest {
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(KeyPairCredentials.class).verify();
+        EqualsVerifier.forClass(SshPublicKeyAuthentication.class).verify();
     }
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(KeyPairCredentials.class, areImmutable());
+        assertInstancesOf(SshPublicKeyAuthentication.class, areImmutable());
     }
 
     @Test
     public void testJsonSerialization() {
-        final Credentials original = KeyPairCredentials.newBuilder("bad public key", "bad private key")
-                .build();
+        final Credentials original = SshPublicKeyAuthentication.of("username", "bad public key", "bad private key");
         final Credentials deserialized = Credentials.fromJson(original.toJson());
         assertThat(deserialized).isEqualTo(original);
     }

@@ -27,16 +27,16 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
- * A {@link SshTunnel} contains the information to open and persists a ssh tunnel to a remote endpoint
+ * A {@link SshTunnel} contains the information to open and persists a ssh tunnel to a remote endpoint.
  *
  * @since 2.0.0
  */
 public interface SshTunnel extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
-     * @return marks if the ssh tunnel is active
+     * @return {@code true} if the ssh tunnel is enabhled
      */
-    Boolean isSshTunnelActive();
+    boolean isEnabled();
 
     /**
      * @return the credentials for the ssh tunnel

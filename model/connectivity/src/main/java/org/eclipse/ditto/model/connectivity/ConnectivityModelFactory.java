@@ -783,7 +783,7 @@ public final class ConnectivityModelFactory {
      * @return new {@link org.eclipse.ditto.model.connectivity.SshTunnelBuilder} builder
      * @since 2.0.0
      */
-    public static SshTunnelBuilder newSshTunnelBuilder(final Boolean enabled, final Credentials credentials,
+    public static SshTunnelBuilder newSshTunnelBuilder(final boolean enabled, final Credentials credentials,
             final String uri) {
         return new ImmutableSshTunnel.Builder(enabled, credentials, uri);
     }
@@ -814,7 +814,7 @@ public final class ConnectivityModelFactory {
     /**
      * Creates a new {@code SshTunnel}.
      *
-     * @param enabled sets if the ssh tunnel is active
+     * @param enabled {@code true} if the ssh tunnel is enabled
      * @param credentials the credentials of the ssh tunnel
      * @param validateHost {@code true} if host validation is enabled
      * @param knownHosts the known hosts of the ssh tunnel
@@ -822,7 +822,7 @@ public final class ConnectivityModelFactory {
      * @return the created {@link org.eclipse.ditto.model.connectivity.SshTunnel}
      * @since 2.0.0
      */
-    public static SshTunnel newSshTunnel(final Boolean enabled, final Credentials credentials,
+    public static SshTunnel newSshTunnel(final boolean enabled, final Credentials credentials,
             final boolean validateHost, final List<String> knownHosts, final String uri) {
         return new ImmutableSshTunnel.Builder(enabled, credentials, validateHost, knownHosts, uri).build();
     }
@@ -830,13 +830,13 @@ public final class ConnectivityModelFactory {
     /**
      * Creates a new {@code SshTunnel} without knownHosts.
      *
-     * @param enabled sets if the ssh tunnel is active
+     * @param enabled {@code true} if the ssh tunnel is enabled
      * @param credentials the credentials of the ssh tunnel
      * @param uri the uri of the ssh tunnel
      * @return the created {@link org.eclipse.ditto.model.connectivity.SshTunnel}
      * @since 2.0.0
      */
-    public static SshTunnel newSshTunnel(final Boolean enabled, final Credentials credentials, final String uri) {
+    public static SshTunnel newSshTunnel(final boolean enabled, final Credentials credentials, final String uri) {
         return new ImmutableSshTunnel.Builder(enabled, credentials, uri).build();
     }
 

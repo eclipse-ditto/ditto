@@ -37,8 +37,7 @@ public final class UsernamePasswordCredentialsTest {
 
     @Test
     public void testJsonSerialization() {
-        final Credentials original = UserPasswordCredentials.newBuilder("username", "password")
-                .build();
+        final Credentials original = UserPasswordCredentials.newInstance("username", "password");
         final Credentials deserialized = Credentials.fromJson(original.toJson());
         assertThat(deserialized).isEqualTo(original);
     }

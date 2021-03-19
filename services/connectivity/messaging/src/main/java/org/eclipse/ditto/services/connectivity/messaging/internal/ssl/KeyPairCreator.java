@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.messaging.internal.ssh;
+package org.eclipse.ditto.services.connectivity.messaging.internal.ssl;
 
 import java.security.KeyPair;
 import java.security.PrivateKey;
@@ -21,12 +21,9 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.CredentialsVisitor;
-import org.eclipse.ditto.model.connectivity.KeyPairCredentials;
+import org.eclipse.ditto.model.connectivity.SshPublicKeyAuthentication;
 import org.eclipse.ditto.model.connectivity.SshTunnel;
 import org.eclipse.ditto.model.connectivity.UserPasswordCredentials;
-import org.eclipse.ditto.services.connectivity.messaging.internal.ExceptionMapper;
-import org.eclipse.ditto.services.connectivity.messaging.internal.KeyExtractor;
-import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.KeyManagerFactoryFactory;
 
 /**
  * Factory class to create {@link java.security.KeyPair}s.
@@ -35,10 +32,10 @@ public final class KeyPairCreator extends KeyExtractor implements CredentialsVis
 
     private static final JsonPointer publicKeyErrorLocation = Connection.JsonFields.SSH_TUNNEL.getPointer()
             .append(SshTunnel.JsonFields.CREDENTIALS.getPointer())
-            .append(KeyPairCredentials.JsonFields.PUBLIC_KEY.getPointer());
+            .append(SshPublicKeyAuthentication.JsonFields.PUBLIC_KEY.getPointer());
     private static final JsonPointer privateKeyErrorLocation = Connection.JsonFields.SSH_TUNNEL.getPointer()
             .append(SshTunnel.JsonFields.CREDENTIALS.getPointer())
-            .append(KeyPairCredentials.JsonFields.PRIVATE_KEY.getPointer());
+            .append(SshPublicKeyAuthentication.JsonFields.PRIVATE_KEY.getPointer());
 
     /**
      * @return new instance with empty {@link org.eclipse.ditto.model.base.headers.DittoHeaders}
@@ -55,28 +52,30 @@ public final class KeyPairCreator extends KeyExtractor implements CredentialsVis
         return new KeyPairCreator(new ExceptionMapper(dittoHeaders));
     }
 
-
     private KeyPairCreator(final ExceptionMapper exceptionMapper) {
         super(exceptionMapper, publicKeyErrorLocation, privateKeyErrorLocation);
     }
 
-    @Override
-    public KeyPair clientCertificate(final ClientCertificateCredentials credentials) {
-        throw new UnsupportedOperationException(
-                "Certificate credentials authentication is not supported on key pair authentication");
-    }
-
-    @Override
-    public KeyPair usernamePassword(final UserPasswordCredentials credentials) {
-        throw new UnsupportedOperationException("Username password authentication is not supported on key pair " +
-                "authentication");
-    }
-
-    @Override
-    public KeyPair keyPair(final KeyPairCredentials credentials) {
+    public KeyPair createKeyPair(final SshPublicKeyAuthentication credentials) {
         final PrivateKey clientPrivateKey = getClientPrivateKey(credentials.getPrivateKey());
         final PublicKey clientPublicKey = getClientPublicKey(credentials.getPublicKey());
         return new KeyPair(clientPublicKey, clientPrivateKey);
     }
 
+    @Override
+    public KeyPair clientCertificate(final ClientCertificateCredentials credentials) {
+        return null;
+    }
+
+    @Override
+    public KeyPair usernamePassword(final UserPasswordCredentials credentials) {
+        return null;
+    }
+
+    @Override
+    public KeyPair sshPublicKeyAuthentication(final SshPublicKeyAuthentication credentials) {
+        final PrivateKey clientPrivateKey = getClientPrivateKey(credentials.getPrivateKey());
+        final PublicKey clientPublicKey = getClientPublicKey(credentials.getPublicKey());
+        return new KeyPair(clientPublicKey, clientPrivateKey);
+    }
 }

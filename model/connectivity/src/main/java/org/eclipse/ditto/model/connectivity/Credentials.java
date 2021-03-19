@@ -95,7 +95,7 @@ public interface Credentials {
         static {
             // load subclasses in this package.
             registerDeserializer(ClientCertificateCredentials.TYPE, ClientCertificateCredentials::fromJson);
-            registerDeserializer(KeyPairCredentials.TYPE, KeyPairCredentials::fromJson);
+            registerDeserializer(SshPublicKeyAuthentication.TYPE, SshPublicKeyAuthentication::fromJson);
             registerDeserializer(UserPasswordCredentials.TYPE, UserPasswordCredentials::fromJson);
         }
     }

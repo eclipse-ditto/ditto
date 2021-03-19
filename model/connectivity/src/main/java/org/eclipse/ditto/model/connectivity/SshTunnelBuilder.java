@@ -22,17 +22,17 @@ public interface SshTunnelBuilder {
     /**
      * Sets the activation of an {@code SshTunnel}.
      *
-     * @param activate sets if the ssh tunnel is active.
+     * @param enabled whether the ssh tunnel is enabled.
      * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code id} is {@code null}.
      */
-    SshTunnelBuilder enabled(Boolean activate);
+    SshTunnelBuilder enabled(boolean enabled);
 
     /**
      * Sets the credentials for {@code SshTunnel}.
      *
      * @param credentials the credentials.
      * @return this builder.
+     * @throws NullPointerException if {@code credentials} is {@code null}.
      */
     SshTunnelBuilder credentials(Credentials credentials);
 
@@ -41,6 +41,7 @@ public interface SshTunnelBuilder {
      *
      * @param knownHosts the known hosts
      * @return this builder
+     * @throws NullPointerException if {@code knownHosts} is {@code null}.
      */
     SshTunnelBuilder knownHosts(List<String> knownHosts);
 

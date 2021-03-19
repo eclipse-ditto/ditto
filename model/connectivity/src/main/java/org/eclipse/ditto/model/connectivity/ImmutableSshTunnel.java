@@ -39,7 +39,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 @Immutable
 final class ImmutableSshTunnel implements SshTunnel {
 
-    private final Boolean enabled;
+    private final boolean enabled;
     private final Credentials credentials;
     private final boolean validateHost;
     private final List<String> knownHosts;
@@ -53,7 +53,7 @@ final class ImmutableSshTunnel implements SshTunnel {
         uri = checkNotNull(builder.uri, "uri");
     }
 
-    private ImmutableSshTunnel(final Boolean enabled, final Credentials credentials, final boolean validateHost,
+    private ImmutableSshTunnel(final boolean enabled, final Credentials credentials, final boolean validateHost,
             final List<String> knownHosts, final String uri) {
         this.enabled = checkNotNull(enabled, "enabled");
         this.credentials = checkNotNull(credentials, "credentials");
@@ -73,7 +73,7 @@ final class ImmutableSshTunnel implements SshTunnel {
      * @return new instance of {@code SshTunnelBuilder}.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static SshTunnelBuilder getBuilder(final Boolean enabled,
+    public static SshTunnelBuilder getBuilder(final boolean enabled,
             final Credentials credentials,
             final boolean validateHost,
             final List<String> knownHosts,
@@ -91,7 +91,7 @@ final class ImmutableSshTunnel implements SshTunnel {
      * @return new instance of {@code SshTunnelBuilder}.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static SshTunnelBuilder getBuilder(final Boolean enabled,
+    public static SshTunnelBuilder getBuilder(final boolean enabled,
             final Credentials credentials,
             final String uri) {
 
@@ -100,7 +100,7 @@ final class ImmutableSshTunnel implements SshTunnel {
 
 
     @Override
-    public Boolean isSshTunnelActive() {
+    public boolean isEnabled() {
         return enabled;
     }
 
@@ -133,13 +133,13 @@ final class ImmutableSshTunnel implements SshTunnel {
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
     public static SshTunnel fromJson(final JsonObject jsonObject) {
-        checkNotNull(jsonObject, "ssh tunnel");
+        checkNotNull(jsonObject, "jsonObject");
         return new Builder(extractEnabled(jsonObject), extractCredentials(jsonObject), extractValidateHost(jsonObject),
                 extractKnownHosts(jsonObject),
                 extractUri(jsonObject)).build();
     }
 
-    private static Boolean extractEnabled(final JsonObject jsonObject) {
+    private static boolean extractEnabled(final JsonObject jsonObject) {
         return jsonObject.getValueOrThrow(JsonFields.ENABLED);
     }
 
@@ -217,7 +217,7 @@ final class ImmutableSshTunnel implements SshTunnel {
     static final class Builder implements SshTunnelBuilder {
 
         // required but changeable:
-        private Boolean enabled;
+        private boolean enabled;
         private Credentials credentials;
         private String uri;
 
@@ -225,13 +225,13 @@ final class ImmutableSshTunnel implements SshTunnel {
         private boolean validateHost = false;
         private List<String> knownHosts = new ArrayList<>();
 
-        Builder(final Boolean enabled, final Credentials credentials, final String uri) {
+        Builder(final boolean enabled, final Credentials credentials, final String uri) {
             this.enabled = enabled;
             this.credentials = credentials;
             this.uri = uri;
         }
 
-        Builder(final Boolean enabled, final Credentials credentials, final boolean validateHost,
+        Builder(final boolean enabled, final Credentials credentials, final boolean validateHost,
                 final List<String> knownHosts, final String uri) {
             this.enabled = enabled;
             this.credentials = credentials;
@@ -241,7 +241,7 @@ final class ImmutableSshTunnel implements SshTunnel {
         }
 
         Builder(final SshTunnel sshTunnel) {
-            this.enabled = sshTunnel.isSshTunnelActive();
+            this.enabled = sshTunnel.isEnabled();
             this.credentials = sshTunnel.getCredentials();
             this.uri = sshTunnel.getUri();
             this.validateHost = sshTunnel.isValidateHost();
@@ -249,14 +249,14 @@ final class ImmutableSshTunnel implements SshTunnel {
         }
 
         @Override
-        public SshTunnelBuilder enabled(final Boolean activate) {
-            this.enabled = activate;
+        public SshTunnelBuilder enabled(final boolean enabled) {
+            this.enabled = enabled;
             return this;
         }
 
         @Override
         public SshTunnelBuilder credentials(final Credentials credentials) {
-            this.credentials = credentials;
+            this.credentials = checkNotNull(credentials, "credentials");
             return this;
         }
 
@@ -268,13 +268,13 @@ final class ImmutableSshTunnel implements SshTunnel {
 
         @Override
         public SshTunnelBuilder knownHosts(final List<String> knownHosts) {
-            this.knownHosts = knownHosts;
+            this.knownHosts = checkNotNull(knownHosts, "knownHosts");
             return this;
         }
 
         @Override
         public SshTunnelBuilder uri(final String uri) {
-            this.uri = uri;
+            this.uri = checkNotNull(uri, "uri");
             return this;
         }
 

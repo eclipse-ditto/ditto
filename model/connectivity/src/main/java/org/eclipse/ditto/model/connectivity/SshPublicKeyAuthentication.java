@@ -22,29 +22,35 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 
 /**
- * User and password credentials.
+ * Holds information required to do SSH public key authentication, namely: {@code username}, {@code public key} and
+ * {@code private key}.
  */
 @Immutable
-public final class UserPasswordCredentials implements Credentials {
+public final class SshPublicKeyAuthentication implements Credentials {
 
     /**
      * Credential type name.
      */
-    public static final String TYPE = "plain";
+    public static final String TYPE = "public-key";
 
     private final String username;
-    private final String password;
+    private final String publicKey;
+    private final String privateKey;
 
-    private UserPasswordCredentials(final String username,
-            final String password) {
-
+    private SshPublicKeyAuthentication(final String username, final String publicKey, final String privateKey) {
         this.username = username;
-        this.password = password;
+        this.publicKey = publicKey;
+        this.privateKey = privateKey;
+    }
+
+    public static SshPublicKeyAuthentication of(final String username, final String publicKey,
+            final String privateKey) {
+        return new SshPublicKeyAuthentication(username, publicKey, privateKey);
     }
 
     @Override
     public <T> T accept(final CredentialsVisitor<T> visitor) {
-        return visitor.usernamePassword(this);
+        return visitor.sshPublicKeyAuthentication(this);
     }
 
     /**
@@ -55,30 +61,38 @@ public final class UserPasswordCredentials implements Credentials {
     }
 
     /**
-     * @return the password
+     * @return the public key
      */
-    public String getPassword() {
-        return password;
+    public String getPublicKey() {
+        return publicKey;
+    }
+
+    /**
+     * @return the private key
+     */
+    public String getPrivateKey() {
+        return privateKey;
     }
 
     @Override
     public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        final UserPasswordCredentials that = (UserPasswordCredentials) o;
-        return username.equals(that.username) && password.equals(that.password);
+        final SshPublicKeyAuthentication that = (SshPublicKeyAuthentication) o;
+        return username.equals(that.username) && publicKey.equals(that.publicKey) && privateKey.equals(that.privateKey);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(username, password);
+        return Objects.hash(username, publicKey, privateKey);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "username=" + username +
-                ", password=" + password +
+                ", publicKey=" + publicKey +
+                ", privateKey=" + privateKey +
                 "]";
     }
 
@@ -87,23 +101,16 @@ public final class UserPasswordCredentials implements Credentials {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
         jsonObjectBuilder.set(JsonFields.TYPE, TYPE);
         jsonObjectBuilder.set(JsonFields.USERNAME, username);
-        jsonObjectBuilder.set(JsonFields.PASSWORD, password);
+        jsonObjectBuilder.set(JsonFields.PUBLIC_KEY, publicKey);
+        jsonObjectBuilder.set(JsonFields.PRIVATE_KEY, privateKey);
         return jsonObjectBuilder.build();
     }
 
-    static UserPasswordCredentials fromJson(final JsonObject jsonObject) {
+    static SshPublicKeyAuthentication fromJson(final JsonObject jsonObject) {
         final String username = jsonObject.getValueOrThrow(JsonFields.USERNAME);
-        final String password = jsonObject.getValueOrThrow(JsonFields.PASSWORD);
-        return new UserPasswordCredentials(username, password);
-    }
-
-    /**
-     * Create credentials with username and password.
-     *
-     * @return credentials.
-     */
-    public static UserPasswordCredentials newInstance(final String username, final String password) {
-        return new UserPasswordCredentials(username, password);
+        final String publicKey = jsonObject.getValueOrThrow(JsonFields.PUBLIC_KEY);
+        final String privateKey = jsonObject.getValueOrThrow(JsonFields.PRIVATE_KEY);
+        return new SshPublicKeyAuthentication(username, publicKey, privateKey);
     }
 
     /**
@@ -117,8 +124,13 @@ public final class UserPasswordCredentials implements Credentials {
         public static final JsonFieldDefinition<String> USERNAME = JsonFieldDefinition.ofString("username");
 
         /**
-         * JSON field containing the password
+         * JSON field containing the public key
          */
-        public static final JsonFieldDefinition<String> PASSWORD = JsonFieldDefinition.ofString("password");
+        public static final JsonFieldDefinition<String> PUBLIC_KEY = JsonFieldDefinition.ofString("publicKey");
+
+        /**
+         * JSON field containing the private key
+         */
+        public static final JsonFieldDefinition<String> PRIVATE_KEY = JsonFieldDefinition.ofString("privateKey");
     }
 }

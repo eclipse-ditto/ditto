@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.messaging.internal;
+package org.eclipse.ditto.services.connectivity.messaging.internal.ssl;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
@@ -34,7 +34,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.Connection;
 
-public abstract class KeyExtractor {
+abstract class KeyExtractor {
 
     private static final String PRIVATE_KEY_LABEL = "PRIVATE KEY";
     private static final Pattern PRIVATE_KEY_REGEX = Pattern.compile(pemRegex(PRIVATE_KEY_LABEL));
@@ -45,8 +45,8 @@ public abstract class KeyExtractor {
     private static final CertificateFactory X509_CERTIFICATE_FACTORY;
 
     protected final ExceptionMapper exceptionMapper;
-    private JsonPointer publicKeyErrorLocation;
-    private JsonPointer privateKeyErrorLocation;
+    private final JsonPointer publicKeyErrorLocation;
+    private final JsonPointer privateKeyErrorLocation;
 
     static {
         try {
@@ -78,7 +78,6 @@ public abstract class KeyExtractor {
         }
     }
 
-
     protected PublicKey getClientPublicKey(final String publicKeyPem) {
         final Matcher matcher = PUBLIC_KEY_REGEX.matcher(publicKeyPem);
         final Supplier<DittoRuntimeExceptionBuilder> errorSupplier =
@@ -91,8 +90,7 @@ public abstract class KeyExtractor {
         }
     }
 
-    private KeySpec matchKey(final Matcher matcher,
-            final Supplier<DittoRuntimeExceptionBuilder> errorSupplier) {
+    private KeySpec matchKey(final Matcher matcher, final Supplier<DittoRuntimeExceptionBuilder> errorSupplier) {
         if (!matcher.matches()) {
             throw errorSupplier.get().build();
         } else {

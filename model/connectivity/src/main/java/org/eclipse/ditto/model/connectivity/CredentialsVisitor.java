@@ -36,10 +36,10 @@ public interface CredentialsVisitor<T> {
     T usernamePassword(UserPasswordCredentials credentials);
 
     /**
-     * Evaluate keypair credentials.
+     * Evaluate SshPublicKeyAuthentication credentials.
      *
-     * @param credentials the keypair credentials.
+     * @param credentials the SshPublicKeyAuthentication credentials.
      * @return evaluation result.
      */
-    T keyPair(KeyPairCredentials credentials);
+    T sshPublicKeyAuthentication(SshPublicKeyAuthentication credentials);
 }
