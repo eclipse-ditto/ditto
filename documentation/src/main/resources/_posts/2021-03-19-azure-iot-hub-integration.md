@@ -1,7 +1,7 @@
 ---
 title: "Use Eclipse Ditto with Azure IoT Hub as message broker"
 published: true
-permalink: 2021-3-04-azure-iot-hub-integration.html
+permalink: 2021-03-19-azure-iot-hub-integration.html
 layout: post
 author: david_schwilk
 tags: [blog, architecture, connection]
@@ -11,13 +11,13 @@ toc: true
 ---
 
 This blogpost is based upon Eclipse Ditto Version **1.5.0**, the Azure IoT Suite as of
-**2021-03-04** and the azure-iot-device-client version **1.29.2**.
+**2021-03-19** and the azure-iot-device-client version **1.29.2**.
 
 # Connecting devices to Eclipse Ditto via Azure IoT Hub
 This blog post elaborates on connecting and managing devices in Eclipse Ditto by using the Azure IoT Hub 
 as a message broker.
 
-![Connection Overview](images/blog/2021-03-04-azure-iot-hub-integration-overview.png)
+![Connection Overview](images/blog/2021-03-19-azure-iot-hub-integration-overview.png)
 
 The basic functionality that can be used at the time of creating this blogpost are:
 
@@ -196,8 +196,14 @@ connections.
 
 - [Further information on direct method invocations](https://docs.microsoft.com/de-de/azure/iot-hub/iot-hub-devguide-direct-methods)
 
-## Implementing an automatic refresh mechanism for SASL tokens
+### Implementing an automatic refresh mechanism for SASL tokens
 
 The `connectionString` provided by an Azure IoT Hub device's policy could be used to generate and refresh a SASL token. 
 This would require a new connection setting, which could store such a `connectionString`, and an algorithm, which can 
 generate a SAS token out of that string.
+
+## Getting started
+
+To get started using Azure IoT Hub as a message broker for Eclipse Ditto, the 
+[Azure IoT Hub Device Simulator Example](https://github.com/eclipse/ditto-examples/tree/master/azure/azure-iot-hub-device-simulator) 
+is a good entry point.
