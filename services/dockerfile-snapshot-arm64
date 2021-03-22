@@ -1,0 +1,44 @@
+# Copyright (c) 2021 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+
+FROM adoptopenjdk/openjdk11-openj9:aarch64-centos-jre-11.0.10_9_openj9-0.24.0
+
+ARG TARGET_DIR
+ARG SERVICE_STARTER
+ARG SERVICE_VERSION
+
+ENV HTTP_PORT=8080 \
+    HOSTING_ENVIRONMENT=Docker \
+    DITTO_HOME=/opt/ditto
+
+# Http port
+EXPOSE 8080
+
+RUN mkdir -p $DITTO_HOME
+
+RUN set -x \
+    && yum install -y wget ca-certificates shadow \
+    && wget https://github.com/krallin/tini/releases/download/v0.19.0/tini-arm64 -O /sbin/tini \
+    && chmod 755 /sbin/tini \
+    && groupadd --system ditto \
+    && useradd --no-log-init --system --home-dir $DITTO_HOME --shell /bin/sh --gid ditto --uid 1000 ditto \
+    && cd $DITTO_HOME \
+    && ln -s ${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar starter.jar \
+    && chown -R ditto:ditto $DITTO_HOME \
+    && yum remove -y wget
+
+USER ditto
+WORKDIR $DITTO_HOME
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["java", "-jar", "/opt/ditto/starter.jar"]
+
+COPY ${TARGET_DIR}/${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar $DITTO_HOME
+
