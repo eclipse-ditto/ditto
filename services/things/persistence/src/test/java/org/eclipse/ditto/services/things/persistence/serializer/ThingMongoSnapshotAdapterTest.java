@@ -13,18 +13,26 @@
 package org.eclipse.ditto.services.things.persistence.serializer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.bson.BsonDocument;
+import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.TestConstants;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.models.things.DittoThingSnapshotTaken;
+import org.eclipse.ditto.services.base.persistence.PersistenceLifecycle;
 import org.eclipse.ditto.services.models.things.ThingSnapshotTaken;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import akka.actor.ActorSystem;
+import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.persistence.SnapshotMetadata;
 import akka.persistence.SnapshotOffer;
 import akka.testkit.TestProbe;
@@ -37,6 +45,9 @@ public final class ThingMongoSnapshotAdapterTest {
 
     private static final String PERSISTENCE_ID = "thing:fajofj904q2";
     private static final SnapshotMetadata SNAPSHOT_METADATA = new SnapshotMetadata(PERSISTENCE_ID, 0, 0);
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     private ActorSystem system;
     private TestProbe pubSubProbe;
@@ -57,29 +68,63 @@ public final class ThingMongoSnapshotAdapterTest {
     }
 
     @Test
-    public void toSnapshotStoreFromSnapshotStoreRoundtripV1ReturnsExpected() {
-        toSnapshotStoreFromSnapshotStoreRoundtripReturnsExpected(TestConstants.Thing.THING_V1);
-        expectSnapshotPublished();
+    public void toSnapshotStoreFromSnapshotStoreRoundTripV1ReturnsExpected() {
+        final var thingV1 = TestConstants.Thing.THING_V1;
+        toSnapshotStoreFromSnapshotStoreRoundTripReturnsExpected(thingV1);
+        expectSnapshotPublished(thingV1);
     }
 
     @Test
-    public void toSnapshotStoreFromSnapshotStoreRoundtripV2ReturnsExpected() {
-        toSnapshotStoreFromSnapshotStoreRoundtripReturnsExpected(TestConstants.Thing.THING_V2);
-        expectSnapshotPublished();
+    public void toSnapshotStoreFromSnapshotStoreRoundTripV2ReturnsExpected() {
+        final var thingV2 = TestConstants.Thing.THING_V2;
+        toSnapshotStoreFromSnapshotStoreRoundTripReturnsExpected(thingV2);
+        expectSnapshotPublished(thingV2);
     }
 
-    private void expectSnapshotPublished() {
-        pubSubProbe.expectMsg(DistPubSubAccess.publishViaGroup(
-                ThingSnapshotTaken.PUBSUB_TOPIC,
-                DittoThingSnapshotTaken.of(TestConstants.Thing.THING_ID)));
-    }
-
-    private void toSnapshotStoreFromSnapshotStoreRoundtripReturnsExpected(final Thing thing) {
+    private void toSnapshotStoreFromSnapshotStoreRoundTripReturnsExpected(final Thing thing) {
         final Object rawSnapshotEntity = underTest.toSnapshotStore(thing);
-        assertThat(rawSnapshotEntity).isInstanceOf(BsonDocument.class);
+
+        assertThat(rawSnapshotEntity).as("snapshot entity is BSON document").isInstanceOf(BsonDocument.class);
+
         final BsonDocument dbObject = (BsonDocument) rawSnapshotEntity;
         final Thing restoredThing = underTest.fromSnapshotStore(new SnapshotOffer(SNAPSHOT_METADATA, dbObject));
-        assertThat(restoredThing).isEqualTo(thing);
+
+        softly.assertThat(restoredThing).as("restored Thing").isEqualTo(thing);
+    }
+
+    private void expectSnapshotPublished(final Thing thing) {
+        final var thingJson = thing.toJson(thing.getImplementedSchemaVersion(), FieldType.regularOrSpecial());
+        final var timestamp = Instant.now();
+        final var thingId = thing.getEntityId().orElseThrow();
+        final var revision = thing.getRevision().orElseThrow();
+        final var expectedSnapshotTaken = ThingSnapshotTaken.newBuilder(thingId,
+                revision.toLong(),
+                PersistenceLifecycle.ACTIVE,
+                thingJson).build();
+
+        final var receivedPublish = pubSubProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
+
+        softly.assertThat(receivedPublish.topic())
+                .as("topic")
+                .isEqualTo(DistPubSubAccess.getGroupTopic(expectedSnapshotTaken.getPubSubTopic()));
+        softly.assertThat(receivedPublish.message())
+                .as("message")
+                .isInstanceOfSatisfying(ThingSnapshotTaken.class, actualSnapshotTaken -> {
+                    softly.assertThat((CharSequence) actualSnapshotTaken.getEntityId())
+                            .as("entity ID")
+                            .isEqualTo(thingId);
+                    softly.assertThat(actualSnapshotTaken.getRevision())
+                            .as("revision number")
+                            .isEqualTo(revision.toLong());
+                    softly.assertThat(actualSnapshotTaken.getTimestamp())
+                            .as("timestamp")
+                            .hasValueSatisfying(actualTimestamp -> softly.assertThat(actualTimestamp)
+                                    .isCloseTo(timestamp, within(5, ChronoUnit.SECONDS)));
+                    softly.assertThat(actualSnapshotTaken.getLifecycle())
+                            .as("lifecycle")
+                            .isEqualTo(PersistenceLifecycle.ACTIVE);
+                    softly.assertThat(actualSnapshotTaken.getEntity()).as("entity").hasValue(thingJson);
+                });
     }
 
 }

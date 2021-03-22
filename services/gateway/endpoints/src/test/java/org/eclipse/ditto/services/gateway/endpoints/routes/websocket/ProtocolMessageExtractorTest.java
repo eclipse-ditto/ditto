@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.things.ThingFieldSelector;
 import org.eclipse.ditto.services.gateway.streaming.Jwt;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
@@ -116,7 +117,7 @@ public final class ProtocolMessageExtractorTest {
         private ProtocolMessageExtractor underTest;
 
         @Parameterized.Parameters(name = "{0}")
-        public static List<ProtocolMessageType> startSendingProtocolMessageTypes( ) {
+        public static List<ProtocolMessageType> startSendingProtocolMessageTypes() {
             return Arrays.stream(ProtocolMessageType.values())
                     .filter(ProtocolMessageType::isStartSending)
                     .collect(Collectors.toList());
@@ -181,7 +182,8 @@ public final class ProtocolMessageExtractorTest {
 
         @Test
         public void startSendingWithExtraFields() {
-            final JsonFieldSelector extraFields = JsonFieldSelector.newInstance("attributes", "features/location");
+            final ThingFieldSelector extraFields = ThingFieldSelector.fromJsonFieldSelector(
+                    JsonFieldSelector.newInstance("attributes", "features/location"));
             final StartStreaming expected = StartStreaming.getBuilder(streamingType, correlationId, authContext)
                     .withExtraFields(extraFields)
                     .build();
@@ -203,7 +205,8 @@ public final class ProtocolMessageExtractorTest {
         public void startSendingWithNamespacesFilterAndExtraFields() {
             final Collection<String> namespaces = Arrays.asList("eclipse", "ditto", "is", "awesome");
             final String filter = "eq(foo,1)";
-            final JsonFieldSelector extraFields = JsonFieldSelector.newInstance("attributes", "features/location");
+            final ThingFieldSelector extraFields = ThingFieldSelector.fromJsonFieldSelector(
+                    JsonFieldSelector.newInstance("attributes", "features/location"));
             final StartStreaming expected = StartStreaming.getBuilder(streamingType, correlationId, authContext)
                     .withNamespaces(namespaces)
                     .withFilter(filter)
@@ -242,7 +245,7 @@ public final class ProtocolMessageExtractorTest {
         public void startSendingWithUnknownParameters() {
             final StartStreaming expected =
                     StartStreaming.getBuilder(streamingType, correlationId, authContext).build();
-            
+
             final Optional<StreamControlMessage> extracted = underTest.apply(protocolMessageType + "?eclipse=ditto");
 
             assertThat(extracted).contains(expected);
@@ -257,7 +260,7 @@ public final class ProtocolMessageExtractorTest {
         public ProtocolMessageType protocolMessageType;
 
         @Parameterized.Parameters(name = "{0}")
-        public static List<ProtocolMessageType> startSendingProtocolMessageTypes( ) {
+        public static List<ProtocolMessageType> startSendingProtocolMessageTypes() {
             return Arrays.stream(ProtocolMessageType.values())
                     .filter(protocolMessage -> protocolMessage.getIdentifier().startsWith("STOP"))
                     .collect(Collectors.toList());

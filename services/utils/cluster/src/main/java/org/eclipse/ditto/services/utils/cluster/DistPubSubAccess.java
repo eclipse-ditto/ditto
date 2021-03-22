@@ -12,12 +12,17 @@
  */
 package org.eclipse.ditto.services.utils.cluster;
 
+import javax.annotation.concurrent.Immutable;
+
+import org.eclipse.ditto.model.base.common.ConditionChecker;
+
 import akka.actor.ActorRef;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 
 /**
  * Helper class for accessing Akka's {@link DistributedPubSubMediator} messages (e.g. publishing, subscribing, etc.).
  */
+@Immutable
 public final class DistPubSubAccess {
 
     private static final String GROUPED_TOPIC_SUFFIX = ":grouped";
@@ -43,10 +48,22 @@ public final class DistPubSubAccess {
      *
      * @param topic the group topic to publish on.
      * @param message the message to publish.
-     * @return the message to send the DistributedPubSubMediator
+     * @return the message to send the DistributedPubSubMediator.
+     * @throws NullPointerException if {@code topic} is {@code null}.
      */
     public static DistributedPubSubMediator.Publish publishViaGroup(final String topic, final Object message) {
-        return new DistributedPubSubMediator.Publish(topic + GROUPED_TOPIC_SUFFIX, message, true);
+        return new DistributedPubSubMediator.Publish(getGroupTopic(topic), message, true);
+    }
+
+    /**
+     * Extends the specified topic by appending the suffix {@value #GROUPED_TOPIC_SUFFIX}.
+     *
+     * @param topic the topic to be extended.
+     * @return the extended topic.
+     * @throws NullPointerException if {@code topic} is {@code null}.
+     */
+    public static String getGroupTopic(final String topic) {
+        return ConditionChecker.checkNotNull(topic, "topic") + GROUPED_TOPIC_SUFFIX;
     }
 
     /**
@@ -65,7 +82,7 @@ public final class DistPubSubAccess {
      *
      * @param topic the topic to unsubscribe on.
      * @param subscriber the ActorRef which got messages on the subscribed topic.
-     * @return the message to send the DistributedPubSubMediator
+     * @return the message to send the DistributedPubSubMediator.
      */
     public static DistributedPubSubMediator.Unsubscribe unsubscribe(final String topic, final ActorRef subscriber) {
         return new DistributedPubSubMediator.Unsubscribe(topic, subscriber);
@@ -76,11 +93,13 @@ public final class DistPubSubAccess {
      *
      * @param topic the group topic to subscribe on.
      * @param subscriber the ActorRef which should get messages on the subscribed group topic.
-     * @return the message to send the DistributedPubSubMediator
+     * @return the message to send the DistributedPubSubMediator.
+     * @throws NullPointerException if {@code topic} is {@code null}.
      */
     public static DistributedPubSubMediator.Subscribe subscribeViaGroup(final String topic, final String group,
             final ActorRef subscriber) {
-        return new DistributedPubSubMediator.Subscribe(topic + GROUPED_TOPIC_SUFFIX, group, subscriber);
+
+        return new DistributedPubSubMediator.Subscribe(getGroupTopic(topic), group, subscriber);
     }
 
     /**
@@ -88,11 +107,13 @@ public final class DistPubSubAccess {
      *
      * @param topic the group topic to unsubscribe on.
      * @param subscriber the ActorRef which got messages on the subscribed group topic.
-     * @return the message to send the DistributedPubSubMediator
+     * @return the message to send the DistributedPubSubMediator.
+     * @throws NullPointerException if {@code topic} is {@code null}.
      */
     public static DistributedPubSubMediator.Unsubscribe unsubscribeViaGroup(final String topic, final String group,
             final ActorRef subscriber) {
-        return new DistributedPubSubMediator.Unsubscribe(topic + GROUPED_TOPIC_SUFFIX, group, subscriber);
+
+        return new DistributedPubSubMediator.Unsubscribe(getGroupTopic(topic), group, subscriber);
     }
 
     /**
@@ -130,6 +151,7 @@ public final class DistPubSubAccess {
      */
     public static DistributedPubSubMediator.Send send(final String path, final Object message,
             final boolean localAffinity) {
+
         return new DistributedPubSubMediator.Send(path, message, localAffinity);
     }
 
@@ -157,6 +179,7 @@ public final class DistPubSubAccess {
      */
     public static DistributedPubSubMediator.SendToAll sendToAll(final String path, final Object message,
             final boolean allButSelf) {
+
         return new DistributedPubSubMediator.SendToAll(path, message, allButSelf);
     }
 }

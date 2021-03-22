@@ -14,15 +14,20 @@ package org.eclipse.ditto.services.concierge.actors.cleanup;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.base.persistence.PersistenceLifecycle;
 import org.eclipse.ditto.services.concierge.actors.ShardRegions;
 import org.eclipse.ditto.services.concierge.actors.cleanup.messages.CreditDecision;
 import org.eclipse.ditto.services.concierge.common.PersistenceCleanupConfig;
-import org.eclipse.ditto.services.models.things.DittoThingSnapshotTaken;
+import org.eclipse.ditto.services.models.things.ThingSnapshotTaken;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
 import org.junit.After;
 import org.junit.Before;
@@ -58,13 +63,23 @@ public final class EventSnapshotCleanupCoordinatorTest {
 
     @Test
     public void delayCleanUpByRequestAccordingToCredit() {
+        final var snapshotTakenEvents = IntStream.range(0, 5)
+                .mapToObj(i -> ThingId.of("thing:" + i))
+                .map(thingId -> ThingSnapshotTaken.newBuilder(thingId,
+                        1,
+                        PersistenceLifecycle.ACTIVE,
+                        JsonFactory.newObject(Thing.JsonFields.ID.getPointer(), JsonValue.of(thingId.toString()))
+                ).timestamp(Instant.now()).build())
+                .collect(Collectors.toList());
+
+        final PersistenceCleanupConfig config = PersistenceCleanupConfig.fromConfig(
+                ConfigFactory.parseString("credit-decision={credit-for-requests=2,interval=1h}," +
+                        "enabled=true," +
+                        "quiet-period=1h,cleanup-timeout=5m,parallelism=1," +
+                        "keep={credit-decisions=1,actions=1,events=1}"));
+        final ShardRegions shardRegions = Mockito.mock(ShardRegions.class);
+
         new TestKit(actorSystem) {{
-            final PersistenceCleanupConfig config = PersistenceCleanupConfig.fromConfig(
-                    ConfigFactory.parseString("credit-decision={credit-for-requests=2,interval=1h}," +
-                            "enabled=true," +
-                            "quiet-period=1h,cleanup-timeout=5m,parallelism=1," +
-                            "keep={credit-decisions=1,actions=1,events=1}"));
-            final ShardRegions shardRegions = Mockito.mock(ShardRegions.class);
             Mockito.when(shardRegions.things()).thenReturn(getRef());
             final Props props = EventSnapshotCleanupCoordinator.props(config, getRef(), shardRegions);
             final ActorRef underTest = actorSystem.actorOf(props);
@@ -73,21 +88,32 @@ public final class EventSnapshotCleanupCoordinatorTest {
             final CreditDecision creditDecision = CreditDecision.yes(2, "2 credit");
             underTest.tell(creditDecision, ActorRef.noSender());
 
-            final List<ThingId> ids =
-                    IntStream.range(0, 5).mapToObj(i -> ThingId.of("thing:" + i)).collect(Collectors.toList());
-            ids.stream().map(DittoThingSnapshotTaken::of)
-                    .forEach(request -> underTest.tell(request, ActorRef.noSender()));
-            underTest.tell(DittoThingSnapshotTaken.of(ids.get(0)), ActorRef.noSender());
+            snapshotTakenEvents.forEach(request -> underTest.tell(request, ActorRef.noSender()));
+            underTest.tell(snapshotTakenEvents.get(0), ActorRef.noSender());
 
-            assertThat((CharSequence) expectMsgClass(CleanupPersistence.class).getEntityId()).isEqualTo(ids.get(0));
-            assertThat((CharSequence) expectMsgClass(CleanupPersistence.class).getEntityId()).isEqualTo(ids.get(1));
+            final var cleanupPersistence1 = expectMsgClass(CleanupPersistence.class);
+            assertThat((CharSequence) cleanupPersistence1.getEntityId()).isEqualTo(getThingId(snapshotTakenEvents, 0));
+
+            final var cleanupPersistence2 = expectMsgClass(CleanupPersistence.class);
+            assertThat((CharSequence) cleanupPersistence2.getEntityId()).isEqualTo(getThingId(snapshotTakenEvents, 1));
+
             expectNoMessage();
 
             underTest.tell(creditDecision, ActorRef.noSender());
 
-            assertThat((CharSequence) expectMsgClass(CleanupPersistence.class).getEntityId()).isEqualTo(ids.get(2));
-            assertThat((CharSequence) expectMsgClass(CleanupPersistence.class).getEntityId()).isEqualTo(ids.get(3));
+            final var cleanupPersistence3 = expectMsgClass(CleanupPersistence.class);
+            assertThat((CharSequence) cleanupPersistence3.getEntityId()).isEqualTo(getThingId(snapshotTakenEvents, 2));
+
+            final var cleanupPersistence4 = expectMsgClass(CleanupPersistence.class);
+            assertThat((CharSequence) cleanupPersistence4.getEntityId()).isEqualTo(getThingId(snapshotTakenEvents, 3));
+
             expectNoMessage();
         }};
     }
+
+    private static ThingId getThingId(final List<ThingSnapshotTaken> snapshotTakenEvents, final int index) {
+        final var snapshotTaken = snapshotTakenEvents.get(index);
+        return snapshotTaken.getEntityId();
+    }
+
 }

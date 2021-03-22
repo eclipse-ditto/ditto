@@ -34,7 +34,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.signals.base.MergeToggle;
+import org.eclipse.ditto.signals.base.FeatureToggle;
 import org.eclipse.ditto.signals.base.UnsupportedSchemaVersionException;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
@@ -68,7 +68,7 @@ public final class ThingMerged extends AbstractThingEvent<ThingMerged> implement
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders,
             @Nullable final Metadata metadata) {
-        super(TYPE, thingId, revision, timestamp, MergeToggle.checkMergeFeatureEnabled(TYPE, dittoHeaders), metadata);
+        super(TYPE, thingId, revision, timestamp, FeatureToggle.checkMergeFeatureEnabled(TYPE, dittoHeaders), metadata);
         this.thingId = checkNotNull(thingId, "thingId");
         this.path = checkNotNull(path, "path");
         this.value = checkNotNull(value, "value");

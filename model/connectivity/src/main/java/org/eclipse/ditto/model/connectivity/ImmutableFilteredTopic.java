@@ -31,9 +31,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonParseOptions;
+import org.eclipse.ditto.model.things.ThingFieldSelector;
 
 /**
  * Immutable implementation of {@link FilteredTopic}.
@@ -48,14 +47,12 @@ final class ImmutableFilteredTopic implements FilteredTopic {
     private static final String FILTER_ARG = "filter";
     private static final String NAMESPACES_ARG = "namespaces";
     private static final String EXTRA_FIELDS_ARG = "extraFields";
-    private static final JsonParseOptions JSON_PARSE_OPTIONS = JsonParseOptions.newBuilder()
-            .withoutUrlDecoding()
-            .build();
+
 
     private final Topic topic;
     private final List<String> namespaces;
     @Nullable private final String filterString;
-    @Nullable private final JsonFieldSelector extraFields;
+    @Nullable private final ThingFieldSelector extraFields;
 
     private ImmutableFilteredTopic(final ImmutableFilteredTopicBuilder builder) {
         topic = builder.topic;
@@ -84,6 +81,8 @@ final class ImmutableFilteredTopic implements FilteredTopic {
      * @param filteredTopicString the string representation of a FilteredTopic.
      * @return instance.
      * @throws NullPointerException if {@code filteredTopicString} is {@code null}.
+     * @throws org.eclipse.ditto.model.things.InvalidThingFieldSelectionException when the given
+     * {@code filteredTopicString} contained a field selector with invalid fields.
      */
     public static ImmutableFilteredTopic fromString(final String filteredTopicString) {
         checkNotNull(filteredTopicString, "filteredTopicString");
@@ -188,7 +187,7 @@ final class ImmutableFilteredTopic implements FilteredTopic {
         private final Topic topic;
         @Nullable private Collection<String> namespaces;
         @Nullable private CharSequence filter;
-        @Nullable private JsonFieldSelector extraFields;
+        @Nullable private ThingFieldSelector extraFields;
 
         private ImmutableFilteredTopicBuilder(final Topic topic) {
             this.topic = checkNotNull(topic, "topic");
@@ -213,7 +212,7 @@ final class ImmutableFilteredTopic implements FilteredTopic {
         }
 
         @Override
-        public ImmutableFilteredTopicBuilder withExtraFields(@Nullable final JsonFieldSelector extraFields) {
+        public ImmutableFilteredTopicBuilder withExtraFields(@Nullable final ThingFieldSelector extraFields) {
             // policy announcements do not support extra fields.
             if (topic != Topic.POLICY_ANNOUNCEMENTS) {
                 this.extraFields = extraFields;
@@ -286,9 +285,9 @@ final class ImmutableFilteredTopic implements FilteredTopic {
         }
 
         @Nullable
-        private static JsonFieldSelector parseExtraFields(@Nullable final String extraFieldsString) {
+        private static ThingFieldSelector parseExtraFields(@Nullable final String extraFieldsString) {
             if (null != extraFieldsString && !extraFieldsString.isEmpty()) {
-                return JsonFactory.newFieldSelector(extraFieldsString, JSON_PARSE_OPTIONS);
+                return ThingFieldSelector.fromString(extraFieldsString);
             }
             return null;
         }
