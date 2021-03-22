@@ -36,19 +36,19 @@ live-message feedback.
 
 This connection subscribes to telemetry messages, published by the Azure IoT Hub built-in "Event Hub like" endpoint.
 
-Adding an enforcement for the `{{ thing:id }}` based on the `{{ header:iothub-connection-device-id }}` prevents 
+Adding an enforcement for the `{%raw%}{{ thing:id }}{%endraw%}` based on the `{%raw%}{{ header:iothub-connection-device-id }}{%endraw%}` prevents 
 applying a digital-twin update to the twin of another device (Device Spoofing).
 
 To establish this connection the placeholders below have to be substituted by:
 
-- `{{userName}}`: The `SharedAccessKeyName` in your Event Hub-compatible endpoint (i.e. service).
+- `{%raw%}{{userName}}{%endraw%}`: The `SharedAccessKeyName` in your Event Hub-compatible endpoint (i.e. service).
 
-- `{{password}}`: The `SharedAccessKey` in your Event Hub-compatible endpoint.
+- `{%raw%}{{password}}{%endraw%}`: The `SharedAccessKey` in your Event Hub-compatible endpoint.
 
-- `{{endpoint}}`: The `Endpoint` in your Event Hub-compatible endpoint (Cut leading "sb://" and trailing slash,
+- `{%raw%}{{endpoint}}{%endraw%}`: The `Endpoint` in your Event Hub-compatible endpoint (Cut leading "sb://" and trailing slash,
 e.g.. ihsuprodblres055dednamespace.servicebus.windows.net).
 
-- `{{entityPath}}`: The `EntitiyPath` in your Event Hub-compatible endpoint (e.g.. hubname-8584619-2e72252706).
+- `{%raw%}{{entityPath}}{%endraw%}`: The `EntitiyPath` in your Event Hub-compatible endpoint (e.g.. hubname-8584619-2e72252706).
 
 *Note: You can use the "service" IoT Hub policy instead of the "iothubowner" policy, since this is more restricitve, 
 and represents the actual use of Ditto as a  northbound service.*
@@ -59,18 +59,18 @@ and represents the actual use of Ditto as a  northbound service.*
   "connectionType": "amqp-10",
   "connectionStatus": "open",
   "failoverEnabled": false,
-  "uri": "amqps://{{userName}}:{{password}}@{{endpoint}}:5671",
+  "uri": "{%raw%}amqps://{{userName}}:{{password}}@{{endpoint}}:5671{%endraw%}",
   "source": [
     {
       "addresses": [
-        "{{entityPath}}/ConsumerGroups/$Default/Partitions/0",
-        "{{entityPath}}/ConsumerGroups/$Default/Partitions/1"
+        "{%raw%}{{entityPath}}/ConsumerGroups/$Default/Partitions/0{%endraw%}",
+        "{%raw%}{{entityPath}}/ConsumerGroups/$Default/Partitions/1{%endraw%}"
       ],
       "authorizationContext": ["ditto"],
       "enforcement": {
-        "input": "{{ header:iothub-connection-device-id }}",
+        "input": "{%raw%}{{ header:iothub-connection-device-id }}{%endraw%}",
         "filters": [
-          "{{ thing:id }}"
+          "{%raw%}{{ thing:id }}{%endraw%}"
         ]
       }
     }
@@ -88,21 +88,21 @@ and represents the actual use of Ditto as a  northbound service.*
 This connection enables forwarding live messages to the Azure IoT Hub (which forwards it to the device)
 and receiving feedback to these live-messages from the device.
 
-Adding the header-mapping `"message_id": "{{header:correlation-id}}"` enables Azure IoT Hub to correlate messages.
-Adding the header-mapping `"to": "/devices/{{ header:ditto-message-thing-id }}/messages/deviceInbound"` is 
+Adding the header-mapping `{%raw%}"message_id": "{{header:correlation-id}}{%endraw%}"` enables Azure IoT Hub to correlate messages.
+Adding the header-mapping `{%raw%}"to": "/devices/{{ header:ditto-message-thing-id }}/messages/deviceInbound"{%endraw%}` is 
 necessary for correct message routing by Azure IoT Hub. The header `ditto-message-thing-id` will be set as a 
 default header by Ditto.
 
 To establish this connection the placeholders below have to be substituted:
 
-- `{{userName}}`: The name of the chosen IoT Hub policy + "@sas.root." + the name of your IoT Hub 
+- `{%raw%}{{userName}}{%endraw%}`: The name of the chosen IoT Hub policy + "@sas.root." + the name of your IoT Hub 
 (i.e. service@sas.root.my-hub).
 
-- `{{hostName}}`: The Hostname of your IoT Hub (i.e. my-hub.azure-devices.net).
+- `{%raw%}{{hostName}}{%endraw%}`: The Hostname of your IoT Hub (i.e. my-hub.azure-devices.net).
 
-- `{{encodedSasToken}}`: An URL encoded SAS token. Information on how to generate a token can be found at 
+- `{%raw%}{{encodedSasToken}}{%endraw%}`: An URL encoded SAS token. Information on how to generate a token can be found at 
 [az iot hub generate-sas-token.](https://docs.microsoft.com/en-us/cli/azure/ext/azure-iot/iot/hub?view=azure-cli-latest#ext_azure_iot_az_iot_hub_generate_sas_token) 
-The generated token has to be additionally URL encoded (browser console -> `encodeURI('{{generatedToken}}')`).
+The generated token has to be additionally URL encoded (browser console -> `{%raw%}encodeURI('{{generatedToken}}'){%endraw%}`).
 
 *Note: The generated SAS token has a maximum TTL of 365 days, so the token has to be changed to a newly generated before expiry. 
 Otherwise, the connection tries to reconnect or closes automatically, when `failoverEnabled` is set to `false`.*
@@ -113,7 +113,7 @@ Otherwise, the connection tries to reconnect or closes automatically, when `fail
   "connectionType": "amqp-10",
   "connectionStatus": "open",
   "failoverEnabled": false,
-  "uri": "amqps://{{userName}}:{{encodedSasToken}}@{{hostName}}:5671",
+  "uri": "{%raw%}amqps://{{userName}}:{{encodedSasToken}}@{{hostName}}:5671{%endraw%}",
   "target": [
     {"address": "/messages/devicebound",
       "topics": [
@@ -121,8 +121,8 @@ Otherwise, the connection tries to reconnect or closes automatically, when `fail
       ],
       "authorizationContext": ["ditto"],
       "headerMapping": {
-        "message_id": "{{header:correlation-id}}",
-        "to": "/devices/{{ header:ditto-message-thing-id }}/messages/deviceInbound"
+        "message_id": "{%raw%}{{header:correlation-id}}{%endraw%}",
+        "to": "{%raw%}/devices/{{ header:ditto-message-thing-id }}/messages/deviceInbound{%endraw%}"
       }
     }
   ]
