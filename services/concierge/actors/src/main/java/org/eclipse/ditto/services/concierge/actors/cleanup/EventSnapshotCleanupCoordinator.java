@@ -199,6 +199,7 @@ public final class EventSnapshotCleanupCoordinator
         while (creditForRequests > 0 && iterator.hasNext()) {
             --creditForRequests;
             cleanUpThingByRequest(iterator.next());
+            iterator.remove();
         }
     }
 
