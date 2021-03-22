@@ -1,7 +1,7 @@
 ---
 title: "Use Eclipse Ditto with Azure IoT Hub as message broker"
 published: true
-permalink: 2021-03-19-azure-iot-hub-integration.html
+permalink: 2021-03-22-azure-iot-hub-integration.html
 layout: post
 author: david_schwilk
 tags: [blog, architecture, connection]
@@ -17,7 +17,7 @@ This blogpost is based upon Eclipse Ditto Version **1.5.0**, the Azure IoT Suite
 This blog post elaborates on connecting and managing devices in Eclipse Ditto by using the Azure IoT Hub 
 as a message broker.
 
-![Connection Overview](images/blog/2021-03-19-azure-iot-hub-integration-overview.png)
+![Connection Overview](images/blog/2021-03-22-azure-iot-hub-integration-overview.png)
 
 The basic functionality that can be used at the time of creating this blogpost are:
 
