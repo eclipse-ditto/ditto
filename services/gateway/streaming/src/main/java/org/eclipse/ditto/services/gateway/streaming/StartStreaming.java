@@ -23,8 +23,8 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.things.ThingFieldSelector;
 import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 
 /**
@@ -37,7 +37,7 @@ public final class StartStreaming implements StreamControlMessage {
     private final AuthorizationContext authorizationContext;
     private final List<String> namespaces;
     @Nullable private final String filter;
-    @Nullable private final JsonFieldSelector extraFields;
+    @Nullable private final ThingFieldSelector extraFields;
     @Nullable private final CharSequence correlationId;
 
     private StartStreaming(final StartStreamingBuilder builder) {
@@ -105,7 +105,7 @@ public final class StartStreaming implements StreamControlMessage {
      *
      * @return the selector or an empty Optional if signals should not be enriched.
      */
-    public Optional<JsonFieldSelector> getExtraFields() {
+    public Optional<ThingFieldSelector> getExtraFields() {
         return Optional.ofNullable(extraFields);
     }
 
@@ -156,7 +156,7 @@ public final class StartStreaming implements StreamControlMessage {
 
         @Nullable private Collection<String> namespaces;
         @Nullable private CharSequence filter;
-        @Nullable private JsonFieldSelector extraFields;
+        @Nullable private ThingFieldSelector extraFields;
         @Nullable private CharSequence correlationId;
 
         private StartStreamingBuilder(final StreamingType streamingType, final CharSequence connectionCorrelationId,
@@ -203,7 +203,7 @@ public final class StartStreaming implements StreamControlMessage {
          * @param extraFields selector for the extra fields or {@code null} if outgoing signals should not be enriched.
          * @return this builder instance to allow method chaining.
          */
-        public StartStreamingBuilder withExtraFields(@Nullable final JsonFieldSelector extraFields) {
+        public StartStreamingBuilder withExtraFields(@Nullable final ThingFieldSelector extraFields) {
             // policy announcements do not support extra fields.
             if (streamingType != StreamingType.POLICY_ANNOUNCEMENTS) {
                 this.extraFields = extraFields;

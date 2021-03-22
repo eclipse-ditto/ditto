@@ -54,6 +54,7 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingFieldSelector;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
@@ -147,7 +148,8 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
             final ActorRef outboundMappingProcessorActor = createOutboundMappingProcessorActor(this);
 
             // WHEN: a signal is received with 2 targets, one with enrichment and one without
-            final JsonFieldSelector extraFields = JsonFieldSelector.newInstance("attributes/x", "attributes/y");
+            final ThingFieldSelector extraFields = ThingFieldSelector.fromJsonFieldSelector(
+                    JsonFieldSelector.newInstance("attributes/x", "attributes/y"));
             final AuthorizationSubject targetAuthSubject = AuthorizationSubject.newInstance("target:auth-subject");
             final AuthorizationSubject targetAuthSubjectWithoutIssuer =
                     AuthorizationSubject.newInstance("auth-subject");

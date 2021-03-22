@@ -24,6 +24,7 @@ import java.util.List;
 
 import org.assertj.core.util.Lists;
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.model.things.ThingFieldSelector;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -36,8 +37,8 @@ public final class ImmutableFilteredTopicTest {
     private static final List<String> NAMESPACES =
             Collections.unmodifiableList(Lists.list("this.is.a.namespace", "eat.that", "foo.bar"));
     private static final String FILTER_EXAMPLE = "gt(attributes/a,42)";
-    private static final JsonFieldSelector EXTRA_FIELDS =
-            JsonFieldSelector.newInstance("attributes", "features/location");
+    private static final ThingFieldSelector EXTRA_FIELDS =
+            ThingFieldSelector.fromJsonFieldSelector(JsonFieldSelector.newInstance("attributes", "features/location"));
 
     @Test
     public void testHashCodeAndEquals() {
@@ -50,7 +51,7 @@ public final class ImmutableFilteredTopicTest {
     public void assertImmutability() {
         assertInstancesOf(ImmutableFilteredTopic.class,
                 areImmutable(),
-                provided(Topic.class, JsonFieldSelector.class).areAlsoImmutable(),
+                provided(Topic.class, ThingFieldSelector.class).areAlsoImmutable(),
                 assumingFields("namespaces").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 

@@ -46,6 +46,7 @@ import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingFieldSelector;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsParameter;
@@ -240,8 +241,8 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
         @Nullable final String filterString = parameters.get(PARAM_FILTER);
         final List<String> namespaces = getNamespaces(parameters.get(PARAM_NAMESPACES));
         final List<ThingId> targetThingIds = getThingIds(parameters.get(ThingsParameter.IDS.toString()));
-        @Nullable final JsonFieldSelector fields = getFieldSelector(parameters.get(ThingsParameter.FIELDS.toString()));
-        @Nullable final JsonFieldSelector extraFields = getFieldSelector(parameters.get(PARAM_EXTRA_FIELDS));
+        @Nullable final ThingFieldSelector fields = getFieldSelector(parameters.get(ThingsParameter.FIELDS.toString()));
+        @Nullable final ThingFieldSelector extraFields = getFieldSelector(parameters.get(PARAM_EXTRA_FIELDS));
         final SignalEnrichmentFacade facade =
                 signalEnrichmentProvider == null ? null : signalEnrichmentProvider.getFacade(ctx.getRequest());
 
@@ -424,11 +425,8 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
     }
 
     @Nullable
-    private static JsonFieldSelector getFieldSelector(@Nullable final String fieldsString) {
-        if (null != fieldsString) {
-            return JsonFactory.newFieldSelector(fieldsString, AbstractRoute.JSON_FIELD_SELECTOR_PARSE_OPTIONS);
-        }
-        return null;
+    private static ThingFieldSelector getFieldSelector(@Nullable final String fieldsString) {
+        return fieldsString == null ? null : ThingFieldSelector.fromString(fieldsString);
     }
 
     private static String namespaceFromId(final ThingEvent<?> thingEvent) {

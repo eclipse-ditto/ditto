@@ -26,11 +26,9 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.things.ThingFieldSelector;
 import org.eclipse.ditto.services.gateway.streaming.Jwt;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
@@ -49,9 +47,6 @@ final class ProtocolMessageExtractor implements Function<String, Optional<Stream
     private static final String PARAM_NAMESPACES = "namespaces";
     private static final String PARAM_JWT = "jwtToken";
     private static final String PARAM_EXTRA_FIELDS = "extraFields";
-    private static final JsonParseOptions JSON_PARSE_OPTIONS = JsonParseOptions.newBuilder()
-            .withoutUrlDecoding()
-            .build();
 
     private final AuthorizationContext connectionAuthContext;
     private final CharSequence connectionCorrelationId;
@@ -150,9 +145,9 @@ final class ProtocolMessageExtractor implements Function<String, Optional<Stream
     }
 
     @Nullable
-    private static JsonFieldSelector getExtraFields(@Nullable final String extraFieldsParam) {
+    private static ThingFieldSelector getExtraFields(@Nullable final String extraFieldsParam) {
         if (null != extraFieldsParam && !extraFieldsParam.isEmpty()) {
-            return JsonFactory.newFieldSelector(extraFieldsParam, JSON_PARSE_OPTIONS);
+            return ThingFieldSelector.fromString(extraFieldsParam);
         }
         return null;
     }

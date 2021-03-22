@@ -30,6 +30,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingFieldSelector;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
@@ -241,7 +242,8 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
 
     @Test
     public void getWithAcceptHeaderAndExtraFieldsParameterOpensSseConnection() {
-        final JsonFieldSelector extraFields = JsonFieldSelector.newInstance("attributes", "features/location");
+        final ThingFieldSelector extraFields = ThingFieldSelector.fromJsonFieldSelector(
+                JsonFieldSelector.newInstance("attributes", "features/location"));
 
         final String requestUrl = THINGS_ROUTE + "?extraFields=" + extraFields;
 
