@@ -17,6 +17,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -126,8 +127,8 @@ public final class EventSnapshotCleanupCoordinator
     private final Deque<Pair<Instant, CleanupPersistenceResponse>> actions;
 
     // state for persistence requests
-    private final LinkedHashSet<ThingId> pendingRequests;
-    int creditForRequests;
+    private final Set<ThingId> pendingRequests;
+    private int creditForRequests;
 
     @SuppressWarnings("unused")
     private EventSnapshotCleanupCoordinator(final PersistenceCleanupConfig config, final ActorRef pubSubMediator,
@@ -145,8 +146,9 @@ public final class EventSnapshotCleanupCoordinator
     @Override
     public void preStart() throws Exception {
         super.preStart();
-        pubSubMediator.tell(DistPubSubAccess.subscribeViaGroup(ThingSnapshotTaken.PUBSUB_TOPIC, ACTOR_NAME, getSelf()),
-                getSelf());
+        final var self = getSelf();
+        pubSubMediator.tell(DistPubSubAccess.subscribeViaGroup(ThingSnapshotTaken.PUB_SUB_TOPIC, ACTOR_NAME, self),
+                self);
     }
 
     /**
