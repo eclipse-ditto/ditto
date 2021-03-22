@@ -69,7 +69,7 @@ public final class TrustManagerFactoryFactory {
     }
 
     public static TrustManagerFactoryFactory getInstance(final DittoHeaders dittoHeaders) {
-        return new TrustManagerFactoryFactory(new ExceptionMapper(dittoHeaders));
+        return new TrustManagerFactoryFactory(ExceptionMapper.forTrustedCertificates(dittoHeaders));
     }
 
     public static TrustManagerFactoryFactory getInstance(final ExceptionMapper exceptionMapper) {

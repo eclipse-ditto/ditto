@@ -24,17 +24,19 @@ import java.security.cert.CertificateFactory;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
-import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
-import org.eclipse.ditto.model.connectivity.Connection;
 
-abstract class KeyExtractor {
+/**
+ * Helper class to load certificates, private and public keys.
+ */
+final class Keys {
 
     private static final String PRIVATE_KEY_LABEL = "PRIVATE KEY";
     private static final Pattern PRIVATE_KEY_REGEX = Pattern.compile(pemRegex(PRIVATE_KEY_LABEL));
@@ -43,10 +45,6 @@ abstract class KeyExtractor {
 
     private static final KeyFactory RSA_KEY_FACTORY;
     private static final CertificateFactory X509_CERTIFICATE_FACTORY;
-
-    protected final ExceptionMapper exceptionMapper;
-    private final JsonPointer publicKeyErrorLocation;
-    private final JsonPointer privateKeyErrorLocation;
 
     static {
         try {
@@ -59,57 +57,70 @@ abstract class KeyExtractor {
         }
     }
 
-    protected KeyExtractor(final ExceptionMapper exceptionMapper,
-            final JsonPointer publicKeyErrorLocation, final JsonPointer privateKeyErrorLocation) {
-        this.exceptionMapper = exceptionMapper;
-        this.publicKeyErrorLocation = publicKeyErrorLocation;
-        this.privateKeyErrorLocation = privateKeyErrorLocation;
-    }
+    private Keys() {}
 
-    protected PrivateKey getClientPrivateKey(final String privateKeyPem) {
+    /**
+     * Loads a {@link java.security.PrivateKey} from the given string. The private key must be given in PKCS#8 format.
+     *
+     * @param privateKeyPem private key in PKCS#8 format
+     * @param exceptionMapper maps ssl exceptions to ditto exceptions providing context information
+     * @return the private key
+     */
+    static PrivateKey getPrivateKey(final String privateKeyPem, final ExceptionMapper exceptionMapper) {
         final Matcher matcher = PRIVATE_KEY_REGEX.matcher(privateKeyPem);
         final Supplier<DittoRuntimeExceptionBuilder> errorSupplier =
-                () -> exceptionMapper.badFormat(privateKeyErrorLocation, PRIVATE_KEY_LABEL, "PKCS #8")
+                () -> exceptionMapper.badPrivateKeyFormat(PRIVATE_KEY_LABEL, "PKCS #8")
                         .description("Please format your client key as PEM-encoded unencrypted PKCS #8.");
         try {
-            return RSA_KEY_FACTORY.generatePrivate(matchKey(matcher, errorSupplier));
+            return RSA_KEY_FACTORY.generatePrivate(matchKey(matcher, PKCS8EncodedKeySpec::new, errorSupplier));
         } catch (final InvalidKeySpecException e) {
             throw errorSupplier.get().cause(e).build();
         }
     }
 
-    protected PublicKey getClientPublicKey(final String publicKeyPem) {
+    /**
+     * Loads a {@link java.security.PublicKey} from the given string. The public key must be given in PKCS#8 format.
+     *
+     * @param publicKeyPem public key in PKCS#8 format
+     * @param exceptionMapper maps ssl exceptions to ditto exceptions providing context information
+     * @return the public key
+     */
+    static PublicKey getPublicKey(final String publicKeyPem, final ExceptionMapper exceptionMapper) {
         final Matcher matcher = PUBLIC_KEY_REGEX.matcher(publicKeyPem);
         final Supplier<DittoRuntimeExceptionBuilder> errorSupplier =
-                () -> exceptionMapper.badFormat(publicKeyErrorLocation, PUBLIC_KEY_LABEL, "PKCS #8")
-                        .description("Please format your client key as PEM-encoded unencrypted PKCS #8.");
+                () -> exceptionMapper.badPublicKeyFormat(PUBLIC_KEY_LABEL, "PKCS #8")
+                        .description("Please format your public key as PEM-encoded unencrypted PKCS #8.");
         try {
-            return RSA_KEY_FACTORY.generatePublic(matchKey(matcher, errorSupplier));
+            return RSA_KEY_FACTORY.generatePublic(matchKey(matcher, X509EncodedKeySpec::new, errorSupplier));
         } catch (final InvalidKeySpecException e) {
             throw errorSupplier.get().cause(e).build();
         }
     }
 
-    private KeySpec matchKey(final Matcher matcher, final Supplier<DittoRuntimeExceptionBuilder> errorSupplier) {
+    private static <T extends KeySpec> T matchKey(final Matcher matcher, final Function<byte[], T> toKeySpec,
+            final Supplier<DittoRuntimeExceptionBuilder> errorSupplier) {
         if (!matcher.matches()) {
             throw errorSupplier.get().build();
         } else {
             final String content = matcher.group(1).replaceAll("\\s", "");
             final byte[] bytes = decodeBase64(content);
-            return new PKCS8EncodedKeySpec(bytes);
+            return toKeySpec.apply(bytes);
         }
     }
 
-    protected Certificate getClientCertificate(final String certificatePem) {
+    /**
+     * Loads a {@link java.security.cert.Certificate} from the given string. The private key must be given in PKCS#8 format.
+     *
+     * @param certificatePem certificate in X.509 format
+     * @param exceptionMapper maps ssl exceptions to ditto exceptions providing context information
+     * @return the certificate
+     */
+    static Certificate getCertificate(final String certificatePem, final ExceptionMapper exceptionMapper) {
         final byte[] asciiBytes = certificatePem.getBytes(StandardCharsets.US_ASCII);
         try {
-
             return X509_CERTIFICATE_FACTORY.generateCertificate(new ByteArrayInputStream(asciiBytes));
         } catch (final CertificateException e) {
-            final JsonPointer errorLocation = Connection.JsonFields.CREDENTIALS.getPointer()
-                    .append(ClientCertificateCredentials.JsonFields.CLIENT_CERTIFICATE.getPointer());
-            throw exceptionMapper.badFormat(errorLocation, "CERTIFICATE", "DER")
-                    .build();
+            throw exceptionMapper.badCertificateFormat("CERTIFICATE", "DER").build();
         }
     }
 

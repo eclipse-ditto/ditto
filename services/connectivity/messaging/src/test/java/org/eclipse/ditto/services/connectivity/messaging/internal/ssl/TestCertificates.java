@@ -12,30 +12,38 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.internal.ssl;
 
+import java.security.PublicKey;
 import java.security.cert.Certificate;
 
-import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 /**
  * Implementation of KeyExtractor to load test certificates.
  *
  * @see org.eclipse.ditto.services.connectivity.messaging.TestConstants.Certificates
  */
-public class TestCertificates extends KeyExtractor {
+public class TestCertificates {
 
-    public TestCertificates() {
-        super(new ExceptionMapper(null), JsonPointer.empty(), JsonPointer.empty());
+    public static PublicKey getPublicKey(final String publicKey) {
+        return Keys.getPublicKey(publicKey, ExceptionMapper.forSshPublicKeyCredentials(DittoHeaders.empty()));
     }
 
-    public Certificate getPrivateKey(final String privateKeyPem) {
-        return getClientCertificate(privateKeyPem);
+    public static Certificate getCertificate(final String certificate) {
+        return Keys.getCertificate(certificate, ExceptionMapper.forTrustedCertificates(DittoHeaders.empty()));
     }
 
-    public Certificate getPublicKey(final String publicKeyPem) {
-        return getClientCertificate(publicKeyPem);
-    }
+    public static void main(String[] args) {
 
-    public Certificate getCertificate(final String certificatePem) {
-        return getClientCertificate(certificatePem);
+        final PublicKey publicKey =
+                Keys.getPublicKey("-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvNLnOxbW" +
+                        "/XoO7Tuw16K0\nPUyVpmAVcfZL3w67mLcZuy7fRarHXR1y0ixkpwRjoZ2HpZAXOkwTemIKLC9P00B/\n" +
+                        "/cNfQhunE2bEJTvSoVNKAKerq/B5M7GHs91EJ+JJNfgWnHEqSYqeuzaDGw2ePlaJ\nLD+zj0Temwgv3+bYN5WR" +
+                        "+/TmqLPigpZRwID1n4/5KFGHYwHMTSCDxeaU0iinjwnA\nh4KfOXIQONoaTx85FnGvO84dKSTIZtb+1VZrBB5P7EEBlM6" +
+                        "/D0A3cTZDBLcXkULp\nTapoJj0EXJzXh457+O1YnyQ0ItzbDZ8qyzm6cj4+9K7n5NTqjg+l680oCd94jL87\nRQIDAQAB\n" +
+                        "-----END PUBLIC KEY-----", ExceptionMapper.forSshPublicKeyCredentials(DittoHeaders.empty()));
+
+        System.out.println(publicKey.getFormat());
+
+
     }
 }

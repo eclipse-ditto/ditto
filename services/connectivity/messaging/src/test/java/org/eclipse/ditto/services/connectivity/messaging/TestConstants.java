@@ -472,14 +472,13 @@ public final class TestConstants {
 
     public static final class Certificates {
 
-        private static final TestCertificates CERTIFICATE_EXTRACTOR = new TestCertificates();
-
         public static final String CA_CRT = getCert("ca.crt");
         // signed by CA_CRT
         // CN=localhost
         public static final String SERVER_KEY = getCert("server.key");
         public static final String SERVER_CRT = getCert("server.crt");
-        public static final PublicKey SERVER_PUBKEY = CERTIFICATE_EXTRACTOR.getCertificate(SERVER_CRT).getPublicKey();
+        public static final String SERVER_PUB = getCert("server.pub");
+        public static final PublicKey SERVER_PUBLIC_KEY = TestCertificates.getCertificate(SERVER_CRT).getPublicKey();
         public static final String SERVER_PUBKEY_FINGERPRINT_SHA256 =
                 "SHA256:MEULjymCqsBH6TkmQzKmA+G2qd+AJwarKwr84vUsQ+Y";
         public static final String SERVER_PUBKEY_FINGERPRINT_MD5 =

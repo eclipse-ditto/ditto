@@ -776,6 +776,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .eventEquals(Control.CONNECT_AFTER_TUNNEL_ESTABLISHED, this::testConnectionAfterTunnelStarted)
                 .event(TestConnection.class, this::testConnection)
                 .event(SshTunnelActor.TunnelClosed.class, this::tunnelClosed)
+                .event(ConnectionFailure.class, this::testingConnectionFailed)
                 .eventEquals(StateTimeout(), (stats, data) -> {
                     logger.info("test timed out.");
                     data.getSessionSenders().forEach(sender -> {
@@ -932,6 +933,16 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return goToTesting().using(setSession(data, sender, testConnection.getDittoHeaders())
                 .setConnection(connectionToBeTested)
                 .setConnectionStatusDetails("Testing connection since " + Instant.now()));
+    }
+
+
+    private State<BaseClientState, BaseClientData> testingConnectionFailed(final ConnectionFailure event,
+            final BaseClientData data) {
+        logger.info("{} failed: <{}>", stateName(), event.getFailure());
+        cleanupResourcesForConnection();
+        data.getSessionSenders().forEach(sender ->
+                sender.first().tell(getStatusToReport(event.getFailure(), sender.second()), getSelf()));
+        return stop();
     }
 
     private FSM.State<BaseClientState, BaseClientData> connectionTimedOut(final BaseClientData data) {

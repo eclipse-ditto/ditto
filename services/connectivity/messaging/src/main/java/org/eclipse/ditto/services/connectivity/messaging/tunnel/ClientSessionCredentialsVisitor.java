@@ -19,14 +19,17 @@ import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.CredentialsVisitor;
 import org.eclipse.ditto.model.connectivity.SshPublicKeyAuthentication;
 import org.eclipse.ditto.model.connectivity.UserPasswordCredentials;
-import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.KeyPairCreator;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.PublicKeyAuthenticationFactory;
 
 /**
  * TODO
  */
 class ClientSessionCredentialsVisitor implements CredentialsVisitor<Void> {
 
+    private final CredentialsVisitor<KeyPair> publicKeyAuthenticationFactory;
+
     ClientSessionCredentialsVisitor(final ClientSession clientSession) {
+        publicKeyAuthenticationFactory = PublicKeyAuthenticationFactory.getInstance();
         this.clientSession = clientSession;
     }
 
@@ -46,7 +49,7 @@ class ClientSessionCredentialsVisitor implements CredentialsVisitor<Void> {
 
     @Override
     public Void sshPublicKeyAuthentication(final SshPublicKeyAuthentication credentials) {
-        final KeyPair keyPair = KeyPairCreator.getInstance().createKeyPair(credentials);
+        final KeyPair keyPair = credentials.accept(publicKeyAuthenticationFactory);
         clientSession.addPublicKeyIdentity(keyPair);
         return null;
     }

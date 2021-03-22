@@ -20,10 +20,8 @@ import java.security.cert.Certificate;
 
 import javax.net.ssl.KeyManagerFactory;
 
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
-import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.CredentialsVisitor;
 import org.eclipse.ditto.model.connectivity.SshPublicKeyAuthentication;
 import org.eclipse.ditto.model.connectivity.UserPasswordCredentials;
@@ -31,28 +29,17 @@ import org.eclipse.ditto.model.connectivity.UserPasswordCredentials;
 /**
  * Factory class to create {@link javax.net.ssl.KeyManagerFactory}s.
  */
-public final class KeyManagerFactoryFactory extends KeyExtractor implements CredentialsVisitor<KeyManagerFactory> {
+public final class KeyManagerFactoryFactory implements CredentialsVisitor<KeyManagerFactory> {
 
-    private static final JsonPointer publicKeyErrorLocation = Connection.JsonFields.CREDENTIALS.getPointer()
-            .append(ClientCertificateCredentials.JsonFields.CLIENT_KEY.getPointer());
-    private static final JsonPointer privateKeyErrorLocation = Connection.JsonFields.CREDENTIALS.getPointer()
-            .append(ClientCertificateCredentials.JsonFields.CLIENT_KEY.getPointer());
 
     private final KeyStoreFactory keyStoreFactory;
+    private final ExceptionMapper exceptionMapper;
 
     /**
      * @return new instance with empty {@link DittoHeaders}
      */
     public static KeyManagerFactoryFactory getInstance() {
-        return new KeyManagerFactoryFactory(new ExceptionMapper(DittoHeaders.empty()));
-    }
-
-    /**
-     * @param dittoHeaders the ditto headers
-     * @return new instance of {@link KeyManagerFactoryFactory}
-     */
-    public static KeyManagerFactoryFactory getInstance(final DittoHeaders dittoHeaders) {
-        return new KeyManagerFactoryFactory(new ExceptionMapper(dittoHeaders));
+        return new KeyManagerFactoryFactory(ExceptionMapper.forClientCertificateCredentials());
     }
 
     /**
@@ -61,8 +48,8 @@ public final class KeyManagerFactoryFactory extends KeyExtractor implements Cred
      * @param exceptionMapper the {@link ExceptionMapper} to be used
      */
     KeyManagerFactoryFactory(final ExceptionMapper exceptionMapper) {
-        super(exceptionMapper, publicKeyErrorLocation, privateKeyErrorLocation);
         this.keyStoreFactory = new KeyStoreFactory(exceptionMapper);
+        this.exceptionMapper = exceptionMapper;
     }
 
     /**
@@ -75,8 +62,8 @@ public final class KeyManagerFactoryFactory extends KeyExtractor implements Cred
         checkNotNull(clientCertificatePem, "clientCertificatePem");
 
         final KeyStore keystore = keyStoreFactory.newKeystore();
-        final PrivateKey privateKey = getClientPrivateKey(clientKeyPem);
-        final Certificate certificate = getClientCertificate(clientCertificatePem);
+        final PrivateKey privateKey = Keys.getPrivateKey(clientKeyPem, exceptionMapper);
+        final Certificate certificate = Keys.getCertificate(clientCertificatePem, exceptionMapper);
         keyStoreFactory.setPrivateKey(keystore, privateKey, certificate);
         keyStoreFactory.setCertificate(keystore, certificate);
 

@@ -31,7 +31,7 @@ import org.eclipse.ditto.model.connectivity.UserPasswordCredentials;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 
 /**
- * Create SSL context from connection credentials.
+ * Create SSL context from connection {@link org.eclipse.ditto.model.connectivity.ClientCertificateCredentials}.
  */
 public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
 
@@ -49,7 +49,7 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
             @Nullable final DittoHeaders dittoHeaders,
             final String hostname,
             final ConnectionLogger connectionLogger) {
-        exceptionMapper = new ExceptionMapper(dittoHeaders);
+        exceptionMapper = ExceptionMapper.forClientCertificateCredentials(dittoHeaders);
         this.hostname = hostname;
         keyManagerFactoryFactory = new KeyManagerFactoryFactory(exceptionMapper);
         trustManagerFactoryFactory = TrustManagerFactoryFactory.getInstance(exceptionMapper);
@@ -61,7 +61,7 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
     private SSLContextCreator(final TrustManager trustManager,
             @Nullable final DittoHeaders dittoHeaders,
             @Nullable final String hostname) {
-        exceptionMapper = new ExceptionMapper(dittoHeaders);
+        exceptionMapper = ExceptionMapper.forClientCertificateCredentials(dittoHeaders);
         this.hostname = hostname;
         keyManagerFactoryFactory = new KeyManagerFactoryFactory(exceptionMapper);
         trustManagerFactoryFactory = null;
