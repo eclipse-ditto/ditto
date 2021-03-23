@@ -935,7 +935,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .setConnectionStatusDetails("Testing connection since " + Instant.now()));
     }
 
-
     private State<BaseClientState, BaseClientData> testingConnectionFailed(final ConnectionFailure event,
             final BaseClientData data) {
         logger.info("{} failed: <{}>", stateName(), event.getFailure());
