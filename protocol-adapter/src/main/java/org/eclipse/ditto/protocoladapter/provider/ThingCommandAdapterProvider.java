@@ -15,6 +15,8 @@ package org.eclipse.ditto.protocoladapter.provider;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
@@ -26,6 +28,7 @@ import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
  */
 public interface ThingCommandAdapterProvider
         extends QueryCommandAdapterProvider<ThingQueryCommand<?>, ThingQueryCommandResponse<?>>,
+        RetrieveThingsCommandAdapterProvider<RetrieveThings, RetrieveThingsResponse>,
         ModifyCommandAdapterProvider<ThingModifyCommand<?>, ThingModifyCommandResponse<?>>,
         MergeCommandAdapterProvider,
         MessageCommandAdapterProvider,

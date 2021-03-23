@@ -58,9 +58,6 @@ final class ThingQueryCommandResponseMappingStrategies
                 adaptable -> RetrieveThingResponse.of(thingIdFrom(adaptable), payloadValueAsJsonObjectFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
 
-        mappingStrategies.put(RetrieveThingsResponse.TYPE,
-                adaptable -> RetrieveThingsResponse.of(thingsArrayFrom(adaptable),
-                        namespaceFrom(adaptable), dittoHeadersFrom(adaptable)));
 
         mappingStrategies.put(RetrieveAttributesResponse.TYPE,
                 adaptable -> RetrieveAttributesResponse.of(thingIdFrom(adaptable), attributesFrom(adaptable),
@@ -110,11 +107,4 @@ final class ThingQueryCommandResponseMappingStrategies
         return mappingStrategies;
     }
 
-    protected static JsonArray thingsArrayFrom(final Adaptable adaptable) {
-        return adaptable.getPayload()
-                .getValue()
-                .filter(JsonValue::isArray)
-                .map(JsonValue::asArray)
-                .orElseThrow(() -> JsonParseException.newBuilder().build());
-    }
 }

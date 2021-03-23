@@ -30,9 +30,7 @@ import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse
 final class ThingQueryCommandResponseAdapter extends AbstractThingAdapter<ThingQueryCommandResponse<?>>
         implements QueryCommandResponseAdapter<ThingQueryCommandResponse<?>> {
 
-    private final SignalMapper<RetrieveThingsResponse>
-            retrieveThingsSignalMapper =
-            SignalMapperFactory.newRetrieveThingsResponseSignalMapper();
+
     private final SignalMapper<ThingQueryCommandResponse<?>>
             thingQueryResponseSignalMapper =
             SignalMapperFactory.newThingQueryResponseSignalMapper();
@@ -51,17 +49,6 @@ final class ThingQueryCommandResponseAdapter extends AbstractThingAdapter<ThingQ
         return new ThingQueryCommandResponseAdapter(requireNonNull(headerTranslator));
     }
 
-    @Override
-    protected String getType(final Adaptable adaptable) {
-        final TopicPath topicPath = adaptable.getTopicPath();
-        if (topicPath.isWildcardTopic()) {
-            return RetrieveThingsResponse.TYPE;
-        } else {
-            // use default for none wildcard topics
-            return super.getType(adaptable);
-        }
-    }
-
     protected String getTypeCriterionAsString(final TopicPath topicPath) {
         return RESPONSES_CRITERION;
     }
@@ -69,10 +56,7 @@ final class ThingQueryCommandResponseAdapter extends AbstractThingAdapter<ThingQ
     @Override
     public Adaptable mapSignalToAdaptable(final ThingQueryCommandResponse<?> commandResponse,
             final TopicPath.Channel channel) {
-        if (commandResponse instanceof RetrieveThingsResponse) {
-            return retrieveThingsSignalMapper.mapSignalToAdaptable((RetrieveThingsResponse) commandResponse, channel);
-        } else {
-            return thingQueryResponseSignalMapper.mapSignalToAdaptable(commandResponse, channel);
-        }
+        return thingQueryResponseSignalMapper.mapSignalToAdaptable(commandResponse, channel);
+
     }
 }

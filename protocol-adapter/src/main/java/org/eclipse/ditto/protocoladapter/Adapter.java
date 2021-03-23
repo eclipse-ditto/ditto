@@ -111,4 +111,15 @@ public interface Adapter<T extends Jsonifiable<?>> {
     default boolean requiresSubject() {
         return false;
     }
+
+    /**
+     * Retrieve whether this adapter requires a wildcard topic or not.
+     * Only relevant to distinguish between ThingQueryCommandAdapter and RetrieveThingsCommandAdapter and their
+     * Response adapter.
+     *
+     * @return whether a subject in the topic is required.
+     */
+    default boolean wildcardTopicRequired() {
+        return false;
+    }
 }

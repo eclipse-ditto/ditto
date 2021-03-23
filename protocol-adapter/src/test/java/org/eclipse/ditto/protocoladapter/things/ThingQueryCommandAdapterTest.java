@@ -12,13 +12,10 @@
  */
 package org.eclipse.ditto.protocoladapter.things;
 
-import java.util.Arrays;
-import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nonnull;
 
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -34,7 +31,6 @@ import org.eclipse.ditto.protocoladapter.ProtocolAdapterTest;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TestConstants;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.protocoladapter.TopicPathBuilder;
 import org.eclipse.ditto.protocoladapter.UnknownCommandException;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributes;
@@ -47,7 +43,6 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatures;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingDefinition;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.junit.Before;
 import org.junit.Test;
@@ -648,90 +643,6 @@ public final class ThingQueryCommandAdapterTest extends LiveTwinTest implements 
                 RetrieveFeatureDesiredProperty.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
                         TestConstants.FEATURE_DESIRED_PROPERTY_POINTER, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveFeatureDesiredProperty, channel);
-
-        assertWithExternalHeadersThat(actual).isEqualTo(expected);
-    }
-
-    @Test
-    public void retrieveThingsFromAdaptableWithSpecificNamespace() {
-        retrieveThingsFromAdaptable("org.eclipse.ditto.example");
-    }
-
-    @Test
-    public void retrieveThingsFromAdaptableWithWildcardNamespace() {
-        retrieveThingsFromAdaptable(null);
-    }
-
-    private void retrieveThingsFromAdaptable(final String namespace) {
-        final String namespaceOfThings = "org.eclipse.ditto.example";
-        final ThingId id1 = ThingId.of(namespaceOfThings, "id1");
-        final ThingId id2 = ThingId.of(namespaceOfThings, "id2");
-        final RetrieveThings expected =
-                RetrieveThings.getBuilder(
-                        Arrays.asList(id1, id2))
-                        .dittoHeaders(TestConstants.DITTO_HEADERS_V_2)
-                        .namespace(namespace)
-                        .build();
-        final TopicPath topicPath = TopicPath.fromNamespace(Optional.ofNullable(namespace).orElse("_"))
-                .twin()
-                .commands()
-                .retrieve()
-                .build();
-
-        final JsonPointer path = JsonPointer.empty();
-
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
-                .withPayload(Payload.newBuilder(path)
-                        .withValue(JsonFactory.newObject()
-                                .setValue("thingIds", JsonFactory.newArray()
-                                        .add("org.eclipse.ditto.example:id1")
-                                        .add("org.eclipse.ditto.example:id2"))).build())
-                .withHeaders(TestConstants.HEADERS_V_2)
-                .build();
-
-        final ThingQueryCommand<?> actual = underTest.fromAdaptable(adaptable);
-
-        assertWithExternalHeadersThat(actual).isEqualTo(expected);
-    }
-
-    @Test
-    public void retrieveThingsToAdaptable() {
-        retrieveThingsToAdaptableWith("org.eclipse.ditto.example");
-    }
-
-    @Test
-    public void retrieveThingsToAdaptableWithWildcardNamespace() {
-        retrieveThingsToAdaptableWith(null);
-    }
-
-    private void retrieveThingsToAdaptableWith(final String namespace) {
-        final TopicPathBuilder topicPathBuilder = TopicPath.fromNamespace(Optional.ofNullable(namespace).orElse("_"));
-        final TopicPath topicPath =
-                (channel == TopicPath.Channel.LIVE ? topicPathBuilder.live() : topicPathBuilder.twin())
-                        .commands()
-                        .retrieve()
-                        .build();
-        final JsonPointer path = JsonPointer.empty();
-
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
-                .withPayload(Payload.newBuilder(path)
-                        .withValue(JsonFactory.newObject()
-                                .setValue("thingIds", JsonFactory.newArray()
-                                        .add("org.eclipse.ditto.example:id1")
-                                        .add("org.eclipse.ditto.example:id2"))).build())
-                .withHeaders(TestConstants.HEADERS_V_2)
-                .build();
-
-        final String namespaceOfThings = "org.eclipse.ditto.example";
-        final ThingId id1 = ThingId.of(namespaceOfThings, "id1");
-        final ThingId id2 = ThingId.of(namespaceOfThings, "id2");
-
-        final RetrieveThings retrieveThings = RetrieveThings.getBuilder(Arrays.asList(id1, id2))
-                .dittoHeaders(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE)
-                .namespace(namespace)
-                .build();
-
-        final Adaptable actual = underTest.toAdaptable(retrieveThings, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }

@@ -59,11 +59,6 @@ final class ThingQueryCommandMappingStrategies extends AbstractThingMappingStrat
                 .withSelectedFields(selectedFieldsFrom(adaptable))
                 .build());
 
-        mappingStrategies.put(RetrieveThings.TYPE, adaptable -> RetrieveThings.getBuilder(thingsIdsFrom(adaptable))
-                .dittoHeaders(dittoHeadersFrom(adaptable))
-                .namespace(namespaceFrom(adaptable))
-                .selectedFields(selectedFieldsFrom(adaptable)).build());
-
         mappingStrategies.put(RetrieveAttributes.TYPE, adaptable -> RetrieveAttributes.of(thingIdFrom(adaptable),
                 selectedFieldsFrom(adaptable), dittoHeadersFrom(adaptable)));
 
@@ -101,23 +96,6 @@ final class ThingQueryCommandMappingStrategies extends AbstractThingMappingStrat
                         featurePropertyPointerFrom(adaptable), dittoHeadersFrom(adaptable)));
 
         return mappingStrategies;
-    }
-
-    private static List<ThingId> thingsIdsFrom(final Adaptable adaptable) {
-        final JsonArray array = adaptable.getPayload()
-                .getValue()
-                .filter(JsonValue::isObject)
-                .map(JsonValue::asObject)
-                .orElseThrow(() -> new JsonParseException("Adaptable payload was non existing or no JsonObject"))
-                .getValue(RetrieveThings.JSON_THING_IDS)
-                .filter(JsonValue::isArray)
-                .map(JsonValue::asArray)
-                .orElseThrow(() -> new JsonParseException("Could not map 'thingIds' value to expected JsonArray"));
-
-        return array.stream()
-                .map(JsonValue::asString)
-                .map(ThingId::of)
-                .collect(Collectors.toList());
     }
 
 }
