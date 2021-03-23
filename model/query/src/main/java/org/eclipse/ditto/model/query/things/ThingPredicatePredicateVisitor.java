@@ -64,8 +64,9 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
     public Function<String, Predicate<Thing>> visitEq(final Object value) {
         return fieldName ->
                 thing -> getThingField(fieldName, thing)
-                        .map(ThingPredicatePredicateVisitor::mapJsonValueToJava)
-                        .filter(value::equals)
+                        .flatMap(ThingPredicatePredicateVisitor::mapJsonValueToJava)
+                        .map(obj -> (Comparable) obj)
+                        .filter(obj -> compare((Comparable) value, obj) == 0)
                         .isPresent();
     }
 
@@ -73,8 +74,9 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
     public Function<String, Predicate<Thing>> visitNe(final Object value) {
         return fieldName ->
                 thing -> !getThingField(fieldName, thing)
-                        .map(ThingPredicatePredicateVisitor::mapJsonValueToJava)
-                        .filter(value::equals)
+                        .flatMap(ThingPredicatePredicateVisitor::mapJsonValueToJava)
+                        .map(obj -> (Comparable) obj)
+                        .filter(obj -> compare((Comparable) value, obj) == 0)
                         .isPresent();
     }
 
@@ -82,7 +84,7 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
     public Function<String, Predicate<Thing>> visitGe(final Object value) {
         return fieldName ->
                 thing -> getThingField(fieldName, thing)
-                        .map(ThingPredicatePredicateVisitor::mapJsonValueToJava)
+                        .flatMap(ThingPredicatePredicateVisitor::mapJsonValueToJava)
                         .filter(obj -> obj instanceof Comparable && value instanceof Comparable)
                         .map(obj -> (Comparable) obj)
                         .filter(obj -> compare((Comparable) value, obj) >= 0)
@@ -93,7 +95,7 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
     public Function<String, Predicate<Thing>> visitGt(final Object value) {
         return fieldName ->
                 thing -> getThingField(fieldName, thing)
-                        .map(ThingPredicatePredicateVisitor::mapJsonValueToJava)
+                        .flatMap(ThingPredicatePredicateVisitor::mapJsonValueToJava)
                         .filter(obj -> obj instanceof Comparable && value instanceof Comparable)
                         .map(obj -> (Comparable) obj)
                         .filter(obj -> compare((Comparable) value, obj) > 0)
@@ -104,7 +106,7 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
     public Function<String, Predicate<Thing>> visitLe(final Object value) {
         return fieldName ->
                 thing -> getThingField(fieldName, thing)
-                        .map(ThingPredicatePredicateVisitor::mapJsonValueToJava)
+                        .flatMap(ThingPredicatePredicateVisitor::mapJsonValueToJava)
                         .filter(obj -> obj instanceof Comparable && value instanceof Comparable)
                         .map(obj -> (Comparable) obj)
                         .filter(obj -> compare((Comparable) value, obj) <= 0)
@@ -115,7 +117,7 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
     public Function<String, Predicate<Thing>> visitLt(final Object value) {
         return fieldName ->
                 thing -> getThingField(fieldName, thing)
-                        .map(ThingPredicatePredicateVisitor::mapJsonValueToJava)
+                        .flatMap(ThingPredicatePredicateVisitor::mapJsonValueToJava)
                         .filter(obj -> obj instanceof Comparable && value instanceof Comparable)
                         .map(obj -> (Comparable) obj)
                         .filter(obj -> compare((Comparable) value, obj) < 0)
@@ -159,7 +161,7 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
     public Function<String, Predicate<Thing>> visitIn(final List<?> values) {
         return fieldName ->
                 thing -> getThingField(fieldName, thing)
-                        .map(ThingPredicatePredicateVisitor::mapJsonValueToJava)
+                        .flatMap(ThingPredicatePredicateVisitor::mapJsonValueToJava)
                         .filter(values::contains)
                         .isPresent();
     }
@@ -178,27 +180,29 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
         return thing.toJson(p -> true).getValue(fieldName);
     }
 
-    private static Object mapJsonValueToJava(final JsonValue jsonValue) {
-        final Object result;
+    private static Optional<Object> mapJsonValueToJava(final JsonValue jsonValue) {
+        final Optional<Object> result;
 
         if (jsonValue.isString()) {
-            result = jsonValue.asString();
+            result = Optional.of(jsonValue.asString());
         } else if (jsonValue.isBoolean()) {
-            result = jsonValue.asBoolean();
+            result = Optional.of(jsonValue.asBoolean());
         } else if (jsonValue.isNull()) {
-            result = null;
+            result = Optional.empty();
         } else if (jsonValue.isNumber()) {
-            if (jsonValue.isLong()) {
-                result = jsonValue.asLong();
+            if (jsonValue.isInt()) {
+                result = Optional.of(jsonValue.asInt());
+            } else if (jsonValue.isLong()) {
+                result = Optional.of(jsonValue.asLong());
             } else {
-                result = jsonValue.asDouble();
+                result = Optional.of(jsonValue.asDouble());
             }
         } else if (jsonValue.isArray()) {
-            result = null; // filtering arrays is not supported
+            result = Optional.empty(); // filtering arrays is not supported
         } else if (jsonValue.isObject()) {
-            result = null; // filtering objects is not supported
+            result = Optional.empty(); // filtering objects is not supported
         } else {
-            result = null;
+            result = Optional.empty();
         }
 
         return result;
