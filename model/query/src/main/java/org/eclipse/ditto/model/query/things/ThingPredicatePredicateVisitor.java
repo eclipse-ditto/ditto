@@ -162,7 +162,8 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
         return fieldName ->
                 thing -> getThingField(fieldName, thing)
                         .flatMap(ThingPredicatePredicateVisitor::mapJsonValueToJava)
-                        .filter(values::contains)
+                        .map(obj -> (Comparable) obj)
+                        .filter(obj -> values.stream().anyMatch(v -> compare((Comparable) v, obj) == 0))
                         .isPresent();
     }
 
