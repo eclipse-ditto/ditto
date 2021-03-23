@@ -47,15 +47,14 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
     }
 
     /**
-     * Creates a Java {@link Predicate} from a Ditto query {@link org.eclipse.ditto.model.query.criteria.Predicate Predicate}
-     * and its field name.
+     * Creates a Java {@link Predicate} from a Ditto query
+     * {@link org.eclipse.ditto.model.query.criteria.Predicate Predicate} and its field name.
      *
      * @param predicate The Ditto Predicate to generate the Predicate from.
      * @param fieldName Name of the field where the predicate is applied to.
      * @return The created Predicate.
      */
-    public static Predicate<Thing> apply(
-            final org.eclipse.ditto.model.query.criteria.Predicate predicate,
+    public static Predicate<Thing> apply(final org.eclipse.ditto.model.query.criteria.Predicate predicate,
             final String fieldName) {
         return predicate.accept(getInstance()).apply(fieldName);
     }

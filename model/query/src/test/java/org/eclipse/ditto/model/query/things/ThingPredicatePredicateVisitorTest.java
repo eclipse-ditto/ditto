@@ -15,6 +15,7 @@ package org.eclipse.ditto.model.query.things;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -74,6 +75,25 @@ public final class ThingPredicatePredicateVisitorTest {
         // the sut already works on regex Pattern - the translation from "*" to ".*" is done in LikePredicateImpl
         doTest(sut.visitLike("this-is.*"), JsonValue.of("this-is-the-content"))
                 .isTrue();
+    }
+
+    @Test
+    public void nonMatchingStringLike() {
+        // the sut already works on regex Pattern - the translation from "*" to ".*" is done in LikePredicateImpl
+        doTest(sut.visitLike("this-is.*"), JsonValue.of("this-was-the-content"))
+                .isFalse();
+    }
+
+    @Test
+    public void matchingStringIn() {
+        doTest(sut.visitIn(Collections.singletonList("this-is-some-content")), JsonValue.of("this-is-some-content"))
+                .isTrue();
+    }
+
+    @Test
+    public void nonMatchingStringIn() {
+        doTest(sut.visitIn(Collections.singletonList("this-is-some-content")), JsonValue.of("this-is-the-content"))
+                .isFalse();
     }
 
     @Test
@@ -188,9 +208,9 @@ public final class ThingPredicatePredicateVisitorTest {
                 .setAttribute(JsonPointer.of(attributeKey), JsonValue.of(actualValue))
                 .build();
 
-        return assertThat(functionToTest
-                .apply("attributes/" + attributeKey)
+        return assertThat(functionToTest.apply("attributes/" + attributeKey)
                 .test(thing)
         );
     }
+
 }
