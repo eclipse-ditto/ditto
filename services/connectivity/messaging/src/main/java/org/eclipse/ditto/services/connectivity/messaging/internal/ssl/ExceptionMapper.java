@@ -67,7 +67,6 @@ final class ExceptionMapper {
         return new ExceptionMapper(dittoHeaders, privateKeyPath, publicKeyPath, JsonPointer.empty());
     }
 
-
     /**
      * @return an instance of the ExceptionMapper prepared to be used when working with
      * trusted certificates.

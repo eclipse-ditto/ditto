@@ -70,7 +70,7 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
     private final SshClient sshClient;
     private final String sshHost;
     private final int sshPort;
-    private String sshUser = "test";
+    private String sshUser = null;
     private final ServerKeyVerifier serverKeyVerifier;
 
     @Nullable private ClientSession sshSession = null;

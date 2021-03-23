@@ -205,6 +205,9 @@ public final class ConnectionValidator {
         final HostValidator hostValidator = new HostValidator(connectivityConfig, loggingAdapter);
         hostValidator.validateHostname(connection.getHostname(), dittoHeaders);
 
+        // validate ssh tunnel
+        connection.getSshTunnel().ifPresent(tunnel -> SshTunnelValidator.getInstance(dittoHeaders).validate(tunnel));
+
         // protocol specific validations
         final AbstractProtocolValidator spec = specMap.get(connection.getConnectionType());
         if (spec != null) {
