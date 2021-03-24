@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.connectivity.messaging.tunnel;
 
 import java.security.KeyPair;
+import java.util.Collections;
 
 import org.apache.sshd.client.session.ClientSession;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
@@ -24,7 +25,8 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.PublicKeyA
 import akka.event.LoggingAdapter;
 
 /**
- * TODO
+ * Applies configured {@link org.eclipse.ditto.model.connectivity.Credentials} from a connection to the given
+ * {@link org.apache.sshd.client.session.ClientSession}.
  */
 class ClientSessionCredentialsVisitor implements CredentialsVisitor<Void> {
 
@@ -47,16 +49,17 @@ class ClientSessionCredentialsVisitor implements CredentialsVisitor<Void> {
 
     @Override
     public Void usernamePassword(final UserPasswordCredentials credentials) {
-        logger.debug("Adding password identity on session.");
-        clientSession.addPasswordIdentity(credentials.getPassword());
+        logger.debug("Setting password identity on session.");
+        final String password = credentials.getPassword();
+        clientSession.setPasswordIdentityProvider(() -> Collections.singleton(password));
         return null;
     }
 
     @Override
     public Void sshPublicKeyAuthentication(final SshPublicKeyAuthentication credentials) {
-        logger.debug("Adding public key identity on session.");
+        logger.debug("Setting public key identity on session.");
         final KeyPair keyPair = credentials.accept(publicKeyAuthenticationFactory);
-        clientSession.addPublicKeyIdentity(keyPair);
+        clientSession.setKeyIdentityProvider(session -> Collections.singleton(keyPair));
         return null;
     }
 }
