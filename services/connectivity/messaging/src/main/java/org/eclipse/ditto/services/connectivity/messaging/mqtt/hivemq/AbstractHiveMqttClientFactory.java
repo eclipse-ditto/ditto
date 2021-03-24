@@ -17,7 +17,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
@@ -88,9 +87,6 @@ abstract class AbstractHiveMqttClientFactory {
 
         T builder = newBuilder
                 .transportConfig()
-                // TODO configurable?
-                .mqttConnectTimeout(5, TimeUnit.SECONDS)
-                .socketConnectTimeout(2, TimeUnit.SECONDS)
                 .applyTransportConfig()
                 .serverHost(uri.getHost()).serverPort(uri.getPort());
 
