@@ -21,14 +21,18 @@ import org.eclipse.ditto.model.connectivity.SshPublicKeyAuthentication;
 import org.eclipse.ditto.model.connectivity.UserPasswordCredentials;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.PublicKeyAuthenticationFactory;
 
+import akka.event.LoggingAdapter;
+
 /**
  * TODO
  */
 class ClientSessionCredentialsVisitor implements CredentialsVisitor<Void> {
 
     private final CredentialsVisitor<KeyPair> publicKeyAuthenticationFactory;
+    private final LoggingAdapter logger;
 
-    ClientSessionCredentialsVisitor(final ClientSession clientSession) {
+    ClientSessionCredentialsVisitor(final ClientSession clientSession, final LoggingAdapter logger) {
+        this.logger = logger;
         publicKeyAuthenticationFactory = PublicKeyAuthenticationFactory.getInstance();
         this.clientSession = clientSession;
     }
@@ -43,12 +47,14 @@ class ClientSessionCredentialsVisitor implements CredentialsVisitor<Void> {
 
     @Override
     public Void usernamePassword(final UserPasswordCredentials credentials) {
+        logger.debug("Adding password identity on session.");
         clientSession.addPasswordIdentity(credentials.getPassword());
         return null;
     }
 
     @Override
     public Void sshPublicKeyAuthentication(final SshPublicKeyAuthentication credentials) {
+        logger.debug("Adding public key identity on session.");
         final KeyPair keyPair = credentials.accept(publicKeyAuthenticationFactory);
         clientSession.addPublicKeyIdentity(keyPair);
         return null;

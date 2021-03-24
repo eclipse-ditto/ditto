@@ -28,6 +28,7 @@ import org.apache.sshd.client.future.ConnectFuture;
 import org.apache.sshd.client.keyverifier.AcceptAllServerKeyVerifier;
 import org.apache.sshd.client.keyverifier.ServerKeyVerifier;
 import org.apache.sshd.client.session.ClientSession;
+import org.apache.sshd.common.auth.UserAuthMethodFactory;
 import org.apache.sshd.common.future.SshFuture;
 import org.apache.sshd.common.util.net.SshdSocketAddress;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
@@ -71,6 +72,7 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
     private final String sshHost;
     private final int sshPort;
     private String sshUser = null;
+    private String sshUserMethod = null;
     private final ServerKeyVerifier serverKeyVerifier;
 
     @Nullable private ClientSession sshSession = null;
@@ -161,7 +163,7 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
             sshSession.setServerKeyVerifier(serverKeyVerifier);
             connection.getSshTunnel()
                     .map(SshTunnel::getCredentials)
-                    .ifPresent(c -> c.accept(new ClientSessionCredentialsVisitor(sshSession)));
+                    .ifPresent(c -> c.accept(new ClientSessionCredentialsVisitor(sshSession, logger)));
             pipeToSelf(sshSession.auth());
         } else {
             connectionLogger.failure("SSH connection failed: {}", getMessage(connectFuture.getException()));
@@ -296,18 +298,22 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
 
     @Override
     public Void usernamePassword(final UserPasswordCredentials credentials) {
-        this.sshUser = credentials.getUsername();
+        sshUser = credentials.getUsername();
+        sshUserMethod = UserAuthMethodFactory.PASSWORD;
+        logger.debug("Username ({}) for ssh session is '{}'.", sshUserMethod, sshUser);
         return null;
     }
 
     @Override
     public Void sshPublicKeyAuthentication(final SshPublicKeyAuthentication credentials) {
-        this.sshUser = credentials.getUsername();
+        sshUser = credentials.getUsername();
+        sshUserMethod = UserAuthMethodFactory.PUBLIC_KEY;
+        logger.debug("Username ({}) for ssh session is '{}'.", sshUserMethod, sshUser);
         return null;
     }
 
     /**
-     * TODO
+     * TunnelClosed event sent to parent (client actor) to notify about changes to the tunnel state.
      */
     public static final class TunnelStarted {
 
@@ -317,6 +323,9 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
             this.localPort = localPort;
         }
 
+        /**
+         * @return the local port of the ssh tunnel
+         */
         public int getLocalPort() {
             return localPort;
         }
@@ -324,7 +333,7 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
     }
 
     /**
-     * TODO
+     * TunnelClosed event sent to parent (client actor) to notify about changes to the tunnel state.
      */
     public static final class TunnelClosed {
 
@@ -341,10 +350,16 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
             this.reason = null;
         }
 
+        /**
+         * @return the reason why the tunnel was closed
+         */
         public String getMessage() {
             return message;
         }
 
+        /**
+         * @return an optional error why the tunnel was closed
+         */
         @Nullable
         public Throwable getError() {
             return reason;
@@ -360,7 +375,7 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
     }
 
     /**
-     * TODO
+     * Control messages to start/stop tunnels.
      */
     public enum TunnelControl {
         START_TUNNEL,
