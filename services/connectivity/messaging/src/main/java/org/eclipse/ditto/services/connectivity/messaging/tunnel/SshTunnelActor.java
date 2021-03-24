@@ -72,7 +72,7 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
     private final String sshHost;
     private final int sshPort;
     private String sshUser = null;
-    private String sshUserMethod = null;
+    private String sshUserAuthMethod = null;
     private final ServerKeyVerifier serverKeyVerifier;
 
     @Nullable private ClientSession sshSession = null;
@@ -161,6 +161,7 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
             sshSession.addSessionListener(new TunnelSessionListener(getSelf(), logger));
             sshSession.addChannelListener(new TunnelChannelListener(getSelf()));
             sshSession.setServerKeyVerifier(serverKeyVerifier);
+            sshSession.setUserAuthFactoriesNames(sshUserAuthMethod);
             connection.getSshTunnel()
                     .map(SshTunnel::getCredentials)
                     .ifPresent(c -> c.accept(new ClientSessionCredentialsVisitor(sshSession, logger)));
@@ -299,16 +300,16 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
     @Override
     public Void usernamePassword(final UserPasswordCredentials credentials) {
         sshUser = credentials.getUsername();
-        sshUserMethod = UserAuthMethodFactory.PASSWORD;
-        logger.debug("Username ({}) for ssh session is '{}'.", sshUserMethod, sshUser);
+        sshUserAuthMethod = UserAuthMethodFactory.PASSWORD;
+        logger.debug("Username ({}) for ssh session is '{}'.", sshUserAuthMethod, sshUser);
         return null;
     }
 
     @Override
     public Void sshPublicKeyAuthentication(final SshPublicKeyAuthentication credentials) {
         sshUser = credentials.getUsername();
-        sshUserMethod = UserAuthMethodFactory.PUBLIC_KEY;
-        logger.debug("Username ({}) for ssh session is '{}'.", sshUserMethod, sshUser);
+        sshUserAuthMethod = UserAuthMethodFactory.PUBLIC_KEY;
+        logger.debug("Username ({}) for ssh session is '{}'.", sshUserAuthMethod, sshUser);
         return null;
     }
 
