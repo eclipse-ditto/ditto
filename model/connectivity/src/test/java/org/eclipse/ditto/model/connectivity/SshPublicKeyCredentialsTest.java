@@ -21,23 +21,23 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Tests {@link SshPublicKeyAuthentication}.
+ * Tests {@link SshPublicKeyCredentials}.
  */
-public final class SshPublicKeyAuthenticationTest {
+public final class SshPublicKeyCredentialsTest {
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(SshPublicKeyAuthentication.class).verify();
+        EqualsVerifier.forClass(SshPublicKeyCredentials.class).verify();
     }
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(SshPublicKeyAuthentication.class, areImmutable());
+        assertInstancesOf(SshPublicKeyCredentials.class, areImmutable());
     }
 
     @Test
     public void testJsonSerialization() {
-        final Credentials original = SshPublicKeyAuthentication.of("username", "bad public key", "bad private key");
+        final Credentials original = SshPublicKeyCredentials.of("username", "bad public key", "bad private key");
         final Credentials deserialized = Credentials.fromJson(original.toJson());
         assertThat(deserialized).isEqualTo(original);
     }

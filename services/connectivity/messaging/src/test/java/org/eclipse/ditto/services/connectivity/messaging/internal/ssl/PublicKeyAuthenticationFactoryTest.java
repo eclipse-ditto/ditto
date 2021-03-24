@@ -13,7 +13,7 @@
 package org.eclipse.ditto.services.connectivity.messaging.internal.ssl;
 
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
-import org.eclipse.ditto.model.connectivity.SshPublicKeyAuthentication;
+import org.eclipse.ditto.model.connectivity.SshPublicKeyCredentials;
 import org.eclipse.ditto.model.connectivity.UserPasswordCredentials;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.junit.Test;
@@ -32,7 +32,7 @@ public class PublicKeyAuthenticationFactoryTest {
 
     @Test
     public void sshPublicKeyAuthentication() {
-        final SshPublicKeyAuthentication publicKeyAuthentication = SshPublicKeyAuthentication.of("test",
+        final SshPublicKeyCredentials publicKeyAuthentication = SshPublicKeyCredentials.of("test",
                 TestConstants.Certificates.SERVER_PUB, TestConstants.Certificates.SERVER_KEY);
         publicKeyAuthentication.accept(PublicKeyAuthenticationFactory.getInstance());
     }

@@ -26,7 +26,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
  * {@code private key}.
  */
 @Immutable
-public final class SshPublicKeyAuthentication implements Credentials {
+public final class SshPublicKeyCredentials implements Credentials {
 
     /**
      * Credential type name.
@@ -37,15 +37,15 @@ public final class SshPublicKeyAuthentication implements Credentials {
     private final String publicKey;
     private final String privateKey;
 
-    private SshPublicKeyAuthentication(final String username, final String publicKey, final String privateKey) {
+    private SshPublicKeyCredentials(final String username, final String publicKey, final String privateKey) {
         this.username = username;
         this.publicKey = publicKey;
         this.privateKey = privateKey;
     }
 
-    public static SshPublicKeyAuthentication of(final String username, final String publicKey,
+    public static SshPublicKeyCredentials of(final String username, final String publicKey,
             final String privateKey) {
-        return new SshPublicKeyAuthentication(username, publicKey, privateKey);
+        return new SshPublicKeyCredentials(username, publicKey, privateKey);
     }
 
     @Override
@@ -78,7 +78,7 @@ public final class SshPublicKeyAuthentication implements Credentials {
     public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        final SshPublicKeyAuthentication that = (SshPublicKeyAuthentication) o;
+        final SshPublicKeyCredentials that = (SshPublicKeyCredentials) o;
         return username.equals(that.username) && publicKey.equals(that.publicKey) && privateKey.equals(that.privateKey);
     }
 
@@ -92,7 +92,7 @@ public final class SshPublicKeyAuthentication implements Credentials {
         return getClass().getSimpleName() + " [" +
                 "username=" + username +
                 ", publicKey=" + publicKey +
-                ", privateKey=" + privateKey +
+                // private key omitted intentionally
                 "]";
     }
 
@@ -106,11 +106,11 @@ public final class SshPublicKeyAuthentication implements Credentials {
         return jsonObjectBuilder.build();
     }
 
-    static SshPublicKeyAuthentication fromJson(final JsonObject jsonObject) {
+    static SshPublicKeyCredentials fromJson(final JsonObject jsonObject) {
         final String username = jsonObject.getValueOrThrow(JsonFields.USERNAME);
         final String publicKey = jsonObject.getValueOrThrow(JsonFields.PUBLIC_KEY);
         final String privateKey = jsonObject.getValueOrThrow(JsonFields.PRIVATE_KEY);
-        return new SshPublicKeyAuthentication(username, publicKey, privateKey);
+        return new SshPublicKeyCredentials(username, publicKey, privateKey);
     }
 
     /**

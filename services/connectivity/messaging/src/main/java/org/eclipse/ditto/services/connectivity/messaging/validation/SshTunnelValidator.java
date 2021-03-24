@@ -19,7 +19,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.CredentialsVisitor;
-import org.eclipse.ditto.model.connectivity.SshPublicKeyAuthentication;
+import org.eclipse.ditto.model.connectivity.SshPublicKeyCredentials;
 import org.eclipse.ditto.model.connectivity.SshTunnel;
 import org.eclipse.ditto.model.connectivity.UserPasswordCredentials;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.PublicKeyAuthenticationFactory;
@@ -108,7 +108,7 @@ public final class SshTunnelValidator {
         }
 
         @Override
-        public Void sshPublicKeyAuthentication(final SshPublicKeyAuthentication credentials) {
+        public Void sshPublicKeyAuthentication(final SshPublicKeyCredentials credentials) {
             credentials.accept(PublicKeyAuthenticationFactory.getInstance(dittoHeaders));
             return null;
         }

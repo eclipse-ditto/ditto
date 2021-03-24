@@ -21,7 +21,7 @@ import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.model.connectivity.SshPublicKeyAuthentication;
+import org.eclipse.ditto.model.connectivity.SshPublicKeyCredentials;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnavailableException;
 
 /**
@@ -57,13 +57,13 @@ final class ExceptionMapper {
 
     /**
      * @return an instance of the ExceptionMapper prepared to be used when working with
-     * {@link org.eclipse.ditto.model.connectivity.SshPublicKeyAuthentication}.
+     * {@link org.eclipse.ditto.model.connectivity.SshPublicKeyCredentials}.
      */
     static ExceptionMapper forSshPublicKeyCredentials(final DittoHeaders dittoHeaders) {
         final JsonPointer publicKeyPath = Connection.JsonFields.CREDENTIALS.getPointer()
-                .append(SshPublicKeyAuthentication.JsonFields.PUBLIC_KEY.getPointer());
+                .append(SshPublicKeyCredentials.JsonFields.PUBLIC_KEY.getPointer());
         final JsonPointer privateKeyPath = Connection.JsonFields.CREDENTIALS.getPointer()
-                .append(SshPublicKeyAuthentication.JsonFields.PRIVATE_KEY.getPointer());
+                .append(SshPublicKeyCredentials.JsonFields.PRIVATE_KEY.getPointer());
         return new ExceptionMapper(dittoHeaders, privateKeyPath, publicKeyPath, JsonPointer.empty());
     }
 

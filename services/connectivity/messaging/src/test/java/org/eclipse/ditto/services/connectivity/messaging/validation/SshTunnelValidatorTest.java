@@ -19,7 +19,7 @@ import java.util.List;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.SshPublicKeyAuthentication;
+import org.eclipse.ditto.model.connectivity.SshPublicKeyCredentials;
 import org.eclipse.ditto.model.connectivity.SshTunnel;
 import org.eclipse.ditto.model.connectivity.UserPasswordCredentials;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
@@ -73,8 +73,8 @@ public class SshTunnelValidatorTest {
 
     @Test
     public void testValidPublicKeyAuthentication() {
-        final SshPublicKeyAuthentication publicKeyAuthentication =
-                SshPublicKeyAuthentication.of("test", TestConstants.Certificates.SERVER_PUB,
+        final SshPublicKeyCredentials publicKeyAuthentication =
+                SshPublicKeyCredentials.of("test", TestConstants.Certificates.SERVER_PUB,
                         TestConstants.Certificates.SERVER_KEY);
         final SshTunnel publicKeyAuth =
                 ConnectivityModelFactory.newSshTunnelBuilder(VALID_SSH_TUNNEL)
@@ -85,8 +85,8 @@ public class SshTunnelValidatorTest {
 
     @Test
     public void testInvalidPublicKey() {
-        final SshPublicKeyAuthentication publicKeyAuthentication =
-                SshPublicKeyAuthentication.of("test", "dummy",
+        final SshPublicKeyCredentials publicKeyAuthentication =
+                SshPublicKeyCredentials.of("test", "dummy",
                         TestConstants.Certificates.SERVER_KEY);
         final SshTunnel publicKeyAuth =
                 ConnectivityModelFactory.newSshTunnelBuilder(VALID_SSH_TUNNEL)
@@ -97,8 +97,8 @@ public class SshTunnelValidatorTest {
 
     @Test
     public void testInvalidPrivateKey() {
-        final SshPublicKeyAuthentication publicKeyAuthentication =
-                SshPublicKeyAuthentication.of("test", TestConstants.Certificates.SERVER_PUB,
+        final SshPublicKeyCredentials publicKeyAuthentication =
+                SshPublicKeyCredentials.of("test", TestConstants.Certificates.SERVER_PUB,
                         "dummy");
         final SshTunnel publicKeyAuth =
                 ConnectivityModelFactory.newSshTunnelBuilder(VALID_SSH_TUNNEL)

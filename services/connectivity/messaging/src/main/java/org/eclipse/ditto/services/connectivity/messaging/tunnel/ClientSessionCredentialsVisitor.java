@@ -18,7 +18,7 @@ import java.util.Collections;
 import org.apache.sshd.client.session.ClientSession;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.CredentialsVisitor;
-import org.eclipse.ditto.model.connectivity.SshPublicKeyAuthentication;
+import org.eclipse.ditto.model.connectivity.SshPublicKeyCredentials;
 import org.eclipse.ditto.model.connectivity.UserPasswordCredentials;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.PublicKeyAuthenticationFactory;
 
@@ -56,7 +56,7 @@ class ClientSessionCredentialsVisitor implements CredentialsVisitor<Void> {
     }
 
     @Override
-    public Void sshPublicKeyAuthentication(final SshPublicKeyAuthentication credentials) {
+    public Void sshPublicKeyAuthentication(final SshPublicKeyCredentials credentials) {
         logger.debug("Setting public key identity on session.");
         final KeyPair keyPair = credentials.accept(publicKeyAuthenticationFactory);
         clientSession.setKeyIdentityProvider(session -> Collections.singleton(keyPair));

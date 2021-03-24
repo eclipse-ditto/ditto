@@ -19,7 +19,7 @@ import java.security.PublicKey;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.CredentialsVisitor;
-import org.eclipse.ditto.model.connectivity.SshPublicKeyAuthentication;
+import org.eclipse.ditto.model.connectivity.SshPublicKeyCredentials;
 import org.eclipse.ditto.model.connectivity.UserPasswordCredentials;
 
 /**
@@ -59,7 +59,7 @@ public final class PublicKeyAuthenticationFactory implements CredentialsVisitor<
     }
 
     @Override
-    public KeyPair sshPublicKeyAuthentication(final SshPublicKeyAuthentication credentials) {
+    public KeyPair sshPublicKeyAuthentication(final SshPublicKeyCredentials credentials) {
         final PrivateKey clientPrivateKey = Keys.getPrivateKey(credentials.getPrivateKey(), exceptionMapper);
         final PublicKey clientPublicKey = Keys.getPublicKey(credentials.getPublicKey(), exceptionMapper);
         return new KeyPair(clientPublicKey, clientPrivateKey);

@@ -23,7 +23,7 @@ import javax.net.ssl.KeyManagerFactory;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.CredentialsVisitor;
-import org.eclipse.ditto.model.connectivity.SshPublicKeyAuthentication;
+import org.eclipse.ditto.model.connectivity.SshPublicKeyCredentials;
 import org.eclipse.ditto.model.connectivity.UserPasswordCredentials;
 
 /**
@@ -98,7 +98,7 @@ public final class KeyManagerFactoryFactory implements CredentialsVisitor<KeyMan
     }
 
     @Override
-    public KeyManagerFactory sshPublicKeyAuthentication(final SshPublicKeyAuthentication credentials) {
+    public KeyManagerFactory sshPublicKeyAuthentication(final SshPublicKeyCredentials credentials) {
         throw new UnsupportedOperationException(
                 "Key pair authentication is not supported on certificate credentials authentication");
     }

@@ -41,5 +41,5 @@ public interface CredentialsVisitor<T> {
      * @param credentials the SshPublicKeyAuthentication credentials.
      * @return evaluation result.
      */
-    T sshPublicKeyAuthentication(SshPublicKeyAuthentication credentials);
+    T sshPublicKeyAuthentication(SshPublicKeyCredentials credentials);
 }

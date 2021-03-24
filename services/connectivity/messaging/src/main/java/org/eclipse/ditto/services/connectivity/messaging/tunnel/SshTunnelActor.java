@@ -37,7 +37,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.CredentialsVisitor;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
-import org.eclipse.ditto.model.connectivity.SshPublicKeyAuthentication;
+import org.eclipse.ditto.model.connectivity.SshPublicKeyCredentials;
 import org.eclipse.ditto.model.connectivity.SshTunnel;
 import org.eclipse.ditto.model.connectivity.UserPasswordCredentials;
 import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
@@ -306,7 +306,7 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
     }
 
     @Override
-    public Void sshPublicKeyAuthentication(final SshPublicKeyAuthentication credentials) {
+    public Void sshPublicKeyAuthentication(final SshPublicKeyCredentials credentials) {
         sshUser = credentials.getUsername();
         sshUserAuthMethod = UserAuthMethodFactory.PUBLIC_KEY;
         logger.debug("Username ({}) for ssh session is '{}'.", sshUserAuthMethod, sshUser);
