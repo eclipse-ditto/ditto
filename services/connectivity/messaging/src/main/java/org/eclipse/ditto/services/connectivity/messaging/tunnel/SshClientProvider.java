@@ -16,6 +16,7 @@ import java.util.concurrent.CompletableFuture;
 
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.common.PropertyResolverUtils;
+import org.apache.sshd.common.auth.UserAuthMethodFactory;
 import org.apache.sshd.common.session.SessionHeartbeatController;
 import org.apache.sshd.core.CoreModuleProperties;
 import org.apache.sshd.server.config.AllowTcpForwardingValue;
@@ -64,11 +65,14 @@ public final class SshClientProvider implements Extension {
         sshClient = SshClient.setUpDefaultClient();
         // allow only local port forwarding
         sshClient.setForwardingFilter(FORWARDING_FILTER);
+        // allow only public-key and password authentication
+        sshClient.setUserAuthFactoriesNames(UserAuthMethodFactory.PUBLIC_KEY, UserAuthMethodFactory.PASSWORD);
 
         final long idleTimeoutMs = tunnelConfig.getIdleTimeout().toMillis();
         PropertyResolverUtils.updateProperty(sshClient, CoreModuleProperties.IDLE_TIMEOUT.getName(), idleTimeoutMs);
         LOGGER.debug("Configuring socket keepalive for ssh client: {}", tunnelConfig.getSocketKeepAlive());
-        PropertyResolverUtils.updateProperty(sshClient, CoreModuleProperties.SOCKET_KEEPALIVE.getName(), tunnelConfig.getSocketKeepAlive());
+        PropertyResolverUtils.updateProperty(sshClient, CoreModuleProperties.SOCKET_KEEPALIVE.getName(),
+                tunnelConfig.getSocketKeepAlive());
 
         // TODO add more configuration?
         if (tunnelConfig.getWorkers() > 0) {
