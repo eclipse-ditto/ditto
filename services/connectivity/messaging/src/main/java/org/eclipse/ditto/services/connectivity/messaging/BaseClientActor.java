@@ -1700,7 +1700,12 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         }
         final Throwable cause = throwable.getCause();
         if (cause == null || cause.equals(throwable)) {
-            return "Cause: " + throwable.getMessage();
+            final String message =
+                    throwable.getMessage() != null
+                            ? throwable.getMessage()
+                            // if message is null, provide at least the exception class name
+                            : throwable.getClass().getName();
+            return "Cause: " + message;
         } else {
             return describeEventualCause(cause);
         }
