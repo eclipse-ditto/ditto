@@ -74,7 +74,6 @@ public final class SshClientProvider implements Extension {
         PropertyResolverUtils.updateProperty(sshClient, CoreModuleProperties.SOCKET_KEEPALIVE.getName(),
                 tunnelConfig.getSocketKeepAlive());
 
-        // TODO add more configuration?
         if (tunnelConfig.getWorkers() > 0) {
             LOGGER.debug("Configuring nio workers for ssh client: {}", tunnelConfig.getWorkers());
             sshClient.setNioWorkers(tunnelConfig.getWorkers());

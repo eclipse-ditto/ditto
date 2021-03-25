@@ -56,7 +56,10 @@ import akka.event.LoggingAdapter;
 import akka.pattern.Patterns;
 
 /**
- * TODO DG
+ * Establishes an SSH tunnel using to the data from the given connection. The tunnel can be started/stopped with the
+ * respective {@code TunnelControl} messages. The random local port of the ssh tunnel is sent to the parent actor (client actor)
+ * with a {@code TunnelStarted} message. Any error that occurs is propagated to the parent actor via a {@code
+ * TunnelClosed} message.
  */
 public final class SshTunnelActor extends AbstractActorWithTimers implements CredentialsVisitor<Void> {
 
@@ -71,14 +74,16 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
     private final SshClient sshClient;
     private final String sshHost;
     private final int sshPort;
-    private String sshUser = null;
-    private String sshUserAuthMethod = null;
     private final ServerKeyVerifier serverKeyVerifier;
+    private Instant inStateSince = Instant.EPOCH;
+
+    @Nullable private String sshUser = null;
+    @Nullable private String sshUserAuthMethod = null;
 
     @Nullable private ClientSession sshSession = null;
+
     // holds the first error that occurred
     @Nullable Throwable error = null;
-    private Instant inStateSince = Instant.EPOCH;
 
     private SshTunnelActor(final Connection connection) {
         logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
@@ -197,20 +202,6 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
     }
 
     private void handleTunnelClosed(final TunnelClosed tunnelClosed) {
-
-        logger.info("Received tunnel closed. ");
-
-        if (sshSession != null) {
-            logger.info("Tunnel is connected {}", sshSession.isOpen());
-            logger.info("Session state {}", sshSession.getSessionState());
-            logger.info("StartedLocalPortForwards {}", sshSession.getStartedLocalPortForwards());
-
-            if (sshSession.isOpen() && !sshSession.getStartedLocalPortForwards().isEmpty()) {
-                logger.info("!!! do not report !!!");
-            }
-
-        }
-
         if (tunnelClosed.getError() != null) {
             connectionLogger.failure("SSH Tunnel failed: ", getMessage(tunnelClosed.getError()));
         } else {
