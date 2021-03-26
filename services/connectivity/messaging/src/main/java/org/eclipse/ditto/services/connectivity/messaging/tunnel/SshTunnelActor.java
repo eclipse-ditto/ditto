@@ -172,7 +172,7 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
                     .ifPresent(c -> c.accept(new ClientSessionCredentialsVisitor(sshSession, logger)));
             pipeToSelf(sshSession.auth());
         } else {
-            connectionLogger.failure("SSH connection failed: {}", getMessage(connectFuture.getException()));
+            connectionLogger.failure("SSH connection failed: {0}", getMessage(connectFuture.getException()));
             notifyParentAndCleanup("Failed to connect to ssh server", connectFuture.getException());
         }
     }
@@ -192,18 +192,18 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
                 final TunnelStarted tunnelStarted = new TunnelStarted(localAddress.getPort());
                 getContext().getParent().tell(tunnelStarted, getSelf());
             } catch (final Exception ioException) {
-                connectionLogger.failure("SSH session authentication failed: {}", getMessage(ioException));
+                connectionLogger.failure("SSH session authentication failed: {0}", getMessage(ioException));
                 notifyParentAndCleanup("Failed to start local port forwarding", ioException);
             }
         } else {
-            connectionLogger.failure("SSH session authentication failed: {}", getMessage(authFuture.getException()));
+            connectionLogger.failure("SSH session authentication failed: {0}", getMessage(authFuture.getException()));
             notifyParentAndCleanup("Failed to authenticate at SSH server.", authFuture.getException());
         }
     }
 
     private void handleTunnelClosed(final TunnelClosed tunnelClosed) {
         if (tunnelClosed.getError() != null) {
-            connectionLogger.failure("SSH Tunnel failed: ", getMessage(tunnelClosed.getError()));
+            connectionLogger.failure("SSH Tunnel failed: {0}", getMessage(tunnelClosed.getError()));
         } else {
             connectionLogger.success("SSH Tunnel closed.");
         }

@@ -543,7 +543,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
             final String consumingQueueByTag = consumedTagsToAddresses.get(consumerTag);
             if (null != consumingQueueByTag) {
                 connectionLogger.failure(
-                        "Consumer with queue <{}> shutdown as the channel or the underlying connection has " +
+                        "Consumer with queue <{0}> shutdown as the channel or the underlying connection has " +
                                 "been shut down.", consumingQueueByTag);
                 logger.warning("Consumer with queue <{}> shutdown as the channel or the underlying connection has " +
                         "been shut down on connection <{}>.", consumingQueueByTag, connectionId());

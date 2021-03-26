@@ -1527,7 +1527,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     logger);
             outboundMappingProcessor = OutboundMappingProcessor.of(settings);
         } catch (final DittoRuntimeException dre) {
-            connectionLogger.failure("Failed to start message mapping processor due to: {}.", dre.getMessage());
+            connectionLogger.failure("Failed to start message mapping processor due to: {0}.", dre.getMessage());
             logger.info("Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
                     dre.getClass().getSimpleName(), dre.getMessage(), dre.getDescription().orElse(""));
             throw dre;
@@ -1593,7 +1593,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     protocolAdapter,
                     logger);
         } catch (final DittoRuntimeException dre) {
-            connectionLogger.failure("Failed to start message mapping processor due to: {}.", dre.getMessage());
+            connectionLogger.failure("Failed to start message mapping processor due to: {0}.", dre.getMessage());
             logger.info("Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
                     dre.getClass().getSimpleName(), dre.getMessage(), dre.getDescription().orElse(""));
             throw dre;
