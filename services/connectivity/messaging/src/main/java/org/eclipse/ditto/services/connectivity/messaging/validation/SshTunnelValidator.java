@@ -27,7 +27,7 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.PublicKeyA
 /**
  * Validates the ssh tunnel configuration of a connection.
  */
-public final class SshTunnelValidator {
+final class SshTunnelValidator {
 
     private static final String SSH_SCHEME = "ssh";
     private final DittoHeaders dittoHeaders;

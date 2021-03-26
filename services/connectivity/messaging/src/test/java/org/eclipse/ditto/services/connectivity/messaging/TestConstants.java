@@ -718,6 +718,14 @@ public final class TestConstants {
                 "}";
     }
 
+    public static final class Tunnel {
+
+        public static final SshTunnel VALID_SSH_TUNNEL =
+                ConnectivityModelFactory.newSshTunnel(true, UserPasswordCredentials.newInstance("username", "password"),
+                        true, List.of("MD5:11:22:33:44:55"), "ssh://host:2222");
+
+    }
+
     public static final String MODIFY_THING_WITH_ACK =
             "{\"topic\":\"ditto/thing/things/twin/commands/modify\"," +
                     "\"headers\":{\"content-type\":\"application/vnd.eclipse.ditto+json\"," +
@@ -805,7 +813,11 @@ public final class TestConstants {
     }
 
     public static Connection createConnection(final String uri) {
-        return ConnectivityModelFactory.newConnectionBuilder(createRandomConnectionId(), TYPE,
+        return createConnection(uri, TYPE);
+    }
+
+    public static Connection createConnection(final String uri, final ConnectionType connectionType) {
+        return ConnectivityModelFactory.newConnectionBuilder(createRandomConnectionId(), connectionType,
                 ConnectivityStatus.OPEN, uri)
                 .sources(Sources.SOURCES_WITH_AUTH_CONTEXT)
                 .targets(Targets.TARGETS)
@@ -837,17 +849,33 @@ public final class TestConstants {
     }
 
     public static Connection createConnection(final ConnectionId connectionId) {
-        return createConnection(connectionId, Sources.SOURCES_WITH_AUTH_CONTEXT);
+        return createConnection(connectionId, TYPE, Sources.SOURCES_WITH_AUTH_CONTEXT);
+    }
+
+    public static Connection createConnection(final ConnectionId connectionId, final ConnectionType connectionType) {
+        return createConnection(connectionId, connectionType, Sources.SOURCES_WITH_AUTH_CONTEXT);
     }
 
     public static Connection createConnection(final ConnectionId connectionId, final List<Source> sources) {
-        return createConnection(connectionId, STATUS, sources);
+        return createConnection(connectionId, TYPE, STATUS, sources);
+    }
+
+    public static Connection createConnection(final ConnectionId connectionId, final ConnectionType connectionType,
+            final List<Source> sources) {
+        return createConnection(connectionId, connectionType, STATUS, sources);
     }
 
     public static Connection createConnection(final ConnectionId connectionId, final ConnectivityStatus status,
             final List<Source> sources) {
+        return createConnection(connectionId, TYPE, status, sources);
+    }
 
-        return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, status, getUriOfNewMockServer())
+    public static Connection createConnection(final ConnectionId connectionId, final ConnectionType connectionType,
+            final ConnectivityStatus status,
+            final List<Source> sources) {
+
+        return ConnectivityModelFactory.newConnectionBuilder(connectionId, connectionType, status,
+                getUriOfNewMockServer())
                 .sources(sources)
                 .targets(Targets.TARGETS)
                 .lifecycle(ConnectionLifecycle.ACTIVE)

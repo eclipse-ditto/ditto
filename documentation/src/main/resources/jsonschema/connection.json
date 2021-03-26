@@ -552,7 +552,7 @@
             "$id": "/properties/sshTunnel/properties/validateHost",
             "type": "boolean",
             "title": "Whether the SSH host is verified.",
-            "description": "This flag controls whether Ditto verifies the SSH host used for tunneling by chacking the public key provided by the host against the given public key fingerprints."
+            "description": "This flag controls whether Ditto verifies the SSH host used for tunneling by checking the public key provided by the host against the given public key fingerprints."
           },
           "knownHosts": {
             "$id": "/properties/sshTunnel/properties/knownHosts",

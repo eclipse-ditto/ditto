@@ -13,8 +13,7 @@
 package org.eclipse.ditto.services.connectivity.messaging.validation;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-
-import java.util.List;
+import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Tunnel.VALID_SSH_TUNNEL;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
@@ -30,9 +29,7 @@ import org.junit.Test;
  */
 public class SshTunnelValidatorTest {
 
-    private static final SshTunnel VALID_SSH_TUNNEL =
-            ConnectivityModelFactory.newSshTunnel(true, UserPasswordCredentials.newInstance("username", "password"),
-                    true, List.of("MD5:11:22:33:44:55"), "ssh://host:2222");
+
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder().randomCorrelationId().build();
     private static final SshTunnelValidator VALIDATOR = SshTunnelValidator.getInstance(DITTO_HEADERS);
 
