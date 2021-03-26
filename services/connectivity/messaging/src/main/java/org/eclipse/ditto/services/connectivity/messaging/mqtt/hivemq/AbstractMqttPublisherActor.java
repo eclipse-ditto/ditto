@@ -22,20 +22,21 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
+import org.eclipse.ditto.services.connectivity.messaging.ProbeResponse;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.AbstractMqttValidator;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttPublishTarget;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.base.WithEntityId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.base.WithHttpStatus;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 
@@ -51,7 +52,6 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
 
     // for target the default is qos=0 because we have qos=0 all over the akka cluster
     private static final int DEFAULT_TARGET_QOS = 0;
-    private static final AcknowledgementLabel NO_ACK_LABEL = AcknowledgementLabel.of("ditto-mqtt-diagnostic");
 
     private final Function<P, CompletableFuture<R>> client;
     private final boolean dryRun;
@@ -100,21 +100,18 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
      * @param result the result of the PUBLISH message according to the broker as encapsulated by the client.
      * @return the acknowledgement.
      */
-    protected Acknowledgement toAcknowledgement(final Signal<?> signal, @Nullable final Target target, final R result) {
+    protected WithHttpStatus buildResponse(final Signal<?> signal, @Nullable final Target target,
+    final R result) {
 
-        // acks for non-thing-signals are for local diagnostics only, therefore it is safe to fix entity type to Thing.
-        final EntityIdWithType entityIdWithType = signal instanceof WithEntityId
-                ? ThingId.of(((WithEntityId) signal).getEntityId())
-                : ThingId.dummy();
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
-        final AcknowledgementLabel label = getAcknowledgementLabel(target).orElse(NO_ACK_LABEL);
+        final Optional<AcknowledgementLabel> autoAckLabel = getAcknowledgementLabel(target);
 
-        return Acknowledgement.of(label, entityIdWithType, HttpStatus.OK, dittoHeaders);
-    }
-
-    @Override
-    protected boolean shouldPublishAcknowledgement(final Acknowledgement acknowledgement) {
-        return !NO_ACK_LABEL.equals(acknowledgement.getLabel());
+        if (autoAckLabel.isPresent() && signal instanceof WithThingId) {
+            final ThingId thingId = ((WithThingId) signal).getThingEntityId();
+            return Acknowledgement.of(autoAckLabel.get(), thingId, HttpStatus.OK, dittoHeaders);
+        } else {
+            return new ProbeResponse(HttpStatus.OK, dittoHeaders);
+        }
     }
 
     @Override
@@ -135,7 +132,7 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
     }
 
     @Override
-    protected CompletionStage<CommandResponse<?>> publishMessage(final Signal<?> signal,
+    protected CompletionStage<WithHttpStatus> publishMessage(final Signal<?> signal,
             @Nullable final Target autoAckTarget,
             final MqttPublishTarget publishTarget,
             final ExternalMessage message,
@@ -150,7 +147,7 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
                         .debug("Publishing MQTT message to topic <{}>: {}", getTopic(mqttMessage),
                                 decodeAsHumanReadable(getPayload(mqttMessage).orElse(null), message));
             }
-            return client.apply(mqttMessage).thenApply(result -> toAcknowledgement(signal, autoAckTarget, result));
+            return client.apply(mqttMessage).thenApply(result -> buildResponse(signal, autoAckTarget, result));
         } catch (final Exception e) {
             return CompletableFuture.failedFuture(e);
         }

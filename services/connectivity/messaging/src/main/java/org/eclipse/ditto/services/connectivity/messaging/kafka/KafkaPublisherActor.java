@@ -34,19 +34,20 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.ExceptionToAcknowledgementConverter;
+import org.eclipse.ditto.services.connectivity.messaging.ProbeResponse;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.base.SignalWithEntityId;
-import org.eclipse.ditto.signals.base.WithEntityId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.base.WithHttpStatus;
 
 import akka.Done;
 import akka.actor.Props;
@@ -59,8 +60,6 @@ import akka.util.ByteString;
  * broker.
  */
 final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
-
-    private static final AcknowledgementLabel NO_ACK_LABEL = AcknowledgementLabel.of("ditto-kafka-diagnostic");
 
     static final String ACTOR_NAME = "kafkaPublisher";
 
@@ -116,11 +115,6 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     }
 
     @Override
-    protected boolean shouldPublishAcknowledgement(final Acknowledgement acknowledgement) {
-        return !NO_ACK_LABEL.equals(acknowledgement.getLabel());
-    }
-
-    @Override
     protected void postEnhancement(final ReceiveBuilder receiveBuilder) {
         // noop
     }
@@ -131,7 +125,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     }
 
     @Override
-    protected CompletionStage<CommandResponse<?>> publishMessage(final Signal<?> signal,
+    protected CompletionStage<WithHttpStatus> publishMessage(final Signal<?> signal,
             @Nullable final Target autoAckTarget,
             final KafkaPublishTarget publishTarget,
             final ExternalMessage message,
@@ -149,8 +143,8 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             final ExternalMessage messageWithConnectionIdHeader = message
                     .withHeader("ditto-connection-id", connection.getId().toString());
             final ProducerRecord<String, String> record = producerRecord(publishTarget, messageWithConnectionIdHeader);
-            final CompletableFuture<CommandResponse<?>> resultFuture = new CompletableFuture<>();
-            final AcknowledgementLabel autoAckLabel = getAcknowledgementLabel(autoAckTarget).orElse(NO_ACK_LABEL);
+            final CompletableFuture<WithHttpStatus> resultFuture = new CompletableFuture<>();
+            @Nullable final AcknowledgementLabel autoAckLabel = getAcknowledgementLabel(autoAckTarget).orElse(null);
             final Callback callBack = new ProducerCallBack(signal, autoAckLabel, ackSizeQuota, resultFuture,
                     this::escalateIfNotRetryable, connection);
             producer.send(record, callBack);
@@ -253,17 +247,17 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     private static final class ProducerCallBack implements Callback {
 
         private final Signal<?> signal;
-        private final AcknowledgementLabel autoAckLabel;
         private final int ackSizeQuota;
-        private final CompletableFuture<CommandResponse<?>> resultFuture;
+        private final CompletableFuture<WithHttpStatus> resultFuture;
         private final Consumer<Exception> checkException;
         private int currentQuota;
         private final Connection connection;
+        @Nullable private final AcknowledgementLabel autoAckLabel;
 
         private ProducerCallBack(final Signal<?> signal,
-                final AcknowledgementLabel autoAckLabel,
+                @Nullable final AcknowledgementLabel autoAckLabel,
                 final int ackSizeQuota,
-                final CompletableFuture<CommandResponse<?>> resultFuture,
+                final CompletableFuture<WithHttpStatus> resultFuture,
                 final Consumer<Exception> checkException,
                 final Connection connection) {
 
@@ -281,21 +275,24 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                 resultFuture.completeExceptionally(exception);
                 checkException.accept(exception);
             } else {
-                resultFuture.complete(ackFromMetadata(metadata));
+                resultFuture.complete(buildResponseFromMetadata(metadata));
             }
         }
 
-        private Acknowledgement ackFromMetadata(@Nullable final RecordMetadata metadata) {
-            // acks for non-thing-signals are for local diagnostics only, therefore it is safe to fix entity type to Thing.
-            final ThingId id = signal instanceof WithEntityId
-                    ? ThingId.of(((WithEntityId) signal).getEntityId())
-                    : ThingId.dummy();
+        private WithHttpStatus buildResponseFromMetadata(@Nullable final RecordMetadata metadata) {
+            final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+            boolean verbose = isDebugEnabled() && metadata != null;
+            final JsonObject ackPayload = verbose ? toPayload(metadata) : null;
+            final HttpStatus httpStatus = verbose ? HttpStatus.OK : HttpStatus.NO_CONTENT;
 
-            if (metadata == null || !isDebugEnabled()) {
-                return Acknowledgement.of(autoAckLabel, id, HttpStatus.NO_CONTENT, signal.getDittoHeaders());
+            if (signal instanceof WithThingId && null != autoAckLabel) {
+                return Acknowledgement.of(autoAckLabel,
+                        ((WithThingId) signal).getThingEntityId(),
+                        httpStatus,
+                        dittoHeaders,
+                        ackPayload);
             } else {
-                return Acknowledgement.of(autoAckLabel, id, HttpStatus.OK, signal.getDittoHeaders(),
-                        toPayload(metadata));
+                return new ProbeResponse(httpStatus, dittoHeaders);
             }
         }
 

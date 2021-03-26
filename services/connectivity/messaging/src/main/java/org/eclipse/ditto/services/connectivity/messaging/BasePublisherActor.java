@@ -76,6 +76,7 @@ import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.base.WithHttpStatus;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
@@ -191,10 +192,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     final Collection<CommandResponse<?>> nonAcknowledgements = new ArrayList<>();
                     responsesList.forEach(response -> {
                         if (response instanceof Acknowledgement) {
-                            final Acknowledgement acknowledgement = (Acknowledgement) response;
-                            if (shouldPublishAcknowledgement(acknowledgement)) {
-                                acknowledgements.add(acknowledgement);
-                            }
+                            acknowledgements.add((Acknowledgement) response);
                         } else {
                             nonAcknowledgements.add(response);
                         }
@@ -209,8 +207,6 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     return null;
                 });
     }
-
-    protected abstract boolean shouldPublishAcknowledgement(final Acknowledgement acknowledgement);
 
     private void issueAcknowledgements(final OutboundSignal.MultiMapped multiMapped, @Nullable final ActorRef sender,
             final Collection<Acknowledgement> ackList) {
@@ -419,7 +415,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             @Nullable final Target autoAckTarget = sendingContext.getAutoAckTarget().orElse(null);
             final HeaderMapping headerMapping = genericTarget.getHeaderMapping().orElse(null);
             final ExternalMessage mappedMessage = applyHeaderMapping(resolver, outbound, headerMapping);
-            final CompletionStage<CommandResponse<?>> responsesFuture = publishMessage(outboundSource,
+            final CompletionStage<WithHttpStatus> responsesFuture = publishMessage(outboundSource,
                     autoAckTarget,
                     publishTarget,
                     mappedMessage,
@@ -481,7 +477,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * @return future of command responses (acknowledgements and potentially responses to live commands / live messages)
      * to reply to sender, or future of null if ackSizeQuota is 0.
      */
-    protected abstract CompletionStage<CommandResponse<?>> publishMessage(Signal<?> signal,
+    protected abstract CompletionStage<WithHttpStatus> publishMessage(Signal<?> signal,
             @Nullable Target autoAckTarget,
             T publishTarget,
             ExternalMessage message,

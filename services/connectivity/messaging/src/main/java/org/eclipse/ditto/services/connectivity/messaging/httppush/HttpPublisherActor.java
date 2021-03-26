@@ -31,13 +31,10 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.HttpStatusCodeOutOfRangeException;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -46,11 +43,13 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageHeadersBuilder;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.connectivity.config.HttpPushConfig;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
+import org.eclipse.ditto.services.connectivity.messaging.ProbeResponse;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
@@ -62,6 +61,7 @@ import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithEntityId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.base.WithHttpStatus;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
@@ -110,7 +110,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     private static final long READ_BODY_TIMEOUT_MS = 10000L;
 
-    private static final AcknowledgementLabel NO_ACK_LABEL = AcknowledgementLabel.of("ditto-http-diagnostic");
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
     private static final String LIVE_RESPONSE_NOT_OF_EXPECTED_TYPE =
             "Live response of type <%s> is not of expected type <%s>.";
@@ -176,11 +175,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     @Override
-    protected boolean shouldPublishAcknowledgement(final Acknowledgement acknowledgement) {
-        return !NO_ACK_LABEL.equals(acknowledgement.getLabel());
-    }
-
-    @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
         // noop
     }
@@ -196,14 +190,14 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     @Override
-    protected CompletionStage<CommandResponse<?>> publishMessage(final Signal<?> signal,
+    protected CompletionStage<WithHttpStatus> publishMessage(final Signal<?> signal,
             @Nullable final Target autoAckTarget,
             final HttpPublishTarget publishTarget,
             final ExternalMessage message,
             final int maxTotalMessageSize,
             final int ackSizeQuota) {
 
-        final CompletableFuture<CommandResponse<?>> resultFuture = new CompletableFuture<>();
+        final CompletableFuture<WithHttpStatus> resultFuture = new CompletableFuture<>();
         final HttpRequest request = createRequest(publishTarget, message);
         final HttpPushContext context = newContext(signal, autoAckTarget, request, message, maxTotalMessageSize,
                 ackSizeQuota, resultFuture);
@@ -273,7 +267,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             final ExternalMessage message,
             final int maxTotalMessageSize,
             final int ackSizeQuota,
-            final CompletableFuture<CommandResponse<?>> resultFuture) {
+            final CompletableFuture<WithHttpStatus> resultFuture) {
 
         return tryResponse -> {
             final Uri requestUri = stripUserInfo(request.getUri());
@@ -307,17 +301,13 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         };
     }
 
-    private CompletionStage<CommandResponse<?>> toCommandResponseOrAcknowledgement(final Signal<?> signal,
+    private CompletionStage<WithHttpStatus> toCommandResponseOrAcknowledgement(final Signal<?> signal,
             @Nullable final Target autoAckTarget,
             final HttpResponse response,
             final int maxTotalMessageSize,
             final int ackSizeQuota) {
 
-        // acks for non-thing-signals are for local diagnostics only, therefore it is safe to fix entity type to Thing.
-        final EntityIdWithType entityIdWithType = signal instanceof WithEntityId
-                ? ThingId.of(((WithEntityId) signal).getEntityId())
-                : ThingId.dummy();
-        final AcknowledgementLabel label = getAcknowledgementLabel(autoAckTarget).orElse(NO_ACK_LABEL);
+        final var autoAckLabel = getAcknowledgementLabel(autoAckTarget);
 
         final var statusCode = response.status().intValue();
         final HttpStatus httpStatus;
@@ -337,15 +327,25 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         return getResponseBody(response, maxResponseSize, materializer).thenApply(body -> {
             @Nullable final CommandResponse<?> result;
             final DittoHeaders dittoHeaders = setDittoHeaders(signal.getDittoHeaders(), response);
-            if (DittoAcknowledgementLabel.LIVE_RESPONSE.equals(label)) {
-                // Live-Response is declared as issued ack => parse live response from response
-                if (isMessageCommand) {
-                    result = toMessageCommandResponse((MessageCommand<?, ?>) signal, dittoHeaders, body, httpStatus);
-                } else {
-                    result = null;
+
+            if (autoAckLabel.isPresent() && signal instanceof WithThingId) {
+                final ThingId thingId = ((WithThingId) signal).getThingEntityId();
+
+                if (DittoAcknowledgementLabel.LIVE_RESPONSE.equals(autoAckLabel.get())) {
+                    // Live-Response is declared as issued ack => parse live response from response
+                    if (isMessageCommand) {
+                        result = toMessageCommandResponse((MessageCommand<?, ?>) signal, dittoHeaders, body, httpStatus);
+                    } else {
+                        result = null;
+                    }
+                }  else {
+                    // There is an issued ack declared but its not live-response => handle response as acknowledgement.
+                    result = Acknowledgement.of(autoAckLabel.get(), thingId, httpStatus, dittoHeaders, body);
                 }
-            } else if (NO_ACK_LABEL.equals(label)) {
-                // No Acks declared as issued acks => Handle response either as live response or as acknowledgement.
+
+            } else {
+                // No Acks declared as issued acks => Handle response either as live response or as acknowledgement
+                // or as fallback build a response for local diagnostics.
                 final boolean isDittoProtocolMessage = dittoHeaders.getDittoContentType()
                         .filter(org.eclipse.ditto.model.base.headers.contenttype.ContentType::isDittoProtocol)
                         .isPresent();
@@ -356,14 +356,11 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     } else if (parsedResponse instanceof MessageCommandResponse) {
                         result = parsedResponse;
                     } else {
-                        result = Acknowledgement.of(NO_ACK_LABEL, entityIdWithType, httpStatus, dittoHeaders, body);
+                        return new ProbeResponse(httpStatus, dittoHeaders);
                     }
                 } else {
-                    result = Acknowledgement.of(NO_ACK_LABEL, entityIdWithType, httpStatus, dittoHeaders, body);
+                    return new ProbeResponse(httpStatus, dittoHeaders);
                 }
-            } else {
-                // There is an issued ack declared but its not live-response => handle response as acknowledgement.
-                result = Acknowledgement.of(label, entityIdWithType, httpStatus, dittoHeaders, body);
             }
 
             if (result instanceof MessageCommandResponse && isMessageCommand) {
@@ -387,7 +384,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             final MessageCommand<?, ?> messageCommand) {
 
         final ThingId messageThingId = messageCommand.getEntityId();
-        // TODO: <j.bartelheimer> not sure if this case can actually happen
         if (!(commandResponse instanceof WithEntityId)) {
             final String message = String.format(
                     "Live response does not target the correct thing. Expected thing ID <%s>, but no ID found",

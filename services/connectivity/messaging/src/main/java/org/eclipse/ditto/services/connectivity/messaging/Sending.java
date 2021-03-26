@@ -19,6 +19,7 @@ import static org.eclipse.ditto.services.connectivity.messaging.validation.Conne
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -32,24 +33,23 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
-import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.base.WithEntityId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.base.WithHttpStatus;
 
 /**
- * A signal being sent represented by a future acknowledgement or other command response.
+ * A signal being sent represented by a future acknowledgement, command response or probe response
  */
 @NotThreadSafe
 final class Sending implements SendingOrDropped {
 
     private final SendingContext sendingContext;
-    private final CompletionStage<CommandResponse<?>> futureResponse;
+    private final CompletionStage<WithHttpStatus> futureResponse;
     private final ExpressionResolver connectionIdResolver;
     private final ThreadSafeDittoLoggingAdapter logger;
 
@@ -62,7 +62,7 @@ final class Sending implements SendingOrDropped {
      * @param logger the logger to be used for logging.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    Sending(final SendingContext sendingContext, final CompletionStage<CommandResponse<?>> futureResponse,
+    Sending(final SendingContext sendingContext, final CompletionStage<WithHttpStatus> futureResponse,
             final ExpressionResolver connectionIdResolver,
             final ThreadSafeDittoLoggingAdapter logger) {
 
@@ -77,27 +77,34 @@ final class Sending implements SendingOrDropped {
     public Optional<CompletionStage<CommandResponse>> monitorAndAcknowledge(
             final ExceptionToAcknowledgementConverter exceptionConverter) {
 
-        return Optional.of(futureResponse.thenApply(response -> acknowledge(response, exceptionConverter))
-                .handle((response, error) -> {
-                    if (error != null) {
-                        final Acknowledgement errorAck = handleException(getRootCause(error), exceptionConverter);
-                        if (errorAck != null) {
-                            monitorAcknowledgementWitFailedSending(errorAck);
-                        }
-                        return errorAck;
-                    } else {
-                        return this.monitor(response);
-                    }
-                }));
+        return Optional.of(futureResponse.handle((response, error) -> {
+
+            final Optional<WithHttpStatus> ackFromRootCause = Optional.ofNullable(error).map(Sending::getRootCause)
+                    .map(rootException -> convertExceptionToAcknowledgementOrNull(rootException, exceptionConverter));
+            final Optional<WithHttpStatus> ackFromNullResponse =
+                    Optional.ofNullable(acknowledgementFromNullResponse(exceptionConverter, response));
+
+
+            final Optional<WithHttpStatus> responseOrAlternatives = ackFromRootCause
+                    .or(() -> ackFromNullResponse)
+                    .or(() -> Optional.ofNullable(response));
+
+            responseOrAlternatives.ifPresent(commandResponse -> updateAckMonitor(getAckFailure(commandResponse)));
+
+            if (error != null || responseOrAlternatives.isPresent()) {
+                updateSendMonitor(getSentFailure(error, response, ackFromNullResponse.isPresent()));
+            }
+
+            return responseOrAlternatives
+                    .map(CommandResponse.class::cast)
+                    .orElse(null);
+        }));
     }
 
     @Nullable
-    private CommandResponse<?> acknowledge(@Nullable final CommandResponse<?> response,
-            final ExceptionToAcknowledgementConverter exceptionConverter) {
-
-        final CommandResponse<?> result;
+    private CommandResponse<?> acknowledgementFromNullResponse(
+            final ExceptionToAcknowledgementConverter exceptionConverter, @Nullable WithHttpStatus response) {
         if (sendingContext.shouldAcknowledge() && null == response) {
-
             /*
              * response == null; report error.
              * This indicates a bug in the publisher actor because of one of the following reasons:
@@ -105,11 +112,38 @@ final class Sending implements SendingOrDropped {
              * - If the issued-ack is "live-response" the response must be considered as the ack which
              *   has to be issued by the auto ack target.
              */
-            result = handleException(getNullAckException(), exceptionConverter);
+            return convertExceptionToAcknowledgementOrNull(getNullAckException(), exceptionConverter);
         } else {
-            result = response;
+            return null;
         }
-        return result;
+    }
+
+    @Nullable
+    private Exception getSentFailure(@Nullable Throwable error, @Nullable WithHttpStatus response,
+            boolean isAckFromNullResponse){
+
+        if (null != error) {
+            return getRootCause(error);
+        } else if(isAckFromNullResponse) {
+            return getNullAckException();
+        }
+        else {
+            return null;
+        }
+    }
+
+    @Nullable
+    private Supplier<DittoRuntimeException> getAckFailure(WithHttpStatus response) {
+        final HttpStatus status = response.getHttpStatus();
+        if (response instanceof Acknowledgement && (status.isClientError() || status.isServerError())) {
+            return () -> getExceptionForAcknowledgement((Acknowledgement) response);
+        } else if (response instanceof CommandResponse<?>
+                && isTargetIssuesLiveResponse(sendingContext)
+                && HttpStatus.REQUEST_TIMEOUT.equals(status)) {
+            return () -> getExceptionForLiveResponse((CommandResponse<?>) response);
+        } else {
+            return null;
+        }
     }
 
     private static MessageSendingFailedException getNullAckException() {
@@ -119,97 +153,34 @@ final class Sending implements SendingOrDropped {
                 .build();
     }
 
-    @SuppressWarnings({"rawtypes", "java:S3740"})
-    @Nullable
-    private CommandResponse monitor(@Nullable final CommandResponse<?> response) {
-        if (null != response) {
-            if (isAcknowledgement(response)) {
-                monitorAcknowledgement((Acknowledgement) response);
-            } else if (isTargetIssuesLiveResponse()) {
-                monitorLiveResponse(response);
-            }
-        }
-        return response;
-    }
-
-    private static boolean isAcknowledgement(final CommandResponse<?> commandResponse) {
-        return commandResponse instanceof Acknowledgement;
-    }
-
-    private void monitorAcknowledgement(final Acknowledgement acknowledgement) {
-        new AcknowledgementMonitoring(acknowledgement, true).monitor();
-    }
-
-    private void monitorAcknowledgementWitFailedSending(final Acknowledgement acknowledgement) {
-        new AcknowledgementMonitoring(acknowledgement, false).monitor();
-    }
-
-    private boolean isTargetIssuesLiveResponse() {
+    private static boolean isTargetIssuesLiveResponse(SendingContext sendingContext) {
         return sendingContext.getAutoAckTarget()
                 .flatMap(Target::getIssuedAcknowledgementLabel)
                 .filter(DittoAcknowledgementLabel.LIVE_RESPONSE::equals)
                 .isPresent();
     }
 
-    private void monitorLiveResponse(final CommandResponse<?> liveResponse) {
-        new LiveResponseMonitoring(liveResponse).monitor();
-    }
-
-    @Nullable
-    private Acknowledgement handleException(final Exception exception,
-            final ExceptionToAcknowledgementConverter exceptionConverter) {
-
-        monitorSendFailure(exception);
-        return convertExceptionToAcknowledgementOrNull(exception, exceptionConverter);
-    }
-
-    private void monitorSendFailure(final Exception exception) {
-        final ConnectionMonitor publishedMonitor = sendingContext.getPublishedMonitor();
-        final ExternalMessage message = sendingContext.getExternalMessage();
-        if (exception instanceof DittoRuntimeException) {
-            final DittoRuntimeException dittoRuntimeException = (DittoRuntimeException) exception;
-            publishedMonitor.failure(message, dittoRuntimeException);
-            logger.withCorrelationId(dittoRuntimeException)
-                    .info("Ran into a failure when publishing signal - {}: {}",
-                            dittoRuntimeException.getClass().getSimpleName(), dittoRuntimeException.getMessage());
-        } else {
-            publishedMonitor.exception(message, exception);
-            final DittoHeaders internalHeaders = message.getInternalHeaders();
-            @Nullable final String correlationId = internalHeaders.getCorrelationId()
-                    .orElseGet(() -> message.findHeaderIgnoreCase(CORRELATION_ID.getKey()).orElse(null));
-            logger.withCorrelationId(correlationId)
-                    .info("Unexpected failure when publishing signal  - {}: {}",
-                            exception.getClass().getSimpleName(), exception.getMessage());
-        }
-    }
-
     @Nullable
     private Acknowledgement convertExceptionToAcknowledgementOrNull(final Exception exception,
             final ExceptionToAcknowledgementConverter exceptionConverter) {
 
-        final Optional<AcknowledgementLabel> labelOptional = sendingContext.getAutoAckTarget()
+        final Optional<AcknowledgementLabel> autoAckLabel = sendingContext.getAutoAckTarget()
                 .flatMap(Target::getIssuedAcknowledgementLabel)
                 .flatMap(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel));
 
-        final Acknowledgement result;
-        if (labelOptional.isEmpty()) {
+        final Signal<?> source = sendingContext.getMappedOutboundSignal().getSource();
 
-            // auto ACK not requested
-            result = null;
-        } else {
-
-            // no ACK possible for non-twin-events, thus entityId must be ThingId
-            final OutboundSignal.Mapped outboundSignal = sendingContext.getMappedOutboundSignal();
-            final Signal<?> source = outboundSignal.getSource();
-            final ThingId entityId = source instanceof WithEntityId
-                    ? ThingId.of(((WithEntityId) source).getEntityId())
-                    : ThingId.dummy();
+        if (autoAckLabel.isPresent() && source instanceof WithThingId) {
 
             // assume DittoRuntimeException payload or exception message fits within quota
-            result = exceptionConverter.convertException(exception, labelOptional.get(), entityId,
+            return exceptionConverter.convertException(exception,
+                    autoAckLabel.get(),
+                    ((WithThingId) source).getThingEntityId(),
                     source.getDittoHeaders());
+        } else {
+            return null;
         }
-        return result;
+
     }
 
     @SuppressWarnings("ChainOfInstanceofChecks")
@@ -224,101 +195,66 @@ final class Sending implements SendingOrDropped {
         }
     }
 
-    private abstract class CommandResponseMonitoring<T extends CommandResponse<?>> {
+    /**
+     * Updates the send monitor with eiter success or failure.
+     *
+     * @param exception if given report failure, else report success.
+     */
+    private void updateSendMonitor(@Nullable final Exception exception) {
+        final ConnectionMonitor publishedMonitor = sendingContext.getPublishedMonitor();
+        final ExternalMessage message = sendingContext.getExternalMessage();
 
-        protected final T cmdResponse;
-
-        protected CommandResponseMonitoring(final T cmdResponse) {
-            this.cmdResponse = cmdResponse;
-        }
-
-        abstract void monitor();
-
-        protected void monitorSendSuccess() {
-            sendingContext.getPublishedMonitor().success(sendingContext.getExternalMessage());
-        }
-
-        protected void monitorAckSuccess() {
-            sendingContext.getAcknowledgedMonitor().ifPresent(
-                    ackMonitor -> ackMonitor.success(sendingContext.getExternalMessage())
-            );
-        }
-
-        protected void monitorAckFailure() {
-            final DittoRuntimeException messageSendingFailedException = getExceptionFor(cmdResponse);
-            sendingContext.getAcknowledgedMonitor()
-                    .ifPresent(acknowledgedMonitor -> acknowledgedMonitor.failure(sendingContext.getExternalMessage(),
-                            messageSendingFailedException));
-        }
-
-        abstract DittoRuntimeException getExceptionFor(T response);
-
-    }
-
-    private final class AcknowledgementMonitoring extends CommandResponseMonitoring<Acknowledgement> {
-
-        private final boolean sendSuccess;
-
-        AcknowledgementMonitoring(final Acknowledgement acknowledgement, final boolean sendSuccess) {
-            super(acknowledgement);
-            this.sendSuccess = sendSuccess;
-        }
-
-        @Override
-        void monitor() {
-            final var httpStatus = cmdResponse.getHttpStatus();
-            if (httpStatus.isServerError()) {
-                if (sendSuccess) {
-                    monitorSendSuccess();
-                }
-                monitorAckFailure();
-            } else if (httpStatus.isClientError()) {
-                monitorSendSuccess();
-                monitorAckFailure();
+        if (exception == null) {
+            publishedMonitor.success(message);
+        } else {
+            if (exception instanceof DittoRuntimeException) {
+                final DittoRuntimeException dittoRuntimeException = (DittoRuntimeException) exception;
+                publishedMonitor.failure(message, dittoRuntimeException);
+                logger.withCorrelationId(dittoRuntimeException)
+                        .info("Ran into a failure when publishing signal - {}: {}",
+                                dittoRuntimeException.getClass().getSimpleName(), dittoRuntimeException.getMessage());
             } else {
-                monitorSendSuccess();
-                monitorAckSuccess();
+                publishedMonitor.exception(message, exception);
+                final DittoHeaders internalHeaders = message.getInternalHeaders();
+                @Nullable final String correlationId = internalHeaders.getCorrelationId()
+                        .orElseGet(() -> message.findHeaderIgnoreCase(CORRELATION_ID.getKey()).orElse(null));
+                logger.withCorrelationId(correlationId)
+                        .info("Unexpected failure when publishing signal  - {}: {}",
+                                exception.getClass().getSimpleName(), exception.getMessage());
             }
         }
-
-        @Override
-        DittoRuntimeException getExceptionFor(final Acknowledgement acknowledgement) {
-            return MessageSendingFailedException.newBuilder()
-                    .httpStatus(acknowledgement.getHttpStatus())
-                    .message("Received negative acknowledgement for label <" + acknowledgement.getLabel() + ">.")
-                    .description("Payload: " + acknowledgement.getEntity().map(JsonValue::toString).orElse("<empty>"))
-                    .build();
-        }
-
     }
 
-    private final class LiveResponseMonitoring extends CommandResponseMonitoring<CommandResponse<?>> {
-
-        LiveResponseMonitoring(final CommandResponse<?> cmdResponse) {
-            super(cmdResponse);
-        }
-
-        @Override
-        void monitor() {
-            final var status = cmdResponse.getHttpStatus();
-            monitorSendSuccess();
-            if (HttpStatus.REQUEST_TIMEOUT.equals(status)) {
-                monitorAckFailure();
+    /**
+     * Updates the acknowledged monitor with eiter success or failure.
+     *
+     * @param messageSendingFailedExceptionSupplier if given report failure, otherwise report success.
+     */
+    private void updateAckMonitor(@Nullable final Supplier<DittoRuntimeException> messageSendingFailedExceptionSupplier) {
+        sendingContext.getAcknowledgedMonitor().ifPresent(ackMonitor -> {
+            if (null != messageSendingFailedExceptionSupplier) {
+                ackMonitor.failure(sendingContext.getExternalMessage(), messageSendingFailedExceptionSupplier.get());
             } else {
-                monitorAckSuccess();
+                ackMonitor.success(sendingContext.getExternalMessage());
             }
-        }
+        });
+    }
 
-        @Override
-        DittoRuntimeException getExceptionFor(final CommandResponse<?> response) {
-            return MessageSendingFailedException.newBuilder()
-                    .httpStatus(response.getHttpStatus())
-                    .message("Received negative acknowledgement for label <" +
-                            DittoAcknowledgementLabel.LIVE_RESPONSE.toString() + ">.")
-                    .description("Payload: " + response.toJson())
-                    .build();
-        }
+    private static DittoRuntimeException getExceptionForLiveResponse(final CommandResponse<?> response) {
+        return MessageSendingFailedException.newBuilder()
+                .httpStatus(response.getHttpStatus())
+                .message("Received negative acknowledgement for label <" +
+                        DittoAcknowledgementLabel.LIVE_RESPONSE.toString() + ">.")
+                .description("Payload: " + response.toJson())
+                .build();
+    }
 
+    private static DittoRuntimeException getExceptionForAcknowledgement(final Acknowledgement acknowledgement) {
+        return MessageSendingFailedException.newBuilder()
+                .httpStatus(acknowledgement.getHttpStatus())
+                .message("Received negative acknowledgement for label <" + acknowledgement.getLabel() + ">.")
+                .description("Payload: " + acknowledgement.getEntity().map(JsonValue::toString).orElse("<empty>"))
+                .build();
     }
 
 }
