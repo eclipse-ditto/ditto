@@ -58,8 +58,8 @@ final class HostValidator {
      */
     HostValidator(final ConnectivityConfig connectivityConfig, final LoggingAdapter loggingAdapter,
             final AddressResolver resolver) {
-        this.allowedHostnames = connectivityConfig.getConnectionConfig().getAllowedHostnames();
         this.resolver = resolver;
+        this.allowedHostnames = connectivityConfig.getConnectionConfig().getAllowedHostnames();
         final Collection<String> blockedHostnames = connectivityConfig.getConnectionConfig().getBlockedHostnames();
         this.blockedAddresses = calculateBlockedAddresses(blockedHostnames, loggingAdapter);
     }
@@ -67,10 +67,10 @@ final class HostValidator {
     /**
      * Validate if connections to a host are allowed by checking (in this order):
      * <ul>
-     *     <li>blocklist is empty? this completely disables validation, every host is allowed</li>
-     *     <li>host is contained in allowlist? host is allowed</li>
+     *     <li>blocklist is empty this completely disables validation, every host is allowed</li>
+     *     <li>host is contained in allowlist host is allowed</li>
      *     <li>host is resolved to a blocked ip (loopback, site-local, multicast, wildcard ip)? host is blocked</li>
-     *     <li>host is contained in the blocklist? host is blocked</li>
+     *     <li>host is contained in the blocklist host is blocked</li>
      *  </ul>
      * Loopback, private, multicast and wildcard addresses are allowed only if the blocklist is empty or explicitly
      * contained in allowlist.
@@ -120,6 +120,7 @@ final class HostValidator {
      */
     private Collection<InetAddress> calculateBlockedAddresses(final Collection<String> blockedHostnames,
             final LoggingAdapter log) {
+
         return blockedHostnames.stream()
                 .filter(host -> !host.isEmpty())
                 .flatMap(host -> {

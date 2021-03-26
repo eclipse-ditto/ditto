@@ -16,6 +16,7 @@ package org.eclipse.ditto.services.connectivity.config;
 import java.util.Optional;
 
 import org.atteo.classindex.IndexSubclasses;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.events.base.Event;
 
@@ -31,9 +32,20 @@ public interface ConnectivityConfigProvider {
      * Loads a {@link ConnectivityConfig} by a connection ID.
      *
      * @param connectionId the connection id for which to load the {@link ConnectivityConfig}
+     * @param dittoHeaders the ditto headers for which to load the {@link ConnectivityConfig}
      * @return the connectivity config
      */
-    ConnectivityConfig getConnectivityConfig(ConnectionId connectionId);
+    ConnectivityConfig getConnectivityConfig(ConnectionId connectionId, DittoHeaders dittoHeaders);
+
+    /**
+     * Loads a {@link ConnectivityConfig} by a connection ID.
+     *
+     * @param connectionId the connection id for which to load the {@link ConnectivityConfig}
+     * @return the connectivity config
+     */
+    default ConnectivityConfig getConnectivityConfig(ConnectionId connectionId) {
+        return getConnectivityConfig(connectionId, DittoHeaders.empty());
+    }
 
     /**
      * Register the given {@code subscriber} for changes to the {@link ConnectivityConfig} of the given {@code
