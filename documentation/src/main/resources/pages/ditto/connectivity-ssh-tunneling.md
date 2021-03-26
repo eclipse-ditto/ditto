@@ -7,7 +7,10 @@ permalink: connectivity-ssh-tunneling.html
 
 ## SSH tunneling
 
-A managed connection supports establishing an SSH tunnel which is then used to connect to the actual target endpoint. 
+A managed connection supports establishing an SSH tunnel 
+(see section TCP/IP Port Forwarding of the 
+[Secure Shell (SSH) Connection Protocol, RFC4254](https://tools.ietf.org/html/rfc4254#section-7)) which 
+is then used to connect to the actual target endpoint. 
 This is useful when the target endpoint is not directly accessible but only via SSH. For this purpose the connection 
 configuration must specify the `sshTunnel` section, which contains the necessary 
 information to establish a local SSH port forwarding. The tunneling supports password and public key authentication and 
@@ -15,7 +18,7 @@ host validation using public key fingerprints. If the tunnel is enabled the conn
 tunnel and afterwards use this tunnel to connect to the actual endpoint.
 
 The example below establishes an SSH tunnel via `ssh-host:2222` to the remote endpoint 
-`tcp://mqtt. eclipseprojects.io:1883`, using plain authentication and enabled host validation:
+`tcp://mqtt.eclipseprojects.io:1883`, using plain authentication and enabled host validation:
 
 ```json
 {
@@ -36,6 +39,9 @@ The example below establishes an SSH tunnel via `ssh-host:2222` to the remote en
     }
 }
 ```
+
+{% include note.html content="When using SSH tunneling, keep in mind that it can have an impact on the transmission 
+performance of your connection compared to transmission performance of a direct connection." %}
 
 ### Public key authentication
 

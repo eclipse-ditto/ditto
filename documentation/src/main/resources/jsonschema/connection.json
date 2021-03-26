@@ -513,7 +513,7 @@
               "username": {
                 "$id": "/properties/sshTunnel/properties/credentials/properties/username",
                 "type": "string",
-                "title": "The username user for authentication.",
+                "title": "The username for authentication.",
                 "description": "A valid username.",
                 "examples": [
                   "tunnel-user"
@@ -523,7 +523,7 @@
                 "$id": "/properties/sshTunnel/properties/credentials/properties/password",
                 "type": "string",
                 "title": "The password for authentication.",
-                "description": "A valid password. Only required for type `password`.",
+                "description": "A valid password. Only required for type `plain`.",
                 "examples": [
                   "*****"
                 ]
