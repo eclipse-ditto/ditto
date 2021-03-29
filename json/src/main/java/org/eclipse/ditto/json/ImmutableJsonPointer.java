@@ -67,6 +67,7 @@ final class ImmutableJsonPointer implements JsonPointer {
      * @return a new JSON pointer consisting of the JSON keys which were extracted from {@code
      * slashDelimitedCharSequence}.
      * @throws NullPointerException if {@code slashDelimitedCharSequence} is {@code null}.
+     * @throws JsonPointerInvalidException if the passed {@code slashDelimitedCharSequence} contained double slashes.
      */
     public static JsonPointer ofParsed(final CharSequence slashDelimitedCharSequence) {
         requireNonNull(slashDelimitedCharSequence, "The JSON pointer character sequence must not be null!");

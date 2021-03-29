@@ -69,6 +69,7 @@ public interface JsonPointer extends CharSequence, Iterable<JsonKey> {
      * @return a new JSON pointer consisting of the JSON keys which were extracted from
      * {@code slashDelimitedCharSequence}.
      * @throws NullPointerException if {@code slashDelimitedCharSequence} is {@code null}.
+     * @throws JsonPointerInvalidException if the passed {@code slashDelimitedCharSequence} contained double slashes.
      */
     static JsonPointer of(final CharSequence slashDelimitedCharSequence) {
         return JsonFactory.newPointer(slashDelimitedCharSequence);

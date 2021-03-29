@@ -79,8 +79,8 @@ public final class QueryParser {
      * @return the query.
      */
     public Query parse(final ThingSearchQueryCommand<?> command) {
-        queryCriteriaValidator.validateCommand(command);
         final Criteria criteria = parseCriteria(command);
+        queryCriteriaValidator.validateCommand(command);
         if (command instanceof QueryThings) {
             final QueryThings queryThings = (QueryThings) command;
             final QueryBuilder queryBuilder = queryBuilderFactory.newBuilder(criteria);

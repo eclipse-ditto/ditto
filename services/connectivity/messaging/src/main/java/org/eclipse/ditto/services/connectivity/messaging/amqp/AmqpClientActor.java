@@ -257,8 +257,9 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                             .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionToBeTested.getId())
                             .debug("Closing JMS connection after testing connection.");
                     if (response instanceof JmsConnected) {
-                        final JmsConnection jmsConnection = ((JmsConnected) response).connection;
-                        final JmsDisconnect jmsDisconnect = new JmsDisconnect(ActorRef.noSender(), jmsConnection);
+                        final JmsConnection connectedJmsConnection = ((JmsConnected) response).connection;
+                        final JmsDisconnect jmsDisconnect = new JmsDisconnect(ActorRef.noSender(),
+                                connectedJmsConnection);
                         return Patterns.ask(getDisconnectConnectionHandler(connectionToBeTested), jmsDisconnect,
                                 clientConfig.getTestingTimeout())
                                 // replace jmsDisconnected message with original response
@@ -689,12 +690,12 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     static final class JmsConnected extends AbstractWithOrigin implements ClientConnected {
 
         private final JmsConnection connection;
-        private final Session session;
+        @Nullable private final Session session;
         private final List<ConsumerData> consumerList;
 
         JmsConnected(@Nullable final ActorRef origin,
                 final JmsConnection connection,
-                final Session session,
+                @Nullable final Session session,
                 final List<ConsumerData> consumerList) {
 
             super(origin);
@@ -709,11 +710,11 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      */
     static final class JmsSessionRecovered extends AbstractWithOrigin {
 
-        private final Session session;
+        @Nullable private final Session session;
         private final List<ConsumerData> consumerList;
 
         JmsSessionRecovered(@Nullable final ActorRef origin,
-                final Session session,
+                @Nullable final Session session,
                 final List<ConsumerData> consumerList) {
 
             super(origin);
@@ -721,6 +722,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             this.consumerList = consumerList;
         }
 
+        @Nullable
         Session getSession() {
             return session;
         }
