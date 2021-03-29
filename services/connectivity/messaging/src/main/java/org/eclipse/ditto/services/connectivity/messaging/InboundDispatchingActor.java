@@ -307,12 +307,10 @@ public final class InboundDispatchingActor extends AbstractActor
         } else if (e != null) {
             responseMappedMonitor.getLogger()
                     .failure("Got unknown exception when processing external message: {0}", e.getMessage());
-            if (message != null) {
-                logger.setCorrelationId(message.getInternalHeaders());
-            }
-            logger.warning("Got <{}> when message was processed: <{}>", e.getClass().getSimpleName(),
-                    e.getMessage());
-            logger.discardCorrelationId();
+            logger.withCorrelationId(Optional.ofNullable(message)
+                    .map(ExternalMessage::getInternalHeaders)
+                    .orElseGet(DittoHeaders::empty)
+            ).warning("Got <{}> when message was processed: <{}>", e.getClass().getSimpleName(), e.getMessage());
         }
         return Optional.empty();
     }
