@@ -41,7 +41,7 @@ class DefaultDistributedDataConfig implements DistributedDataConfig {
         akkaReplicatorConfig = DefaultAkkaReplicatorConfig.of(configWithFallback);
         subscriptionWriteConsistency = toWriteConsistency(configWithFallback.getString(
                 DistributedDataConfigValue.SUBSCRIPTION_WRITE_CONSISTENCY.getConfigPath()),
-                writeTimeout);
+                configWithFallback.getDuration(DistributedDataConfigValue.WRITE_TIMEOUT.getConfigPath()));
         subscriptionDelay =
                 configWithFallback.getDuration(DistributedDataConfigValue.SUBSCRIPTION_DELAY.getConfigPath());
         numberOfShards = configWithFallback.getInt(DistributedDataConfigValue.NUMBER_OF_SHARDS.getConfigPath());
@@ -55,7 +55,7 @@ class DefaultDistributedDataConfig implements DistributedDataConfig {
         akkaReplicatorConfig = DefaultAkkaReplicatorConfig.of(configWithFallback, replicatorName, replicatorRole);
         subscriptionWriteConsistency = toWriteConsistency(configWithFallback.getString(
                 DistributedDataConfigValue.SUBSCRIPTION_WRITE_CONSISTENCY.getConfigPath()),
-                writeTimeout);
+                configWithFallback.getDuration(DistributedDataConfigValue.WRITE_TIMEOUT.getConfigPath()));
         subscriptionDelay =
                 configWithFallback.getDuration(DistributedDataConfigValue.SUBSCRIPTION_DELAY.getConfigPath());
         numberOfShards = configWithFallback.getInt(DistributedDataConfigValue.NUMBER_OF_SHARDS.getConfigPath());
@@ -131,12 +131,11 @@ class DefaultDistributedDataConfig implements DistributedDataConfig {
             return false;
         }
         final DefaultDistributedDataConfig that = (DefaultDistributedDataConfig) o;
-        return Objects.equals(readTimeout, that.readTimeout) &&
+        return numberOfShards == that.numberOfShards && Objects.equals(readTimeout, that.readTimeout) &&
                 Objects.equals(writeTimeout, that.writeTimeout) &&
                 Objects.equals(subscriptionWriteConsistency, that.subscriptionWriteConsistency) &&
                 Objects.equals(subscriptionDelay, that.subscriptionDelay) &&
-                Objects.equals(akkaReplicatorConfig, that.akkaReplicatorConfig) &&
-                numberOfShards == that.numberOfShards;
+                Objects.equals(akkaReplicatorConfig, that.akkaReplicatorConfig);
     }
 
     @Override
