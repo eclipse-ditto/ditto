@@ -86,7 +86,8 @@ public final class CompressedDDataHandler extends AbstractDDataHandler<ActorRef,
     @Override
     public CompletionStage<Void> removeAddress(final Address address,
             final Replicator.WriteConsistency writeConsistency) {
-        return update(writeConsistency, mmap -> {
+        final int shardNumber = Math.abs(address.hashCode() % numberOfShards);
+        return update(getKey(shardNumber), writeConsistency, mmap -> {
             ORMultiMap<ActorRef, String> result = mmap;
             for (final ActorRef subscriber : mmap.getEntries().keySet()) {
                 if (subscriber.path().address().equals(address)) {

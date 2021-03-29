@@ -62,6 +62,13 @@ public interface DistributedDataConfig {
     AkkaReplicatorConfig getAkkaReplicatorConfig();
 
     /**
+     * The number of shards Ditto's ddata extension applies for Map keys.
+     *
+     * @return the number of shards to apply.
+     */
+    int getNumberOfShards();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code DistributedDataConfig}.
      */
@@ -85,7 +92,12 @@ public interface DistributedDataConfig {
         /**
          * Local delay for topic subscription to account for replication and notification delay.
          */
-        SUBSCRIPTION_DELAY("subscription-delay", Duration.ofSeconds(2L));
+        SUBSCRIPTION_DELAY("subscription-delay", Duration.ofSeconds(2L)),
+
+        /**
+         * The number of shards Ditto's ddata extension applies for Map keys.
+         */
+        NUMBER_OF_SHARDS("number-of-shards", 1);
 
         private final String path;
         private final Object defaultValue;

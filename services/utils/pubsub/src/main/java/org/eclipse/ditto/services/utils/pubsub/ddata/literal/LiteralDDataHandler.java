@@ -60,6 +60,7 @@ public final class LiteralDDataHandler extends AbstractDDataHandler<Address, Str
     @Override
     public CompletionStage<Void> removeAddress(final Address address,
             final Replicator.WriteConsistency writeConsistency) {
-        return update(writeConsistency, mmap -> mmap.remove(selfUniqueAddress, address));
+        final int shardNumber = Math.abs(address.hashCode() % numberOfShards);
+        return update(getKey(shardNumber), writeConsistency, mmap -> mmap.remove(selfUniqueAddress, address));
     }
 }

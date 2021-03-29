@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.utils.namespaces;
 
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.services.utils.ddata.DistributedData;
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
@@ -26,7 +25,6 @@ import akka.cluster.ddata.ORSet;
 import akka.cluster.ddata.ORSetKey;
 import akka.cluster.ddata.Replicator;
 import akka.cluster.ddata.SelfUniqueAddress;
-import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Distributed data for blocking of messages addressed entities in certain namespaces.
@@ -87,7 +85,8 @@ public final class BlockedNamespaces extends DistributedData<ORSet<String>> {
      * @return whether the local replica is retrieved successfully and contains the namespace.
      */
     public CompletionStage<Boolean> contains(final String namespace) {
-        return get((Replicator.ReadConsistency) Replicator.readLocal())
+        // for blocked namespaces, only 1 shard is used:
+        return get(getKey(0), (Replicator.ReadConsistency) Replicator.readLocal())
                 .thenApply(maybeORSet -> maybeORSet.orElse(ORSet.empty()).contains(namespace))
                 .exceptionally(error -> false);
     }
@@ -99,7 +98,8 @@ public final class BlockedNamespaces extends DistributedData<ORSet<String>> {
      * @return future that completes after the update propagates to all replicas, exceptionally if there is any error.
      */
     public CompletionStage<Void> add(final String namespace) {
-        return update(writeAll(), orSet -> orSet.add(selfUniqueAddress, namespace));
+        // for blocked namespaces, only 1 shard is used:
+        return update(getKey(0), writeAll(), orSet -> orSet.add(selfUniqueAddress, namespace));
     }
 
     /**
@@ -109,11 +109,13 @@ public final class BlockedNamespaces extends DistributedData<ORSet<String>> {
      * @return future that completes after the removal propagates to all replicas, exceptionally if there is any error.
      */
     public CompletionStage<Void> remove(final String namespace) {
-        return update(writeAll(), orSet -> orSet.remove(selfUniqueAddress, namespace));
+        // for blocked namespaces, only 1 shard is used:
+        return update(getKey(0), writeAll(), orSet -> orSet.remove(selfUniqueAddress, namespace));
     }
 
     @Override
-    protected Key<ORSet<String>> getKey() {
+    protected Key<ORSet<String>> getKey(final int shardNumber) {
+        // for blocked namespaces, only 1 shard is used, so use a static key:
         return KEY;
     }
 
@@ -123,7 +125,7 @@ public final class BlockedNamespaces extends DistributedData<ORSet<String>> {
     }
 
     private Replicator.WriteConsistency writeAll() {
-        return new Replicator.WriteAll(FiniteDuration.apply(writeTimeout.toMillis(), TimeUnit.MILLISECONDS));
+        return new Replicator.WriteAll(writeTimeout);
     }
 
     private static final class Provider

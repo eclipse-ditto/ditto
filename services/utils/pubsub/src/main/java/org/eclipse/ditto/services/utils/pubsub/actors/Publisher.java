@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.utils.pubsub.actors;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,6 +41,8 @@ import org.eclipse.ditto.signals.base.Signal;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.cluster.ddata.Key;
+import akka.cluster.ddata.ORMultiMap;
 import akka.cluster.ddata.Replicator;
 import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
@@ -62,7 +65,8 @@ public final class Publisher extends AbstractActor {
     private final Counter messageCounter = DittoMetrics.counter("pubsub-published-messages");
     private final Counter topicCounter = DittoMetrics.counter("pubsub-published-topics");
 
-    private PublisherIndex<Long> publisherIndex = PublisherIndex.empty();
+    private final Map<Key<?>, PublisherIndex<Long>> publisherIndex = new HashMap<>();
+
     private RemoteAcksChanged remoteAcks = RemoteAcksChanged.of(Map.of());
 
     @SuppressWarnings("unused")
@@ -160,8 +164,11 @@ public final class Publisher extends AbstractActor {
         topicCounter.increment(topics.size());
         final List<Long> hashes = topics.stream().map(ddataReader::approximate).collect(Collectors.toList());
         final ActorRef sender = getSender();
-        final List<Pair<ActorRef, PublishSignal>> subscribers =
-                publisherIndex.assignGroupsToSubscribers(signal, hashes);
+
+        final List<Pair<ActorRef, PublishSignal>> subscribers = publisherIndex.values().stream()
+                .map(index -> index.assignGroupsToSubscribers(signal, hashes))
+                .flatMap(List::stream)
+                .collect(Collectors.toList());
         subscribers.forEach(pair -> pair.first().tell(pair.second(), sender));
         return subscribers;
     }
@@ -172,12 +179,12 @@ public final class Publisher extends AbstractActor {
 
     private void topicSubscribersChanged(final Replicator.Changed<?> event) {
         final Map<ActorRef, scala.collection.immutable.Set<String>> mmap =
-                CollectionConverters.asJava(event.get(ddataReader.getKey()).entries());
+                CollectionConverters.asJava(((ORMultiMap<ActorRef, String>) event.dataValue()).entries());
         final Map<ActorRef, List<Grouped<Long>>> deserializedMMap = mmap.entrySet()
                 .stream()
                 .map(entry -> Pair.create(entry.getKey(), deserializeGroupedHashes(entry.getValue())))
                 .collect(Collectors.toMap(Pair::first, Pair::second));
-        publisherIndex = PublisherIndex.fromDeserializedMMap(deserializedMMap);
+        publisherIndex.put(event.key(), PublisherIndex.fromDeserializedMMap(deserializedMMap));
     }
 
     private void logUnhandled(final Object message) {
