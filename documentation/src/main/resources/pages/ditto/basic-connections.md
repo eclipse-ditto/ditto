@@ -61,7 +61,7 @@ Source messages can be of the following type:
 Sources contain:
 * several addresses (depending on the [connection type](#connection-types) those are interpreted differently, e.g. as queues, topics, etc.),
 * a consumer count defining how many consumers should be attached to each source address,
-* an authorization context (see [authorization](#authorization)) specifying which [authorization subject](basic-acl.html#authorization-subject) is used to authorize messages from the source,
+* an authorization context (see [authorization](#authorization)) specifying which [authorization subject](basic-policy.html#subject) is used to authorize messages from the source,
 * enforcement information that allows filtering the messages that are consumed in this source,
 * [acknowledgement requests](basic-acknowledgements.html#requesting-acks) this source requires in order to ensure QoS 1 ("at least once") processing of consumed messages before technically acknowledging them to the channel,
 * declared labels of [acknowledgements](protocol-specification-acks.html) the source is allowed to send,
@@ -273,7 +273,7 @@ Target messages can be of the following type:
 Targets contain:
 * one address (that is interpreted differently depending on the [connection type](#connection-types), e.g. as queue, topic, etc.),
 * [topics](#target-topics-and-filtering) that will be sent to the target,
-* an authorization context (see [authorization](#authorization)) specifying which [authorization subject](basic-acl.html#authorization-subject) is used to authorize messages to the target, and
+* an authorization context (see [authorization](#authorization)) specifying which [authorization subject](basic-policy.html#subject) is used to authorize messages to the target, and
 * [header mapping](connectivity-header-mapping.html) to compute external headers from Ditto protocol headers.
 
 
@@ -398,8 +398,8 @@ A connection is initiated by the connectivity service. This obviates the need fo
 Ditto becomes the client in this case. Nevertheless, to access resources within Ditto, the connection must know on 
 whose behalf it is acting. This is controlled via the configured `authorizationContext`, which holds a list of
 self-assigned authorization subjects. Before a connection can access a Ditto resource, one of its 
-`authorizationSubject`s must be granted the access rights by an authorization mechanism such as
-[ACLs](basic-acl.html) or [Policies](basic-policy.html).
+`authorizationSubject`s must be granted the access rights by the authorization mechanism of a 
+[Policies](basic-policy.html).
 
 A connection target can only send data for things to which it has READ rights, as data flows from a thing to a target. 
 A connection source can only receive data for things to which it has WRITE rights, as data flows from a source to a thing.

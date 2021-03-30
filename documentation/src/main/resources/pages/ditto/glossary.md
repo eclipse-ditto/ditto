@@ -32,9 +32,6 @@ Asset
 Thing
 : {{site.data.glossary.thing}}
 
-ACL
-: {{site.data.glossary.acl}}
-
 Policy
 : {{site.data.glossary.policy}}
 

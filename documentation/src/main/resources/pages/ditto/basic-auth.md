@@ -54,11 +54,10 @@ for the following browser based requests:
 
 ## Authorization
 
-Authorization is implemented with an <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.acl}}">ACL</a>
-(in API version 1) or a <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.policy}}">Policy</a>
+Authorization is implemented with a <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.policy}}">Policy</a>
 (in API version 2).
 
-Please find details at [ACL](basic-acl.html) and [Policies](basic-policy.html).
+Please find details at [Policies](basic-policy.html).
 
 ### Authorization Context in DevOps Commands
 
