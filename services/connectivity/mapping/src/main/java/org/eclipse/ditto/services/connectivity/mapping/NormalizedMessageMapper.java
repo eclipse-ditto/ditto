@@ -41,7 +41,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 
 /**
  * A message mapper implementation for normalized changes.
- * Create- and modify-events are mapped to nested sparse JSON.
+ * Create-,  modify- and merged-events are mapped to nested sparse JSON.
  * All other signals and incoming messages are dropped.
  */
 @PayloadMapper(alias = "Normalized")
@@ -83,7 +83,7 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
     @Override
     public List<ExternalMessage> map(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();
-        return isCreatedOrModifiedThingEvent(topicPath)
+        return isCreatedModifiedOrMergedThingEvent(topicPath)
                 ? Collections.singletonList(flattenAsThingChange(adaptable))
                 : Collections.emptyList();
     }
@@ -95,7 +95,7 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
         final Optional<JsonValue> payloadValue = payload.getValue();
         final Optional<JsonObject> extraData = payload.getExtra();
         final JsonObjectBuilder builder = JsonObject.newBuilder();
-        builder.set(THING_ID, ThingId.of(topicPath.getNamespace(), topicPath.getId()).toString());
+        builder.set(THING_ID, ThingId.of(topicPath.getNamespace(), topicPath.getEntityName()).toString());
 
         // enrich with data selected by "extraFields", do this first - the actual changed data applied on top of that:
         extraData.ifPresent(builder::setAll);
@@ -116,9 +116,16 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
         payload.getRevision().ifPresent(revision -> builder.set(REVISION, revision));
         builder.set(ABRIDGED_ORIGINAL_MESSAGE, abridgeMessage(adaptable));
 
-        final JsonObject result = jsonFieldSelector == null
+        final JsonObject jsonObject = jsonFieldSelector == null
                 ? builder.build()
                 : builder.build().get(jsonFieldSelector);
+
+        final JsonObject result;
+        if (topicPath.getAction().isPresent() && topicPath.getAction().get() == TopicPath.Action.MERGED) {
+            result = filterNullValuesAndEmptyObjects(jsonObject);
+        } else {
+            result = jsonObject;
+        }
 
         return ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
                 .withTopicPath(adaptable.getTopicPath())
@@ -135,6 +142,7 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
         payload.getFields().ifPresent(fields -> builder.set(Payload.JsonFields.FIELDS, fields.toString()));
         builder.set(JsonifiableAdaptable.JsonFields.HEADERS,
                 dittoHeadersToJson(adaptable.getDittoHeaders()));
+
         return builder.build();
     }
 
@@ -145,15 +153,40 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
                 .collect(JsonCollectors.fieldsToObject());
     }
 
-    private static boolean isCreatedOrModifiedThingEvent(final TopicPath topicPath) {
+    private static boolean isCreatedModifiedOrMergedThingEvent(final TopicPath topicPath) {
         final Optional<TopicPath.Action> action = topicPath.getAction();
         if (topicPath.getCriterion() == TopicPath.Criterion.EVENTS &&
                 topicPath.getGroup() == TopicPath.Group.THINGS &&
                 action.isPresent()) {
             final TopicPath.Action act = action.get();
-            return act == TopicPath.Action.CREATED || act == TopicPath.Action.MODIFIED;
+            return act == TopicPath.Action.CREATED || act == TopicPath.Action.MODIFIED || act == TopicPath.Action.MERGED;
         }
+
         return false;
+    }
+
+    private static JsonObject filterNullValuesAndEmptyObjects(final JsonObject jsonObject) {
+        final JsonObjectBuilder builder = JsonFactory.newObjectBuilder();
+
+        jsonObject.forEach(jsonField -> {
+            final JsonKey key = jsonField.getKey();
+            final JsonValue value = jsonField.getValue();
+            final JsonValue result;
+
+            if (value.isNull()) {
+                return;
+            } else if (value.isObject()) {
+                result = filterNullValuesAndEmptyObjects(value.asObject());
+                if (result.asObject().isEmpty()) {
+                    return;
+                }
+            } else {
+                result = value;
+            }
+            builder.set(key, result);
+        });
+
+        return builder.build();
     }
 
 }
