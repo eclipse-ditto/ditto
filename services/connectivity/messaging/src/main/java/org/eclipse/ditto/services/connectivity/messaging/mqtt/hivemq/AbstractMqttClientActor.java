@@ -132,7 +132,7 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
             MqttSpecificConfig specificConfig);
 
     /**
-     * TODO
+     * @return the factory that creates new HiveMqttClients
      */
     abstract HiveMqttClientFactory<Q, ?> getClientFactory();
 
@@ -460,7 +460,6 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
 
     @Override
     protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin) {
-        logger.info("doDisconnectClient");
         if (client != null) {
             final CompletionStage<ClientDisconnected> disconnectFuture = getClient().disconnect()
                     .handle((aVoid, throwable) -> {
@@ -484,7 +483,6 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
 
     @Override
     protected void cleanupResourcesForConnection() {
-        logger.info("doDisconnectClient");
         stopCommandConsumers(subscriptionHandler);
         stopChildActor(publisherActor);
         safelyDisconnectClient(client, "consumer");
