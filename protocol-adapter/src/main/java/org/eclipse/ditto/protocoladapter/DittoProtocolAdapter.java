@@ -19,8 +19,11 @@ import static org.eclipse.ditto.protocoladapter.TopicPath.Channel.TWIN;
 
 import java.util.Arrays;
 
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.protocoladapter.acknowledgements.DefaultAcknowledgementsAdapterProvider;
 import org.eclipse.ditto.protocoladapter.policies.DefaultPolicyCommandAdapterProvider;
@@ -30,6 +33,7 @@ import org.eclipse.ditto.protocoladapter.provider.ThingCommandAdapterProvider;
 import org.eclipse.ditto.protocoladapter.things.DefaultThingCommandAdapterProvider;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
+import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
 import org.eclipse.ditto.signals.base.ErrorRegistry;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.base.Signal;
@@ -51,12 +55,12 @@ import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
+import org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingMerged;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
-import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
 
 /**
  * Adapter for the Ditto protocol.
@@ -64,10 +68,10 @@ import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
 public final class DittoProtocolAdapter implements ProtocolAdapter {
 
     private final HeaderTranslator headerTranslator;
-    private final AdapterResolver adapterResolver;
     private final ThingCommandAdapterProvider thingsAdapters;
     private final PolicyCommandAdapterProvider policiesAdapters;
     private final AcknowledgementAdapterProvider acknowledgementAdapters;
+    private final AdapterResolver adapterResolver;
 
     private DittoProtocolAdapter(final ErrorRegistry<DittoRuntimeException> errorRegistry,
             final HeaderTranslator headerTranslator) {
@@ -175,7 +179,6 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         throw UnknownSignalException.newBuilder(signal.getName()).dittoHeaders(signal.getDittoHeaders()).build();
     }
 
-
     @Override
     public Adaptable toAdaptable(final CommandResponse<?> commandResponse, final TopicPath.Channel channel) {
         if (commandResponse instanceof MessageCommandResponse) {
@@ -193,9 +196,10 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         } else if (commandResponse instanceof Acknowledgements) {
             validateChannel(channel, commandResponse, LIVE, TWIN);
             return toAdaptable((Acknowledgements) commandResponse, channel);
-        } else {
-            throw UnknownCommandResponseException.newBuilder(commandResponse.getName()).build();
+        } else if (commandResponse instanceof SearchErrorResponse) {
+            return toAdaptable((SearchErrorResponse) commandResponse);
         }
+        throw UnknownCommandResponseException.newBuilder(commandResponse.getName()).build();
     }
 
     @Override
@@ -207,9 +211,8 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
             return toAdaptable((ThingModifyCommandResponse<?>) thingCommandResponse, channel);
         } else if (thingCommandResponse instanceof ThingErrorResponse) {
             return toAdaptable((ThingErrorResponse) thingCommandResponse, channel);
-        } else {
-            throw UnknownCommandResponseException.newBuilder(thingCommandResponse.getName()).build();
         }
+        throw UnknownCommandResponseException.newBuilder(thingCommandResponse.getName()).build();
     }
 
     private Adaptable toAdaptable(final PolicyCommandResponse<?> policyCommandResponse) {
@@ -219,9 +222,8 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
             return toAdaptable((PolicyModifyCommandResponse<?>) policyCommandResponse);
         } else if (policyCommandResponse instanceof PolicyErrorResponse) {
             return toAdaptable((PolicyErrorResponse) policyCommandResponse);
-        } else {
-            throw UnknownCommandResponseException.newBuilder(policyCommandResponse.getName()).build();
         }
+        throw UnknownCommandResponseException.newBuilder(policyCommandResponse.getName()).build();
     }
 
     @Override
@@ -243,9 +245,8 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         } else if (command instanceof PolicyQueryCommand) {
             validateChannel(channel, command, NONE);
             return toAdaptable((PolicyQueryCommand<?>) command);
-        } else {
-            throw UnknownCommandException.newBuilder(command.getName()).build();
         }
+        throw UnknownCommandException.newBuilder(command.getName()).build();
     }
 
     @Override
@@ -302,9 +303,8 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         } else if (event instanceof SubscriptionEvent) {
             validateChannel(channel, event, TWIN);
             return toAdaptable((SubscriptionEvent<?>) event, channel);
-        } else {
-            throw UnknownEventException.newBuilder(event.getName()).build();
         }
+        throw UnknownEventException.newBuilder(event.getName()).build();
     }
 
     @Override
@@ -372,6 +372,30 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
 
     private Adaptable toAdaptable(final Acknowledgements acknowledgements, final TopicPath.Channel channel) {
         return acknowledgementAdapters.getAcknowledgementsAdapter().toAdaptable(acknowledgements, channel);
+    }
+
+    private Adaptable toAdaptable(final SearchErrorResponse errorResponse) {
+        final DittoHeaders responseHeaders =
+                ProtocolFactory.newHeadersWithJsonContentType(errorResponse.getDittoHeaders());
+
+        final Payload payload = Payload.newBuilder(JsonPointer.empty())
+                .withStatus(errorResponse.getHttpStatus())
+                .withValue(errorResponse.toJson(errorResponse.getImplementedSchemaVersion())
+                        .getValue(CommandResponse.JsonFields.PAYLOAD)
+                        .orElse(JsonFactory.nullObject())) // only use the error payload
+                .build();
+
+        final TopicPath errorTopicPath = ProtocolFactory.newTopicPathBuilderFromNamespace(TopicPath.ID_PLACEHOLDER)
+                .things()
+                .none()
+                .search()
+                .error()
+                .build();
+
+        return Adaptable.newBuilder(errorTopicPath)
+                .withPayload(payload)
+                .withHeaders(DittoHeaders.of(getHeaderTranslator().toExternalHeaders(responseHeaders)))
+                .build();
     }
 
     private void validateChannel(final TopicPath.Channel channel,
