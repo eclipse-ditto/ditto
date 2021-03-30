@@ -73,4 +73,12 @@ public interface SearchTopicPathBuilder extends TopicPathBuildable {
      */
     TopicPathBuildable generated();
 
+    /**
+     * Sets the {@code Action} of this builder to {@link TopicPath.SearchAction#ERROR}. A previously set action is replaced.
+     *
+     * @return this builder to allow method chaining.
+     * @since 2.0.0
+     */
+    TopicPathBuildable error();
+
 }

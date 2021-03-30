@@ -58,7 +58,6 @@ public abstract class AbstractErrorResponseAdapter<T extends ErrorResponse<T>> i
             return DittoRuntimeException.fromUnknownErrorJson(errorJson, dittoHeaders)
                     .orElseThrow(() -> e);
         }
-
     }
 
     @Override
