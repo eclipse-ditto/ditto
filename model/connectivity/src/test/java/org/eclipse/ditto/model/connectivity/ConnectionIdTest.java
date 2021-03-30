@@ -35,21 +35,6 @@ public class ConnectionIdTest {
     }
 
     @Test
-    public void placeholderIsPlaceholder() {
-        assertThat(ConnectionId.dummy().isDummy()).isTrue();
-    }
-
-    @Test
-    public void manuallyCreatedPlaceholderIsPlaceholder() {
-        assertThat(ConnectionId.of("_").isDummy()).isTrue();
-    }
-
-    @Test
-    public void randomlyGeneratedIsNoPlaceholder() {
-        assertThat(ConnectionId.generateRandom().isDummy()).isFalse();
-    }
-
-    @Test
     public void randomlyGeneratedIsNotEmpty() {
         assertThat(ConnectionId.generateRandom().toString()).isNotEmpty();
     }

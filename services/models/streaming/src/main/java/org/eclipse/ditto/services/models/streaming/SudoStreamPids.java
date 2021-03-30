@@ -27,7 +27,6 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -87,7 +86,7 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
     public static SudoStreamPids of(final Integer burst, final Long timeoutMillis,
             final DittoHeaders dittoHeaders) {
 
-        return new SudoStreamPids(burst, timeoutMillis, new LowerBound(), dittoHeaders);
+        return new SudoStreamPids(burst, timeoutMillis, LowerBound.empty(), dittoHeaders);
     }
 
     /**
@@ -105,7 +104,7 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
         final int burst = jsonObject.getValueOrThrow(JSON_BURST);
         final long timeoutMillis = jsonObject.getValueOrThrow(JSON_TIMEOUT_MILLIS);
         final EntityIdWithRevision lowerBound =
-                jsonObject.getValue(JSON_LOWER_BOUND).map(LowerBound::new).orElseGet(LowerBound::new);
+                jsonObject.getValue(JSON_LOWER_BOUND).map(LowerBound::fromJsonObject).orElseGet(LowerBound::empty);
         return new SudoStreamPids(burst, timeoutMillis, lowerBound, dittoHeaders);
     }
 
@@ -135,7 +134,7 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
      * @return whether the command has a non-empty lower bound.
      */
     public boolean hasNonEmptyLowerBound() {
-        return !lowerBound.getEntityId().isDummy();
+        return !lowerBound.getEntityId().equals(LowerBound.emptyEntityId());
     }
 
     @Override
@@ -212,15 +211,4 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
         return TYPE;
     }
 
-    static final class LowerBound extends AbstractEntityIdWithRevision {
-
-        private LowerBound() {
-            super(DefaultEntityId.dummy(), 0L);
-        }
-
-        LowerBound(final JsonObject jsonObject) {
-            super(DefaultEntityId.of(jsonObject.getValueOrThrow(JsonFields.ID)),
-                    jsonObject.getValueOrThrow(JsonFields.REVISION));
-        }
-    }
 }

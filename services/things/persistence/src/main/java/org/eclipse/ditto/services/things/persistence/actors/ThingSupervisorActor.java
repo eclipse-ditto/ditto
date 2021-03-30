@@ -101,7 +101,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
         if (entityId != null) {
             return ThingUnavailableException.newBuilder(entityId);
         } else {
-            return ThingUnavailableException.newBuilder(ThingId.of(DefaultNamespacedEntityId.dummy()));
+            return ThingUnavailableException.newBuilder(ThingId.of(DefaultNamespacedEntityId.of("UNKNOWN:ID")));
         }
     }
 

@@ -119,7 +119,7 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
 
     @Override
     protected DittoRuntimeExceptionBuilder<?> getUnavailableExceptionBuilder(@Nullable final ConnectionId entityId) {
-        final ConnectionId connectionId = entityId != null ? entityId : ConnectionId.dummy();
+        final ConnectionId connectionId = entityId != null ? entityId : ConnectionId.of("UNKNOWN:ID");
         return ConnectionUnavailableException.newBuilder(connectionId);
     }
 

@@ -89,6 +89,7 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.CheckConnectionLog
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.EnableConnectionLogs;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
+import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.ConnectivityQueryCommand;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionLogs;
@@ -586,6 +587,7 @@ public final class ConnectionPersistenceActor
     private void testConnection(final StagedCommand command) {
         final ActorRef origin = command.getSender();
         final ActorRef self = getSelf();
+        final TestConnection testConnection = (TestConnection) command.getCommand();
 
         if (clientActorRouter != null) {
             // client actor is already running, so either another TestConnection command is currently executed or the
@@ -596,9 +598,9 @@ public final class ConnectionPersistenceActor
             // no need to start more than 1 client for tests
             // set connection status to CLOSED so that client actors will not try to connect on startup
             setConnectionStatusClosedForTestConnection();
-            startAndAskClientActors(command.getCommand(), 1)
+            startAndAskClientActors(testConnection, 1)
                     .thenAccept(response -> self.tell(
-                            command.withResponse(TestConnectionResponse.success(command.getConnectionEntityId(),
+                            command.withResponse(TestConnectionResponse.success(testConnection.getConnectionEntityId(),
                                     response.toString(), command.getDittoHeaders())),
                             ActorRef.noSender()))
                     .exceptionally(error -> {

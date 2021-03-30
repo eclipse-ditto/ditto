@@ -130,7 +130,7 @@ public class ConciergeForwarderActor extends AbstractActor {
     }
 
     private static <C extends Signal<?> & WithEntityId> Optional<C> toSignalWithEntityId(Signal<?> signal) {
-        if (signal instanceof WithEntityId && !((WithEntityId) signal).getEntityId().isDummy()) {
+        if (signal instanceof WithEntityId) {
             return Optional.of((C) signal);
         } else {
             return Optional.empty();

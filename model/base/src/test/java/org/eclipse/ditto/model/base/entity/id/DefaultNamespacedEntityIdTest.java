@@ -74,11 +74,6 @@ public class DefaultNamespacedEntityIdTest extends LengthRestrictionTestBase {
         final NamespacedEntityId invalidNamespacedEntityId = new NamespacedEntityId() {
 
             @Override
-            public boolean isDummy() {
-                return false;
-            }
-
-            @Override
             public String getName() {
                 return invalidName;
             }
@@ -132,17 +127,6 @@ public class DefaultNamespacedEntityIdTest extends LengthRestrictionTestBase {
     public void toStringConcatenatesNamespaceAndName() {
         assertThat(DefaultNamespacedEntityId.of(VALID_NAMESPACE, VALID_NAME).toString()).isEqualTo(VALID_ID);
         assertThat(DefaultNamespacedEntityId.of(VALID_ID).toString()).isEqualTo(VALID_ID);
-    }
-
-    @Test
-    public void placeholderIsPlaceholder() {
-        assertThat(DefaultNamespacedEntityId.dummy().isDummy()).isTrue();
-    }
-
-    @Test
-    public void manuallyCreatedPlaceholderIsPlaceholder() {
-        assertThat(DefaultNamespacedEntityId.of(":_").isDummy()).isTrue();
-        assertThat(DefaultNamespacedEntityId.of("", "_").isDummy()).isTrue();
     }
 
     @Test
@@ -222,13 +206,11 @@ public class DefaultNamespacedEntityIdTest extends LengthRestrictionTestBase {
         final NamespacedEntityId idBySeparated = DefaultNamespacedEntityId.of(namespace, name);
         assertThat(idBySeparated.getNamespace()).isEqualTo(namespace);
         assertThat(idBySeparated.getName()).isEqualTo(name);
-        assertThat(idBySeparated.isDummy()).isFalse();
 
         final NamespacedEntityId idByCombined =
                 DefaultNamespacedEntityId.of(concatenateNamespaceAndName(namespace, name));
         assertThat(idByCombined.getNamespace()).isEqualTo(namespace);
         assertThat(idByCombined.getName()).isEqualTo(name);
-        assertThat(idByCombined.isDummy()).isFalse();
     }
 
     private static void assertInValidId(@Nullable final String namespace, @Nullable final String name) {

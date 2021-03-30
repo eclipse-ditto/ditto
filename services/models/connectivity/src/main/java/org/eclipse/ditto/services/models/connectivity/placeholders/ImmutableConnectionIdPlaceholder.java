@@ -59,7 +59,7 @@ final class ImmutableConnectionIdPlaceholder implements ConnectionIdPlaceholder 
     public Optional<String> resolve(final ConnectionId connectionId, final String placeholder) {
         argumentNotEmpty(placeholder, "placeholder");
         checkNotNull(connectionId, "Connection ID");
-        if (!connectionId.isDummy() && ID_PLACEHOLDER.equals(placeholder)) {
+        if (ID_PLACEHOLDER.equals(placeholder)) {
             return Optional.of(connectionId.toString());
         }
         return Optional.empty();

@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyRevision;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyRevisionResponse;
+import org.eclipse.ditto.services.models.streaming.LowerBound;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
 import org.eclipse.ditto.services.utils.akka.controlflow.MergeSortedAsPair;
 
@@ -38,6 +39,9 @@ import akka.stream.javadsl.Source;
  * out-of-date search index entries.
  */
 public final class BackgroundSyncStream {
+
+    private static final ThingId EMPTY_THING_ID = ThingId.of(LowerBound.emptyEntityId());
+    private static final PolicyId EMPTY_POLICY_ID = PolicyId.of(LowerBound.emptyEntityId());
 
     private final ActorRef policiesShardRegion;
     private final Duration policiesAskTimeout;
@@ -91,7 +95,7 @@ public final class BackgroundSyncStream {
             final Source<Metadata, ?> metadataFromSearchIndex) {
 
         final Comparator<Metadata> comparator = BackgroundSyncStream::compareMetadata;
-        return MergeSortedAsPair.merge(dummyMetadata(), comparator, metadataFromSnapshots, metadataFromSearchIndex)
+        return MergeSortedAsPair.merge(emptyMetadata(), comparator, metadataFromSnapshots, metadataFromSearchIndex)
                 .throttle(throttleThroughput, throttlePeriod)
                 .flatMapConcat(this::filterForInconsistency)
                 // log elements at warning level because out-of-date metadata are detected
@@ -107,8 +111,8 @@ public final class BackgroundSyncStream {
                 .orElse(false);
     }
 
-    private static Metadata dummyMetadata() {
-        return Metadata.of(ThingId.dummy(), 0L, PolicyId.dummy(), 0L, null);
+    private static Metadata emptyMetadata() {
+        return Metadata.of(EMPTY_THING_ID, 0L, EMPTY_POLICY_ID, 0L, null);
     }
 
     private Source<Metadata, NotUsed> filterForInconsistency(final Pair<Metadata, Metadata> pair) {
@@ -128,7 +132,7 @@ public final class BackgroundSyncStream {
                     : Source.single(indexed).log("NotPersistedAndIndexed");
         } else {
             // IDs match
-            if (indexed.getThingId().isDummy()) {
+            if (indexed.getThingId().equals(EMPTY_THING_ID)) {
                 // sanity check: entry should not be dummy
                 return Source.failed(new IllegalStateException("Unexpected double-dummy entry: " + pair));
             } else if (isInsideToleranceWindow(indexed, toleranceCutOff)) {
@@ -237,8 +241,8 @@ public final class BackgroundSyncStream {
      * thing ID is bigger, and 0 if both are equal.
      */
     public static int compareThingIds(final ThingId thingId1, final ThingId thingId2) {
-        final int dummyComparison = Boolean.compare(thingId1.isDummy(), thingId2.isDummy());
-        return dummyComparison != 0 ? dummyComparison : thingId1.compareTo(thingId2);
+        final int emptyThingComparison = Boolean.compare(thingId1.equals(EMPTY_THING_ID), thingId2.equals(EMPTY_THING_ID));
+        return emptyThingComparison != 0 ? emptyThingComparison : thingId1.compareTo(thingId2);
     }
 
 }

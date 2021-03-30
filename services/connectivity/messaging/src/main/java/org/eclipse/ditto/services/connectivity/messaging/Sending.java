@@ -103,7 +103,7 @@ final class Sending implements SendingOrDropped {
 
     @Nullable
     private CommandResponse<?> acknowledgementFromNullResponse(
-            final ExceptionToAcknowledgementConverter exceptionConverter, @Nullable WithHttpStatus response) {
+            final ExceptionToAcknowledgementConverter exceptionConverter, @Nullable final WithHttpStatus response) {
         if (sendingContext.shouldAcknowledge() && null == response) {
             /*
              * response == null; report error.
@@ -119,7 +119,7 @@ final class Sending implements SendingOrDropped {
     }
 
     @Nullable
-    private Exception getSentFailure(@Nullable Throwable error, @Nullable WithHttpStatus response,
+    private Exception getSentFailure(@Nullable final Throwable error, @Nullable final WithHttpStatus response,
             boolean isAckFromNullResponse){
 
         if (null != error) {
@@ -133,7 +133,7 @@ final class Sending implements SendingOrDropped {
     }
 
     @Nullable
-    private Supplier<DittoRuntimeException> getAckFailure(WithHttpStatus response) {
+    private Supplier<DittoRuntimeException> getAckFailure(final WithHttpStatus response) {
         final HttpStatus status = response.getHttpStatus();
         if (response instanceof Acknowledgement && (status.isClientError() || status.isServerError())) {
             return () -> getExceptionForAcknowledgement((Acknowledgement) response);
@@ -153,7 +153,7 @@ final class Sending implements SendingOrDropped {
                 .build();
     }
 
-    private static boolean isTargetIssuesLiveResponse(SendingContext sendingContext) {
+    private static boolean isTargetIssuesLiveResponse(final SendingContext sendingContext) {
         return sendingContext.getAutoAckTarget()
                 .flatMap(Target::getIssuedAcknowledgementLabel)
                 .filter(DittoAcknowledgementLabel.LIVE_RESPONSE::equals)

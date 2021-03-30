@@ -39,7 +39,6 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -86,7 +85,6 @@ import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.base.WithEntityId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
@@ -186,8 +184,9 @@ public final class OutboundMappingProcessorActor
         final boolean customAckRequested = requestedAcks.stream()
                 .anyMatch(request -> !DittoAcknowledgementLabel.contains(request.getLabel()));
 
-        // TODO: <j.bartelheimer> move EntityIdWithType to EntityId, should then be simplified
-        final Optional<EntityIdWithType> entityIdWithType = extractTypedEntityId(signal);
+        final Optional<EntityIdWithType> entityIdWithType = extractEntityId(signal)
+                .filter(EntityIdWithType.class::isInstance)
+                .map(EntityIdWithType.class::cast);
         if (customAckRequested && entityIdWithType.isPresent()) {
             final List<AcknowledgementLabel> weakAckLabels = requestedAcks.stream()
                     .map(AcknowledgementRequest::getLabel)
@@ -202,14 +201,6 @@ public final class OutboundMappingProcessorActor
                 sender.tell(weakAcks, ActorRef.noSender());
             }
         }
-    }
-
-    private static Optional<EntityIdWithType> extractTypedEntityId(Signal<?> signal) {
-        return Optional.of(signal)
-                .filter(s -> s instanceof SignalWithEntityId<?>)
-                .map(s -> ((SignalWithEntityId<?>) s).getEntityId())
-                .filter(entityId -> entityId instanceof EntityIdWithType)
-                .map(entityId -> (EntityIdWithType) entityId);
     }
 
     private int determinePoolSize(final int connectionPoolSize, final int maxPoolSize) {
@@ -388,8 +379,9 @@ public final class OutboundMappingProcessorActor
                 .schemaVersion(JsonSchemaVersion.LATEST)
                 .build();
 
-
-        return extractThingId(outboundSignal.delegate.getSource())
+        return extractEntityId(outboundSignal.delegate.getSource())
+                .filter(ThingId.class::isInstance)
+                .map(ThingId.class::cast)
                 .map(thingId -> {
                     return signalEnrichmentFacade.retrievePartialThing(
                             thingId,
@@ -409,12 +401,11 @@ public final class OutboundMappingProcessorActor
                 });
     }
 
-    private static Optional<ThingId> extractThingId(Signal<?> signal) {
-        if (signal instanceof WithThingId){
-            return Optional.of(((WithThingId) signal).getThingEntityId());
-        } else {
-            return Optional.empty();
-        }
+    private static Optional<EntityId> extractEntityId(Signal<?> signal) {
+        return Optional.of(signal)
+                .filter(WithEntityId.class::isInstance)
+                .map(WithEntityId.class::cast)
+                .map(WithEntityId::getEntityId);
     }
 
     // Called inside future; must be thread-safe

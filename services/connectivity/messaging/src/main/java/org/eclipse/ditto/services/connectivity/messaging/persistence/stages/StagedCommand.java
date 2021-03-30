@@ -43,7 +43,7 @@ import akka.actor.ActorRef;
 public final class StagedCommand implements ConnectivityCommand<StagedCommand>, Iterator<StagedCommand> {
 
     private static final ConnectivityEvent<?> DUMMY_EVENT =
-            ConnectionClosed.of(ConnectionId.dummy(), DittoHeaders.empty());
+            ConnectionClosed.of(ConnectionId.of("dummy-staged-command-event"), DittoHeaders.empty());
 
     private final ConnectivityCommand<?> command;
     private final ConnectivityEvent<?> event;
@@ -78,6 +78,8 @@ public final class StagedCommand implements ConnectivityCommand<StagedCommand>, 
     }
 
     /**
+     * Used to make the compiler happy, needed due to a broken design.
+     *
      * @return a dummy placeholder event.
      */
     public static ConnectivityEvent<?> dummyEvent() {
@@ -92,7 +94,9 @@ public final class StagedCommand implements ConnectivityCommand<StagedCommand>, 
     }
 
     /**
-     * @return the event to persist, apply or publish.
+     * If {@link StagedCommand#dummyEvent()} is used, this method returns nonesense at runtime.
+     *
+     * @return the event to persist, apply or publish or dummy-event.
      */
     public ConnectivityEvent<?> getEvent() {
         return event;
@@ -134,11 +138,6 @@ public final class StagedCommand implements ConnectivityCommand<StagedCommand>, 
      */
     public StagedCommand withResponse(final WithDittoHeaders response) {
         return new StagedCommand(command, event, response, sender, actions);
-    }
-
-    @Override
-    public ConnectionId getConnectionEntityId() {
-        return command.getConnectionEntityId();
     }
 
     @Override

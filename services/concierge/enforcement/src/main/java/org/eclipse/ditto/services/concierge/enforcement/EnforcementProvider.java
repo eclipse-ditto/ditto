@@ -13,18 +13,19 @@
 package org.eclipse.ditto.services.concierge.enforcement;
 
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.WithEntityId;
 
 import akka.NotUsed;
 import akka.stream.FanOutShape2;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
 import akka.stream.SinkShape;
-import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.GraphDSL;
 import akka.stream.javadsl.Sink;
 
@@ -89,32 +90,42 @@ public interface EnforcementProvider<T extends Signal<?>> {
             final FanOutShape2<Contextual<WithDittoHeaders>, Contextual<T>, Contextual<WithDittoHeaders>> fanout =
                     builder.add(multiplexer);
 
-            final Flow<Contextual<T>, EnforcementTask, NotUsed> enforcementFlow =
-                    Flow.fromFunction(contextual -> buildEnforcementTask(contextual, preEnforcer));
+            final Graph<FanOutShape2<Contextual<T>, EnforcementTask, Contextual<T>>, NotUsed> enforcementFlow =
+                    Filter.multiplexBy(contextual -> buildEnforcementTask(contextual, preEnforcer));
 
             // by default, ignore unhandled messages:
-            final SinkShape<Contextual<WithDittoHeaders>> unhandledSink = builder.add(Sink.ignore());
+            final Supplier<SinkShape<Contextual<?>>> unhandledSink = () -> builder.add(Sink.ignore());
 
-            final FlowShape<Contextual<T>, EnforcementTask> enforcementShape = builder.add(enforcementFlow);
+            final FanOutShape2<Contextual<T>, EnforcementTask, Contextual<T>> enforcementShape = builder.add(enforcementFlow);
 
             builder.from(fanout.out0()).toInlet(enforcementShape.in());
-            builder.from(fanout.out1()).to(unhandledSink);
+            builder.from(fanout.out1()).to(unhandledSink.get());
+            builder.from(enforcementShape.out1()).to(unhandledSink.get());
 
-            return FlowShape.of(fanout.in(), enforcementShape.out());
+            return FlowShape.of(fanout.in(), enforcementShape.out0());
         });
     }
 
-    private EnforcementTask buildEnforcementTask(final Contextual<T> contextual, final PreEnforcer preEnforcer) {
+    private Optional<EnforcementTask> buildEnforcementTask(final Contextual<T> contextual,
+            final PreEnforcer preEnforcer) {
         final T message = contextual.getMessage();
         final boolean changesAuthorization = changesAuthorization(message);
-        final EntityId entityId = contextual.getEntityId();
 
-        return EnforcementTask.of(entityId, changesAuthorization, () ->
-                preEnforcer.withErrorHandlingAsync(contextual,
-                        contextual.setMessage(null).withReceiver(null),
-                        converted -> createEnforcement(converted).enforceSafely()
-                )
-        );
+
+        if (message instanceof WithEntityId) {
+            final EntityId entityId = ((WithEntityId) message).getEntityId();
+            return Optional.of(EnforcementTask.of(entityId, changesAuthorization,
+                    () -> preEnforcer.withErrorHandlingAsync(contextual,
+                                    contextual.setMessage(null).withReceiver(null),
+                                    converted -> createEnforcement(converted).enforceSafely()
+                            )
+                    ));
+        } else {
+            // This should not happen: Refuse to perform enforcement task for messages without ID.
+            contextual.getLog().error("Cannot build EnforcementTask without EntityId: <{}>", message);
+            return Optional.empty();
+        }
+
     }
 
     private Optional<T> mapToHandledClass(final Object message) {

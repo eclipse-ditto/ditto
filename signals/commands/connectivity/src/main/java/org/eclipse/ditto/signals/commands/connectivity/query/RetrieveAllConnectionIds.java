@@ -101,11 +101,6 @@ public final class RetrieveAllConnectionIds extends AbstractCommand<RetrieveAllC
     }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
-        return ConnectionId.dummy();
-    }
-
-    @Override
     public Category getCategory() {
         return Category.QUERY;
     }

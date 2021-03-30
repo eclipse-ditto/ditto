@@ -47,11 +47,4 @@ public interface EntityId extends CharSequence, Comparable<EntityId> {
         return toString().compareTo(o.toString());
     }
 
-    /**
-     * Checks whether this ID acts as dummy ID. Dummy IDs should not be used as ID for any entity.
-     *
-     * @return true if this ID is a dummy ID, otherwise false.
-     */
-    boolean isDummy();
-
 }

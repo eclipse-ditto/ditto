@@ -40,7 +40,7 @@ import akka.actor.ActorRef;
 /**
  * A message together with contextual information about the actor processing it.
  */
-public final class Contextual<T extends WithDittoHeaders> implements WithSender<T>, WithEntityId, WithDittoHeaders {
+public final class Contextual<T extends WithDittoHeaders> implements WithSender<T>, WithDittoHeaders {
 
     @Nullable
     private final T message;
@@ -146,17 +146,6 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
     @Override
     public ActorRef getSender() {
         return sender;
-    }
-
-    @Override
-    public EntityId getEntityId() {
-        if (message instanceof WithEntityId) {
-            return ((WithEntityId) message).getEntityId();
-        } else if (message != null) {
-            return DefaultEntityId.of(String.valueOf(message.hashCode()));
-        } else {
-            return DefaultEntityId.dummy();
-        }
     }
 
     @Override
@@ -271,7 +260,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
             return entityId;
         } else {
             throw new IllegalArgumentException("Contextual: processed WithDittoHeaders message did not implement " +
-                    "WithResource or WithId: " + signal.getClass().getSimpleName());
+                    "WithResource or WithEntityId: " + signal.getClass().getSimpleName());
         }
     }
 
