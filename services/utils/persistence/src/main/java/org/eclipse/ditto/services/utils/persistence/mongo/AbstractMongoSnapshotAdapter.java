@@ -89,7 +89,7 @@ public abstract class AbstractMongoSnapshotAdapter<T extends Jsonifiable.WithFie
      */
     protected JsonObject convertToJson(final T snapshotEntity) {
         checkNotNull(snapshotEntity, "snapshot entity");
-        return snapshotEntity.toJson(snapshotEntity.getImplementedSchemaVersion(), FieldType.regularOrSpecial());
+        return snapshotEntity.toJson(snapshotEntity.getImplementedSchemaVersion(), FieldType.all());
     }
 
     /**

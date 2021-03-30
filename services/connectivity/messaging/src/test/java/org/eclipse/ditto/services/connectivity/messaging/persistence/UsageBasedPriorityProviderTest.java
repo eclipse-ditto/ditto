@@ -1,0 +1,171 @@
+/*
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
+ *
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
+package org.eclipse.ditto.services.connectivity.messaging.persistence;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
+import java.text.MessageFormat;
+import java.time.Duration;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.connectivity.AddressMetric;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.Measurement;
+import org.eclipse.ditto.model.connectivity.MetricType;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetrics;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import akka.actor.ActorSystem;
+import akka.testkit.TestProbe;
+import akka.testkit.javadsl.TestKit;
+import junit.framework.AssertionFailedError;
+
+/**
+ * Tests {@link UsageBasedPriorityProvider}.
+ */
+public final class UsageBasedPriorityProviderTest {
+
+    private static ActorSystem system;
+
+    private final ConnectionMetrics connectionMetrics;
+    private UsageBasedPriorityProvider underTest;
+    private TestProbe connectionPersistenceActorProbe;
+    private DittoDiagnosticLoggingAdapter mockLog;
+
+    public UsageBasedPriorityProviderTest() {
+        final Measurement inboundConsumedMeasurement =
+                ConnectivityModelFactory.newMeasurement(MetricType.CONSUMED, true, Map.of(Duration.ofHours(24), 10L),
+                        null);
+        final Measurement outboundPublishedMeasurement =
+                ConnectivityModelFactory.newMeasurement(MetricType.PUBLISHED, true, Map.of(Duration.ofHours(24), 10L),
+                        null);
+        final AddressMetric inbound =
+                ConnectivityModelFactory.newAddressMetric(Set.of(inboundConsumedMeasurement));
+        final AddressMetric outbound =
+                ConnectivityModelFactory.newAddressMetric(Set.of(outboundPublishedMeasurement));
+        connectionMetrics = ConnectivityModelFactory.newConnectionMetrics(inbound, outbound);
+    }
+
+    @BeforeClass
+    public static void setupClass() {
+        system = ActorSystem.create();
+    }
+
+    @AfterClass
+    public static void teardownClass() {
+        if (system != null) {
+            TestKit.shutdownActorSystem(system);
+        }
+        system = null;
+    }
+
+    @Before
+    public void setup() {
+        connectionPersistenceActorProbe = TestProbe.apply(system);
+        mockLog = mock(DittoDiagnosticLoggingAdapter.class);
+        when(mockLog.withCorrelationId(anyString())).thenReturn(mockLog);
+        underTest = new UsageBasedPriorityProvider(connectionPersistenceActorProbe.ref(), mockLog);
+    }
+
+    @Test
+    public void getPriority() {
+        final CompletionStage<Optional<Integer>> futurePriority =
+                underTest.getPriorityFor(ConnectionId.generateRandom(), "test-getPriority");
+        new TestKit(system) {{
+            final RetrieveConnectionMetrics retrieveConnectionMetrics =
+                    connectionPersistenceActorProbe.expectMsgClass(RetrieveConnectionMetrics.class);
+            connectionPersistenceActorProbe.reply(
+                    RetrieveConnectionMetricsResponse.of(retrieveConnectionMetrics.getConnectionEntityId(),
+                            JsonObject.newBuilder().set("connectionMetrics", connectionMetrics.toJson()).build(),
+                            retrieveConnectionMetrics.getDittoHeaders()));
+        }};
+        assertPriority(futurePriority, 20);
+        verifyNoInteractions(mockLog);
+    }
+
+    @Test
+    public void getPriorityWithException() {
+        final CompletionStage<Optional<Integer>> futurePriority =
+                underTest.getPriorityFor(ConnectionId.generateRandom(), "test-getPriority");
+        new TestKit(system) {{
+            connectionPersistenceActorProbe.expectMsgClass(RetrieveConnectionMetrics.class);
+            // No response causes ask timeout exception.
+        }};
+        assertNoPriority(futurePriority);
+        verify(mockLog).warning(eq("Got error when trying to retrieve the connection metrics: <{}>"), any());
+    }
+
+    @Test
+    public void getPriorityWithInvalidResponse() {
+        final CompletionStage<Optional<Integer>> futurePriority =
+                underTest.getPriorityFor(ConnectionId.generateRandom(), "test-getPriority");
+        new TestKit(system) {{
+            connectionPersistenceActorProbe.expectMsgClass(RetrieveConnectionMetrics.class);
+            connectionPersistenceActorProbe.reply("Strange unexpected message");
+        }};
+        assertNoPriority(futurePriority);
+        verify(mockLog).warning(eq("Expected <{}> but got <{}>"), any(), any());
+    }
+
+    private static void assertPriority(final CompletionStage<Optional<Integer>> futurePriority,
+            final Integer expectedPriority) {
+        doAssertPriority(futurePriority, expectedPriority);
+    }
+
+    private static void assertNoPriority(final CompletionStage<Optional<Integer>> futurePriority) {
+        doAssertPriority(futurePriority, null);
+    }
+
+    private static void doAssertPriority(
+            final CompletionStage<Optional<Integer>> futurePriority,
+            @Nullable final Integer expectedPriority) {
+        try {
+            final Optional<Integer> actualPriority = futurePriority.toCompletableFuture().get(10, TimeUnit.SECONDS);
+            if (expectedPriority == null) {
+                assertThat(actualPriority).isEmpty();
+            } else {
+                assertThat(actualPriority).contains(expectedPriority);
+            }
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            e.printStackTrace();
+            throw new AssertionFailedError(
+                    MessageFormat.format("Expected priority <{0}> but got exception: <{1}>", expectedPriority,
+                            futurePriority));
+        }
+    }
+
+
+}

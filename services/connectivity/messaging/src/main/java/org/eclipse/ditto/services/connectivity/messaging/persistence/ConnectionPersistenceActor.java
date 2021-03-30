@@ -22,12 +22,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -155,16 +157,19 @@ public final class ConnectionPersistenceActor
     private final ConnectionConfig config;
     private final MonitoringConfig monitoringConfig;
     private final ClientActorRefs clientActorRefs = ClientActorRefs.empty();
+    private final ConnectionPriorityProvider connectionPriorityProvider;
 
     private int subscriptionCounter = 0;
     private Instant connectionClosedAt = Instant.now();
     @Nullable private Instant loggingEnabledUntil;
     @Nullable private ActorRef clientActorRouter;
+    @Nullable private Integer priority;
 
     ConnectionPersistenceActor(final ConnectionId connectionId,
             final ActorRef proxyActor,
             final ClientActorPropsFactory propsFactory,
             @Nullable final ConnectivityCommandInterceptor customCommandValidator,
+            @Nullable final ConnectionPriorityProvider connectionPriorityProvider,
             final Trilean allClientActorsOnOneNode) {
 
         super(connectionId, new ConnectionMongoSnapshotAdapter());
@@ -200,6 +205,13 @@ public final class ConnectionPersistenceActor
             commandValidator = dittoCommandValidator;
         }
 
+        final UsageBasedPriorityProvider usageBasedPriorityProvider = new UsageBasedPriorityProvider(getSelf(), log);
+        if (connectionPriorityProvider == null) {
+            this.connectionPriorityProvider = usageBasedPriorityProvider;
+        } else {
+            this.connectionPriorityProvider = connectionPriorityProvider.withFallBack(usageBasedPriorityProvider);
+        }
+
         clientActorAskTimeout = config.getClientActorAskTimeout();
 
         monitoringConfig = connectivityConfig.getMonitoringConfig();
@@ -210,6 +222,7 @@ public final class ConnectionPersistenceActor
 
         this.loggingEnabledDuration = monitoringConfig.logger().logDuration();
         this.checkLoggingActiveInterval = monitoringConfig.logger().loggingActiveCheckInterval();
+        startUpdatePriorityPeriodically(connectivityConfig.getConnectionConfig().getPriorityUpdateInterval());
     }
 
     @Override
@@ -225,15 +238,17 @@ public final class ConnectionPersistenceActor
      * @param proxyActor the actor used to send signals into the ditto cluster..
      * @param propsFactory factory of props of client actors for various protocols.
      * @param commandValidator validator for commands that should throw an exception if a command is invalid.
+     * @param connectionPriorityProvider used to determine the reconnect priority of a connection.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ConnectionId connectionId,
             final ActorRef proxyActor,
             final ClientActorPropsFactory propsFactory,
-            @Nullable final ConnectivityCommandInterceptor commandValidator
+            @Nullable final ConnectivityCommandInterceptor commandValidator,
+            @Nullable final ConnectionPriorityProvider connectionPriorityProvider
     ) {
         return Props.create(ConnectionPersistenceActor.class, connectionId, proxyActor, propsFactory, commandValidator,
-                Trilean.UNKNOWN);
+                connectionPriorityProvider, Trilean.UNKNOWN);
     }
 
     /**
@@ -369,11 +384,16 @@ public final class ConnectionPersistenceActor
 
         if (alwaysAlive = (targetConnectionStatus == ConnectivityStatus.OPEN)) {
             final DittoHeaders headersWithJournalTags = superEvent.getDittoHeaders().toBuilder()
-                    .journalTags(Set.of(JOURNAL_TAG_ALWAYS_ALIVE))
+                    .journalTags(journalTags())
                     .build();
             return superEvent.setDittoHeaders(headersWithJournalTags);
         }
         return superEvent;
+    }
+
+    private Set<String> journalTags() {
+        return Set.of(JOURNAL_TAG_ALWAYS_ALIVE,
+                JOURNAL_TAG_ALWAYS_ALIVE + "-" + Optional.ofNullable(priority).orElse(0));
     }
 
     @Override
@@ -394,7 +414,7 @@ public final class ConnectionPersistenceActor
                     emptyEvent = new EmptyEvent(entityId, EmptyEvent.EFFECT_ALWAYS_ALIVE, getRevisionNumber() + 1,
                     DittoHeaders.newBuilder()
                             .correlationId(ping.getCorrelationId().orElse(null))
-                            .journalTags(Set.of(JOURNAL_TAG_ALWAYS_ALIVE))
+                            .journalTags(journalTags())
                             .build());
             getSelf().tell(new PersistEmptyEvent(emptyEvent), ActorRef.noSender());
         }
@@ -509,6 +529,8 @@ public final class ConnectionPersistenceActor
         return ReceiveBuilder.create()
                 .match(CreateSubscription.class, this::startThingSearchSession)
                 .matchEquals(Control.CHECK_LOGGING_ACTIVE, this::checkLoggingEnabled)
+                .matchEquals(Control.TRIGGER_UPDATE_PRIORITY, this::triggerUpdatePriority)
+                .match(UpdatePriority.class, this::updatePriority)
 
                 // maintain client actor refs
                 .match(ActorRef.class, this::addClientActor)
@@ -572,6 +594,46 @@ public final class ConnectionPersistenceActor
     private void checkLoggingEnabled(final Control message) {
         final CheckConnectionLogsActive checkLoggingActive = CheckConnectionLogsActive.of(entityId, Instant.now());
         broadcastToClientActorsIfStarted(checkLoggingActive, getSelf());
+    }
+
+    private void triggerUpdatePriority(final Control message) {
+        if (entity != null) {
+            final String correlationId = UUID.randomUUID().toString();
+            connectionPriorityProvider.getPriorityFor(entityId, correlationId)
+                    .whenComplete((desiredPriority, error) -> {
+                        if (error != null) {
+                            log.withCorrelationId(correlationId)
+                                    .warning("Got error when trying to get the desired priority for connection <{}>.",
+                                            entityId);
+                        } else {
+                            final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(correlationId).build();
+                            self().tell(new UpdatePriority(desiredPriority.orElse(0), headers), ActorRef.noSender());
+                        }
+                    });
+        }
+    }
+
+    private void updatePriority(final UpdatePriority updatePriority) {
+        final Integer desiredPriority = updatePriority.getDesiredPriority();
+        /* Update priority if
+         * a) desired priority is 0 and priority is not yet initialized or if
+         * b) desired property is not equal to the current priority.
+         * Condition a is required to avoid that a connection has a high priority forever even when it didn't
+         * send any message since the last recovery of this actor.
+         * Condition b is required to avoid unnecessary database operations.
+         */
+        if (priority == null && desiredPriority.equals(0) || !desiredPriority.equals(priority)) {
+            log.withCorrelationId(updatePriority)
+                    .info("Updating priority of connection <{}> from <{}> to <{}>", entityId, priority,
+                            desiredPriority);
+            this.priority = desiredPriority;
+            final DittoHeaders headersWithJournalTags =
+                    updatePriority.getDittoHeaders().toBuilder().journalTags(journalTags()).build();
+            final EmptyEvent emptyEvent =
+                    new EmptyEvent(entityId, EmptyEvent.EFFECT_PRIORITY_UPDATE, getRevisionNumber() + 1,
+                            headersWithJournalTags);
+            getSelf().tell(new PersistEmptyEvent(emptyEvent), ActorRef.noSender());
+        }
     }
 
     private void prepareForSignalForwarding(final StagedCommand command) {
@@ -687,6 +749,11 @@ public final class ConnectionPersistenceActor
     private void startEnabledLoggingChecker() {
         timers().startTimerWithFixedDelay(Control.CHECK_LOGGING_ACTIVE, Control.CHECK_LOGGING_ACTIVE,
                 checkLoggingActiveInterval);
+    }
+
+    private void startUpdatePriorityPeriodically(final Duration priorityUpdateInterval) {
+        timers().startTimerWithFixedDelay(Control.TRIGGER_UPDATE_PRIORITY, Control.TRIGGER_UPDATE_PRIORITY,
+                priorityUpdateInterval);
     }
 
     private void respondWithEmptyLogs(final RetrieveConnectionLogs command, final ActorRef origin) {
@@ -934,7 +1001,49 @@ public final class ConnectionPersistenceActor
         /**
          * Indicates a check if logging is still enabled for this connection.
          */
-        CHECK_LOGGING_ACTIVE
+        CHECK_LOGGING_ACTIVE,
+
+        /**
+         * Indicates the the priority of the connection should get updated
+         */
+        TRIGGER_UPDATE_PRIORITY;
+    }
+
+    /**
+     * Local message this actor may sent to itself in order to update the priority of the connection.
+     */
+    @Immutable
+    static final class UpdatePriority implements WithDittoHeaders<UpdatePriority> {
+
+        private final Integer desiredPriority;
+        private final DittoHeaders dittoHeaders;
+
+        public UpdatePriority(final Integer desiredPriority, final DittoHeaders dittoHeaders) {
+            this.desiredPriority = desiredPriority;
+            this.dittoHeaders = dittoHeaders;
+        }
+
+        protected Integer getDesiredPriority() {
+            return desiredPriority;
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " [" +
+                    "desiredPriority=" + desiredPriority +
+                    "]";
+        }
+
+        @Override
+        public DittoHeaders getDittoHeaders() {
+            return dittoHeaders;
+        }
+
+        @Override
+        public UpdatePriority setDittoHeaders(final DittoHeaders dittoHeaders) {
+            return new UpdatePriority(desiredPriority, dittoHeaders);
+        }
+
     }
 
 }

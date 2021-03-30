@@ -90,6 +90,7 @@ public class MongoReadJournal {
 
     private static final String J_PROCESSOR_ID = JournallingFieldNames$.MODULE$.PROCESSOR_ID();
     private static final String J_TAGS = JournallingFieldNames$.MODULE$.TAGS();
+    private static final String J_TO = JournallingFieldNames$.MODULE$.TO();
     private static final String S_SN = SnapshottingFieldNames$.MODULE$.SEQUENCE_NUMBER();
 
     // Not working: SnapshottingFieldNames.V2$.MODULE$.SERIALIZED()
@@ -203,6 +204,26 @@ public class MongoReadJournal {
     }
 
     /**
+     * Retrieve all unique PIDs in journals selected by a provided {@code tag}.
+     * The PIDs are ordered based on the tags of the events.
+     *
+     * @param tag the Tag name the journal entries have to contain in order to be selected, or an empty string to select
+     * all journal entries.
+     * @param maxIdleTime how long the stream is allowed to idle without sending any element. Bounds the number of
+     * retries with exponential back-off.
+     * @return Source of all persistence IDs such that each element contains the persistence IDs in events that do not
+     * occur in prior buckets.
+     */
+    public Source<String, NotUsed> getJournalPidsWithTagOrderedByTags(final String tag, final Duration maxIdleTime) {
+
+        final int maxRestarts = computeMaxRestarts(maxIdleTime);
+        return getJournal().withAttributes(Attributes.inputBuffer(1, 1))
+                .flatMapConcat(journal ->
+                        listPidsInJournalOrderedByTags(journal, tag, MAX_BACK_OFF_DURATION, maxRestarts)
+                );
+    }
+
+    /**
      * Retrieve all unique PIDs in journals above a lower bound. Does not limit database access in any way.
      *
      * @param lowerBoundPid the lower-bound PID.
@@ -310,6 +331,42 @@ public class MongoReadJournal {
                             });
                 })
                 .withAttributes(Attributes.inputBuffer(1, 1));
+    }
+
+    private Source<String, NotUsed> listPidsInJournalOrderedByTags(final MongoCollection<Document> journal,
+            final String tag, final Duration maxBackOff, final int maxRestarts) {
+
+        final List<Bson> pipeline = new ArrayList<>(6);
+        // optional match stages: consecutive match stages are optimized together ($match + $match coalescence)
+        if (!tag.isEmpty()) {
+            pipeline.add(Aggregates.match(Filters.eq(J_TAGS, tag)));
+        }
+
+        // sort stage
+        pipeline.add(Aggregates.sort(Sorts.orderBy(Sorts.ascending(J_PROCESSOR_ID), Sorts.ascending(J_TO))));
+
+        // group stage
+        pipeline.add(Aggregates.group("$" + J_PROCESSOR_ID, Accumulators.last(J_TAGS, "$" + J_TAGS)));
+
+        // sort stage 2 -- order after group stage is not defined
+        pipeline.add(Aggregates.sort(Sorts.orderBy(Sorts.descending(J_TAGS))));
+
+        final Duration minBackOff = Duration.ofSeconds(1L);
+        final double randomFactor = 0.1;
+
+        final RestartSettings restartSettings = RestartSettings.create(minBackOff, maxBackOff, randomFactor)
+                .withMaxRestarts(maxRestarts, minBackOff);
+        return RestartSource.onFailuresWithBackoff(restartSettings, () ->
+                Source.fromPublisher(journal.aggregate(pipeline))
+                        .flatMapConcat(document -> {
+                            final Object pid = document.get(J_ID);
+                            if (pid instanceof CharSequence) {
+                                return Source.single(pid.toString());
+                            } else {
+                                return Source.empty();
+                            }
+                        })
+        );
     }
 
     private Source<String, NotUsed> listJournalPidsAbove(final MongoCollection<Document> journal, final String startPid,

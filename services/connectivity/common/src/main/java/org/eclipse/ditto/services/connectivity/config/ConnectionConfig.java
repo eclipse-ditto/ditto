@@ -123,6 +123,13 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
     Duration getAckLabelDeclareInterval();
 
     /**
+     * Returns the priority update  interval.
+     *
+     * @return how often to update the priority of a connection.
+     */
+    Duration getPriorityUpdateInterval();
+
+    /**
      * Whether to start all client actors on one node.
      * Useful for single-connectivity-instance deployments.
      *
@@ -169,7 +176,12 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
         /**
          * How often to attempt acknowledgement label declaration for as long as it is not successful.
          */
-        ACK_LABEL_DECLARE_INTERVAL("ack-label-declare-interval", Duration.ofSeconds(10L));
+        ACK_LABEL_DECLARE_INTERVAL("ack-label-declare-interval", Duration.ofSeconds(10L)),
+
+        /**
+         * How often the priority of a connection is getting updated.
+         */
+        PRIORITY_UPDATE_INTERVAL("priority-update-interval", Duration.ofHours(24L));
 
         private final String path;
         private final Object defaultValue;

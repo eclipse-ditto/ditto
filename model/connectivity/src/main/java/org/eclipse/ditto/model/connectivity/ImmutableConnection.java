@@ -360,7 +360,6 @@ final class ImmutableConnection implements Connection {
         return tags;
     }
 
-
     @Override
     public Optional<ConnectionLifecycle> getLifecycle() {
         return Optional.ofNullable(lifecycle);
@@ -803,7 +802,7 @@ final class ImmutableConnection implements Connection {
             try {
                 final String withoutPlus = string.replace("+", "%2B");
                 return URLDecoder.decode(withoutPlus, "UTF-8");
-            } catch (final IllegalArgumentException|UnsupportedEncodingException e) {
+            } catch (final IllegalArgumentException | UnsupportedEncodingException e) {
                 return string;
             }
         }

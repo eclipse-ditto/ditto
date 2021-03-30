@@ -81,10 +81,20 @@ public final class PersistencePingActor extends AbstractActor {
         this.persistenceActorShardRegion = persistenceActorShardRegion;
         this.pingConfig = pingConfig;
         materializer = Materializer.createMaterializer(this::getContext);
-        persistenceIdsSourceSupplier = () -> readJournal.getJournalPidsWithTag(pingConfig.getJournalTag(),
-                pingConfig.getReadJournalBatchSize(),
-                pingConfig.getInterval(),
-                materializer);
+        final PingConfig.StreamingOrder streamingOrder = pingConfig.getStreamingOrder();
+        switch (streamingOrder) {
+            case TAGS:
+                persistenceIdsSourceSupplier =
+                        () -> readJournal.getJournalPidsWithTagOrderedByTags(pingConfig.getJournalTag(),
+                                pingConfig.getInterval());
+                break;
+            case ID:
+            default:
+                persistenceIdsSourceSupplier = () -> readJournal.getJournalPidsWithTag(pingConfig.getJournalTag(),
+                        pingConfig.getReadJournalBatchSize(),
+                        pingConfig.getInterval(),
+                        materializer);
+        }
         readJournal.ensureTagPidIndex().exceptionally(e -> {
             log.error(e, "Failed to create TagPidIndex");
             return null;

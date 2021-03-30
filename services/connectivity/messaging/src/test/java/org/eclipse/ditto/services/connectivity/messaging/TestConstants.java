@@ -870,7 +870,8 @@ public final class TestConstants {
             final ActorRef proxyActor,
             final ClientActorPropsFactory clientActorPropsFactory,
             final ActorRef pubSubMediator) {
-        final Props props = ConnectionSupervisorActor.props(proxyActor, clientActorPropsFactory, null, pubSubMediator);
+        final Props props =
+                ConnectionSupervisorActor.props(proxyActor, clientActorPropsFactory, null, null, pubSubMediator);
 
         final Props shardRegionMockProps = Props.create(ShardRegionMockActor.class, props, connectionId.toString());
 

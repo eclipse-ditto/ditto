@@ -349,6 +349,7 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
 
         /**
          * JSON field containing the {@code Connection} {@link MappingContext} to apply.
+         *
          * @deprecated MAPPING_CONTEXT is deprecated, use MAPPING_DEFINITIONS instead
          */
         @Deprecated
