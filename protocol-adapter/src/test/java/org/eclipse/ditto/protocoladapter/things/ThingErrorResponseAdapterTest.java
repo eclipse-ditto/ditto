@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.protocoladapter.policies;
+package org.eclipse.ditto.protocoladapter.things;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.common.HttpStatus;
@@ -24,22 +24,22 @@ import org.eclipse.ditto.protocoladapter.TestConstants;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.signals.base.ErrorRegistry;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
-import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
+import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Unit test for {@link PolicyErrorResponseAdapter}.
+ * Unit test for {@link ThingErrorResponseAdapter}.
  */
-public final class PolicyErrorResponseAdapterTest implements ProtocolAdapterTest {
+public class ThingErrorResponseAdapterTest implements ProtocolAdapterTest {
 
-    private PolicyErrorResponseAdapter underTest;
+    private ThingErrorResponseAdapter underTest;
     private DittoRuntimeException dittoRuntimeException;
 
     @Before
     public void setUp() {
         final ErrorRegistry<DittoRuntimeException> errorRegistry = GlobalErrorRegistry.getInstance();
-        underTest = PolicyErrorResponseAdapter.of(DittoProtocolAdapter.getHeaderTranslator(), errorRegistry);
+        underTest = ThingErrorResponseAdapter.of(DittoProtocolAdapter.getHeaderTranslator(), errorRegistry);
         dittoRuntimeException = DittoRuntimeException
                 .newBuilder("error.code", HttpStatus.UNAUTHORIZED)
                 .message("the message")
@@ -49,11 +49,11 @@ public final class PolicyErrorResponseAdapterTest implements ProtocolAdapterTest
 
     @Test
     public void testFromAdaptable() {
-        final PolicyErrorResponse expected =
-                PolicyErrorResponse.of(TestConstants.Policies.POLICY_ID, dittoRuntimeException);
+        final ThingErrorResponse expected =
+                ThingErrorResponse.of(TestConstants.THING_ID, dittoRuntimeException);
 
         final TopicPath topicPath =
-                TopicPath.newBuilder(TestConstants.Policies.POLICY_ID).policies().none().errors().build();
+                TopicPath.newBuilder(TestConstants.THING_ID).things().none().errors().build();
         final JsonPointer path = JsonPointer.empty();
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
@@ -62,18 +62,18 @@ public final class PolicyErrorResponseAdapterTest implements ProtocolAdapterTest
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final PolicyErrorResponse actual = underTest.fromAdaptable(adaptable);
+        final ThingErrorResponse actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
     public void testToAdaptable() {
-        final PolicyErrorResponse policyErrorResponse =
-                PolicyErrorResponse.of(TestConstants.Policies.POLICY_ID, dittoRuntimeException);
+        final ThingErrorResponse errorResponse =
+                ThingErrorResponse.of(TestConstants.THING_ID, dittoRuntimeException);
 
         final TopicPath topicPath =
-                TopicPath.newBuilder(TestConstants.Policies.POLICY_ID).policies().none().errors().build();
+                TopicPath.newBuilder(TestConstants.THING_ID).things().none().errors().build();
         final JsonPointer path = JsonPointer.empty();
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
@@ -84,7 +84,7 @@ public final class PolicyErrorResponseAdapterTest implements ProtocolAdapterTest
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
-        final Adaptable actual = underTest.toAdaptable(policyErrorResponse, TopicPath.Channel.NONE);
+        final Adaptable actual = underTest.toAdaptable(errorResponse, TopicPath.Channel.NONE);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
