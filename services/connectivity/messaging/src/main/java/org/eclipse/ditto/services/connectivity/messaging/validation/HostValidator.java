@@ -67,8 +67,8 @@ final class HostValidator {
     /**
      * Validate if connections to a host are allowed by checking (in this order):
      * <ul>
-     *     <li>blocklist is empty this completely disables validation, every host is allowed</li>
-     *     <li>host is contained in allowlist host is allowed</li>
+     *     <li>if the blocklist is empty, this completely disables validation, every host is allowed</li>
+     *     <li>if the host is contained in the allowlist, the host is allowed</li>
      *     <li>host is resolved to a blocked ip (loopback, site-local, multicast, wildcard ip)? host is blocked</li>
      *     <li>host is contained in the blocklist host is blocked</li>
      *  </ul>
