@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.config;
 
 import java.util.Optional;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.events.base.Event;
@@ -35,7 +36,7 @@ public class DittoConnectivityConfigProvider implements ConnectivityConfigProvid
     }
 
     @Override
-    public ConnectivityConfig getConnectivityConfig(final ConnectionId connectionId) {
+    public ConnectivityConfig getConnectivityConfig(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
         return connectivityConfig;
     }
 
