@@ -73,7 +73,7 @@ public abstract class AbstractEventAssert<S extends AbstractJsonifiableAssert<S,
         final EntityId actualId = actual.getEntityId();
         Assertions.assertThat(actualId.toString())
                 .overridingErrorMessage("Expected Event to have ID\n<%s> but it had\n<%s>", expectedId, actualId)
-                .isEqualTo(expectedId.toString());
+                .hasToString(expectedId.toString());
         return myself;
     }
 
@@ -141,16 +141,6 @@ public abstract class AbstractEventAssert<S extends AbstractJsonifiableAssert<S,
         Assertions.assertThat(actualName)
                 .overridingErrorMessage("Expected Event to have name\n<%s> but it had\n<%s>", expectedName, actualName)
                 .isEqualTo(expectedName.toString());
-        return myself;
-    }
-
-    public S hasRevision(final long expectedRevision) {
-        isNotNull();
-        final long actualRevision = actual.getRevision();
-        Assertions.assertThat(actualRevision)
-                .overridingErrorMessage("Expected Event to have revision\n<%s> but it had\n<%s>", expectedRevision,
-                        actualRevision)
-                .isEqualTo(expectedRevision);
         return myself;
     }
 

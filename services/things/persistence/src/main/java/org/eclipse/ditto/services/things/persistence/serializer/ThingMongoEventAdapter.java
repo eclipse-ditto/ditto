@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.services.utils.persistence.mongo.AbstractMongoEventAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 import org.eclipse.ditto.signals.events.base.GlobalEventRegistry;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
@@ -38,7 +39,7 @@ import akka.actor.ExtendedActorSystem;
 public final class ThingMongoEventAdapter extends AbstractMongoEventAdapter<ThingEvent<?>> {
 
     private static final Predicate<JsonField> IS_REVISION = field -> field.getDefinition()
-            .map(definition -> Objects.equals(definition, Event.JsonFields.REVISION))
+            .map(definition -> Objects.equals(definition, EventsourcedEvent.JsonFields.REVISION))
             .orElse(false);
 
     private static final JsonPointer POLICY_IN_THING_EVENT_PAYLOAD = ThingEvent.JsonFields.THING.getPointer()
@@ -57,10 +58,10 @@ public final class ThingMongoEventAdapter extends AbstractMongoEventAdapter<Thin
     @Override
     public Object toJournal(final Object event) {
         if (event instanceof Event) {
-            final Event<?> theEvent = (Event) event;
+            final Event<?> theEvent = (Event<?>) event;
             final JsonSchemaVersion schemaVersion = theEvent.getImplementedSchemaVersion();
             final JsonObject jsonObject =
-                    theEvent.toJson(schemaVersion, IS_REVISION.negate().and(FieldType.regularOrSpecial())) //
+                    theEvent.toJson(schemaVersion, IS_REVISION.negate().and(FieldType.regularOrSpecial()))
                             // remove the policy entries from thing event payload
                             .remove(POLICY_IN_THING_EVENT_PAYLOAD);
             final DittoBsonJson dittoBsonJson = DittoBsonJson.getInstance();

@@ -35,7 +35,7 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestWatcher;
@@ -58,7 +58,7 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
     @Test
     public void cleanupDeletesUntilButExcludingLatestSnapshot() {
         setup(createNewDefaultTestConfig());
-        final List<Event<?>> expectedEvents = new ArrayList<>();
+        final List<EventsourcedEvent<?>> expectedEvents = new ArrayList<>();
         final LinkedList<Thing> expectedSnapshots = new LinkedList<>();
 
         new TestKit(actorSystem) {
@@ -117,13 +117,13 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
 
                 // only events after the latest snapshot should survive
                 final long revision = latestSnapshot;
-                final List<Event<?>> expectedEventsAfterCleanup = expectedEvents.stream()
+                final List<EventsourcedEvent<?>> expectedEventsAfterCleanup = expectedEvents.stream()
                         .filter(e -> e.getRevision() > revision)
                         .collect(Collectors.toList());
                 assertJournal(thingId, expectedEventsAfterCleanup);
             }
 
-            private Event<?> sendModifyThing(final Thing modifiedThing, final ActorRef underTest,
+            private EventsourcedEvent<?> sendModifyThing(final Thing modifiedThing, final ActorRef underTest,
                     final int revisionNumber) {
                 final ModifyThing modifyThingCommand =
                         ModifyThing.of(modifiedThing.getEntityId()
@@ -141,7 +141,7 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
     @Test
     public void testDeletedThingIsCleanedUpCorrectly() {
         setup(createNewDefaultTestConfig());
-        final List<Event<?>> expectedEvents = new ArrayList<>();
+        final List<EventsourcedEvent<?>> expectedEvents = new ArrayList<>();
 
         new TestKit(actorSystem) {
             {
@@ -170,7 +170,7 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
 
                 final Thing expectedDeletedSnapshot = toDeletedThing(thingCreated, 2);
                 assertSnapshots(thingId, Collections.singletonList(expectedDeletedSnapshot));
-                final Event<?> deletedEvent = toEvent(deleteThing, expectedDeletedSnapshot);
+                final EventsourcedEvent<?> deletedEvent = toEvent(deleteThing, expectedDeletedSnapshot);
                 expectedEvents.add(deletedEvent);
                 assertJournal(thingId, expectedEvents);
 

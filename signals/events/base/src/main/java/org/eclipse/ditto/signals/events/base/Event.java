@@ -57,21 +57,6 @@ public interface Event<T extends Event<T>> extends Signal<T>, WithOptionalEntity
     }
 
     /**
-     * Returns the event's revision.
-     *
-     * @return the event's revision.
-     */
-    long getRevision();
-
-    /**
-     * Return a new immutable copy of this event with the given {@code revision}.
-     *
-     * @param revision the event's revision.
-     * @return the copy of the event with the given revision.
-     */
-    T setRevision(long revision);
-
-    /**
      * Returns the event's timestamp.
      *
      * @return the timestamp.
@@ -105,13 +90,6 @@ public interface Event<T extends Event<T>> extends Signal<T>, WithOptionalEntity
          * JSON field containing the event's type. Always included in new events.
          */
         public static final JsonFieldDefinition<String> TYPE = JsonFactory.newStringFieldDefinition("type");
-
-        /**
-         * JSON field containing the event's revision.
-         */
-        public static final JsonFieldDefinition<Long> REVISION =
-                JsonFactory.newLongFieldDefinition("revision", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the event's timestamp.

@@ -392,7 +392,8 @@ public final class PolicyPersistenceActor
                             pair.second().getId(),
                             getRevisionNumber() + 1L,
                             eventTimestamp,
-                            eventDittoHeaders
+                            eventDittoHeaders,
+                            null
                     );
                 });
     }

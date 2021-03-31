@@ -36,6 +36,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
@@ -52,7 +53,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * @since 2.0.0
  */
 @Immutable
-@JsonParsableEvent(name = SubjectsDeletedPartially.NAME, typePrefix = SubjectsDeletedPartially.TYPE_PREFIX)
+@JsonParsableEvent(name = SubjectsDeletedPartially.NAME, typePrefix = PolicyEvent.TYPE_PREFIX)
 public final class SubjectsDeletedPartially extends AbstractPolicyActionEvent<SubjectsDeletedPartially> {
 
     /**
@@ -76,9 +77,10 @@ public final class SubjectsDeletedPartially extends AbstractPolicyActionEvent<Su
             final Map<Label, Collection<SubjectId>> deletedSubjectIds,
             final long revision,
             @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
 
-        super(TYPE, checkNotNull(policyId, "policyId"), revision, timestamp, dittoHeaders);
+        super(TYPE, checkNotNull(policyId, "policyId"), revision, timestamp, dittoHeaders, metadata);
         // Copying and unmodifiable wrapping happen in the factory method.
         // Constructor does not copy in order to share the known unmodifiable field between instances.
         this.deletedSubjectIds = deletedSubjectIds;
@@ -89,9 +91,10 @@ public final class SubjectsDeletedPartially extends AbstractPolicyActionEvent<Su
             final JsonObject deletedSubjectIds,
             final long revision,
             @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
 
-        super(TYPE, checkNotNull(policyId, "policyId"), revision, timestamp, dittoHeaders);
+        super(TYPE, checkNotNull(policyId, "policyId"), revision, timestamp, dittoHeaders, metadata);
         this.deletedSubjectIds =
                 deletedSubjectsFromJson(checkNotNull(deletedSubjectIds, "deletedSubjectIds"));
     }
@@ -102,26 +105,9 @@ public final class SubjectsDeletedPartially extends AbstractPolicyActionEvent<Su
      * @param policyId the policy ID.
      * @param deletedSubjectIds IDs of subjects that are deleted indexed by their policy entry labels.
      * @param revision the revision of the Policy.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the created SubjectsDeletedPartially.
-     * @throws NullPointerException if any argument is {@code null}.
-     */
-    public static SubjectsDeletedPartially of(final PolicyId policyId,
-            final Map<Label, Collection<SubjectId>> deletedSubjectIds,
-            final long revision,
-            final DittoHeaders dittoHeaders) {
-
-        return of(policyId, deletedSubjectIds, revision, null, dittoHeaders);
-    }
-
-    /**
-     * Constructs a new {@code SubjectsDeletedPartially} object.
-     *
-     * @param policyId the policy ID.
-     * @param deletedSubjectIds IDs of subjects that are deleted indexed by their policy entry labels.
-     * @param revision the revision of the Policy.
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @param metadata the metadata to apply for the event.
      * @return the created SubjectsDeletedPartially.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
@@ -129,12 +115,13 @@ public final class SubjectsDeletedPartially extends AbstractPolicyActionEvent<Su
             final Map<Label, Collection<SubjectId>> deletedSubjectIds,
             final long revision,
             @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
 
         return new SubjectsDeletedPartially(policyId,
                 Collections.unmodifiableMap(
                         new LinkedHashMap<>(checkNotNull(deletedSubjectIds, "deletedSubjectIds"))),
-                revision, timestamp, dittoHeaders);
+                revision, timestamp, dittoHeaders, metadata);
     }
 
     /**
@@ -153,7 +140,8 @@ public final class SubjectsDeletedPartially extends AbstractPolicyActionEvent<Su
                     final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyEvent.JsonFields.POLICY_ID);
                     final PolicyId policyId = PolicyId.of(extractedPolicyId);
                     final JsonObject activatedSubjects = jsonObject.getValueOrThrow(JSON_DELETED_SUBJECT_IDS);
-                    return new SubjectsDeletedPartially(policyId, activatedSubjects, revision, timestamp, dittoHeaders);
+                    return new SubjectsDeletedPartially(policyId, activatedSubjects, revision, timestamp, dittoHeaders,
+                            metadata);
                 });
     }
 
@@ -178,19 +166,18 @@ public final class SubjectsDeletedPartially extends AbstractPolicyActionEvent<Su
 
     @Override
     public SubjectsDeletedPartially setRevision(final long revision) {
-        return new SubjectsDeletedPartially(getEntityId(), deletedSubjectIds, revision, getTimestamp().orElse(null),
-                getDittoHeaders());
+        return new SubjectsDeletedPartially(getPolicyEntityId(), deletedSubjectIds, revision,
+                getTimestamp().orElse(null), getDittoHeaders(), getMetadata().orElse(null));
     }
 
     @Override
     public SubjectsDeletedPartially setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new SubjectsDeletedPartially(getEntityId(), deletedSubjectIds, getRevision(),
-                getTimestamp().orElse(null),
-                dittoHeaders);
+        return new SubjectsDeletedPartially(getPolicyEntityId(), deletedSubjectIds, getRevision(),
+                getTimestamp().orElse(null), dittoHeaders, getMetadata().orElse(null));
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayloadAndBuild(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_DELETED_SUBJECT_IDS, deletedSubjectsToJson(deletedSubjectIds),

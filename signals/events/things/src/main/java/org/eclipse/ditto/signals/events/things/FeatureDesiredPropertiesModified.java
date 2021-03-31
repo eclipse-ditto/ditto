@@ -46,8 +46,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * @since 1.5.0
  */
 @Immutable
-@JsonParsableEvent(name = FeatureDesiredPropertiesModified.NAME,
-        typePrefix = FeatureDesiredPropertiesModified.TYPE_PREFIX)
+@JsonParsableEvent(name = FeatureDesiredPropertiesModified.NAME, typePrefix = ThingEvent.TYPE_PREFIX)
 public final class FeatureDesiredPropertiesModified extends AbstractThingEvent<FeatureDesiredPropertiesModified>
         implements
         ThingModifiedEvent<FeatureDesiredPropertiesModified>, WithFeatureId {
@@ -138,9 +137,9 @@ public final class FeatureDesiredPropertiesModified extends AbstractThingEvent<F
 
         return new EventJsonDeserializer<FeatureDesiredPropertiesModified>(TYPE, jsonObject)
                 .deserialize((revision, timestamp, metadata) -> {
-                    final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+                    final String extractedThingId = jsonObject.getValueOrThrow(ThingEvent.JsonFields.THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
-                    final String extractedFeatureId = jsonObject.getValueOrThrow(JsonFields.FEATURE_ID);
+                    final String extractedFeatureId = jsonObject.getValueOrThrow(ThingEvent.JsonFields.FEATURE_ID);
                     final JsonObject propertiesJsonObject = jsonObject.getValueOrThrow(JSON_DESIRED_PROPERTIES);
 
                     final FeatureProperties extractedProperties =
@@ -194,7 +193,7 @@ public final class FeatureDesiredPropertiesModified extends AbstractThingEvent<F
             final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(JsonFields.FEATURE_ID, featureId, predicate);
+        jsonObjectBuilder.set(ThingEvent.JsonFields.FEATURE_ID, featureId, predicate);
         jsonObjectBuilder.set(JSON_DESIRED_PROPERTIES, desiredProperties, predicate);
     }
 

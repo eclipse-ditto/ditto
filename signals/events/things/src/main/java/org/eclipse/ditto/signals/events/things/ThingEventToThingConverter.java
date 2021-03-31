@@ -30,7 +30,7 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 
 /**
  * Helpers and utils for converting {@link ThingEvent}s to {@link Thing}s.
@@ -100,8 +100,8 @@ public final class ThingEventToThingConverter {
             return Optional.empty();
         }
 
-        if (signal instanceof Event) {
-            return Optional.of(thing.toBuilder().setRevision(((Event<?>) signal).getRevision()).build());
+        if (signal instanceof EventsourcedEvent) {
+            return Optional.of(thing.toBuilder().setRevision(((EventsourcedEvent<?>) signal).getRevision()).build());
         }
         return Optional.of(thing);
     }

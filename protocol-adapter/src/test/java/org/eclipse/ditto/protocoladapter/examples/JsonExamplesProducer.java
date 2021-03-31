@@ -41,6 +41,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonPointerInvalidException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -387,7 +388,11 @@ class JsonExamplesProducer {
             JsonFactory.newFieldSelector("properties/target_year_1",
                     JsonParseOptions.newBuilder().withoutUrlDecoding().build());
 
+    private static final Instant TIMESTAMP = Instant.EPOCH;
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.empty();
+    private static final Metadata METADATA = Metadata.newBuilder()
+            .set("creator", "The epic Ditto team")
+            .build();
 
     private static final List<DittoHeaderDefinition> EXCLUDED_RESPONSE_HEADERS =
             Arrays.asList(DittoHeaderDefinition.RESPONSE_REQUIRED, DittoHeaderDefinition.CONTENT_TYPE);
@@ -623,61 +628,76 @@ class JsonExamplesProducer {
         final Path eventsDir = rootPath.resolve(Paths.get("events"));
         Files.createDirectories(eventsDir);
 
-        final PolicyCreated policyCreated = PolicyCreated.of(POLICY, REVISION_NUMBER, DITTO_HEADERS);
+        final PolicyCreated policyCreated = PolicyCreated.of(POLICY, REVISION_NUMBER,
+                TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("policyCreated.json")), policyCreated);
 
-        final PolicyModified policyModified = PolicyModified.of(POLICY, REVISION_NUMBER, DITTO_HEADERS);
+        final PolicyModified policyModified = PolicyModified.of(POLICY, REVISION_NUMBER,
+                TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("policyModified.json")), policyModified);
 
-        final PolicyDeleted policyDeleted = PolicyDeleted.of(POLICY_ID, REVISION_NUMBER, DITTO_HEADERS);
+        final PolicyDeleted policyDeleted = PolicyDeleted.of(POLICY_ID, REVISION_NUMBER,
+                TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("policyDeleted.json")), policyDeleted);
 
         final PolicyEntriesModified policyEntriesModified =
-                PolicyEntriesModified.of(POLICY_ID, POLICY_ENTRIES, REVISION_NUMBER, DITTO_HEADERS);
+                PolicyEntriesModified.of(POLICY_ID, POLICY_ENTRIES, REVISION_NUMBER,
+                        TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("policyEntriesModified.json")), policyEntriesModified);
 
         final PolicyEntryCreated policyEntryCreated =
-                PolicyEntryCreated.of(POLICY_ID, POLICY_ENTRY, REVISION_NUMBER, DITTO_HEADERS);
+                PolicyEntryCreated.of(POLICY_ID, POLICY_ENTRY, REVISION_NUMBER,
+                        TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("policyEntryCreated.json")), policyEntryCreated);
 
         final PolicyEntryModified policyEntryModified =
-                PolicyEntryModified.of(POLICY_ID, POLICY_ENTRY, REVISION_NUMBER, DITTO_HEADERS);
+                PolicyEntryModified.of(POLICY_ID, POLICY_ENTRY, REVISION_NUMBER,
+                        TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("policyEntryModified.json")), policyEntryModified);
 
         final PolicyEntryDeleted policyEntryDeleted =
-                PolicyEntryDeleted.of(POLICY_ID, LABEL, REVISION_NUMBER, DITTO_HEADERS);
+                PolicyEntryDeleted.of(POLICY_ID, LABEL, REVISION_NUMBER,
+                        TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("policyEntryDeleted.json")), policyEntryDeleted);
 
         final SubjectsModified subjectsModified =
-                SubjectsModified.of(POLICY_ID, LABEL, SUBJECTS, REVISION_NUMBER, DITTO_HEADERS);
+                SubjectsModified.of(POLICY_ID, LABEL, SUBJECTS, REVISION_NUMBER,
+                        TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("subjectsModified.json")), subjectsModified);
 
         final SubjectCreated subjectCreated =
-                SubjectCreated.of(POLICY_ID, LABEL, SUBJECT, REVISION_NUMBER, DITTO_HEADERS);
+                SubjectCreated.of(POLICY_ID, LABEL, SUBJECT, REVISION_NUMBER,
+                        TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("subjectCreated.json")), subjectCreated);
 
         final SubjectModified subjectModified =
-                SubjectModified.of(POLICY_ID, LABEL, SUBJECT, REVISION_NUMBER, DITTO_HEADERS);
+                SubjectModified.of(POLICY_ID, LABEL, SUBJECT, REVISION_NUMBER,
+                        TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("subjectModified.json")), subjectModified);
 
         final SubjectDeleted subjectDeleted =
-                SubjectDeleted.of(POLICY_ID, LABEL, SUBJECT_ID, REVISION_NUMBER, DITTO_HEADERS);
+                SubjectDeleted.of(POLICY_ID, LABEL, SUBJECT_ID, REVISION_NUMBER,
+                        TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("subjectDeleted.json")), subjectDeleted);
 
         final ResourcesModified resourcesModified =
-                ResourcesModified.of(POLICY_ID, LABEL, RESOURCES, REVISION_NUMBER, DITTO_HEADERS);
+                ResourcesModified.of(POLICY_ID, LABEL, RESOURCES, REVISION_NUMBER,
+                                TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("resourcesModified.json")), resourcesModified);
 
         final ResourceCreated resourceCreated =
-                ResourceCreated.of(POLICY_ID, LABEL, RESOURCE, REVISION_NUMBER, DITTO_HEADERS);
+                ResourceCreated.of(POLICY_ID, LABEL, RESOURCE, REVISION_NUMBER,
+                        TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("resourceCreated.json")), resourceCreated);
 
         final ResourceModified resourceModified =
-                ResourceModified.of(POLICY_ID, LABEL, RESOURCE, REVISION_NUMBER, DITTO_HEADERS);
+                ResourceModified.of(POLICY_ID, LABEL, RESOURCE, REVISION_NUMBER,
+                        TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("resourceModified.json")), resourceModified);
 
         final ResourceDeleted resourceDeleted =
-                ResourceDeleted.of(POLICY_ID, LABEL, RESOURCE_KEY, REVISION_NUMBER, DITTO_HEADERS);
+                ResourceDeleted.of(POLICY_ID, LABEL, RESOURCE_KEY, REVISION_NUMBER,
+                        TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("resourceDeleted.json")), resourceDeleted);
     }
 
@@ -1358,110 +1378,121 @@ class JsonExamplesProducer {
         final Path eventsDir = rootPath.resolve(Paths.get("events"));
         Files.createDirectories(eventsDir);
 
-        final ThingCreated thingCreated = ThingCreated.of(THING, REVISION_NUMBER, DITTO_HEADERS);
+        final ThingCreated thingCreated = ThingCreated.of(THING, REVISION_NUMBER,
+                TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("thingCreated.json")), thingCreated);
 
-        final ThingModified thingModified = ThingModified.of(THING, REVISION_NUMBER, DITTO_HEADERS);
+        final ThingModified thingModified = ThingModified.of(THING, REVISION_NUMBER,
+                TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("thingModified.json")), thingModified);
 
-        final ThingDeleted thingDeleted = ThingDeleted.of(THING_ID, REVISION_NUMBER, DITTO_HEADERS);
+        final ThingDeleted thingDeleted = ThingDeleted.of(THING_ID, REVISION_NUMBER,
+                TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("thingDeleted.json")), thingDeleted);
 
         final ThingDefinitionCreated thingDefinitionCreated =
-                ThingDefinitionCreated.of(THING_ID, THING_DEFINITION, REVISION_NUMBER, DITTO_HEADERS);
+                ThingDefinitionCreated.of(THING_ID, THING_DEFINITION, REVISION_NUMBER,
+                        TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("thingDefinitionCreated.json")), thingDefinitionCreated);
 
         final ThingDefinitionModified thingDefinitionModified =
-                ThingDefinitionModified.of(THING_ID, THING_DEFINITION, REVISION_NUMBER, DITTO_HEADERS);
+                ThingDefinitionModified.of(THING_ID, THING_DEFINITION, REVISION_NUMBER,
+                        TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("thingDefinitionModified.json")), thingDefinitionModified);
 
         final ThingDefinitionDeleted thingDefinitionDeleted =
-                ThingDefinitionDeleted.of(THING_ID, REVISION_NUMBER, DITTO_HEADERS);
+                ThingDefinitionDeleted.of(THING_ID, REVISION_NUMBER,
+                        TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("thingDefinitionDeleted.json")), thingDefinitionDeleted);
 
         final PolicyIdModified policyIdModified =
-                PolicyIdModified.of(THING_ID, POLICY_ID, REVISION_NUMBER, DITTO_HEADERS);
+                PolicyIdModified.of(THING_ID, POLICY_ID, REVISION_NUMBER,
+                        TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("policyIdModified.json")), policyIdModified);
 
         final AttributesCreated attributesCreated = AttributesCreated.of(THING_ID, ATTRIBUTES, REVISION_NUMBER,
-                DITTO_HEADERS);
+                TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("attributesCreated.json")), attributesCreated);
 
         final AttributesModified attributesModified = AttributesModified.of(THING_ID, ATTRIBUTES, REVISION_NUMBER,
-                DITTO_HEADERS);
+                TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("attributesModified.json")), attributesModified);
 
-        final AttributesDeleted attributesDeleted = AttributesDeleted.of(THING_ID, REVISION_NUMBER, DITTO_HEADERS);
+        final AttributesDeleted attributesDeleted = AttributesDeleted.of(THING_ID, REVISION_NUMBER,
+                TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("attributesDeleted.json")), attributesDeleted);
 
         final AttributeCreated attributeCreated = AttributeCreated.of(THING_ID, ATTRIBUTE_POINTER, ATTRIBUTE_VALUE,
-                REVISION_NUMBER, DITTO_HEADERS);
+                REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("attributeCreated.json")), attributeCreated);
 
         final AttributeModified attributeModified = AttributeModified.of(THING_ID, ATTRIBUTE_POINTER, ATTRIBUTE_VALUE,
-                REVISION_NUMBER, DITTO_HEADERS);
+                REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("attributeModified.json")), attributeModified);
 
         final AttributeDeleted attributeDeleted = AttributeDeleted.of(THING_ID, ATTRIBUTE_POINTER, REVISION_NUMBER,
-                DITTO_HEADERS);
+                TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("attributeDeleted.json")), attributeDeleted);
 
         final FeatureCreated featureCreated = FeatureCreated.of(THING_ID, FLUX_CAPACITOR, REVISION_NUMBER,
-                DITTO_HEADERS);
+                TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("featureCreated.json")), featureCreated);
 
         final FeatureModified featureModified = FeatureModified.of(THING_ID, FLUX_CAPACITOR, REVISION_NUMBER,
-                DITTO_HEADERS);
+                TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("featureModified.json")), featureModified);
 
-        final FeatureDeleted featureDeleted = FeatureDeleted.of(THING_ID, FEATURE_ID, REVISION_NUMBER, DITTO_HEADERS);
+        final FeatureDeleted featureDeleted = FeatureDeleted.of(THING_ID, FEATURE_ID, REVISION_NUMBER,
+                TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("featureDeleted.json")), featureDeleted);
 
-        final FeaturesDeleted featuresDeleted = FeaturesDeleted.of(THING_ID, REVISION_NUMBER, DITTO_HEADERS);
+        final FeaturesDeleted featuresDeleted = FeaturesDeleted.of(THING_ID, REVISION_NUMBER,
+                TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("featuresDeleted.json")), featuresDeleted);
 
         final FeaturesCreated featuresCreated = FeaturesCreated.of(THING_ID,
-                ThingsModelFactory.newFeatures(FLUX_CAPACITOR), REVISION_NUMBER, DITTO_HEADERS);
+                ThingsModelFactory.newFeatures(FLUX_CAPACITOR), REVISION_NUMBER,
+                TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("featuresCreated.json")), featuresCreated);
 
         final FeaturesModified featuresModified = FeaturesModified.of(THING_ID, FEATURES, REVISION_NUMBER,
-                DITTO_HEADERS);
+                TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("featuresModified.json")), featuresModified);
 
         final FeatureDefinitionCreated featureDefinitionCreated = FeatureDefinitionCreated.of(THING_ID, FEATURE_ID,
-                FEATURE_DEFINITION, REVISION_NUMBER, DITTO_HEADERS);
+                FEATURE_DEFINITION, REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("featureDefinitionCreated.json")), featureDefinitionCreated);
 
         final FeatureDefinitionModified featureDefinitionModified = FeatureDefinitionModified.of(THING_ID, FEATURE_ID,
-                FEATURE_DEFINITION, REVISION_NUMBER, DITTO_HEADERS);
+                FEATURE_DEFINITION, REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("featureDefinitionModified.json")), featureDefinitionModified);
 
         final FeaturePropertiesCreated featurePropertiesCreated = FeaturePropertiesCreated.of(THING_ID, FEATURE_ID,
-                FEATURE_PROPERTIES, REVISION_NUMBER, DITTO_HEADERS);
+                FEATURE_PROPERTIES, REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("featurePropertiesCreated.json")), featurePropertiesCreated);
 
         final FeaturePropertiesModified featurePropertiesModified = FeaturePropertiesModified.of(THING_ID, FEATURE_ID,
-                FEATURE_PROPERTIES, REVISION_NUMBER, DITTO_HEADERS);
+                FEATURE_PROPERTIES, REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("featurePropertiesModified.json")), featurePropertiesModified);
 
         final FeaturePropertyCreated featurePropertyCreated = FeaturePropertyCreated.of(THING_ID, FEATURE_ID,
-                PROPERTY_POINTER, PROPERTY_VALUE, REVISION_NUMBER, DITTO_HEADERS);
+                PROPERTY_POINTER, PROPERTY_VALUE, REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("featurePropertyCreated.json")), featurePropertyCreated);
 
         final FeaturePropertyModified featurePropertyModified = FeaturePropertyModified.of(THING_ID, FEATURE_ID,
-                PROPERTY_POINTER, PROPERTY_VALUE, REVISION_NUMBER, DITTO_HEADERS);
+                PROPERTY_POINTER, PROPERTY_VALUE, REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("featurePropertyModified.json")), featurePropertyModified);
 
         final FeatureDefinitionDeleted featureDefinitionDeleted = FeatureDefinitionDeleted.of(THING_ID, FEATURE_ID,
-                REVISION_NUMBER, DITTO_HEADERS);
+                REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("featureDefinitionDeleted.json")), featureDefinitionDeleted);
 
         final FeaturePropertiesDeleted featurePropertiesDeleted = FeaturePropertiesDeleted.of(THING_ID, FEATURE_ID,
-                REVISION_NUMBER, DITTO_HEADERS);
+                REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("featurePropertiesDeleted.json")), featurePropertiesDeleted);
 
         final FeaturePropertyDeleted featurePropertyDeleted = FeaturePropertyDeleted.of(THING_ID, FEATURE_ID,
-                PROPERTY_POINTER, REVISION_NUMBER, DITTO_HEADERS);
+                PROPERTY_POINTER, REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("featurePropertyDeleted.json")), featurePropertyDeleted);
     }
 

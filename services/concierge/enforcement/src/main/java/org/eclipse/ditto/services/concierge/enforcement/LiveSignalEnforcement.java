@@ -62,7 +62,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
     private static final AckExtractor<ThingCommand<?>> THING_COMMAND_ACK_EXTRACTOR =
             AckExtractor.of(ThingCommand::getEntityId, ThingCommand::getDittoHeaders);
     private static final AckExtractor<ThingEvent<?>> THING_EVENT_ACK_EXTRACTOR =
-            AckExtractor.of(ThingEvent::getEntityId, ThingEvent::getDittoHeaders);
+            AckExtractor.of(ThingEvent::getThingEntityId, ThingEvent::getDittoHeaders);
     private static final AckExtractor<MessageCommand<?, ?>> MESSAGE_COMMAND_ACK_EXTRACTOR =
             AckExtractor.of(MessageCommand::getEntityId, MessageCommand::getDittoHeaders);
 

@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyRevision;
 import org.eclipse.ditto.services.policies.persistence.TestConstants;
@@ -25,6 +26,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 public abstract class AbstractPolicyEventStrategyTest<T extends PolicyEvent<T>> {
+
+    static final Instant TIMESTAMP = Instant.EPOCH;
+    static final Metadata METADATA = Metadata.newBuilder()
+            .set("creator", "The epic Ditto team")
+            .build();
 
     private Instant instant;
     private Policy policy;

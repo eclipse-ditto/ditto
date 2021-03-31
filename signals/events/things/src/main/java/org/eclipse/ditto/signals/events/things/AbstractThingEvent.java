@@ -12,27 +12,16 @@
  */
 package org.eclipse.ditto.signals.events.things;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-
 import java.time.Instant;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.function.Predicate;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.signals.events.base.Event;
-
+import org.eclipse.ditto.signals.events.base.AbstractEventsourcedEvent;
 
 /**
  * Abstract base class of an event store event.
@@ -40,14 +29,10 @@ import org.eclipse.ditto.signals.events.base.Event;
  * @param <T> the type of the implementing class.
  */
 @Immutable
-public abstract class AbstractThingEvent<T extends AbstractThingEvent<T>> implements ThingEvent<T> {
+public abstract class AbstractThingEvent<T extends AbstractThingEvent<T>> extends AbstractEventsourcedEvent<T>
+        implements ThingEvent<T> {
 
-    private final String type;
     private final ThingId thingId;
-    private final long revision;
-    @Nullable private final Instant timestamp;
-    private final DittoHeaders dittoHeaders;
-    @Nullable private final Metadata metadata;
 
     /**
      * Constructs a new {@code AbstractThingEvent} object.
@@ -68,20 +53,8 @@ public abstract class AbstractThingEvent<T extends AbstractThingEvent<T>> implem
             final DittoHeaders dittoHeaders,
             @Nullable final Metadata metadata) {
 
-        this.type = checkNotNull(type, "Event type");
-        this.thingId = checkNotNull(thingId, "Thing identifier");
-        this.revision = revision;
-        this.timestamp = timestamp;
-        this.dittoHeaders = checkNotNull(dittoHeaders, "dittoHeaders").isResponseRequired() ? dittoHeaders
-                .toBuilder()
-                .responseRequired(false)
-                .build() : dittoHeaders;
-        this.metadata = metadata;
-    }
-
-    @Override
-    public String getType() {
-        return type;
+        super(type, thingId, timestamp, dittoHeaders, metadata, revision, ThingEvent.JsonFields.THING_ID);
+        this.thingId = thingId;
     }
 
     @Override
@@ -89,59 +62,7 @@ public abstract class AbstractThingEvent<T extends AbstractThingEvent<T>> implem
         return thingId;
     }
 
-    @Override
-    public long getRevision() {
-        return revision;
-    }
-
-    @Override
-    public Optional<Instant> getTimestamp() {
-        return Optional.ofNullable(timestamp);
-    }
-
-    @Override
-    public Optional<Metadata> getMetadata() {
-        return Optional.ofNullable(metadata);
-    }
-
-    @Override
-    public DittoHeaders getDittoHeaders() {
-        return dittoHeaders;
-    }
-
-    @Nonnull
-    @Override
-    public String getManifest() {
-        return getType();
-    }
-
-    @Override
-    public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
-        final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder()
-                // TYPE is included unconditionally
-                .set(Event.JsonFields.TYPE, type)
-                .set(Event.JsonFields.TIMESTAMP, getTimestamp().map(Instant::toString).orElse(null), predicate)
-                .set(Event.JsonFields.METADATA, getMetadata().map(Metadata::toJson).orElse(null), predicate)
-                .set(Event.JsonFields.REVISION, revision, predicate)
-                .set(JsonFields.THING_ID, thingId.toString());
-
-        appendPayloadAndBuild(jsonObjectBuilder, schemaVersion, thePredicate);
-
-        return jsonObjectBuilder.build();
-    }
-
-    /**
-     * Appends the event specific custom payload to the passed {@code jsonObjectBuilder}.
-     *
-     * @param jsonObjectBuilder the JsonObjectBuilder to add the custom payload to.
-     * @param schemaVersion the JsonSchemaVersion used in toJson().
-     * @param predicate the predicate to evaluate when adding the payload.
-     */
-    protected abstract void appendPayloadAndBuild(final JsonObjectBuilder jsonObjectBuilder,
-            final JsonSchemaVersion schemaVersion, final Predicate<JsonField> predicate);
-
-    @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067", "OverlyComplexMethod"})
+    @SuppressWarnings({"squid:S1067"})
     @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
@@ -150,33 +71,30 @@ public abstract class AbstractThingEvent<T extends AbstractThingEvent<T>> implem
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final AbstractThingEvent that = (AbstractThingEvent) o;
+        if (!super.equals(o)) {
+            return false;
+        }
+        final AbstractThingEvent<?> that = (AbstractThingEvent<?>) o;
         return that.canEqual(this) &&
-                Objects.equals(type, that.type) &&
-                Objects.equals(thingId, that.thingId) &&
-                Objects.equals(revision, that.revision) &&
-                Objects.equals(timestamp, that.timestamp) &&
-                Objects.equals(dittoHeaders, that.dittoHeaders) &&
-                Objects.equals(metadata, that.metadata);
+                Objects.equals(thingId, that.thingId);
     }
 
+    @Override
     protected boolean canEqual(@Nullable final Object other) {
         return (other instanceof AbstractThingEvent);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(type, thingId, revision, timestamp, dittoHeaders, metadata);
+        final int prime = 31;
+        int result = super.hashCode();
+        result = prime * result + Objects.hashCode(thingId);
+        return result;
     }
 
     @Override
     public String toString() {
-        return "type=" + type +
-                ", thingId=" + thingId +
-                ", revision=" + revision +
-                ", timestamp=" + timestamp +
-                ", dittoHeaders=" + dittoHeaders +
-                ", metadata=" + metadata;
+        return super.toString() + ", thingId=" + thingId;
     }
 
 }

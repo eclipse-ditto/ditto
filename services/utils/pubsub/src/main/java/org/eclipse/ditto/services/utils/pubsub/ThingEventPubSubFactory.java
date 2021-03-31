@@ -32,7 +32,7 @@ import akka.actor.ActorSystem;
 public final class ThingEventPubSubFactory extends AbstractPubSubFactory<ThingEvent<?>> {
 
     private static final AckExtractor<ThingEvent<?>> ACK_EXTRACTOR =
-            AckExtractor.of(ThingEvent::getEntityId, ThingEvent::getDittoHeaders);
+            AckExtractor.of(ThingEvent::getThingEntityId, ThingEvent::getDittoHeaders);
 
     private static final DDataProvider PROVIDER = DDataProvider.of("thing-event-aware");
 

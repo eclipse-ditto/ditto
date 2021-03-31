@@ -37,7 +37,8 @@ public class ResourceDeletedStrategyTest extends AbstractPolicyEventStrategyTest
     @Override
     ResourceDeleted getPolicyEvent(final Instant instant, final Policy policy) {
         final PolicyId policyId = policy.getEntityId().orElseThrow();
-        return ResourceDeleted.of(policyId, SUPPORT_LABEL, FEATURES_RESOURCE_KEY, 10L, instant, DittoHeaders.empty());
+        return ResourceDeleted.of(policyId, SUPPORT_LABEL, FEATURES_RESOURCE_KEY, 10L, instant, DittoHeaders.empty(),
+                METADATA);
     }
 
     @Override

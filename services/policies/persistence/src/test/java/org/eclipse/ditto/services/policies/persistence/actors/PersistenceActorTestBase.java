@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.policies.persistence.actors;
 import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.services.policies.persistence.TestConstants.Policy.SUBJECT_TYPE;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
@@ -91,6 +92,7 @@ public abstract class PersistenceActorTestBase {
     protected static final PolicyEntry ANOTHER_POLICY_ENTRY =
             PoliciesModelFactory.newPolicyEntry(ANOTHER_POLICY_LABEL, POLICY_SUBJECTS, POLICY_RESOURCES_READ);
     private static final long POLICY_REVISION = 0;
+    static final Instant TIMESTAMP = Instant.EPOCH;
 
     protected static Config testConfig;
     protected static PolicyConfig policyConfig;

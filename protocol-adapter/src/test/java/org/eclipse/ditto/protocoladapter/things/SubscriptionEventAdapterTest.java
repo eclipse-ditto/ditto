@@ -292,16 +292,6 @@ public final class SubscriptionEventAdapterTest implements ProtocolAdapterTest {
         }
 
         @Override
-        public long getRevision() {
-            return TestConstants.REVISION;
-        }
-
-        @Override
-        public UnknownSubscriptionEvent setRevision(final long revision) {
-            return this;
-        }
-
-        @Override
         public Optional<Instant> getTimestamp() {
             return Optional.empty();
         }
@@ -320,7 +310,6 @@ public final class SubscriptionEventAdapterTest implements ProtocolAdapterTest {
         public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate predicate) {
             return JsonObject.newBuilder()
                     .set(Event.JsonFields.TYPE, getType())
-                    .set(Event.JsonFields.REVISION, getRevision())
                     .build();
         }
 

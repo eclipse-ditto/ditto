@@ -36,13 +36,14 @@ public final class ThingDefinitionCreatedStrategyTest extends AbstractStrategyTe
     public void appliesEventCorrectly() {
         final ThingDefinitionCreatedStrategy strategy = new ThingDefinitionCreatedStrategy();
         final ThingDefinitionCreated event = ThingDefinitionCreated.of(THING_ID, THING_DEFINITION, REVISION,
-                DittoHeaders.empty());
+                TIMESTAMP, DittoHeaders.empty(), null);
 
         final Thing thingWithEventApplied = strategy.handle(event, THING, NEXT_REVISION);
 
         final Thing expected = THING.toBuilder()
                 .setDefinition(THING_DEFINITION)
                 .setRevision(NEXT_REVISION)
+                .setModified(TIMESTAMP)
                 .build();
         assertThat(thingWithEventApplied).isEqualTo(expected);
     }

@@ -12,16 +12,15 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
@@ -194,7 +193,8 @@ public abstract class AbstractPublisherActorTest {
         }
         final DittoHeaders dittoHeaders = headersBuilder.build();
 
-        final Signal<?> source = ThingDeleted.of(TestConstants.Things.THING_ID, 99L, dittoHeaders);
+        final Signal<?> source = ThingDeleted.of(TestConstants.Things.THING_ID, 99L, Instant.now(), dittoHeaders,
+                null);
         final OutboundSignal outboundSignal =
                 OutboundSignalFactory.newOutboundSignal(source, Collections.singletonList(target));
         final ExternalMessage externalMessage =
@@ -212,7 +212,7 @@ public abstract class AbstractPublisherActorTest {
         final DittoHeaders internalHeaders = externalHeaders.toBuilder()
                 .replyTarget(0)
                 .build();
-        final ThingCommandResponse source = DeleteThingResponse.of(ThingId.of("thing", "id"), internalHeaders);
+        final ThingCommandResponse<?> source = DeleteThingResponse.of(ThingId.of("thing", "id"), internalHeaders);
         final ExternalMessage externalMessage =
                 ExternalMessageFactory.newExternalMessageBuilder(externalHeaders)
                         .withAdditionalHeaders(DittoHeaderDefinition.CORRELATION_ID.getKey(),

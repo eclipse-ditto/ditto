@@ -86,16 +86,6 @@ public final class DittoThingSnapshotTaken implements ThingSnapshotTaken, Event<
     }
 
     @Override
-    public long getRevision() {
-        return 0;
-    }
-
-    @Override
-    public DittoThingSnapshotTaken setRevision(final long revision) {
-        return this;
-    }
-
-    @Override
     public Optional<Instant> getTimestamp() {
         return Optional.empty();
     }

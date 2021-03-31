@@ -149,16 +149,6 @@ public final class EmptyEvent implements Event<EmptyEvent> {
     }
 
     @Override
-    public long getRevision() {
-        return revision;
-    }
-
-    @Override
-    public EmptyEvent setRevision(final long revision) {
-        return new EmptyEvent(entityId, effect, revision, dittoHeaders);
-    }
-
-    @Override
     public Optional<Instant> getTimestamp() {
         return Optional.empty();
     }

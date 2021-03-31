@@ -24,10 +24,9 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 import org.eclipse.ditto.signals.events.base.GlobalEventRegistry;
 import org.junit.Test;
 
@@ -41,7 +40,8 @@ public final class PolicyCreatedTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, PolicyCreated.TYPE)
-            .set(Event.JsonFields.REVISION, TestConstants.Policy.REVISION_NUMBER)
+            .set(EventsourcedEvent.JsonFields.REVISION, TestConstants.Policy.REVISION_NUMBER)
+            .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
             .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(PolicyCreated.JSON_POLICY, TestConstants.Policy.POLICY.toJson(FieldType.regularOrSpecial()))
             .build();
@@ -49,6 +49,7 @@ public final class PolicyCreatedTest {
     private static final JsonObject KNOWN_JSON_WITHOUT_REVISION = JsonFactory.newObjectBuilder()
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, PolicyCreated.TYPE)
+            .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
             .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(PolicyCreated.JSON_POLICY, TestConstants.Policy.POLICY.toJson(FieldType.regularOrSpecial()))
             .build();
@@ -67,24 +68,21 @@ public final class PolicyCreatedTest {
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicy() {
-        PolicyCreated.of(null, TestConstants.Policy.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS);
-    }
-
-    @Test(expected = PolicyIdInvalidException.class)
-    public void tryToCreateInstanceWithNullPolicyId() {
-        final Policy policyWithNullId = PoliciesModelFactory.newPolicyBuilder((String) null).build();
-        PolicyCreated.of(policyWithNullId, TestConstants.Policy.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS);
+        PolicyCreated.of(null, TestConstants.Policy.REVISION_NUMBER,
+                TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullDittoHeaders() {
-        PolicyCreated.of(TestConstants.Policy.POLICY, TestConstants.Policy.REVISION_NUMBER, null);
+        PolicyCreated.of(TestConstants.Policy.POLICY, TestConstants.Policy.REVISION_NUMBER,
+                TestConstants.TIMESTAMP, null, TestConstants.METADATA);
     }
 
     @Test
     public void toJsonReturnsExpected() {
         final PolicyCreated underTest = PolicyCreated.of(TestConstants.Policy.POLICY,
-                TestConstants.Policy.REVISION_NUMBER, TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS);
+                TestConstants.Policy.REVISION_NUMBER,
+                TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
@@ -93,10 +91,11 @@ public final class PolicyCreatedTest {
     @Test
     public void toJsonWithoutRevision() {
         final PolicyCreated underTest = PolicyCreated.of(TestConstants.Policy.POLICY,
-                TestConstants.Policy.REVISION_NUMBER, TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS);
+                TestConstants.Policy.REVISION_NUMBER, TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS,
+                TestConstants.METADATA);
 
         final Predicate<JsonField> isRevision =
-                field -> field.getDefinition().map(definition -> definition == Event.JsonFields.REVISION).orElse(false);
+                field -> field.getDefinition().map(definition -> definition == EventsourcedEvent.JsonFields.REVISION).orElse(false);
         final JsonObject actualJson = underTest.toJson(isRevision.negate().and(FieldType.regularOrSpecial()));
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON_WITHOUT_REVISION);
@@ -116,7 +115,7 @@ public final class PolicyCreatedTest {
         final GlobalEventRegistry<PolicyEvent<?>> eventRegistry = GlobalEventRegistry.getInstance();
 
         final PolicyCreated event = PolicyCreated.of(TestConstants.Policy.POLICY, TestConstants.Policy.REVISION_NUMBER,
-                TestConstants.DITTO_HEADERS);
+                TestConstants.TIMESTAMP, TestConstants.DITTO_HEADERS, TestConstants.METADATA);
         final JsonObject jsonObject = event.toJson(FieldType.regularOrSpecial());
 
         final PolicyEvent<?> parsedEvent = eventRegistry.parse(jsonObject, TestConstants.DITTO_HEADERS);

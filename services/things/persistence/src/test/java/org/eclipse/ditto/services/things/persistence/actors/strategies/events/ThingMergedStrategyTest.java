@@ -62,6 +62,7 @@ public final class ThingMergedStrategyTest extends AbstractStrategyTest {
                 .setId(THING_ID)
                 .setLifecycle(ThingLifecycle.ACTIVE)
                 .setRevision(NEXT_REVISION)
+                .setMetadata(METADATA)
                 .setModified(TIMESTAMP)
                 .setMetadata(EXPECTED_METADATA)
                 .build();
@@ -89,6 +90,7 @@ public final class ThingMergedStrategyTest extends AbstractStrategyTest {
                 .setId(THING_ID)
                 .setLifecycle(ThingLifecycle.ACTIVE)
                 .setRevision(NEXT_REVISION)
+                .setMetadata(METADATA)
                 .setModified(TIMESTAMP)
                 .setMetadata(EXPECTED_METADATA)
                 .build();

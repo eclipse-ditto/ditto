@@ -149,16 +149,16 @@ public final class LiveSignalEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
 
-            final ThingCommand write = writeCommand();
+            final ThingCommand<?> write = writeCommand();
             mockEntitiesActorInstance.setReply(write);
             underTest.tell(write, getRef());
             final DistributedPubSubMediator.Publish publish =
                     fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.LIVE_COMMANDS.getDistributedPubSubTopic());
             assertThat(publish.msg()).isInstanceOf(ThingCommand.class);
-            assertThat((CharSequence) ((ThingCommand) publish.msg()).getEntityId()).isEqualTo(write.getEntityId());
+            assertThat((CharSequence) ((ThingCommand<?>) publish.msg()).getEntityId()).isEqualTo(write.getEntityId());
 
-            final ThingCommand read = readCommand();
+            final ThingCommand<?> read = readCommand();
             final RetrieveThingResponse retrieveThingResponse =
                     RetrieveThingResponse.of(THING_ID, JsonFactory.newObject(), DittoHeaders.empty());
             mockEntitiesActorInstance.setReply(retrieveThingResponse);
@@ -167,7 +167,7 @@ public final class LiveSignalEnforcementTest {
                     expectMsgClass(DistributedPubSubMediator.Publish.class);
             assertThat(publishRead.topic()).isEqualTo(StreamingType.LIVE_COMMANDS.getDistributedPubSubTopic());
             assertThat(publishRead.msg()).isInstanceOf(ThingCommand.class);
-            assertThat((CharSequence) ((ThingCommand) publishRead.msg()).getEntityId()).isEqualTo(read.getEntityId());
+            assertThat((CharSequence) ((ThingCommand<?>) publishRead.msg()).getEntityId()).isEqualTo(read.getEntityId());
         }};
     }
 
@@ -217,14 +217,14 @@ public final class LiveSignalEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
 
-            final MessageCommand msgCommand = thingMessageCommand();
+            final MessageCommand<?, ?> msgCommand = thingMessageCommand();
             mockEntitiesActorInstance.setReply(msgCommand);
             underTest.tell(msgCommand, getRef());
             final DistributedPubSubMediator.Publish publish =
                     fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.MESSAGES.getDistributedPubSubTopic());
             assertThat(publish.msg()).isInstanceOf(MessageCommand.class);
-            assertThat((CharSequence) ((MessageCommand) publish.msg()).getEntityId())
+            assertThat((CharSequence) ((MessageCommand<?, ?>) publish.msg()).getEntityId())
                     .isEqualTo(msgCommand.getEntityId());
         }};
     }
@@ -252,14 +252,14 @@ public final class LiveSignalEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
 
-            final MessageCommand msgCommand = featureMessageCommand();
+            final MessageCommand<?, ?> msgCommand = featureMessageCommand();
             mockEntitiesActorInstance.setReply(msgCommand);
             underTest.tell(msgCommand, getRef());
             final DistributedPubSubMediator.Publish publish =
                     fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.MESSAGES.getDistributedPubSubTopic());
             assertThat(publish.msg()).isInstanceOf(MessageCommand.class);
-            assertThat((CharSequence) ((MessageCommand) publish.msg()).getEntityId())
+            assertThat((CharSequence) ((MessageCommand<?, ?>) publish.msg()).getEntityId())
                     .isEqualTo(msgCommand.getEntityId());
         }};
     }
@@ -310,7 +310,7 @@ public final class LiveSignalEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
 
-            final ThingEvent liveEvent = liveEvent();
+            final ThingEvent<?> liveEvent = liveEvent();
             mockEntitiesActorInstance.setReply(liveEvent);
             underTest.tell(liveEvent, getRef());
 
@@ -318,7 +318,7 @@ public final class LiveSignalEnforcementTest {
                     fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.LIVE_EVENTS.getDistributedPubSubTopic());
             assertThat(publish.msg()).isInstanceOf(Event.class);
-            assertThat((CharSequence) ((Event) publish.msg()).getEntityId()).isEqualTo(liveEvent.getEntityId());
+            assertThat((CharSequence) ((Event<?>) publish.msg()).getEntityId()).isEqualTo(liveEvent.getEntityId());
         }};
     }
 
@@ -350,15 +350,15 @@ public final class LiveSignalEnforcementTest {
                 .setRevision(1L);
     }
 
-    private static ThingCommand readCommand() {
+    private static ThingCommand<?> readCommand() {
         return RetrieveThing.of(THING_ID, headers());
     }
 
-    private static ThingCommand writeCommand() {
+    private static ThingCommand<?> writeCommand() {
         return ModifyFeature.of(THING_ID, Feature.newBuilder().withId("x").build(), headers());
     }
 
-    private static MessageCommand thingMessageCommand() {
+    private static MessageCommand<?, ?> thingMessageCommand() {
         final Message<Object> message = Message.newBuilder(
                 MessageBuilder.newHeadersBuilder(MessageDirection.TO, THING_ID, "my-subject")
                         .contentType("text/plain")
@@ -368,12 +368,12 @@ public final class LiveSignalEnforcementTest {
         return SendThingMessage.of(THING_ID, message, headers());
     }
 
-    private static MessageCommandResponse thingMessageCommandResponse(final MessageCommand<?, ?> command) {
+    private static MessageCommandResponse<?, ?> thingMessageCommandResponse(final MessageCommand<?, ?> command) {
         return SendThingMessageResponse.of(command.getThingEntityId(), command.getMessage(),
                 HttpStatus.VARIANT_ALSO_NEGOTIATES, command.getDittoHeaders());
     }
 
-    private static MessageCommand featureMessageCommand() {
+    private static MessageCommand<?, ?> featureMessageCommand() {
         final Message<?> message = Message.newBuilder(
                 MessageBuilder.newHeadersBuilder(MessageDirection.TO, THING_ID, "my-subject")
                         .contentType("text/plain")
@@ -384,8 +384,8 @@ public final class LiveSignalEnforcementTest {
         return SendFeatureMessage.of(THING_ID, "foo", message, headers());
     }
 
-    private static ThingEvent liveEvent() {
-        return AttributeModified.of(THING_ID, JsonPointer.of("foo"), JsonValue.of("bar"), 1L, headers());
+    private static ThingEvent<?> liveEvent() {
+        return AttributeModified.of(THING_ID, JsonPointer.of("foo"), JsonValue.of("bar"), 1L, null, headers(), null);
     }
 
 }

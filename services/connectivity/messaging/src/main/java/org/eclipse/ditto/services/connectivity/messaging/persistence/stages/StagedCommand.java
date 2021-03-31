@@ -43,7 +43,7 @@ import akka.actor.ActorRef;
 public final class StagedCommand implements ConnectivityCommand<StagedCommand>, Iterator<StagedCommand> {
 
     private static final ConnectivityEvent<?> DUMMY_EVENT =
-            ConnectionClosed.of(ConnectionId.dummy(), DittoHeaders.empty());
+            ConnectionClosed.of(ConnectionId.dummy(), 0L, null, DittoHeaders.empty(), null);
 
     private final ConnectivityCommand<?> command;
     private final ConnectivityEvent<?> event;

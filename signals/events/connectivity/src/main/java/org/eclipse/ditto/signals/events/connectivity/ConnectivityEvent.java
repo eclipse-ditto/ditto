@@ -23,14 +23,14 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 
 /**
  * Interface for all {@link Connection} related events.
  *
  * @param <T> the type of the implementing class.
  */
-public interface ConnectivityEvent<T extends ConnectivityEvent<T>> extends Event<T> {
+public interface ConnectivityEvent<T extends ConnectivityEvent<T>> extends EventsourcedEvent<T> {
 
     /**
      * Type Prefix of Connectivity events.
@@ -43,22 +43,11 @@ public interface ConnectivityEvent<T extends ConnectivityEvent<T>> extends Event
     String RESOURCE_TYPE = "connectivity";
 
     /**
-     * Returns the identifier of the modified {@code Connection}.
+     * Returns the identifier of the related Connection.
      *
-     * @return the identifier.
-     * @deprecated entity IDs are now typed. Use {@link #getConnectionEntityId()} instead.
+     * @return the identifier of the related Connection.
      */
-    @Deprecated
-    default String getConnectionId() {
-        return String.valueOf(getConnectionEntityId());
-    }
-
     ConnectionId getConnectionEntityId();
-
-    @Override
-    default ConnectionId getEntityId() {
-        return getConnectionEntityId();
-    }
 
     @Override
     default JsonPointer getResourcePath() {
@@ -68,28 +57,6 @@ public interface ConnectivityEvent<T extends ConnectivityEvent<T>> extends Event
     @Override
     default String getResourceType() {
         return RESOURCE_TYPE;
-    }
-
-    /**
-     * A {@code ConnectivityEvent} doesn't have a revision. Thus this implementation always throws an {@code
-     * UnsupportedOperationException}.
-     *
-     * @throws UnsupportedOperationException if invoked.
-     */
-    @Override
-    default long getRevision() {
-        throw new UnsupportedOperationException("An ConnectivityEvent doesn't have a revision!");
-    }
-
-    /**
-     * A {@code ConnectivityEvent} doesn't have a revision. Thus this implementation always throws an {@code
-     * UnsupportedOperationException}.
-     *
-     * @throws UnsupportedOperationException if invoked.
-     */
-    @Override
-    default T setRevision(final long revision) {
-        throw new UnsupportedOperationException("An ConnectivityEvent doesn't have a revision!");
     }
 
     @Override

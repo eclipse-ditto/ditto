@@ -18,6 +18,7 @@ import static org.eclipse.ditto.model.base.auth.AuthorizationModelFactory.newAut
 import static org.eclipse.ditto.model.connectivity.Topic.LIVE_EVENTS;
 import static org.eclipse.ditto.model.connectivity.Topic.TWIN_EVENTS;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -102,7 +103,8 @@ public final class SignalFilterWithFilterTest {
         final DittoHeaders headers = DittoHeaders.newBuilder()
                 .readGrantedSubjects(List.of(AUTHORIZED))
                 .build();
-        final ThingModified thingModified = ThingModified.of(thing, 3L, headers);
+        final ThingModified thingModified = ThingModified.of(thing, 3L, Instant.now(),
+                headers, null);
 
         final SignalFilter signalFilter = new SignalFilter(connection, connectionMonitorRegistry);
         final List<Target> filteredTargets = signalFilter.filter(thingModified);
@@ -164,7 +166,8 @@ public final class SignalFilterWithFilterTest {
                 .readGrantedSubjects(Collections.singletonList(AUTHORIZED))
                 .channel(TopicPath.Channel.LIVE.getName())
                 .build();
-        final ThingModified thingModified = ThingModified.of(thing, 3L, headers);
+        final ThingModified thingModified = ThingModified.of(thing, 3L, Instant.now(),
+                headers, null);
 
         final SignalFilter signalFilter = new SignalFilter(connection, connectionMonitorRegistry);
         final List<Target> filteredTargets = signalFilter.filter(thingModified);
@@ -240,7 +243,8 @@ public final class SignalFilterWithFilterTest {
         final DittoHeaders headers = DittoHeaders.newBuilder()
                 .readGrantedSubjects(Collections.singletonList(AUTHORIZED))
                 .build();
-        final ThingModified thingModified = ThingModified.of(thing, 3L, headers);
+        final ThingModified thingModified = ThingModified.of(thing, 3L, Instant.now(),
+                headers, null);
 
         final SignalFilter signalFilter = new SignalFilter(connection, connectionMonitorRegistry);
         final List<Target> filteredTargets = signalFilter.filter(thingModified);

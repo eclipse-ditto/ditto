@@ -77,6 +77,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
+import org.eclipse.ditto.signals.events.base.AbstractEventsourcedEvent;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
@@ -248,7 +249,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                             .payloadMapping(
                                     ConnectivityModelFactory.newPayloadMapping(ADD_HEADER_MAPPER, DUPLICATING_MAPPER))
                             .build();
-            final Signal<?> signal = TestConstants.thingModified(Collections.emptyList())
+            final Signal<?> signal = ((AbstractEventsourcedEvent<?>) TestConstants.thingModified(Collections.emptyList()))
                     .setRevision(8L); // important to set revision to same value as cache lookup retrieves
             final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(signal, Arrays.asList(
                     targetWithEnrichment,

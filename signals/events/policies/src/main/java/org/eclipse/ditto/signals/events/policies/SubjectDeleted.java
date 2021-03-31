@@ -33,6 +33,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
@@ -46,7 +47,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a {@link org.eclipse.ditto.model.policies.Subject} was deleted.
  */
 @Immutable
-@JsonParsableEvent(name = SubjectDeleted.NAME, typePrefix = SubjectDeleted.TYPE_PREFIX)
+@JsonParsableEvent(name = SubjectDeleted.NAME, typePrefix = PolicyEvent.TYPE_PREFIX)
 public final class SubjectDeleted extends AbstractPolicyActionEvent<SubjectDeleted> {
 
     /**
@@ -73,9 +74,10 @@ public final class SubjectDeleted extends AbstractPolicyActionEvent<SubjectDelet
             final SubjectId subjectId,
             final long revision,
             @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
 
-        super(TYPE, checkNotNull(policyId, "Policy identifier"), revision, timestamp, dittoHeaders);
+        super(TYPE, checkNotNull(policyId, "Policy identifier"), revision, timestamp, dittoHeaders, metadata);
         this.label = checkNotNull(label, "Label");
         this.subjectId = checkNotNull(subjectId, "Subject identifier");
     }
@@ -87,78 +89,9 @@ public final class SubjectDeleted extends AbstractPolicyActionEvent<SubjectDelet
      * @param label the label of the Policy Entry to which the deleted subject belongs.
      * @param subjectId the identifier of the deleted {@link org.eclipse.ditto.model.policies.Subject}.
      * @param revision the revision of the Policy.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the created SubjectDeleted.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.SubjectId, long, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static SubjectDeleted of(final String policyId,
-            final Label label,
-            final SubjectId subjectId,
-            final long revision,
-            final DittoHeaders dittoHeaders) {
-
-        return of(PolicyId.of(policyId), label, subjectId, revision, dittoHeaders);
-    }
-
-    /**
-     * Constructs a new {@code SubjectDeleted} object.
-     *
-     * @param policyId the identifier of the Policy to which the deleted subject belongs.
-     * @param label the label of the Policy Entry to which the deleted subject belongs.
-     * @param subjectId the identifier of the deleted {@link org.eclipse.ditto.model.policies.Subject}.
-     * @param revision the revision of the Policy.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the created SubjectDeleted.
-     * @throws NullPointerException if any argument is {@code null}.
-     */
-    public static SubjectDeleted of(final PolicyId policyId,
-            final Label label,
-            final SubjectId subjectId,
-            final long revision,
-            final DittoHeaders dittoHeaders) {
-
-        return new SubjectDeleted(policyId, label, subjectId, revision, null, dittoHeaders);
-    }
-
-    /**
-     * Constructs a new {@code SubjectDeleted} object.
-     *
-     * @param policyId the identifier of the Policy to which the deleted subject belongs.
-     * @param label the label of the Policy Entry to which the deleted subject belongs.
-     * @param subjectId the identifier of the deleted {@link org.eclipse.ditto.model.policies.Subject}.
-     * @param revision the revision of the Policy.
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the created SubjectDeleted.
-     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.SubjectId, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static SubjectDeleted of(final String policyId,
-            final Label label,
-            final SubjectId subjectId,
-            final long revision,
-            @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
-
-        return of(PolicyId.of(policyId), label, subjectId, revision, timestamp, dittoHeaders);
-    }
-
-    /**
-     * Constructs a new {@code SubjectDeleted} object.
-     *
-     * @param policyId the identifier of the Policy to which the deleted subject belongs.
-     * @param label the label of the Policy Entry to which the deleted subject belongs.
-     * @param subjectId the identifier of the deleted {@link org.eclipse.ditto.model.policies.Subject}.
-     * @param revision the revision of the Policy.
-     * @param timestamp the timestamp of this event.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @param metadata the metadata to apply for the event.
      * @return the created SubjectDeleted.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
@@ -167,9 +100,10 @@ public final class SubjectDeleted extends AbstractPolicyActionEvent<SubjectDelet
             final SubjectId subjectId,
             final long revision,
             @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
 
-        return new SubjectDeleted(policyId, label, subjectId, revision, timestamp, dittoHeaders);
+        return new SubjectDeleted(policyId, label, subjectId, revision, timestamp, dittoHeaders, metadata);
     }
 
     /**
@@ -179,7 +113,8 @@ public final class SubjectDeleted extends AbstractPolicyActionEvent<SubjectDelet
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the {@code SubjectDeleted} which was created from the given JSON string.
      * @throws NullPointerException if {@code jsonString} is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected 'SubjectDeleted' format.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
+     * 'SubjectDeleted' format.
      */
     public static SubjectDeleted fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -192,18 +127,19 @@ public final class SubjectDeleted extends AbstractPolicyActionEvent<SubjectDelet
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the {@code SubjectDeleted} which was created from the given JSON object.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected 'SubjectDeleted' format.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * 'SubjectDeleted' format.
      */
     public static SubjectDeleted fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<SubjectDeleted>(TYPE, jsonObject).deserialize(
                 (revision, timestamp, metadata) -> {
-                    final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+                    final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyEvent.JsonFields.POLICY_ID);
                     final PolicyId policyId = PolicyId.of(extractedPolicyId);
                     final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
                     final SubjectId extractedDeletedSubjectId =
                             SubjectId.newInstance(jsonObject.getValueOrThrow(JSON_SUBJECT_ID));
 
-                    return of(policyId, label, extractedDeletedSubjectId, revision, timestamp, dittoHeaders);
+                    return of(policyId, label, extractedDeletedSubjectId, revision, timestamp, dittoHeaders, metadata);
                 });
     }
 
@@ -233,16 +169,18 @@ public final class SubjectDeleted extends AbstractPolicyActionEvent<SubjectDelet
 
     @Override
     public SubjectDeleted setRevision(final long revision) {
-        return of(getPolicyEntityId(), label, subjectId, revision, getTimestamp().orElse(null), getDittoHeaders());
+        return of(getPolicyEntityId(), label, subjectId, revision, getTimestamp().orElse(null), getDittoHeaders(),
+                getMetadata().orElse(null));
     }
 
     @Override
     public SubjectDeleted setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getPolicyEntityId(), label, subjectId, getRevision(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getPolicyEntityId(), label, subjectId, getRevision(), getTimestamp().orElse(null), dittoHeaders,
+                getMetadata().orElse(null));
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayloadAndBuild(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);

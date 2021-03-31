@@ -41,7 +41,7 @@ public class SubjectModifiedStrategyUpdateTest extends AbstractPolicyEventStrate
     SubjectModified getPolicyEvent(final Instant instant, final Policy policy) {
         final PolicyId policyId = policy.getEntityId().orElseThrow();
         return SubjectModified.of(policyId, SUPPORT_LABEL, ADDITIONAL_SUPPORT_SUBJECT, 10L, instant,
-                DittoHeaders.empty());
+                DittoHeaders.empty(), METADATA);
     }
 
     @Override

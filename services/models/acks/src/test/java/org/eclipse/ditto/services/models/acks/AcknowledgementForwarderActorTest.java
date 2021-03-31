@@ -20,6 +20,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
@@ -124,7 +125,7 @@ public final class AcknowledgementForwarderActorTest {
                 .acknowledgementRequest(AcknowledgementRequest.of(acknowledgementLabel))
                 .build();
         final ThingId entityId = ThingId.generateRandom();
-        final Signal<?> signal = ThingDeleted.of(entityId, 1L, dittoHeaders);
+        final Signal<?> signal = ThingDeleted.of(entityId, 1L, Instant.EPOCH, dittoHeaders, null);
         final Acknowledgement acknowledgement =
                 Acknowledgement.of(acknowledgementLabel, entityId, HttpStatus.ACCEPTED, dittoHeaders);
 

@@ -102,7 +102,7 @@ public final class ThingsUpdaterTest {
 
     @Test
     public void thingEventIsForwarded() {
-        final ThingEvent event = ThingDeleted.of(KNOWN_THING_ID, KNOWN_REVISION, Instant.now(), KNOWN_HEADERS);
+        final ThingEvent<?> event = ThingDeleted.of(KNOWN_THING_ID, KNOWN_REVISION, Instant.now(), KNOWN_HEADERS, null);
         new TestKit(actorSystem) {{
             final ActorRef underTest = createThingsUpdater();
             underTest.tell(event, getRef());
@@ -112,7 +112,7 @@ public final class ThingsUpdaterTest {
 
     @Test
     public void thingTagIsForwarded() {
-        final EntityIdWithRevision event = ThingTag.of(KNOWN_THING_ID, KNOWN_REVISION);
+        final EntityIdWithRevision<?> event = ThingTag.of(KNOWN_THING_ID, KNOWN_REVISION);
         new TestKit(actorSystem) {{
             final ActorRef underTest = createThingsUpdater();
             underTest.tell(event, getRef());
@@ -158,7 +158,8 @@ public final class ThingsUpdaterTest {
 
     @Test
     public void shardRegionStateIsForwarded() {
-        final ShardRegion.GetShardRegionState$ shardRegionState = ShardRegion.getShardRegionStateInstance();
+        final ShardRegion.GetShardRegionState$ shardRegionState =
+                (ShardRegion.GetShardRegionState$) ShardRegion.getShardRegionStateInstance();
         new TestKit(actorSystem) {{
             final ActorRef underTest = createThingsUpdater();
             underTest.tell(shardRegionState, getRef());
@@ -169,7 +170,8 @@ public final class ThingsUpdaterTest {
     @Test
     public void blockAndAcknowledgeMessagesByNamespace() throws Exception {
         final String blockedNamespace = "blocked";
-        final ThingEvent thingEvent = ThingDeleted.of(ThingId.of(blockedNamespace, "thing2"), 10L, KNOWN_HEADERS);
+        final ThingEvent<?> thingEvent = ThingDeleted.of(ThingId.of(blockedNamespace, "thing2"), 10L,
+                Instant.now(), KNOWN_HEADERS, null);
         final ThingTag thingTag = ThingTag.of(ThingId.of(blockedNamespace, "thing3"), 11L);
         final PolicyReferenceTag refTag =
                 PolicyReferenceTag.of(DefaultEntityId.of(blockedNamespace + ":thing4"),
@@ -196,7 +198,7 @@ public final class ThingsUpdaterTest {
         }};
     }
 
-    private static void expectShardedMessage(final TestProbe probe, final Jsonifiable event, final EntityId id) {
+    private static void expectShardedMessage(final TestProbe probe, final Jsonifiable<?> event, final EntityId id) {
         final ShardedMessageEnvelope envelope = probe.expectMsgClass(ShardedMessageEnvelope.class);
 
         assertThat(envelope.getMessage()).isEqualTo(event.toJson());

@@ -43,7 +43,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * modified.
  */
 @Immutable
-@JsonParsableEvent(name = FeaturePropertyModified.NAME, typePrefix = FeaturePropertyModified.TYPE_PREFIX)
+@JsonParsableEvent(name = FeaturePropertyModified.NAME, typePrefix = ThingEvent.TYPE_PREFIX)
 public final class FeaturePropertyModified extends AbstractThingEvent<FeaturePropertyModified> implements
         ThingModifiedEvent<FeaturePropertyModified>, WithFeatureId {
 
@@ -82,114 +82,6 @@ public final class FeaturePropertyModified extends AbstractThingEvent<FeaturePro
         this.featureId = requireNonNull(featureId, "The Feature ID must not be null!");
         this.propertyPointer = Objects.requireNonNull(propertyPointer, "The Property JSON Pointer must not be null!");
         this.propertyValue = Objects.requireNonNull(propertyValue, "The Property Value must not be null!");
-    }
-
-    /**
-     * Constructs a new {@code FeaturePropertyModified} object.
-     *
-     * @param thingId the ID of the Thing whose Feature's Property was modified.
-     * @param featureId the ID of the Feature whose Property was modified.
-     * @param propertyJsonPointer the JSON pointer of the modified Property key.
-     * @param propertyValue the value of the modified Property.
-     * @param revision the revision of the Thing.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the FeaturePropertyModified created.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.json.JsonValue, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
-     * instead.
-     */
-    @Deprecated
-    public static FeaturePropertyModified of(final String thingId,
-            final String featureId,
-            final JsonPointer propertyJsonPointer,
-            final JsonValue propertyValue,
-            final long revision,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), featureId, propertyJsonPointer, propertyValue, revision, null, dittoHeaders,
-                null);
-    }
-
-    /**
-     * Constructs a new {@code FeaturePropertyModified} object.
-     *
-     * @param thingId the ID of the Thing whose Feature's Property was modified.
-     * @param featureId the ID of the Feature whose Property was modified.
-     * @param propertyJsonPointer the JSON pointer of the modified Property key.
-     * @param propertyValue the value of the modified Property.
-     * @param revision the revision of the Thing.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the FeaturePropertyModified created.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.json.JsonValue, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
-     * instead.
-     */
-    @Deprecated
-    public static FeaturePropertyModified of(final ThingId thingId,
-            final String featureId,
-            final JsonPointer propertyJsonPointer,
-            final JsonValue propertyValue,
-            final long revision,
-            final DittoHeaders dittoHeaders) {
-
-        return of(thingId, featureId, propertyJsonPointer, propertyValue, revision, null, dittoHeaders, null);
-    }
-
-    /**
-     * Constructs a new {@code FeaturePropertyModified} object.
-     *
-     * @param thingId the ID of the Thing whose Feature's Property was modified.
-     * @param featureId the ID of the Feature whose Property was modified.
-     * @param propertyJsonPointer the JSON pointer of the modified Property key.
-     * @param propertyValue the value of the modified Property.
-     * @param revision the revision of the Thing.
-     * @param timestamp the timestamp of this event.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the FeaturePropertyModified created.
-     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.json.JsonValue, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
-     * instead.
-     */
-    @Deprecated
-    public static FeaturePropertyModified of(final String thingId,
-            final String featureId,
-            final JsonPointer propertyJsonPointer,
-            final JsonValue propertyValue,
-            final long revision,
-            @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), featureId, propertyJsonPointer, propertyValue, revision, timestamp,
-                dittoHeaders, null);
-    }
-
-    /**
-     * Constructs a new {@code FeaturePropertyModified} object.
-     *
-     * @param thingId the ID of the Thing whose Feature's Property was modified.
-     * @param featureId the ID of the Feature whose Property was modified.
-     * @param propertyJsonPointer the JSON pointer of the modified Property key.
-     * @param propertyValue the value of the modified Property.
-     * @param revision the revision of the Thing.
-     * @param timestamp the timestamp of this event.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the FeaturePropertyModified created.
-     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
-     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.json.JsonValue, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
-     * instead.
-     */
-    @Deprecated
-    public static FeaturePropertyModified of(final ThingId thingId,
-            final String featureId,
-            final JsonPointer propertyJsonPointer,
-            final JsonValue propertyValue,
-            final long revision,
-            @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
-
-        return of(thingId, featureId, propertyJsonPointer, propertyValue, revision, timestamp, dittoHeaders, null);
     }
 
     /**
@@ -248,9 +140,9 @@ public final class FeaturePropertyModified extends AbstractThingEvent<FeaturePro
     public static FeaturePropertyModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<FeaturePropertyModified>(TYPE, jsonObject)
                 .deserialize((revision, timestamp, metadata) -> {
-                    final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+                    final String extractedThingId = jsonObject.getValueOrThrow(ThingEvent.JsonFields.THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
-                    final String extractedFeatureId = jsonObject.getValueOrThrow(JsonFields.FEATURE_ID);
+                    final String extractedFeatureId = jsonObject.getValueOrThrow(ThingEvent.JsonFields.FEATURE_ID);
                     final String pointerString = jsonObject.getValueOrThrow(JSON_PROPERTY);
                     final JsonPointer extractedPointer = JsonFactory.newPointer(pointerString);
                     final JsonValue extractedValue = jsonObject.getValueOrThrow(JSON_VALUE);
@@ -310,7 +202,7 @@ public final class FeaturePropertyModified extends AbstractThingEvent<FeaturePro
     protected void appendPayloadAndBuild(final JsonObjectBuilder jsonObjectBuilder,
             final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(JsonFields.FEATURE_ID, featureId, predicate);
+        jsonObjectBuilder.set(ThingEvent.JsonFields.FEATURE_ID, featureId, predicate);
         jsonObjectBuilder.set(JSON_PROPERTY, propertyPointer.toString(), predicate);
         jsonObjectBuilder.set(JSON_VALUE, propertyValue, predicate);
     }
