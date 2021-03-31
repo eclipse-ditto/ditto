@@ -782,8 +782,7 @@ paths:
     put:
       summary: Update the policy ID of a thing
       description: |-
-        Update the policy ID of the thing identified by the `thingId`
-        path parameter.
+        Update the policy ID of the thing identified by the `thingId` path parameter.
 
         ### Update
         If the thing already has a `policyId` you can assign it to an existing policy by setting
