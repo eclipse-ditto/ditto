@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -121,7 +122,7 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
                 : builder.build().get(jsonFieldSelector);
 
         final JsonObject result;
-        if (topicPath.getAction().isPresent() && topicPath.getAction().get() == TopicPath.Action.MERGED) {
+        if (topicPath.getAction().filter(TopicPath.Action.MERGED::equals).isPresent()) {
             result = filterNullValuesAndEmptyObjects(jsonObject);
         } else {
             result = jsonObject;
@@ -136,12 +137,13 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
     private static JsonObject abridgeMessage(final Adaptable adaptable) {
         final Payload payload = adaptable.getPayload();
         final JsonObjectBuilder builder = JsonObject.newBuilder();
+        final DittoHeaders dittoHeaders =
+                DittoHeaders.newBuilder(adaptable.getDittoHeaders()).contentType(ContentType.APPLICATION_JSON).build();
         // add fields of an event protocol message excluding "value" and "status"
         builder.set(JsonifiableAdaptable.JsonFields.TOPIC, adaptable.getTopicPath().getPath());
         builder.set(Payload.JsonFields.PATH, payload.getPath().toString());
         payload.getFields().ifPresent(fields -> builder.set(Payload.JsonFields.FIELDS, fields.toString()));
-        builder.set(JsonifiableAdaptable.JsonFields.HEADERS,
-                dittoHeadersToJson(adaptable.getDittoHeaders()));
+        builder.set(JsonifiableAdaptable.JsonFields.HEADERS, dittoHeadersToJson(dittoHeaders));
 
         return builder.build();
     }

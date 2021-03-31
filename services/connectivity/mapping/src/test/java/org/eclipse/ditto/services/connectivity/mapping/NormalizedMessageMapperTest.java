@@ -148,7 +148,7 @@ public final class NormalizedMessageMapperTest {
                         "    \"path\": \"/\",\n" +
                         "    \"headers\": {\n" +
                         "      \"response-required\": \"false\",\n" +
-                        "      \"content-type\": \"application/merge-patch+json\"\n" +
+                        "      \"content-type\": \"application/json\"\n" +
                         "    }\n" +
                         "  }\n" +
                         "}"));
@@ -192,7 +192,7 @@ public final class NormalizedMessageMapperTest {
                         "    \"path\": \"/\",\n" +
                         "    \"headers\": {\n" +
                         "      \"response-required\": \"false\",\n" +
-                        "      \"content-type\": \"application/merge-patch+json\"\n" +
+                        "      \"content-type\": \"application/json\"\n" +
                         "    }\n" +
                         "  }\n" +
                         "}"));
@@ -225,7 +225,7 @@ public final class NormalizedMessageMapperTest {
                         "    \"path\": \"/\",\n" +
                         "    \"headers\": {\n" +
                         "      \"response-required\": \"false\",\n" +
-                        "      \"content-type\": \"application/merge-patch+json\"\n" +
+                        "      \"content-type\": \"application/json\"\n" +
                         "    }\n" +
                         "  }\n" +
                         "}"));
