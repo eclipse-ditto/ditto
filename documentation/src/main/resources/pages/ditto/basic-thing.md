@@ -64,16 +64,12 @@ semantics of the data or adding other useful information about the data points o
 
 ### Model specification
 
-#### API version 1 - Deprecated
-
-{% include docson.html schema="jsonschema/thing_v1.json" %}
-
 #### API version 2
 
 {% include docson.html schema="jsonschema/thing_v2.json" %}
 
 
-### Example (API version 2)
+### Example
 
 ```json
 {

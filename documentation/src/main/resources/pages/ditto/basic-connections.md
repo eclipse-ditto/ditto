@@ -9,8 +9,7 @@ permalink: basic-connections.html
 
   {%
     include note.html content="To get started with connections right away, consult the
-    [Manage connections](connectivity-manage-connections.html)
-    page. "
+    [Manage connections](connectivity-manage-connections.html) page. "
   %}
 
 You can integrate your Ditto instance with external messaging services such as 
@@ -20,11 +19,11 @@ You can integrate your Ditto instance with external messaging services such as
 Additionally, you may invoke foreign HTTP endpoints by using the 
 [HTTP connection type](connectivity-protocol-bindings-http.html).
 
-A connection represents a communication channel for the exchange of messages between any service and Ditto. It 
-requires a transport protocol, which is used to transmit [Ditto Protocol](protocol-overview.html) messages. Ditto supports one-way and two-way
-communication over connections. This enables consumer/producer scenarios as well as fully-fledged command and response
-use cases. Nevertheless, those options might be limited by the transport protocol or the other endpoint's
-capabilities.
+A connection represents a communication channel for the exchange of messages between any service and Ditto. 
+It requires a transport protocol, which is used to transmit [Ditto Protocol](protocol-overview.html) messages. 
+Ditto supports one-way and two-way communication over connections. This enables consumer/producer scenarios 
+as well as fully-fledged command and response use cases. Nevertheless, those options might be limited by 
+the transport protocol or the other endpoint's capabilities.
  
 All connections are configured and supervised via Ditto's 
 [Connectivity service](architecture-services-connectivity.html). The following model defines the connection itself:
@@ -36,7 +35,7 @@ All connections are configured and supervised via Ditto's
 
 The top design priority of this model is to be as generic as possible, while still allowing protocol specific 
 customizations and tweaks. This enables the implementations of different customizable connection types, and support 
-for custom payload formats. Currently the following connection types are supported:
+for custom payload formats. Currently, the following connection types are supported:
 
 * [AMQP 0.9.1](connectivity-protocol-bindings-amqp091.html)
 * [AMQP 1.0](connectivity-protocol-bindings-amqp10.html)
@@ -59,11 +58,14 @@ Source messages can be of the following type:
 * [acknowledgements](protocol-specification-acks.html)
 
 Sources contain:
-* several addresses (depending on the [connection type](#connection-types) those are interpreted differently, e.g. as queues, topics, etc.),
+* several addresses (depending on the [connection type](#connection-types) those are interpreted differently, 
+  e.g. as queues, topics, etc.),
 * a consumer count defining how many consumers should be attached to each source address,
-* an authorization context (see [authorization](#authorization)) specifying which [authorization subject](basic-policy.html#subject) is used to authorize messages from the source,
+* an authorization context (see [authorization](#authorization)) specifying which 
+  [authorization subject](basic-policy.html#subject) is used to authorize messages from the source,
 * enforcement information that allows filtering the messages that are consumed in this source,
-* [acknowledgement requests](basic-acknowledgements.html#requesting-acks) this source requires in order to ensure QoS 1 ("at least once") processing of consumed messages before technically acknowledging them to the channel,
+* [acknowledgement requests](basic-acknowledgements.html#requesting-acks) this source requires in order 
+  to ensure QoS 1 ("at least once") processing of consumed messages before technically acknowledging them to the channel,
 * declared labels of [acknowledgements](protocol-specification-acks.html) the source is allowed to send,
 * [header mapping](connectivity-header-mapping.html) for mapping headers of source messages to internal headers, and
 * a reply-target to configure publication of any responses of incoming commands.
@@ -74,11 +76,11 @@ Messages received from external systems are mapped to Ditto internal format, eit
 the default mapping for [Ditto Protocol](protocol-overview.html) messages. 
 
 During this mapping the digital twin of the device is determined i.e. 
-which thing is accessed or modified as a result of the message. By default, no sanity check is done if this target thing 
-corresponds to the device that originally sent the message. In some use cases this might be valid, but in other scenarios 
-you might want to enforce that a device only sends data to its digital twin. Note that this could also be achieved by 
-assigning a specific policy to each device and use [placeholders](#placeholders) in the 
-authorization subject, but this can get cumbersome to maintain for a large number of devices.
+which thing is accessed or modified as a result of the message. By default, no sanity check is done if this target 
+thing corresponds to the device that originally sent the message. In some use cases this might be valid, but 
+in other scenarios you might want to enforce that a device only sends data to its digital twin. 
+Note that this could also be achieved by assigning a specific policy to each device and use [placeholders](#placeholders) 
+in the authorization subject, but this can get cumbersome to maintain for a large number of devices.
 
 With an enforcement, you can use a single policy for all devices 
 and still make sure that a device only modifies its associated digital twin. Enforcement is only feasible if the message
@@ -121,7 +123,8 @@ only send data to the Thing `sensor:temperature1` the following enforcement conf
 ```
 
 Note: This example assumes that there is a valid user named `ditto:inbound-auth-subject` in Ditto.
-If you want to use a user for the basic auth (from the [HTTP API](connectivity-protocol-bindings-http.html)) use the prefix `nginx:`, e.g. `nginx:ditto`.
+If you want to use a user for the basic auth (from the [HTTP API](connectivity-protocol-bindings-http.html)) use 
+the prefix `nginx:`, e.g. `nginx:ditto`.
 See [Basic Authentication](basic-auth.html#authorization-context-in-devops-commands) for more information.
 
 #### Source acknowledgement requests
@@ -134,8 +137,8 @@ which is "at most once" (or QoS 0).
 
 In order to process messages from sources with an "at least once" (or QoS 1) semantic, configure the source's 
 `"acknowledgementRequests/includes"` to add the 
-["twin-persisted"](basic-acknowledgements.html#built-in-acknowledgement-labels) acknowledgement request, which will cause
-that a consumed message over this source will technically be acknowledged, it the twin was 
+["twin-persisted"](basic-acknowledgements.html#built-in-acknowledgement-labels) acknowledgement request, which will 
+cause that a consumed message over this source will technically be acknowledged, it the twin was 
 successfully updated/persisted by Ditto.
 
 How the technical acknowledgment is done is specific for the used [connection type](#connection-types) and documented 
@@ -237,7 +240,8 @@ In addition, the reply target contains the expected response types (`"expectedRe
 published to the reply target.<br/>
 The following reply targets are available to choose from:
 * **response**: Send back successful responses (e.g. responses after a Thing was successfully modified, 
-  but also responses for [query commands](basic-signals-command.html#query-commands)). Includes positive [acknowledgements](protocol-specification-acks.html#acknowledgements-aggregating).  
+  but also responses for [query commands](basic-signals-command.html#query-commands)). 
+  Includes positive [acknowledgements](protocol-specification-acks.html#acknowledgements-aggregating).  
 * **error**: Send back error responses (e.g. thing not modifiable due to lacking permissions)
 * **nack**: If negative [acknowledgement](protocol-specification-acks.html#acknowledgements-aggregating) responses should be delivered.
 
@@ -273,7 +277,8 @@ Target messages can be of the following type:
 Targets contain:
 * one address (that is interpreted differently depending on the [connection type](#connection-types), e.g. as queue, topic, etc.),
 * [topics](#target-topics-and-filtering) that will be sent to the target,
-* an authorization context (see [authorization](#authorization)) specifying which [authorization subject](basic-policy.html#subject) is used to authorize messages to the target, and
+* an authorization context (see [authorization](#authorization)) specifying which 
+  [authorization subject](basic-policy.html#subject) is used to authorize messages to the target, and
 * [header mapping](connectivity-header-mapping.html) to compute external headers from Ditto protocol headers.
 
 
@@ -296,7 +301,7 @@ The parameters are specified similar to HTTP query parameters, the first one sep
 with `&`. You need to URL-encode the filter values before using them in a configuration.
 
 For example, this way the connection session would register for all events in the namespace `org.eclipse.ditto` and which
-would match an attribute "counter" to be greater than 42. Additionally it would subscribe to messages in the namespace
+would match an attribute "counter" to be greater than 42. Additionally, it would subscribe to messages in the namespace
 `org.eclipse.ditto`:
 ```json
 {
@@ -417,14 +422,16 @@ For more information on mapping message payloads see the corresponding [Payload 
 
 The configuration of a connection allows to use placeholders at certain places. This allows more fine-grained control 
 over how messages are consumed or where they are published to. The general syntax of a placeholder is 
-`{% raw %}{{ placeholder }}{% endraw %}`. Have a look at the [placeholders concept](basic-placeholders.html) for more details on that. 
+`{% raw %}{{ placeholder }}{% endraw %}`. Have a look at the [placeholders concept](basic-placeholders.html) for 
+more details on that. 
 
 ### Placeholder for source authorization subjects
 
 Processing the messages received via a source using the _same fixed authorization subject_ may not be 
-suitable for every scenario. For example, if you want to declare fine-grained write permissions per device, this would not 
-be possible with a fixed global subject. For this use case, we have introduced placeholder substitution for authorization subjects of 
-source addresses that are resolved when processing messages from a source. Of course, this requires the sender of the 
+suitable for every scenario. For example, if you want to declare fine-grained write permissions per device, this would 
+not be possible with a fixed global subject. For this use case, we have introduced placeholder substitution for 
+authorization subjects of source addresses that are resolved when processing messages from a source.
+Of course, this requires the sender of the 
 message to provide necessary information about the original issuer of the message. 
 
   {%
@@ -448,8 +455,8 @@ you may configure your source's authorization subject as follows:
       ]
   }
 ```
-The placeholder is then replaced by the value from the message headers and the message is forwarded and processed under the 
-subject _device:sensor-123_.
+The placeholder is then replaced by the value from the message headers and the message is forwarded and processed under 
+the subject _device:sensor-123_.
 In case the header cannot be resolved or the header contains unexpected characters, an exception is thrown, which is sent 
 back to the sender as an error message, if a valid _reply-to_ header was provided, otherwise the message is dropped.
 
@@ -457,7 +464,8 @@ back to the sender as an error message, if a valid _reply-to_ header was provide
 
 Another use case for placeholders may be to publish twin events or live commands and events to a target address 
 containing thing-specific information e.g. you can distribute things from different namespaces to different target addresses.
-You can use the placeholders `{% raw %}{{ thing:id }}{% endraw %}`, `{% raw %}{{ thing:namespace }}{% endraw %}` and `{% raw %}{{ thing:name }}{% endraw %}` in the target address for this purpose.
+You can use the placeholders `{% raw %}{{ thing:id }}{% endraw %}`, `{% raw %}{{ thing:namespace }}{% endraw %}` 
+and `{% raw %}{{ thing:name }}{% endraw %}` in the target address for this purpose.
 For a thing with the ID _org.eclipse.ditto:device-123_ these placeholders would be resolved as follows:
 
 | Placeholder | Description | Resolved value |

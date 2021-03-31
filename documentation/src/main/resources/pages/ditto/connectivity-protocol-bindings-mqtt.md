@@ -129,7 +129,8 @@ The default value is `0` (at-most-once).
 
 #### Target header mapping
 
-As MQTT 3.1.1 does not support headers in its protocol, a [header mapping](connectivity-header-mapping.html) is not possible to configure here.
+As MQTT 3.1.1 does not support headers in its protocol, a [header mapping](connectivity-header-mapping.html) is not 
+possible to configure here.
 
 #### Target acknowledgement handling
 
@@ -204,9 +205,9 @@ Default: the negation of `"reconnectForRedelivery"`
 #### separatePublisherClient
 
 Configures whether to create a separate physical client and connection to the MQTT broker for publishing messages, or not. 
-By default (configured true), a single Ditto connection would open 2 MQTT connections/sessions: one for subscribing and one for publishing.
-If configured to `false`, the same MQTT connection/session is used both: for subscribing to messages, and for
-publishing messages.
+By default (configured true), a single Ditto connection would open 2 MQTT connections/sessions: one for subscribing 
+and one for publishing. If configured to `false`, the same MQTT connection/session is used both: for subscribing to 
+messages, and for publishing messages.
 
 Default: `true`
 

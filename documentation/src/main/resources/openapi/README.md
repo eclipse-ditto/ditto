@@ -12,9 +12,6 @@ You can view it as nicely rendered HTML by importing one of the files (for API v
 // go to sources
 $ cd sources
 
-// only v1
-$ npm run build-v1
-
 // only v2
 $ npm run build-v2
 

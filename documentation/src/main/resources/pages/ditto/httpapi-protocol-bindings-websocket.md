@@ -5,8 +5,8 @@ tags: [protocol, http, rql]
 permalink: httpapi-protocol-bindings-websocket.html
 ---
 
-[Ditto Protocol](protocol-overview.html) messages can be sent *as is* as [WebSocket](https://tools.ietf.org/html/rfc6455) message.
-The Ditto Protocol JSON must be sent as `UTF-8` encoded String payload.
+[Ditto Protocol](protocol-overview.html) messages can be sent *as is* as [WebSocket](https://tools.ietf.org/html/rfc6455) 
+message. The Ditto Protocol JSON must be sent as `UTF-8` encoded String payload.
 
 
 ## WebSocket features
@@ -36,8 +36,8 @@ There is no round-robin dispatching for WebSockets using the same authentication
    
 When sending a command via WebSocket you will receive a corresponding response (the response can be related to the 
 request by the `correlation-id` header). <br/>
-The response indicates the success or the failure of the command and, depending on the command type, contains the result
-payload.
+The response indicates the success or the failure of the command and, depending on the command type, contains the 
+result payload.
 
 Please find examples of commands, and their response pattern at [Protocol examples](protocol-examples.html).
 
@@ -51,15 +51,15 @@ See [request events](#request-events) for subscribing/unsubscribing for receivin
 
 ### Request receiving messages
 
-[Messages](basic-messages.html) can be sent both via the [HTTP API](httpapi-overview.html) and the WebSocket. Receiving
-messages and answering to them however can only be done via the WebSocket.
+[Messages](basic-messages.html) can be sent both via the [HTTP API](httpapi-overview.html) and the WebSocket. 
+Receiving messages and answering to them however can only be done via the WebSocket.
 
 See [request messages](#request-messages) for subscribing/unsubscribing for receiving messages.
 
 ### Request receiving live commands + events
 
-In order to receive [live commands and events](protocol-twinlive.html), the WebSocket API can be used. The Ditto Protocol
-messages are the same as for the "twin" channel, only with *live* as channel in the 
+In order to receive [live commands and events](protocol-twinlive.html), the WebSocket API can be used. 
+The Ditto Protocol messages are the same as for the "twin" channel, only with *live* as channel in the 
 [topic](protocol-specification-topic.html).
 
 See [request live commands](#request-live-commands) and [request live events](#request-live-events) for 
@@ -68,10 +68,9 @@ subscribing/unsubscribing for receiving live commands and events.
 
 ## WebSocket endpoint
 
-The WebSocket endpoint is accessible at these URLs (depending on which API version to use):
+The WebSocket endpoint is accessible at the following URL:
 
 ```
-ws://localhost:8080/ws/1
 ws://localhost:8080/ws/2
 ```
 
@@ -189,8 +188,8 @@ JWT-TOKEN?jwtToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkw
 
 ### Enrichment
 
-When extra fields should be added to outgoing messages on the WebSocket channel, an `extraFields` parameter can be added
-to the request message. This is supported for all request messages:
+When extra fields should be added to outgoing messages on the WebSocket channel, an `extraFields` parameter can be 
+added to the request message. This is supported for all request messages:
 
 | Description | Request message | [Enrich by extra fields](basic-enrichment.html) |
 |-------------|-----------------|------------------|

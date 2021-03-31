@@ -12,8 +12,9 @@ permalink: connectivity-mapping.html
 
 ## Motivation
 
-Eclipse Ditto is about providing access to IoT devices via the [digital twin](intro-digitaltwins.html) pattern. In order to
-provide structured APIs for different heterogeneous devices Ditto defines a lightweight JSON based [model](basic-overview.html).
+Eclipse Ditto is about providing access to IoT devices via the [digital twin](intro-digitaltwins.html) pattern. 
+In order to provide structured APIs for different heterogeneous devices Ditto defines a lightweight JSON based 
+[model](basic-overview.html).
 
 A [Thing](basic-thing.html) might look like in the following example:
 
@@ -78,13 +79,13 @@ It assumes that received messages are in [Ditto Protocol JSON](protocol-specific
 
 ### JavaScript mapper
 
-This mapper may be used whenever any inbound messages are not yet in [Ditto Protocol](protocol-overview.html). By using 
- the built in [JavaScript mapping engine](#javascript-mapping-engine) (based on Rhino) custom defined JavaScript scripts
- can be executed which are responsible for creating [Ditto Protocol JSON](protocol-specification.html) message from 
- arbitrary consumed payload.
+This mapper may be used whenever any inbound messages are not yet in [Ditto Protocol](protocol-overview.html). 
+By using the built in [JavaScript mapping engine](#javascript-mapping-engine) (based on Rhino) custom defined 
+JavaScript scripts can be executed which are responsible for creating [Ditto Protocol JSON](protocol-specification.html) 
+message from arbitrary consumed payload.
 
-The same is possible for outbound messages in order to transform [Ditto Protocol JSON](protocol-specification.html)
- messages (e.g. events or responses) to arbitrary other formats.
+The same is possible for outbound messages in order to transform [Ditto Protocol JSON](protocol-specification.html) 
+messages (e.g. events or responses) to arbitrary other formats.
 
 #### Configuration options
 
@@ -140,13 +141,13 @@ The `_context` field contains the original message content excluding the `value`
  chapter about [field selectors](httpapi-concepts.html#with-field-selector))
  
 ### ConnectionStatus mapper
-This mapper transforms the information from the `ttd` and `creation-time` message headers (see Eclipse Hono [device
- notifications](https://www.eclipse.org/hono/docs/concepts/device-notifications/)) into a ModifyFeature
- command that complies with the [Vorto functionblock](https://vorto.eclipse.org/#/details/org.eclipse.ditto:ConnectionStatus:1.0.0) `{%raw%}org.eclipse.ditto:ConnectionStatus{%endraw%}`. 
+This mapper transforms the information from the `ttd` and `creation-time` message headers 
+(see Eclipse Hono [device notifications](https://www.eclipse.org/hono/docs/concepts/device-notifications/)) into a 
+ModifyFeature command that complies with the [Vorto functionblock](https://vorto.eclipse.org/#/details/org.eclipse.ditto:ConnectionStatus:1.0.0) `{%raw%}org.eclipse.ditto:ConnectionStatus{%endraw%}`. 
  
 The connectivity state of the device is then represented in a Feature.<br/>
- It is mostly used in conjunction with another mapper that transforms the payload e.g.:<br/>
- `"payloadMapping": [ "Ditto" , "connectionStatus" ]`
+It is mostly used in conjunction with another mapper that transforms the payload e.g.:<br/>
+`"payloadMapping": [ "Ditto" , "connectionStatus" ]`
  
 Example of a resulting `ConnectionStatus` feature:
 ```json
@@ -228,8 +229,8 @@ Example configuration:
 * `outgoingContentType` (optional): The fallback content-type for outgoing message commands and responses without
   the content-type header. Default to `text/plain; charset=UTF-8`.
 * `incomingMessageHeaders` (optional): A JSON object containing the following headers needed to construct a message
-  command or response envelope containing the incoming message as payload in the field `"value"`. Placeholder expressions
-  reading from the protocol headers of incoming messages may be used.
+  command or response envelope containing the incoming message as payload in the field `"value"`. 
+  Placeholder expressions reading from the protocol headers of incoming messages may be used.
    * `content-type` (optional): The content type with which to encode the incoming message as payload.
      Default to `{%raw%}{{ header:content-type | fn:default('application/octet-stream') }}{%endraw%}`.
      If resolved to the Ditto protocol content type `application/vnd.eclipse.ditto+json`, then the entire payload
@@ -303,11 +304,13 @@ The following example connection defines a `ConnectionStatus` mapping with the I
 
 ## Example connection with mapping conditions
 
-The following example connection defines `incomingConditions` and `outgoingConditions`for the ConnectionStatus mapping engine.<br/>
+The following example connection defines `incomingConditions` and `outgoingConditions`for the ConnectionStatus 
+mapping engine.<br/>
 Optional incomingConditions are validated before the mapping of inbound messages.<br/> 
 Optional outgoingConditions are validated before the mapping of outbound messages.<br/>
 Conditional Mapping can be achieved by using [function expressions](basic-placeholders.html#function-expressions).
-When multiple incoming or outgoing conditions are set for one `mappingEngine`, all have to equal true for the mapping to be executed.  
+When multiple incoming or outgoing conditions are set for one `mappingEngine`, 
+all have to equal true for the mapping to be executed.  
 
 ```json
 { 
@@ -577,7 +580,7 @@ function mapFromDittoProtocolMsg(
 
 The result of the function has to be a JavaScript object or an array of JavaScript objects with the fields `headers`, 
 `textPayload`, `bytePayload` and `contentType`. That's where the helper method `Ditto.buildExternalMsg` is useful: it
- explicitly defines which parameters are required for the external message.
+explicitly defines which parameters are required for the external message.
 
 
 ## JavaScript payload types
@@ -608,13 +611,15 @@ Working with byte payloads is also possible but does require a little bit of kno
 [TypedArrays](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray) and
 [DataView](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView).
 
-What you get in the mapping scripts is a `bytePayload` of type `ArrayBuffer` which lets you work on the bytes in different ways: 
+What you get in the mapping scripts is a `bytePayload` of type `ArrayBuffer` which lets you work on the bytes 
+in different ways: 
 
 #### Typed Arrays
 
 > A TypedArray \[is\] a view into an ArrayBuffer where every item has the same size and type.<br/> [source](https://hacks.mozilla.org/2017/01/typedarray-or-dataview-understanding-byte-order/)
 
-With TypedArrays you can simply wrap the `bytePayload` `ArrayBuffer` and work on all the items e.g. as unsigned 8-bit integers:
+With TypedArrays you can simply wrap the `bytePayload` `ArrayBuffer` and work on all the items e.g. 
+as unsigned 8-bit integers:
 
 ```javascript
 let bytes = new Uint8Array(bytePayload);
@@ -636,7 +641,8 @@ DataViews also allow to `set` bytes to an underlying ArrayBuffer conveniently.
 
 #### ByteBuffer.js
 
-Alternatively, Ditto's JavaScript transformation may be loaded with the [above mentioned](#helper-libraries) libraries, e.g. "bytebuffer.js".<br />
+Alternatively, Ditto's JavaScript transformation may be loaded with the [above mentioned](#helper-libraries) libraries, 
+e.g. "bytebuffer.js".<br />
 With `ByteBuffer`, the content of an `ArrayBuffer` can be accessed in a buffered way:
 
 ```javascript
@@ -651,15 +657,16 @@ buf.readUTF8String(4); // read 4 characters of UTF-8 encoded string + advances t
 buf.remaining(); // gets the number of remaining readable bytes in the buffer
 ```
 
-Check the [ByteBuffer API documentation](https://github.com/dcodeIO/bytebuffer.js/wiki/API) to find out what is possible with that helper.
+Check the [ByteBuffer API documentation](https://github.com/dcodeIO/bytebuffer.js/wiki/API) to find out what is possible 
+with that helper.
 
 
 ## JavaScript Examples
 
 ### Text payload example
 
-Let's assume your device sends telemetry data via [Eclipse Hono's](https://www.eclipse.org/hono/) MQTT adapter into the cloud.
-And that an example payload of your device is:
+Let's assume your device sends telemetry data via [Eclipse Hono's](https://www.eclipse.org/hono/) MQTT adapter 
+into the cloud. And that an example payload of your device is:
 
 ```json
 {
@@ -757,8 +764,8 @@ Your digital twin is updated by applying the specified script and extracting the
 
 ### Bytes payload example
 
-For this example, let's assume your device sends telemetry data via [Eclipse Hono's](https://www.eclipse.org/hono/) HTTP adapter into the cloud.
-An example payload of your device - displayed as hexadecimal - is:
+For this example, let's assume your device sends telemetry data via [Eclipse Hono's](https://www.eclipse.org/hono/) 
+HTTP adapter into the cloud. An example payload of your device - displayed as hexadecimal - is:
 
 ```
 0x09EF03F72A
@@ -878,8 +885,8 @@ public interface MessageMapper {
 ```
 
 After instantiation of the custom `MessageMapper`, the `configure` method is called with all the *options* which were 
-provided to the mapper in the [configured connection](connectivity-manage-connections.html#create-connection). Use them
-in order to pass in configurations, thresholds, etc.
+provided to the mapper in the [configured connection](connectivity-manage-connections.html#create-connection). 
+Use them in order to pass in configurations, thresholds, etc.
 
 Then, simply implement both of the `map` methods:
 

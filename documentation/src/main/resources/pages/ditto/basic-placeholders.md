@@ -104,7 +104,8 @@ The first expression in such a pipeline **must always** be a placeholder to star
 Followed are functions separated by the pipe (`|`) symbol - each function in the pipeline receives the value of the
 previous expression (which may also be `empty`). 
 
-The function either contains no parameters or contains parameters which are either string constants or could also be placeholders again.
+The function either contains no parameters or contains parameters which are either string constants or could also 
+be placeholders again.
 
 ### Function library
 

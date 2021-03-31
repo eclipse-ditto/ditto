@@ -8,8 +8,8 @@ permalink: connectivity-header-mapping.html
 When receiving messages from external systems or sending messages to external systems, the external headers of the 
 messages can be mapped to and from Ditto protocol headers.
 
-That way the headers can be passed through Ditto, or defined Ditto protocol headers like for example `correlation-id` may be 
-mapped to a header used for message correlation in the external system.
+That way the headers can be passed through Ditto, or defined Ditto protocol headers like for example `correlation-id` 
+may be mapped to a header used for message correlation in the external system.
 
 A header mapping can be defined individually for every source and target of a connection. For examples of a definition 
 see [source header mapping](basic-connections.html#source-header-mapping) 

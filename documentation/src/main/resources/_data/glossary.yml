@@ -35,4 +35,4 @@ sse: "Server Sent Events - one way messaging/push from a HTTP server to a consum
 
 thing: "A Thing is a generic entity and is mostly used to cluster multiple Features and manage the access to the data
         and functionality the Thing represents.
-        A Thing may have additional meta data (Attributes) that describes the Thing in more detail."
+        A Thing may have additional metadata (Attributes) that describes the Thing in more detail."

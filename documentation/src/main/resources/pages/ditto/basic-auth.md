@@ -12,7 +12,7 @@ You can integrate your solutions with Ditto
 
 On all APIs Ditto protects functionality and data by using
 
-* **Authentication** to make sure the requester is the one she claims to be,
+* **Authentication** to make sure the requester is the one he/she claims to be,
 * **Authorization** to make sure the requester is allowed to see, use or change the information he wants to access.
 
 ## Authentication

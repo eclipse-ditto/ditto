@@ -14,18 +14,15 @@ http://localhost:8080/api/<apiVersion>
 
 ## API versioning
 
-Ditto's HTTP API is versioned in the URL: `/api/<apiVersion>`. Currently Ditto distinguishes between deprecated API
-version `1` and API version `2`.
+Ditto's HTTP API is versioned in the URL: `/api/<apiVersion>`. Currently, Ditto only provides API version `2`.
+API version 1 was deprecated and deleted as of Ditto version 2.0.0
 
 The API version is a promise that no HTTP resources (the static ones defined by Ditto itself) are modified in an
-incompatible/breaking way. As the HTTP resources reflect the JSON structure of the `Thing` entity, that also applies for
-this entity. In API version 1, the JSON structure of the `Thing` entity won't be changed in a breaking way
-(e.g. by removing or renaming a JSON field).
+incompatible/breaking way. As the HTTP resources reflect the JSON structure of the `Thing` entity, that also applies 
+for this entity. 
 
-That is also the reason for Ditto having already 2 API versions. In API 2 the `Thing` structure was changed to no longer
-contain the [ACL](basic-acl.html) inline as payload of the Thing. Instead, the authorization information in API 2 is
-managed by [Policies](basic-policy.html). The `acl` field was removed from the structure of the `Thing` and the
-`policyId` was added - that's why Ditto had to make this change in an API version 2.
+In API 2 the `Thing` structure contains a [Policy](basic-policy.html) where the authorization information is
+managed.
 
 ## Endpoints
 
@@ -33,115 +30,10 @@ In the HTTP API, some endpoints are static and can be seen as the "schema" of Di
 representation of the model classes, e.g. [Thing](basic-thing.html#model-specification) for the layout of the `/things`
 endpoint and [Policy](basic-policy.html) for the layout of the `/policies` endpoint.
 
-### API version 1 - Deprecated
-
-In API version 1, each `Thing` contains the information about the authorization in an inlined [ACL](basic-acl.html).
-
-#### Migration from API 1 to API 2
-
-In case you need to migrate a thing which was created via API 1 to API 2, please note that you need to migrate the
-access control list entries (ACL) into a **policy**, and to assign your thing to such a policy.
-
-1. Request the thing to be migrated, via API 2 and use the field-selector to specify that the inline policy (
-   i.e. `_policy`) should also be retrieved.
-
-   `GET {{host}}/api/2/things/{$thingId}?fields=_policy`
-
-   [Retrieve a specific Thing](https://www.eclipse.org/ditto/http-api-doc.html#/Things/get_things__thingId_)
-2. Create a new policy from the content of the requested inline policy, with a `policyId` of your choice (e.g. same as
-   the `thingId`).
-
-   `PUT {{host}}/api/2/policies/{$policyId}`
-
-   [Create or update a Policy with a specified ID](https://www.eclipse.org/ditto/http-api-doc.html#/Policies/put_policies__policyId_)
-3. Assign the new `policyId` to the thing to be migrated.
-
-   `PUT {{host}}/api/2/things/{$thingId}/policyId`
-
-   [Create or update the Policy ID of a Thing](https://www.eclipse.org/ditto/http-api-doc.html#/Things/put_things__thingId__policyId)
-
-**Note**: Henceforth the thing cannot be read nor written via API 1.
-
-#### `/things` in API 1
-
-The base endpoint for accessing and working with `Things`.<br/>
-A `Thing` in API 1 has the following JSON structure:
-
-```json
-{
-  "thingId": "",
-  "acl": {
-  },
-  "attributes": {
-  },
-  "features": {
-  }
-}
-```
-
-This maps to the following HTTP API endpoints:
-
-* `/things/{thingId}`: accessing complete `Thing`
-* `/things/{thingId}/acl`: accessing the ACL of the `Thing`
-* `/things/{thingId}/attributes`: accessing the attributes of the `Thing`
-* `/things/{thingId}/features`: accessing the features of the `Thing`
-
-#### `/things` in API 1 - dynamic part
-
-Additionally to that "static part" of the HTTP API which is defined by Ditto, the API is dynamically enhanced by the
-JSON structure of the Thing.<br/>
-
-{% include note.html content="This automatically turns each small aspect of a **digital twin** into an API endpoint." %}
-
-For example for a `Thing` with following content:
-
-```json
-{
-  "thingId": "{thingId}",
-  "acl": {
-    "{userId}": {
-      "READ": true,
-      "WRITE": true,
-      "ADMINISTRATE": true
-    }
-  },
-  "attributes": {
-    "manufacturer": "ACME corp",
-    "complex": {
-      "some": false,
-      "serialNo": 4711
-    }
-  },
-  "features": {
-    "lamp": {
-      "properties": {
-        "on": false,
-        "color": "blue"
-      }
-    }
-  }
-}
-```
-
-The following additional API endpoints are automatically available:
-
-* `/things/{thingId}/acl/userId`: accessing the ACL entry for user `userId` of the specific thing
-* `/things/{thingId}/attributes/manufacturer`: accessing the attribute `manufacturer` of the specific thing
-* `/things/{thingId}/attributes/complex`: accessing the attribute `complex` of the specific thing
-* `/things/{thingId}/attributes/complex/some`: accessing the attribute `complex/some` of the specific thing
-* `/things/{thingId}/attributes/complex/serialNo`: accessing the attribute `complex/serialNo` of the specific thing
-* `/things/{thingId}/features/lamp`: accessing the feature `lamp` of the specific thing
-* `/things/{thingId}/features/lamp/properties`: accessing all properties of the feature `lamp` of the specific thing
-* `/things/{thingId}/features/lamp/properties/on`: accessing the `on` property of the feature `lamp` of the specific
-  thing
-* `/things/{thingId}/features/lamp/properties/color`: accessing the `color` properties of the feature `lamp` of the
-  specific thing
-
 ### API version 2
 
-In API version 2, a `Thing` does no longer contain information about the authorization in an
-inlined [ACL](basic-acl.html), but contains a `policyId`, which points to a `Policy` managed as another entity. Its API
-endpoint is `/policies`.
+In API version 2, a `Thing` contains a `policyId`, which points to a `Policy` managed as another entity. 
+Its API endpoint is `/policies`.
 
 #### `/things` in API 2
 

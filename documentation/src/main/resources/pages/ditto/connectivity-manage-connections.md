@@ -6,8 +6,8 @@ permalink: connectivity-manage-connections.html
 ---
 
 In order to manage (CRUD) connections in Ditto [DevOps commands](installation-operating.html#devops-commands)
-have to be used. There is no separate HTTP API for managing the connections, as this is not a task for a developer using
-the digital twin APIs but more for a "DevOps engineer" creating new connections to external systems.
+have to be used. There is no separate HTTP API for managing the connections, as this is not a task for a developer 
+using the digital twin APIs but more for a "DevOps engineer" creating new connections to external systems.
 
 All connection related piggyback commands use the following HTTP endpoint:
 
