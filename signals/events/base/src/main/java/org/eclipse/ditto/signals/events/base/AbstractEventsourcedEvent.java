@@ -116,7 +116,8 @@ public abstract class AbstractEventsourcedEvent<T extends AbstractEventsourcedEv
         final AbstractEventsourcedEvent<?> that = (AbstractEventsourcedEvent<?>) o;
         return that.canEqual(this) &&
                 Objects.equals(entityId, that.entityId) &&
-                Objects.equals(revision, that.revision);
+                Objects.equals(revision, that.revision) &&
+                Objects.equals(entityIdFieldDefinition, that.entityIdFieldDefinition);
     }
 
     @Override
@@ -131,6 +132,7 @@ public abstract class AbstractEventsourcedEvent<T extends AbstractEventsourcedEv
         int result = super.hashCode();
         result = prime * result + Objects.hashCode(entityId);
         result = prime * result + Objects.hashCode(revision);
+        result = prime * result + Objects.hashCode(entityIdFieldDefinition);
         return result;
     }
 
