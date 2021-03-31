@@ -86,7 +86,8 @@ public final class PersistencePingActor extends AbstractActor {
             case TAGS:
                 persistenceIdsSourceSupplier =
                         () -> readJournal.getJournalPidsWithTagOrderedByTags(pingConfig.getJournalTag(),
-                                pingConfig.getInterval());
+                                pingConfig.getInterval())
+                .throttle(pingConfig.getReadJournalBatchSize(), pingConfig.getInterval());
                 break;
             case ID:
             default:
