@@ -99,7 +99,7 @@ public abstract class AbstractEvent<T extends AbstractEvent<T>> implements Event
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder()
-                // TYPE + entityId is included unconditionally:
+                // TYPE is included unconditionally:
                 .set(Event.JsonFields.TYPE, type)
                 .set(Event.JsonFields.TIMESTAMP, getTimestamp().map(Instant::toString).orElse(null), predicate)
                 .set(Event.JsonFields.METADATA, getMetadata().map(Metadata::toJson).orElse(null), predicate);

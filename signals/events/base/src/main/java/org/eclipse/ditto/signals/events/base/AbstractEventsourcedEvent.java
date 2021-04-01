@@ -21,6 +21,7 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
@@ -91,11 +92,17 @@ public abstract class AbstractEventsourcedEvent<T extends AbstractEventsourcedEv
 
     @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
+        // Important! this method completely overwrites/replaces AbstractEvent.toJson(...)
+        //  it shall not invoke super.toJson(...) because in that case "appendPayloadAndBuild" would be invoked twice
+        //  and the order of the fields to appear in the JSON would not be controllable!
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        final JsonObjectBuilder jsonObjectBuilder = super.toJson(schemaVersion, thePredicate)
-                .toBuilder()
-                .set(entityIdFieldDefinition, entityId.toString())
-                .set(EventsourcedEvent.JsonFields.REVISION, revision, predicate);
+        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder()
+                // TYPE + entityId is included unconditionally:
+                .set(Event.JsonFields.TYPE, getType())
+                .set(Event.JsonFields.TIMESTAMP, getTimestamp().map(Instant::toString).orElse(null), predicate)
+                .set(Event.JsonFields.METADATA, getMetadata().map(Metadata::toJson).orElse(null), predicate)
+                .set(EventsourcedEvent.JsonFields.REVISION, revision, predicate)
+                .set(entityIdFieldDefinition, entityId.toString());
 
         appendPayloadAndBuild(jsonObjectBuilder, schemaVersion, thePredicate);
         return jsonObjectBuilder.build();
