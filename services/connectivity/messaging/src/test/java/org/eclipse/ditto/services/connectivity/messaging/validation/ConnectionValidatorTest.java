@@ -109,7 +109,7 @@ public class ConnectionValidatorTest {
     @Before
     public void before() {
         connectivityConfigProvider = Mockito.mock(ConnectivityConfigProvider.class);
-        Mockito.when(connectivityConfigProvider.getConnectivityConfig(CONNECTION_ID))
+        Mockito.when(connectivityConfigProvider.getConnectivityConfig(CONNECTION_ID, DittoHeaders.empty()))
                 .thenReturn(CONNECTIVITY_CONFIG_WITH_ENABLED_BLOCKLIST);
     }
 

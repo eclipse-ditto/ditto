@@ -410,7 +410,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         final SendingOrDropped result;
         if (publishTargetOptional.isPresent()) {
             final Signal<?> outboundSource = outbound.getSource();
-            logger.info("Publishing mapped message of type <{}> to address <{}>", outboundSource.getType());
+            logger.info("Publishing mapped message of type <{}> to address <{}>", outboundSource.getType(), address);
             logger.debug("Publishing mapped message of type <{}> to address <{}>: {}", outboundSource.getType(),
                     address, sendingContext.getExternalMessage());
             final T publishTarget = publishTargetOptional.get();

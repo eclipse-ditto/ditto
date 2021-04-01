@@ -188,7 +188,7 @@ public final class ConnectionValidator {
      */
     void validate(final Connection connection, final DittoHeaders dittoHeaders, final ActorSystem actorSystem) {
         final ConnectivityConfig connectivityConfig =
-                connectivityConfigProvider.getConnectivityConfig(connection.getId());
+                connectivityConfigProvider.getConnectivityConfig(connection.getId(), dittoHeaders);
 
         // validate sources and targets
         validateSourcesAndTargets(connection, dittoHeaders, connectivityConfig);
