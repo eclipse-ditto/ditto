@@ -78,7 +78,7 @@ Example:
 ```
 MD5:e0:3a:34:1c:68:ed:c6:bc:7c:ca:a8:67:c7:45:2b:19
 ```
-The fingerprints are prefixed with an alias of the hash algorithm that was used to calucate the fingerprint.  Ditto 
+The fingerprints are prefixed with an alias of the hash algorithm that was used to calculate the fingerprint. Ditto 
 supports the following hash algorithms for public key fingerprints:  `MD5`, `SHA1`, `SHA224`, `SHA256`, `SHA384` and `SHA512`. 
 
 Assuming the file `id_rsa.pub` contains the public key the following command produces a valid fingerprint that 
