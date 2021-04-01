@@ -128,7 +128,8 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
             result = jsonObject;
         }
 
-        return ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
+        final DittoHeaders headers = DittoHeaders.newBuilder().contentType(ContentType.APPLICATION_JSON).build();
+        return ExternalMessageFactory.newExternalMessageBuilder(headers)
                 .withTopicPath(adaptable.getTopicPath())
                 .withText(result.toString())
                 .build();
@@ -137,8 +138,7 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
     private static JsonObject abridgeMessage(final Adaptable adaptable) {
         final Payload payload = adaptable.getPayload();
         final JsonObjectBuilder builder = JsonObject.newBuilder();
-        final DittoHeaders dittoHeaders =
-                DittoHeaders.newBuilder(adaptable.getDittoHeaders()).contentType(ContentType.APPLICATION_JSON).build();
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder(adaptable.getDittoHeaders()).build();
         // add fields of an event protocol message excluding "value" and "status"
         builder.set(JsonifiableAdaptable.JsonFields.TOPIC, adaptable.getTopicPath().getPath());
         builder.set(Payload.JsonFields.PATH, payload.getPath().toString());
@@ -161,7 +161,8 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
                 topicPath.getGroup() == TopicPath.Group.THINGS &&
                 action.isPresent()) {
             final TopicPath.Action act = action.get();
-            return act == TopicPath.Action.CREATED || act == TopicPath.Action.MODIFIED || act == TopicPath.Action.MERGED;
+            return act == TopicPath.Action.CREATED || act == TopicPath.Action.MODIFIED ||
+                    act == TopicPath.Action.MERGED;
         }
 
         return false;
