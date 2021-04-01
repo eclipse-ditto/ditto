@@ -97,7 +97,7 @@ public final class UsageBasedPriorityProviderTest {
         connectionPersistenceActorProbe = TestProbe.apply(system);
         mockLog = mock(DittoDiagnosticLoggingAdapter.class);
         when(mockLog.withCorrelationId(anyString())).thenReturn(mockLog);
-        underTest = new UsageBasedPriorityProvider(connectionPersistenceActorProbe.ref(), mockLog);
+        underTest = UsageBasedPriorityProvider.getInstance(connectionPersistenceActorProbe.ref(), mockLog);
     }
 
     @Test

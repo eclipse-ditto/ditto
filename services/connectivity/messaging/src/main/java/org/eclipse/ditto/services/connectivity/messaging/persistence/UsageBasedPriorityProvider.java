@@ -29,15 +29,21 @@ import akka.pattern.Patterns;
 /**
  * Calculates the priority based on the sum of consumed and published messages of a connection.
  */
-final class UsageBasedPriorityProvider implements ConnectionPriorityProvider {
+public final class UsageBasedPriorityProvider implements ConnectionPriorityProvider {
 
     private static final Duration RETRIEVE_METRICS_TIMEOUT = Duration.ofSeconds(3);
     private final ActorRef connectionPersistenceActor;
     private final DittoDiagnosticLoggingAdapter log;
 
-    UsageBasedPriorityProvider(final ActorRef connectionPersistenceActor, final DittoDiagnosticLoggingAdapter log) {
+    private UsageBasedPriorityProvider(final ActorRef connectionPersistenceActor,
+            final DittoDiagnosticLoggingAdapter log) {
         this.connectionPersistenceActor = connectionPersistenceActor;
         this.log = log;
+    }
+
+    public static UsageBasedPriorityProvider getInstance(final ActorRef connectionPersistenceActor,
+            final DittoDiagnosticLoggingAdapter log) {
+        return new UsageBasedPriorityProvider(connectionPersistenceActor, log);
     }
 
     @Override

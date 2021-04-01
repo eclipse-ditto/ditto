@@ -169,7 +169,7 @@ public final class ConnectionPersistenceActor
             final ActorRef proxyActor,
             final ClientActorPropsFactory propsFactory,
             @Nullable final ConnectivityCommandInterceptor customCommandValidator,
-            @Nullable final ConnectionPriorityProvider connectionPriorityProvider,
+            final ConnectionPriorityProviderFactory connectionPriorityProviderFactory,
             final Trilean allClientActorsOnOneNode) {
 
         super(connectionId, new ConnectionMongoSnapshotAdapter());
@@ -205,12 +205,7 @@ public final class ConnectionPersistenceActor
             commandValidator = dittoCommandValidator;
         }
 
-        final UsageBasedPriorityProvider usageBasedPriorityProvider = new UsageBasedPriorityProvider(getSelf(), log);
-        if (connectionPriorityProvider == null) {
-            this.connectionPriorityProvider = usageBasedPriorityProvider;
-        } else {
-            this.connectionPriorityProvider = connectionPriorityProvider.withFallBack(usageBasedPriorityProvider);
-        }
+        this.connectionPriorityProvider = connectionPriorityProviderFactory.newProvider(self(), log);
 
         clientActorAskTimeout = config.getClientActorAskTimeout();
 
@@ -238,17 +233,17 @@ public final class ConnectionPersistenceActor
      * @param proxyActor the actor used to send signals into the ditto cluster..
      * @param propsFactory factory of props of client actors for various protocols.
      * @param commandValidator validator for commands that should throw an exception if a command is invalid.
-     * @param connectionPriorityProvider used to determine the reconnect priority of a connection.
+     * @param connectionPriorityProviderFactory Creates a new connection priority provider.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ConnectionId connectionId,
             final ActorRef proxyActor,
             final ClientActorPropsFactory propsFactory,
             @Nullable final ConnectivityCommandInterceptor commandValidator,
-            @Nullable final ConnectionPriorityProvider connectionPriorityProvider
+            final ConnectionPriorityProviderFactory connectionPriorityProviderFactory
     ) {
         return Props.create(ConnectionPersistenceActor.class, connectionId, proxyActor, propsFactory, commandValidator,
-                connectionPriorityProvider, Trilean.UNKNOWN);
+                connectionPriorityProviderFactory, Trilean.UNKNOWN);
     }
 
     /**

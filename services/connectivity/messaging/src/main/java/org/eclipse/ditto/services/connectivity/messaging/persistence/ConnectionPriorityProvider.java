@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.connectivity.messaging.persistence;
 
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -32,16 +31,5 @@ public interface ConnectionPriorityProvider {
      * @return the priority.
      */
     CompletionStage<Optional<Integer>> getPriorityFor(ConnectionId connectionId, String correlationId);
-
-    default ConnectionPriorityProvider withFallBack(final ConnectionPriorityProvider fallBack) {
-        return (connectionId, correlationId) -> this.getPriorityFor(connectionId, correlationId)
-                .thenCompose(result -> {
-                    if (result.isPresent()) {
-                        return CompletableFuture.completedFuture(result);
-                    } else {
-                        return fallBack.getPriorityFor(connectionId, correlationId);
-                    }
-                });
-    }
 
 }
