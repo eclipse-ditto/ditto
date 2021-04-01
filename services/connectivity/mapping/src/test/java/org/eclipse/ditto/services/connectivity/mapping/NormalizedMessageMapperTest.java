@@ -148,7 +148,7 @@ public final class NormalizedMessageMapperTest {
                         "    \"path\": \"/\",\n" +
                         "    \"headers\": {\n" +
                         "      \"response-required\": \"false\",\n" +
-                        "      \"content-type\": \"application/json\"\n" +
+                        "      \"content-type\": \"application/merge-patch+json\"\n" +
                         "    }\n" +
                         "  }\n" +
                         "}"));
@@ -192,7 +192,7 @@ public final class NormalizedMessageMapperTest {
                         "    \"path\": \"/\",\n" +
                         "    \"headers\": {\n" +
                         "      \"response-required\": \"false\",\n" +
-                        "      \"content-type\": \"application/json\"\n" +
+                        "      \"content-type\": \"application/merge-patch+json\"\n" +
                         "    }\n" +
                         "  }\n" +
                         "}"));
@@ -225,7 +225,7 @@ public final class NormalizedMessageMapperTest {
                         "    \"path\": \"/\",\n" +
                         "    \"headers\": {\n" +
                         "      \"response-required\": \"false\",\n" +
-                        "      \"content-type\": \"application/json\"\n" +
+                        "      \"content-type\": \"application/merge-patch+json\"\n" +
                         "    }\n" +
                         "  }\n" +
                         "}"));
@@ -281,7 +281,8 @@ public final class NormalizedMessageMapperTest {
 
         final Adaptable adaptable = ADAPTER.toAdaptable(event, TopicPath.Channel.TWIN);
 
-        Assertions.assertThat(underTest.map(adaptable).get(0).getHeaders()).isEmpty();
+        Assertions.assertThat(underTest.map(adaptable).get(0).getHeaders())
+                .contains(Map.entry("content-type", "application/json"));
     }
 
     @Test
