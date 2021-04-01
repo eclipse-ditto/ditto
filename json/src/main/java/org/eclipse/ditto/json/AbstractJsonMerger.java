@@ -46,4 +46,5 @@ abstract class AbstractJsonMerger {
 
         return builder.build();
     }
+
 }
