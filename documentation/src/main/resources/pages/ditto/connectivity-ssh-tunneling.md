@@ -58,14 +58,21 @@ configuration must then be of the type `public-key`:
 ...
 ```
 
-The public key must be provided as PEM-encoded key in `X.509` format.
-The private key must be provided as PEM-encoded key in unencrypted `PKCS8` format as specified by [RFC-7468](https://tools.ietf.org/html/rfc7468).
+The public key must be provided as PEM-encoded RSA key in `X.509` format.
+The private key must be provided as PEM-encoded RSA key in unencrypted `PKCS8` format as specified by 
+[RFC-7468](https://tools.ietf.org/html/rfc7468).
 
 The following command can be used to convert a standard OpenSSL key in PKCS1 format to the PKCS8 format accepted by 
 Ditto:
 ```
 openssl pkcs8 -topk8 -nocrypt -in client-private.pem.key -out client-private.pem.pk8
 ```
+
+{% include note.html content="Ditto does not make any sanity check regarding the provided credentials or the 
+provided SSH server, e.g. if the server uses outdated ciphers or insecure keys. So make sure you configure only trusted 
+servers that meet your security requirements. As an additional security measure, the user associated with the given 
+credentials should only have assigned the least required privileges (i.e. allow only local port forwarding but no 
+shell access)." %}
 
 ### SSH host validation
 
