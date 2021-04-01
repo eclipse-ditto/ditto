@@ -259,7 +259,7 @@ public final class MongoReadJournalIT {
     public void extractJournalPidsInOrderOfTags() {
         insert("test_journal", new Document()
                 .append("pid", "pid1")
-                .append("_tg", Set.of("always-alive", "always-alive-99"))
+                .append("_tg", Set.of("always-alive", "always-alive-10"))
                 .append("to", 1L));
         insert("test_journal", new Document()
                 .append("pid", "pid2")

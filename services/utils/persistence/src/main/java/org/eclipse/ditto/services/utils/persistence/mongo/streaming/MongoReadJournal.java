@@ -38,6 +38,7 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 import com.mongodb.client.model.Accumulators;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.BsonField;
+import com.mongodb.client.model.Collation;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Sorts;
 import com.mongodb.reactivestreams.client.MongoCollection;
@@ -357,7 +358,8 @@ public class MongoReadJournal {
         final RestartSettings restartSettings = RestartSettings.create(minBackOff, maxBackOff, randomFactor)
                 .withMaxRestarts(maxRestarts, minBackOff);
         return RestartSource.onFailuresWithBackoff(restartSettings, () ->
-                Source.fromPublisher(journal.aggregate(pipeline))
+                Source.fromPublisher(journal.aggregate(pipeline)
+                        .collation(Collation.builder().locale("en_US").numericOrdering(true).build()))
                         .flatMapConcat(document -> {
                             final Object pid = document.get(J_ID);
                             if (pid instanceof CharSequence) {
