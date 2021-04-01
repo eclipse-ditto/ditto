@@ -121,7 +121,7 @@ public class ConnectionValidatorTest {
                 assumingFields("specMap").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
                 provided(QueryFilterCriteriaFactory.class,
                         LoggingAdapter.class,
-                        HostValidator.class,
+                        DefaultHostValidator.class,
                         ConnectivityConfigProvider.class).areAlsoImmutable());
     }
 

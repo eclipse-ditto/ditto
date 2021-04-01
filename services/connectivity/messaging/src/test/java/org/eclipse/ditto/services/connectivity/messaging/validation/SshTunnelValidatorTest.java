@@ -22,16 +22,25 @@ import org.eclipse.ditto.model.connectivity.SshPublicKeyCredentials;
 import org.eclipse.ditto.model.connectivity.SshTunnel;
 import org.eclipse.ditto.model.connectivity.UserPasswordCredentials;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentMatchers;
+import org.mockito.Mockito;
 
 /**
  * Tests {@link org.eclipse.ditto.services.connectivity.messaging.validation.SshTunnelValidator}.
  */
 public class SshTunnelValidatorTest {
 
-
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder().randomCorrelationId().build();
-    private static final SshTunnelValidator VALIDATOR = SshTunnelValidator.getInstance(DITTO_HEADERS);
+    private SshTunnelValidator VALIDATOR;
+
+    @Before
+    public void setUp() throws Exception {
+        final HostValidator hostValidator = Mockito.mock(HostValidator.class);
+        Mockito.when(hostValidator.validateHost(ArgumentMatchers.anyString())).thenReturn(HostValidationResult.valid());
+        VALIDATOR = SshTunnelValidator.getInstance(DITTO_HEADERS, hostValidator);
+    }
 
     @Test
     public void validConfiguration() {
@@ -95,13 +104,26 @@ public class SshTunnelValidatorTest {
     @Test
     public void testInvalidPrivateKey() {
         final SshPublicKeyCredentials publicKeyAuthentication =
-                SshPublicKeyCredentials.of("test", TestConstants.Certificates.SERVER_PUB,
-                        "dummy");
+                SshPublicKeyCredentials.of("test", TestConstants.Certificates.SERVER_PUB, "dummy");
         final SshTunnel publicKeyAuth =
                 ConnectivityModelFactory.newSshTunnelBuilder(VALID_SSH_TUNNEL)
                         .credentials(publicKeyAuthentication)
                         .build();
         validateAndExpectException(publicKeyAuth);
+    }
+
+    @Test
+    public void testInvalidSshHost() {
+        final HostValidator hostValidator = Mockito.mock(HostValidator.class);
+        Mockito.doCallRealMethod().when(hostValidator).validateHostname(ArgumentMatchers.anyString(),
+                ArgumentMatchers.any(DittoHeaders.class));
+        Mockito.when(hostValidator.validateHost(ArgumentMatchers.anyString()))
+                .thenReturn(HostValidationResult.blocked("blockedHost"));
+
+        final SshTunnelValidator validator = SshTunnelValidator.getInstance(DITTO_HEADERS, hostValidator);
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> validator.validate(VALID_SSH_TUNNEL))
+                .withMessageStartingWith("The SSH server URI '%s' is not valid", VALID_SSH_TUNNEL.getUri());
     }
 
     private void validateAndExpectException(final SshTunnel tunnel) {

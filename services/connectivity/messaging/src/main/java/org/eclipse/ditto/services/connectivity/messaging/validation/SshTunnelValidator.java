@@ -31,19 +31,24 @@ final class SshTunnelValidator {
 
     private static final String SSH_SCHEME = "ssh";
     private final DittoHeaders dittoHeaders;
+    private final HostValidator hostValidator;
 
     /**
      * Creates a new instance of SshTunnelValidator with the given headers.
      *
      * @param dittoHeaders the ditto headers
+     * @param hostValidator the host validator to check the configured ssh host
      * @return the new instance
      */
-    public static SshTunnelValidator getInstance(final DittoHeaders dittoHeaders) {
-        return new SshTunnelValidator(dittoHeaders);
+    public static SshTunnelValidator getInstance(final DittoHeaders dittoHeaders,
+            final HostValidator hostValidator) {
+        return new SshTunnelValidator(dittoHeaders, hostValidator);
     }
 
-    private SshTunnelValidator(final DittoHeaders dittoHeaders) {
+    private SshTunnelValidator(final DittoHeaders dittoHeaders,
+            final HostValidator hostValidator) {
         this.dittoHeaders = dittoHeaders;
+        this.hostValidator = hostValidator;
     }
 
     /**
@@ -72,6 +77,7 @@ final class SshTunnelValidator {
             if (!uri.getScheme().equals(SSH_SCHEME)) {
                 throw configError("The scheme for the ssh endpoint must be 'ssh'.");
             }
+            hostValidator.validateHostname(uri.getHost(), dittoHeaders);
         } catch (final Exception exception) {
             final String message = String.format("The SSH server URI '%s' is not valid: %s", uriString,
                     exception.getMessage());
