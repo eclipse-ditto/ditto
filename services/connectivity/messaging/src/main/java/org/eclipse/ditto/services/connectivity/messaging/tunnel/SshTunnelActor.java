@@ -49,6 +49,7 @@ import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
+import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.Props;
@@ -99,14 +100,16 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
         connectionLoggerRegistry.initForConnection(connection);
         connectionLogger = connectionLoggerRegistry.forConnection(connection.getId());
 
-        final SshTunnel sshTunnel = this.connection.getSshTunnel().orElseThrow();
+        final SshTunnel sshTunnel = this.connection.getSshTunnel()
+                .orElseThrow(() -> ConnectionFailedException
+                        .newBuilder(connection.getId())
+                        .message("Tunnel actor started without tunnel configuration.")
+                        .build());
         final URI sshUri = URI.create(sshTunnel.getUri());
         sshHost = sshUri.getHost();
         sshPort = sshUri.getPort();
 
-        this.connection.getSshTunnel()
-                .map(SshTunnel::getCredentials)
-                .ifPresent(credentials -> credentials.accept(this));
+        sshTunnel.getCredentials().accept(this);
 
         if (sshTunnel.isValidateHost()) {
             serverKeyVerifier = new FingerprintVerifier(sshTunnel.getKnownHosts());

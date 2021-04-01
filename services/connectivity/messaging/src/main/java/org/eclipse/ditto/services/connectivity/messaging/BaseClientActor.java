@@ -1151,6 +1151,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private void tellTunnelActor(final SshTunnelActor.TunnelControl control) {
         if (tunnelActor != null) {
             tunnelActor.tell(control, getSelf());
+        } else {
+            logger.debug("Tunnel actor not started.");
         }
     }
 
@@ -1722,7 +1724,12 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                         })
                         .matchAny(error -> {
                             self.tell(new ImmutableConnectionFailure(getSender(), error, "exception in child"), self);
-                            return (SupervisorStrategy.Directive) SupervisorStrategy.stop();
+                            if (getSender().equals(tunnelActor)) {
+                                logger.debug("Restarting tunnel actor after failure: {}", error.getMessage());
+                                return (SupervisorStrategy.Directive) SupervisorStrategy.restart();
+                            } else {
+                                return (SupervisorStrategy.Directive) SupervisorStrategy.stop();
+                            }
                         }).build()
         );
     }
