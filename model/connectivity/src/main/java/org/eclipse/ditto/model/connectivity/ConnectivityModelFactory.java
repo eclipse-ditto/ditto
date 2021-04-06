@@ -250,6 +250,8 @@ public final class ConnectivityModelFactory {
      * @param inStateSince the instant since the resource is in the given state
      * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if any parameter is {@code null}.
+     *
+     * @since 2.0.0
      */
     public static ResourceStatus newSshTunnelStatus(final String client,
             final ConnectivityStatus status,

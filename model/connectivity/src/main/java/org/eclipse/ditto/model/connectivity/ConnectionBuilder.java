@@ -208,6 +208,8 @@ public interface ConnectionBuilder {
      *
      * @param sshTunnel the connection ssh tunnel
      * @return this builder
+     *
+     * @since 2.0.0
      */
     ConnectionBuilder sshTunnel(@Nullable SshTunnel sshTunnel);
 

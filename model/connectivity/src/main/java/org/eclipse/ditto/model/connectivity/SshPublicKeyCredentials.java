@@ -24,6 +24,8 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 /**
  * Holds information required to do SSH public key authentication, namely: {@code username}, {@code public key} and
  * {@code private key}.
+ *
+ * @since 2.0.0
  */
 @Immutable
 public final class SshPublicKeyCredentials implements Credentials {

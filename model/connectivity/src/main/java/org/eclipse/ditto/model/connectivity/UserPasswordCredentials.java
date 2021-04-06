@@ -23,6 +23,8 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 
 /**
  * User and password credentials.
+ *
+ * @since 2.0.0
  */
 @Immutable
 public final class UserPasswordCredentials implements Credentials {

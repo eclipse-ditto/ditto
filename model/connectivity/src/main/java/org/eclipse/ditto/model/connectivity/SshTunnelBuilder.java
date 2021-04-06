@@ -16,6 +16,8 @@ import java.util.List;
 
 /**
  * A mutable builder for a {@link SshTunnelBuilder} with a fluent API.
+ *
+ * @since 2.0.0
  */
 public interface SshTunnelBuilder {
 
