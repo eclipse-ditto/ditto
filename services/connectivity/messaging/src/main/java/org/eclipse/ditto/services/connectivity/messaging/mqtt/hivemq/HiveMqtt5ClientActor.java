@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 
+import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
@@ -22,6 +24,8 @@ import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttSpecificConfig
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient;
+import com.hivemq.client.mqtt.mqtt5.message.connect.Mqtt5ConnectBuilder;
+import com.hivemq.client.mqtt.mqtt5.message.connect.connack.Mqtt5ConnAck;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 import com.hivemq.client.mqtt.mqtt5.message.subscribe.Mqtt5Subscribe;
 import com.hivemq.client.mqtt.mqtt5.message.subscribe.suback.Mqtt5SubAck;
@@ -37,19 +41,28 @@ import akka.actor.Props;
 public final class HiveMqtt5ClientActor
         extends AbstractMqttClientActor<Mqtt5Subscribe, Mqtt5Publish, Mqtt5AsyncClient, Mqtt5SubAck> {
 
+    private final HiveMqtt5ClientFactory clientFactory;
+
     @SuppressWarnings("unused") // used by `props` via reflection
     private HiveMqtt5ClientActor(final Connection connection,
             final ActorRef proxyActor,
             final ActorRef connectionActor,
             final HiveMqtt5ClientFactory clientFactory) {
 
-        super(connection, proxyActor, connectionActor, clientFactory);
+        super(connection, proxyActor, connectionActor);
+        this.clientFactory = clientFactory;
     }
 
     @SuppressWarnings("unused") // used by `props` via reflection
     private HiveMqtt5ClientActor(final Connection connection, final ActorRef proxyActor,
             final ActorRef connectionActor) {
-        this(connection, proxyActor, connectionActor, DefaultHiveMqtt5ClientFactory.getInstance());
+        super(connection, proxyActor, connectionActor);
+        this.clientFactory = DefaultHiveMqtt5ClientFactory.getInstance(this::getSshTunnelState);
+    }
+
+    @Override
+    HiveMqttClientFactory<Mqtt5AsyncClient, ?> getClientFactory() {
+        return clientFactory;
     }
 
     /**
@@ -87,8 +100,13 @@ public final class HiveMqtt5ClientActor
     }
 
     @Override
-    CompletionStage<?> sendConn(final Mqtt5AsyncClient client, final boolean cleanSession) {
-        return client.connectWith().cleanStart(cleanSession).send();
+    CompletionStage<Mqtt5ConnAck> sendConn(final Mqtt5AsyncClient client, final boolean cleanSession,
+            @Nullable final Duration keepAliveInterval) {
+        final Mqtt5ConnectBuilder.Send<CompletableFuture<Mqtt5ConnAck>> connectWith = client.connectWith();
+        if (keepAliveInterval != null) {
+            connectWith.keepAlive((int) keepAliveInterval.getSeconds());
+        }
+        return connectWith.cleanStart(cleanSession).send();
     }
 
     @Override

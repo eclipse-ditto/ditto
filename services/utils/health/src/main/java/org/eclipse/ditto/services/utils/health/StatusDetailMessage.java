@@ -37,7 +37,9 @@ public final class StatusDetailMessage implements Jsonifiable<JsonObject> {
      * second entry.
      */
     public enum Level {
-        INFO, WARN, ERROR;
+        INFO,
+        WARN,
+        ERROR;
 
         public static final Level DEFAULT = INFO;
     }

@@ -314,6 +314,9 @@ entries:
           - title: TLS certificates
             url: /connectivity-tls-certificates.html
             output: web
+          - title: SSH tunneling
+            url: /connectivity-ssh-tunneling.html
+            output: web
 
       - title: Client SDK
         output: web

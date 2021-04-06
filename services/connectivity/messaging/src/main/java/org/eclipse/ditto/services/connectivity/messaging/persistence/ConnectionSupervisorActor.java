@@ -100,8 +100,7 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
 
     @Override
     protected Props getPersistenceActorProps(final ConnectionId entityId) {
-        return ConnectionPersistenceActor.props(entityId, proxyActor, propsFactory,
-                commandInterceptor);
+        return ConnectionPersistenceActor.props(entityId, proxyActor, propsFactory, commandInterceptor);
     }
 
     @Override

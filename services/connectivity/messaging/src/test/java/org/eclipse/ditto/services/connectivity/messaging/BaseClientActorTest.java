@@ -502,7 +502,6 @@ public final class BaseClientActorTest {
             logger.info("cleanupResourcesForConnection");
             delegate.cleanupResourcesForConnection();
         }
-
         @Override
         protected void doConnectClient(final Connection connection, @Nullable final ActorRef origin) {
             logger.info("doConnectClient");

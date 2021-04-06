@@ -202,8 +202,22 @@ public final class ConnectionValidator {
         validateFormatOfCertificates(connection, dittoHeaders, connectionLogger);
 
         // validate configured host
-        final HostValidator hostValidator = new HostValidator(connectivityConfig, loggingAdapter);
+        final HostValidator hostValidator = new DefaultHostValidator(connectivityConfig, loggingAdapter);
         hostValidator.validateHostname(connection.getHostname(), dittoHeaders);
+
+        // tunneling not supported for kafka
+        if (ConnectionType.KAFKA == connection.getConnectionType() && connection.getSshTunnel().isPresent()) {
+            throw ConnectionConfigurationInvalidException
+                    .newBuilder("SSH tunneling not supported.")
+                    .description(
+                            "SSH tunneling is not supported for the connection type <" + ConnectionType.KAFKA + ">.")
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+
+        // validate ssh tunnel
+        connection.getSshTunnel()
+                .ifPresent(tunnel -> SshTunnelValidator.getInstance(dittoHeaders, hostValidator).validate(tunnel));
 
         // protocol specific validations
         final AbstractProtocolValidator spec = specMap.get(connection.getConnectionType());

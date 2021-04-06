@@ -74,6 +74,7 @@ final class ImmutableConnection implements Connection {
     private final Map<String, String> specificConfig;
     private final PayloadMappingDefinition payloadMappingDefinition;
     private final Set<String> tags;
+    @Nullable private final SshTunnel sshTunnel;
 
     private ImmutableConnection(final Builder builder) {
         id = checkNotNull(builder.id, "id");
@@ -93,6 +94,7 @@ final class ImmutableConnection implements Connection {
         payloadMappingDefinition = builder.payloadMappingDefinition;
         tags = Collections.unmodifiableSet(new HashSet<>(builder.tags));
         lifecycle = builder.lifecycle;
+        sshTunnel = builder.sshTunnel;
     }
 
     /**
@@ -141,6 +143,7 @@ final class ImmutableConnection implements Connection {
                 .specificConfig(connection.getSpecificConfig())
                 .payloadMappingDefinition(connection.getPayloadMappingDefinition())
                 .name(connection.getName().orElse(null))
+                .sshTunnel(connection.getSshTunnel().orElse(null))
                 .tags(connection.getTags())
                 .lifecycle(connection.getLifecycle().orElse(null));
     }
@@ -184,6 +187,8 @@ final class ImmutableConnection implements Connection {
         jsonObject.getValue(JsonFields.VALIDATE_CERTIFICATES).ifPresent(builder::validateCertificate);
         jsonObject.getValue(JsonFields.PROCESSOR_POOL_SIZE).ifPresent(builder::processorPoolSize);
         jsonObject.getValue(JsonFields.TRUSTED_CERTIFICATES).ifPresent(builder::trustedCertificates);
+        jsonObject.getValue(JsonFields.SSH_TUNNEL)
+                .ifPresent(jsonFields -> builder.sshTunnel(ImmutableSshTunnel.fromJson(jsonFields)));
 
         return builder.build();
     }
@@ -278,6 +283,11 @@ final class ImmutableConnection implements Connection {
     @Override
     public List<Target> getTargets() {
         return targets;
+    }
+
+    @Override
+    public Optional<SshTunnel> getSshTunnel() {
+        return Optional.ofNullable(sshTunnel);
     }
 
     @Override
@@ -407,6 +417,9 @@ final class ImmutableConnection implements Connection {
         if (trustedCertificates != null) {
             jsonObjectBuilder.set(JsonFields.TRUSTED_CERTIFICATES, trustedCertificates, predicate);
         }
+        if (sshTunnel != null) {
+            jsonObjectBuilder.set(JsonFields.SSH_TUNNEL, sshTunnel.toJson(predicate), predicate);
+        }
         jsonObjectBuilder.set(JsonFields.TAGS, tags.stream()
                 .map(JsonFactory::newValue)
                 .collect(JsonCollectors.valuesToArray()), predicate);
@@ -439,6 +452,7 @@ final class ImmutableConnection implements Connection {
                 Objects.equals(specificConfig, that.specificConfig) &&
                 Objects.equals(payloadMappingDefinition, that.payloadMappingDefinition) &&
                 Objects.equals(lifecycle, that.lifecycle) &&
+                Objects.equals(sshTunnel, that.sshTunnel) &&
                 Objects.equals(tags, that.tags);
     }
 
@@ -446,7 +460,7 @@ final class ImmutableConnection implements Connection {
     public int hashCode() {
         return Objects.hash(id, name, connectionType, connectionStatus, sources, targets, clientCount, failOverEnabled,
                 credentials, trustedCertificates, uri, validateCertificate, processorPoolSize, specificConfig,
-                payloadMappingDefinition, tags, lifecycle);
+                payloadMappingDefinition, sshTunnel, tags, lifecycle);
     }
 
     @Override
@@ -462,6 +476,7 @@ final class ImmutableConnection implements Connection {
                 ", uri=" + uri.getUriStringWithMaskedPassword() +
                 ", sources=" + sources +
                 ", targets=" + targets +
+                ", sshTunnel=" + sshTunnel +
                 ", clientCount=" + clientCount +
                 ", validateCertificate=" + validateCertificate +
                 ", processorPoolSize=" + processorPoolSize +
@@ -492,6 +507,7 @@ final class ImmutableConnection implements Connection {
         @Nullable private MappingContext mappingContext = null;
         @Nullable private String trustedCertificates;
         @Nullable private ConnectionLifecycle lifecycle = null;
+        @Nullable private SshTunnel sshTunnel = null;
 
         // optional with default:
         private Set<String> tags = new HashSet<>();
@@ -630,6 +646,12 @@ final class ImmutableConnection implements Connection {
         @Override
         public ConnectionBuilder lifecycle(@Nullable final ConnectionLifecycle lifecycle) {
             this.lifecycle = lifecycle;
+            return this;
+        }
+
+        @Override
+        public ConnectionBuilder sshTunnel(@Nullable final SshTunnel sshTunnel) {
+            this.sshTunnel = sshTunnel;
             return this;
         }
 

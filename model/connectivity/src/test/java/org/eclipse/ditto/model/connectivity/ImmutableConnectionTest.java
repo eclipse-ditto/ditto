@@ -91,6 +91,9 @@ public final class ImmutableConnectionTest {
             .build();
     private static final List<Target> TARGETS = Arrays.asList(TARGET1, TARGET2, TARGET3);
 
+    private static final SshTunnel SSH_TUNNEL = ConnectivityModelFactory.newSshTunnel(true,
+            UserPasswordCredentials.newInstance("User", "Password"), false, Collections.emptyList(), URI);
+
     private static final JsonArray KNOWN_SOURCES_JSON =
             SOURCES.stream().map(Source::toJson).collect(JsonCollectors.valuesToArray());
     private static final JsonArray KNOWN_TARGETS_JSON =
@@ -199,6 +202,7 @@ public final class ImmutableConnectionTest {
             .set(Connection.JsonFields.TAGS, KNOWN_TAGS.stream()
                     .map(JsonFactory::newValue)
                     .collect(JsonCollectors.valuesToArray()))
+            .set(Connection.JsonFields.SSH_TUNNEL, SSH_TUNNEL.toJson())
             .build();
 
     private static final JsonObject KNOWN_JSON_WITH_REPLY_TARGET = KNOWN_JSON
@@ -220,7 +224,7 @@ public final class ImmutableConnectionTest {
         assertInstancesOf(ImmutableConnection.class, areImmutable(),
                 provided(AuthorizationContext.class, Source.class, Target.class,
                         MappingContext.class, Credentials.class, ConnectionId.class,
-                        PayloadMappingDefinition.class).isAlsoImmutable(),
+                        PayloadMappingDefinition.class, SshTunnel.class).isAlsoImmutable(),
                 assumingFields("mappings").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
@@ -274,6 +278,7 @@ public final class ImmutableConnectionTest {
                 .id(ID)
                 .payloadMappingDefinition(
                         ConnectivityModelFactory.newPayloadMappingDefinition("test", KNOWN_JAVA_MAPPING_CONTEXT))
+                .sshTunnel(SSH_TUNNEL)
                 .build();
 
         assertThat(ImmutableConnection.getBuilder(connection).build()).isEqualTo(connection);
@@ -320,6 +325,7 @@ public final class ImmutableConnectionTest {
                 .clientCount(2)
                 .payloadMappingDefinition(KNOWN_MAPPING_DEFINITIONS)
                 .tags(KNOWN_TAGS)
+                .sshTunnel(SSH_TUNNEL)
                 .build();
 
         final Connection actual = ImmutableConnection.fromJson(KNOWN_JSON);
@@ -340,6 +346,7 @@ public final class ImmutableConnectionTest {
                 .clientCount(2)
                 .payloadMappingDefinition(ConnectivityModelFactory.newPayloadMappingDefinition(definitions))
                 .tags(KNOWN_TAGS)
+                .sshTunnel(SSH_TUNNEL)
                 .build();
 
         final Connection actual = ImmutableConnection.fromJson(KNOWN_LEGACY_JSON);
@@ -369,6 +376,7 @@ public final class ImmutableConnectionTest {
                 .clientCount(2)
                 .payloadMappingDefinition(KNOWN_MAPPING_DEFINITIONS)
                 .tags(KNOWN_TAGS)
+                .sshTunnel(SSH_TUNNEL)
                 .build();
 
         final JsonObject actual = underTest.toJson();
@@ -395,6 +403,17 @@ public final class ImmutableConnectionTest {
         final Connection underTest = ConnectivityModelFactory.connectionFromJson(connectionJsonWithEmptyCa);
 
         assertThat(underTest.getTrustedCertificates()).isEmpty();
+    }
+
+    @Test
+    public void nullSshTunnelLeadToEmptyOptional() {
+        final Connection underTest = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
+                .targets(TARGETS)
+                .validateCertificate(true)
+                .sshTunnel(null)
+                .build();
+
+        assertThat(underTest.getSshTunnel()).isEmpty();
     }
 
     @Test

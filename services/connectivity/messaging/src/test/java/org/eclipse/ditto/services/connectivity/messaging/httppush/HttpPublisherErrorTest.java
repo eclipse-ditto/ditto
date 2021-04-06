@@ -40,6 +40,7 @@ import org.eclipse.ditto.services.connectivity.messaging.AbstractBaseClientActor
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.services.connectivity.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -110,7 +111,7 @@ public final class HttpPublisherErrorTest {
         createActorSystem(ConfigFactory.load("test-timeout"));
         new TestKit(actorSystem) {{
             final HttpPushFactory factory = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(),
-                    mock(ConnectionLogger.class));
+                    mock(ConnectionLogger.class), SshTunnelState::disabled);
             final Props props = HttpPublisherActor.props(connection, factory, "clientId");
             final ActorRef underTest = watch(childActorOf(props));
 
@@ -141,7 +142,7 @@ public final class HttpPublisherErrorTest {
         new TestKit(actorSystem) {{
             // GIVEN: An HTTP-push connection is established against localhost.
             final HttpPushFactory factory = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(),
-                    mock(ConnectionLogger.class));
+                    mock(ConnectionLogger.class), SshTunnelState::disabled);
             final Props props = HttpPublisherActor.props(connection, factory, "clientId");
             final ActorRef underTest = watch(childActorOf(props));
 

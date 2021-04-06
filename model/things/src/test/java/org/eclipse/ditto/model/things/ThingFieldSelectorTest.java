@@ -15,7 +15,6 @@ package org.eclipse.ditto.model.things;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.assertj.core.api.Assertions.in;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.junit.Test;

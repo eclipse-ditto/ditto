@@ -21,7 +21,7 @@ final class KeyStoreFactory {
 
     private final ExceptionMapper exceptionMapper;
 
-    KeyStoreFactory(final ExceptionMapper exceptionMapper)  {
+    KeyStoreFactory(final ExceptionMapper exceptionMapper) {
         this.exceptionMapper = exceptionMapper;
     }
 

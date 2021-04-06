@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.internal.ssl;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -25,7 +27,7 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.PKIXBuilderParameters;
-import java.security.cert.PKIXRevocationChecker;
+import java.security.cert.PKIXCertPathChecker;
 import java.security.cert.X509CertSelector;
 import java.util.Collection;
 
@@ -33,6 +35,7 @@ import javax.annotation.Nullable;
 import javax.net.ssl.CertPathTrustManagerParameters;
 import javax.net.ssl.TrustManagerFactory;
 
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 
@@ -45,6 +48,7 @@ public final class TrustManagerFactoryFactory {
 
     private static final String PKIX = "PKIX";
     private static final KeyStore DEFAULT_CA_KEYSTORE = loadDefaultCAKeystore();
+    private static final String CERTIFICATE_LABEL = "CERTIFICATE";
 
     private static final CertificateFactory X509_CERTIFICATE_FACTORY;
     private final KeyStoreFactory keyStoreFactory;
@@ -59,12 +63,13 @@ public final class TrustManagerFactoryFactory {
     }
 
     TrustManagerFactoryFactory(final ExceptionMapper exceptionMapper) {
-        this.exceptionMapper = exceptionMapper;
+        this.exceptionMapper = checkNotNull(exceptionMapper, "exceptionMapper");
+        ;
         keyStoreFactory = new KeyStoreFactory(exceptionMapper);
     }
 
     public static TrustManagerFactoryFactory getInstance(final DittoHeaders dittoHeaders) {
-        return new TrustManagerFactoryFactory(new ExceptionMapper(dittoHeaders));
+        return new TrustManagerFactoryFactory(ExceptionMapper.forTrustedCertificates(dittoHeaders));
     }
 
     public static TrustManagerFactoryFactory getInstance(final ExceptionMapper exceptionMapper) {
@@ -73,7 +78,7 @@ public final class TrustManagerFactoryFactory {
 
     public TrustManagerFactory newTrustManagerFactory(@Nullable final String trustedCertificates,
             final boolean checkRevocation) {
-        return exceptionMapper.handleExceptions(() -> createTrustManagerFactory(trustedCertificates, checkRevocation));
+        return handleExceptions(() -> createTrustManagerFactory(trustedCertificates, checkRevocation));
     }
 
     public TrustManagerFactory newTrustManagerFactory(final Connection connection, final boolean checkRevocation) {
@@ -112,8 +117,7 @@ public final class TrustManagerFactoryFactory {
                     new PKIXBuilderParameters(DEFAULT_CA_KEYSTORE, new X509CertSelector());
             if (checkForRevocation) {
                 parameters.addCertPathChecker(
-                        (PKIXRevocationChecker) CertPathBuilder.getInstance(PKIX).getRevocationChecker()
-                );
+                        (PKIXCertPathChecker) CertPathBuilder.getInstance(PKIX).getRevocationChecker());
             } else {
                 parameters.addCertPathChecker(NoRevocationChecker.getInstance());
             }
@@ -138,5 +142,41 @@ public final class TrustManagerFactoryFactory {
         } catch (final NoSuchAlgorithmException | CertificateException e) {
             throw new Error("FATAL: Cannot load default CA keystore");
         }
+    }
+
+    /**
+     * Handles common ssl exceptions and maps them to Ditto exceptions.
+     *
+     * @param supplier the supplier that may throw an exception
+     * @param <T> the result type
+     * @return the result if no exception occurred
+     */
+    private <T> T handleExceptions(final ThrowingSupplier<T> supplier) {
+        try {
+            return supplier.get();
+        } catch (final CertificateException e) {
+            final JsonPointer errorLocation = Connection.JsonFields.TRUSTED_CERTIFICATES.getPointer();
+            throw exceptionMapper.badFormat(errorLocation, CERTIFICATE_LABEL, "DER")
+                    .cause(e)
+                    .build();
+        } catch (final KeyStoreException e) {
+            throw exceptionMapper.fatalError("Engine failed to configure trusted CA certificates")
+                    .cause(e)
+                    .build();
+        } catch (final NoSuchAlgorithmException | InvalidAlgorithmParameterException e) {
+            throw exceptionMapper.fatalError("Failed to start TLS engine")
+                    .cause(e)
+                    .build();
+        }
+    }
+
+    @FunctionalInterface
+    public interface ThrowingSupplier<T> {
+
+        /**
+         * @return the result.
+         */
+        T get() throws CertificateException, KeyStoreException, NoSuchAlgorithmException,
+                InvalidAlgorithmParameterException;
     }
 }
