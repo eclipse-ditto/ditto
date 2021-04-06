@@ -21,6 +21,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -217,7 +218,23 @@ public final class ConnectionPersistenceActor
 
         this.loggingEnabledDuration = monitoringConfig.logger().logDuration();
         this.checkLoggingActiveInterval = monitoringConfig.logger().loggingActiveCheckInterval();
-        startUpdatePriorityPeriodically(connectivityConfig.getConnectionConfig().getPriorityUpdateInterval());
+        // Make duration fuzzy to avoid all connections getting updated at once.
+        final Duration fuzzyPriorityUpdateInterval =
+                makeFuzzy(connectivityConfig.getConnectionConfig().getPriorityUpdateInterval());
+        startUpdatePriorityPeriodically(fuzzyPriorityUpdateInterval);
+    }
+
+    /**
+     * Makes the duration fuzzy. By returning a duration which is something between 5% shorter or 5% longer.
+     *
+     * @param duration the duration to make fuzzy.
+     * @return the fuzzy duration.
+     */
+    private static Duration makeFuzzy(final Duration duration) {
+        final long millis = duration.toMillis();
+        final double fuzzyFactor = new Random().doubles(0.95, 1.05).findAny().orElse(0.0);
+        final double fuzzedMillis = millis * fuzzyFactor;
+        return Duration.ofMillis((long) fuzzedMillis);
     }
 
     @Override
@@ -610,14 +627,7 @@ public final class ConnectionPersistenceActor
 
     private void updatePriority(final UpdatePriority updatePriority) {
         final Integer desiredPriority = updatePriority.getDesiredPriority();
-        /* Update priority if
-         * a) desired priority is 0 and priority is not yet initialized or if
-         * b) desired property is not equal to the current priority.
-         * Condition a is required to avoid that a connection has a high priority forever even when it didn't
-         * send any message since the last recovery of this actor.
-         * Condition b is required to avoid unnecessary database operations.
-         */
-        if (priority == null && desiredPriority.equals(0) || !desiredPriority.equals(priority)) {
+        if (!desiredPriority.equals(priority)) {
             log.withCorrelationId(updatePriority)
                     .info("Updating priority of connection <{}> from <{}> to <{}>", entityId, priority,
                             desiredPriority);
@@ -747,6 +757,7 @@ public final class ConnectionPersistenceActor
     }
 
     private void startUpdatePriorityPeriodically(final Duration priorityUpdateInterval) {
+        log.info("Schedule update of priority periodically in an interval of <{}>", priorityUpdateInterval);
         timers().startTimerWithFixedDelay(Control.TRIGGER_UPDATE_PRIORITY, Control.TRIGGER_UPDATE_PRIORITY,
                 priorityUpdateInterval);
     }
