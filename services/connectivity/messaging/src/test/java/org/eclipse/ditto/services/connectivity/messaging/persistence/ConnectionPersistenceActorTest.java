@@ -803,7 +803,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                             (connection, proxyActor, connectionActor) -> {
                                 throw ConnectionConfigurationInvalidException.newBuilder("validation failed...")
                                         .build();
-                            }, null, null);
+                            }, null, UsageBasedPriorityProvider::getInstance);
             // create another actor because this it is stopped and we want to test if the child is terminated
             final TestKit parent = new TestKit(actorSystem);
             final ActorRef connectionActorRef = watch(parent.childActorOf(connectionActorProps));
@@ -831,7 +831,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                                         .dittoHeaders(command.getDittoHeaders())
                                         .message("not valid")
                                         .build();
-                            }, null);
+                            }, UsageBasedPriorityProvider::getInstance);
 
             // create another actor because we want to test if the child is terminated
             final TestKit parent = new TestKit(actorSystem);
