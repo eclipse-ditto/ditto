@@ -24,6 +24,7 @@ import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.security.PublicKey;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -83,9 +84,11 @@ import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.ReplyTarget;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
+import org.eclipse.ditto.model.connectivity.SshTunnel;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
 import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.model.connectivity.UserPasswordCredentials;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaders;
@@ -103,6 +106,7 @@ import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.config.MonitoringConfig;
 import org.eclipse.ditto.services.connectivity.config.mapping.MappingConfig;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.TestCertificates;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.ConnectivityCounterRegistry;
@@ -474,6 +478,12 @@ public final class TestConstants {
         // CN=localhost
         public static final String SERVER_KEY = getCert("server.key");
         public static final String SERVER_CRT = getCert("server.crt");
+        public static final String SERVER_PUB = getCert("server.pub");
+        public static final PublicKey SERVER_PUBLIC_KEY = TestCertificates.getCertificate(SERVER_CRT).getPublicKey();
+        public static final String SERVER_PUBKEY_FINGERPRINT_SHA256 =
+                "SHA256:MEULjymCqsBH6TkmQzKmA+G2qd+AJwarKwr84vUsQ+Y";
+        public static final String SERVER_PUBKEY_FINGERPRINT_MD5 =
+                "MD5:69:d8:52:ef:3d:df:c5:d1:10:fb:d4:3b:66:00:a8:f5";
 
         // signed by CA_CRT
         // no CN
@@ -494,7 +504,7 @@ public final class TestConstants {
         public static final String SERVER_WITH_ALT_NAMES_KEY = getCert("server-alt.key");
         public static final String SERVER_WITH_ALT_NAMES_CRT = getCert("server-alt.crt");
 
-        private static String getCert(final String cert) {
+        public static String getCert(final String cert) {
             final String path = "/certificates/" + cert;
             try (final InputStream inputStream = Certificates.class.getResourceAsStream(path)) {
                 final Scanner scanner = new Scanner(inputStream, StandardCharsets.US_ASCII.name()).useDelimiter("\\A");
@@ -503,7 +513,6 @@ public final class TestConstants {
                 throw new IllegalStateException(e);
             }
         }
-
     }
 
     public static final class Monitoring {
@@ -710,6 +719,14 @@ public final class TestConstants {
                 "}";
     }
 
+    public static final class Tunnel {
+
+        public static final SshTunnel VALID_SSH_TUNNEL =
+                ConnectivityModelFactory.newSshTunnel(true, UserPasswordCredentials.newInstance("username", "password"),
+                        true, List.of("MD5:11:22:33:44:55"), "ssh://host:2222");
+
+    }
+
     public static final String MODIFY_THING_WITH_ACK =
             "{\"topic\":\"ditto/thing/things/twin/commands/modify\"," +
                     "\"headers\":{\"content-type\":\"application/vnd.eclipse.ditto+json\"," +
@@ -796,6 +813,19 @@ public final class TestConstants {
         return createConnection(TestConstants.createRandomConnectionId(), Sources.SOURCES_WITH_AUTH_CONTEXT);
     }
 
+    public static Connection createConnection(final String uri) {
+        return createConnection(uri, TYPE);
+    }
+
+    public static Connection createConnection(final String uri, final ConnectionType connectionType) {
+        return ConnectivityModelFactory.newConnectionBuilder(createRandomConnectionId(), connectionType,
+                ConnectivityStatus.OPEN, uri)
+                .sources(Sources.SOURCES_WITH_AUTH_CONTEXT)
+                .targets(Targets.TARGETS)
+                .lifecycle(ConnectionLifecycle.ACTIVE)
+                .build();
+    }
+
     public static Connection createConnectionWithDebugEnabled() {
         return ConnectivityModelFactory.newConnectionBuilder(createRandomConnectionId(), TYPE, ConnectivityStatus.OPEN,
                 getUriOfNewMockServer())
@@ -809,18 +839,44 @@ public final class TestConstants {
         return createConnection(TestConstants.createRandomConnectionId(), Sources.SOURCES_WITH_ACKNOWLEDGEMENTS);
     }
 
+    public static Connection createConnectionWithTunnel(final boolean enabled) {
+        final SshTunnel sshTunnel =
+                ConnectivityModelFactory.newSshTunnelBuilder(enabled, UserPasswordCredentials.newInstance(
+                        "username", "password"), "localhost:2222").build();
+        return createConnection()
+                .toBuilder()
+                .sshTunnel(sshTunnel)
+                .build();
+    }
+
     public static Connection createConnection(final ConnectionId connectionId) {
-        return createConnection(connectionId, Sources.SOURCES_WITH_AUTH_CONTEXT);
+        return createConnection(connectionId, TYPE, Sources.SOURCES_WITH_AUTH_CONTEXT);
+    }
+
+    public static Connection createConnection(final ConnectionId connectionId, final ConnectionType connectionType) {
+        return createConnection(connectionId, connectionType, Sources.SOURCES_WITH_AUTH_CONTEXT);
     }
 
     public static Connection createConnection(final ConnectionId connectionId, final List<Source> sources) {
-        return createConnection(connectionId, STATUS, sources);
+        return createConnection(connectionId, TYPE, STATUS, sources);
+    }
+
+    public static Connection createConnection(final ConnectionId connectionId, final ConnectionType connectionType,
+            final List<Source> sources) {
+        return createConnection(connectionId, connectionType, STATUS, sources);
     }
 
     public static Connection createConnection(final ConnectionId connectionId, final ConnectivityStatus status,
             final List<Source> sources) {
+        return createConnection(connectionId, TYPE, status, sources);
+    }
 
-        return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, status, getUriOfNewMockServer())
+    public static Connection createConnection(final ConnectionId connectionId, final ConnectionType connectionType,
+            final ConnectivityStatus status,
+            final List<Source> sources) {
+
+        return ConnectivityModelFactory.newConnectionBuilder(connectionId, connectionType, status,
+                getUriOfNewMockServer())
                 .sources(sources)
                 .targets(Targets.TARGETS)
                 .lifecycle(ConnectionLifecycle.ACTIVE)

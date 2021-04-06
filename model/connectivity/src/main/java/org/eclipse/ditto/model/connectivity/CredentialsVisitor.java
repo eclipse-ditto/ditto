@@ -27,4 +27,23 @@ public interface CredentialsVisitor<T> {
      */
     T clientCertificate(ClientCertificateCredentials credentials);
 
+    /**
+     * Evaluate username password credentials.
+     *
+     * @param credentials the username password credentials.
+     * @return evaluation result.
+     *
+     * @since 2.0.0
+     */
+    T usernamePassword(UserPasswordCredentials credentials);
+
+    /**
+     * Evaluate SshPublicKeyAuthentication credentials.
+     *
+     * @param credentials the SshPublicKeyAuthentication credentials.
+     * @return evaluation result.
+     *
+     * @since 2.0.0
+     */
+    T sshPublicKeyAuthentication(SshPublicKeyCredentials credentials);
 }

@@ -14,9 +14,10 @@ package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.text.MessageFormat;
+import java.net.URI;
 import java.util.Hashtable;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.jms.ExceptionListener;
@@ -29,6 +30,7 @@ import org.apache.qpid.jms.JmsConnection;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.services.connectivity.messaging.tunnel.SshTunnelState;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -43,9 +45,12 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
     private static final String SECURE_AMQP_SCHEME = "amqps";
 
     private final Map<String, String> defaultConfig;
+    private final Supplier<SshTunnelState> sshTunnelConfigSupplier;
 
-    private ConnectionBasedJmsConnectionFactory(final Map<String, String> defaultConfig) {
-        this.defaultConfig = defaultConfig;
+    private ConnectionBasedJmsConnectionFactory(final Map<String, String> defaultConfig,
+            final Supplier<SshTunnelState> sshTunnelConfigSupplier) {
+        this.defaultConfig = checkNotNull(defaultConfig, "defaultConfig");;
+        this.sshTunnelConfigSupplier = checkNotNull(sshTunnelConfigSupplier, "sshTunnelConfigSupplier");;
     }
 
     /**
@@ -54,8 +59,9 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
      * @param defaultConfig the default AMQP config.
      * @return the instance.
      */
-    public static ConnectionBasedJmsConnectionFactory getInstance(final Map<String, String> defaultConfig) {
-        return new ConnectionBasedJmsConnectionFactory(defaultConfig);
+    public static ConnectionBasedJmsConnectionFactory getInstance(final Map<String, String> defaultConfig,
+            final Supplier<SshTunnelState> sshTunnelConfigSupplier) {
+        return new ConnectionBasedJmsConnectionFactory(defaultConfig, sshTunnelConfigSupplier);
     }
 
     @Override
@@ -79,8 +85,21 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
         return jmsConnection;
     }
 
+    private String buildAmqpConnectionUri(final Connection connection, final String clientId) {
+        return buildAmqpConnectionUri(connection, clientId, sshTunnelConfigSupplier, defaultConfig);
+    }
+
+    public static String buildAmqpConnectionUri(final Connection connection, final String clientId,
+            final Supplier<SshTunnelState> sshTunnelConfigSupplier, final Map<String, String> defaultConfig) {
+        final URI uri = sshTunnelConfigSupplier.get().getURI(connection);
+        final var amqpSpecificConfig = AmqpSpecificConfig.withDefault(clientId, connection, defaultConfig);
+        final var connectionUri = amqpSpecificConfig.render(uri.toString());
+        LOGGER.debug("[{}] URI: {}", clientId, connectionUri);
+        return connectionUri;
+    }
+
     private Context createContext(final Connection connection, final String clientId) throws NamingException {
-        final String connectionUri = buildAmqpConnectionUriFromConnection(connection, defaultConfig, clientId);
+        final String connectionUri = buildAmqpConnectionUri(connection, clientId);
         @SuppressWarnings("squid:S1149") final Hashtable<Object, Object> env = new Hashtable<>();
         env.put(Context.INITIAL_CONTEXT_FACTORY, "org.apache.qpid.jms.jndi.JmsInitialContextFactory");
         env.put("connectionfactory." + connection.getId(), connectionUri);
@@ -88,30 +107,7 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
         return new InitialContext(env);
     }
 
-    public static String buildAmqpConnectionUriFromConnection(final Connection connection,
-            final Map<String, String> defaultConfig) {
-        return buildAmqpConnectionUriFromConnection(connection, defaultConfig, connection.getId().toString());
-    }
-
-    public static String buildAmqpConnectionUriFromConnection(final Connection connection,
-            final Map<String, String> defaultConfig, final String clientId) {
-        final String protocol = connection.getProtocol();
-        final String hostname = connection.getHostname();
-        final int port = connection.getPort();
-        final String baseUri = formatUri(protocol, hostname, port);
-        final var amqpSpecificConfig = AmqpSpecificConfig.withDefault(clientId, connection, defaultConfig);
-        final var connectionUri = amqpSpecificConfig.render(baseUri);
-        LOGGER.debug("[{}] URI: {}", clientId, connectionUri);
-        return connectionUri;
-    }
-
     static boolean isSecuredConnection(final Connection connection) {
         return SECURE_AMQP_SCHEME.equalsIgnoreCase(connection.getProtocol());
     }
-
-    private static String formatUri(final String protocol, final String hostname, final int port) {
-        final String pattern = "{0}://{1}:{2}";
-        return MessageFormat.format(pattern, protocol, hostname, Integer.toString(port));
-    }
-
 }

@@ -69,13 +69,11 @@ public final class ClientCertificateCredentials implements Credentials {
 
     @Override
     public boolean equals(final Object o) {
-        if (o instanceof ClientCertificateCredentials) {
-            final ClientCertificateCredentials that = (ClientCertificateCredentials) o;
-            return Objects.equals(clientCertificate, that.clientCertificate) &&
-                    Objects.equals(clientKey, that.clientKey);
-        } else {
-            return false;
-        }
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        final ClientCertificateCredentials that = (ClientCertificateCredentials) o;
+        return Objects.equals(clientCertificate, that.clientCertificate) &&
+                Objects.equals(clientKey, that.clientKey);
     }
 
     @Override
@@ -86,7 +84,8 @@ public final class ClientCertificateCredentials implements Credentials {
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "hashCode=" + hashCode() +
+                "clientCertificate=" + clientCertificate +
+                ", clientKey=" + clientKey +
                 "]";
     }
 

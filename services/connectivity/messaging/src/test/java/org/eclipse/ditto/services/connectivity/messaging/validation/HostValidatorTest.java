@@ -25,14 +25,13 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.services.connectivity.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
-import org.eclipse.ditto.services.connectivity.messaging.validation.HostValidator.HostValidationResult;
 import org.junit.Before;
 import org.junit.Test;
 
 import akka.event.LoggingAdapter;
 
 /**
- * Tests {@link HostValidator}.
+ * Tests {@link DefaultHostValidator}.
  */
 public class HostValidatorTest {
 
@@ -101,7 +100,7 @@ public class HostValidatorTest {
         when(connectionConfig.getBlockedHostnames()).thenReturn(List.of("dummy.org"));
 
         // eclipse.org resolves to loopback which is blocked
-        final HostValidator.AddressResolver resolveToLoopback =
+        final DefaultHostValidator.AddressResolver resolveToLoopback =
                 host -> resolveHost(theHost, InetAddress.getLoopbackAddress().getAddress());
 
         final HostValidator underTest = getHostValidatorWithCustomResolver(resolveToLoopback);
@@ -118,18 +117,18 @@ public class HostValidatorTest {
 
     private HostValidator getHostValidatorWithAllowlist(final String... allowlist) {
         when(connectionConfig.getAllowedHostnames()).thenReturn(List.of(allowlist));
-        return new HostValidator(connectivityConfig, loggingAdapter);
+        return new DefaultHostValidator(connectivityConfig, loggingAdapter);
     }
 
-    private HostValidator getHostValidatorWithCustomResolver(final HostValidator.AddressResolver resolver) {
+    private HostValidator getHostValidatorWithCustomResolver(final DefaultHostValidator.AddressResolver resolver) {
         when(connectionConfig.getAllowedHostnames()).thenReturn(emptyList());
-        return new HostValidator(connectivityConfig, loggingAdapter, resolver);
+        return new DefaultHostValidator(connectivityConfig, loggingAdapter, resolver);
     }
 
-    private HostValidator getHostValidatorWithCustomResolver(final HostValidator.AddressResolver resolver,
+    private HostValidator getHostValidatorWithCustomResolver(final DefaultHostValidator.AddressResolver resolver,
             final String... allowlist) {
         when(connectionConfig.getAllowedHostnames()).thenReturn(List.of(allowlist));
-        return new HostValidator(connectivityConfig, loggingAdapter, resolver);
+        return new DefaultHostValidator(connectivityConfig, loggingAdapter, resolver);
     }
 
     private void assertValid(final HostValidationResult result) {
