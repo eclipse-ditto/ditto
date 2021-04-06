@@ -31,6 +31,7 @@ import akka.pattern.Patterns;
 public final class UsageBasedPriorityProvider implements ConnectionPriorityProvider {
 
     private static final Duration RETRIEVE_METRICS_TIMEOUT = Duration.ofSeconds(3);
+
     private final ActorRef connectionPersistenceActor;
     private final DittoDiagnosticLoggingAdapter log;
 
@@ -46,8 +47,7 @@ public final class UsageBasedPriorityProvider implements ConnectionPriorityProvi
     }
 
     @Override
-    public CompletionStage<Integer> getPriorityFor(final ConnectionId connectionId,
-            final String correlationId) {
+    public CompletionStage<Integer> getPriorityFor(final ConnectionId connectionId, final String correlationId) {
         final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(correlationId).build();
         final RetrieveConnectionMetrics retrieveConnectionMetrics = RetrieveConnectionMetrics.of(connectionId, headers);
         return Patterns.ask(connectionPersistenceActor, retrieveConnectionMetrics, RETRIEVE_METRICS_TIMEOUT)

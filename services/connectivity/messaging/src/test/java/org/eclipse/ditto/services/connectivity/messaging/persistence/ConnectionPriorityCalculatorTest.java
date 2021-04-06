@@ -25,6 +25,9 @@ import org.eclipse.ditto.model.connectivity.Measurement;
 import org.eclipse.ditto.model.connectivity.MetricType;
 import org.junit.Test;
 
+/**
+ * Unit tests for {@link ConnectionPriorityCalculator}.
+ */
 public final class ConnectionPriorityCalculatorTest {
 
     @Test

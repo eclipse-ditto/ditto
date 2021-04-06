@@ -61,8 +61,16 @@ public interface PingConfig {
      */
     RateConfig getRateConfig();
 
+    /**
+     * Returns the order in which the {@code PersistencePingActor} will stream the elements.
+     *
+     * @return the streaming order.
+     */
     StreamingOrder getStreamingOrder();
 
+    /**
+     * The order in which the {@code PersistencePingActor} will stream the elements.
+     */
     enum StreamingOrder {
 
         /**
@@ -73,7 +81,7 @@ public interface PingConfig {
         /**
          * Elements will be ordered by their tags.
          */
-        TAGS;
+        TAGS
 
     }
 
@@ -105,7 +113,7 @@ public interface PingConfig {
         READ_JOURNAL_BATCH_SIZE("read-journal-batch-size", 500),
 
         /**
-         * The field to order the events in the source
+         * The field to order the events in the source.
          */
         STREAMING_ORDER("streaming-order", StreamingOrder.ID.name());
 

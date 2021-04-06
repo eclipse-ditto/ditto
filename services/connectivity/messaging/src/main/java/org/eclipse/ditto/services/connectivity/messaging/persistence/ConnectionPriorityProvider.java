@@ -17,13 +17,13 @@ import java.util.concurrent.CompletionStage;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 
 /**
- * provides the priority of a given connection.
+ * Provides the priority of a given connection.
  */
 @FunctionalInterface
 public interface ConnectionPriorityProvider {
 
     /**
-     * provides the priority of a given connection.
+     * Provides the priority of a given connection.
      *
      * @param connectionId the ID of the connection for which the priority should be returned.
      * @param correlationId the correlation ID.

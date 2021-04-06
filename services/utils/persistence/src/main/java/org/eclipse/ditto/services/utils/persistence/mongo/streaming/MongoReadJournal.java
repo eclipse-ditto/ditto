@@ -337,13 +337,15 @@ public class MongoReadJournal {
     private Source<String, NotUsed> listPidsInJournalOrderedByTags(final MongoCollection<Document> journal,
             final String tag, final Duration maxBackOff, final int maxRestarts) {
 
-        final List<Bson> pipeline = new ArrayList<>(6);
+        final List<Bson> pipeline = new ArrayList<>(4);
         // optional match stages: consecutive match stages are optimized together ($match + $match coalescence)
         if (!tag.isEmpty()) {
             pipeline.add(Aggregates.match(Filters.eq(J_TAGS, tag)));
         }
 
         // sort stage
+        //  note that there is no index on this combination "pid" -> 1, "to" -> 1
+        //  so if this query ever gets too slow, this could be a potential optimization
         pipeline.add(Aggregates.sort(Sorts.orderBy(Sorts.ascending(J_PROCESSOR_ID), Sorts.ascending(J_TO))));
 
         // group stage
@@ -374,7 +376,7 @@ public class MongoReadJournal {
     private Source<String, NotUsed> listJournalPidsAbove(final MongoCollection<Document> journal, final String startPid,
             final String tag, final int batchSize, final Duration maxBackOff, final int maxRestarts) {
 
-        final List<Bson> pipeline = new ArrayList<>(5);
+        final List<Bson> pipeline = new ArrayList<>(6);
         // optional match stages: consecutive match stages are optimized together ($match + $match coalescence)
         if (!tag.isEmpty()) {
             pipeline.add(Aggregates.match(Filters.eq(J_TAGS, tag)));
