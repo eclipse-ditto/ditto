@@ -134,7 +134,7 @@ public abstract class DistributedData<R extends ReplicatedData> implements Exten
     public CompletionStage<Optional<R>> get(final Key<R> key, final Replicator.ReadConsistency readConsistency) {
         final Replicator.Get<R> replicatorGet = new Replicator.Get<>(key, readConsistency);
         return Patterns.ask(replicator, replicatorGet, getAskTimeout(readConsistency.timeout(), readTimeout))
-                .thenApplyAsync(this::handleGetResponse, ddataExecutor);
+                .thenApplyAsync(reply -> this.handleGetResponse(reply, key), ddataExecutor);
     }
 
     /**
@@ -151,7 +151,7 @@ public abstract class DistributedData<R extends ReplicatedData> implements Exten
         final Replicator.Update<R> replicatorUpdate =
                 new Replicator.Update<>(key, getInitialValue(), writeConsistency, updateFunction);
         return Patterns.ask(replicator, replicatorUpdate, getAskTimeout(writeConsistency.timeout(), writeTimeout))
-                .thenApplyAsync(this::handleUpdateResponse, ddataExecutor);
+                .thenApplyAsync(reply -> this.handleUpdateResponse(reply, key), ddataExecutor);
     }
 
     /**
@@ -171,19 +171,19 @@ public abstract class DistributedData<R extends ReplicatedData> implements Exten
         return replicator;
     }
 
-    private Void handleUpdateResponse(final Object reply) {
+    private Void handleUpdateResponse(final Object reply, final Key<R> key) {
         if (reply instanceof Replicator.UpdateSuccess) {
             return null;
         } else {
             final String errorMessage =
                     MessageFormat.format("Expect Replicator.UpdateSuccess for key ''{2}'' from ''{1}'', Got: ''{0}''",
-                            reply, replicator, getKey(0));
+                            reply, replicator, key);
             throw new IllegalArgumentException(errorMessage);
         }
     }
 
     @SuppressWarnings("unchecked")
-    private Optional<R> handleGetResponse(final Object reply) {
+    private Optional<R> handleGetResponse(final Object reply, final Key<R> key) {
         if (reply instanceof Replicator.GetSuccess) {
             final Replicator.GetSuccess<R> getSuccess = (Replicator.GetSuccess<R>) reply;
             return Optional.of(getSuccess.dataValue());
@@ -192,7 +192,7 @@ public abstract class DistributedData<R extends ReplicatedData> implements Exten
         } else {
             final String errorMessage =
                     MessageFormat.format("Expect Replicator.GetResponse for key ''{2}'' from ''{1}'', Got: ''{0}''",
-                            reply, replicator, getKey(0));
+                            reply, replicator, key);
             throw new IllegalArgumentException(errorMessage);
         }
     }
