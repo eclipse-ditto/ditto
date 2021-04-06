@@ -24,14 +24,11 @@ import static org.mockito.Mockito.when;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
-import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
@@ -102,7 +99,7 @@ public final class UsageBasedPriorityProviderTest {
 
     @Test
     public void getPriority() {
-        final CompletionStage<Optional<Integer>> futurePriority =
+        final CompletionStage<Integer> futurePriority =
                 underTest.getPriorityFor(ConnectionId.generateRandom(), "test-getPriority");
         new TestKit(system) {{
             final RetrieveConnectionMetrics retrieveConnectionMetrics =
@@ -118,47 +115,33 @@ public final class UsageBasedPriorityProviderTest {
 
     @Test
     public void getPriorityWithException() {
-        final CompletionStage<Optional<Integer>> futurePriority =
+        final CompletionStage<Integer> futurePriority =
                 underTest.getPriorityFor(ConnectionId.generateRandom(), "test-getPriority");
         new TestKit(system) {{
             connectionPersistenceActorProbe.expectMsgClass(RetrieveConnectionMetrics.class);
             // No response causes ask timeout exception.
         }};
-        assertNoPriority(futurePriority);
+        assertPriority(futurePriority, 0);
         verify(mockLog).warning(eq("Got error when trying to retrieve the connection metrics: <{}>"), any());
     }
 
     @Test
     public void getPriorityWithInvalidResponse() {
-        final CompletionStage<Optional<Integer>> futurePriority =
+        final CompletionStage<Integer> futurePriority =
                 underTest.getPriorityFor(ConnectionId.generateRandom(), "test-getPriority");
         new TestKit(system) {{
             connectionPersistenceActorProbe.expectMsgClass(RetrieveConnectionMetrics.class);
             connectionPersistenceActorProbe.reply("Strange unexpected message");
         }};
-        assertNoPriority(futurePriority);
+        assertPriority(futurePriority, 0);
         verify(mockLog).warning(eq("Expected <{}> but got <{}>"), any(), any());
     }
 
-    private static void assertPriority(final CompletionStage<Optional<Integer>> futurePriority,
+    private static void assertPriority(final CompletionStage<Integer> futurePriority,
             final Integer expectedPriority) {
-        doAssertPriority(futurePriority, expectedPriority);
-    }
-
-    private static void assertNoPriority(final CompletionStage<Optional<Integer>> futurePriority) {
-        doAssertPriority(futurePriority, null);
-    }
-
-    private static void doAssertPriority(
-            final CompletionStage<Optional<Integer>> futurePriority,
-            @Nullable final Integer expectedPriority) {
         try {
-            final Optional<Integer> actualPriority = futurePriority.toCompletableFuture().get(10, TimeUnit.SECONDS);
-            if (expectedPriority == null) {
-                assertThat(actualPriority).isEmpty();
-            } else {
-                assertThat(actualPriority).contains(expectedPriority);
-            }
+            final Integer actualPriority = futurePriority.toCompletableFuture().get(10, TimeUnit.SECONDS);
+            assertThat(actualPriority).isEqualTo(expectedPriority);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             e.printStackTrace();
             throw new AssertionFailedError(

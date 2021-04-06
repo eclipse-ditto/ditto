@@ -125,7 +125,7 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
         final TestProbe proxyActorProbe = new TestProbe(system, "proxyActor");
         final ConnectivityCommandInterceptor dummyInterceptor = (command, connectionSupplier) -> {};
         final ConnectionPriorityProviderFactory dummyPriorityProvider = (connectionPersistenceActor, log) ->
-                (connectionId, correlationId) -> CompletableFuture.completedFuture(Optional.of(4711));
+                (connectionId, correlationId) -> CompletableFuture.completedFuture(4711);
         final ClientActorPropsFactory entityActorFactory = DefaultClientActorPropsFactory.getInstance();
         final Props props =
                 ConnectionSupervisorActor.props(proxyActorProbe.ref(), entityActorFactory,

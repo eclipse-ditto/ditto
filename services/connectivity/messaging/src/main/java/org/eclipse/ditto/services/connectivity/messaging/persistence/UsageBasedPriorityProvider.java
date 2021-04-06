@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.connectivity.messaging.persistence;
 
 import java.time.Duration;
-import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -47,7 +46,7 @@ public final class UsageBasedPriorityProvider implements ConnectionPriorityProvi
     }
 
     @Override
-    public CompletionStage<Optional<Integer>> getPriorityFor(final ConnectionId connectionId,
+    public CompletionStage<Integer> getPriorityFor(final ConnectionId connectionId,
             final String correlationId) {
         final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(correlationId).build();
         final RetrieveConnectionMetrics retrieveConnectionMetrics = RetrieveConnectionMetrics.of(connectionId, headers);
@@ -56,7 +55,7 @@ public final class UsageBasedPriorityProvider implements ConnectionPriorityProvi
                     if (metrics instanceof RetrieveConnectionMetricsResponse) {
                         final ConnectionMetrics connectionMetrics =
                                 ((RetrieveConnectionMetricsResponse) metrics).getConnectionMetrics();
-                        return Optional.of(ConnectionPriorityCalculator.calculatePriority(connectionMetrics));
+                        return ConnectionPriorityCalculator.calculatePriority(connectionMetrics);
                     } else if (error != null) {
                         log.withCorrelationId(correlationId)
                                 .warning("Got error when trying to retrieve the connection metrics: <{}>",
@@ -66,7 +65,7 @@ public final class UsageBasedPriorityProvider implements ConnectionPriorityProvi
                                 .warning("Expected <{}> but got <{}>", RetrieveConnectionMetricsResponse.class,
                                         metrics.getClass());
                     }
-                    return Optional.empty();
+                    return 0;
                 });
     }
 

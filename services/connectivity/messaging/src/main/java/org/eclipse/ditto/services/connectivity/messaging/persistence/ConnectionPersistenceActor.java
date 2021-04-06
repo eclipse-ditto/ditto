@@ -602,7 +602,7 @@ public final class ConnectionPersistenceActor
                                             entityId);
                         } else {
                             final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(correlationId).build();
-                            self().tell(new UpdatePriority(desiredPriority.orElse(0), headers), ActorRef.noSender());
+                            self().tell(new UpdatePriority(desiredPriority, headers), ActorRef.noSender());
                         }
                     });
         }

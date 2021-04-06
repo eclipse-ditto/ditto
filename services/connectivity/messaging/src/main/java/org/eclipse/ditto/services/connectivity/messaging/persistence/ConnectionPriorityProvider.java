@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.persistence;
 
-import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -30,6 +29,6 @@ public interface ConnectionPriorityProvider {
      * @param correlationId the correlation ID.
      * @return the priority.
      */
-    CompletionStage<Optional<Integer>> getPriorityFor(ConnectionId connectionId, String correlationId);
+    CompletionStage<Integer> getPriorityFor(ConnectionId connectionId, String correlationId);
 
 }
