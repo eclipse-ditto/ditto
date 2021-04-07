@@ -259,19 +259,19 @@ public final class MongoReadJournalIT {
     public void extractJournalPidsInOrderOfTags() {
         insert("test_journal", new Document()
                 .append("pid", "pid1")
-                .append("_tg", Set.of("always-alive", "always-alive-10"))
+                .append("_tg", Set.of("always-alive", "priority-10"))
                 .append("to", 1L));
         insert("test_journal", new Document()
                 .append("pid", "pid2")
-                .append("_tg", Set.of("always-alive", "always-alive-2"))
+                .append("_tg", Set.of("always-alive", "priority-2"))
                 .append("to", 1L));
         insert("test_journal", new Document()
                 .append("pid", "pid3")
-                .append("_tg", Set.of("always-alive", "always-alive-3"))
+                .append("_tg", Set.of("always-alive", "priority-3"))
                 .append("to", 2L));
         insert("test_journal", new Document()
                 .append("pid", "pid4")
-                .append("_tg", Set.of("always-alive", "always-alive-4"))
+                .append("_tg", Set.of("always-alive", "priority-4"))
                 .append("to", 2L));
 
         final List<String> pids =
@@ -286,23 +286,23 @@ public final class MongoReadJournalIT {
     public void extractJournalPidsInOrderOfTagsOfNewestEvent() {
         insert("test_journal", new Document()
                 .append("pid", "pid1")
-                .append("_tg", Set.of("always-alive", "always-alive-99"))
+                .append("_tg", Set.of("always-alive", "priority-99"))
                 .append("to", 1L));
         insert("test_journal", new Document()
                 .append("pid", "pid1")
-                .append("_tg", Set.of("always-alive", "always-alive-1"))
+                .append("_tg", Set.of("always-alive", "priority-1"))
                 .append("to", 2L));
         insert("test_journal", new Document()
                 .append("pid", "pid2")
-                .append("_tg", Set.of("always-alive", "always-alive-2"))
+                .append("_tg", Set.of("always-alive", "priority-2"))
                 .append("to", 1L));
         insert("test_journal", new Document()
                 .append("pid", "pid3")
-                .append("_tg", Set.of("always-alive", "always-alive-3"))
+                .append("_tg", Set.of("always-alive", "priority-3"))
                 .append("to", 2L));
         insert("test_journal", new Document()
                 .append("pid", "pid4")
-                .append("_tg", Set.of("always-alive", "always-alive-4"))
+                .append("_tg", Set.of("always-alive", "priority-4"))
                 .append("to", 2L));
 
         final List<String> pids =
@@ -311,6 +311,33 @@ public final class MongoReadJournalIT {
                         .toCompletableFuture().join();
 
         assertThat(pids).containsExactly("pid4", "pid3", "pid2", "pid1");
+    }
+
+    @Test
+    public void extractJournalPidsInOrderOfTagsIgnoresOtherTags() {
+        insert("test_journal", new Document()
+                .append("pid", "pid1")
+                .append("_tg", Set.of("always-alive", "priority-99"))
+                .append("to", 1L));
+        insert("test_journal", new Document()
+                .append("pid", "pid2")
+                .append("_tg", Set.of("always-alive", "priority-2"))
+                .append("to", 1L));
+        insert("test_journal", new Document()
+                .append("pid", "pid3")
+                .append("_tg", Set.of("always-alive", "z-tag", "priority-3"))
+                .append("to", 2L));
+        insert("test_journal", new Document()
+                .append("pid", "pid4")
+                .append("_tg", Set.of("always-alive", "priority-4"))
+                .append("to", 2L));
+
+        final List<String> pids =
+                readJournal.getJournalPidsWithTagOrderedByTags("always-alive", Duration.ZERO)
+                        .runWith(Sink.seq(), materializer)
+                        .toCompletableFuture().join();
+
+        assertThat(pids).containsExactly("pid1", "pid4", "pid3", "pid2");
     }
 
     @Test

@@ -23,6 +23,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.bson.BsonDocument;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
@@ -40,6 +41,7 @@ import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.BsonField;
 import com.mongodb.client.model.Collation;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.Sorts;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.typesafe.config.Config;
@@ -80,6 +82,7 @@ public class MongoReadJournal {
      * ID field of documents delivered by the read journal.
      */
     public static final String J_ID = JournallingFieldNames$.MODULE$.ID();
+    public static final String PRIORITY_TAG_PREFIX = "priority-";
 
     private static final String AKKA_PERSISTENCE_JOURNAL_AUTO_START =
             "akka.persistence.journal.auto-start-journals";
@@ -91,7 +94,6 @@ public class MongoReadJournal {
 
     private static final String J_PROCESSOR_ID = JournallingFieldNames$.MODULE$.PROCESSOR_ID();
     private static final String J_TAGS = JournallingFieldNames$.MODULE$.TAGS();
-    private static final String J_TO = JournallingFieldNames$.MODULE$.TO();
     private static final String S_SN = SnapshottingFieldNames$.MODULE$.SEQUENCE_NUMBER();
 
     // Not working: SnapshottingFieldNames.V2$.MODULE$.SERIALIZED()
@@ -343,13 +345,23 @@ public class MongoReadJournal {
             pipeline.add(Aggregates.match(Filters.eq(J_TAGS, tag)));
         }
 
-        // sort stage
-        //  note that there is no index on this combination "pid" -> 1, "to" -> 1
-        //  so if this query ever gets too slow, this could be a potential optimization
-        pipeline.add(Aggregates.sort(Sorts.orderBy(Sorts.ascending(J_PROCESSOR_ID), Sorts.ascending(J_TO))));
-
-        // group stage
+        // group stage. We can assume that the $last element ist also new latest event because of the insert order.
         pipeline.add(Aggregates.group("$" + J_PROCESSOR_ID, Accumulators.last(J_TAGS, "$" + J_TAGS)));
+
+        // Filter irrelevant tags for priority ordering.
+        final BsonDocument arrayFilter = BsonDocument.parse("{\n" +
+                "            $filter: {\n" +
+                "                input: \"$" + J_TAGS + "\",\n" +
+                "                as: \"tags\",\n" +
+                "                cond: {\n" +
+                "                    $regexMatch: {\n" +
+                "                        input: \"$$tags\",\n" +
+                "                        regex: \"" + PRIORITY_TAG_PREFIX + ".*\"\n" +
+                "                    }\n" +
+                "                }\n" +
+                "            }\n" +
+                "        }");
+        pipeline.add(Aggregates.project(Projections.computed(J_TAGS, arrayFilter)));
 
         // sort stage 2 -- order after group stage is not defined
         pipeline.add(Aggregates.sort(Sorts.orderBy(Sorts.descending(J_TAGS))));
