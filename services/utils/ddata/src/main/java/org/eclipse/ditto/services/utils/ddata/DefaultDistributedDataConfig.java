@@ -33,34 +33,32 @@ class DefaultDistributedDataConfig implements DistributedDataConfig {
     private final Replicator.WriteConsistency subscriptionWriteConsistency;
     private final Duration subscriptionDelay;
     private final AkkaReplicatorConfig akkaReplicatorConfig;
+    private final int numberOfShards;
 
     private DefaultDistributedDataConfig(final Config configWithFallback) {
         readTimeout = configWithFallback.getDuration(DistributedDataConfigValue.READ_TIMEOUT.getConfigPath());
-        final Duration writeTimeout =
-                configWithFallback.getDuration(DistributedDataConfigValue.WRITE_TIMEOUT.getConfigPath());
-        this.writeTimeout = writeTimeout;
+        writeTimeout = configWithFallback.getDuration(DistributedDataConfigValue.WRITE_TIMEOUT.getConfigPath());
         akkaReplicatorConfig = DefaultAkkaReplicatorConfig.of(configWithFallback);
         subscriptionWriteConsistency = toWriteConsistency(configWithFallback.getString(
                 DistributedDataConfigValue.SUBSCRIPTION_WRITE_CONSISTENCY.getConfigPath()),
-                writeTimeout);
+                configWithFallback.getDuration(DistributedDataConfigValue.WRITE_TIMEOUT.getConfigPath()));
         subscriptionDelay =
                 configWithFallback.getDuration(DistributedDataConfigValue.SUBSCRIPTION_DELAY.getConfigPath());
+        numberOfShards = configWithFallback.getInt(DistributedDataConfigValue.NUMBER_OF_SHARDS.getConfigPath());
     }
 
     private DefaultDistributedDataConfig(final Config configWithFallback,
             final CharSequence replicatorName,
             final CharSequence replicatorRole) {
         readTimeout = configWithFallback.getDuration(DistributedDataConfigValue.READ_TIMEOUT.getConfigPath());
-        final Duration writeTimeout =
-                configWithFallback.getDuration(DistributedDataConfigValue.WRITE_TIMEOUT.getConfigPath());
-        this.writeTimeout = writeTimeout;
-        akkaReplicatorConfig = DefaultAkkaReplicatorConfig.of(configWithFallback, replicatorName,
-                replicatorRole);
+        writeTimeout = configWithFallback.getDuration(DistributedDataConfigValue.WRITE_TIMEOUT.getConfigPath());
+        akkaReplicatorConfig = DefaultAkkaReplicatorConfig.of(configWithFallback, replicatorName, replicatorRole);
         subscriptionWriteConsistency = toWriteConsistency(configWithFallback.getString(
                 DistributedDataConfigValue.SUBSCRIPTION_WRITE_CONSISTENCY.getConfigPath()),
-                writeTimeout);
+                configWithFallback.getDuration(DistributedDataConfigValue.WRITE_TIMEOUT.getConfigPath()));
         subscriptionDelay =
                 configWithFallback.getDuration(DistributedDataConfigValue.SUBSCRIPTION_DELAY.getConfigPath());
+        numberOfShards = configWithFallback.getInt(DistributedDataConfigValue.NUMBER_OF_SHARDS.getConfigPath());
     }
 
     /**
@@ -120,6 +118,11 @@ class DefaultDistributedDataConfig implements DistributedDataConfig {
     }
 
     @Override
+    public int getNumberOfShards() {
+        return numberOfShards;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -128,7 +131,7 @@ class DefaultDistributedDataConfig implements DistributedDataConfig {
             return false;
         }
         final DefaultDistributedDataConfig that = (DefaultDistributedDataConfig) o;
-        return Objects.equals(readTimeout, that.readTimeout) &&
+        return numberOfShards == that.numberOfShards && Objects.equals(readTimeout, that.readTimeout) &&
                 Objects.equals(writeTimeout, that.writeTimeout) &&
                 Objects.equals(subscriptionWriteConsistency, that.subscriptionWriteConsistency) &&
                 Objects.equals(subscriptionDelay, that.subscriptionDelay) &&
@@ -138,7 +141,7 @@ class DefaultDistributedDataConfig implements DistributedDataConfig {
     @Override
     public int hashCode() {
         return Objects.hash(readTimeout, writeTimeout, akkaReplicatorConfig, subscriptionWriteConsistency,
-                subscriptionDelay);
+                subscriptionDelay, numberOfShards);
     }
 
     @Override
@@ -149,6 +152,7 @@ class DefaultDistributedDataConfig implements DistributedDataConfig {
                 ", subscriptionWriteConsistency=" + subscriptionWriteConsistency +
                 ", subscriptionDelay" + subscriptionDelay +
                 ", akkaReplicatorConfig=" + akkaReplicatorConfig +
+                ", numberOfShards=" + numberOfShards +
                 "]";
     }
 

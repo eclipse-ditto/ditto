@@ -203,6 +203,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         this.connection = checkNotNull(connection, "connection");
         this.connectionActor = connectionActor;
+        // this is retrieve via the extension for each baseClientActor in order to not pass it as constructor arg
+        //  as all constructor arguments need to be serializable as the BaseClientActor is started behind a cluster
+        //  router
+        this.dittoProtocolSub = DittoProtocolSub.get(getContext().getSystem());
         actorUUID = UUID.randomUUID().toString();
 
         final ConnectionId connectionId = connection.getId();
@@ -251,7 +255,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         supervisorStrategy = createSupervisorStrategy(getSelf());
         clientActorRefs = ClientActorRefs.empty();
         clientActorRefsNotificationDelay = randomize(clientConfig.getClientActorRefsNotificationDelay());
-        dittoProtocolSub = DittoProtocolSub.get(getContext().getSystem());
         subscriptionIdPrefixLength =
                 ConnectionPersistenceActor.getSubscriptionPrefixLength(connection.getClientCount());
 

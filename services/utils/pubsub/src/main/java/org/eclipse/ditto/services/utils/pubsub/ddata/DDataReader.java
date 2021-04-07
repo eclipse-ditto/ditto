@@ -12,14 +12,9 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.ddata;
 
-import java.util.Map;
-import java.util.concurrent.CompletionStage;
-
 import akka.actor.ActorRef;
 import akka.cluster.ddata.Key;
 import akka.cluster.ddata.ORMultiMap;
-import akka.cluster.ddata.Replicator;
-import scala.collection.immutable.Set;
 
 /**
  * Reader of distributed Bloom filters of subscribed topics.
@@ -27,22 +22,6 @@ import scala.collection.immutable.Set;
  * @param <T> type of topic approximations.
  */
 public interface DDataReader<K, T> {
-
-    /**
-     * Read a low-level map from the local replicator.
-     *
-     * @return the low-level map.
-     */
-    default CompletionStage<Map<K, Set<T>>> read() {
-        return read((Replicator.ReadConsistency) Replicator.readLocal());
-    }
-
-    /**
-     * Read a low-level map from the local replicator.
-     *
-     * @return the low-level map.
-     */
-    CompletionStage<Map<K, Set<T>>> read(Replicator.ReadConsistency readConsistency);
 
     /**
      * Map a topic to a key with which to read distributed data.
@@ -61,7 +40,17 @@ public interface DDataReader<K, T> {
     void receiveChanges(ActorRef recipient);
 
     /**
+     * Returns the number of shards Ditto's ddata extension applies for Map keys.
+     *
+     * @return the number of shards Ditto's ddata extension applies for Map keys
+     */
+    int getNumberOfShards();
+
+    /**
+     * Creates/gets a key for the passed {@code shardNumber}.
+     *
+     * @param shardNumber the number of the shard to append to the key.
      * @return Key of the distributed data.
      */
-    Key<ORMultiMap<K, T>> getKey();
+    Key<ORMultiMap<K, T>> getKey(int shardNumber);
 }

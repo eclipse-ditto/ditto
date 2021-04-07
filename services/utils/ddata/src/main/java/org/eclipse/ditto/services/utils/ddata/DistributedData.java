@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
+import java.util.stream.IntStream;
 
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 
@@ -60,6 +61,8 @@ public abstract class DistributedData<R extends ReplicatedData> implements Exten
      */
     protected final ActorRef replicator;
 
+    protected final int numberOfShards;
+
     private final Executor ddataExecutor;
 
     /**
@@ -76,6 +79,7 @@ public abstract class DistributedData<R extends ReplicatedData> implements Exten
         this.ddataExecutor = ddataExecutor;
         readTimeout = config.getReadTimeout();
         writeTimeout = config.getWriteTimeout();
+        numberOfShards = config.getNumberOfShards();
     }
 
     /**
@@ -108,9 +112,12 @@ public abstract class DistributedData<R extends ReplicatedData> implements Exten
     }
 
     /**
+     * Creates/gets a key for the passed {@code shardNumber}.
+     *
+     * @param shardNumber the number of the shard to append to the key.
      * @return key of the distributed collection. Should be unique among collections of the same type.
      */
-    protected abstract Key<R> getKey();
+    protected abstract Key<R> getKey(int shardNumber);
 
     /**
      * @return initial value of the distributed data.
@@ -120,29 +127,31 @@ public abstract class DistributedData<R extends ReplicatedData> implements Exten
     /**
      * Asynchronously retrieves the replicated data.
      *
+     * @param key the key to get the replicated data for.
      * @param readConsistency how many replicas to consult.
      * @return future of the replicated data that completes exceptionally on error.
      */
-    public CompletionStage<Optional<R>> get(final Replicator.ReadConsistency readConsistency) {
-        final Replicator.Get<R> replicatorGet = new Replicator.Get<>(getKey(), readConsistency);
+    public CompletionStage<Optional<R>> get(final Key<R> key, final Replicator.ReadConsistency readConsistency) {
+        final Replicator.Get<R> replicatorGet = new Replicator.Get<>(key, readConsistency);
         return Patterns.ask(replicator, replicatorGet, getAskTimeout(readConsistency.timeout(), readTimeout))
-                .thenApplyAsync(this::handleGetResponse, ddataExecutor);
+                .thenApplyAsync(reply -> this.handleGetResponse(reply, key), ddataExecutor);
     }
 
     /**
      * Modify the replicated data.
      *
+     * @param key the key to update.
      * @param writeConsistency how many replicas to update.
      * @param updateFunction what to do to the replicas.
      * @return future that completes when the update completes, exceptionally when any error is encountered.
      */
-    public CompletionStage<Void> update(final Replicator.WriteConsistency writeConsistency,
+    public CompletionStage<Void> update(final Key<R> key, final Replicator.WriteConsistency writeConsistency,
             final Function<R, R> updateFunction) {
 
         final Replicator.Update<R> replicatorUpdate =
-                new Replicator.Update<>(getKey(), getInitialValue(), writeConsistency, updateFunction);
+                new Replicator.Update<>(key, getInitialValue(), writeConsistency, updateFunction);
         return Patterns.ask(replicator, replicatorUpdate, getAskTimeout(writeConsistency.timeout(), writeTimeout))
-                .thenApplyAsync(this::handleUpdateResponse, ddataExecutor);
+                .thenApplyAsync(reply -> this.handleUpdateResponse(reply, key), ddataExecutor);
     }
 
     /**
@@ -151,7 +160,8 @@ public abstract class DistributedData<R extends ReplicatedData> implements Exten
      * @param subscriber whom to notify of changes.
      */
     public void subscribeForChanges(final ActorRef subscriber) {
-        replicator.tell(new Replicator.Subscribe<>(getKey(), subscriber), ActorRef.noSender());
+        IntStream.range(0, numberOfShards)
+                .forEach(i -> replicator.tell(new Replicator.Subscribe<>(getKey(i), subscriber), ActorRef.noSender()));
     }
 
     /**
@@ -161,19 +171,19 @@ public abstract class DistributedData<R extends ReplicatedData> implements Exten
         return replicator;
     }
 
-    private Void handleUpdateResponse(final Object reply) {
+    private Void handleUpdateResponse(final Object reply, final Key<R> key) {
         if (reply instanceof Replicator.UpdateSuccess) {
             return null;
         } else {
             final String errorMessage =
                     MessageFormat.format("Expect Replicator.UpdateSuccess for key ''{2}'' from ''{1}'', Got: ''{0}''",
-                            reply, replicator, getKey());
+                            reply, replicator, key);
             throw new IllegalArgumentException(errorMessage);
         }
     }
 
     @SuppressWarnings("unchecked")
-    private Optional<R> handleGetResponse(final Object reply) {
+    private Optional<R> handleGetResponse(final Object reply, final Key<R> key) {
         if (reply instanceof Replicator.GetSuccess) {
             final Replicator.GetSuccess<R> getSuccess = (Replicator.GetSuccess<R>) reply;
             return Optional.of(getSuccess.dataValue());
@@ -182,7 +192,7 @@ public abstract class DistributedData<R extends ReplicatedData> implements Exten
         } else {
             final String errorMessage =
                     MessageFormat.format("Expect Replicator.GetResponse for key ''{2}'' from ''{1}'', Got: ''{0}''",
-                            reply, replicator, getKey());
+                            reply, replicator, key);
             throw new IllegalArgumentException(errorMessage);
         }
     }
@@ -215,7 +225,8 @@ public abstract class DistributedData<R extends ReplicatedData> implements Exten
         /**
          * Constructor available for subclasses only.
          */
-        protected AbstractDDataProvider() {}
+        protected AbstractDDataProvider() {
+        }
 
         @Override
         public abstract T createExtension(ExtendedActorSystem system);

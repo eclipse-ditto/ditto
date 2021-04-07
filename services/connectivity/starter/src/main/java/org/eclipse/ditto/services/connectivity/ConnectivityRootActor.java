@@ -44,6 +44,7 @@ import org.eclipse.ditto.services.utils.health.config.PersistenceConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.services.utils.persistentactors.PersistencePingActor;
+import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 
@@ -97,6 +98,12 @@ public final class ConnectivityRootActor extends DittoRootActor {
                 startChildActor(ConnectionPersistenceStreamingActorCreator.ACTOR_NAME,
                         ConnectionPersistenceStreamingActorCreator.props(0));
         pubSubMediator.tell(DistPubSubAccess.put(persistenceStreamingActor), getSelf());
+
+        // start DittoProtocolSub extension, even if not passed to connections via reference
+        //  because of serialization issues the single BaseClientActors "get" the extension themselves
+        //  it must however be started here in order to already participate in Ditto pub/sub, even if no connection is
+        //  available!
+        DittoProtocolSub.get(actorSystem);
 
         startClusterSingletonActor(
                 PersistencePingActor.props(
