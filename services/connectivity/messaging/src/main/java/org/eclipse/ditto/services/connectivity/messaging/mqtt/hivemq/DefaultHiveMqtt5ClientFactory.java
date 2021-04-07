@@ -62,6 +62,7 @@ public final class DefaultHiveMqtt5ClientFactory extends AbstractHiveMqttClientF
                 configureClientBuilder(MqttClient.builder().useMqttVersion5(), connection, identifier, allowReconnect,
                         connectedListener, disconnectedListener, connectionLogger);
         configureSimpleAuth(mqtt5ClientBuilder.simpleAuth(), connection);
+        configureWillPublish(mqtt5ClientBuilder.willPublish(), connection);
         return mqtt5ClientBuilder;
     }
 
