@@ -25,7 +25,10 @@ import org.eclipse.ditto.services.connectivity.messaging.ConnectionIdsRetrievalA
 import org.eclipse.ditto.services.connectivity.messaging.ConnectivityProxyActor;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceOperationsActor;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceStreamingActorCreator;
+import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPriorityProvider;
+import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPriorityProviderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionSupervisorActor;
+import org.eclipse.ditto.services.connectivity.messaging.persistence.UsageBasedPriorityProvider;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
@@ -73,6 +76,7 @@ public final class ConnectivityRootActor extends DittoRootActor {
             final ActorRef pubSubMediator,
             final UnaryOperator<Signal<?>> conciergeForwarderSignalTransformer,
             @Nullable final ConnectivityCommandInterceptor commandValidator,
+            final ConnectionPriorityProviderFactory connectionPriorityProviderFactory,
             final ClientActorPropsFactory clientActorPropsFactory) {
 
         final ClusterConfig clusterConfig = connectivityConfig.getClusterConfig();
@@ -85,7 +89,8 @@ public final class ConnectivityRootActor extends DittoRootActor {
                 startChildActor(ConnectivityProxyActor.ACTOR_NAME, ConnectivityProxyActor.props(conciergeForwarder));
 
         final Props connectionSupervisorProps =
-                ConnectionSupervisorActor.props(proxyActor, clientActorPropsFactory, commandValidator, pubSubMediator);
+                ConnectionSupervisorActor.props(proxyActor, clientActorPropsFactory, commandValidator,
+                        connectionPriorityProviderFactory, pubSubMediator);
 
         // Create persistence streaming actor (with no cache) and make it known to pubSubMediator.
         final ActorRef persistenceStreamingActor =
@@ -119,6 +124,7 @@ public final class ConnectivityRootActor extends DittoRootActor {
      * @param conciergeForwarderSignalTransformer a function which transforms signals before forwarding them to the
      * concierge service
      * @param commandValidator custom command validator for connectivity commands
+     * @param connectionPriorityProviderFactory used to determine the reconnect priority of a connection.
      * @param clientActorPropsFactory props factory of the client actors
      * @return the Akka configuration Props object.
      */
@@ -126,10 +132,12 @@ public final class ConnectivityRootActor extends DittoRootActor {
             final ActorRef pubSubMediator,
             final UnaryOperator<Signal<?>> conciergeForwarderSignalTransformer,
             final ConnectivityCommandInterceptor commandValidator,
+            final ConnectionPriorityProviderFactory connectionPriorityProviderFactory,
             final ClientActorPropsFactory clientActorPropsFactory) {
 
         return Props.create(ConnectivityRootActor.class, connectivityConfig, pubSubMediator,
-                conciergeForwarderSignalTransformer, commandValidator, clientActorPropsFactory);
+                conciergeForwarderSignalTransformer, commandValidator, connectionPriorityProviderFactory,
+                clientActorPropsFactory);
     }
 
     /**
@@ -147,7 +155,8 @@ public final class ConnectivityRootActor extends DittoRootActor {
             final ClientActorPropsFactory clientActorPropsFactory) {
 
         return Props.create(ConnectivityRootActor.class, connectivityConfig, pubSubMediator,
-                conciergeForwarderSignalTransformer, null, clientActorPropsFactory);
+                conciergeForwarderSignalTransformer, null,
+                (ConnectionPriorityProviderFactory) UsageBasedPriorityProvider::getInstance, clientActorPropsFactory);
     }
 
     @Override
