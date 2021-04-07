@@ -70,7 +70,7 @@ The following message mappers are included in the Ditto codebase:
 ### Ditto mapper
 
 This is the default [Ditto Protocol](protocol-overview.html) mapper. If you do not specify any payload mapping this
- mapper is used to map inbound and outbound messages. The mapper requires has no mandatory options, so its alias can
+ mapper is used to map inbound and outbound messages. The mapper requires no mandatory options, so its alias can
  be directly used as a mapper reference.
 
 It assumes that received messages are in [Ditto Protocol JSON](protocol-specification.html) and emits outgoing messages
