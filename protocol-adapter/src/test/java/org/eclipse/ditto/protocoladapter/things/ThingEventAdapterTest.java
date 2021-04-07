@@ -1468,7 +1468,7 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     private static final class UnknownThingEvent implements ThingEvent<UnknownThingEvent> {
 
         @Override
-        public ThingId getThingEntityId() {
+        public ThingId getEntityId() {
             return TestConstants.THING_ID;
         }
 
@@ -1507,7 +1507,7 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
             return JsonObject.newBuilder()
                     .set(Event.JsonFields.TYPE, getType())
                     .set(Event.JsonFields.REVISION, getRevision())
-                    .set(JsonFields.THING_ID, getThingEntityId().toString())
+                    .set(JsonFields.THING_ID, getEntityId().toString())
                     .build();
         }
 

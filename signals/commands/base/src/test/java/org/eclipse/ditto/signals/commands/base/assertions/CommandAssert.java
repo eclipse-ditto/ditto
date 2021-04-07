@@ -14,7 +14,7 @@ package org.eclipse.ditto.signals.commands.base.assertions;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.signals.base.WithEntityId;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 /**

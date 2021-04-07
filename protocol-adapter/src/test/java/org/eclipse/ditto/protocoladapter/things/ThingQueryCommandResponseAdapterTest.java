@@ -558,7 +558,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
         }
 
         @Override
-        public ThingId getThingEntityId() {
+        public ThingId getEntityId() {
             return THING_ID;
         }
 

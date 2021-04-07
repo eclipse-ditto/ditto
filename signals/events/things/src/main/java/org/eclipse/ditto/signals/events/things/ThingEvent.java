@@ -44,7 +44,7 @@ public interface ThingEvent<T extends ThingEvent<T>> extends Event<T>, WithThing
 
     @Override
     default ThingId getEntityId() {
-        return getThingEntityId();
+        return getEntityId();
     }
 
     @Override

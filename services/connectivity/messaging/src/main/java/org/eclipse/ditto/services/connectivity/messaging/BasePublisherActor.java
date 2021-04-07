@@ -415,7 +415,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             @Nullable final Target autoAckTarget = sendingContext.getAutoAckTarget().orElse(null);
             final HeaderMapping headerMapping = genericTarget.getHeaderMapping().orElse(null);
             final ExternalMessage mappedMessage = applyHeaderMapping(resolver, outbound, headerMapping);
-            final CompletionStage<WithHttpStatus> responsesFuture = publishMessage(outboundSource,
+            final CompletionStage<SendResult> responsesFuture = publishMessage(outboundSource,
                     autoAckTarget,
                     publishTarget,
                     mappedMessage,
@@ -468,16 +468,16 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * @param signal the nullable Target for getting even more information about the configured Target to publish to.
      * @param autoAckTarget if set, this is the Target from which {@code Acknowledgement}s should automatically be
      * produced and delivered.
-     * @param publishTarget the {@link PublishTarget} to publish to.
-     * @param message the {@link ExternalMessage} to publish.
+     * @param publishTarget the {@link org.eclipse.ditto.services.connectivity.messaging.PublishTarget} to publish to.
+     * @param message the {@link org.eclipse.ditto.services.models.connectivity.ExternalMessage} to publish.
      * @param maxTotalMessageSize the total max message size in bytes of the payload of an automatically created
      * response.
      * @param ackSizeQuota budget in bytes for how large the payload of this acknowledgement can be, or 0 to not
      * send any acknowledgement.
-     * @return future of command responses (acknowledgements and potentially responses to live commands / live messages)
-     * to reply to sender, or future of null if ackSizeQuota is 0.
+     * @return future of the send result holding a command responses (acknowledgements and potentially responses to
+     * live commands / live messages) to reply to sender, or future of null if ackSizeQuota is 0.
      */
-    protected abstract CompletionStage<WithHttpStatus> publishMessage(Signal<?> signal,
+    protected abstract CompletionStage<SendResult> publishMessage(Signal<?> signal,
             @Nullable Target autoAckTarget,
             T publishTarget,
             ExternalMessage message,

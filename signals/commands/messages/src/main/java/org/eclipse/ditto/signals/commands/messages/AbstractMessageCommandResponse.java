@@ -70,7 +70,7 @@ abstract class AbstractMessageCommandResponse<T, C extends AbstractMessageComman
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 
@@ -83,7 +83,7 @@ abstract class AbstractMessageCommandResponse<T, C extends AbstractMessageComman
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicate) {
 
-        jsonObjectBuilder.set(MessageCommandResponse.JsonFields.JSON_THING_ID, getThingEntityId().toString(),
+        jsonObjectBuilder.set(MessageCommandResponse.JsonFields.JSON_THING_ID, getEntityId().toString(),
                 predicate);
 
         final JsonObjectBuilder messageBuilder = JsonFactory.newObjectBuilder();

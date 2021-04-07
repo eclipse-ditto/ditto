@@ -164,7 +164,7 @@ public final class RetrieveFeatureDesiredProperties extends AbstractCommand<Retr
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

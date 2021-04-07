@@ -53,9 +53,8 @@ abstract class AbstractEphemeralStrategy<C extends ConnectivityCommand<?>>
             final C command,
             @Nullable final Metadata metadata) {
 
-        final ConnectivityEvent<?> event = StagedCommand.dummyEvent();
         final WithDittoHeaders response = getResponse(context.getState(), command.getDittoHeaders());
         final List<ConnectionAction> actions = getActions();
-        return newMutationResult(StagedCommand.of(command, event, response, actions), event, response);
+        return newMutationResult(StagedCommand.of(command, null, response, actions), null, response);
     }
 }

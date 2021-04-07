@@ -17,14 +17,12 @@ import static org.eclipse.ditto.services.models.concierge.ConciergeMessagingCons
 import java.util.Optional;
 import java.util.function.Function;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.services.models.concierge.ConciergeWrapper;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.base.SignalWithEntityId;
-import org.eclipse.ditto.signals.base.WithEntityId;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;

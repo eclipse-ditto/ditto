@@ -51,7 +51,7 @@ import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
-import org.eclipse.ditto.signals.commands.connectivity.WithConnectionId;
+import org.eclipse.ditto.model.connectivity.WithConnectionId;
 
 /**
  * Response to a {@link org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionLogs} command.
@@ -128,7 +128,7 @@ public final class RetrieveConnectionLogsResponse
         mergedEntries.addAll(first.getConnectionLogs());
         mergedEntries.addAll(second.getConnectionLogs());
 
-        return of(first.getConnectionEntityId(),
+        return of(first.getEntityId(),
                 mergedEntries,
                 first.getEnabledSince().orElse(null),
                 first.getEnabledUntil().orElse(null),
@@ -262,7 +262,7 @@ public final class RetrieveConnectionLogsResponse
     }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return connectionId;
     }
 

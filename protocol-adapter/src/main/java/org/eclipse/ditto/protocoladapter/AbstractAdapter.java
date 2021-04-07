@@ -176,7 +176,7 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
 
     protected EventsTopicPathBuilder getEventTopicPathBuilderFor(final ThingEvent<?> event,
             final TopicPath.Channel channel) {
-        final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(event.getThingEntityId());
+        final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(event.getEntityId());
         final EventsTopicPathBuilder eventsTopicPathBuilder;
         if (channel == TopicPath.Channel.TWIN) {
             eventsTopicPathBuilder = topicPathBuilder.twin().events();

@@ -182,7 +182,7 @@ public final class RetrieveAttributesResponse extends AbstractCommandResponse<Re
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

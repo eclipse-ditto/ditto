@@ -96,11 +96,11 @@ public interface Message<T> {
      * Returns the ID of the {@code Thing} from/to which this message is sent.
      *
      * @return the thing ID.
-     * @deprecated the thing ID is now typed. Use {@link #getThingEntityId()} instead.
+     * @deprecated the thing ID is now typed. Use {@link #getEntityId()} instead.
      */
     @Deprecated
     default String getThingId() {
-        return getThingEntityId().toString();
+        return getEntityId().toString();
     }
 
     /**
@@ -108,7 +108,7 @@ public interface Message<T> {
      *
      * @return the thing ID.
      */
-    ThingId getThingEntityId();
+    ThingId getEntityId();
 
     /**
      * Returns the subject of the message as provided by the message sender.

@@ -664,7 +664,7 @@ public final class ThingQueryCommandAdapterTest extends LiveTwinTest implements 
         public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate predicate) {
             return JsonObject.newBuilder()
                     .set(JsonFields.TYPE, getType())
-                    .set("thingId", getThingEntityId().toString())
+                    .set("thingId", getEntityId().toString())
                     .build();
         }
 
@@ -679,7 +679,7 @@ public final class ThingQueryCommandAdapterTest extends LiveTwinTest implements 
         }
 
         @Override
-        public ThingId getThingEntityId() {
+        public ThingId getEntityId() {
             return TestConstants.THING_ID;
         }
 

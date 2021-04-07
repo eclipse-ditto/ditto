@@ -205,8 +205,8 @@ final class ThingsUpdater extends AbstractActorWithTimers {
     private void processThingEvent(final ThingEvent<?> thingEvent) {
         log.withCorrelationId(thingEvent)
                 .debug("Forwarding incoming ThingEvent for thingId '{}'",
-                        String.valueOf(thingEvent.getThingEntityId()));
-        forwardEventToShardRegion(thingEvent, ThingEvent::getThingEntityId);
+                        String.valueOf(thingEvent.getEntityId()));
+        forwardEventToShardRegion(thingEvent, ThingEvent::getEntityId);
     }
 
     private <J extends Jsonifiable<?>> void forwardJsonifiableToShardRegion(final J message,

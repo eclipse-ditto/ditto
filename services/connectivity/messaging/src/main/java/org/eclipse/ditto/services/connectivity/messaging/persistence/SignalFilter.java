@@ -35,14 +35,14 @@ import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.namespaces.NamespaceReader;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.base.SignalWithEntityId;
-import org.eclipse.ditto.signals.base.WithEntityId;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
@@ -136,7 +136,7 @@ public final class SignalFilter {
 
     private static Predicate<FilteredTopic> applyNamespaceFilter(final Signal<?> signal) {
         return t -> t.getNamespaces().isEmpty() ||
-                (signal instanceof WithEntityId && t.getNamespaces().contains(namespaceFromId((WithEntityId)signal)));
+                (signal instanceof WithEntityId && t.getNamespaces().contains(namespaceFromId((WithEntityId) signal)));
     }
 
     @Nullable
@@ -175,7 +175,8 @@ public final class SignalFilter {
             return Optional.of(Topic.POLICY_ANNOUNCEMENTS);
         }
         // check things group
-        final TopicPath.Group group = signal instanceof WithThingId ? TopicPath.Group.THINGS : null;
+        final TopicPath.Group group =
+                WithEntityId.getEntityIdOfType(ThingId.class, signal).isPresent() ? TopicPath.Group.THINGS : null;
         final TopicPath.Channel channel = signal.getDittoHeaders()
                 .getChannel()
                 .flatMap(TopicPath.Channel::forName)

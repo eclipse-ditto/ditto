@@ -13,21 +13,17 @@
 package org.eclipse.ditto.model.connectivity;
 
 /**
- * An interface to enforce something on something from type <code>M</code>.
- * The implementation defines the rules/properties or whatever shall be enforces on the subject. So for more
- * clarity the documentation of the implementation should be checked.
+ * Validate a given input of type <code>M</code>.
  *
- * @param <M> the type of the subject, for which the enforcement is applied to
+ * @param <M> the type of elements that can be validated by this filter.
  */
 public interface EnforcementFilter<M> {
 
     /**
-     * Enforces something of the given input or validates it, basically it's up to the implementation. Throws an
-     * exception in case that the implementation is not happy with the given input.
+     * Validates the given input. Throws an exception if the input is not valid.
      *
-     * @param filterInput the source from which the the placeholders in the filters are resolved
-     * @throws org.eclipse.ditto.model.base.exceptions.DittoRuntimeException if enforcement could not be
-     * archived/input was not valid
+     * @param filterInput the input that should be validated.
+     * @throws org.eclipse.ditto.model.base.exceptions.DittoRuntimeException if input was invalid.
      */
     void match(M filterInput);
 }

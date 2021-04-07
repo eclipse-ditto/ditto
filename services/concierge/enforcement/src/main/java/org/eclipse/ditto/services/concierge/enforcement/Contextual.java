@@ -20,8 +20,6 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -30,7 +28,7 @@ import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapt
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
-import org.eclipse.ditto.signals.base.WithEntityId;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.signals.base.WithResource;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
@@ -252,7 +250,8 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
         } else if (signal instanceof WithResource && signal instanceof WithEntityId) {
             final EntityIdWithResourceType entityId;
             if (MessageCommand.RESOURCE_TYPE.equals(((WithResource) signal).getResourceType())) {
-                entityId = EntityIdWithResourceType.of(ThingCommand.RESOURCE_TYPE, ((WithEntityId) signal).getEntityId());
+                entityId =
+                        EntityIdWithResourceType.of(ThingCommand.RESOURCE_TYPE, ((WithEntityId) signal).getEntityId());
             } else {
                 entityId = EntityIdWithResourceType.of(((WithResource) signal).getResourceType(),
                         ((WithEntityId) signal).getEntityId());

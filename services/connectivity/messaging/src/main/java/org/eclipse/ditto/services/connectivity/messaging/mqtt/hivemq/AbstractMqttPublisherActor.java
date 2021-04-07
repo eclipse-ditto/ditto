@@ -22,20 +22,21 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
+import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
-import org.eclipse.ditto.services.connectivity.messaging.ProbeResponse;
+import org.eclipse.ditto.services.connectivity.messaging.SendResult;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.AbstractMqttValidator;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttPublishTarget;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.WithHttpStatus;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
@@ -100,18 +101,21 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
      * @param result the result of the PUBLISH message according to the broker as encapsulated by the client.
      * @return the acknowledgement.
      */
-    protected WithHttpStatus buildResponse(final Signal<?> signal, @Nullable final Target target,
-    final R result) {
+    protected SendResult buildResponse(final Signal<?> signal, @Nullable final Target target,
+            final R result) {
 
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
         final Optional<AcknowledgementLabel> autoAckLabel = getAcknowledgementLabel(target);
-
-        if (autoAckLabel.isPresent() && signal instanceof WithThingId) {
-            final ThingId thingId = ((WithThingId) signal).getThingEntityId();
-            return Acknowledgement.of(autoAckLabel.get(), thingId, HttpStatus.OK, dittoHeaders);
+        final Optional<EntityIdWithType> entityIdOptional =
+                WithEntityId.getEntityIdOfType(EntityIdWithType.class, signal);
+        final Acknowledgement issuedAck;
+        if (autoAckLabel.isPresent() && entityIdOptional.isPresent()) {
+            final EntityIdWithType entityId =entityIdOptional.get();
+            issuedAck = Acknowledgement.of(autoAckLabel.get(), entityId, HttpStatus.OK, dittoHeaders);
         } else {
-            return new ProbeResponse(HttpStatus.OK, dittoHeaders);
+            issuedAck = null;
         }
+        return new SendResult(issuedAck, dittoHeaders);
     }
 
     @Override
@@ -132,7 +136,7 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
     }
 
     @Override
-    protected CompletionStage<WithHttpStatus> publishMessage(final Signal<?> signal,
+    protected CompletionStage<SendResult> publishMessage(final Signal<?> signal,
             @Nullable final Target autoAckTarget,
             final MqttPublishTarget publishTarget,
             final ExternalMessage message,

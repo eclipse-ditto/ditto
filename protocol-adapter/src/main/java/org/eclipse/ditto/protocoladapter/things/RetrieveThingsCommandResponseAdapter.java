@@ -49,7 +49,7 @@
      }
 
      @Override
-     public boolean wildcardTopicRequired() {
+     public boolean supportsWildcardTopics() {
          return true;
      }
 

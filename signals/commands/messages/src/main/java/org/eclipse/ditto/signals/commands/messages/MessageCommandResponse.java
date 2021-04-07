@@ -54,7 +54,7 @@ public interface MessageCommandResponse<P, C extends MessageCommandResponse<P, C
 
     @Override
     default ThingId getEntityId() {
-        return getThingEntityId();
+        return getEntityId();
     }
 
     @Override

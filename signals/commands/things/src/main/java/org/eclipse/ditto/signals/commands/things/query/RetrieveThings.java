@@ -238,11 +238,11 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
      * Returns an unmodifiable unsorted List of the identifiers of the {@code Thing}s to be retrieved.
      *
      * @return the identifiers of the Things.
-     * @deprecated the thing ID is now typed. Use {@link #getThingEntityIds()} instead.
+     * @deprecated the thing ID is now typed. Use {@link #getEntityIds()} instead.
      */
     @Deprecated
     public List<String> getThingIds() {
-        return getThingEntityIds().stream().map(String::valueOf).collect(Collectors.toList());
+        return getEntityIds().stream().map(String::valueOf).collect(Collectors.toList());
     }
 
     /**
@@ -250,7 +250,7 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
      *
      * @return the identifiers of the Things.
      */
-    public List<ThingId> getThingEntityIds() {
+    public List<ThingId> getEntityIds() {
         return thingIds;
     }
 
@@ -357,7 +357,7 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
         }
 
         private Builder(final RetrieveThings retrieveThings) {
-            this.thingIds = retrieveThings.getThingEntityIds();
+            this.thingIds = retrieveThings.getEntityIds();
             dittoHeaders = retrieveThings.getDittoHeaders();
             selectedFields = retrieveThings.getSelectedFields().orElse(null);
             namespace = retrieveThings.getNamespace().orElse(null);

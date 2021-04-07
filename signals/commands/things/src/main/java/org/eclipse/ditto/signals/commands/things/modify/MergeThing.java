@@ -391,7 +391,7 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

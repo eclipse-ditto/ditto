@@ -192,7 +192,7 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
             final Optional<String> namespace = thing.getNamespace();
             if (namespace.isEmpty()) {
                 final Thing thingInDefaultNamespace = thing.toBuilder()
-                        .setId(ThingId.of(DEFAULT_NAMESPACE, createThing.getThingEntityId().toString()))
+                        .setId(ThingId.of(DEFAULT_NAMESPACE, createThing.getEntityId().toString()))
                         .build();
                 final JsonObject initialPolicy = createThing.getInitialPolicy().orElse(null);
                 return CreateThing.of(thingInDefaultNamespace, initialPolicy, createThing.getDittoHeaders());

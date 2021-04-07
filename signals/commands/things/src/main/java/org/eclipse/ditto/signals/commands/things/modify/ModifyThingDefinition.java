@@ -153,7 +153,7 @@ public final class ModifyThingDefinition extends AbstractCommand<ModifyThingDefi
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

@@ -127,7 +127,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
     }
 
     private void handleRetrieveThings(final RetrieveThings rt, final Object msgToAsk) {
-        final List<ThingId> thingIds = rt.getThingEntityIds();
+        final List<ThingId> thingIds = rt.getEntityIds();
         log.withCorrelationId(rt)
                 .info("Got '{}' message. Retrieving requested '{}' Things..",
                         RetrieveThings.class.getSimpleName(), thingIds.size());

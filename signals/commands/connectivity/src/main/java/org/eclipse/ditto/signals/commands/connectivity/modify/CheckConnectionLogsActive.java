@@ -173,7 +173,7 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
     }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return connectionId;
     }
 

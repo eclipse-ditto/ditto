@@ -439,11 +439,21 @@ public final class ConnectionPersistenceActor
                 testConnection(command.next());
                 break;
             case APPLY_EVENT:
-                entity = getEventStrategy().handle(command.getEvent(), entity, getRevisionNumber());
-                interpretStagedCommand(command.next());
+                command.getEvent()
+                        .ifPresentOrElse(event -> {
+                                    entity = getEventStrategy().handle(event, entity, getRevisionNumber());
+                                    interpretStagedCommand(command.next());
+                                },
+                                () -> log.error(
+                                        "Failed to handle staged command because required event wasn't present: <{}>",
+                                        command));
                 break;
             case PERSIST_AND_APPLY_EVENT:
-                persistAndApplyEvent(command.getEvent(), (event, connection) -> interpretStagedCommand(command.next()));
+                command.getEvent().ifPresentOrElse(
+                        event -> persistAndApplyEvent(event,
+                                (unusedEvent, connection) -> interpretStagedCommand(command.next())),
+                        () -> log.error("Failed to handle staged command because required event wasn't present: <{}>",
+                                command));
                 break;
             case SEND_RESPONSE:
                 command.getSender().tell(command.getResponse(), getSelf());
@@ -600,7 +610,7 @@ public final class ConnectionPersistenceActor
             setConnectionStatusClosedForTestConnection();
             startAndAskClientActors(testConnection, 1)
                     .thenAccept(response -> self.tell(
-                            command.withResponse(TestConnectionResponse.success(testConnection.getConnectionEntityId(),
+                            command.withResponse(TestConnectionResponse.success(testConnection.getEntityId(),
                                     response.toString(), command.getDittoHeaders())),
                             ActorRef.noSender()))
                     .exceptionally(error -> {
@@ -901,7 +911,8 @@ public final class ConnectionPersistenceActor
 
     private void restoreOpenConnection() {
         final OpenConnection connect = OpenConnection.of(entityId, DittoHeaders.empty());
-        final StagedCommand stagedCommand = StagedCommand.of(connect, StagedCommand.dummyEvent(), connect,
+        final ConnectionOpened connectionOpened = ConnectionOpened.of(entityId, Instant.now(), DittoHeaders.empty());
+        final StagedCommand stagedCommand = StagedCommand.of(connect, connectionOpened, connect,
                 Collections.singletonList(UPDATE_SUBSCRIPTIONS));
         openConnection(stagedCommand, false);
     }

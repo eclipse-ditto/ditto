@@ -55,7 +55,7 @@ public final class RetrieveFeaturePropertiesStrategyTest extends AbstractCommand
         final RetrieveFeatureProperties command =
                 RetrieveFeatureProperties.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
         final RetrieveFeaturePropertiesResponse expectedResponse =
-                retrieveFeaturePropertiesResponse(command.getThingEntityId(), command.getFeatureId(),
+                retrieveFeaturePropertiesResponse(command.getEntityId(), command.getFeatureId(),
                         FLUX_CAPACITOR_PROPERTIES, command.getDittoHeaders());
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
@@ -67,7 +67,7 @@ public final class RetrieveFeaturePropertiesStrategyTest extends AbstractCommand
         final RetrieveFeatureProperties command =
                 RetrieveFeatureProperties.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featureNotFound(command.getThingEntityId(), command.getFeatureId(),
+                ExceptionFactory.featureNotFound(command.getEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.removeFeatures(), command, expectedException);
@@ -79,7 +79,7 @@ public final class RetrieveFeaturePropertiesStrategyTest extends AbstractCommand
         final RetrieveFeatureProperties command =
                 RetrieveFeatureProperties.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featurePropertiesNotFound(command.getThingEntityId(), command.getFeatureId(),
+                ExceptionFactory.featurePropertiesNotFound(command.getEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.setFeature(FLUX_CAPACITOR.removeProperties()), command,
@@ -94,7 +94,7 @@ public final class RetrieveFeaturePropertiesStrategyTest extends AbstractCommand
                 RetrieveFeatureProperties.of(context.getState(), FLUX_CAPACITOR_ID, selectedFields,
                         DittoHeaders.empty());
         final RetrieveFeaturePropertiesResponse expectedResponse =
-                retrieveFeaturePropertiesResponse(command.getThingEntityId(), command.getFeatureId(),
+                retrieveFeaturePropertiesResponse(command.getEntityId(), command.getFeatureId(),
                         FLUX_CAPACITOR_PROPERTIES,
                         FeatureProperties.newBuilder()
                                 .set("target_year_1",

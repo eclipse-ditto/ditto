@@ -51,7 +51,7 @@ public interface ThingCommand<T extends ThingCommand<T>> extends Command<T>, Wit
 
     @Override
     default ThingId getEntityId() {
-        return getThingEntityId();
+        return getEntityId();
     }
 
     @Override

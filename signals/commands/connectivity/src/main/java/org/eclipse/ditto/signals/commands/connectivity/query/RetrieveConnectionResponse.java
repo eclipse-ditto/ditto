@@ -36,7 +36,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
-import org.eclipse.ditto.signals.commands.connectivity.WithConnectionId;
+import org.eclipse.ditto.model.connectivity.WithConnectionId;
 
 /**
  * Response to a {@link RetrieveConnection} command.
@@ -120,7 +120,7 @@ public final class RetrieveConnectionResponse extends AbstractCommandResponse<Re
     public JsonObject getJsonObject() { return jsonObject; }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return ConnectionId.of(jsonObject.getValueOrThrow(Connection.JsonFields.ID));
     }
 

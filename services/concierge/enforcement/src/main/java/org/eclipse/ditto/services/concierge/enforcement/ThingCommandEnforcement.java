@@ -194,7 +194,7 @@ public final class ThingCommandEnforcement
 
         if (enforcerKeyEntry.exists()) {
             // Thing exists but its policy is deleted.
-            final ThingId thingId = signal().getThingEntityId();
+            final ThingId thingId = signal().getEntityId();
             final EntityId policyId = enforcerKeyEntry.getValueOrThrow().getId();
             final DittoRuntimeException error = errorForExistingThingWithDeletedPolicy(signal(), thingId, policyId);
             if (LOGGER.isInfoEnabled()) {
@@ -326,7 +326,7 @@ public final class ThingCommandEnforcement
     }
 
     private ThingUnavailableException reportThingUnavailable() {
-        return ThingUnavailableException.newBuilder(signal().getThingEntityId()).dittoHeaders(dittoHeaders()).build();
+        return ThingUnavailableException.newBuilder(signal().getEntityId()).dittoHeaders(dittoHeaders()).build();
     }
 
     /**
@@ -351,7 +351,7 @@ public final class ThingCommandEnforcement
                     } else {
                         LOGGER.withCorrelationId(getCorrelationIdOrNull(response, retrieveThing))
                                 .info("No authorized response when retrieving inlined policy <{}> for thing <{}>: {}",
-                                        retrievePolicy.getEntityId(), retrieveThing.getThingEntityId(), response);
+                                        retrievePolicy.getEntityId(), retrieveThing.getEntityId(), response);
                     }
                     return Optional.empty();
                 });
@@ -417,7 +417,7 @@ public final class ThingCommandEnforcement
     protected DittoRuntimeException handleAskTimeoutForCommand(final ThingCommand<?> command,
             final AskTimeoutException askTimeout) {
         LOGGER.withCorrelationId(dittoHeaders()).error("Timeout before building JsonView", askTimeout);
-        return ThingUnavailableException.newBuilder(command.getThingEntityId())
+        return ThingUnavailableException.newBuilder(command.getEntityId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build();
     }
@@ -456,7 +456,7 @@ public final class ThingCommandEnforcement
                         enforceThingCommandByPolicyEnforcer(command, policyId, policyEnforcerEntry.getValueOrThrow());
                 return CompletableFuture.completedFuture(enforcementResult);
             } else {
-                throw errorForExistingThingWithDeletedPolicy(command, command.getThingEntityId(), policyId);
+                throw errorForExistingThingWithDeletedPolicy(command, command.getEntityId(), policyId);
             }
         });
     }
@@ -489,7 +489,7 @@ public final class ThingCommandEnforcement
      */
     private Contextual<WithDittoHeaders> forwardToThingsShardRegion(final ThingCommand<?> command) {
         if (command instanceof ThingModifyCommand && ((ThingModifyCommand<?>) command).changesAuthorization()) {
-            invalidateThingCaches(command.getThingEntityId());
+            invalidateThingCaches(command.getEntityId());
         }
         return withMessageToReceiver(command, thingsShardRegion);
     }
@@ -606,12 +606,12 @@ public final class ThingCommandEnforcement
                     });
         } else {
             // Other commands cannot be authorized by policy contained in self.
-            final DittoRuntimeException error = ThingNotAccessibleException.newBuilder(thingCommand.getThingEntityId())
+            final DittoRuntimeException error = ThingNotAccessibleException.newBuilder(thingCommand.getEntityId())
                     .dittoHeaders(thingCommand.getDittoHeaders())
                     .build();
             LOGGER.withCorrelationId(dittoHeaders())
                     .info("Enforcer was not existing for Thing <{}> and no auth info was inlined, responding with: {} - {}",
-                            thingCommand.getThingEntityId(), error.getClass().getSimpleName(), error.getMessage());
+                            thingCommand.getEntityId(), error.getClass().getSimpleName(), error.getMessage());
             throw error;
         }
     }
@@ -698,7 +698,7 @@ public final class ThingCommandEnforcement
             return attachEnforcerOrThrow(createThing, initialEnforcer,
                     ThingCommandEnforcement::authorizeByPolicyOrThrow);
         } else {
-            throw PolicyInvalidException.newBuilder(MIN_REQUIRED_POLICY_PERMISSIONS, createThing.getThingEntityId())
+            throw PolicyInvalidException.newBuilder(MIN_REQUIRED_POLICY_PERMISSIONS, createThing.getEntityId())
                     .dittoHeaders(createThing.getDittoHeaders())
                     .build();
         }
@@ -710,7 +710,7 @@ public final class ThingCommandEnforcement
             // Java doesn't permit conversion of this early return into assignment to final variable.
             return PoliciesModelFactory.newPolicy(inlinedPolicy);
         } catch (final JsonRuntimeException | DittoJsonException e) {
-            final ThingId thingId = createThing.getThingEntityId();
+            final ThingId thingId = createThing.getEntityId();
             throw PolicyInvalidException.newBuilderForCause(e, thingId)
                     .dittoHeaders(createThing.getDittoHeaders())
                     .build();
@@ -747,7 +747,7 @@ public final class ThingCommandEnforcement
             final JsonObject initialPolicy = modifyThing.getInitialPolicy().orElse(null);
             final String policyIdOrPlaceholder = modifyThing.getPolicyIdOrPlaceholder().orElse(null);
             final Thing newThing = modifyThing.getThing().toBuilder()
-                    .setId(modifyThing.getThingEntityId())
+                    .setId(modifyThing.getEntityId())
                     .build();
             return CreateThing.of(newThing, initialPolicy, policyIdOrPlaceholder, modifyThing.getDittoHeaders());
         } else {
@@ -881,7 +881,7 @@ public final class ThingCommandEnforcement
         }
 
         if (!isValid) {
-            throw PolicyIdNotAllowedException.newBuilder(createThing.getThingEntityId())
+            throw PolicyIdNotAllowedException.newBuilder(createThing.getEntityId())
                     .dittoHeaders(createThing.getDittoHeaders())
                     .build();
         }
@@ -911,7 +911,7 @@ public final class ThingCommandEnforcement
                         .orElseThrow(() -> errorForThingCommand(createThing));
             } else {
                 // cannot create policy.
-                final ThingId thingId = createThing.getThingEntityId();
+                final ThingId thingId = createThing.getEntityId();
                 final String message = String.format("The Thing with ID '%s' could not be created with implicit " +
                         "Policy because no authorization subject is present.", thingId);
                 throw ThingNotCreatableException.newBuilderForPolicyMissing(thingId, PolicyId.of(thingId))
@@ -940,7 +940,7 @@ public final class ThingCommandEnforcement
                 .thenApply(policyResponse -> {
                     handlePolicyResponseForCreateThing(createPolicy, createThing, policyResponse);
 
-                    invalidateThingCaches(createThing.getThingEntityId());
+                    invalidateThingCaches(createThing.getEntityId());
 
                     return createThing;
                 });
@@ -962,7 +962,7 @@ public final class ThingCommandEnforcement
 
                 final String hint =
                         String.format("creating initial policy during creation of Thing <%s>",
-                                createThing.getThingEntityId());
+                                createThing.getEntityId());
                 throw reportErrorOrResponse(hint, policyResponse, null);
             }
         }
@@ -980,8 +980,8 @@ public final class ThingCommandEnforcement
         LOGGER.withCorrelationId(command)
                 .info("Failed to create Policy with ID <{}> because it already exists." +
                         " The CreateThing command which would have created a Policy for the Thing with ID <{}>" +
-                        " is therefore not handled.", policyId, command.getThingEntityId());
-        return ThingNotCreatableException.newBuilderForPolicyExisting(command.getThingEntityId(), policyId)
+                        " is therefore not handled.", policyId, command.getEntityId());
+        return ThingNotCreatableException.newBuilderForPolicyExisting(command.getEntityId(), policyId)
                 .dittoHeaders(command.getDittoHeaders())
                 .build();
     }
@@ -995,13 +995,13 @@ public final class ThingCommandEnforcement
             if (thing.getPolicyEntityId().isPresent() || !policyJson.contains(Policy.JsonFields.ID.getPointer())) {
                 final String policyId = thing.getPolicyEntityId()
                         .map(String::valueOf)
-                        .orElse(createThing.getThingEntityId().toString());
+                        .orElse(createThing.getEntityId().toString());
                 policyJsonBuilder.set(Policy.JsonFields.ID, policyId);
             }
             return Optional.of(PoliciesModelFactory.newPolicy(policyJsonBuilder.build()));
         } else {
             return getDefaultPolicy(createThing.getDittoHeaders().getAuthorizationContext(),
-                    createThing.getThingEntityId());
+                    createThing.getEntityId());
         }
     }
 

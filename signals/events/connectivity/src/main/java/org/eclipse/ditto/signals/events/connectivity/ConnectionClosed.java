@@ -157,7 +157,7 @@ public final class ConnectionClosed extends AbstractConnectivityEvent<Connection
 
     @Override
     public ConnectionClosed setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getConnectionEntityId(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getEntityId(), getTimestamp().orElse(null), dittoHeaders);
     }
 
     @Override

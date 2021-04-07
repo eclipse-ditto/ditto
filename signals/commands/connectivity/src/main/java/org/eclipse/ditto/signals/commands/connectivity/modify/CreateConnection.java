@@ -125,7 +125,7 @@ public final class CreateConnection extends AbstractCommand<CreateConnection>
     }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return connection.getId();
     }
 

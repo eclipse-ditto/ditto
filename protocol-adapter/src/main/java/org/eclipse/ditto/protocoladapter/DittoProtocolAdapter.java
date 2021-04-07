@@ -267,8 +267,7 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         return thingsAdapters.getRetrieveThingsCommandAdapter().toAdaptable(retrieveThings, channel);
     }
 
-    public Adaptable toAdaptable(final RetrieveThingsResponse retrieveThingsResponse,
-            final TopicPath.Channel channel) {
+    public Adaptable toAdaptable(final RetrieveThingsResponse retrieveThingsResponse, final TopicPath.Channel channel) {
         validateChannel(channel, retrieveThingsResponse, TWIN, LIVE);
         return thingsAdapters.getRetrieveThingsCommandResponseAdapter().toAdaptable(retrieveThingsResponse, channel);
     }

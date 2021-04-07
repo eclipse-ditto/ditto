@@ -91,7 +91,7 @@ public final class MessageCommandAckRequestSetterDefaultHeaderTest {
         if (requestedAcks != null) {
             builder.putHeader(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), requestedAcks);
         }
-        return SendClaimMessage.of(message.getThingEntityId(), message, builder.build());
+        return SendClaimMessage.of(message.getEntityId(), message, builder.build());
     }
 
     private static final class Validity {

@@ -49,7 +49,7 @@ final class ThingConflictStrategy extends AbstractThingCommandStrategy<CreateThi
     @Override
     public boolean isDefined(final Context<ThingId> context, @Nullable final Thing thing,
             final CreateThing command) {
-        return Objects.equals(context.getState(), command.getThingEntityId());
+        return Objects.equals(context.getState(), command.getEntityId());
     }
 
     @Override
@@ -64,7 +64,7 @@ final class ThingConflictStrategy extends AbstractThingCommandStrategy<CreateThi
             final CreateThing command,
             @Nullable final Metadata metadata) {
 
-        return ResultFactory.newErrorResult(ThingConflictException.newBuilder(command.getThingEntityId())
+        return ResultFactory.newErrorResult(ThingConflictException.newBuilder(command.getEntityId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build(), command);
     }

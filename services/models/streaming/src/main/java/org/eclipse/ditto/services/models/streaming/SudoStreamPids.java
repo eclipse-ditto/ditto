@@ -104,7 +104,7 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
         final int burst = jsonObject.getValueOrThrow(JSON_BURST);
         final long timeoutMillis = jsonObject.getValueOrThrow(JSON_TIMEOUT_MILLIS);
         final EntityIdWithRevision lowerBound =
-                jsonObject.getValue(JSON_LOWER_BOUND).map(LowerBound::fromJsonObject).orElseGet(LowerBound::empty);
+                jsonObject.getValue(JSON_LOWER_BOUND).map(LowerBound::fromJson).orElseGet(LowerBound::empty);
         return new SudoStreamPids(burst, timeoutMillis, lowerBound, dittoHeaders);
     }
 

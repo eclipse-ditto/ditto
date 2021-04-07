@@ -33,7 +33,7 @@ import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
-import org.eclipse.ditto.signals.commands.connectivity.WithConnectionId;
+import org.eclipse.ditto.model.connectivity.WithConnectionId;
 
 /**
  * Command which retrieves the logs of an established {@link org.eclipse.ditto.model.connectivity.Connection}.
@@ -118,7 +118,7 @@ public final class RetrieveConnectionLogs extends AbstractCommand<RetrieveConnec
     }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return connectionId;
     }
 

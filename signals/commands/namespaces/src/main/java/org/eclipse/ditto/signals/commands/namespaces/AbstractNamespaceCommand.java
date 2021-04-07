@@ -24,11 +24,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.Command;
 
@@ -39,7 +36,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  */
 @Immutable
 abstract class AbstractNamespaceCommand<T extends AbstractNamespaceCommand<T>> extends AbstractCommand<T>
-        implements NamespaceCommand<T>, SignalWithEntityId<T> {
+        implements NamespaceCommand<T> {
 
     /**
      * Type prefix of namespace commands.
@@ -77,11 +74,6 @@ abstract class AbstractNamespaceCommand<T extends AbstractNamespaceCommand<T>> e
     @Override
     public String getTypePrefix() {
         return TYPE_PREFIX;
-    }
-
-    @Override
-    public EntityId getEntityId() {
-        return DefaultEntityId.of(getNamespace());
     }
 
     @Override

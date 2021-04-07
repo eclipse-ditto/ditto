@@ -106,7 +106,7 @@ public final class ThingsUpdaterTest {
         new TestKit(actorSystem) {{
             final ActorRef underTest = createThingsUpdater();
             underTest.tell(event, getRef());
-            expectShardedMessage(shardMessageReceiver, event, event.getThingEntityId());
+            expectShardedMessage(shardMessageReceiver, event, event.getEntityId());
         }};
     }
 

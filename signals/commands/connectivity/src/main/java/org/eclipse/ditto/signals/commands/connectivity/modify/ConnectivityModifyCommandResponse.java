@@ -16,7 +16,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
-import org.eclipse.ditto.signals.commands.connectivity.WithConnectionId;
+import org.eclipse.ditto.model.connectivity.WithConnectionId;
 
 /**
  * Aggregates all {@link ConnectivityCommandResponse} which respond to a

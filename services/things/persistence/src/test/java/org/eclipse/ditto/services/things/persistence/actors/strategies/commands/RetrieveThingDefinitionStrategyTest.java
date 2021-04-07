@@ -49,7 +49,7 @@ public final class RetrieveThingDefinitionStrategyTest extends AbstractCommandSt
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveThingDefinition command = RetrieveThingDefinition.of(context.getState(), DittoHeaders.empty());
         final RetrieveThingDefinitionResponse expectedResponse =
-                retrieveDefinitionResponse(command.getThingEntityId(), DEFINITION, DittoHeaders.empty());
+                retrieveDefinitionResponse(command.getEntityId(), DEFINITION, DittoHeaders.empty());
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
     }
@@ -59,7 +59,7 @@ public final class RetrieveThingDefinitionStrategyTest extends AbstractCommandSt
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveThingDefinition command = RetrieveThingDefinition.of(context.getState(), DittoHeaders.empty());
         final ThingDefinitionNotAccessibleException expectedException =
-                ThingDefinitionNotAccessibleException.newBuilder(command.getThingEntityId())
+                ThingDefinitionNotAccessibleException.newBuilder(command.getEntityId())
                         .dittoHeaders(command.getDittoHeaders())
                         .build();
 

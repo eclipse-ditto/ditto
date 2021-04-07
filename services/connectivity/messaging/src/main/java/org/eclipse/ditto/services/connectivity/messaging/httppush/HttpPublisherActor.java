@@ -22,6 +22,7 @@ import java.util.Base64;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
@@ -49,7 +50,7 @@ import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.connectivity.config.HttpPushConfig;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
-import org.eclipse.ditto.services.connectivity.messaging.ProbeResponse;
+import org.eclipse.ditto.services.connectivity.messaging.SendResult;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
@@ -59,9 +60,8 @@ import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.PreparedTimer;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.base.WithEntityId;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
-import org.eclipse.ditto.signals.commands.base.WithHttpStatus;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
@@ -190,14 +190,14 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     @Override
-    protected CompletionStage<WithHttpStatus> publishMessage(final Signal<?> signal,
+    protected CompletionStage<SendResult> publishMessage(final Signal<?> signal,
             @Nullable final Target autoAckTarget,
             final HttpPublishTarget publishTarget,
             final ExternalMessage message,
             final int maxTotalMessageSize,
             final int ackSizeQuota) {
 
-        final CompletableFuture<WithHttpStatus> resultFuture = new CompletableFuture<>();
+        final CompletableFuture<SendResult> resultFuture = new CompletableFuture<>();
         final HttpRequest request = createRequest(publishTarget, message);
         final HttpPushContext context = newContext(signal, autoAckTarget, request, message, maxTotalMessageSize,
                 ackSizeQuota, resultFuture);
@@ -267,7 +267,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             final ExternalMessage message,
             final int maxTotalMessageSize,
             final int ackSizeQuota,
-            final CompletableFuture<WithHttpStatus> resultFuture) {
+            final CompletableFuture<SendResult> resultFuture) {
 
         return tryResponse -> {
             final Uri requestUri = stripUserInfo(request.getUri());
@@ -301,7 +301,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         };
     }
 
-    private CompletionStage<WithHttpStatus> toCommandResponseOrAcknowledgement(final Signal<?> signal,
+    private CompletionStage<SendResult> toCommandResponseOrAcknowledgement(final Signal<?> signal,
             @Nullable final Target autoAckTarget,
             final HttpResponse response,
             final int maxTotalMessageSize,
@@ -327,9 +327,9 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         return getResponseBody(response, maxResponseSize, materializer).thenApply(body -> {
             @Nullable final CommandResponse<?> result;
             final DittoHeaders dittoHeaders = setDittoHeaders(signal.getDittoHeaders(), response);
-
-            if (autoAckLabel.isPresent() && signal instanceof WithThingId) {
-                final ThingId thingId = ((WithThingId) signal).getThingEntityId();
+            final Optional<ThingId> thingIdOptional = WithEntityId.getEntityIdOfType(ThingId.class, signal);
+            if (autoAckLabel.isPresent() && thingIdOptional.isPresent()) {
+                final ThingId thingId = thingIdOptional.get();
 
                 if (DittoAcknowledgementLabel.LIVE_RESPONSE.equals(autoAckLabel.get())) {
                     // Live-Response is declared as issued ack => parse live response from response
@@ -356,10 +356,10 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     } else if (parsedResponse instanceof MessageCommandResponse) {
                         result = parsedResponse;
                     } else {
-                        return new ProbeResponse(httpStatus, dittoHeaders);
+                        result = null;
                     }
                 } else {
-                    return new ProbeResponse(httpStatus, dittoHeaders);
+                    result = null;
                 }
             }
 
@@ -376,7 +376,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                         "CommandResponse <{0}> created from HTTP response with Status <{1}> and body <{2}>.",
                         result, response.status(), body);
             }
-            return result;
+            return new SendResult(result, dittoHeaders);
         });
     }
 
@@ -486,14 +486,14 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
             switch (messageCommand.getType()) {
                 case SendClaimMessage.TYPE:
-                    return SendClaimMessageResponse.of(messageCommand.getThingEntityId(), message, status,
+                    return SendClaimMessageResponse.of(messageCommand.getEntityId(), message, status,
                             dittoHeaders);
                 case SendThingMessage.TYPE:
-                    return SendThingMessageResponse.of(messageCommand.getThingEntityId(), message, status,
+                    return SendThingMessageResponse.of(messageCommand.getEntityId(), message, status,
                             dittoHeaders);
                 case SendFeatureMessage.TYPE:
                     final SendFeatureMessage<?> sendFeatureMessage = (SendFeatureMessage<?>) messageCommand;
-                    return SendFeatureMessageResponse.of(messageCommand.getThingEntityId(),
+                    return SendFeatureMessageResponse.of(messageCommand.getEntityId(),
                             sendFeatureMessage.getFeatureId(), message, status, dittoHeaders);
                 default:
                     connectionLogger.failure("Initial message command type <{}> is unknown.", messageCommand.getType());

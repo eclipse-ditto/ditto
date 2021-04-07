@@ -41,6 +41,8 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.CharsetDeterminer;
 import org.eclipse.ditto.model.base.common.HttpStatus;
+import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -52,12 +54,11 @@ import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
-import org.eclipse.ditto.services.connectivity.messaging.ProbeResponse;
+import org.eclipse.ditto.services.connectivity.messaging.SendResult;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.WithHttpStatus;
 
 import com.newmotion.akka.rabbitmq.ChannelCreated;
@@ -148,7 +149,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     }
 
     @Override
-    protected CompletionStage<WithHttpStatus> publishMessage(final Signal<?> signal,
+    protected CompletionStage<SendResult> publishMessage(final Signal<?> signal,
             @Nullable final Target autoAckTarget,
             final RabbitMQTarget publishTarget,
             final ExternalMessage message,
@@ -188,7 +189,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
                     .orElse(new byte[]{});
         }
 
-        final CompletableFuture<WithHttpStatus> resultFuture = new CompletableFuture<>();
+        final CompletableFuture<SendResult> resultFuture = new CompletableFuture<>();
         // create consumer outside channel message: need to check actor state and decide whether to handle acks.
         final LongConsumer nextPublishSeqNoConsumer =
                 computeNextPublishSeqNoConsumer(signal, autoAckTarget, publishTarget, resultFuture);
@@ -215,12 +216,12 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     private LongConsumer computeNextPublishSeqNoConsumer(final Signal<?> signal,
             @Nullable final Target autoAckTarget,
             final RabbitMQTarget publishTarget,
-            final CompletableFuture<WithHttpStatus> resultFuture) {
+            final CompletableFuture<SendResult> resultFuture) {
 
         if (confirmMode == ConfirmMode.ACTIVE) {
             return seqNo -> addOutstandingAck(seqNo, signal, resultFuture, autoAckTarget, publishTarget, pendingAckTTL);
         } else {
-            final WithHttpStatus unsupportedAck = buildUnsupportedResponse(signal, autoAckTarget, connectionIdResolver);
+            final SendResult unsupportedAck = buildUnsupportedResponse(signal, autoAckTarget, connectionIdResolver);
             return seqNo -> resultFuture.complete(unsupportedAck);
         }
     }
@@ -228,14 +229,14 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     // Thread-safe
     private void addOutstandingAck(final Long seqNo,
             final Signal<?> signal,
-            final CompletableFuture<WithHttpStatus> resultFuture,
+            final CompletableFuture<SendResult> resultFuture,
             @Nullable final Target autoAckTarget,
             final RabbitMQTarget publishTarget,
             final Duration timeoutDuration) {
 
         final OutstandingResponse outstandingAck = new OutstandingResponse(signal, autoAckTarget, resultFuture,
                 connectionIdResolver);
-        final WithHttpStatus timeoutResponse = buildResponseWithTimeout(signal, autoAckTarget, connectionIdResolver);
+        final SendResult timeoutResponse = buildResponseWithTimeout(signal, autoAckTarget, connectionIdResolver);
 
         // index the outstanding ack by delivery tag
         outstandingAcks.put(seqNo, outstandingAck);
@@ -279,13 +280,13 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
         return null;
     }
 
-    private static WithHttpStatus buildResponseWithTimeout(final Signal<?> signal, @Nullable final Target autoAckTarget,
+    private static SendResult buildResponseWithTimeout(final Signal<?> signal, @Nullable final Target autoAckTarget,
             final ExpressionResolver connectionIdResolver) {
         return buildResponse(signal, autoAckTarget, HttpStatus.REQUEST_TIMEOUT,
                 "No publisher confirm arrived.", connectionIdResolver);
     }
 
-    private static WithHttpStatus buildUnsupportedResponse(final Signal<?> signal, @Nullable final Target autoAckTarget,
+    private static SendResult buildUnsupportedResponse(final Signal<?> signal, @Nullable final Target autoAckTarget,
             final ExpressionResolver connectionIdResolver) {
         if (autoAckTarget != null && autoAckTarget.getIssuedAcknowledgementLabel().isPresent()) {
             // Not possible to recover without broker upgrade. Use status 400 to prevent redelivery at the source.
@@ -297,12 +298,12 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
         }
     }
 
-    private static WithHttpStatus buildSuccessResponse(final Signal<?> signal, @Nullable final Target autoAckTarget,
+    private static SendResult buildSuccessResponse(final Signal<?> signal, @Nullable final Target autoAckTarget,
             final ExpressionResolver connectionIdResolver) {
         return buildResponse(signal, autoAckTarget, HttpStatus.OK, null, connectionIdResolver);
     }
 
-    private static WithHttpStatus buildResponse(final Signal<?> signal,
+    private static SendResult buildResponse(final Signal<?> signal,
             @Nullable final Target autoAckTarget,
             final HttpStatus httpStatus,
             @Nullable final String message,
@@ -311,16 +312,19 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
         final var autoAckLabel = Optional.ofNullable(autoAckTarget)
                 .flatMap(Target::getIssuedAcknowledgementLabel)
                 .flatMap(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel));
-
-        if (autoAckLabel.isPresent() && signal instanceof WithThingId) {
-            return Acknowledgement.of(autoAckLabel.get(),
-                    ((WithThingId) signal).getThingEntityId(),
+        final Optional<EntityIdWithType> entityIdOptional =
+                WithEntityId.getEntityIdOfType(EntityIdWithType.class, signal);
+        final Acknowledgement issuedAck;
+        if (autoAckLabel.isPresent() && entityIdOptional.isPresent()) {
+            issuedAck = Acknowledgement.of(autoAckLabel.get(),
+                    entityIdOptional.get(),
                     httpStatus,
                     signal.getDittoHeaders(),
                     message == null ? null : JsonValue.of(message));
         } else {
-            return new ProbeResponse(httpStatus, signal.getDittoHeaders());
+            issuedAck = null;
         }
+        return new SendResult(issuedAck, signal.getDittoHeaders());
     }
 
     private Map<Target, ResourceStatus> declareExchangesPassive(final Channel channel,
@@ -365,7 +369,8 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
 
     private static void enterConfirmationMode(final Channel channel,
             final ConcurrentSkipListMap<Long, OutstandingResponse> outstandingAcks,
-            final ConcurrentHashMap<RabbitMQTarget, Queue<OutstandingResponse>> outstandingAcksByTarget) throws IOException {
+            final ConcurrentHashMap<RabbitMQTarget, Queue<OutstandingResponse>> outstandingAcksByTarget)
+            throws IOException {
 
         channel.confirmSelect();
         channel.clearConfirmListeners();
@@ -493,11 +498,11 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
 
         private final Signal<?> signal;
         @Nullable private final Target autoAckTarget;
-        private final CompletableFuture<WithHttpStatus> future;
+        private final CompletableFuture<SendResult> future;
         private final ExpressionResolver connectionIdResolver;
 
         private OutstandingResponse(final Signal<?> signal, @Nullable final Target autoAckTarget,
-                final CompletableFuture<WithHttpStatus> future, final ExpressionResolver connectionIdResolver) {
+                final CompletableFuture<SendResult> future, final ExpressionResolver connectionIdResolver) {
 
             this.signal = signal;
             this.autoAckTarget = autoAckTarget;
@@ -513,7 +518,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
             future.complete(buildFailureResponse(signal, autoAckTarget));
         }
 
-        private WithHttpStatus buildFailureResponse(final Signal<?> signal, @Nullable final Target target) {
+        private SendResult buildFailureResponse(final Signal<?> signal, @Nullable final Target target) {
             return buildResponse(signal, target, HttpStatus.SERVICE_UNAVAILABLE,
                     "Received negative confirm from the external broker.", connectionIdResolver);
         }
@@ -522,7 +527,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
             future.complete(buildReturnResponse(signal, autoAckTarget, replyCode, replyText));
         }
 
-        private WithHttpStatus buildReturnResponse(final Signal<?> signal,
+        private SendResult buildReturnResponse(final Signal<?> signal,
                 @Nullable final Target autoAckTarget,
                 final int replyCode,
                 final String replyText) {

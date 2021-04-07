@@ -22,7 +22,6 @@ import java.util.Optional;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.Enforcement;
@@ -31,7 +30,7 @@ import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.base.WithEntityId;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 
 /**
  * Implementation of an {@link EnforcementFilter} which is applicable to signals.
@@ -64,13 +63,15 @@ final class SignalEnforcementFilter implements EnforcementFilter<Signal<?>> {
      * resolved input is equal to one of the resolved filters.
      *
      * @param filterInput the source from which the the placeholders in the filters are resolved
-     * @throws org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException if none of the
+     * @throws ConnectionSignalIdEnforcementFailedException if the given filter input could be resolved by any
+     * placeholder, but did not match the {@link #inputValue}.
+     * @throws UnresolvedPlaceholderException if no placeholder could resolve the given filter input.
      */
     @Override
     public void match(final Signal<?> filterInput) {
         final EntityId entityId = extractEntityId(filterInput)
                         .orElseThrow(() -> getEnforcementFailedException(filterInput.getDittoHeaders()));
-        final List<DittoRuntimeException> exceptions = new LinkedList<>();
+        final List<UnresolvedPlaceholderException> exceptions = new LinkedList<>();
 
         for (final Placeholder<CharSequence> filterPlaceholder : filterPlaceholders) {
             for (final String filter : enforcement.getFilters()) {

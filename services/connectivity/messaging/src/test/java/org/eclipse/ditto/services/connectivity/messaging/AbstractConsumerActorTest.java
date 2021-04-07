@@ -125,7 +125,7 @@ public abstract class AbstractConsumerActorTest<M> {
     @Test
     public void testPositiveSourceAcknowledgementSettlement() throws Exception {
         testSourceAcknowledgementSettlement(true, true, modifyThing ->
-                        ModifyThingResponse.modified(modifyThing.getThingEntityId(), modifyThing.getDittoHeaders()),
+                        ModifyThingResponse.modified(modifyThing.getEntityId(), modifyThing.getDittoHeaders()),
                 MODIFY_THING_WITH_ACK, publishMappedMessage ->
                         assertThat(publishMappedMessage.getOutboundSignal()
                                 .first()
@@ -142,7 +142,7 @@ public abstract class AbstractConsumerActorTest<M> {
     @Test
     public void testNegativeSourceAcknowledgementSettlementDueToError() throws Exception {
         testSourceAcknowledgementSettlement(false, false, modifyThing ->
-                ThingNotAccessibleException.newBuilder(modifyThing.getThingEntityId())
+                ThingNotAccessibleException.newBuilder(modifyThing.getEntityId())
                         .dittoHeaders(modifyThing.getDittoHeaders())
                         .build(), MODIFY_THING_WITH_ACK, publishMappedMessage ->
                 assertThat(publishMappedMessage.getOutboundSignal()
@@ -160,7 +160,7 @@ public abstract class AbstractConsumerActorTest<M> {
     @Test
     public void testNegativeSourceAcknowledgementSettlementDueToNAck() throws Exception {
         testSourceAcknowledgementSettlement(false, false, modifyThing ->
-                        Acknowledgement.of(AcknowledgementLabel.of("twin-persisted"), modifyThing.getThingEntityId(),
+                        Acknowledgement.of(AcknowledgementLabel.of("twin-persisted"), modifyThing.getEntityId(),
                                 HttpStatus.BAD_REQUEST, modifyThing.getDittoHeaders()),
                 MODIFY_THING_WITH_ACK,
                 publishMappedMessage -> {}
@@ -188,7 +188,7 @@ public abstract class AbstractConsumerActorTest<M> {
     @Test
     public void testNegativeSourceAcknowledgementSettlementDueToServerError() throws Exception {
         testSourceAcknowledgementSettlement(false, true, modifyThing ->
-                        ThingUnavailableException.newBuilder(modifyThing.getThingEntityId())
+                        ThingUnavailableException.newBuilder(modifyThing.getEntityId())
                                 .dittoHeaders(modifyThing.getDittoHeaders())
                                 .build(), MODIFY_THING_WITH_ACK,
                 publishMappedMessage -> assertThat(publishMappedMessage.getOutboundSignal()
@@ -222,7 +222,7 @@ public abstract class AbstractConsumerActorTest<M> {
                     sender.ref());
 
             final ModifyThing modifyThing = concierge.expectMsgClass(ModifyThing.class);
-            assertThat((CharSequence) modifyThing.getThingEntityId()).isEqualTo(TestConstants.Things.THING_ID);
+            assertThat((CharSequence) modifyThing.getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
             concierge.reply(responseCreator.apply(modifyThing));
 
             messageConsumer.accept(clientActor.expectMsgClass(PublishMappedMessage.class));
@@ -330,7 +330,7 @@ public abstract class AbstractConsumerActorTest<M> {
             if (forwardedToConcierge >= 0) {
                 for (int i = 0; i < forwardedToConcierge; i++) {
                     final ModifyThing modifyThing = proxyActor.expectMsgClass(ModifyThing.class);
-                    assertThat((CharSequence) modifyThing.getThingEntityId()).isEqualTo(TestConstants.Things.THING_ID);
+                    assertThat((CharSequence) modifyThing.getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
                     verifySignal.accept(modifyThing);
                 }
             } else {

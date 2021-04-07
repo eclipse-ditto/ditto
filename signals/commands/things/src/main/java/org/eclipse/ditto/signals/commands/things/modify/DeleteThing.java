@@ -124,7 +124,7 @@ public final class DeleteThing extends AbstractCommand<DeleteThing> implements T
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

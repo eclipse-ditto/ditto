@@ -143,7 +143,7 @@ public final class MultiStageCommandTest {
 
             // THEN: initial requester receives Thing with inline policy
             final RetrieveThingResponse response = fishForMsgClass(this, RetrieveThingResponse.class);
-            assertThat((CharSequence) response.getThingEntityId()).isEqualTo(thingId);
+            assertThat((CharSequence) response.getEntityId()).isEqualTo(thingId);
             assertThat(response.getEntity()).isObject();
             assertThat(response.getEntity().asObject().getValue("_policy/policyId"))
                     .contains(JsonFactory.newValue(policyId.toString()));
@@ -180,7 +180,7 @@ public final class MultiStageCommandTest {
 
             // THEN: initial requester receives Thing with inline policy
             final RetrieveThingResponse response = fishForMsgClass(this, RetrieveThingResponse.class);
-            assertThat((CharSequence) response.getThingEntityId()).isEqualTo(thingId);
+            assertThat((CharSequence) response.getEntityId()).isEqualTo(thingId);
             assertThat(response.getEntity()).isObject();
             assertThat(response.getEntity().asObject()).doesNotContain(JsonKey.of("_policy"));
         }};
@@ -225,7 +225,7 @@ public final class MultiStageCommandTest {
 
             // THEN: initial requester receives Thing without Policy
             final RetrieveThingResponse response = expectMsgClass(RetrieveThingResponse.class);
-            assertThat((CharSequence) response.getThingEntityId()).isEqualTo(thingId);
+            assertThat((CharSequence) response.getEntityId()).isEqualTo(thingId);
             assertThat(response.getEntity()).isObject();
             assertThat(response.getEntity().asObject()).doesNotContain(JsonKey.of("_policy"));
         }};
@@ -270,7 +270,7 @@ public final class MultiStageCommandTest {
 
             // THEN: initial requester receives Thing without Policy
             final RetrieveThingResponse response = expectMsgClass(RetrieveThingResponse.class);
-            assertThat((CharSequence) response.getThingEntityId()).isEqualTo(thingId);
+            assertThat((CharSequence) response.getEntityId()).isEqualTo(thingId);
             assertThat(response.getEntity()).isObject();
             assertThat(response.getEntity().asObject()).doesNotContain(JsonKey.of("_policy"));
         }};

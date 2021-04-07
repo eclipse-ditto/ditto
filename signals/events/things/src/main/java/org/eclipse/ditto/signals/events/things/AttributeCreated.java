@@ -271,13 +271,13 @@ public final class AttributeCreated extends AbstractThingEvent<AttributeCreated>
 
     @Override
     public AttributeCreated setRevision(final long revision) {
-        return of(getThingEntityId(), attributePointer, attributeValue, revision, getTimestamp().orElse(null),
+        return of(getEntityId(), attributePointer, attributeValue, revision, getTimestamp().orElse(null),
                 getDittoHeaders(), getMetadata().orElse(null));
     }
 
     @Override
     public AttributeCreated setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), attributePointer, attributeValue, getRevision(), getTimestamp().orElse(null),
+        return of(getEntityId(), attributePointer, attributeValue, getRevision(), getTimestamp().orElse(null),
                 dittoHeaders, getMetadata().orElse(null));
     }
 
@@ -304,7 +304,7 @@ public final class AttributeCreated extends AbstractThingEvent<AttributeCreated>
             return false;
         }
         final AttributeCreated that = (AttributeCreated) o;
-        return that.canEqual(this) && Objects.equals(getThingEntityId(), that.getThingEntityId())
+        return that.canEqual(this) && Objects.equals(getEntityId(), that.getEntityId())
                 && Objects.equals(attributePointer, that.attributePointer)
                 && Objects.equals(attributeValue, that.attributeValue) && super.equals(that);
     }

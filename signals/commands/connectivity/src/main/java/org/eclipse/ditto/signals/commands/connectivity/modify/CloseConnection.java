@@ -115,7 +115,7 @@ public final class CloseConnection extends AbstractCommand<CloseConnection>
     }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return connectionId;
     }
 

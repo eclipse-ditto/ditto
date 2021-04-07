@@ -76,7 +76,7 @@ public final class SendFeatureMessageResponse<T>
 
     @Override
     public SendFeatureMessageResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), getFeatureId(), getMessage(), getHttpStatus(), dittoHeaders);
+        return of(getEntityId(), getFeatureId(), getMessage(), getHttpStatus(), dittoHeaders);
     }
 
     /**
@@ -218,7 +218,7 @@ public final class SendFeatureMessageResponse<T>
         jsonObjectBuilder.remove(MessageCommand.JsonFields.JSON_THING_ID);
         final JsonObject superBuild = jsonObjectBuilder.build();
         jsonObjectBuilder.removeAll();
-        jsonObjectBuilder.set(MessageCommand.JsonFields.JSON_THING_ID, getThingEntityId().toString());
+        jsonObjectBuilder.set(MessageCommand.JsonFields.JSON_THING_ID, getEntityId().toString());
         jsonObjectBuilder.set(JSON_FEATURE_ID, getFeatureId());
         jsonObjectBuilder.setAll(superBuild);
     }

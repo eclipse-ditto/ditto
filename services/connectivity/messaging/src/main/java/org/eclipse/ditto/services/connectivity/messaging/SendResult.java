@@ -12,32 +12,34 @@
   */
  package org.eclipse.ditto.services.connectivity.messaging;
 
- import org.eclipse.ditto.model.base.common.HttpStatus;
+ import java.util.Optional;
+
+ import javax.annotation.Nullable;
+
  import org.eclipse.ditto.model.base.headers.DittoHeaders;
  import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
- import org.eclipse.ditto.signals.commands.base.WithHttpStatus;
+ import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
  /**
-  * The result of a published message, which is only purpose is internal diagnostics/connection-metrics.
+  * The result of a published message holding an optional command response (which also can be an acknowledgement).
   */
- public final class ProbeResponse implements WithHttpStatus, DittoHeadersSettable<ProbeResponse> {
+ public final class SendResult implements DittoHeadersSettable<SendResult> {
 
-     private final HttpStatus responseStatus;
+     @Nullable private final CommandResponse<?> commandResponse;
      private final DittoHeaders dittoHeaders;
 
-     public ProbeResponse(final HttpStatus responseStatus, final DittoHeaders dittoHeaders) {
-         this.responseStatus = responseStatus;
+     public SendResult(@Nullable final CommandResponse<?> commandResponse, final DittoHeaders dittoHeaders) {
+         this.commandResponse = commandResponse;
          this.dittoHeaders = dittoHeaders;
      }
 
      @Override
-     public ProbeResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-         return new ProbeResponse(responseStatus, dittoHeaders);
+     public SendResult setDittoHeaders(final DittoHeaders dittoHeaders) {
+         return new SendResult(commandResponse, dittoHeaders);
      }
 
-     @Override
-     public HttpStatus getHttpStatus() {
-         return responseStatus;
+     public Optional<CommandResponse<?>> getCommandResponse() {
+         return Optional.ofNullable(commandResponse);
      }
 
      @Override

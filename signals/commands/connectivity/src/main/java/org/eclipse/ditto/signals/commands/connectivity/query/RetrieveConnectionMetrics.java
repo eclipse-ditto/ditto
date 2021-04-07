@@ -35,7 +35,7 @@ import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
-import org.eclipse.ditto.signals.commands.connectivity.WithConnectionId;
+import org.eclipse.ditto.model.connectivity.WithConnectionId;
 
 /**
  * Command which retrieves the current/live {@link ConnectivityStatus} and other connection specific metrics of an
@@ -120,7 +120,7 @@ public final class RetrieveConnectionMetrics extends AbstractCommand<RetrieveCon
     }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return connectionId;
     }
 

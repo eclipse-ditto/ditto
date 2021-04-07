@@ -99,7 +99,7 @@ import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.services.utils.search.SubscriptionManager;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.base.WithEntityId;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
@@ -1135,7 +1135,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         logger.withCorrelationId(command)
                 .debug("Received RetrieveConnectionStatus for connection <{}> message from <{}>." +
-                                " Forwarding to consumers and publishers.", command.getConnectionEntityId(),
+                                " Forwarding to consumers and publishers.", command.getEntityId(),
                         getSender());
 
         // send to all children (consumers, publishers, except mapping actor)
@@ -1167,7 +1167,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         logger.withCorrelationId(command)
                 .debug("Received RetrieveConnectionMetrics message for connection <{}>. Gathering metrics.",
-                        command.getConnectionEntityId());
+                        command.getEntityId());
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         final SourceMetrics sourceMetrics = connectionCounterRegistry.aggregateSourceMetrics(connectionId());
@@ -1192,14 +1192,14 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         logger.withCorrelationId(command)
                 .debug("Received ResetConnectionMetrics message for connection <{}>. Resetting metrics.",
-                        command.getConnectionEntityId());
+                        command.getEntityId());
         connectionCounterRegistry.resetForConnection(data.getConnection());
 
         return stay();
     }
 
     private FSM.State<BaseClientState, BaseClientData> enableConnectionLogs(final EnableConnectionLogs command) {
-        final ConnectionId connectionId = command.getConnectionEntityId();
+        final ConnectionId connectionId = command.getEntityId();
         logger.withCorrelationId(command)
                 .debug("Received EnableConnectionLogs message for connection <{}>. Enabling logs.", connectionId);
 
@@ -1209,7 +1209,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     private FSM.State<BaseClientState, BaseClientData> checkLoggingActive(final CheckConnectionLogsActive command) {
-        final ConnectionId connectionId = command.getConnectionEntityId();
+        final ConnectionId connectionId = command.getEntityId();
         logger.withCorrelationId(command)
                 .debug("Received checkLoggingActive message for connection <{}>." +
                         " Checking if logging for connection is expired.", connectionId);
@@ -1225,7 +1225,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private FSM.State<BaseClientState, BaseClientData> retrieveConnectionLogs(final RetrieveConnectionLogs command) {
         logger.withCorrelationId(command)
                 .debug("Received RetrieveConnectionLogs message for connection <{}>. Gathering metrics.",
-                        command.getConnectionEntityId());
+                        command.getEntityId());
 
         final ConnectionLoggerRegistry.ConnectionLogs connectionLogs =
                 connectionLoggerRegistry.aggregateLogs(connectionId());

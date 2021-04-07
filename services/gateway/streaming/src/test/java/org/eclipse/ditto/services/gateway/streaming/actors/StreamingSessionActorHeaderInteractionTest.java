@@ -195,8 +195,8 @@ public final class StreamingSessionActorHeaderInteractionTest {
 
     private Object getModifyThingResponse(final ModifyThing modifyThing) {
         return isSuccess
-                ? ModifyThingResponse.modified(modifyThing.getThingEntityId(), modifyThing.getDittoHeaders())
-                : ThingNotAccessibleException.newBuilder(modifyThing.getThingEntityId())
+                ? ModifyThingResponse.modified(modifyThing.getEntityId(), modifyThing.getDittoHeaders())
+                : ThingNotAccessibleException.newBuilder(modifyThing.getEntityId())
                 .dittoHeaders(modifyThing.getDittoHeaders())
                 .build();
     }

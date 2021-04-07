@@ -10,10 +10,10 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.signals.commands.connectivity;
+package org.eclipse.ditto.model.connectivity;
 
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.signals.base.WithEntityId;
 
 /**
  * Represents a signal type that is able to return its ConnectionId. Provides a default implementation for
@@ -25,11 +25,14 @@ public interface WithConnectionId extends WithEntityId {
      * Returns the identifier of the Connection.
      *
      * @return the identifier of the Connection.
+     * @deprecated since 2.0.0. Use {@link #getEntityId()} instead.
      */
-    ConnectionId getConnectionEntityId();
+    @Deprecated
+    default ConnectionId getConnectionEntityId() {
+        return getEntityId();
+    }
 
     @Override
-    default ConnectionId getEntityId() {
-        return getConnectionEntityId();
-    }
+    ConnectionId getEntityId();
+
 }

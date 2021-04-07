@@ -42,6 +42,8 @@ import org.apache.qpid.jms.message.JmsMessage;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.Placeholders;
+import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
@@ -50,7 +52,7 @@ import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.connectivity.config.Amqp10Config;
 import org.eclipse.ditto.services.connectivity.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
-import org.eclipse.ditto.services.connectivity.messaging.ProbeResponse;
+import org.eclipse.ditto.services.connectivity.messaging.SendResult;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.status.ProducerClosedStatusReport;
 import org.eclipse.ditto.services.connectivity.messaging.backoff.BackOffActor;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
@@ -59,8 +61,6 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
-import org.eclipse.ditto.signals.commands.base.WithHttpStatus;
 
 import akka.Done;
 import akka.actor.ActorRef;
@@ -274,7 +274,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     }
 
     @Override
-    protected CompletionStage<WithHttpStatus> publishMessage(final Signal<?> signal,
+    protected CompletionStage<SendResult> publishMessage(final Signal<?> signal,
             @Nullable final Target autoAckTarget,
             final AmqpTarget publishTarget,
             final ExternalMessage message,
@@ -282,7 +282,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
             final int ackSizeQuota) {
 
         if (!isInBackOffMode) {
-            final CompletableFuture<WithHttpStatus> resultFuture = new CompletableFuture<>();
+            final CompletableFuture<SendResult> resultFuture = new CompletableFuture<>();
 
             final AmqpMessageContext context = newContext(signal, autoAckTarget, publishTarget, resultFuture);
             sourceQueue.offer(Pair.create(message, context))
@@ -296,7 +296,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     private AmqpMessageContext newContext(final Signal<?> signal,
             @Nullable final Target autoAckTarget,
             final AmqpTarget publishTarget,
-            final CompletableFuture<WithHttpStatus> resultFuture) {
+            final CompletableFuture<SendResult> resultFuture) {
 
         final MessageProducer producer = getProducer(publishTarget.getJmsDestination());
         if (producer != null) {
@@ -310,7 +310,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
             final Signal<?> signal,
             @Nullable final Target autoAckTarget,
             final MessageProducer producer,
-            final CompletableFuture<WithHttpStatus> resultFuture) {
+            final CompletableFuture<SendResult> resultFuture) {
 
         return message -> {
             try {
@@ -344,7 +344,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     }
 
     private AmqpMessageContext newContextWithoutProducer(final AmqpTarget publishTarget,
-            final CompletableFuture<WithHttpStatus> resultFuture) {
+            final CompletableFuture<SendResult> resultFuture) {
 
         return message -> {
             // this happens when target address or 'reply-to' are set incorrectly.
@@ -383,20 +383,22 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         };
     }
 
-    private WithHttpStatus buildResponse(final Signal<?> signal, @Nullable final Target autoAckTarget) {
+    private SendResult buildResponse(final Signal<?> signal, @Nullable final Target autoAckTarget) {
 
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
         final Optional<AcknowledgementLabel> acknowledgementLabel = getAcknowledgementLabel(autoAckTarget);
-
-        if (acknowledgementLabel.isPresent() && signal instanceof WithThingId) {
-            return Acknowledgement.of(
+        final Optional<EntityIdWithType> entityIdOptional =
+                WithEntityId.getEntityIdOfType(EntityIdWithType.class, signal);
+        final Acknowledgement issuedAck;
+        if (acknowledgementLabel.isPresent() && entityIdOptional.isPresent()) {
+            issuedAck = Acknowledgement.of(
                     acknowledgementLabel.get(),
-                    ((WithThingId) signal).getThingEntityId(),
+                    entityIdOptional.get(),
                     HttpStatus.OK, dittoHeaders);
         } else {
-            return new ProbeResponse(HttpStatus.OK, dittoHeaders);
+            issuedAck = null;
         }
-
+        return new SendResult(issuedAck, dittoHeaders);
     }
 
     private static MessageSendingFailedException getMessageSendingException(final ExternalMessage message,

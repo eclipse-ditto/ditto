@@ -115,7 +115,7 @@ public final class ResetConnectionMetrics extends AbstractCommand<ResetConnectio
     }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return connectionId;
     }
 

@@ -32,8 +32,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotDeclaredExceptio
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -47,7 +46,6 @@ import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
@@ -75,7 +73,6 @@ import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.base.WithEntityId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
@@ -377,9 +374,10 @@ public final class InboundDispatchingActor extends AbstractActor
     private int dispatchIncomingSignal(final IncomingSignal incomingSignal) {
         final Signal<?> signal = incomingSignal.signal;
         final ActorRef sender = incomingSignal.sender;
-        if (incomingSignal.isAckRequesting && signal instanceof WithThingId) {
+        final Optional<ThingId> thingIdOptional = WithEntityId.getEntityIdOfType(ThingId.class, signal);
+        if (incomingSignal.isAckRequesting && thingIdOptional.isPresent()) {
             try {
-                startAckregatorAndForwardSignal((Signal<?> & WithThingId) signal, sender);
+                startAckregatorAndForwardSignal(thingIdOptional.get(), signal.getDittoHeaders(), signal, sender);
             } catch (final DittoRuntimeException e) {
                 handleErrorDuringStartingOfAckregator(e, signal.getDittoHeaders(), sender);
             }
@@ -407,7 +405,7 @@ public final class InboundDispatchingActor extends AbstractActor
                         return ConnectivityErrorResponse.of(dre, originalHeaders);
                     }
                 })
-                .thenAccept(response -> sender.tell(response, ActorRef.noSender()));
+                        .thenAccept(response -> sender.tell(response, ActorRef.noSender()));
             } else {
                 proxyActor.tell(signal, sender);
             }
@@ -420,9 +418,9 @@ public final class InboundDispatchingActor extends AbstractActor
                 (signal instanceof ThingCommand && ProtocolAdapter.isLiveSignal(signal)));
     }
 
-    private <S extends Signal<?> & WithThingId> void startAckregatorAndForwardSignal(final S signal,
-            @Nullable final ActorRef sender) {
-        ackregatorStarter.doStart(signal,
+    private void startAckregatorAndForwardSignal(final ThingId thingId, final DittoHeaders dittoHeaders,
+            final Signal<?> signal, @Nullable final ActorRef sender) {
+        ackregatorStarter.doStart(thingId, dittoHeaders,
                 responseSignal -> {
                     // potentially publish response/aggregated acks to reply target
                     if (signal.getDittoHeaders().isResponseRequired()) {
@@ -519,7 +517,8 @@ public final class InboundDispatchingActor extends AbstractActor
         return newTopicPathBuilder(acks, acks).acks().aggregatedAcks().build();
     }
 
-    private TopicPathBuilder newTopicPathBuilder(final WithEntityId withEntityId, final WithDittoHeaders withDittoHeaders) {
+    private TopicPathBuilder newTopicPathBuilder(final WithEntityId withEntityId,
+            final WithDittoHeaders withDittoHeaders) {
         final TopicPathBuilder builder = ProtocolFactory.newTopicPathBuilder(ThingId.of(withEntityId.getEntityId()));
         return withDittoHeaders.getDittoHeaders()
                 .getChannel()

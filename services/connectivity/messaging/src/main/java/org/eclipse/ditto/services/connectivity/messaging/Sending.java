@@ -28,11 +28,14 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
+import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
@@ -43,13 +46,13 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.WithHttpStatus;
 
 /**
- * A signal being sent represented by a future acknowledgement, command response or probe response
+ * A signal being sent represented by a future sending result holding an acknowledgement or other command response
  */
 @NotThreadSafe
 final class Sending implements SendingOrDropped {
 
     private final SendingContext sendingContext;
-    private final CompletionStage<WithHttpStatus> futureResponse;
+    private final CompletionStage<SendResult> futureResponse;
     private final ExpressionResolver connectionIdResolver;
     private final ThreadSafeDittoLoggingAdapter logger;
 
@@ -57,17 +60,17 @@ final class Sending implements SendingOrDropped {
      * Constructs a new Sending object.
      *
      * @param sendingContext context information for the sent signal.
-     * @param futureResponse represents a signal being sent as either future acknowledgement or another command response.
+     * @param futureResult contains a signal being sent as either future acknowledgement or another command response.
      * @param connectionIdResolver an ExpressionResolver for looking up {@code {{connection:id}}} placeholders in target acks.
      * @param logger the logger to be used for logging.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    Sending(final SendingContext sendingContext, final CompletionStage<WithHttpStatus> futureResponse,
+    Sending(final SendingContext sendingContext, final CompletionStage<SendResult> futureResult,
             final ExpressionResolver connectionIdResolver,
             final ThreadSafeDittoLoggingAdapter logger) {
 
         this.sendingContext = checkNotNull(sendingContext, "sendingContext");
-        this.futureResponse = checkNotNull(futureResponse, "futureResponse");
+        this.futureResponse = checkNotNull(futureResult, "futureResult");
         this.connectionIdResolver = checkNotNull(connectionIdResolver, "connectionIdResolver");
         this.logger = checkNotNull(logger, "logger");
     }
@@ -77,39 +80,35 @@ final class Sending implements SendingOrDropped {
     public Optional<CompletionStage<CommandResponse>> monitorAndAcknowledge(
             final ExceptionToAcknowledgementConverter exceptionConverter) {
 
-        return Optional.of(futureResponse.handle((response, error) -> {
+        return Optional.of(futureResponse.handle((result, error) -> {
 
-            final Optional<WithHttpStatus> ackFromRootCause = Optional.ofNullable(error).map(Sending::getRootCause)
+            final Optional<CommandResponse<?>> ackFromRootCause = Optional.ofNullable(error).map(Sending::getRootCause)
                     .map(rootException -> convertExceptionToAcknowledgementOrNull(rootException, exceptionConverter));
-            final Optional<WithHttpStatus> ackFromNullResponse =
-                    Optional.ofNullable(acknowledgementFromNullResponse(exceptionConverter, response));
+            final Optional<CommandResponse<?>> ackFromNullResponse =
+                    Optional.ofNullable(acknowledgementFromNullResponse(exceptionConverter, result));
 
-
-            final Optional<WithHttpStatus> responseOrAlternatives = ackFromRootCause
+            final Optional<CommandResponse<?>> responseOrAlternatives = ackFromRootCause
                     .or(() -> ackFromNullResponse)
-                    .or(() -> Optional.ofNullable(response));
+                    .or(() -> Optional.ofNullable(result).flatMap(SendResult::getCommandResponse));
 
             responseOrAlternatives.ifPresent(commandResponse -> updateAckMonitor(getAckFailure(commandResponse)));
 
             if (error != null || responseOrAlternatives.isPresent()) {
-                updateSendMonitor(getSentFailure(error, response, ackFromNullResponse.isPresent()));
+                updateSendMonitor(getSentFailure(error, ackFromNullResponse.isPresent()));
             }
-
-            return responseOrAlternatives
-                    .map(CommandResponse.class::cast)
-                    .orElse(null);
+            return responseOrAlternatives.orElse(null);
         }));
     }
 
     @Nullable
     private CommandResponse<?> acknowledgementFromNullResponse(
-            final ExceptionToAcknowledgementConverter exceptionConverter, @Nullable final WithHttpStatus response) {
-        if (sendingContext.shouldAcknowledge() && null == response) {
+            final ExceptionToAcknowledgementConverter exceptionConverter, @Nullable final SendResult result) {
+        if (sendingContext.shouldAcknowledge() && null == result) {
             /*
-             * response == null; report error.
+             * result == null; report error.
              * This indicates a bug in the publisher actor because of one of the following reasons:
-             * - Ack is only allowed to be null if the issued-ack should be "live-response".
-             * - If the issued-ack is "live-response" the response must be considered as the ack which
+             * - Ack is only allowed to be null if the issued-ack should be "live-result".
+             * - If the issued-ack is "live-result" the result must be considered as the ack which
              *   has to be issued by the auto ack target.
              */
             return convertExceptionToAcknowledgementOrNull(getNullAckException(), exceptionConverter);
@@ -119,15 +118,12 @@ final class Sending implements SendingOrDropped {
     }
 
     @Nullable
-    private Exception getSentFailure(@Nullable final Throwable error, @Nullable final WithHttpStatus response,
-            boolean isAckFromNullResponse){
-
+    private Exception getSentFailure(@Nullable final Throwable error, boolean isAckFromNullResponse) {
         if (null != error) {
             return getRootCause(error);
-        } else if(isAckFromNullResponse) {
+        } else if (isAckFromNullResponse) {
             return getNullAckException();
-        }
-        else {
+        } else {
             return null;
         }
     }
@@ -169,13 +165,15 @@ final class Sending implements SendingOrDropped {
                 .flatMap(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel));
 
         final Signal<?> source = sendingContext.getMappedOutboundSignal().getSource();
+        final Optional<EntityIdWithType> entityIdOptional =
+                WithEntityId.getEntityIdOfType(EntityIdWithType.class, source);
 
-        if (autoAckLabel.isPresent() && source instanceof WithThingId) {
+        if (autoAckLabel.isPresent() && entityIdOptional.isPresent()) {
 
             // assume DittoRuntimeException payload or exception message fits within quota
             return exceptionConverter.convertException(exception,
                     autoAckLabel.get(),
-                    ((WithThingId) source).getThingEntityId(),
+                    entityIdOptional.get(),
                     source.getDittoHeaders());
         } else {
             return null;
@@ -230,7 +228,8 @@ final class Sending implements SendingOrDropped {
      *
      * @param messageSendingFailedExceptionSupplier if given report failure, otherwise report success.
      */
-    private void updateAckMonitor(@Nullable final Supplier<DittoRuntimeException> messageSendingFailedExceptionSupplier) {
+    private void updateAckMonitor(
+            @Nullable final Supplier<DittoRuntimeException> messageSendingFailedExceptionSupplier) {
         sendingContext.getAcknowledgedMonitor().ifPresent(ackMonitor -> {
             if (null != messageSendingFailedExceptionSupplier) {
                 ackMonitor.failure(sendingContext.getExternalMessage(), messageSendingFailedExceptionSupplier.get());

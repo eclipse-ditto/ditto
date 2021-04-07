@@ -22,29 +22,31 @@ import org.eclipse.ditto.model.base.entity.id.EntityId;
  * E.g. "give me all Ids grater then x"
  * As starting point or for resetting the lowest possible Id is needed, the lower-bound.
  */
-public final class LowerBound extends AbstractEntityIdWithRevision {
+public final class LowerBound extends AbstractEntityIdWithRevision<EntityId> {
 
     private static final EntityId EMPTY_ENTITY_ID = DefaultEntityId.of(":_");
-    private static final EntityIdWithRevision EMPTY_ENTITY_ID_WITH_REVISION = new LowerBound();
+    private static final LowerBound EMPTY_ENTITY_ID_WITH_REVISION = new LowerBound();
 
     private LowerBound() {
-        super(EMPTY_ENTITY_ID, 0L);
+        this(EMPTY_ENTITY_ID, 0L);
     }
 
-    private LowerBound(final JsonObject jsonObject) {
-        super(DefaultEntityId.of(jsonObject.getValueOrThrow(JsonFields.ID)),
-                jsonObject.getValueOrThrow(JsonFields.REVISION));
+    private LowerBound(final EntityId entityId, final Long revision) {
+        super(entityId, revision);
     }
 
     public static EntityId emptyEntityId() {
         return EMPTY_ENTITY_ID;
     }
 
-    public static EntityIdWithRevision empty() {
+    public static EntityIdWithRevision<EntityId> empty() {
         return EMPTY_ENTITY_ID_WITH_REVISION;
     }
 
-    public static EntityIdWithRevision fromJsonObject(JsonObject jsonObject) {
-        return new LowerBound(jsonObject);
+    public static EntityIdWithRevision<EntityId> fromJson(JsonObject jsonObject) {
+        final DefaultEntityId entityId = DefaultEntityId.of(jsonObject.getValueOrThrow(JsonFields.ID));
+        final Long revision = jsonObject.getValueOrThrow(JsonFields.REVISION);
+        return new LowerBound(entityId, revision);
     }
+
 }

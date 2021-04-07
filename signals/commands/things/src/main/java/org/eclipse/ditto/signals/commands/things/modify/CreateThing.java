@@ -249,7 +249,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
     public Optional<String> getPolicyIdOrPlaceholder() { return Optional.ofNullable(policyIdOrPlaceholder);}
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thing.getEntityId().orElseThrow(() -> new NullPointerException("Thing has no ID!"));
     }
 

@@ -37,7 +37,7 @@ public interface ThingCommandResponse<T extends ThingCommandResponse<T>> extends
 
     @Override
     default ThingId getEntityId() {
-        return getThingEntityId();
+        return getEntityId();
     }
 
     @Override

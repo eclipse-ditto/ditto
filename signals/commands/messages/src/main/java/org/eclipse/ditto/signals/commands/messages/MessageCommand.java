@@ -84,7 +84,7 @@ public interface MessageCommand<P, C extends MessageCommand<P, C>> extends Comma
 
     @Override
     default ThingId getEntityId() {
-        return getThingEntityId();
+        return getEntityId();
     }
 
     @Override

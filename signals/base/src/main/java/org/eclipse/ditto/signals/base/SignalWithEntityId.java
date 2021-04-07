@@ -12,8 +12,10 @@
   */
  package org.eclipse.ditto.signals.base;
 
+ import org.eclipse.ditto.model.base.entity.id.WithEntityId;
+
  /**
   * An intersection type for all Signals with an entity associated to it.
   */
- public interface SignalWithEntityId<T extends Signal<T>> extends Signal<T>, WithEntityId {
+ public interface SignalWithEntityId<T extends SignalWithEntityId<T>> extends Signal<T>, WithEntityId {
  }

@@ -111,7 +111,7 @@ public final class DeleteConnectionResponse extends AbstractCommandResponse<Dele
     }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return connectionId;
     }
 

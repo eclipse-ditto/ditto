@@ -55,7 +55,7 @@ public final class RetrieveFeaturePropertyStrategyTest extends AbstractCommandSt
                 RetrieveFeatureProperty.of(context.getState(), FLUX_CAPACITOR_ID, propertyPointer,
                         DittoHeaders.empty());
         final RetrieveFeaturePropertyResponse expectedResponse =
-                retrieveFeaturePropertyResponse(command.getThingEntityId(), command.getFeatureId(),
+                retrieveFeaturePropertyResponse(command.getEntityId(), command.getFeatureId(),
                         command.getPropertyPointer(), JsonFactory.newValue(1955), command.getDittoHeaders());
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
@@ -67,7 +67,7 @@ public final class RetrieveFeaturePropertyStrategyTest extends AbstractCommandSt
         final RetrieveFeatureProperty command = RetrieveFeatureProperty.of(context.getState(), FLUX_CAPACITOR_ID,
                 JsonFactory.newPointer("target_year_1"), DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featureNotFound(command.getThingEntityId(), command.getFeatureId(),
+                ExceptionFactory.featureNotFound(command.getEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.removeFeatures(), command, expectedException);
@@ -80,7 +80,7 @@ public final class RetrieveFeaturePropertyStrategyTest extends AbstractCommandSt
                 RetrieveFeatureProperty.of(context.getState(), FLUX_CAPACITOR_ID,
                         JsonFactory.newPointer("target_year_1"), DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featurePropertiesNotFound(command.getThingEntityId(), command.getFeatureId(),
+                ExceptionFactory.featurePropertiesNotFound(command.getEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.setFeature(FLUX_CAPACITOR.removeProperties()), command,
@@ -96,7 +96,7 @@ public final class RetrieveFeaturePropertyStrategyTest extends AbstractCommandSt
                 RetrieveFeatureProperty.of(context.getState(), FLUX_CAPACITOR_ID, propertyPointer,
                         DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featurePropertyNotFound(command.getThingEntityId(), command.getFeatureId(),
+                ExceptionFactory.featurePropertyNotFound(command.getEntityId(), command.getFeatureId(),
                         command.getPropertyPointer(), command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.setFeature(FLUX_CAPACITOR.removeProperty(propertyPointer)), command,

@@ -22,14 +22,13 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.exceptions.SignalEnrichmentFailedException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.base.SignalWithEntityId;
 
 /**
  * Sessioned Jsonifiable that supports signal enrichment.
@@ -59,17 +58,17 @@ final class SessionedSignal implements SessionedJsonifiable {
 
     @Override
     public CompletionStage<JsonObject> retrieveExtraFields(@Nullable final SignalEnrichmentFacade facade) {
-        // TODO: jbartelh fix tha ugly/bad cast
-        final EntityId entityId = ((SignalWithEntityId<?>) signal).getEntityId();
         final Optional<JsonFieldSelector> extraFields = session.getExtraFields();
-        if (extraFields.isPresent() && (facade == null || !(entityId instanceof ThingId))) {
+        if (extraFields.isPresent()) {
+            final Optional<ThingId> thingIdOptional = WithEntityId.getEntityIdOfType(ThingId.class, signal);
+            if (facade != null && thingIdOptional.isPresent()) {
+                return facade.retrievePartialThing(thingIdOptional.get(), extraFields.get(), sessionHeaders, signal);
+            }
             final CompletableFuture<JsonObject> future = new CompletableFuture<>();
             future.completeExceptionally(SignalEnrichmentFailedException.newBuilder()
                     .dittoHeaders(signal.getDittoHeaders())
                     .build());
             return future;
-        } else if (extraFields.isPresent()) {
-            return facade.retrievePartialThing((ThingId) entityId, extraFields.get(), sessionHeaders, signal);
         } else {
             return CompletableFuture.completedFuture(JsonObject.empty());
         }

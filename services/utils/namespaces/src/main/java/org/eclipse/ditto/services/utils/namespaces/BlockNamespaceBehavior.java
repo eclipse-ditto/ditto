@@ -21,7 +21,7 @@ import java.util.concurrent.CompletionStage;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.model.namespaces.NamespaceBlockedException;
 import org.eclipse.ditto.model.namespaces.NamespaceReader;
-import org.eclipse.ditto.signals.base.WithEntityId;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 
 /**
  * Behavior that blocks messages directed toward entities in a cached namespace.

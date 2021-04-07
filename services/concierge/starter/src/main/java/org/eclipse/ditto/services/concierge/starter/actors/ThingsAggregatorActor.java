@@ -92,7 +92,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
                     log.withCorrelationId(rt)
                             .info("Got '{}' message. Retrieving requested '{}' Things..",
                                     RetrieveThings.class.getSimpleName(),
-                                    rt.getThingEntityIds().size());
+                                    rt.getEntityIds().size());
                     retrieveThings(rt, getSender());
                 })
 
@@ -117,7 +117,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
 
     private void retrieveThings(final RetrieveThings retrieveThings, final ActorRef resultReceiver) {
         final JsonFieldSelector selectedFields = retrieveThings.getSelectedFields().orElse(null);
-        retrieveThingsAndSendResult(retrieveThings.getThingEntityIds(), selectedFields, retrieveThings, resultReceiver);
+        retrieveThingsAndSendResult(retrieveThings.getEntityIds(), selectedFields, retrieveThings, resultReceiver);
     }
 
     private void retrieveThings(final SudoRetrieveThings sudoRetrieveThings, final ActorRef resultReceiver) {

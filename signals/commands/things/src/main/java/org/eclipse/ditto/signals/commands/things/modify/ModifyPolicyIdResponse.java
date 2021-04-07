@@ -183,7 +183,7 @@ public final class ModifyPolicyIdResponse extends AbstractCommandResponse<Modify
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 
