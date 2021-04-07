@@ -40,6 +40,7 @@ import org.eclipse.ditto.services.connectivity.config.HttpPushConfig;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractBaseClientActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.services.connectivity.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.junit.After;
 import org.junit.Before;
@@ -112,7 +113,7 @@ public final class HttpPushFactoryTest {
                 .uri("http://127.0.0.1:" + binding.localAddress().getPort() + "/path/prefix/")
                 .build();
         final HttpPushFactory underTest = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(),
-                mock(ConnectionLogger.class));
+                mock(ConnectionLogger.class), SshTunnelState::disabled);
         final HttpRequest request = underTest.newRequest(HttpPublishTarget.of("PUT:/path/appendage/"));
         assertThat(request.method()).isEqualTo(HttpMethods.PUT);
         assertThat(request.getUri().getPathString()).isEqualTo("/path/prefix/path/appendage/");
@@ -125,7 +126,7 @@ public final class HttpPushFactoryTest {
                 .uri("http://username:password@127.0.0.1:" + binding.localAddress().getPort() + "/path/prefix/")
                 .build();
         final HttpPushFactory underTest = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(),
-                mock(ConnectionLogger.class));
+                mock(ConnectionLogger.class), SshTunnelState::disabled);
         final Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> pair =
                 newSourceSinkQueues(underTest);
         final SourceQueueWithComplete<HttpRequest> sourceQueue = pair.first();
@@ -166,7 +167,7 @@ public final class HttpPushFactoryTest {
             public HttpProxyConfig getHttpProxyConfig() {
                 return getEnabledProxyConfig(binding);
             }
-        }, mock(ConnectionLogger.class));
+        }, mock(ConnectionLogger.class), SshTunnelState::disabled);
         final Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> pair =
                 newSourceSinkQueues(underTest);
         final SourceQueueWithComplete<HttpRequest> sourceQueue = pair.first();
@@ -192,7 +193,7 @@ public final class HttpPushFactoryTest {
         new TestKit(actorSystem) {{
             // GIVEN: An HTTP-push connection is established against localhost.
             final HttpPushFactory underTest =
-                    HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(), mock(ConnectionLogger.class));
+                    HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(), mock(ConnectionLogger.class), SshTunnelState::disabled);
             final Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> pair =
                     newSourceSinkQueues(underTest);
             final SourceQueueWithComplete<HttpRequest> sourceQueue = pair.first();
@@ -240,7 +241,7 @@ public final class HttpPushFactoryTest {
                 .specificConfig(Map.of("parallelism", "3"))
                 .build();
         final HttpPushFactory underTest = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(),
-                mock(ConnectionLogger.class));
+                mock(ConnectionLogger.class), SshTunnelState::disabled);
         final Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> pair =
                 newSourceSinkQueues(underTest);
         final SourceQueueWithComplete<HttpRequest> sourceQueue = pair.first();
@@ -269,7 +270,7 @@ public final class HttpPushFactoryTest {
     public void emitFailureOnTimeout() {
         connection = connection.toBuilder().uri("http://127.0.0.1:" + binding.localAddress().getPort()).build();
         final HttpPushFactory underTest = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(),
-                mock(ConnectionLogger.class));
+                mock(ConnectionLogger.class), SshTunnelState::disabled);
 
         // GIVEN: the HTTP client flow is configured with very short timeout
         final Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> pair =

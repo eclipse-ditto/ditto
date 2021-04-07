@@ -57,6 +57,7 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
     private final ActorRef proxyActor;
     private final ClientActorPropsFactory propsFactory;
     @Nullable private final ConnectivityCommandInterceptor commandInterceptor;
+    private final ConnectionPriorityProviderFactory connectionPriorityProviderFactory;
     private final ActorRef pubSubMediator;
 
     @SuppressWarnings("unused")
@@ -64,10 +65,12 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
             final ActorRef proxyActor,
             final ClientActorPropsFactory propsFactory,
             @Nullable final ConnectivityCommandInterceptor commandInterceptor,
+            final ConnectionPriorityProviderFactory connectionPriorityProviderFactory,
             final ActorRef pubSubMediator) {
         this.proxyActor = proxyActor;
         this.propsFactory = propsFactory;
         this.commandInterceptor = commandInterceptor;
+        this.connectionPriorityProviderFactory = connectionPriorityProviderFactory;
         this.pubSubMediator = pubSubMediator;
     }
 
@@ -81,16 +84,18 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
      * @param proxyActor the actor used to send signals into the ditto cluster..
      * @param propsFactory the {@link ClientActorPropsFactory}
      * @param commandValidator a custom command validator for connectivity commands.
+     * @param connectionPriorityProviderFactory used to determine the reconnect priority of a connection.
      * @param pubSubMediator pub-sub-mediator for the shutdown behavior.
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final ActorRef proxyActor,
             final ClientActorPropsFactory propsFactory,
             @Nullable final ConnectivityCommandInterceptor commandValidator,
+            final ConnectionPriorityProviderFactory connectionPriorityProviderFactory,
             final ActorRef pubSubMediator) {
 
         return Props.create(ConnectionSupervisorActor.class, proxyActor, propsFactory, commandValidator,
-                pubSubMediator);
+                connectionPriorityProviderFactory, pubSubMediator);
     }
 
     @Override
@@ -100,8 +105,7 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
 
     @Override
     protected Props getPersistenceActorProps(final ConnectionId entityId) {
-        return ConnectionPersistenceActor.props(entityId, proxyActor, propsFactory,
-                commandInterceptor);
+        return ConnectionPersistenceActor.props(entityId, proxyActor, propsFactory, commandInterceptor, connectionPriorityProviderFactory);
     }
 
     @Override

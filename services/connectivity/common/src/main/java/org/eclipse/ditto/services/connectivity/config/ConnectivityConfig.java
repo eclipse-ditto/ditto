@@ -86,4 +86,11 @@ public interface ConnectivityConfig extends ServiceSpecificConfig, WithHealthChe
      * @return the config.
      */
     AcknowledgementConfig getAcknowledgementConfig();
+
+    /**
+     * Returns the configuration for ssh tunneling.
+     *
+     * @return the config.
+     */
+    TunnelConfig getTunnelConfig();
 }

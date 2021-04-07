@@ -12,10 +12,10 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.ddata;
 
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
+import java.util.stream.IntStream;
 
 import org.eclipse.ditto.services.utils.ddata.DistributedData;
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
@@ -29,7 +29,6 @@ import akka.cluster.ddata.ORMultiMap;
 import akka.cluster.ddata.ORMultiMapKey;
 import akka.cluster.ddata.Replicator;
 import akka.cluster.ddata.SelfUniqueAddress;
-import scala.jdk.javaapi.CollectionConverters;
 
 /**
  * A distributed collection of approximations of strings indexed by keys like ActorRef.
@@ -53,17 +52,8 @@ public abstract class AbstractDDataHandler<K, S, T extends DDataUpdate<S>>
     }
 
     @Override
-    public CompletionStage<Map<K, scala.collection.immutable.Set<S>>> read(
-            final Replicator.ReadConsistency readConsistency) {
-
-        return get(readConsistency).thenApply(optional -> {
-            if (optional.isPresent()) {
-                final ORMultiMap<K, S> mmap = optional.get();
-                return CollectionConverters.asJava(mmap.entries());
-            } else {
-                return Map.of();
-            }
-        });
+    public int getNumberOfShards() {
+        return numberOfShards;
     }
 
     @Override
@@ -73,7 +63,8 @@ public abstract class AbstractDDataHandler<K, S, T extends DDataUpdate<S>>
         if (update.isEmpty()) {
             return CompletableFuture.completedFuture(null);
         } else {
-            return update(writeConsistency, initialMMap -> {
+            final int shardNumber = Math.abs(ownSubscriber.hashCode() % numberOfShards);
+            return update(getKey(shardNumber), writeConsistency, initialMMap -> {
                 ORMultiMap<K, S> mmap = initialMMap;
                 for (final S delete : update.getDeletes()) {
                     mmap = mmap.removeBinding(selfUniqueAddress, ownSubscriber, delete);
@@ -89,17 +80,22 @@ public abstract class AbstractDDataHandler<K, S, T extends DDataUpdate<S>>
     @Override
     public CompletionStage<Void> removeSubscriber(final K subscriber,
             final Replicator.WriteConsistency writeConsistency) {
-        return update(writeConsistency, mmap -> mmap.remove(selfUniqueAddress, subscriber));
+        final int shardNumber = Math.abs(subscriber.hashCode() % numberOfShards);
+        return update(getKey(shardNumber), writeConsistency, mmap -> mmap.remove(selfUniqueAddress, subscriber));
     }
 
     @Override
     public void receiveChanges(final ActorRef recipient) {
-        replicator.tell(new Replicator.Subscribe<>(getKey(), recipient), ActorRef.noSender());
+        IntStream.range(0, numberOfShards)
+                .forEach(i -> replicator.tell(new Replicator.Subscribe<>(getKey(i), recipient), ActorRef.noSender()));
     }
 
     @Override
-    public Key<ORMultiMap<K, S>> getKey() {
-        return ORMultiMapKey.create(topicType);
+    public Key<ORMultiMap<K, S>> getKey(final int shardNumber) {
+        if (shardNumber < 0) {
+            throw new IllegalArgumentException("Negative shardNumber is not supported: " + shardNumber);
+        }
+        return ORMultiMapKey.create(String.format("%s-%d", topicType, shardNumber));
     }
 
     @Override

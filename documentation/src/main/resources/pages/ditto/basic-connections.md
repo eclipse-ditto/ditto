@@ -486,3 +486,9 @@ Sending live commands and events to a target address that contains the thing's n
       ]
   }
 ```
+
+## SSH tunneling
+
+Ditto supports tunneling a connection by establishing an SSH tunnel and using it to connect to the actual endpoint.
+
+See [SSH tunneling](connectivity-ssh-tunneling.html) on how to setup and configure SSH tunneling with Ditto. 

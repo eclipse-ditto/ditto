@@ -35,12 +35,14 @@ public final class DefaultPingConfig implements PingConfig {
     private final Duration interval;
     private final RateConfig rateConfig;
     private final int readJournalBatchSize;
+    private final StreamingOrder streamingOrder;
 
     private DefaultPingConfig(final ScopedConfig config, final RateConfig theRateConfig) {
         journalTag = config.getString(PingConfigValue.JOURNAL_TAG.getConfigPath());
         initialDelay = config.getDuration(PingConfigValue.INITIAL_DELAY.getConfigPath());
         interval = config.getDuration(PingConfigValue.INTERVAL.getConfigPath());
         readJournalBatchSize = config.getInt(PingConfigValue.READ_JOURNAL_BATCH_SIZE.getConfigPath());
+        streamingOrder = config.getEnum(StreamingOrder.class, PingConfigValue.STREAMING_ORDER.getConfigPath());
         rateConfig = theRateConfig;
     }
 
@@ -84,6 +86,11 @@ public final class DefaultPingConfig implements PingConfig {
     }
 
     @Override
+    public StreamingOrder getStreamingOrder() {
+        return streamingOrder;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -96,12 +103,13 @@ public final class DefaultPingConfig implements PingConfig {
                 Objects.equals(initialDelay, that.initialDelay) &&
                 Objects.equals(interval, that.interval) &&
                 readJournalBatchSize == that.readJournalBatchSize &&
-                Objects.equals(rateConfig, that.rateConfig);
+                Objects.equals(rateConfig, that.rateConfig) &&
+                Objects.equals(streamingOrder, that.streamingOrder);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(journalTag, initialDelay, interval, readJournalBatchSize, rateConfig);
+        return Objects.hash(journalTag, initialDelay, interval, readJournalBatchSize, rateConfig, streamingOrder);
     }
 
     @Override
@@ -112,6 +120,7 @@ public final class DefaultPingConfig implements PingConfig {
                 ", interval=" + interval +
                 ", readJournalBatchSize=" + readJournalBatchSize +
                 ", rateConfig=" + rateConfig +
+                ", streamingOrder=" + streamingOrder +
                 "]";
     }
 

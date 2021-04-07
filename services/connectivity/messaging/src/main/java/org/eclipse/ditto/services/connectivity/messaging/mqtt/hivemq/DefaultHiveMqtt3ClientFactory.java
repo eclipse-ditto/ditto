@@ -12,9 +12,12 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 
+import java.util.function.Supplier;
+
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.services.connectivity.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 
 import com.hivemq.client.mqtt.MqttClient;
@@ -29,16 +32,17 @@ import com.hivemq.client.mqtt.mqtt3.Mqtt3ClientBuilder;
 public final class DefaultHiveMqtt3ClientFactory extends AbstractHiveMqttClientFactory
         implements HiveMqtt3ClientFactory {
 
-    private static final DefaultHiveMqtt3ClientFactory INSTANCE = new DefaultHiveMqtt3ClientFactory();
 
     /**
-     * @return the singleton instance of {@link DefaultHiveMqtt3ClientFactory}
+     * @return the an instance of {@link DefaultHiveMqtt3ClientFactory}
      */
-    public static DefaultHiveMqtt3ClientFactory getInstance() {
-        return INSTANCE;
+    public static DefaultHiveMqtt3ClientFactory getInstance(final Supplier<SshTunnelState> tunnelConfigSupplier) {
+        return new DefaultHiveMqtt3ClientFactory(tunnelConfigSupplier);
     }
 
-    private DefaultHiveMqtt3ClientFactory() {
+    private DefaultHiveMqtt3ClientFactory(
+            final Supplier<SshTunnelState> tunnelConfigSupplier) {
+        super(tunnelConfigSupplier);
     }
 
     @Override

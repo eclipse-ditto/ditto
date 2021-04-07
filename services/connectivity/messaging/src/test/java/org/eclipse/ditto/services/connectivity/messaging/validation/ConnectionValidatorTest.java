@@ -121,7 +121,7 @@ public class ConnectionValidatorTest {
                 assumingFields("specMap").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
                 provided(QueryFilterCriteriaFactory.class,
                         LoggingAdapter.class,
-                        HostValidator.class,
+                        DefaultHostValidator.class,
                         ConnectivityConfigProvider.class).areAlsoImmutable());
     }
 
@@ -415,6 +415,20 @@ public class ConnectionValidatorTest {
                 .build();
         final ConnectionValidator underTest = getConnectionValidator();
         underTest.validate(connection, DittoHeaders.empty(), actorSystem);
+    }
+
+    @Test
+    public void rejectKafkaConnectionWithTunnel() {
+        final Connection connection = TestConstants.createConnection(CONNECTION_ID, ConnectionType.KAFKA)
+                .toBuilder()
+                .uri("amqps://8.8.4.4:443")
+                .sshTunnel(TestConstants.Tunnel.VALID_SSH_TUNNEL)
+                .build();
+
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem))
+                .withMessage("SSH tunneling not supported.");
     }
 
     @Test

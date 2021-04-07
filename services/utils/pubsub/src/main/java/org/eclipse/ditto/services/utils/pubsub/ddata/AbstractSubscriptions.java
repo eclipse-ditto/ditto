@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.utils.pubsub.ddata;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -86,7 +85,9 @@ public abstract class AbstractSubscriptions<R, T extends DDataUpdate<R>> impleme
             final SubscriberData subscriberData = SubscriberData.of(topics, filter, group);
             subscriberDataMap.merge(subscriber, subscriberData, (oldData, newData) -> {
                 changed[0] = !oldData.getFilter().equals(newData.getFilter());
-                return newData.withTopics(unionSet(oldData.getTopics(), newData.getTopics()));
+                final Set<String> unionTopics = unionSet(oldData.getTopics(), newData.getTopics());
+                changed[0] |= !unionTopics.equals(oldData.getTopics());
+                return newData.withTopics(unionTopics);
             });
 
             // add subscriber for each new topic; detect whether there is any change.
@@ -162,12 +163,6 @@ public abstract class AbstractSubscriptions<R, T extends DDataUpdate<R>> impleme
                 .stream()
                 .map(entry -> Pair.create(entry.getKey(), entry.getValue().export()))
                 .collect(Collectors.toMap(Pair::first, Pair::second));
-    }
-
-    private Map<String, Set<ActorRef>> exportTopicData() {
-        return Collections.unmodifiableMap(topicDataMap.entrySet()
-                .stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().exportSubscribers())));
     }
 
     private boolean removeSubscriberForTopics(final ActorRef subscriber, final Collection<String> topics) {

@@ -13,10 +13,12 @@
 package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
 import java.time.Duration;
+import java.util.function.Supplier;
 
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.config.HttpPushConfig;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.services.connectivity.messaging.tunnel.SshTunnelState;
 
 import akka.actor.ActorSystem;
 import akka.event.LoggingAdapter;
@@ -63,10 +65,12 @@ public interface HttpPushFactory {
      *
      * @param connection the connection.
      * @param httpPushConfig configuration of Http connections.
+     * @param connectionLogger the connection logger
+     * @param tunnelConfigSupplier a supplier of the SshTunnelState
      * @return the HTTP-push-factory.
      */
     static HttpPushFactory of(final Connection connection, final HttpPushConfig httpPushConfig,
-            final ConnectionLogger connectionLogger) {
-        return DefaultHttpPushFactory.of(connection, httpPushConfig, connectionLogger);
+            final ConnectionLogger connectionLogger, final Supplier<SshTunnelState> tunnelConfigSupplier) {
+        return DefaultHttpPushFactory.of(connection, httpPushConfig, connectionLogger, tunnelConfigSupplier);
     }
 }

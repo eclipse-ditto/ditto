@@ -74,7 +74,7 @@ public final class HttpPushClientActor extends BaseClientActor {
                 .getHttpPushConfig();
         final MonitoringLoggerConfig loggerConfig = connectivityConfig.getMonitoringConfig().logger();
         connectionLogger = ConnectionLogger.getInstance(connection.getId(), loggerConfig);
-        factory = HttpPushFactory.of(connection, httpPushConfig, connectionLogger);
+        factory = HttpPushFactory.of(connection, httpPushConfig, connectionLogger, this::getSshTunnelState);
     }
 
     /**

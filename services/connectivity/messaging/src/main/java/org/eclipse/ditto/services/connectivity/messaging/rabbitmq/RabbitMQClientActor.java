@@ -88,13 +88,13 @@ public final class RabbitMQClientActor extends BaseClientActor {
      */
     @SuppressWarnings("unused")
     private RabbitMQClientActor(final Connection connection,
-            final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory,
             @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor) {
 
         super(connection, proxyActor, connectionActor);
 
-        this.rabbitConnectionFactoryFactory = rabbitConnectionFactoryFactory;
+        rabbitConnectionFactoryFactory =
+                ConnectionBasedRabbitConnectionFactoryFactory.getInstance(this::getSshTunnelState);
         consumedTagsToAddresses = new HashMap<>();
         consumerByAddressWithIndex = new HashMap<>();
 
@@ -106,10 +106,14 @@ public final class RabbitMQClientActor extends BaseClientActor {
      */
     @SuppressWarnings("unused")
     private RabbitMQClientActor(final Connection connection, @Nullable final ActorRef proxyActor,
-            final ActorRef connectionActor) {
+            final ActorRef connectionActor, final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
 
-        this(connection, ConnectionBasedRabbitConnectionFactoryFactory.getInstance(), proxyActor,
-                connectionActor);
+        super(connection, proxyActor, connectionActor);
+        this.rabbitConnectionFactoryFactory = rabbitConnectionFactoryFactory;
+        consumedTagsToAddresses = new HashMap<>();
+        consumerByAddressWithIndex = new HashMap<>();
+
+        rmqConnectionActor = null;
     }
 
     /**
@@ -139,8 +143,8 @@ public final class RabbitMQClientActor extends BaseClientActor {
     static Props propsForTests(final Connection connection, @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor, final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
 
-        return Props.create(RabbitMQClientActor.class, validateConnection(connection), rabbitConnectionFactoryFactory,
-                proxyActor, connectionActor);
+        return Props.create(RabbitMQClientActor.class, validateConnection(connection), proxyActor, connectionActor,
+                rabbitConnectionFactoryFactory);
     }
 
     private static Connection validateConnection(final Connection connection) {
@@ -539,7 +543,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
             final String consumingQueueByTag = consumedTagsToAddresses.get(consumerTag);
             if (null != consumingQueueByTag) {
                 connectionLogger.failure(
-                        "Consumer with queue <{}> shutdown as the channel or the underlying connection has " +
+                        "Consumer with queue <{0}> shutdown as the channel or the underlying connection has " +
                                 "been shut down.", consumingQueueByTag);
                 logger.warning("Consumer with queue <{}> shutdown as the channel or the underlying connection has " +
                         "been shut down on connection <{}>.", consumingQueueByTag, connectionId());

@@ -79,6 +79,14 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
     List<Target> getTargets();
 
     /**
+     * Return the ssh tunnel if any exist.
+     *
+     * @return the ssh tunnel or an empty optional.
+     * @since 2.0.0
+     */
+    Optional<SshTunnel> getSshTunnel();
+
+    /**
      * Returns how many clients on different cluster nodes should establish the {@code Connection}.
      * <p>
      * If greater than 1, the connection is created in a HA mode, running on at least 2 cluster nodes.
@@ -313,6 +321,13 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
                         JsonSchemaVersion.V_2);
 
         /**
+         * JSON field containing the {@code sshTunnel} configuration.
+         */
+        public static final JsonFieldDefinition<JsonObject> SSH_TUNNEL =
+                JsonFactory.newJsonObjectFieldDefinition("sshTunnel", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
          * JSON field containing the {@code Connection} client count.
          */
         public static final JsonFieldDefinition<Integer> CLIENT_COUNT =
@@ -349,6 +364,7 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
 
         /**
          * JSON field containing the {@code Connection} {@link MappingContext} to apply.
+         *
          * @deprecated MAPPING_CONTEXT is deprecated, use MAPPING_DEFINITIONS instead
          */
         @Deprecated

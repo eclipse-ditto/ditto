@@ -237,7 +237,7 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers {
      * @param failure the update failure.
      */
     private void updateFailure(final Status.Failure failure) {
-        log.error(failure.cause(), "updateFailure");
+        log.error(failure.cause(), "Failure updating Ditto pub/sub subscription - trying again next clock tick");
         // try again next clock tick
         localSubscriptionsChanged = true;
     }

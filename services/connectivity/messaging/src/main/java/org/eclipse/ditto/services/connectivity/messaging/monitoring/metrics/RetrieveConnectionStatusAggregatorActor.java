@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
+import org.eclipse.ditto.model.connectivity.SshTunnel;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
 
@@ -80,6 +81,9 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
                                             * source.getConsumerCount()
                                             * source.getAddresses().size())
                             .sum());
+            if (connection.getSshTunnel().map(SshTunnel::isEnabled).orElse(false)) {
+                expectedResponses.put(ResourceStatus.ResourceType.SSH_TUNNEL, connection.getClientCount());
+            }
         }
     }
 

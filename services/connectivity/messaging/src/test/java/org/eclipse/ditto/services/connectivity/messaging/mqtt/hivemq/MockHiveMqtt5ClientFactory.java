@@ -173,8 +173,7 @@ class MockHiveMqtt5ClientFactory implements HiveMqtt5ClientFactory {
     public Mqtt5ClientBuilder newClientBuilder(final Connection connection, final String identifier,
             final boolean allowReconnect,
             @Nullable final MqttClientConnectedListener connectedListener,
-            @Nullable final MqttClientDisconnectedListener disconnectedListener,
-            final ConnectionLogger connectionLogger) {
+            @Nullable final MqttClientDisconnectedListener disconnectedListener, final ConnectionLogger connectionLogger) {
         final Mqtt5Client client = newClient(connection, identifier, allowReconnect, connectedListener,
                 disconnectedListener, connectionLogger);
         final Mqtt5ClientBuilder builder = Mockito.mock(Mqtt5ClientBuilder.class);

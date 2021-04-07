@@ -35,12 +35,9 @@ import org.apache.qpid.jms.JmsConnection;
 import org.apache.qpid.jms.JmsQueue;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Source;
-import org.eclipse.ditto.services.connectivity.config.ConnectionConfig;
-import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnauthorizedException;
 
@@ -377,20 +374,13 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
     @Nullable
     private JmsConnection createJmsConnection(final String clientId) {
         return safelyExecuteJmsOperation(null, "create JMS connection", () -> {
+            final JmsConnection jmsConnection =
+                    jmsConnectionFactory.createConnection(connection, exceptionListener, connectionLogger, clientId);
             if (log.isDebugEnabled()) {
-                final ConnectionConfig connectionConfig =
-                        DittoConnectivityConfig.of(
-                                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
-                                .getConnectionConfig();
-                final Map<String, String> defaultConfig =
-                        AmqpSpecificConfig.toDefaultConfig(connectionConfig.getAmqp10Config());
-                if (log.isDebugEnabled()) {
-                    log.debug("Attempt to create connection {} for URI [{}]", connection.getId(),
-                            ConnectionBasedJmsConnectionFactory
-                                    .buildAmqpConnectionUriFromConnection(connection, defaultConfig, clientId));
-                }
+                log.debug("Attempt to create connection {} for URI [{}]", connection.getId(),
+                        jmsConnection.getConfiguredURI());
             }
-            return jmsConnectionFactory.createConnection(connection, exceptionListener, connectionLogger, clientId);
+            return jmsConnection;
         });
     }
 

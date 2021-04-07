@@ -15,16 +15,19 @@ package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.io.IOException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.services.connectivity.messaging.tunnel.SshTunnelState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,11 +43,10 @@ public final class ConnectionBasedRabbitConnectionFactoryFactory implements Rabb
 
     private static final String SECURE_AMQP_SCHEME = "amqps";
 
-    private static final ConnectionBasedRabbitConnectionFactoryFactory INSTANCE =
-            new ConnectionBasedRabbitConnectionFactoryFactory();
+    private final Supplier<SshTunnelState> tunnelConfigSupplier;
 
-    private ConnectionBasedRabbitConnectionFactoryFactory() {
-        // no-op
+    private ConnectionBasedRabbitConnectionFactoryFactory(final Supplier<SshTunnelState> tunnelConfigSupplier) {
+        this.tunnelConfigSupplier = tunnelConfigSupplier;
     }
 
     /**
@@ -52,8 +54,8 @@ public final class ConnectionBasedRabbitConnectionFactoryFactory implements Rabb
      *
      * @return the instance.
      */
-    public static ConnectionBasedRabbitConnectionFactoryFactory getInstance() {
-        return INSTANCE;
+    public static ConnectionBasedRabbitConnectionFactoryFactory getInstance(final Supplier<SshTunnelState> tunnelConfigSupplier) {
+        return new ConnectionBasedRabbitConnectionFactoryFactory(tunnelConfigSupplier);
     }
 
     @Override
@@ -75,7 +77,8 @@ public final class ConnectionBasedRabbitConnectionFactoryFactory implements Rabb
                 }
             }
 
-            connectionFactory.setUri(connection.getUri());
+            final URI uri = tunnelConfigSupplier.get().getURI(connection);
+            connectionFactory.setUri(uri.toString());
 
             // this makes no difference as the used newmotion client always sets the AutomaticRecoveryEnabled to false:
             connectionFactory.setAutomaticRecoveryEnabled(connection.isFailoverEnabled());

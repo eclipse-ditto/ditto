@@ -177,7 +177,8 @@ public final class BackgroundSyncActorTest {
             final ActorRef underTest = thenCreateBackgroundSyncActor(this);
 
             expectSyncActorToStartStreaming(pubSub);
-            thenRespondWithPersistedThingsStream(pubSub, List.of(createStreamedSnapshot(THING_ID, persistedRevision + 1)));
+            thenRespondWithPersistedThingsStream(pubSub,
+                    List.of(createStreamedSnapshot(THING_ID, persistedRevision + 1)));
             expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, List.of(THING_ID));
 
             expectSyncActorToBeUpWithWarning(underTest, this);

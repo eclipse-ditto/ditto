@@ -23,6 +23,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.connectivity.Connection;
 
+import com.hivemq.client.internal.mqtt.message.connect.MqttConnect;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
@@ -38,6 +39,7 @@ public final class MqttSpecificConfig {
     private static final String SEPARATE_PUBLISHER_CLIENT = "separatePublisherClient";
     private static final String CLIENT_ID = "clientId";
     private static final String PUBLISHER_ID = "publisherId";
+    private static final String KEEP_ALIVE_INTERVAL = "keepAlive";
     private static final String RECONNECT_FOR_REDELIVERY_DELAY = "reconnectForRedeliveryDelay";
 
     private static final boolean DEFAULT_RECONNECT_FOR_REDELIVERY = true;
@@ -54,7 +56,7 @@ public final class MqttSpecificConfig {
     private final Config specificConfig;
 
     MqttSpecificConfig(final Map<String, String> specificConfig) {
-        final HashMap<String, Object> defaultMap = new HashMap<>();
+        final Map<String, Object> defaultMap = new HashMap<>();
         defaultMap.put(RECONNECT_FOR_REDELIVERY, DEFAULT_RECONNECT_FOR_REDELIVERY);
         defaultMap.put(SEPARATE_PUBLISHER_CLIENT, DEFAULT_RECONNECT_FOR_REDELIVERY);
         defaultMap.put(RECONNECT_FOR_REDELIVERY_DELAY, DEFAULT_RECONNECT_DURATION);
@@ -151,6 +153,13 @@ public final class MqttSpecificConfig {
         return getSafely(() -> specificConfig.getBoolean(LAST_WILL_RETAIN), DEFAULT_LAST_WILL_RETAIN);
     }
 
+    /**
+     * @return the interval between keep alive pings.
+     */
+    public Optional<Duration> getKeepAliveInterval() {
+        return getDurationOptional(KEEP_ALIVE_INTERVAL);
+    }
+
     @Override
     public boolean equals(final Object o) {
         if (this == o) {
@@ -178,6 +187,13 @@ public final class MqttSpecificConfig {
     private Optional<String> getStringOptional(final String key) {
         if (specificConfig.hasPath(key)) {
             return Optional.of(specificConfig.getString(key));
+        } else {
+            return Optional.empty();
+        }
+    }
+    private Optional<Duration> getDurationOptional(final String key) {
+        if (specificConfig.hasPath(key)) {
+            return Optional.of(specificConfig.getDuration(key));
         } else {
             return Optional.empty();
         }
