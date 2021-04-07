@@ -82,6 +82,12 @@ public class MongoReadJournal {
      * ID field of documents delivered by the read journal.
      */
     public static final String J_ID = JournallingFieldNames$.MODULE$.ID();
+
+    /**
+     * Prefix of the priority tag which is used in
+     * {@link #getJournalPidsWithTagOrderedByPriorityTag(String, java.time.Duration)}
+     * for sorting/ordering by.
+     */
     public static final String PRIORITY_TAG_PREFIX = "priority-";
 
     private static final String AKKA_PERSISTENCE_JOURNAL_AUTO_START =
@@ -208,21 +214,23 @@ public class MongoReadJournal {
 
     /**
      * Retrieve all unique PIDs in journals selected by a provided {@code tag}.
-     * The PIDs are ordered based on the tags of the events.
+     * The PIDs are ordered based on the {@link #PRIORITY_TAG_PREFIX} tags of the events: Descending by the appended
+     * priority (an integer value).
      *
      * @param tag the Tag name the journal entries have to contain in order to be selected, or an empty string to select
      * all journal entries.
      * @param maxIdleTime how long the stream is allowed to idle without sending any element. Bounds the number of
      * retries with exponential back-off.
-     * @return Source of all persistence IDs such that each element contains the persistence IDs in events that do not
-     * occur in prior buckets.
+     * @return Source of all persistence IDs tagged with the provided {@code tag}, sorted ascending by the value of an
+     * additional {@link #PRIORITY_TAG_PREFIX} tag.
      */
-    public Source<String, NotUsed> getJournalPidsWithTagOrderedByTags(final String tag, final Duration maxIdleTime) {
+    public Source<String, NotUsed> getJournalPidsWithTagOrderedByPriorityTag(final String tag,
+            final Duration maxIdleTime) {
 
         final int maxRestarts = computeMaxRestarts(maxIdleTime);
         return getJournal().withAttributes(Attributes.inputBuffer(1, 1))
                 .flatMapConcat(journal ->
-                        listPidsInJournalOrderedByTags(journal, tag, MAX_BACK_OFF_DURATION, maxRestarts)
+                        listPidsInJournalOrderedByPriorityTag(journal, tag, MAX_BACK_OFF_DURATION, maxRestarts)
                 );
     }
 
@@ -336,7 +344,7 @@ public class MongoReadJournal {
                 .withAttributes(Attributes.inputBuffer(1, 1));
     }
 
-    private Source<String, NotUsed> listPidsInJournalOrderedByTags(final MongoCollection<Document> journal,
+    private Source<String, NotUsed> listPidsInJournalOrderedByPriorityTag(final MongoCollection<Document> journal,
             final String tag, final Duration maxBackOff, final int maxRestarts) {
 
         final List<Bson> pipeline = new ArrayList<>(4);
@@ -349,18 +357,22 @@ public class MongoReadJournal {
         pipeline.add(Aggregates.group("$" + J_PROCESSOR_ID, Accumulators.last(J_TAGS, "$" + J_TAGS)));
 
         // Filter irrelevant tags for priority ordering.
-        final BsonDocument arrayFilter = BsonDocument.parse("{\n" +
-                "            $filter: {\n" +
-                "                input: \"$" + J_TAGS + "\",\n" +
-                "                as: \"tags\",\n" +
-                "                cond: {\n" +
-                "                    $regexMatch: {\n" +
-                "                        input: \"$$tags\",\n" +
-                "                        regex: \"" + PRIORITY_TAG_PREFIX + ".*\"\n" +
-                "                    }\n" +
-                "                }\n" +
-                "            }\n" +
-                "        }");
+        final BsonDocument arrayFilter = BsonDocument.parse(
+                "{\n" +
+                "    $filter: {\n" +
+                "        input: \"$" + J_TAGS + "\",\n" +
+                "        as: \"tags\",\n" +
+                "        cond: {\n" +
+                "            $eq: [\n" +
+                "                {\n" +
+                "                    $substrCP: [\"$$tags\", 0, " + PRIORITY_TAG_PREFIX.length() + "]\n" +
+                "                }\n," +
+                "                \"" + PRIORITY_TAG_PREFIX + "\"\n" +
+                "            ]\n" +
+                "        }\n" +
+                "    }\n" +
+                "}"
+        );
         pipeline.add(Aggregates.project(Projections.computed(J_TAGS, arrayFilter)));
 
         // sort stage 2 -- order after group stage is not defined

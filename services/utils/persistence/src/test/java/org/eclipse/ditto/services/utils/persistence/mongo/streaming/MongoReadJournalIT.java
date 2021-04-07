@@ -275,7 +275,7 @@ public final class MongoReadJournalIT {
                 .append("to", 2L));
 
         final List<String> pids =
-                readJournal.getJournalPidsWithTagOrderedByTags("always-alive", Duration.ZERO)
+                readJournal.getJournalPidsWithTagOrderedByPriorityTag("always-alive", Duration.ZERO)
                         .runWith(Sink.seq(), materializer)
                         .toCompletableFuture().join();
 
@@ -306,7 +306,7 @@ public final class MongoReadJournalIT {
                 .append("to", 2L));
 
         final List<String> pids =
-                readJournal.getJournalPidsWithTagOrderedByTags("always-alive", Duration.ZERO)
+                readJournal.getJournalPidsWithTagOrderedByPriorityTag("always-alive", Duration.ZERO)
                         .runWith(Sink.seq(), materializer)
                         .toCompletableFuture().join();
 
@@ -333,11 +333,38 @@ public final class MongoReadJournalIT {
                 .append("to", 2L));
 
         final List<String> pids =
-                readJournal.getJournalPidsWithTagOrderedByTags("always-alive", Duration.ZERO)
+                readJournal.getJournalPidsWithTagOrderedByPriorityTag("always-alive", Duration.ZERO)
                         .runWith(Sink.seq(), materializer)
                         .toCompletableFuture().join();
 
         assertThat(pids).containsExactly("pid1", "pid4", "pid3", "pid2");
+    }
+
+    @Test
+    public void extractJournalPidsWithTagOrderedByPriorityTagWhenPriorityTagMissing() {
+        insert("test_journal", new Document()
+                .append("pid", "pid1")
+                .append("_tg", Set.of("always-alive"))
+                .append("to", 1L));
+        insert("test_journal", new Document()
+                .append("pid", "pid2")
+                .append("_tg", Set.of("always-alive"))
+                .append("to", 1L));
+        insert("test_journal", new Document()
+                .append("pid", "pid3")
+                .append("_tg", Set.of("always-alive"))
+                .append("to", 2L));
+        insert("test_journal", new Document()
+                .append("pid", "pid4")
+                .append("_tg", Set.of("always-alive"))
+                .append("to", 2L));
+
+        final List<String> pids =
+                readJournal.getJournalPidsWithTagOrderedByPriorityTag("always-alive", Duration.ZERO)
+                        .runWith(Sink.seq(), materializer)
+                        .toCompletableFuture().join();
+
+        assertThat(pids).containsExactlyInAnyOrder("pid1", "pid2", "pid3", "pid4");
     }
 
     @Test

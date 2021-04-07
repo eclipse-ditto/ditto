@@ -85,7 +85,7 @@ public final class PersistencePingActor extends AbstractActor {
         switch (streamingOrder) {
             case TAGS:
                 persistenceIdsSourceSupplier = () ->
-                        readJournal.getJournalPidsWithTagOrderedByTags(pingConfig.getJournalTag(),
+                        readJournal.getJournalPidsWithTagOrderedByPriorityTag(pingConfig.getJournalTag(),
                                 pingConfig.getInterval());
                 break;
             case ID:
