@@ -61,7 +61,7 @@ As you noticed, Ditto is not yet released as 1.x version, it is still an
 
 That means that the project _could_ choose to break APIs at any time without prior deprecation.
 
-We however can already guarantee that at the HTTP API for [API version 1 and 2](basic-overview.html#api-version-1---deprecated) the
+We however can already guarantee that at the HTTP API for API version 1 and 2 the
 API stability is already ensured for the core functionality of managing `things` and `policies`.
 
 As the commercial product based on Eclipse Ditto, [Bosch IoT Things](https://www.bosch-iot-suite.com/things/), is 

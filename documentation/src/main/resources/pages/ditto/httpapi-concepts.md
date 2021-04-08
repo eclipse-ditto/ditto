@@ -14,7 +14,7 @@ http://localhost:8080/api/<apiVersion>
 
 ## API versioning
 
-Ditto's HTTP API is versioned in the URL: `/api/<apiVersion>`. Currently, Ditto only provides API version `2`.
+Ditto's HTTP API is versioned in the URL: `/api/<apiVersion>`. Currently, Ditto only provides API version `2`.  
 API version 1 was deprecated and deleted as of Ditto version 2.0.0
 
 The API version is a promise that no HTTP resources (the static ones defined by Ditto itself) are modified in an

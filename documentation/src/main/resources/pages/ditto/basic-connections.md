@@ -62,7 +62,7 @@ Sources contain:
   e.g. as queues, topics, etc.),
 * a consumer count defining how many consumers should be attached to each source address,
 * an authorization context (see [authorization](#authorization)) specifying which 
-  [authorization subject](basic-policy.html#subject) is used to authorize messages from the source,
+  [authorization subject](basic-policy.html#subjects) is used to authorize messages from the source,
 * enforcement information that allows filtering the messages that are consumed in this source,
 * [acknowledgement requests](basic-acknowledgements.html#requesting-acks) this source requires in order 
   to ensure QoS 1 ("at least once") processing of consumed messages before technically acknowledging them to the channel,
@@ -278,7 +278,7 @@ Targets contain:
 * one address (that is interpreted differently depending on the [connection type](#connection-types), e.g. as queue, topic, etc.),
 * [topics](#target-topics-and-filtering) that will be sent to the target,
 * an authorization context (see [authorization](#authorization)) specifying which 
-  [authorization subject](basic-policy.html#subject) is used to authorize messages to the target, and
+  [authorization subject](basic-policy.html#subjects) is used to authorize messages to the target, and
 * [header mapping](connectivity-header-mapping.html) to compute external headers from Ditto protocol headers.
 
 

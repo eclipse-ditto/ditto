@@ -111,7 +111,7 @@ any receiver can reply by using the same correlation-id `random-aa98s`.
 
 ### API version 2
 
-Permissions in API version 2 can be more fine-grained. In order to be able to receive all Messages of a Thing,
+Permissions in API version 2 can be defined fine-grained. In order to be able to receive all Messages of a Thing,
 you need `READ` permission for the `message:/` resource in the used [Policy](basic-policy.html#message).<br/>
 There can however be specified that you may only receive specific Messages (with a defined subject), also
 expressed via [Policy entry](basic-policy.html#message).<br/>

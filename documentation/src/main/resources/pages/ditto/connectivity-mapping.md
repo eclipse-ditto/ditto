@@ -305,9 +305,9 @@ The following example connection defines a `ConnectionStatus` mapping with the I
 ## Example connection with mapping conditions
 
 The following example connection defines `incomingConditions` and `outgoingConditions`for the ConnectionStatus 
-mapping engine.<br/>
-Optional incomingConditions are validated before the mapping of inbound messages.<br/> 
-Optional outgoingConditions are validated before the mapping of outbound messages.<br/>
+mapping engine.  
+Optional incomingConditions are validated before the mapping of inbound messages.  
+Optional outgoingConditions are validated before the mapping of outbound messages.  
 Conditional Mapping can be achieved by using [function expressions](basic-placeholders.html#function-expressions).
 When multiple incoming or outgoing conditions are set for one `mappingEngine`, 
 all have to equal true for the mapping to be executed.  
