@@ -23,6 +23,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.connectivity.Connection;
 
+import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
@@ -50,7 +51,7 @@ public final class MqttSpecificConfig {
     private static final String LAST_WILL_MESSAGE = "lastWillMessage";
 
     private static final boolean DEFAULT_LAST_WILL_RETAIN = false;
-    private static final String DEFAULT_LAST_WILL_QOS = "AT_MOST_ONCE";
+    private static final int DEFAULT_LAST_WILL_QOS = 0;
 
     private final Config specificConfig;
 
@@ -134,8 +135,12 @@ public final class MqttSpecificConfig {
     /**
      * @return the Qos which should be used on Last Will message.
      */
-    public String getMqttWillQos() {
-        return getSafely(() -> specificConfig.getString(LAST_WILL_QOS), DEFAULT_LAST_WILL_QOS);
+    public Integer getMqttWillQos() {
+        final Integer safely = getSafely(() -> specificConfig.getInt(LAST_WILL_QOS), DEFAULT_LAST_WILL_QOS);
+        if (safely < 0 || safely >= MqttQos.values().length){
+            return DEFAULT_LAST_WILL_QOS;
+        }
+        return safely ;
     }
 
     /**

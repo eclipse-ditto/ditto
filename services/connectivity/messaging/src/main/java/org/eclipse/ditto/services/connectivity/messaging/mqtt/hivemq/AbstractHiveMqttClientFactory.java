@@ -87,7 +87,7 @@ abstract class AbstractHiveMqttClientFactory {
         mqttSpecificConfig.getMqttWillTopic().ifPresent(topic -> {
             final Mqtt3WillPublishBuilder.Nested.Complete<? extends Mqtt3ClientBuilder> willPublishStep = willPublish
                     .topic(topic)
-                    .qos(MqttQos.valueOf(mqttSpecificConfig.getMqttWillQos()))
+                    .qos(MqttQos.fromCode(mqttSpecificConfig.getMqttWillQos()))
                     .retain(mqttSpecificConfig.getMqttWillRetain());
 
             mqttSpecificConfig.getMqttWillMessage().ifPresent(message -> willPublishStep.payload(message.getBytes()));
@@ -102,7 +102,7 @@ abstract class AbstractHiveMqttClientFactory {
         mqttSpecificConfig.getMqttWillTopic().ifPresent(topic -> {
             final Mqtt5WillPublishBuilder.Nested.Complete<? extends Mqtt5ClientBuilder> willPublishStep = willPublish
                     .topic(topic)
-                    .qos(MqttQos.valueOf(mqttSpecificConfig.getMqttWillQos()))
+                    .qos(MqttQos.fromCode(mqttSpecificConfig.getMqttWillQos()))
                     .retain(mqttSpecificConfig.getMqttWillRetain());
             mqttSpecificConfig.getMqttWillMessage().ifPresent(message -> willPublishStep.payload(message.getBytes()));
             willPublishStep.applyWillPublish();
