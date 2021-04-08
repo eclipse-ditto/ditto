@@ -77,6 +77,7 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersistenceActor;
 import org.eclipse.ditto.services.utils.persistentactors.EmptyEvent;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
@@ -405,7 +406,7 @@ public final class ConnectionPersistenceActor
 
     private Set<String> journalTags() {
         return Set.of(JOURNAL_TAG_ALWAYS_ALIVE,
-                JOURNAL_TAG_ALWAYS_ALIVE + "-" + Optional.ofNullable(priority).orElse(0));
+                MongoReadJournal.PRIORITY_TAG_PREFIX + Optional.ofNullable(priority).orElse(0));
     }
 
     @Override

@@ -23,6 +23,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.bson.BsonDocument;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
@@ -40,6 +41,7 @@ import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.BsonField;
 import com.mongodb.client.model.Collation;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.Sorts;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.typesafe.config.Config;
@@ -81,6 +83,13 @@ public class MongoReadJournal {
      */
     public static final String J_ID = JournallingFieldNames$.MODULE$.ID();
 
+    /**
+     * Prefix of the priority tag which is used in
+     * {@link #getJournalPidsWithTagOrderedByPriorityTag(String, java.time.Duration)}
+     * for sorting/ordering by.
+     */
+    public static final String PRIORITY_TAG_PREFIX = "priority-";
+
     private static final String AKKA_PERSISTENCE_JOURNAL_AUTO_START =
             "akka.persistence.journal.auto-start-journals";
     private static final String AKKA_PERSISTENCE_SNAPS_AUTO_START =
@@ -91,7 +100,6 @@ public class MongoReadJournal {
 
     private static final String J_PROCESSOR_ID = JournallingFieldNames$.MODULE$.PROCESSOR_ID();
     private static final String J_TAGS = JournallingFieldNames$.MODULE$.TAGS();
-    private static final String J_TO = JournallingFieldNames$.MODULE$.TO();
     private static final String S_SN = SnapshottingFieldNames$.MODULE$.SEQUENCE_NUMBER();
 
     // Not working: SnapshottingFieldNames.V2$.MODULE$.SERIALIZED()
@@ -206,21 +214,23 @@ public class MongoReadJournal {
 
     /**
      * Retrieve all unique PIDs in journals selected by a provided {@code tag}.
-     * The PIDs are ordered based on the tags of the events.
+     * The PIDs are ordered based on the {@link #PRIORITY_TAG_PREFIX} tags of the events: Descending by the appended
+     * priority (an integer value).
      *
      * @param tag the Tag name the journal entries have to contain in order to be selected, or an empty string to select
      * all journal entries.
      * @param maxIdleTime how long the stream is allowed to idle without sending any element. Bounds the number of
      * retries with exponential back-off.
-     * @return Source of all persistence IDs such that each element contains the persistence IDs in events that do not
-     * occur in prior buckets.
+     * @return Source of all persistence IDs tagged with the provided {@code tag}, sorted ascending by the value of an
+     * additional {@link #PRIORITY_TAG_PREFIX} tag.
      */
-    public Source<String, NotUsed> getJournalPidsWithTagOrderedByTags(final String tag, final Duration maxIdleTime) {
+    public Source<String, NotUsed> getJournalPidsWithTagOrderedByPriorityTag(final String tag,
+            final Duration maxIdleTime) {
 
         final int maxRestarts = computeMaxRestarts(maxIdleTime);
         return getJournal().withAttributes(Attributes.inputBuffer(1, 1))
                 .flatMapConcat(journal ->
-                        listPidsInJournalOrderedByTags(journal, tag, MAX_BACK_OFF_DURATION, maxRestarts)
+                        listPidsInJournalOrderedByPriorityTag(journal, tag, MAX_BACK_OFF_DURATION, maxRestarts)
                 );
     }
 
@@ -334,7 +344,7 @@ public class MongoReadJournal {
                 .withAttributes(Attributes.inputBuffer(1, 1));
     }
 
-    private Source<String, NotUsed> listPidsInJournalOrderedByTags(final MongoCollection<Document> journal,
+    private Source<String, NotUsed> listPidsInJournalOrderedByPriorityTag(final MongoCollection<Document> journal,
             final String tag, final Duration maxBackOff, final int maxRestarts) {
 
         final List<Bson> pipeline = new ArrayList<>(4);
@@ -343,13 +353,27 @@ public class MongoReadJournal {
             pipeline.add(Aggregates.match(Filters.eq(J_TAGS, tag)));
         }
 
-        // sort stage
-        //  note that there is no index on this combination "pid" -> 1, "to" -> 1
-        //  so if this query ever gets too slow, this could be a potential optimization
-        pipeline.add(Aggregates.sort(Sorts.orderBy(Sorts.ascending(J_PROCESSOR_ID), Sorts.ascending(J_TO))));
-
-        // group stage
+        // group stage. We can assume that the $last element ist also new latest event because of the insert order.
         pipeline.add(Aggregates.group("$" + J_PROCESSOR_ID, Accumulators.last(J_TAGS, "$" + J_TAGS)));
+
+        // Filter irrelevant tags for priority ordering.
+        final BsonDocument arrayFilter = BsonDocument.parse(
+                "{\n" +
+                "    $filter: {\n" +
+                "        input: \"$" + J_TAGS + "\",\n" +
+                "        as: \"tags\",\n" +
+                "        cond: {\n" +
+                "            $eq: [\n" +
+                "                {\n" +
+                "                    $substrCP: [\"$$tags\", 0, " + PRIORITY_TAG_PREFIX.length() + "]\n" +
+                "                }\n," +
+                "                \"" + PRIORITY_TAG_PREFIX + "\"\n" +
+                "            ]\n" +
+                "        }\n" +
+                "    }\n" +
+                "}"
+        );
+        pipeline.add(Aggregates.project(Projections.computed(J_TAGS, arrayFilter)));
 
         // sort stage 2 -- order after group stage is not defined
         pipeline.add(Aggregates.sort(Sorts.orderBy(Sorts.descending(J_TAGS))));
