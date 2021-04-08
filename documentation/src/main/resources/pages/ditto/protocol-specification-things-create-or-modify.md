@@ -12,10 +12,10 @@ For the meaning of those two channels see [Protocol specification](protocol-spec
 
 This command creates the thing specified by the `<namespace>` and `<thingId>` in the topic defined by the JSON in the
 value.
-The <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.acl}}">ACL</a> of the created Thing
-must include at least one subject authorized to READ, WRITE and ADMINISTRATE permissions.
-If no ACL is provided within the command, a default ACL with an entry for the authorized subject with all permissions
-set to true will be created.
+The <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.policy}}">Policy</a> of the created 
+Thing must include at least one subject authorized to have READ, WRITE permissions.
+If no Policy is provided within the command, a default Policy with an entry for the authorized subject with 
+all permissions set to true will be created.
 
 ### Command
 
@@ -63,8 +63,6 @@ This command modifies the thing specified by the `<namespace>` and `<thingId>` i
 | **value** | The complete thing as JSON.<br/>see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
 
 For modifying an existing thing, the authorized subject needs WRITE permission.<br/>
-If the update is targeting the <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.acl}}">ACL</a>, 
-the authorized subject additionally needs ADMINISTRATE permission.<br/>
 If the thing does not yet exist, the same rules apply as described for the [create command](#create-a-thing).
 
 ### Response

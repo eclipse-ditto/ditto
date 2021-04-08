@@ -13,16 +13,16 @@ implementing a software pattern called “**[digital twins](intro-digitaltwins.h
 A digital twin is a virtual, cloud based, representation of his real world counterpart 
 (real world “Things”, e.g. devices like sensors, smart heating, connected cars, smart grids, EV charging stations, …).
 
-The technology mirrors potentially millions and billions of digital twins residing in the digital world with physical “**Things**”. 
-This simplifies developing IoT solutions for software developers as they do not need to know how or where 
-exactly the physical “Things” are connected.
+The technology mirrors potentially millions and billions of digital twins residing in the digital world 
+with physical “**Things**”. This simplifies developing IoT solutions for software developers as they do not need 
+to know how or where exactly the physical “Things” are connected.
 
 With Ditto a thing can just be used as any other web service via its digital twin.
 
 
 ## What is it not?
 
-Ditto is not another fully-fledged IoT platform. It does not provide software running on IoT gateways and it does not
+Ditto is not another fully-fledged IoT platform. It does not provide software running on IoT gateways, and it does not
 define or implement an IoT protocol in order to communicate with devices.
 
 Its focus lies on back end scenarios by providing web APIs in order to simplify working with already connected (e.g. 

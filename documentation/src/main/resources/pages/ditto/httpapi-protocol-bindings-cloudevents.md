@@ -15,10 +15,9 @@ The Cloud Events endpoint provides an alternative to the other connectivity APIs
 
 ## Cloud Events endpoint
 
-The Cloud Events endpoint is accessible at these URLs (depending on which API version to use):
+The Cloud Events endpoint is accessible at the following URL:
 
 ```
-http://localhost:8080/api/1/cloudevents
 http://localhost:8080/api/2/cloudevents
 ```
 

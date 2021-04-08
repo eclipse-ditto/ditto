@@ -36,7 +36,7 @@ today:
 
 ```bash
 curl --request POST \
-  --url http://localhost:8080/api/1/things/org.eclipse.ditto:smartcoffee/inbox/messages/ask \
+  --url http://localhost:8080/api/2/things/org.eclipse.ditto:smartcoffee/inbox/messages/ask \
   --header 'content-type: text/plain' \
   --header 'Authorization: Basic ZGl0dG86ZGl0dG8=' \
   --data 'Hey, how are you?'
@@ -61,7 +61,7 @@ before closing the HTTP request with a timeout:
 
 ```bash
 curl --request POST \
-  --url http://localhost:8080/api/1/things/org.eclipse.ditto:smartcoffee/inbox/messages/ask.question?timeout=0 \
+  --url http://localhost:8080/api/2/things/org.eclipse.ditto:smartcoffee/inbox/messages/ask.question?timeout=0 \
   --header 'content-type: text/plain' \
   --header 'Authorization: Basic ZGl0dG86ZGl0dG8=' \
   --data 'Hey, how are you?'
@@ -85,7 +85,7 @@ how we can ask the *water-tank* Feature of our Thing *smartcoffee* to heat up:
 
 ```bash
 curl --request POST \
- --url http://localhost:8080/api/1/things/org.eclipse.ditto:smartcoffee/features/water-tank/inbox/messages/action \
+ --url http://localhost:8080/api/2/things/org.eclipse.ditto:smartcoffee/features/water-tank/inbox/messages/action \
  --header 'content-type: text/plain' \
  --header 'Authorization: Basic ZGl0dG86ZGl0dG8=' \
  --data 'heatUp'
@@ -99,7 +99,7 @@ Thing smartcoffee, which needs to inform about something:
 
 ```bash
 curl --request POST \
-  --url http://localhost:8080/api/1/things/org.eclipse.ditto:smartcoffee/outbox/messages/inform \
+  --url http://localhost:8080/api/2/things/org.eclipse.ditto:smartcoffee/outbox/messages/inform \
   --header 'correlation-id: an-unique-string-for-this-message' \
   --header 'content-type: text/plain' \
   --header 'Authorization: Basic ZGl0dG86ZGl0dG8=' \

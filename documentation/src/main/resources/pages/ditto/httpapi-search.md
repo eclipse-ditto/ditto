@@ -11,11 +11,11 @@ The [search aspect](basic-search.html) of Ditto can be accessed via an HTTP API.
     [Search resources](http-api-doc.html?urls.primaryName=api2#/Search)." %}
 
 The concepts of the [RQL expression](basic-rql.html#rql-filter), [RQL sorting](basic-rql.html#rql-sorting) and 
-[RQL paging](basic-search.html#rql-paging-deprecated) are mapped to HTTP as query parameters which are added to `GET` requests
-to the search endpoint:
+[RQL paging](basic-search.html#rql-paging-deprecated) are mapped to HTTP as query parameters which are added to 
+`GET` requests to the search endpoint:
 
 ```
-http://localhost:8080/api/<1|2>/search/things
+http://localhost:8080/api/2/search/things
 ```
 
 If the `filter` parameter is omitted, the result contains all `Things` the authenticated user is 
@@ -41,9 +41,10 @@ Another Complex example with the `namespaces` parameter:
 GET .../search/things?filter=eq(attributes/location,"living-room")&namespaces=org.eclipse.ditto,foo.bar
 ```
 
-The HTTP search API can also profit from the [partial request](httpapi-concepts.html#partial-requests) concept of the API:<br/>
-additionally to a `filter` and `options`, a `fields` paramter may be specified in order to select which data of the result
-set to retrieve.
+The HTTP search API can also profit from the [partial request](httpapi-concepts.html#partial-requests) concept 
+of the API:<br/>
+Additionally to a `filter` and `options`, a `fields` parameter may be specified in order to select which data 
+of the result set to retrieve.
 
 Example which only returns `thingId` and the `manufacturer` attribute of the found Things:
 ```
@@ -61,7 +62,7 @@ GET .../search/things?namespaces=org.eclipse.ditto,foo.bar
 Search counts can be made against this endpoint:
 
 ```
-http://localhost:8080/api/<1|2>/search/things/count
+http://localhost:8080/api/2/search/things/count
 ```
 
 Complex example:

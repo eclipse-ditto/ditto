@@ -7,11 +7,11 @@ permalink: basic-enrichment.html
 
 [Signals](basic-signals.html) which are emitted to subscribers via [WebSocket API](httpapi-protocol-bindings-websocket.html), 
 [HTTP SSEs](httpapi-sse.html) or established [connections](basic-connections.html) may be enriched 
-by `extraFields` to also be included in the sent out messages.
+by `extraFields` to also be included in the sent message.
 
 [Events](basic-signals-event.html), for example, only contain the actually changed data by default, so when they are 
 subscribed to via one of the APIs listed above, the data they contain may be as sparse as: 
-"temperature value was changed to 23.4 for thing with ID xx".
+"temperature value was changed to 23.4 for the thing with ID xx".
 
 Often it is helpful to additionally include some extra fields as context to be included when subscribing 
 (e.g. via WebSocket or a connection). For example in order to include static metadata stored in the `attributes`.

@@ -5,8 +5,8 @@ permalink: sandbox.html
 topnav: topnav
 ---
 
-The Ditto team provides a [sandbox](https://ditto.eclipseprojects.io) which may be used by everyone wanting to try out Ditto 
-without starting it locally.
+The Ditto team provides a [sandbox](https://ditto.eclipseprojects.io) which may be used by everyone wanting to 
+try out Ditto without starting it locally.
 
 {% include warning.html content="The Ditto sandbox is not set up in a highly available manner and may experience
    downtimes. Also, the sandbox will be reset from time to time without prior notice." %}
@@ -23,10 +23,10 @@ functionality. Ditto accepts the `id_token` which is issued by Google as `Bearer
 
 ### HTTP API documentation
 
-The online [HTTP API documentation](https://ditto.eclipseprojects.io/apidoc/) of the sandbox implements the OAuth2.0 "authorization code"
-flow.<br />
-Simply click the green `Authorize` button, check the checkbox `openid` and click the `Authorize` button. Your browser will
-ask you if the Ditto sandbox may access your Google identity which you should acknowledge.<br/>
+The online [HTTP API documentation](https://ditto.eclipseprojects.io/apidoc/) of the sandbox implements the OAuth2.0 
+"authorization code" flow.<br />
+Simply click the green `Authorize` button, check the checkbox `openid` and click the `Authorize` button. 
+Your browser will ask you if the Ditto sandbox may access your Google identity which you should acknowledge.<br/>
 Afterwards you should be authenticated with your Google user (and therefore your Google ID).
 
 You can try out the API now. For example, expand the [PUT /things/{thingId}](https://ditto.eclipseprojects.io/apidoc/#!/Things/put_things_thingId)
@@ -68,8 +68,8 @@ Or it can be filled with arbitrary [attributes](basic-thing.html#attributes) and
 }
 ```
 
-### Programatically access the HTTP API 
+### Programmatically access the HTTP API 
 
-If you want to programatically (e.g. in a script running on a RaspberryPi) access the sandbox, we currently have to disappoint
-you. As there is no possibility to obtain a Google JWT with plain username/password and we currently have no other authentication
-provider configured in the sandbox, we have no possibility to authenticate a script.
+If you want to programmatically (e.g. in a script running on a RaspberryPi) access the sandbox, we currently have 
+to disappoint you. As there is no possibility to obtain a Google JWT with plain username/password and we currently 
+have no other authentication provider configured in the sandbox, we have no possibility to authenticate a script.

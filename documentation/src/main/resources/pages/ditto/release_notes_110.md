@@ -109,7 +109,7 @@ front of Ditto.
 
 #### [API version 1 deprecation](https://github.com/eclipse/ditto/pull/608)
 
-Now that Ditto has a full replacement for [ACLs](basic-acl.html), namely [policies](basic-policy.html) which now can 
+Now that Ditto has a full replacement for ACLs, namely [policies](basic-policy.html) which now can 
 also be managed via the [Ditto Protocol](protocol-specification-policies.html) and the 
 [Ditto Java client](client-sdk-java.html), it is time to deprecate the APIs around the ACL mechanism.
 

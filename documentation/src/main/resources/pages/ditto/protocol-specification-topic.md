@@ -38,8 +38,8 @@ identifier in the first two segments should be treated as `Thing ID`.
 
 ### Policies Group
 
-Addressing the _policies_ group in the topic path indicates that a `Policy` entity is targeted which means that the entity
-identifier in the first two segments should be treated as `Policy ID`.
+Addressing the _policies_ group in the topic path indicates that a `Policy` entity is targeted which means that the 
+entity identifier in the first two segments should be treated as `Policy ID`.
 
 ## Channel
 
@@ -50,8 +50,8 @@ or to none of both.
 
 When addressing the *twin* channel, the `{criterion}` (e.g. a **command**) together with the optional `{action}` is
 applied to the digital representation, the **digital twin**, of a `Thing`.
-Ditto enforces that **digital twins** can only be accessed in an [authorized way](basic-auth.html) and responds with an 
-error if the required permissions are not met.
+Ditto enforces that **digital twins** can only be accessed in an [authorized way](basic-auth.html) and responds with 
+an error if the required permissions are not met.
 Addressing on the *twin* channel means addressing the backend representation of a `Thing` which might be outdated, but
 roundtrips to actual devices are saved (e.g. a device in sleep mode must not be waken up in order to retrieve its last
 reported state).
@@ -134,8 +134,8 @@ They are created by Ditto and are e.g. published a configured amount of time bef
 
 ## Action (optional)
 
-For command, event, and messages criteria, additional actions are available, which further distinguish the purpose of a 
-Protocol message. 
+For command, event, and messages criteria, additional actions are available, which further distinguish the purpose of 
+a Protocol message. 
 
 ### Command criterion actions
 
@@ -160,8 +160,8 @@ An entity (e.g. a Thing) or an aspect of an entity was
 
 ### Messages criterion actions
 
-For the *messages* criterion, the *action* segment specifies the message subject, and can be freely chosen by the sender, 
-provided that it conforms to [RFC-3986](https://tools.ietf.org/html/rfc3986) (URI).
+For the *messages* criterion, the *action* segment specifies the message subject, and can be freely chosen by 
+the sender, provided that it conforms to [RFC-3986](https://tools.ietf.org/html/rfc3986) (URI).
 
 ### Search criterion actions
 

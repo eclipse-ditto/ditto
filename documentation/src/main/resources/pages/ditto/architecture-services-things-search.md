@@ -9,14 +9,14 @@ The "things-search" service takes care of:
 
 
 * updating an optimized search index of `Things` based on the [events](basic-signals-event.html) emitted by the 
-  [things](architecture-services-things.html) and [policies](architecture-services-policies.html) services when entites
+  [things](architecture-services-things.html) and [policies](architecture-services-policies.html) services when entities
   are changed there
 * executing search queries against the search index in order to find out which `Things` match a given search
 
 ## Model
 
-The things-search service has no model (entity) by its own, but uses the model of [things](architecture-services-things.html) and 
-[policies](architecture-services-policies.html) services.
+The things-search service has no model (entity) by its own, but uses the model of [things](architecture-services-things.html) 
+and [policies](architecture-services-policies.html) services.
 
 It however contains a model which can transform an <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.rql}}">RQL</a> 
 search query into a Java domain model which is defined here:

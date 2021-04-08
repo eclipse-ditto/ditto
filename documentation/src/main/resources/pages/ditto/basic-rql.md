@@ -14,7 +14,8 @@ The [RQL project page](https://github.com/persvr/rql) says about it:
 RQL can be thought as basically a set of nestable named operators which each have a set of arguments. 
 RQL is designed to have an extremely simple, but extensible grammar that can be written in a URL friendly query string.
 
-An example helps more than a thousand words, so that would be the example of a simple RQL query querying for `foo="ditto"` and `bar<10`:
+An example helps more than a thousand words, so that would be the example of a simple RQL query querying 
+for `foo="ditto"` and `bar<10`:
 ```
 and(eq(foo,"ditto"),lt(bar,10))
 ```
