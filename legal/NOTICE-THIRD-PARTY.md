@@ -760,6 +760,16 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=io/spray/spray-json_2.13/1.3.5/spray-json_2.13-1.3.5-sources.jar
 
 
+## EdDSA-Java (0.3.0)
+
+* Maven coordinates: `net.i2p.crypto:eddsa:0.3.0`
+* License: [CC0-1.0](https://spdx.org/licenses/CC0-1.0.html)
+* Project: https://github.com/str4d/ed25519-java
+* Sources: 
+   * declared as SCM: https://github.com/str4d/ed25519-java
+   * Maven sources: https://search.maven.org/remotecontent?filepath=net/i2p/crypto/eddsa/0.3.0/eddsa-0.3.0-sources.jar
+
+
 ## metrics4-akka_a25 (4.1.14)
 
 * Maven coordinates: `nl.grons:metrics4-akka_a25_2.13:4.1.14`
@@ -828,6 +838,25 @@
 * Sources: 
    * declared as SCM: https://gitbox.apache.org/repos/asf?p=qpid-jms/qpid-jms-client
    * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/qpid/qpid-jms-client/0.54.0/qpid-jms-client-0.54.0-sources.jar
+
+## Apache Mina SSHD :: Common support utilities (2.6.0)
+
+* Maven coordinates: `org.apache.sshd:sshd-common:2.6.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://www.apache.org/sshd/sshd-common/
+* Sources:
+  * declared as SCM: https://github.com/apache/mina-sshd/tree/sshd-2.6.0/sshd-common
+  * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/sshd/sshd-common/2.6.0/sshd-common-2.6.0-sources.jar
+
+
+## Apache Mina SSHD :: Core (2.6.0)
+
+* Maven coordinates: `org.apache.sshd:sshd-core:2.6.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://www.apache.org/sshd/sshd-core/
+* Sources:
+  * declared as SCM: https://github.com/apache/mina-sshd/tree/sshd-2.6.0/sshd-core
+  * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/sshd/sshd-core/2.6.0/sshd-core-2.6.0-sources.jar
 
 
 ## Atteo Class Index (3.8)
@@ -973,7 +1002,7 @@
 ## reactive-streams (1.0.3)
 
 * Maven coordinates: `org.reactivestreams:reactive-streams:1.0.3`
-* License: [CC0](https://spdx.org/licenses/CC0.html)
+* License: [CC0-1.0](https://spdx.org/licenses/CC0-1.0.html)
 * Project: http://www.reactive-streams.org/
 * Sources: 
    * declared as SCM: https://github.com/reactive-streams/reactive-streams
