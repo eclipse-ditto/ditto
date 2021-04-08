@@ -625,6 +625,13 @@ final class ImmutableConnection implements Connection {
         }
 
         @Override
+        public ConnectionBuilder overwriteSpecificConfigWith(final Map<String, String> specificConfig) {
+            this.specificConfig.clear();
+            this.specificConfig.putAll(checkNotNull(specificConfig, "Specific Config"));
+            return this;
+        }
+
+        @Override
         public ConnectionBuilder mappingContext(@Nullable final MappingContext mappingContext) {
             this.mappingContext = mappingContext;
             return this;

@@ -285,6 +285,24 @@ public final class ImmutableConnectionTest {
     }
 
     @Test
+    public void builderManagesSpecialConfig() {
+        HashMap<String, String> specialFields = new HashMap<>();
+        specialFields.put("reconnectForRedelivery", String.valueOf(true));
+        final Connection connectionWithSpecialFields =
+                ImmutableConnection.fromJson(KNOWN_JSON).toBuilder().specificConfig(specialFields).build();
+
+        assertThat(connectionWithSpecialFields.getSpecificConfig()).containsOnlyKeys(specialFields.keySet());
+
+        HashMap<String, String> newSpecialFields = new HashMap<>();
+        newSpecialFields.put("clientId", "my-awesome-mqtt-client-id");
+
+        final Connection connectionWithNewSpecialFields =
+                connectionWithSpecialFields.toBuilder().overwriteSpecificConfigWith(newSpecialFields).build();
+
+        assertThat(connectionWithNewSpecialFields.getSpecificConfig()).containsOnlyKeys(newSpecialFields.keySet());
+    }
+
+    @Test
     public void createInstanceWithNullSources() {
         final ConnectionBuilder builder = ImmutableConnection.getBuilder(ID, TYPE, STATUS, URI);
 

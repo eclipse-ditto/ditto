@@ -44,7 +44,7 @@ public final class MqttSpecificConfig {
     private static final boolean DEFAULT_RECONNECT_FOR_REDELIVERY = true;
     private static final Duration DEFAULT_RECONNECT_DURATION = Duration.ofSeconds(2L);
 
-    private static final String LAST_WILL_TOPIC = "lastWillTopic";
+    public static final String LAST_WILL_TOPIC = "lastWillTopic";
     private static final String LAST_WILL_QOS = "lastWillQos";
     private static final String LAST_WILL_RETAIN = "lastWillRetain";
     private static final String LAST_WILL_MESSAGE = "lastWillMessage";

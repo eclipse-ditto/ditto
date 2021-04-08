@@ -16,7 +16,9 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq.AbstractMqttSubscriptionHandler.MqttConsumer;
 
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -27,6 +29,7 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
@@ -245,7 +248,10 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
             if (mqttSpecificConfig.separatePublisherClient()) {
                 final String publisherClientId = resolvePublisherClientId(connection, mqttSpecificConfig);
                 final AtomicBoolean cancelReconnect = new AtomicBoolean(false);
-                final Q createdClient = getClientFactory().newClient(connection, publisherClientId, true,
+
+                final Connection connectionWithoutLwt = getConnectionWithoutLwtConfiguration(connection);
+
+                final Q createdClient = getClientFactory().newClient(connectionWithoutLwt, publisherClientId, true,
                         null,
                         getMqttClientDisconnectedListener(cancelReconnect),
                         connectionLogger);
@@ -259,6 +265,14 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
             resetClientAndSubscriptionHandler();
             self.tell(new ImmutableConnectionFailure(self, e, null), self);
         }
+    }
+
+    private Connection getConnectionWithoutLwtConfiguration(final Connection connection) {
+        final Map<String, String> specificConfigWithoutLwt =
+                new HashMap<>(connection.getSpecificConfig());
+        specificConfigWithoutLwt.remove(MqttSpecificConfig.LAST_WILL_TOPIC);
+        return ConnectivityModelFactory.newConnectionBuilder(connection)
+                .overwriteSpecificConfigWith(specificConfigWithoutLwt).build();
     }
 
     private MqttClientDisconnectedListener getMqttClientDisconnectedListener(final AtomicBoolean cancelReconnect) {
