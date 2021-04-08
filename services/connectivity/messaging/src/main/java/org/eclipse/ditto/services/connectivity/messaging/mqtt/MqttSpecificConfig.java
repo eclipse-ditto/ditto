@@ -125,28 +125,28 @@ public final class MqttSpecificConfig {
 
 
     /**
-     * @return the optional publisherId which should be used as the client ID of the publisher actor.
+     * @return the optional topic which should be used on Last Will message.
      */
     public Optional<String> getMqttWillTopic() {
         return getStringOptional(LAST_WILL_TOPIC);
     }
 
     /**
-     * @return the optional publisherId which should be used as the client ID of the publisher actor.
+     * @return the Qos which should be used on Last Will message.
      */
     public String getMqttWillQos() {
         return getSafely(() -> specificConfig.getString(LAST_WILL_QOS), DEFAULT_LAST_WILL_QOS);
     }
 
     /**
-     * @return the optional publisherId which should be used as the client ID of the publisher actor.
+     * @return the optional message which should be used on Last Will message.
      */
     public Optional<String> getMqttWillMessage() {
         return getStringOptional(LAST_WILL_MESSAGE);
     }
 
     /**
-     * @return the optional publisherId which should be used as the client ID of the publisher actor.
+     * @return the retain flag which should be used on Last Will message.
      */
     public boolean getMqttWillRetain() {
         return getSafely(() -> specificConfig.getBoolean(LAST_WILL_RETAIN), DEFAULT_LAST_WILL_RETAIN);

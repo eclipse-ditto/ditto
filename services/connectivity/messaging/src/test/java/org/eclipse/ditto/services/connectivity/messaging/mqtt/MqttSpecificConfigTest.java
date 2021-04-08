@@ -34,6 +34,10 @@ public final class MqttSpecificConfigTest {
         configuredSpecificConfig.put("clientId", "consumer-client-id");
         configuredSpecificConfig.put("publisherId", "publisher-client-id");
         configuredSpecificConfig.put("reconnectForRedeliveryDelay", "4m");
+        configuredSpecificConfig.put("lastWillTopic", "lastWillTopic");
+        configuredSpecificConfig.put("lastWillQos", "EXACTLY_ONCE");
+        configuredSpecificConfig.put("lastWillMessage", "last will message");
+        configuredSpecificConfig.put("lastWillRetain", "true");
         final MqttSpecificConfig specificConfig = new MqttSpecificConfig(configuredSpecificConfig);
         assertThat(specificConfig.reconnectForRedelivery()).isFalse();
         assertThat(specificConfig.separatePublisherClient()).isFalse();
@@ -50,5 +54,9 @@ public final class MqttSpecificConfigTest {
         assertThat(specificConfig.getMqttClientId()).isEmpty();
         assertThat(specificConfig.getMqttPublisherId()).isEmpty();
         assertThat(specificConfig.getReconnectForDeliveryDelay()).isEqualTo(Duration.ofSeconds(2L));
+        assertThat(specificConfig.getMqttWillTopic()).isEmpty();
+        assertThat(specificConfig.getMqttWillQos()).isEqualTo("AT_MOST_ONCE");
+        assertThat(specificConfig.getMqttWillMessage()).isEmpty();
+        assertThat(specificConfig.getMqttWillRetain()).isFalse();
     }
 }
