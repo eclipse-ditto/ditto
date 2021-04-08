@@ -4,7 +4,7 @@ published: true
 permalink: 2021-03-22-azure-iot-hub-integration.html
 layout: post
 author: david_schwilk
-tags: [blog, architecture, connection]
+tags: [blog, architecture, connectivity]
 hide_sidebar: true
 sidebar: false
 toc: true

@@ -109,11 +109,14 @@ div.sidebarTitle {
 
 li.sidebarTitle {
   margin-top:20px;
-    font-weight:normal;
-    font-size:130%;
-    margin-bottom:10px;
-    margin-left: 5px;
+  font-weight:normal;
+  font-size:130%;
+  margin-bottom:10px;
+  margin-left: 5px;
+}
 
+li.sidebarTitle label {
+  font-weight:normal;
 }
 
 li.sidebarTitle .select-wrapper {
@@ -163,6 +166,11 @@ li.sidebarTitle .select-wrapper select option {
 
 .navbar-inverse .navbar-toggle {
     border-color: #ffffff;
+}
+
+ul.nav.navbar-nav.navbar-right img {
+    height: 20px;
+    padding-right: 5px;
 }
 
 /* info , tip box with icon -  warning stays red*/

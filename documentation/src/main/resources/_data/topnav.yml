@@ -10,9 +10,17 @@ topnav:
       url: /http-api-doc.html
     - title: Sandbox
       url: /sandbox.html
-    - title: GitHub
+    - title:
+      image: GitHub-Mark-Light-32px.png
+      alt: Sources at GitHub
       external_url: https://github.com/eclipse/ditto
-    - title: GitHub examples
+    - title: SDKs
+      image: GitHub-Mark-Light-32px.png
+      alt: SDK sources at GitHub
+      external_url: https://github.com/eclipse/ditto-clients
+    - title: examples
+      image: GitHub-Mark-Light-32px.png
+      alt: Example sources at GitHub
       external_url: https://github.com/eclipse/ditto-examples
 
 #Topnav dropdowns
