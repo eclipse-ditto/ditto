@@ -165,7 +165,11 @@ Overall example JSON of the MQTT `"specificConfig"`:
     "cleanSession": false,
     "separatePublisherClient": true,
     "publisherId": "my-awesome-mqtt-publisher-client-id",
-    "reconnectForRedeliveryDelay": "5s"
+    "reconnectForRedeliveryDelay": "5s",
+    "lastWillTopic": "my-last-will-topic",
+    "lastWillQos": "EXACTLY_ONCE",
+    "lastWillRetain": false,
+    "lastWillMessage": "my last will message"
   },
   "sources": ["..."],
   "targets": ["..."]
@@ -224,6 +228,33 @@ Configures how long to wait before reconnecting a consumer client for redelivery
 and `separatePublisherClient` are both enabled. The minimum value is `1s`.
 
 Default: `2s`
+
+#### lastWillTopic
+
+Configures the topic which should be used on Last Will. This field is mandatory when Last Will should be activated.
+
+#### lastWillQos
+
+Configures the QoS which should be used on Last Will:
+- `0` = QoS 0 (“at most once”)
+- `1` = QoS 1 (“at least once”)
+- `2` = QoS 2 (“exactly once”)
+
+Default: `0`
+
+#### lastWillRetain
+
+Configures if clients which are newly subscribed to the topic chosen in [Last Will topic](#lastwilltopic) will 
+receive this message immediately after they subscribe.
+
+Default: `false`
+
+#### lastWillMessage
+
+Configures the message which should be published when the connection is ungracefully disconnected form the broker. 
+The Message will be published in the topic chosen in [Last Will topic](#lastwilltopic).
+
+Default: empty string
 
 ## Establishing a connection to an MQTT 3.1.1 endpoint
 
