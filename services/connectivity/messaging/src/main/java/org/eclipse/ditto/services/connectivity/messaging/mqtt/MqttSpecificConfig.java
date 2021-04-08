@@ -23,7 +23,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.connectivity.Connection;
 
-import com.hivemq.client.internal.mqtt.message.connect.MqttConnect;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
@@ -47,11 +46,11 @@ public final class MqttSpecificConfig {
 
     private static final String LAST_WILL_TOPIC = "lastWillTopic";
     private static final String LAST_WILL_QOS = "lastWillQos";
-    private static final String DEFAULT_LAST_WILL_QOS = "AT_MOST_ONCE";
-    private static final String LAST_WILL_MESSAGE = "lastWillMessage";
-    private static final String DEFAULT_LAST_WILL_MESSAGE = "";
     private static final String LAST_WILL_RETAIN = "lastWillRetain";
+    private static final String LAST_WILL_MESSAGE = "lastWillMessage";
+
     private static final boolean DEFAULT_LAST_WILL_RETAIN = false;
+    private static final String DEFAULT_LAST_WILL_QOS = "AT_MOST_ONCE";
 
     private final Config specificConfig;
 
@@ -142,8 +141,8 @@ public final class MqttSpecificConfig {
     /**
      * @return the optional publisherId which should be used as the client ID of the publisher actor.
      */
-    public String getMqttWillMessage() {
-        return getSafely(() -> specificConfig.getString(LAST_WILL_MESSAGE), DEFAULT_LAST_WILL_MESSAGE);
+    public Optional<String> getMqttWillMessage() {
+        return getStringOptional(LAST_WILL_MESSAGE);
     }
 
     /**

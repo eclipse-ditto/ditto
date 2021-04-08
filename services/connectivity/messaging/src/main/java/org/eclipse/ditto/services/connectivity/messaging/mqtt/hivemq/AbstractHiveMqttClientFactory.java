@@ -26,8 +26,8 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.DittoTrustManagerFactory;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.KeyManagerFactoryFactory;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
-import org.eclipse.ditto.services.connectivity.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttSpecificConfig;
+import org.eclipse.ditto.services.connectivity.messaging.tunnel.SshTunnelState;
 
 import com.hivemq.client.mqtt.MqttClientBuilderBase;
 import com.hivemq.client.mqtt.MqttClientSslConfig;
@@ -83,23 +83,30 @@ abstract class AbstractHiveMqttClientFactory {
     void configureWillPublish(final Mqtt3WillPublishBuilder.Nested<? extends Mqtt3ClientBuilder> willPublish,
             final Connection connection) {
         final MqttSpecificConfig mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection);
-        mqttSpecificConfig.getMqttWillTopic().ifPresent(topic -> willPublish
-                .topic(topic)
-                .qos(MqttQos.valueOf(mqttSpecificConfig.getMqttWillQos()))
-                .payload(mqttSpecificConfig.getMqttWillMessage().getBytes(StandardCharsets.UTF_8))
-                .retain(mqttSpecificConfig.getMqttWillRetain())
-                .applyWillPublish());
+        //Since topic is required, the other LWT parameter will only be applied if the topic is set
+        mqttSpecificConfig.getMqttWillTopic().ifPresent(topic -> {
+            final Mqtt3WillPublishBuilder.Nested.Complete<? extends Mqtt3ClientBuilder> willPublishStep = willPublish
+                    .topic(topic)
+                    .qos(MqttQos.valueOf(mqttSpecificConfig.getMqttWillQos()))
+                    .retain(mqttSpecificConfig.getMqttWillRetain());
+
+            mqttSpecificConfig.getMqttWillMessage().ifPresent(message -> willPublishStep.payload(message.getBytes()));
+            willPublishStep.applyWillPublish();
+        });
     }
 
     void configureWillPublish(final Mqtt5WillPublishBuilder.Nested<? extends Mqtt5ClientBuilder> willPublish,
-            Connection connection){
+            Connection connection) {
         final MqttSpecificConfig mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection);
-        mqttSpecificConfig.getMqttWillTopic().ifPresent(topic -> willPublish
-                .topic(topic)
-                .qos(MqttQos.valueOf(mqttSpecificConfig.getMqttWillQos()))
-                .payload(mqttSpecificConfig.getMqttWillMessage().getBytes(StandardCharsets.UTF_8))
-                .retain(mqttSpecificConfig.getMqttWillRetain())
-                .applyWillPublish());
+        //Since topic is required, the other LWT parameter will only be applied if the topic is set
+        mqttSpecificConfig.getMqttWillTopic().ifPresent(topic -> {
+            final Mqtt5WillPublishBuilder.Nested.Complete<? extends Mqtt5ClientBuilder> willPublishStep = willPublish
+                    .topic(topic)
+                    .qos(MqttQos.valueOf(mqttSpecificConfig.getMqttWillQos()))
+                    .retain(mqttSpecificConfig.getMqttWillRetain());
+            mqttSpecificConfig.getMqttWillMessage().ifPresent(message -> willPublishStep.payload(message.getBytes()));
+            willPublishStep.applyWillPublish();
+        });
     }
 
     <T extends MqttClientBuilderBase<T>> T configureClientBuilder(
