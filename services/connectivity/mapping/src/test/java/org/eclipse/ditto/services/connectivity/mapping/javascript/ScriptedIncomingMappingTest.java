@@ -75,11 +75,11 @@ public class ScriptedIncomingMappingTest {
     @Test
     public void mapExternalMessageProducingArrayOfDittoProtocolMessages() {
 
-        testJavascript("function createDittoCommand(namespace, id, headers, value) {\n" +
+        testJavascript("function createDittoCommand(namespace, name, headers, value) {\n" +
                         "    var path = \"/attributes/test\";\n" +
                         "    return Ditto.buildDittoProtocolMsg(\n" +
                         "        namespace,\n" +
-                        "        id,\n" +
+                        "        name,\n" +
                         "        \"things\",\n" +
                         "        \"twin\",\n" +
                         "        \"commands\",\n" +
@@ -97,10 +97,10 @@ public class ScriptedIncomingMappingTest {
                         "  contentType\n" +
                         ") {\n" +
                         "  var namespace = 'org.eclipse.ditto';\n" +
-                        "  var id = 'thing-1';\n" +
+                        "  var name = 'thing-1';\n" +
                         "\n" +
-                        "  var dittoCommands = [createDittoCommand(namespace, id, headers, textPayload)];\n" +
-                        "  dittoCommands = dittoCommands.concat(createDittoCommand(namespace, id, headers, textPayload + \"1\"));\n" +
+                        "  var dittoCommands = [createDittoCommand(namespace, name, headers, textPayload)];\n" +
+                        "  dittoCommands = dittoCommands.concat(createDittoCommand(namespace, name, headers, textPayload + \"1\"));\n" +
                         "  return dittoCommands;\n" +
                         "}\n",
                 adaptables -> {

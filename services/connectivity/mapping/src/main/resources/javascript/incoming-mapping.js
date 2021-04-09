@@ -31,7 +31,7 @@ function mapToDittoProtocolMsg(
 
   return Ditto.buildDittoProtocolMsg(
     namespace,
-    id,
+    name,
     group,
     channel,
     criterion,

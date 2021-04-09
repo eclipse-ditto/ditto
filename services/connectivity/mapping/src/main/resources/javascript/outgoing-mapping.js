@@ -1,7 +1,7 @@
 /**
  * Maps the passed parameters which originated from a Ditto Protocol message to an external message.
  * @param {string} namespace - The namespace of the entity in java package notation, e.g.: "org.eclipse.ditto"
- * @param {string} id - The ID of the entity
+ * @param {string} name - The name of the entity, e.g.: "device"
  * @param {string} channel - The channel for the signal, one of: "twin"|"live"
  * @param {string} group - The affected group/entity, one of: "things"
  * @param {string} criterion - The criterion to apply, one of: "commands"|"events"|"search"|"messages"|"errors"
@@ -18,7 +18,7 @@
  */
 function mapFromDittoProtocolMsg(
   namespace,
-  id,
+  name,
   group,
   channel,
   criterion,
@@ -34,7 +34,7 @@ function mapFromDittoProtocolMsg(
   // Insert your mapping logic here:
   let headers = dittoHeaders;
   let textPayload = JSON.stringify(
-    Ditto.buildDittoProtocolMsg(namespace, id, group, channel, criterion, action, path, dittoHeaders, value, status, extra));
+    Ditto.buildDittoProtocolMsg(namespace, name, group, channel, criterion, action, path, dittoHeaders, value, status, extra));
   // TODO replace with something useful, this will publish the message in Ditto Protocol JSON
   let bytePayload = null;
   let contentType = 'application/vnd.eclipse.ditto+json';

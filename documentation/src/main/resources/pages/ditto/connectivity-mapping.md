@@ -390,7 +390,7 @@ Ditto comes with a few helper functions, which makes writing the mapping scripts
 /**
  * Builds a Ditto Protocol message from the passed parameters.
  * @param {string} namespace - The namespace of the entity in java package notation, e.g.: "org.eclipse.ditto"
- * @param {string} id - The ID of the entity
+ * @param {string} name - The name of the entity, e.g.: "device"
  * @param {string} group - The affected group/entity, one of: "things"
  * @param {string} channel - The channel for the signal, one of: "twin"|"live"
  * @param {string} criterion - The criterion to apply, one of: "commands"|"events"|"search"|"messages"|"errors"
@@ -507,7 +507,7 @@ function mapToDittoProtocolMsg(
 
     return Ditto.buildDittoProtocolMsg(
         namespace,
-        id,
+        name,
         group,
         channel,
         criterion,
@@ -533,7 +533,7 @@ can be mapped to external messages by implementing the following JavaScript func
 /**
  * Maps the passed parameters which originated from a Ditto Protocol message to an external message.
  * @param {string} namespace - The namespace of the entity in java package notation, e.g.: "org.eclipse.ditto"
- * @param {string} id - The ID of the entity
+ * @param {string} name - The name of the entity, e.g.: "device"
  * @param {string} channel - The channel for the signal, one of: "twin"|"live"
  * @param {string} group - The affected group/entity, one of: "things"
  * @param {string} criterion - The criterion to apply, one of: "commands"|"events"|"search"|"messages"|"errors"
@@ -550,7 +550,7 @@ can be mapped to external messages by implementing the following JavaScript func
  */
 function mapFromDittoProtocolMsg(
     namespace,
-    id,
+    name,
     group,
     channel,
     criterion,

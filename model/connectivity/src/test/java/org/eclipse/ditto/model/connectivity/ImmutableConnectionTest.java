@@ -144,7 +144,7 @@ public final class ImmutableConnectionTest {
                             "    // ###\n" +
                             "    // Insert your mapping logic here\n" +
                             "    let namespace = \"org.eclipse.ditto\";\n" +
-                            "    let id = \"foo-bar\";\n" +
+                            "    let name = \"foo-bar\";\n" +
                             "    let group = \"things\";\n" +
                             "    let channel = \"twin\";\n" +
                             "    let criterion = \"commands\";\n" +
@@ -156,7 +156,7 @@ public final class ImmutableConnectionTest {
                             "\n" +
                             "    return Ditto.buildDittoProtocolMsg(\n" +
                             "        namespace,\n" +
-                            "        id,\n" +
+                            "        name,\n" +
                             "        group,\n" +
                             "        channel,\n" +
                             "        criterion,\n" +

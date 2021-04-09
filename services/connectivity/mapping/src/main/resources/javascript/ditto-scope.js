@@ -25,7 +25,7 @@ let Ditto = (function () {
   /**
    * Builds a Ditto Protocol message from the passed parameters.
    * @param {string} namespace - The namespace of the entity in java package notation, e.g.: "org.eclipse.ditto"
-   * @param {string} id - The ID of the entity
+   * @param {string} name - The name of the entity, e.g.: "device"
    * @param {string} group - The affected group/entity, one of: "things"
    * @param {string} channel - The channel for the signal, one of: "twin"|"live"
    * @param {string} criterion - The criterion to apply, one of: "commands"|"events"|"search"|"messages"|"errors"
@@ -39,10 +39,10 @@ let Ditto = (function () {
    *  The mapped Ditto Protocol message or
    *  <code>null</code> if the message could/should not be mapped
    */
-  function buildDittoProtocolMsg(namespace, id, group, channel, criterion, action, path, dittoHeaders, value, status, extra) {
+  function buildDittoProtocolMsg(namespace, name, group, channel, criterion, action, path, dittoHeaders, value, status, extra) {
 
     let dittoProtocolMsg = {};
-    dittoProtocolMsg.topic = namespace + "/" + id + "/" + group + "/" + channel + "/" + criterion + "/" + action;
+    dittoProtocolMsg.topic = namespace + "/" + name + "/" + group + "/" + channel + "/" + criterion + "/" + action;
     dittoProtocolMsg.path = path;
     dittoProtocolMsg.headers = dittoHeaders;
     dittoProtocolMsg.value = value;

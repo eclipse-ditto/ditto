@@ -77,7 +77,7 @@ public final class JavaScriptMessageMapperRhinoTest {
     private static final String HEADER_CORRELATION_ID = "correlation-id";
 
     private static final String MAPPING_INCOMING_NAMESPACE = "org.eclipse.ditto";
-    private static final String MAPPING_INCOMING_ID = "fancy-car-11";
+    private static final String MAPPING_INCOMING_NAME = "fancy-car-11";
     private static final String MAPPING_INCOMING_PATH = "/attributes/foo";
 
     private static final String MAPPING_INCOMING_PAYLOAD_STRING = "hello!";
@@ -105,7 +105,7 @@ public final class JavaScriptMessageMapperRhinoTest {
                     "    // ###\n" +
                     "    // Insert your mapping logic here\n" +
                     "    let namespace = \"" + MAPPING_INCOMING_NAMESPACE + "\";\n" +
-                    "    let id = \"" + MAPPING_INCOMING_ID + "\";\n" +
+                    "    let name = \"" + MAPPING_INCOMING_NAME + "\";\n" +
                     "    let group = \"things\";\n" +
                     "    let channel = \"twin\";\n" +
                     "    let criterion = \"commands\";\n" +
@@ -118,7 +118,7 @@ public final class JavaScriptMessageMapperRhinoTest {
                     "\n" +
                     "    return Ditto.buildDittoProtocolMsg(\n" +
                     "        namespace,\n" +
-                    "        id,\n" +
+                    "        name,\n" +
                     "        group,\n" +
                     "        channel,\n" +
                     "        criterion,\n" +
@@ -131,7 +131,7 @@ public final class JavaScriptMessageMapperRhinoTest {
 
     private static final String MAPPING_OUTGOING_PLAIN = "function mapFromDittoProtocolMsg(\n" +
             "    namespace,\n" +
-            "    id,\n" +
+            "    name,\n" +
             "    group,\n" +
             "    channel,\n" +
             "    criterion,\n" +
@@ -147,7 +147,7 @@ public final class JavaScriptMessageMapperRhinoTest {
             "    // Insert your mapping logic here\n" +
             "    let headers = {};\n" +
             "    headers['correlation-id'] = dittoHeaders['correlation-id'];\n" +
-            "    let textPayload = \"Thing ID was: \" + namespace + \":\" + id;\n" +
+            "    let textPayload = \"Thing ID was: \" + namespace + \":\" + name;\n" +
             "    let bytePayload = null;\n" +
             "    let contentType = \"" + CONTENT_TYPE_PLAIN + "\";\n" +
             "    // ###\n" +
@@ -173,7 +173,7 @@ public final class JavaScriptMessageMapperRhinoTest {
 
     private static final String MAPPING_OUTGOING_EMPTY = "function mapFromDittoProtocolMsg(\n" +
             "    namespace,\n" +
-            "    id,\n" +
+            "    name,\n" +
             "    group,\n" +
             "    channel,\n" +
             "    criterion,\n" +
@@ -199,7 +199,7 @@ public final class JavaScriptMessageMapperRhinoTest {
                     "    // ###\n" +
                     "    // Insert your mapping logic here\n" +
                     "    let namespace = \"" + MAPPING_INCOMING_NAMESPACE + "\";\n" +
-                    "    let id = \"" + MAPPING_INCOMING_ID + "\";\n" +
+                    "    let name = \"" + MAPPING_INCOMING_NAME + "\";\n" +
                     "    let group = \"things\";\n" +
                     "    let channel = \"twin\";\n" +
                     "    let criterion = \"commands\";\n" +
@@ -212,7 +212,7 @@ public final class JavaScriptMessageMapperRhinoTest {
                     "\n" +
                     "    return Ditto.buildDittoProtocolMsg(\n" +
                     "        namespace,\n" +
-                    "        id,\n" +
+                    "        name,\n" +
                     "        group,\n" +
                     "        channel,\n" +
                     "        criterion,\n" +
@@ -225,7 +225,7 @@ public final class JavaScriptMessageMapperRhinoTest {
 
     private static final String MAPPING_OUTGOING_BINARY = "function mapFromDittoProtocolMsg(\n" +
             "    namespace,\n" +
-            "    id,\n" +
+            "    name,\n" +
             "    group,\n" +
             "    channel,\n" +
             "    criterion,\n" +
@@ -242,7 +242,7 @@ public final class JavaScriptMessageMapperRhinoTest {
             "    let headers = {};\n" +
             "    headers['correlation-id'] = dittoHeaders['correlation-id'];\n" +
             "    let textPayload = null;\n" +
-            "    let thingId = namespace + \":\" + id;\n" +
+            "    let thingId = namespace + \":\" + name;\n" +
             "    let bytePayload = Ditto.stringToArrayBuffer(thingId);\n" +
             "    let contentType = \"" + CONTENT_TYPE_BINARY + "\";\n" +
             "    // ###\n" +
@@ -266,7 +266,7 @@ public final class JavaScriptMessageMapperRhinoTest {
                     "    // ###\n" +
                     "    // Insert your mapping logic here\n" +
                     "    let namespace = \"" + MAPPING_INCOMING_NAMESPACE + "\";\n" +
-                    "    let id = \"" + MAPPING_INCOMING_ID + "\";\n" +
+                    "    let name = \"" + MAPPING_INCOMING_NAME + "\";\n" +
                     "    let group = \"things\";\n" +
                     "    let channel = \"twin\";\n" +
                     "    let criterion = \"commands\";\n" +
@@ -280,7 +280,7 @@ public final class JavaScriptMessageMapperRhinoTest {
                     "\n" +
                     "    return Ditto.buildDittoProtocolMsg(\n" +
                     "        namespace,\n" +
-                    "        id,\n" +
+                    "        name,\n" +
                     "        group,\n" +
                     "        channel,\n" +
                     "        criterion,\n" +
@@ -303,7 +303,7 @@ public final class JavaScriptMessageMapperRhinoTest {
                     "    // ###\n" +
                     "    // Insert your mapping logic here\n" +
                     "    let namespace = \"" + MAPPING_INCOMING_NAMESPACE + "\";\n" +
-                    "    let id = \"" + MAPPING_INCOMING_ID + "\";\n" +
+                    "    let name = \"" + MAPPING_INCOMING_NAME + "\";\n" +
                     "    let group = \"things\";\n" +
                     "    let channel = \"twin\";\n" +
                     "    let criterion = \"commands\";\n" +
@@ -320,7 +320,7 @@ public final class JavaScriptMessageMapperRhinoTest {
                     "\n" +
                     "    return Ditto.buildDittoProtocolMsg(\n" +
                     "        namespace,\n" +
-                    "        id,\n" +
+                    "        name,\n" +
                     "        group,\n" +
                     "        channel,\n" +
                     "        criterion,\n" +
@@ -355,7 +355,7 @@ public final class JavaScriptMessageMapperRhinoTest {
             "\n" +
             "  return Ditto.buildDittoProtocolMsg(\n" +
             "    namespace, // The namespace of the entity in java package notation, e.g.: \"org.eclipse.ditto\"\n" +
-            "    id, // The ID of the entity\n" +
+            "    name, // The ID of the entity\n" +
             "    group, // The affected group/entity, one of: \"things\"\n" +
             "    channel, // The channel for the signal, one of: \"twin\"|\"live\"\n" +
             "    criterion, // The criterion to apply, one of: \"commands\"|\"events\"|\"search\"|\"messages\"|\"errors\"\n" +
@@ -370,7 +370,7 @@ public final class JavaScriptMessageMapperRhinoTest {
 
     private static final String MAPPING_OUTGOING_DEFAULT = "function mapFromDittoProtocolMsg(\n" +
             "  namespace,\n" +
-            "  id,\n" +
+            "  name,\n" +
             "  group,\n" +
             "  channel,\n" +
             "  criterion,\n" +
@@ -385,7 +385,7 @@ public final class JavaScriptMessageMapperRhinoTest {
             "  // ###\n" +
             "  // Insert your mapping logic here:\n" +
             "  let headers = dittoHeaders;\n" +
-            "  let textPayload = JSON.stringify(Ditto.buildDittoProtocolMsg(namespace, id, group, channel, criterion, action, path, dittoHeaders, value, status));\n" +
+            "  let textPayload = JSON.stringify(Ditto.buildDittoProtocolMsg(namespace, name, group, channel, criterion, action, path, dittoHeaders, value, status));\n" +
             "  // TODO replace with something useful, this will publish the message in Ditto Protocol JSON\n" +
             "  let bytePayload = null;\n" +
             "  let contentType = 'application/vnd.eclipse.ditto+json';\n" +
@@ -482,7 +482,7 @@ public final class JavaScriptMessageMapperRhinoTest {
         headers.put(ExternalMessage.CONTENT_TYPE_HEADER, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
 
         final ModifyAttribute modifyAttribute =
-                ModifyAttribute.of(ThingId.of(MAPPING_INCOMING_NAMESPACE, MAPPING_INCOMING_ID),
+                ModifyAttribute.of(ThingId.of(MAPPING_INCOMING_NAMESPACE, MAPPING_INCOMING_NAME),
                         JsonPointer.of("foo"),
                         JsonValue.of(MAPPING_INCOMING_PAYLOAD_STRING),
                         DittoHeaders.newBuilder()
@@ -651,7 +651,7 @@ public final class JavaScriptMessageMapperRhinoTest {
         assertThat(adaptable.getTopicPath().getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);
         assertThat(adaptable.getTopicPath().getAction()).contains(TopicPath.Action.MODIFY);
         assertThat(adaptable.getTopicPath().getNamespace()).isEqualTo(MAPPING_INCOMING_NAMESPACE);
-        assertThat(adaptable.getTopicPath().getId()).isEqualTo(MAPPING_INCOMING_ID);
+        assertThat(adaptable.getTopicPath().getId()).isEqualTo(MAPPING_INCOMING_NAME);
         assertThat(adaptable.getPayload().getPath().toString()).isEqualTo(MAPPING_INCOMING_PATH);
         assertThat(adaptable.getPayload().getValue()).contains(JsonValue.of(MAPPING_INCOMING_PAYLOAD_STRING));
     }
@@ -683,7 +683,7 @@ public final class JavaScriptMessageMapperRhinoTest {
         assertThat(adaptable.getTopicPath().getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);
         assertThat(adaptable.getTopicPath().getAction()).contains(TopicPath.Action.MODIFY);
         assertThat(adaptable.getTopicPath().getNamespace()).isEqualTo(MAPPING_INCOMING_NAMESPACE);
-        assertThat(adaptable.getTopicPath().getId()).isEqualTo(MAPPING_INCOMING_ID);
+        assertThat(adaptable.getTopicPath().getId()).isEqualTo(MAPPING_INCOMING_NAME);
         assertThat(adaptable.getPayload().getPath().toString()).isEqualTo(MAPPING_INCOMING_PATH);
         assertThat(adaptable.getPayload().getValue()).map(JsonValue::asString)
                 .contains(modifyThingResponse.toJsonString());
@@ -718,7 +718,7 @@ public final class JavaScriptMessageMapperRhinoTest {
                 softly.assertThat(topicPath.getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);
                 softly.assertThat(topicPath.getAction()).contains(TopicPath.Action.MODIFY);
                 softly.assertThat(topicPath.getNamespace()).isEqualTo(MAPPING_INCOMING_NAMESPACE);
-                softly.assertThat(topicPath.getId()).isEqualTo(MAPPING_INCOMING_ID);
+                softly.assertThat(topicPath.getId()).isEqualTo(MAPPING_INCOMING_NAME);
             });
             softly.assertThat(adaptable.getPayload()).satisfies(payload -> {
                 softly.assertThat(payload.getPath().toString()).isEqualTo(MAPPING_INCOMING_PATH);
@@ -819,7 +819,7 @@ public final class JavaScriptMessageMapperRhinoTest {
                 assertThat(topicPath.getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);
                 assertThat(topicPath.getAction()).contains(TopicPath.Action.MODIFY);
                 assertThat(topicPath.getNamespace()).isEqualTo(MAPPING_INCOMING_NAMESPACE);
-                assertThat(topicPath.getId()).isEqualTo(MAPPING_INCOMING_ID);
+                assertThat(topicPath.getId()).isEqualTo(MAPPING_INCOMING_NAME);
             });
             assertThat(adaptable.getPayload()).satisfies(payload -> {
                 assertThat(payload.getPath().toString()).isEqualTo(MAPPING_INCOMING_PATH);
