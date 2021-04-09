@@ -55,7 +55,7 @@ public final class MqttSpecificConfigTest {
         assertThat(specificConfig.getMqttPublisherId()).isEmpty();
         assertThat(specificConfig.getReconnectForDeliveryDelay()).isEqualTo(Duration.ofSeconds(2L));
         assertThat(specificConfig.getMqttWillTopic()).isEmpty();
-        assertThat(specificConfig.getMqttWillQos()).isEqualTo("AT_MOST_ONCE");
+        assertThat(specificConfig.getMqttWillQos()).isEqualTo(0);
         assertThat(specificConfig.getMqttWillMessage()).isEmpty();
         assertThat(specificConfig.getMqttWillRetain()).isFalse();
     }
