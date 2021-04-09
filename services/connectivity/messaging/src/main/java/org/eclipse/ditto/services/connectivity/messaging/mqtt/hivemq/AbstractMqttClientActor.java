@@ -248,10 +248,7 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
             if (mqttSpecificConfig.separatePublisherClient()) {
                 final String publisherClientId = resolvePublisherClientId(connection, mqttSpecificConfig);
                 final AtomicBoolean cancelReconnect = new AtomicBoolean(false);
-
-                final Connection connectionWithoutLwt = getConnectionWithoutLwtConfiguration(connection);
-
-                final Q createdClient = getClientFactory().newClient(connectionWithoutLwt, publisherClientId, true,
+                final Q createdClient = getClientFactory().newClient(connection, publisherClientId, true,
                         null,
                         getMqttClientDisconnectedListener(cancelReconnect),
                         connectionLogger);
@@ -297,10 +294,21 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
     private void createSubscriberClientAndSubscriptionHandler() {
         final String mqttClientId = resolveMqttClientId(connection, mqttSpecificConfig);
         final AtomicBoolean cancelReconnect = new AtomicBoolean(false);
-        final Q createdClient = getClientFactory().newClient(connection, mqttClientId, true,
-                null,
-                getMqttClientDisconnectedListener(cancelReconnect),
-                connectionLogger);
+        final Q createdClient;
+        if(mqttSpecificConfig.separatePublisherClient()){
+            final Connection connectionWithoutLwt = getConnectionWithoutLwtConfiguration(connection);
+            createdClient = getClientFactory().newClient(connectionWithoutLwt, mqttClientId, true,
+                    null,
+                    getMqttClientDisconnectedListener(cancelReconnect),
+                    connectionLogger);
+        }
+        else {
+            createdClient = getClientFactory().newClient(connection, mqttClientId, true,
+                    null,
+                    getMqttClientDisconnectedListener(cancelReconnect),
+                    connectionLogger);
+        }
+
         client = new ClientWithCancelSwitch(createdClient, cancelReconnect);
         subscriptionHandler = createSubscriptionHandler(connection, createdClient, logger);
     }
