@@ -502,22 +502,27 @@ function mapToDittoProtocolMsg(
     contentType
 ) {
 
-    // ###
-    // Insert your mapping logic here:
-    // ###
+    // ### Insert/adapt your mapping logic here.
+    // Use helper function Ditto.buildDittoProtocolMsg to build Ditto protocol message
+    // based on incoming payload.
+    // See https://www.eclipse.org/ditto/connectivity-mapping.html#helper-functions for details.
 
-    return Ditto.buildDittoProtocolMsg(
-        namespace,
-        name,
-        group,
-        channel,
-        criterion,
-        action,
-        path,
-        dittoHeaders,
-        value,
-        status
-    );
+    // ### example code assuming the Ditto protocol content type for incoming messages.
+    if (contentType === 'application/vnd.eclipse.ditto+json') {
+        // Message is sent as Ditto protocol text payload and can be used directly
+        return JSON.parse(textPayload);
+    } else if (contentType === 'application/octet-stream') {
+        // Message is sent as binary payload; assume Ditto protocol message (JSON).
+        try {
+            return JSON.parse(Ditto.arrayBufferToString(bytePayload));
+        } catch (e) {
+            // parsing failed (no JSON document); return null to drop the message
+            return null;
+        }
+    }
+
+    // no mapping logic matched; return null to drop the message
+    return null;
 }
 ```
 
@@ -565,14 +570,20 @@ function mapFromDittoProtocolMsg(
 ) {
 
     // ###
-    // Insert your mapping logic here:
-    // ###
+    // Insert your mapping logic here
 
-    return  Ditto.buildExternalMsg(
-        headers,
-        textPayload,
-        bytePayload,
-        contentType
+    // ### example code using the Ditto protocol content type.
+    let headers = dittoHeaders;
+    let textPayload = JSON.stringify(Ditto.buildDittoProtocolMsg(namespace, name, group, channel, criterion,
+                                                                 action, path, dittoHeaders, value, status, extra));
+    let bytePayload = null;
+    let contentType = 'application/vnd.eclipse.ditto+json';
+
+    return Ditto.buildExternalMsg(
+        headers, // The external headers Object containing header values
+        textPayload, // The external mapped String
+        bytePayload, // The external mapped byte[]
+        contentType // The returned Content-Type
     );
 }
 ```

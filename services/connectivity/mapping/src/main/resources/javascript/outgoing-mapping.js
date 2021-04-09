@@ -32,20 +32,20 @@ function mapFromDittoProtocolMsg(
 ) {
 
   // ###
-  // Insert your mapping logic here:
+  // Insert your mapping logic here
+
+  // ### example code using the Ditto protocol content type.
   let headers = dittoHeaders;
-  let textPayload = JSON.stringify(
-    Ditto.buildDittoProtocolMsg(namespace, name, group, channel, criterion, action, path, dittoHeaders, value, status, extra));
-  // TODO replace with something useful, this will publish the message in Ditto Protocol JSON
+  let textPayload = JSON.stringify(Ditto.buildDittoProtocolMsg(namespace, name, group, channel, criterion,
+                                                               action, path, dittoHeaders, value, status, extra));
   let bytePayload = null;
   let contentType = 'application/vnd.eclipse.ditto+json';
-  // ###
 
   return Ditto.buildExternalMsg(
-    headers,
-    textPayload,
-    bytePayload,
-    contentType
+      headers, // The external headers Object containing header values
+      textPayload, // The external mapped String
+      bytePayload, // The external mapped byte[]
+      contentType // The returned Content-Type
   );
 }
 
