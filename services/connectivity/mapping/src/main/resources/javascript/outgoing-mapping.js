@@ -9,8 +9,9 @@
  * @param {string} path - The path which is affected by the message, e.g.: "/attributes"
  * @param {Object.<string, string>} dittoHeaders - The headers Object containing all Ditto Protocol header values
  * @param {*} [value] - The value to apply / which was applied (e.g. in a "modify" action)
- * @param {number} status - The status code that indicates the result of the command.
- * @param {Object} extra - The enriched extra fields when selected via "extraFields" option.
+ * @param {number} [status] - The status code that indicates the result of the command. When this field is set,
+ * it indicates that the Ditto Protocol Message contains a response.
+ * @param {Object} [extra] - The enriched extra fields when selected via "extraFields" option.
  * @returns {(ExternalMessage|Array<ExternalMessage>)} externalMessage -
  *  The mapped external message,
  *  an array of external messages or

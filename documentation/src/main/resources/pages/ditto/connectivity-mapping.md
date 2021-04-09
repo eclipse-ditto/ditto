@@ -398,16 +398,17 @@ Ditto comes with a few helper functions, which makes writing the mapping scripts
  * @param {string} path - The path which is affected by the message, e.g.: "/attributes"
  * @param {Object.<string, string>} dittoHeaders - The headers Object containing all Ditto Protocol header values
  * @param {*} [value] - The value to apply / which was applied (e.g. in a "modify" action)
- * @param {number} status - The status code that indicates the result of the command.
- * @param {Object} extra - The enriched extra fields when selected via "extraFields" option.
+ * @param {number} [status] - The status code that indicates the result of the command. If setting a status code,
+ * the Ditto Protocol Message will be interpreted as a response (e.g. content will be ignored when using 204).
+ * @param {Object} [extra] - The enriched extra fields when selected via "extraFields" option.
  * @returns {DittoProtocolMessage} dittoProtocolMessage - 
  *  the mapped Ditto Protocol message or 
  *  <code>null</code> if the message could/should not be mapped
  */
-function buildDittoProtocolMsg(namespace, id, group, channel, criterion, action, path, dittoHeaders, value, status, extra) {
+function buildDittoProtocolMsg(namespace, name, group, channel, criterion, action, path, dittoHeaders, value, status, extra) {
 
     let dittoProtocolMsg = {};
-    dittoProtocolMsg.topic = namespace + "/" + id + "/" + group + "/" + channel + "/" + criterion + "/" + action;
+    dittoProtocolMsg.topic = namespace + "/" + name + "/" + group + "/" + channel + "/" + criterion + "/" + action;
     dittoProtocolMsg.path = path;
     dittoProtocolMsg.headers = dittoHeaders;
     dittoProtocolMsg.value = value;
@@ -541,8 +542,9 @@ can be mapped to external messages by implementing the following JavaScript func
  * @param {string} path - The path which is affected by the message, e.g.: "/attributes"
  * @param {Object.<string, string>} dittoHeaders - The headers Object containing all Ditto Protocol header values
  * @param {*} [value] - The value to apply / which was applied (e.g. in a "modify" action)
- * @param {number} status - The status code that indicates the result of the command.
- * @param {Object} extra - The enriched extra fields when selected via "extraFields" option.
+ * @param {number} [status] - The status code that indicates the result of the command. When this field is set,
+ * it indicates that the Ditto Protocol Message contains a response.
+ * @param {Object} [extra] - The enriched extra fields when selected via "extraFields" option.
  * @returns {(ExternalMessage|Array<ExternalMessage>)} externalMessage -
  *  The mapped external message,
  *  an array of external messages or

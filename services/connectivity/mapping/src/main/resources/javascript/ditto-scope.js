@@ -33,8 +33,9 @@ let Ditto = (function () {
    * @param {string} path - The path which is affected by the message, e.g.: "/attributes"
    * @param {Object.<string, string>} dittoHeaders - The headers Object containing all Ditto Protocol header values
    * @param {*} [value] - The value to apply / which was applied (e.g. in a "modify" action)
-   * @param {number} status - The status code that indicates the result of the command.
-   * @param {Object} extra - The enriched extra fields when selected via "extraFields" option.
+   * @param {number} [status] - The status code that indicates the result of the command. If setting a status code,
+   * the Ditto Protocol Message will be interpreted as a response (e.g. content will be ignored when using 204).
+   * @param {Object} [extra] - The enriched extra fields when selected via "extraFields" option.
    * @returns {DittoProtocolMessage} dittoProtocolMessage(s) -
    *  The mapped Ditto Protocol message or
    *  <code>null</code> if the message could/should not be mapped
