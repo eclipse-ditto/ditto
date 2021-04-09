@@ -264,6 +264,14 @@ The Message will be published in the topic chosen in [Last Will topic](#lastwill
 
 Default: empty string
 
+### Configure Last Will
+
+To notify other clients when the connection is ungracefully disconnected the Last Will feature can be used. The
+message which will be published, is specified in the connection and stored in the broker when it connects. The message
+contains a topic, retained message flag, QoS, and the payload to be published. These can be configured in the
+[Specific Configuration](#specificconfiguration) of the connection. (Notice this feature is activated as soon as you
+enter the topic, which is also the only mandatory field)
+
 ## Establishing a connection to an MQTT 5 endpoint
 
 Ditto's [Connectivity service](architecture-services-connectivity.html) is responsible for creating new and managing
