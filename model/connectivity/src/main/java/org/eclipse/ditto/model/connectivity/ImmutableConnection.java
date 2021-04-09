@@ -403,7 +403,7 @@ final class ImmutableConnection implements Connection {
         if (!specificConfig.isEmpty()) {
             jsonObjectBuilder.set(JsonFields.SPECIFIC_CONFIG, specificConfig.entrySet()
                     .stream()
-                    .map(entry -> JsonField.newInstance(entry.getKey(), JsonValue.of(entry.getValue())))
+                    .map(entry -> mapSpecificConfigValues(entry))
                     .collect(JsonCollectors.fieldsToObject()), predicate);
         }
         if (!payloadMappingDefinition.isEmpty()) {
@@ -423,6 +423,19 @@ final class ImmutableConnection implements Connection {
                 .map(JsonFactory::newValue)
                 .collect(JsonCollectors.valuesToArray()), predicate);
         return jsonObjectBuilder.build();
+    }
+
+    private JsonField mapSpecificConfigValues(final Map.Entry<String, String> entry) {
+        final String specificConfigFieldMqttLastWillRetain = "lastWillRetain";
+        final String specificConfigFieldMqttLastWillQos = "lastWillQos";
+        switch (entry.getKey()) {
+            case specificConfigFieldMqttLastWillRetain:
+                return JsonField.newInstance(entry.getKey(), JsonValue.of(Boolean.parseBoolean(entry.getValue())));
+            case specificConfigFieldMqttLastWillQos:
+                return JsonField.newInstance(entry.getKey(), JsonValue.of(Integer.parseInt(entry.getValue())));
+            default:
+                return JsonField.newInstance(entry.getKey(), JsonValue.of(entry.getValue()));
+        }
     }
 
     @SuppressWarnings("OverlyComplexMethod")
