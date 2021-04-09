@@ -71,6 +71,7 @@ io.netty:netty-transport-native-kqueue:jar:osx-x86_64:4.1.59.Final:compile
 io.netty:netty-transport-native-unix-common:jar:4.1.59.Final:compile
 io.reactivex.rxjava2:rxjava:jar:2.2.19:compile
 io.spray:spray-json_2.13:jar:1.3.6:compile
+net.i2p.crypto:eddsa:jar:0.3.0:compile
 nl.grons:metrics4-akka_a25_2.13:jar:4.1.14:compile
 nl.grons:metrics4-scala_2.13:jar:4.1.14:compile
 org.agrona:agrona:jar:1.9.0:compile
@@ -78,6 +79,8 @@ org.apache.geronimo.specs:geronimo-jms_2.0_spec:jar:1.0-alpha-2:compile
 org.apache.kafka:kafka-clients:jar:2.5.1:compile
 org.apache.qpid:proton-j:jar:0.33.6:compile
 org.apache.qpid:qpid-jms-client:jar:0.54.0:compile
+org.apache.sshd:sshd-common:jar:2.6.0:compile
+org.apache.sshd:sshd-core:jar:2.6.0:compile
 org.atteo.classindex:classindex:jar:3.8:compile
 org.lmdbjava:lmdbjava:jar:0.7.0:compile
 org.lz4:lz4-java:jar:1.7.1:compile

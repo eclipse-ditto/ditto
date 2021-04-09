@@ -4,7 +4,7 @@ published: true
 permalink: 2021-03-31-ssh-tunneling-for-managed-connections.html
 layout: post
 author: vadim_guenther
-tags: [blog, architecture, connection]
+tags: [blog, architecture, connectivity]
 hide_sidebar: true
 sidebar: false
 toc: true
@@ -20,8 +20,7 @@ Kafka 2.x.
 
 ![Connection Overview](images/blog/2021-04-06-ssh-tunnel-for-managed-connections-shema.png)
 
-For further information, see [Secure Shell (SSH) Connection Protocol, RFC4254](https://tools.ietf.
-org/html/rfc4254#section-7)
+For further information, see [Secure Shell (SSH) Connection Protocol, RFC4254](https://tools.ietf.org/html/rfc4254#section-7)
 
 ## Setting up connections with SSH tunneling in Ditto
 When setting up a tunneled connection, the configuration must specify the `sshTunnel` section, which contains 

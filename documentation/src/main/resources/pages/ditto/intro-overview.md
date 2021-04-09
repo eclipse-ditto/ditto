@@ -1,5 +1,5 @@
 ---
-title: Ditto documentation overview
+title: Eclipse Ditto™ documentation overview
 keywords: purpose, about, motivation, digital twin, digitaltwin, twin
 tags: [getting_started]
 permalink: intro-overview.html
@@ -8,7 +8,7 @@ permalink: intro-overview.html
 
 ## What is it?
 
-Eclipse Ditto is a technology in the <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.iot}}">IoT</a> 
+Eclipse Ditto™ is a technology in the <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.iot}}">IoT</a> 
 implementing a software pattern called “**[digital twins](intro-digitaltwins.html)**”.<br/>
 A digital twin is a virtual, cloud based, representation of his real world counterpart 
 (real world “Things”, e.g. devices like sensors, smart heating, connected cars, smart grids, EV charging stations, …).

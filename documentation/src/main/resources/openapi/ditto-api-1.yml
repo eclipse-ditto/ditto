@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: Eclipse Ditto HTTP API - Deprecated
+  title: Eclipse Ditto™ HTTP API - Deprecated
   version: '1'
   description: |-
     JSON-based, REST-like API for Eclipse Ditto

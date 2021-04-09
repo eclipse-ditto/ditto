@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: Eclipse Ditto HTTP API
+  title: Eclipse Ditto™ HTTP API
   version: '2'
   description: |-
     JSON-based, REST-like API for Eclipse Ditto
