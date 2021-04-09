@@ -30,6 +30,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 final class JwtTestConstants {
 
     static final String VALID_JWT_TOKEN;
+    static final String UNSIGNED_JWT_TOKEN;
     static final String EXPIRED_JWT_TOKEN;
     static final PublicKey PUBLIC_KEY_2;
 
@@ -52,6 +53,7 @@ final class JwtTestConstants {
             PUBLIC_KEY_2 = keyPair2.getPublic();
 
             VALID_JWT_TOKEN = createJwt();
+            UNSIGNED_JWT_TOKEN = createUnsignedJwt();
             EXPIRED_JWT_TOKEN = createExpiredJwt();
         } catch (final Exception e) {
             throw new IllegalStateException(e);
@@ -63,6 +65,13 @@ final class JwtTestConstants {
                 .setHeaderParam("kid", KEY_ID)
                 .setIssuer(ISSUER)
                 .signWith(PRIVATE_KEY, SignatureAlgorithm.RS256)
+                .compact();
+    }
+
+    private static String createUnsignedJwt() {
+        return Jwts.builder()
+                .setHeaderParam("kid", KEY_ID)
+                .setIssuer(ISSUER)
                 .compact();
     }
 
