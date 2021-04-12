@@ -96,7 +96,7 @@ public final class ImmutableDittoHeadersTest {
             Lists.list(AcknowledgementLabel.of("ack-label-2"));
     private static final List<ResponseType> KNOWN_EXPECTED_RESPONSE_TYPES =
             Lists.list(ResponseType.RESPONSE, ResponseType.NACK);
-    private static final String KNOWN_ENTITY_ID = "known:entityId";
+    private static final String KNOWN_ENTITY_ID = "thing:known:entityId";
     private static final String KNOWN_WWW_AUTHENTICATION = "known:www-authentication";
     private static final String KNOWN_LOCATION = "known:location";
     private static final String KNOWN_CONNECTION_ID = "known-connection-id";

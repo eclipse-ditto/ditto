@@ -24,6 +24,8 @@ import org.bson.Document;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
+import org.eclipse.ditto.model.things.ThingConstants;
 import org.junit.Test;
 
 /**
@@ -33,7 +35,8 @@ public class MongoPersistenceOperationsSelectionProviderTest {
 
     private static final String KEY_PID = "pid";
 
-    private static final String PERSISTENCE_ID_PREFIX = "myPidPrefix:";
+    private static final EntityType THING_TYPE = ThingConstants.ENTITY_TYPE;
+    private static final String PERSISTENCE_ID_PREFIX = THING_TYPE + ":";
     private static final String METADATA_COLLECTION_NAME = "myMetadataCollection";
     private static final String JOURNAL_COLLECTION_NAME = "myJournalCollection";
     private static final String SNAPSHOT_COLLECTION_NAME = "mySnapshotCollection";
@@ -65,7 +68,7 @@ public class MongoPersistenceOperationsSelectionProviderTest {
                 MongoPersistenceOperationsSelectionProvider.of(settings);
 
         assertThatExceptionOfType(NamespacedEntityIdInvalidException.class)
-                .isThrownBy(() -> underTest.selectEntity(DefaultNamespacedEntityId.of(ENTITY_NAME)));
+                .isThrownBy(() -> underTest.selectEntity(DefaultNamespacedEntityId.of(THING_TYPE, ENTITY_NAME)));
     }
 
     @Test
@@ -76,7 +79,7 @@ public class MongoPersistenceOperationsSelectionProviderTest {
                 MongoPersistenceOperationsSelectionProvider.of(settings);
 
         final Collection<MongoPersistenceOperationsSelection> selections =
-                underTest.selectEntity(DefaultEntityId.of(ENTITY_NAME));
+                underTest.selectEntity(DefaultEntityId.of(THING_TYPE, ENTITY_NAME));
 
         final String pid = PERSISTENCE_ID_PREFIX + ENTITY_NAME;
         final Document pidFilter = new Document().append(KEY_PID, new BsonString(pid));

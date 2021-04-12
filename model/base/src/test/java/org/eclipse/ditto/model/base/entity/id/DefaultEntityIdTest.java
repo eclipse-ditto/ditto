@@ -15,9 +15,11 @@ package org.eclipse.ditto.model.base.entity.id;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -27,9 +29,11 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class DefaultEntityIdTest {
 
+    private static final EntityType THING_TYPE = EntityType.of("thing");
+
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DefaultEntityId.class, areImmutable());
+        assertInstancesOf(DefaultEntityId.class, areImmutable(), provided(EntityType.class).isAlsoImmutable());
     }
 
     @Test
@@ -42,7 +46,7 @@ public final class DefaultEntityIdTest {
     @Test
     public void tryToGetInstanceFromNull() {
         assertThatNullPointerException()
-                .isThrownBy(() -> DefaultEntityId.of(null))
+                .isThrownBy(() -> DefaultEntityId.of(THING_TYPE, null))
                 .withMessage("The entityId must not be null!")
                 .withNoCause();
     }
@@ -50,16 +54,16 @@ public final class DefaultEntityIdTest {
     @Test
     public void tryToGetInstanceFromEmptyString() {
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> DefaultEntityId.of(""))
+                .isThrownBy(() -> DefaultEntityId.of(THING_TYPE, ""))
                 .withMessage("The argument 'entityId' must not be empty!")
                 .withNoCause();
     }
 
     @Test
     public void getInstanceFromDefaultEntityIdReturnsSame() {
-        final DefaultEntityId underTest = DefaultEntityId.generateRandom();
+        final DefaultEntityId underTest = DefaultEntityId.generateRandom(THING_TYPE);
 
-        assertThat((CharSequence) DefaultEntityId.of(underTest)).isSameAs(underTest);
+        assertThat((CharSequence) DefaultEntityId.of(THING_TYPE, underTest)).isSameAs(underTest);
     }
 
 

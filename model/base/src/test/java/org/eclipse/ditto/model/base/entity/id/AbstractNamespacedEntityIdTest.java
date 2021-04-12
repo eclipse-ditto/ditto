@@ -13,7 +13,6 @@
 package org.eclipse.ditto.model.base.entity.id;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 import java.util.List;
 
@@ -26,11 +25,11 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 /**
- * Unit test for {@link NamespacedEntityIdWithType}.
- * It uses a dummy implementation as this class only tests commonly implemented methods of NamespacedEntityIdWithType.
+ * Unit test for {@link AbstractNamespacedEntityId}.
+ * It uses a dummy implementation as this class only tests commonly implemented methods of NamespacedEntityId.
  */
 @RunWith(Parameterized.class)
-public final class NamespacedEntityIdWithTypeTest {
+public final class AbstractNamespacedEntityIdTest {
 
     private static final EntityType ENTITY_TYPE_PLUMBUS = EntityType.of("plumbus");
     private static final EntityType ENTITY_TYPE_GRUMBO = EntityType.of("grumbo");
@@ -60,30 +59,23 @@ public final class NamespacedEntityIdWithTypeTest {
     public CompatibilityCheckParameter parameter;
 
     @Test
-    public void isCompatibleOrThrowBehavesCorrectly() {
-        if (parameter.shouldBeCompatible) {
-            assertThat(parameter.blue.isCompatibleOrThrow(parameter.green)).isTrue();
-        } else {
-            assertThatIllegalArgumentException()
-                    .isThrownBy(() -> parameter.blue.isCompatibleOrThrow(parameter.green))
-                    .withMessage("The entity ID <%s> is not compatible with <%s>!", parameter.green, parameter.blue)
-                    .withNoCause();
-        }
+    public void isCompatibleBehavesCorrectly() {
+        assertThat(parameter.blue.isCompatible(parameter.green)).isEqualTo(parameter.shouldBeCompatible);
     }
 
-    private static NamespacedEntityIdWithType createEntityId(@Nullable final CharSequence namespace,
+    private static AbstractNamespacedEntityId createEntityId(@Nullable final CharSequence namespace,
             final CharSequence name) {
 
         return createEntityId(ENTITY_TYPE_PLUMBUS, namespace, name);
     }
 
-    private static NamespacedEntityIdWithType createEntityId(final EntityType entityType,
+    private static AbstractNamespacedEntityId createEntityId(final EntityType entityType,
             @Nullable final CharSequence namespace, final CharSequence name) {
 
         return DummyImplementation.of(entityType, name, namespace);
     }
 
-    private static final class DummyImplementation extends NamespacedEntityIdWithType {
+    private static final class DummyImplementation extends AbstractNamespacedEntityId {
 
         private final EntityType entityType;
 
@@ -97,9 +89,9 @@ public final class NamespacedEntityIdWithTypeTest {
 
             final NamespacedEntityId namespacedEntityId;
             if (null == namespace) {
-                namespacedEntityId = DefaultNamespacedEntityId.fromName(name.toString());
+                namespacedEntityId = DefaultNamespacedEntityId.fromName(entityType, name.toString());
             } else {
-                namespacedEntityId = DefaultNamespacedEntityId.of(namespace.toString(), name.toString());
+                namespacedEntityId = DefaultNamespacedEntityId.of(entityType, namespace.toString(), name.toString());
             }
             return new DummyImplementation(entityType, namespacedEntityId);
         }
@@ -113,26 +105,26 @@ public final class NamespacedEntityIdWithTypeTest {
 
     private static final class CompatibilityCheckParameter {
 
-        private final NamespacedEntityIdWithType blue;
-        @Nullable private final NamespacedEntityIdWithType green;
+        private final AbstractNamespacedEntityId blue;
+        @Nullable private final AbstractNamespacedEntityId green;
         private final boolean shouldBeCompatible;
 
-        private CompatibilityCheckParameter(final NamespacedEntityIdWithType blue,
-                @Nullable final NamespacedEntityIdWithType green, final boolean shouldBeCompatible) {
+        private CompatibilityCheckParameter(final AbstractNamespacedEntityId blue,
+                @Nullable final AbstractNamespacedEntityId green, final boolean shouldBeCompatible) {
 
             this.blue = blue;
             this.green = green;
             this.shouldBeCompatible = shouldBeCompatible;
         }
 
-        static CompatibilityCheckParameter compatible(final NamespacedEntityIdWithType blue,
-                final NamespacedEntityIdWithType green) {
+        static CompatibilityCheckParameter compatible(final AbstractNamespacedEntityId blue,
+                final AbstractNamespacedEntityId green) {
 
             return new CompatibilityCheckParameter(blue, green, true);
         }
 
-        static CompatibilityCheckParameter incompatible(final NamespacedEntityIdWithType blue,
-                @Nullable final NamespacedEntityIdWithType green) {
+        static CompatibilityCheckParameter incompatible(final AbstractNamespacedEntityId blue,
+                @Nullable final AbstractNamespacedEntityId green) {
 
             return new CompatibilityCheckParameter(blue, green, false);
         }

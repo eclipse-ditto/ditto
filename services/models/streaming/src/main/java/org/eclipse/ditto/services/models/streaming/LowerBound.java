@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.models.streaming;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 
 /**
  * Special Entity ID's (with Revision).
@@ -24,27 +25,26 @@ import org.eclipse.ditto.model.base.entity.id.EntityId;
  */
 public final class LowerBound extends AbstractEntityIdWithRevision<EntityId> {
 
-    private static final EntityId EMPTY_ENTITY_ID = DefaultEntityId.of(":_");
-    private static final LowerBound EMPTY_ENTITY_ID_WITH_REVISION = new LowerBound();
-
-    private LowerBound() {
-        this(EMPTY_ENTITY_ID, 0L);
+    private LowerBound(final EntityType entityType) {
+        this(emptyEntityId(entityType), 0L);
     }
 
     private LowerBound(final EntityId entityId, final Long revision) {
         super(entityId, revision);
     }
 
-    public static EntityId emptyEntityId() {
-        return EMPTY_ENTITY_ID;
+    public static EntityId emptyEntityId(final EntityType entityType) {
+        return DefaultEntityId.of(entityType, ":_");
     }
 
-    public static EntityIdWithRevision<EntityId> empty() {
-        return EMPTY_ENTITY_ID_WITH_REVISION;
+    public static EntityIdWithRevision<EntityId> empty(final EntityType entityType) {
+        return new LowerBound(entityType);
     }
 
     public static EntityIdWithRevision<EntityId> fromJson(JsonObject jsonObject) {
-        final DefaultEntityId entityId = DefaultEntityId.of(jsonObject.getValueOrThrow(JsonFields.ID));
+        final EntityType entityType = EntityType.of(jsonObject.getValueOrThrow(JsonFields.ENTITY_TYPE));
+        final DefaultEntityId entityId =
+                DefaultEntityId.of(entityType, jsonObject.getValueOrThrow(JsonFields.ENTITY_ID));
         final Long revision = jsonObject.getValueOrThrow(JsonFields.REVISION);
         return new LowerBound(entityId, revision);
     }

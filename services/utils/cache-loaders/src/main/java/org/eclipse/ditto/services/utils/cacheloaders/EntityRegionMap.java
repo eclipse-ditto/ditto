@@ -25,17 +25,19 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.model.base.entity.type.EntityType;
+
 import akka.actor.ActorRef;
 
 /**
  * Immutable sharable map from resource types to actor reference.
  */
 @Immutable
-public final class EntityRegionMap implements Function<String, ActorRef> {
+public final class EntityRegionMap implements Function<EntityType, ActorRef> {
 
-    private final Map<String, ActorRef> rawMap;
+    private final Map<EntityType, ActorRef> rawMap;
 
-    private EntityRegionMap(final Map<String, ActorRef> rawMap) {
+    private EntityRegionMap(final Map<EntityType, ActorRef> rawMap) {
         this.rawMap = Collections.unmodifiableMap(new HashMap<>(rawMap));
     }
 
@@ -46,37 +48,37 @@ public final class EntityRegionMap implements Function<String, ActorRef> {
     /**
      * Find entity region for a resource type.
      *
-     * @param resourceType resource type of an entity.
+     * @param entityType type of an entity.
      * @return actor reference to the shard region of the entity.
      */
-    public Optional<ActorRef> lookup(final String resourceType) {
-        requireNonNull(resourceType);
+    public Optional<ActorRef> lookup(final EntityType entityType) {
+        requireNonNull(entityType);
 
-        return Optional.ofNullable(findRegion(resourceType));
+        return Optional.ofNullable(findRegion(entityType));
     }
 
     @Nullable
-    private ActorRef findRegion(final String resourceType) {
-        return rawMap.get(resourceType);
+    private ActorRef findRegion(final EntityType entityType) {
+        return rawMap.get(entityType);
     }
 
     @Override
     @Nullable
-    public ActorRef apply(final String resourceType) {
-        requireNonNull(resourceType);
+    public ActorRef apply(final EntityType entityType) {
+        requireNonNull(entityType);
 
-        return findRegion(resourceType);
+        return findRegion(entityType);
     }
 
     /**
      * Creates an {@link EntityRegionMap} with a single entry.
      *
-     * @param resourceType the resource type.
+     * @param entityType the resource type.
      * @param targetActor the actor reference.
      * @return the created {@link EntityRegionMap}.
      */
-    public static EntityRegionMap singleton(final String resourceType, final ActorRef targetActor) {
-        return new EntityRegionMap(Collections.singletonMap(resourceType, targetActor));
+    public static EntityRegionMap singleton(final EntityType entityType, final ActorRef targetActor) {
+        return new EntityRegionMap(Collections.singletonMap(entityType, targetActor));
     }
 
     /**
@@ -118,20 +120,20 @@ public final class EntityRegionMap implements Function<String, ActorRef> {
     @NotThreadSafe
     public static final class Builder {
 
-        private final HashMap<String, ActorRef> hashMap = new HashMap<>();
+        private final HashMap<EntityType, ActorRef> hashMap = new HashMap<>();
 
         /**
          * Add a resource-type-to-actor-reference mapping.
          *
-         * @param resourceType the resource type.
+         * @param entityType the entity type.
          * @param targetActor the actor reference.
          * @return this builder.
          */
-        public Builder put(final String resourceType, final ActorRef targetActor) {
-            requireNonNull(resourceType);
+        public Builder put(final EntityType entityType, final ActorRef targetActor) {
+            requireNonNull(entityType);
             requireNonNull(targetActor);
 
-            hashMap.put(resourceType, targetActor);
+            hashMap.put(entityType, targetActor);
             return this;
         }
 

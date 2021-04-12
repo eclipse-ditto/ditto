@@ -28,7 +28,8 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.common.ResponseType;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.entity.type.WithEntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
@@ -74,11 +75,11 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
      * @return the ImmutableAcknowledgement.
      * @throws NullPointerException if one of the required parameters was {@code null}.
      * @deprecated as of 2.0.0 please use
-     * {@link #of(AcknowledgementLabel, EntityIdWithType, HttpStatus, DittoHeaders, JsonValue)} instead.
+     * {@link #of(AcknowledgementLabel, EntityId, HttpStatus, DittoHeaders, JsonValue)} instead.
      */
     @Deprecated
     static Acknowledgement of(final AcknowledgementLabel label,
-            final EntityIdWithType entityId,
+            final EntityId entityId,
             final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders,
             @Nullable final JsonValue payload) {
@@ -99,7 +100,7 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
      * @since 2.0.0
      */
     static Acknowledgement of(final AcknowledgementLabel label,
-            final EntityIdWithType entityId,
+            final EntityId entityId,
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders,
             @Nullable final JsonValue payload) {
@@ -119,7 +120,7 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
      * @since 1.5.0
      */
     static Acknowledgement weak(final AcknowledgementLabel label,
-            final EntityIdWithType entityId,
+            final EntityId entityId,
             final DittoHeaders dittoHeaders,
             @Nullable final JsonValue payload) {
 
@@ -138,12 +139,12 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
      * @param dittoHeaders the DittoHeaders.
      * @return the ImmutableAcknowledgement.
      * @throws NullPointerException if one of the required parameters was {@code null}.
-     * @deprecated as of 2.0.0 please use {@link #of(AcknowledgementLabel, EntityIdWithType, HttpStatus, DittoHeaders)}
+     * @deprecated as of 2.0.0 please use {@link #of(AcknowledgementLabel, EntityId, HttpStatus, DittoHeaders)}
      * instead.
      */
     @Deprecated
     static Acknowledgement of(final AcknowledgementLabel label,
-            final EntityIdWithType entityId,
+            final EntityId entityId,
             final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders) {
 
@@ -162,7 +163,7 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
      * @since 2.0.0
      */
     static Acknowledgement of(final AcknowledgementLabel label,
-            final EntityIdWithType entityId,
+            final EntityId entityId,
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
@@ -282,7 +283,7 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
     }
 
     @Override
-    EntityIdWithType getEntityId();
+    EntityId getEntityId();
 
     /**
      * Definition of fields of the JSON representation of an {@link Acknowledgement}.

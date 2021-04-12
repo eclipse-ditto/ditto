@@ -32,7 +32,9 @@ public class PolicyIdTest {
 
     @Test
     public void testEqualsAndHashcode() {
-        EqualsVerifier.forClass(PolicyId.class).withRedefinedSuperclass().verify();
+        EqualsVerifier.forClass(PolicyId.class)
+                .usingGetClass()
+                .verify();
     }
 
     @Test

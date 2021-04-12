@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.WithEntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -96,7 +97,7 @@ public final class ShardedMessageEnvelope
      */
     public static ShardedMessageEnvelope fromJson(final JsonObject jsonObject) {
         final String extractedId = jsonObject.getValueOrThrow(JSON_ID);
-        final EntityId entityId = DefaultEntityId.of(extractedId);
+        final EntityId entityId = DefaultEntityId.of(EntityType.of("thing"), extractedId); //TODO: yannic try to use constant
         final String extractedType = jsonObject.getValueOrThrow(JSON_TYPE);
         final JsonObject extractedMessage = jsonObject.getValueOrThrow(JSON_MESSAGE);
         final JsonObject jsonDittoHeaders = jsonObject.getValueOrThrow(JSON_DITTO_HEADERS);

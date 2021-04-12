@@ -19,6 +19,7 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.entity.validation.EntityIdPatternValidator;
 
 /**
@@ -32,19 +33,23 @@ public final class DefaultNamespacedEntityId implements NamespacedEntityId {
     private final String namespace;
     private final String name;
     private final String stringRepresentation;
+    private final EntityType entityType;
 
-    private DefaultNamespacedEntityId(final String namespace, final String name, final boolean shouldValidate) {
+    private DefaultNamespacedEntityId(final EntityType entityType, final String namespace, final String name,
+            final boolean shouldValidate) {
+
         if (shouldValidate) {
             stringRepresentation = validate(namespace, name);
         } else {
             stringRepresentation = namespace + NAMESPACE_DELIMITER + name;
         }
 
+        this.entityType = entityType;
         this.namespace = namespace;
         this.name = name;
     }
 
-    private DefaultNamespacedEntityId(@Nullable final CharSequence entityId) {
+    private DefaultNamespacedEntityId(final EntityType entityType, @Nullable final CharSequence entityId) {
         if (entityId == null) {
             throw NamespacedEntityIdInvalidException.newBuilder(entityId).build();
         }
@@ -59,6 +64,8 @@ public final class DefaultNamespacedEntityId implements NamespacedEntityId {
         } else {
             throw NamespacedEntityIdInvalidException.newBuilder(entityId).build();
         }
+
+        this.entityType = entityType;
     }
 
     /**
@@ -66,44 +73,48 @@ public final class DefaultNamespacedEntityId implements NamespacedEntityId {
      * the parameter if the given parameter is already a DefaultNamespacedEntityId. Skips validation if the given
      * {@code entityId} is an instance of NamespacedEntityId.
      *
+     * @param entityType the type of the entity this ID identifies.
      * @param entityId the entity ID.
      * @return the namespaced entity ID.
      * @throws NamespacedEntityIdInvalidException if the given {@code entityId} is invalid.
      */
-    public static NamespacedEntityId of(final CharSequence entityId) {
-        if (entityId instanceof DefaultNamespacedEntityId) {
+    public static NamespacedEntityId of(final EntityType entityType, final CharSequence entityId) {
+        if (entityId instanceof DefaultNamespacedEntityId &&
+                ((DefaultNamespacedEntityId) entityId).getEntityType().equals(entityType)) {
             return (NamespacedEntityId) entityId;
         }
 
         if (entityId instanceof NamespacedEntityId) {
             final String namespace = ((NamespacedEntityId) entityId).getNamespace();
             final String name = ((NamespacedEntityId) entityId).getName();
-            return new DefaultNamespacedEntityId(namespace, name, false);
+            return new DefaultNamespacedEntityId(entityType, namespace, name, false);
         }
 
-        return new DefaultNamespacedEntityId(entityId);
+        return new DefaultNamespacedEntityId(entityType, entityId);
     }
 
     /**
      * Creates {@link NamespacedEntityId} with default namespace placeholder.
      *
+     * @param entityType the type of the entity this ID identifies.
      * @param entityName the name of the entity.
      * @return the created namespaced entity ID.
      * @throws NamespacedEntityIdInvalidException if the given {@code entityName} is invalid.
      */
-    public static NamespacedEntityId fromName(final String entityName) {
-        return of(DEFAULT_NAMESPACE, entityName);
+    public static NamespacedEntityId fromName(final EntityType entityType, final String entityName) {
+        return of(entityType, DEFAULT_NAMESPACE, entityName);
     }
 
     /**
      * Creates a new {@link NamespacedEntityId} with the given namespace and name.
      *
+     * @param entityType the type of the entity this ID identifies.
      * @param namespace the namespace of the entity.
      * @param name the name of the entity.
      * @return the created instance of {@link NamespacedEntityId}
      */
-    public static NamespacedEntityId of(final String namespace, final String name) {
-        return new DefaultNamespacedEntityId(namespace, name, true);
+    public static NamespacedEntityId of(final EntityType entityType, final String namespace, final String name) {
+        return new DefaultNamespacedEntityId(entityType, namespace, name, true);
     }
 
     private String validate(final @Nullable String namespace, final @Nullable String name) {
@@ -137,12 +148,13 @@ public final class DefaultNamespacedEntityId implements NamespacedEntityId {
 
         final DefaultNamespacedEntityId that = (DefaultNamespacedEntityId) o;
         return Objects.equals(namespace, that.namespace) &&
-                Objects.equals(name, that.name);
+                Objects.equals(name, that.name) &&
+                Objects.equals(entityType, that.entityType);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(namespace, name);
+        return Objects.hash(entityType, namespace, name);
     }
 
 
@@ -151,4 +163,8 @@ public final class DefaultNamespacedEntityId implements NamespacedEntityId {
         return stringRepresentation;
     }
 
+    @Override
+    public EntityType getEntityType() {
+        return entityType;
+    }
 }

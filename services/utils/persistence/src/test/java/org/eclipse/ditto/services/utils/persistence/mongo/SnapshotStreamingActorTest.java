@@ -21,6 +21,7 @@ import java.util.List;
 import org.bson.Document;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.models.streaming.StreamedSnapshot;
 import org.eclipse.ditto.services.models.streaming.SudoStreamSnapshots;
@@ -47,6 +48,7 @@ import akka.testkit.javadsl.TestKit;
  */
 public final class SnapshotStreamingActorTest {
 
+    private static final EntityType THING_TYPE = EntityType.of("thing");
     private ActorSystem actorSystem;
     private DittoMongoClient mockClient;
     private MongoReadJournal mockReadJournal;
@@ -72,7 +74,7 @@ public final class SnapshotStreamingActorTest {
 
             // WHEN
             final SudoStreamSnapshots sudoStreamSnapshots =
-                    SudoStreamSnapshots.of(100, 10_000L, List.of(), DittoHeaders.empty());
+                    SudoStreamSnapshots.of(100, 10_000L, List.of(), DittoHeaders.empty(), THING_TYPE);
             setSnapshotStore(Source.empty());
             underTest.tell(sudoStreamSnapshots, getRef());
 
@@ -94,15 +96,15 @@ public final class SnapshotStreamingActorTest {
 
             // WHEN
             final SudoStreamSnapshots sudoStreamSnapshots =
-                    SudoStreamSnapshots.of(100, 10_000L, List.of(), DittoHeaders.empty());
+                    SudoStreamSnapshots.of(100, 10_000L, List.of(), DittoHeaders.empty(), THING_TYPE);
             setSnapshotStore(Source.from(List.of(
-                    new Document().append("_id", "thing:snap:1")
+                    new Document().append("pid", "thing:snap:1")
                             .append("_revision", 1)
                             .append("_modified", "2001-01-01"),
-                    new Document().append("_id", "thing:snap:2")
+                    new Document().append("pid", "thing:snap:2")
                             .append("_revision", 2)
                             .append("_modified", "2002-02-02"),
-                    new Document().append("_id", "thing:snap:3")
+                    new Document().append("pid", "thing:snap:3")
                             .append("_revision", 3)
                             .append("_modified", "2003-03-03")
             )));
@@ -117,11 +119,11 @@ public final class SnapshotStreamingActorTest {
                     .join();
 
             assertThat(results).containsExactly(
-                    StreamedSnapshot.of(DefaultEntityId.of("snap:1"),
+                    StreamedSnapshot.of(DefaultEntityId.of(THING_TYPE, "snap:1"),
                             JsonObject.of("{\"_revision\":1,\"_modified\":\"2001-01-01\"}")),
-                    StreamedSnapshot.of(DefaultEntityId.of("snap:2"),
+                    StreamedSnapshot.of(DefaultEntityId.of(THING_TYPE, "snap:2"),
                             JsonObject.of("{\"_revision\":2,\"_modified\":\"2002-02-02\"}")),
-                    StreamedSnapshot.of(DefaultEntityId.of("snap:3"),
+                    StreamedSnapshot.of(DefaultEntityId.of(THING_TYPE, "snap:3"),
                             JsonObject.of("{\"_revision\":3,\"_modified\":\"2003-03-03\"}"))
             );
         }};
@@ -134,8 +136,9 @@ public final class SnapshotStreamingActorTest {
 
     private ActorRef createSnapshotStreamingActor() {
         final Props props = SnapshotStreamingActor.propsForTest(
-                pid -> DefaultEntityId.of(pid.substring(pid.indexOf(':') + 1)),
-                entityId -> "thing:" + entityId.toString(),
+                pid -> DefaultEntityId.of(EntityType.of(pid.substring(0, pid.indexOf(":"))),
+                        pid.substring(pid.indexOf(':') + 1)),
+                entityId -> THING_TYPE + ":" + entityId.toString(),
                 mockClient,
                 mockReadJournal
         );

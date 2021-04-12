@@ -30,7 +30,7 @@ import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
+import org.eclipse.ditto.services.utils.cache.CacheKey;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
@@ -193,7 +193,7 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
     /**
      * @return the entity ID.
      */
-    protected EntityIdWithResourceType entityId() {
+    protected CacheKey entityId() {
         return context.getEntityIdWithResourceType();
     }
 

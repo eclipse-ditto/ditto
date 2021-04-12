@@ -23,11 +23,14 @@ import java.util.stream.IntStream;
 
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupCommandResponse;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -48,21 +51,23 @@ import akka.testkit.javadsl.TestKit;
 public class AbstractPersistentActorWithTimersAndCleanupTest {
 
     private static final int SNAPSHOT_THRESHOLD = 5;
-    private static ActorSystem actorSystem;
+    private ActorSystem actorSystem;
 
     @Rule
     public TestName name = new TestName();
 
-    @BeforeClass
-    public static void init() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", ConfigFactory.load("test.conf"));
+    @Before
+    public void init() {
+        resetMocks();
+        actorSystem = ActorSystem.create(name.getMethodName(), ConfigFactory.load("test.conf"));
     }
 
-    @AfterClass
-    public static void tearDown() {
+    @After
+    public void tearDown() {
         if (actorSystem != null) {
             TestKit.shutdownActorSystem(actorSystem);
         }
+        actorSystem = null;
     }
 
     @Test
@@ -73,11 +78,12 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
             modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 10, dilated(Duration.ofSeconds(10)));
 
             // WHEN: cleanup is sent
-            persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(persistenceId()), DittoHeaders.empty()),
+            persistenceActor.tell(
+                    CleanupPersistence.of(extractEntityIdFromPersistenceId(persistenceId()), DittoHeaders.empty()),
                     getRef());
 
             // THEN: command is successful and plugin is called
-            final CleanupCommandResponse cleanupCommandResponse = expectMsgClass(CleanupCommandResponse.class);
+            final CleanupCommandResponse<?> cleanupCommandResponse = expectMsgClass(CleanupCommandResponse.class);
             assertThat(cleanupCommandResponse.getHttpStatus()).isEqualTo(HttpStatus.OK);
             verifyPersistencePluginCalledWithCorrectArguments(persistenceId(), 9);
         }};
@@ -91,11 +97,12 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
             modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 10, dilated(Duration.ofSeconds(10)));
 
             // WHEN: cleanup is sent
-            persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(persistenceId()), DittoHeaders.empty()),
+            persistenceActor.tell(
+                    CleanupPersistence.of(extractEntityIdFromPersistenceId(persistenceId()), DittoHeaders.empty()),
                     getRef());
 
             // THEN: command is successful and plugin is called
-            final CleanupCommandResponse cleanupCommandResponse = expectMsgClass(CleanupCommandResponse.class);
+            final CleanupCommandResponse<?> cleanupCommandResponse = expectMsgClass(CleanupCommandResponse.class);
             assertThat(cleanupCommandResponse.getHttpStatus()).isEqualTo(HttpStatus.OK);
             verifyPersistencePluginCalledWithCorrectArguments(persistenceId(), 9, 10);
         }};
@@ -109,13 +116,14 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
 
             modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 8, dilated(Duration.ofSeconds(10)));
 
-            persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(FAIL_DELETE_MESSAGE), DittoHeaders.empty()),
+            persistenceActor.tell(
+                    CleanupPersistence.of(extractEntityIdFromPersistenceId(FAIL_DELETE_MESSAGE), DittoHeaders.empty()),
                     getRef());
-            final CleanupCommandResponse cleanupCommandResponse = expectMsgClass(CleanupCommandResponse.class);
+            final CleanupCommandResponse<?> cleanupCommandResponse = expectMsgClass(CleanupCommandResponse.class);
 
             assertThat(cleanupCommandResponse.getHttpStatus()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
 
-            verifyPersistencePluginCalledWithCorrectArguments(FAIL_DELETE_MESSAGE, 4);
+            verifyPersistencePluginCalledWithCorrectArguments(FAIL_DELETE_MESSAGE, 4, 5);
         }};
     }
 
@@ -127,11 +135,12 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
             modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 5, dilated(Duration.ofSeconds(10)));
 
             // WHEN: cleanup is sent
-            persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(FAIL_DELETE_SNAPSHOT), DittoHeaders.empty()),
+            persistenceActor.tell(
+                    CleanupPersistence.of(extractEntityIdFromPersistenceId(FAIL_DELETE_SNAPSHOT), DittoHeaders.empty()),
                     getRef());
 
             // THEN: expect success response with correct status and persistence plugin is called
-            final CleanupCommandResponse cleanupCommandResponse = expectMsgClass(CleanupCommandResponse.class);
+            final CleanupCommandResponse<?> cleanupCommandResponse = expectMsgClass(CleanupCommandResponse.class);
             assertThat(cleanupCommandResponse.getHttpStatus()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
             verifyPersistencePluginCalledWithCorrectArguments(FAIL_DELETE_SNAPSHOT, 4);
         }};
@@ -145,15 +154,17 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
             modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 20, dilated(Duration.ofSeconds(10)));
 
             // WHEN: cleanup is sent
-            persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(persistenceId()), DittoHeaders.empty()),
+            persistenceActor.tell(
+                    CleanupPersistence.of(extractEntityIdFromPersistenceId(persistenceId()), DittoHeaders.empty()),
                     getRef());
-            final CleanupCommandResponse response1 = expectMsgClass(CleanupCommandResponse.class);
+            final CleanupCommandResponse<?> response1 = expectMsgClass(CleanupCommandResponse.class);
             assertThat(response1.getHttpStatus()).isEqualTo(HttpStatus.OK);
 
             // and entity is not changed in the meantime
-            persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(persistenceId()), DittoHeaders.empty()),
+            persistenceActor.tell(
+                    CleanupPersistence.of(extractEntityIdFromPersistenceId(persistenceId()), DittoHeaders.empty()),
                     getRef());
-            final CleanupCommandResponse response2 = expectMsgClass(CleanupCommandResponse.class);
+            final CleanupCommandResponse<?> response2 = expectMsgClass(CleanupCommandResponse.class);
             assertThat(response2.getHttpStatus()).isEqualTo(HttpStatus.OK);
 
             // THEN: verify that persistence plugin is only called once
@@ -169,9 +180,11 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
             modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 10, dilated(Duration.ofSeconds(15)));
 
             // WHEN: concurrent cleanup is sent
-            persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(SLOW_DELETE), DittoHeaders.empty()),
+            persistenceActor.tell(CleanupPersistence.of(extractEntityIdFromPersistenceId(SLOW_DELETE),
+                    DittoHeaders.empty()),
                     getRef());
-            persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(SLOW_DELETE), DittoHeaders.empty()),
+            persistenceActor.tell(CleanupPersistence.of(extractEntityIdFromPersistenceId(SLOW_DELETE),
+                    DittoHeaders.empty()),
                     getRef());
             final CleanupCommandResponse<?> cleanupFailed =
                     expectMsgClass(dilated(Duration.ofSeconds(15)), CleanupCommandResponse.class);
@@ -190,21 +203,23 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
             modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 10, dilated(Duration.ofSeconds(10)));
 
             // WHEN: cleanup command is sent
-            persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(persistenceId()), DittoHeaders.empty()),
+            persistenceActor.tell(
+                    CleanupPersistence.of(extractEntityIdFromPersistenceId(persistenceId()), DittoHeaders.empty()),
                     getRef());
 
             // THEN: command is successful
-            final CleanupCommandResponse cleanupCommandResponse1 = expectMsgClass(CleanupCommandResponse.class);
+            final CleanupCommandResponse<?> cleanupCommandResponse1 = expectMsgClass(CleanupCommandResponse.class);
             assertThat(cleanupCommandResponse1.getHttpStatus()).isEqualTo(HttpStatus.OK);
 
             // WHEN: more updates occur and another cleanup command is sent
             modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 10,
                     dilated(Duration.ofSeconds(10)));
-            persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(persistenceId()), DittoHeaders.empty()),
+            persistenceActor.tell(
+                    CleanupPersistence.of(extractEntityIdFromPersistenceId(persistenceId()), DittoHeaders.empty()),
                     getRef());
 
             // THEN: command is successful and deletes are executed with correct seq number
-            final CleanupCommandResponse cleanupCommandResponse2 = expectMsgClass(CleanupCommandResponse.class);
+            final CleanupCommandResponse<?> cleanupCommandResponse2 = expectMsgClass(CleanupCommandResponse.class);
             assertThat(cleanupCommandResponse2.getHttpStatus()).isEqualTo(HttpStatus.OK);
 
             verifyPersistencePluginCalledWithCorrectArguments(persistenceId(), 9);
@@ -230,8 +245,25 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
         MockJournalPlugin.verify(persistenceId, journalSn);
     }
 
+    private void resetMocks() {
+        MockSnapshotStorePlugin.reset();
+        MockJournalPlugin.reset();
+    }
+
     private String persistenceId() {
-        return name.getMethodName();
+        return ThingConstants.ENTITY_TYPE + ":" + name.getMethodName();
+    }
+
+    private EntityId extractEntityIdFromPersistenceId(final String persistenceId) {
+        final int indexOfSeparator = persistenceId.indexOf(':');
+        if (indexOfSeparator < 0) {
+            final String message =
+                    String.format("Persistence ID <%s> wasn't prefixed with an entity type.", persistenceId);
+            throw new IllegalArgumentException(message);
+        }
+        final String id = persistenceId.substring(indexOfSeparator + 1);
+        final EntityType type = EntityType.of(persistenceId.substring(0, indexOfSeparator));
+        return DefaultEntityId.of(type, id);
     }
 
     static class DummyPersistentActor extends AbstractPersistentActorWithTimersAndCleanup {

@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.SignalWithEntityId;
@@ -103,7 +104,7 @@ public class SignalEnforcementFilterTest {
                 "some/{{  test:placeholder  }}/topic",
                 "some/{{ entity:id }}/topic",
                 "eclipse:ditto",
-                DefaultNamespacedEntityId.of("eclipse:ditto"));
+                DefaultNamespacedEntityId.of(ThingConstants.ENTITY_TYPE, "eclipse:ditto"));
     }
 
     @Test
@@ -154,7 +155,8 @@ public class SignalEnforcementFilterTest {
 
     @Test
     public void testDeviceIdHeaderMatchesEntityId() {
-        testDeviceIdHeaderEnforcement("entity", DefaultNamespacedEntityId.of("eclipse:ditto"));
+        testDeviceIdHeaderEnforcement("entity",
+                DefaultNamespacedEntityId.of(ThingConstants.ENTITY_TYPE, "eclipse:ditto"));
     }
 
     public void testDeviceIdHeaderEnforcement(final String prefix, final NamespacedEntityId namespacedEntityId) {

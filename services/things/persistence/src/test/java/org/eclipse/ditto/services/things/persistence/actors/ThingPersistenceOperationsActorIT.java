@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
@@ -59,7 +58,7 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
     }
 
     @Override
-    protected ThingId toEntityId(final EntityId entityId) {
+    protected ThingId toEntityId(final CharSequence entityId) {
         return ThingId.of(entityId);
     }
 

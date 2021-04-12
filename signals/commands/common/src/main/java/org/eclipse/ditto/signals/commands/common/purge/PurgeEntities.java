@@ -108,7 +108,7 @@ public final class PurgeEntities extends CommonCommand<PurgeEntities> implements
             final EntityType entityType = EntityType.of(jsonObject.getValueOrThrow(JsonFields.ENTITY_TYPE));
             final List<EntityId> entityIds = jsonObject.getValueOrThrow(JsonFields.ENTITY_IDS).stream()
                     .map(JsonValue::asString)
-                    .map(DefaultEntityId::of)
+                    .map(entityId -> DefaultEntityId.of(entityType, entityId))
                     .collect(Collectors.toList());
 
             return of(entityType, entityIds, dittoHeaders);

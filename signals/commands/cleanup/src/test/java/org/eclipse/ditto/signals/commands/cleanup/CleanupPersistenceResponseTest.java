@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.junit.Test;
@@ -33,9 +34,10 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public class CleanupPersistenceResponseTest {
 
-    private static final EntityId ID = DefaultEntityId.of("thing:eclipse:ditto");
+    private static final EntityId ID = DefaultEntityId.of(EntityType.of("thing"), "eclipse:ditto");
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(CommandResponse.JsonFields.TYPE, CleanupPersistenceResponse.TYPE)
+            .set(CleanupCommandResponse.JsonFields.ENTITY_TYPE, ID.getEntityType().toString())
             .set(CleanupCommandResponse.JsonFields.ENTITY_ID, ID.toString())
             .set(CommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode())
             .build();

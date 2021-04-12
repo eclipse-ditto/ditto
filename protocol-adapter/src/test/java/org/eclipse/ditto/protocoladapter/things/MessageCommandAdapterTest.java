@@ -241,7 +241,7 @@ public final class MessageCommandAdapterTest implements ProtocolAdapterTest {
             headersBuilder.putHeader(DittoHeaderDefinition.CONTENT_TYPE.getKey(), contentType);
         }
         return headersBuilder.channel(TopicPath.Channel.LIVE.getName())
-                .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), TestConstants.THING_ID)
+                .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), "thing:" + TestConstants.THING_ID)
                 .build();
     }
 
@@ -265,7 +265,7 @@ public final class MessageCommandAdapterTest implements ProtocolAdapterTest {
                 .contentType(contentType)
                 .channel(TopicPath.Channel.LIVE.getName())
                 .featureId(SendFeatureMessage.TYPE.equals(type) ? FEATURE_ID : null)
-                .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), TestConstants.THING_ID)
+                .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), "thing:" + TestConstants.THING_ID)
                 .build();
     }
 

@@ -24,7 +24,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
 
 /**
- * Tests {@link ImmutableEntityPlaceholder}.
+ * Tests {@link ImmutableEntityIdPlaceholder}.
  */
 public class ImmutableEntityPlaceholderTest {
 
@@ -32,7 +32,7 @@ public class ImmutableEntityPlaceholderTest {
     private static final String NAMESPACE = "eclipse";
     private static final PolicyId POLICY_ID = PolicyId.of(NAMESPACE, NAME);
     private static final ThingId THING_ID = ThingId.of(NAMESPACE, NAME);
-    private static final EntityPlaceholder UNDER_TEST = ImmutableEntityPlaceholder.INSTANCE;
+    private static final EntityIdPlaceholder UNDER_TEST = ImmutableEntityIdPlaceholder.INSTANCE;
 
     /**
      * Assert immutability.

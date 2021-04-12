@@ -89,11 +89,11 @@ public final class BackgroundSyncActorTest {
 
     private static final long REVISION_INDEXED = 1;
     private static final long REVISION_PERSISTED = REVISION_INDEXED + 1;
-    private static final List<NamespacedEntityId> KNOWN_IDs = List.of(
-            DefaultNamespacedEntityId.of("org.eclipse:ditto1"),
-            DefaultNamespacedEntityId.of("org.eclipse:ditto2"),
-            DefaultNamespacedEntityId.of("org.eclipse:ditto3"),
-            DefaultNamespacedEntityId.of("org.eclipse:ditto4")
+    private static final List<ThingId> KNOWN_IDs = List.of(
+            ThingId.of("org.eclipse:ditto1"),
+            ThingId.of("org.eclipse:ditto2"),
+            ThingId.of("org.eclipse:ditto3"),
+            ThingId.of("org.eclipse:ditto4")
     );
     private static final List<Metadata> THINGS_INDEXED =
             KNOWN_IDs.stream()
@@ -490,9 +490,9 @@ public final class BackgroundSyncActorTest {
 
     }
 
-    private static StreamedSnapshot createStreamedSnapshot(final EntityId id, final long revision) {
-        return StreamedSnapshot.of(ThingId.of(id), Thing.newBuilder()
-                .setId(ThingId.of(id))
+    private static StreamedSnapshot createStreamedSnapshot(final ThingId id, final long revision) {
+        return StreamedSnapshot.of(id, Thing.newBuilder()
+                .setId(id)
                 .setRevision(revision)
                 .setPolicyId(PolicyId.of(id))
                 .build()

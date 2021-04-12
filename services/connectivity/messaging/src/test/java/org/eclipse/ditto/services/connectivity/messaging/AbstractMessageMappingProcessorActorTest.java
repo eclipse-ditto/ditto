@@ -213,7 +213,10 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                         .isEqualTo(AUTHORIZATION_CONTEXT);
                 // thing ID is included in the header for error reporting
                 assertThat(modifyAttribute.getDittoHeaders())
-                        .extracting(headers -> headers.get(DittoHeaderDefinition.ENTITY_ID.getKey()))
+                        .extracting(headers -> {
+                            final String prefixedEntityId = headers.get(DittoHeaderDefinition.ENTITY_ID.getKey());
+                            return prefixedEntityId.substring(prefixedEntityId.indexOf(":") + 1);
+                        })
                         .isEqualTo(KNOWN_THING_ID.toString());
                 // internal headers added by consumer actors are appended
                 assertThat(modifyAttribute.getDittoHeaders()).containsEntry("ditto-reply-target", "0");

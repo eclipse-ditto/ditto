@@ -17,6 +17,8 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
@@ -101,14 +103,29 @@ public abstract class AbstractPersistentActorWithTimersAndCleanup extends Abstra
             } else {
                 log.debug("Snapshot revision did not change since last cleanup, nothing to delete.");
                 getSender().tell(
-                        CleanupPersistenceResponse.success(DefaultEntityId.of(persistenceId()), DittoHeaders.empty()),
+                        CleanupPersistenceResponse.success(extractEntityIdFromPersistenceId(persistenceId()),
+                                DittoHeaders.empty()),
                         getSelf());
             }
         } else {
             log.info("Another cleanup is already running, rejecting the new cleanup request.");
-            origin.tell(CleanupPersistenceResponse.failure(DefaultEntityId.of(persistenceId()), DittoHeaders.empty()),
+            origin.tell(CleanupPersistenceResponse.failure(extractEntityIdFromPersistenceId(persistenceId()),
+                    DittoHeaders.empty()),
                     getSelf());
         }
+    }
+
+    private EntityId extractEntityIdFromPersistenceId(final String persistenceId) {
+        final int indexOfSeparator = persistenceId.indexOf(':');
+        if (indexOfSeparator < 0) {
+            final String message =
+                    String.format("Persistence ID <%s> wasn't prefixed with an entity type.", persistenceId);
+            log.error(message);
+            throw new IllegalArgumentException(message);
+        }
+        final String id = persistenceId.substring(indexOfSeparator + 1);
+        final EntityType type = EntityType.of(persistenceId.substring(0, indexOfSeparator));
+        return DefaultEntityId.of(type, id);
     }
 
     private void handleDeleteSnapshotsResponse(final SnapshotProtocol.Response deleteSnapshotsResponse) {
@@ -130,14 +147,16 @@ public abstract class AbstractPersistentActorWithTimersAndCleanup extends Abstra
             if (isCleanupCompletedSuccessfully()) {
                 log.info("Cleanup for '{}' completed.", persistenceId());
                 Optional.ofNullable(origin)
-                        .ifPresent(o -> o.tell(CleanupPersistenceResponse.success(DefaultEntityId.of(persistenceId()),
-                        DittoHeaders.empty()), getSelf()));
+                        .ifPresent(o -> o.tell(
+                                CleanupPersistenceResponse.success(extractEntityIdFromPersistenceId(persistenceId()),
+                                        DittoHeaders.empty()), getSelf()));
             } else {
                 log.info("Cleanup for '{}' failed. Snapshots: {}. Messages: {}.", persistenceId(),
                         getResponseStatus(deleteSnapshotsResponse), getResponseStatus(deleteMessagesResponse));
                 Optional.ofNullable(origin)
-                        .ifPresent(o -> o.tell(CleanupPersistenceResponse.failure(DefaultEntityId.of(persistenceId()),
-                        DittoHeaders.empty()), getSelf()));
+                        .ifPresent(o -> o.tell(
+                                CleanupPersistenceResponse.failure(extractEntityIdFromPersistenceId(persistenceId()),
+                                        DittoHeaders.empty()), getSelf()));
             }
             finishCleanup();
         }
@@ -164,8 +183,13 @@ public abstract class AbstractPersistentActorWithTimersAndCleanup extends Abstra
 
     private void startCleanup(final long latestSnapshotSequenceNumber) {
         origin = getSender();
+        final long minSequenceNumberToKeep = lastSequenceNr() - staleEventsKeptAfterCleanup();
+        /*
+        Ensure that we do not delete events higher than the current snapshot number because this would cause, that
+        we can no longer replay the events after a taken snapshot.
+        */
+        final long maxEventSeqNoToDelete = Math.min(latestSnapshotSequenceNumber, minSequenceNumberToKeep);
         final long maxSnapSeqNoToDelete = latestSnapshotSequenceNumber - 1;
-        final long maxEventSeqNoToDelete = latestSnapshotSequenceNumber - staleEventsKeptAfterCleanup();
         log.info("Starting cleanup for '{}', deleting snapshots to sequence number {} and events to {}.",
                 persistenceId(), maxSnapSeqNoToDelete, maxEventSeqNoToDelete);
         final SnapshotSelectionCriteria deletionCriteria =

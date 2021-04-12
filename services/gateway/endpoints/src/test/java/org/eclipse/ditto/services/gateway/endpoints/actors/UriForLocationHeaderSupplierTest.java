@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.junit.Test;
@@ -30,7 +31,7 @@ import akka.http.javadsl.model.Uri;
  */
 public final class UriForLocationHeaderSupplierTest {
 
-    private static final EntityId KNOWN_ENTITY_ID = DefaultEntityId.of("Plumbus");
+    private static final EntityId KNOWN_ENTITY_ID = DefaultEntityId.of(EntityType.of("bumlux"), "Plumbus");
     private static final String KNOWN_RESOURCE_PATH = "Floob";
 
     private interface CommandResponseWithEntityIdTest extends CommandResponse<CommandResponseWithEntityIdTest>
@@ -57,7 +58,8 @@ public final class UriForLocationHeaderSupplierTest {
                 .withMethod(HttpMethods.PUT);
 
         final UriForLocationHeaderSupplier underTest =
-                new UriForLocationHeaderSupplier(httpRequest, DefaultEntityId.generateRandom(), JsonPointer.empty());
+                new UriForLocationHeaderSupplier(httpRequest, DefaultEntityId.generateRandom(EntityType.of("bumlux")),
+                        JsonPointer.empty());
 
         assertThat(underTest.get()).isEqualTo(expectedUri);
     }

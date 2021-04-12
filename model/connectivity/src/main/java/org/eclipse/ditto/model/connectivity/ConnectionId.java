@@ -22,6 +22,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 
 /**
  * Java representation of a connection ID.
@@ -85,6 +86,11 @@ public final class ConnectionId implements EntityId {
             throw ConnectionIdInvalidException.newBuilder(entityId).build();
         }
         return entityId;
+    }
+
+    @Override
+    public EntityType getEntityType() {
+        return ConnectivityConstants.CONNECTION_ENTITY_TYPE;
     }
 
 }

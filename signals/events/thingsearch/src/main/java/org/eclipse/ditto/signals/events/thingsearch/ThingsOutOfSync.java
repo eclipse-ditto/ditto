@@ -37,6 +37,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.events.base.Event;
 
 /**
@@ -67,10 +68,10 @@ public final class ThingsOutOfSync implements Event<ThingsOutOfSync> {
             JsonFactory.newJsonArrayFieldDefinition("thingIds", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
-    private final Collection<NamespacedEntityId> thingIds;
+    private final Collection<ThingId> thingIds;
     private final DittoHeaders dittoHeaders;
 
-    private ThingsOutOfSync(final Collection<NamespacedEntityId> thingIds, final DittoHeaders dittoHeaders) {
+    private ThingsOutOfSync(final Collection<ThingId> thingIds, final DittoHeaders dittoHeaders) {
         this.thingIds = thingIds;
         this.dittoHeaders = dittoHeaders;
     }
@@ -82,7 +83,7 @@ public final class ThingsOutOfSync implements Event<ThingsOutOfSync> {
      * @param dittoHeaders Ditto headers of the command.
      * @return the command.
      */
-    public static ThingsOutOfSync of(final Collection<NamespacedEntityId> thingIds, final DittoHeaders dittoHeaders) {
+    public static ThingsOutOfSync of(final Collection<ThingId> thingIds, final DittoHeaders dittoHeaders) {
         return new ThingsOutOfSync(thingIds, dittoHeaders);
     }
 
@@ -97,11 +98,11 @@ public final class ThingsOutOfSync implements Event<ThingsOutOfSync> {
      * "thingId".
      */
     public static ThingsOutOfSync fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        final Collection<NamespacedEntityId> thingIds =
+        final Collection<ThingId> thingIds =
                 jsonObject.getValueOrThrow(JSON_THING_IDS)
                         .stream()
                         .map(JsonValue::asString)
-                        .map(DefaultNamespacedEntityId::of)
+                        .map(ThingId::of)
                         .collect(Collectors.toList());
         return of(thingIds, dittoHeaders);
     }
@@ -111,7 +112,7 @@ public final class ThingsOutOfSync implements Event<ThingsOutOfSync> {
      *
      * @return the thing IDs.
      */
-    public Collection<NamespacedEntityId> getThingIds() {
+    public Collection<ThingId> getThingIds() {
         return thingIds;
     }
 

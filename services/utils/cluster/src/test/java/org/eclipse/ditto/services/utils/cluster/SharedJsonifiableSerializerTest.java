@@ -143,7 +143,8 @@ public final class SharedJsonifiableSerializerTest {
 
         @Test
         public void shardedMessageEnvelopeSerializationWorksAsExpected() {
-            final EntityId id = DefaultEntityId.generateRandom();
+            final ThingId thingId = ThingId.generateRandom();
+            final EntityId id = DefaultEntityId.of(thingId.getEntityType(), thingId); //TODO: yannic fix this. It should not be necessary to wrap this in an anonymous entity ID.
             final DittoHeaders dittoHeaders = DittoHeaders.empty();
             final RetrieveThings retrieveThings = RetrieveThings.getBuilder(thingId)
                     .dittoHeaders(dittoHeaders)

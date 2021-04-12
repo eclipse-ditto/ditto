@@ -21,8 +21,6 @@ import javax.annotation.Nonnull;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
@@ -30,7 +28,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
-@JsonParsableEvent(name = TestEvent.NAME, typePrefix= TestEvent.TYPE_PREFIX)
+@JsonParsableEvent(name = TestEvent.NAME, typePrefix = TestEvent.TYPE_PREFIX)
 @AllValuesAreNonnullByDefault
 public final class TestEvent implements Event<TestEvent> {
 
@@ -38,10 +36,10 @@ public final class TestEvent implements Event<TestEvent> {
 
     public static final String NAME = "type";
     public static final String TYPE = TYPE_PREFIX + NAME;
-    private final EntityId id;
+    private final String payload;
 
-    private TestEvent(final EntityId id) {
-        this.id = id;
+    private TestEvent(final String payload) {
+        this.payload = payload;
     }
 
     @Override
@@ -51,7 +49,7 @@ public final class TestEvent implements Event<TestEvent> {
 
     @Override
     public TestEvent setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new TestEvent(id);
+        return new TestEvent(payload);
     }
 
     @Override
@@ -65,11 +63,7 @@ public final class TestEvent implements Event<TestEvent> {
     }
 
     public static TestEvent fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new TestEvent(DefaultNamespacedEntityId.of("test", "0"));
-    }
-
-    public static TestEvent alternativeFromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new TestEvent(DefaultNamespacedEntityId.of("test","1"));
+        return new TestEvent("test");
     }
 
     @Override

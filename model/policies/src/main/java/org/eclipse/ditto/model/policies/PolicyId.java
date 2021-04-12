@@ -17,17 +17,16 @@ import java.util.function.Supplier;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.entity.id.AbstractNamespacedEntityId;
 import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
-import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdWithType;
-import org.eclipse.ditto.model.base.entity.type.EntityType;
 
 /**
  * Java representation of a policy ID.
  */
 @Immutable
-public final class PolicyId extends NamespacedEntityIdWithType {
+public final class PolicyId extends AbstractNamespacedEntityId {
 
     private PolicyId(final NamespacedEntityId entityId) {
         super(entityId);
@@ -47,7 +46,8 @@ public final class PolicyId extends NamespacedEntityIdWithType {
             return (PolicyId) policyId;
         }
 
-        return wrapInPolicyIdInvalidException(() -> new PolicyId(DefaultNamespacedEntityId.of(policyId)));
+        return wrapInPolicyIdInvalidException(
+                () -> new PolicyId(DefaultNamespacedEntityId.of(PolicyConstants.ENTITY_TYPE, policyId)));
     }
 
     public static PolicyId of(final PolicyId policyId) {
@@ -62,7 +62,8 @@ public final class PolicyId extends NamespacedEntityIdWithType {
      * @return the created instance of {@link PolicyId}
      */
     public static PolicyId of(final String namespace, final String policyName) {
-        return wrapInPolicyIdInvalidException(() -> new PolicyId(DefaultNamespacedEntityId.of(namespace, policyName)));
+        return wrapInPolicyIdInvalidException(
+                () -> new PolicyId(DefaultNamespacedEntityId.of(PolicyConstants.ENTITY_TYPE, namespace, policyName)));
     }
 
     /**
@@ -83,8 +84,4 @@ public final class PolicyId extends NamespacedEntityIdWithType {
         }
     }
 
-    @Override
-    public EntityType getEntityType() {
-        return PolicyConstants.ENTITY_TYPE;
-    }
 }

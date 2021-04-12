@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -80,6 +81,7 @@ public final class CleanupPersistence
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicate) {
+        jsonObjectBuilder.set(CleanupCommand.JsonFields.ENTITY_TYPE, entityId.getEntityType().toString());
         jsonObjectBuilder.set(CleanupCommand.JsonFields.ENTITY_ID, String.valueOf(entityId), predicate);
     }
 
@@ -98,8 +100,10 @@ public final class CleanupPersistence
     public static CleanupPersistence fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<CleanupPersistence>(TYPE, jsonObject).deserialize(
                 () -> {
+                    final EntityType entityType =
+                            EntityType.of(jsonObject.getValueOrThrow(CleanupCommand.JsonFields.ENTITY_TYPE));
                     final String readEntityId = jsonObject.getValueOrThrow(CleanupCommand.JsonFields.ENTITY_ID);
-                    final EntityId entityId = DefaultEntityId.of(readEntityId);
+                    final EntityId entityId = DefaultEntityId.of(entityType, readEntityId);
                     return of(entityId, dittoHeaders);
                 });
     }

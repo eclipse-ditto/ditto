@@ -19,6 +19,7 @@ import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.things.ThingId;
 
 /**
@@ -26,7 +27,7 @@ import org.eclipse.ditto.model.things.ThingId;
  * input value is a String and must be a valid Thing ID.
  */
 @Immutable
-final class ImmutableThingPlaceholder extends AbstractEntityPlaceholder<ThingId> implements ThingPlaceholder {
+final class ImmutableThingPlaceholder extends AbstractEntityIdPlaceholder<ThingId> implements ThingPlaceholder {
 
     /**
      * Singleton instance of the ImmutableThingPlaceholder.
@@ -39,7 +40,7 @@ final class ImmutableThingPlaceholder extends AbstractEntityPlaceholder<ThingId>
     }
 
     @Override
-    public Optional<String> resolve(final CharSequence thingId, final String placeholder) {
+    public Optional<String> resolve(final EntityId thingId, final String placeholder) {
         argumentNotEmpty(placeholder, "placeholder");
         checkNotNull(thingId, "Thing ID");
         if (thingId instanceof ThingId) {

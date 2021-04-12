@@ -26,6 +26,8 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.WithEntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
+import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
@@ -88,7 +90,9 @@ public final class PingCommand implements Jsonifiable<JsonObject>, WithEntityId 
      * format.
      */
     public static PingCommand fromJson(final JsonObject jsonObject) {
-        final EntityId extractedEntityId = DefaultEntityId.of(jsonObject.getValueOrThrow(JsonFields.ENTITY_ID));
+        final EntityType entityType = EntityType.of(jsonObject.getValueOrThrow(JsonFields.ENTITY_TYPE));
+        final EntityId extractedEntityId =
+                DefaultEntityId.of(entityType, jsonObject.getValueOrThrow(JsonFields.ENTITY_ID));
         final String extractedCorrelationId = jsonObject.getValue(JsonFields.CORRELATION_ID).orElse(null);
         final JsonValue extractedPayload = jsonObject.getValue(JsonFields.PAYLOAD).orElse(null);
 
@@ -121,6 +125,7 @@ public final class PingCommand implements Jsonifiable<JsonObject>, WithEntityId 
     @Override
     public JsonObject toJson() {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder()
+                .set(JsonFields.ENTITY_TYPE, entityId.getEntityType().toString())
                 .set(JsonFields.ENTITY_ID, entityId.toString());
         if (null != correlationId) {
             jsonObjectBuilder.set(JsonFields.CORRELATION_ID, correlationId);
@@ -164,6 +169,11 @@ public final class PingCommand implements Jsonifiable<JsonObject>, WithEntityId 
      */
     @Immutable
     public static final class JsonFields {
+
+        /**
+         * JSON field containing the entity ID.
+         */
+        static final JsonFieldDefinition<String> ENTITY_TYPE = JsonFactory.newStringFieldDefinition("entityType");
 
         /**
          * JSON field containing the entity ID.

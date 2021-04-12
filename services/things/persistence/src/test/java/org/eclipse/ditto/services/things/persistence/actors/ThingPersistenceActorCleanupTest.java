@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
@@ -106,9 +107,8 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
 
                 // tell the persistence actor to clean up
                 persistenceActorUnderTest.tell(CleanupPersistence.of(thingId, DittoHeaders.empty()), getRef());
-                expectMsg(CleanupPersistenceResponse.success(
-                        DefaultEntityId.of(ThingPersistenceActor.PERSISTENCE_ID_PREFIX + thingId),
-                        DittoHeaders.empty()));
+                final EntityId entityId = DefaultEntityId.of(thingId.getEntityType(), thingId); //TODO: yannic fix this. It should not be necessary to wrap this in an anonymous entity ID.
+                expectMsg(CleanupPersistenceResponse.success(entityId, DittoHeaders.empty()));
 
                 // we expect only the latest snapshot to exist after cleanup
                 final List<Thing> expectedSnapshotsAfterCleanup =
@@ -155,11 +155,12 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
                 persistenceActorUnderTest.tell(createThing, getRef());
                 final CreateThingResponse createThingResponse = expectMsgClass(dilated(Duration.ofSeconds(5)),
                         CreateThingResponse.class);
-                final Thing thingCreated = createThingResponse.getThingCreated()
+                final Thing createdThing = createThingResponse.getThingCreated()
                         .orElseThrow(IllegalStateException::new);
-                assertThingInResponse(thingCreated, thing, 1);
+                assertThingInResponse(createdThing, thing, 1);
                 // ...and verify journal and snapshot state
-                expectedEvents.add(toEvent(createThing, thingCreated));
+                final EventsourcedEvent<?> thingCreated = toEvent(createThing, createdThing);
+                expectedEvents.add(thingCreated);
                 assertJournal(thingId, expectedEvents);
                 assertSnapshotsEmpty(thingId);
 
@@ -168,7 +169,7 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
                 persistenceActorUnderTest.tell(deleteThing, getRef());
                 final DeleteThingResponse deleteThingResponse = expectMsgClass(DeleteThingResponse.class);
 
-                final Thing expectedDeletedSnapshot = toDeletedThing(thingCreated, 2);
+                final Thing expectedDeletedSnapshot = toDeletedThing(createdThing, 2);
                 assertSnapshots(thingId, Collections.singletonList(expectedDeletedSnapshot));
                 final EventsourcedEvent<?> deletedEvent = toEvent(deleteThing, expectedDeletedSnapshot);
                 expectedEvents.add(deletedEvent);
@@ -176,13 +177,12 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
 
                 // tell the persistence actor to clean up
                 persistenceActorUnderTest.tell(CleanupPersistence.of(thingId, DittoHeaders.empty()), getRef());
-                expectMsg(CleanupPersistenceResponse.success(
-                        DefaultEntityId.of(ThingPersistenceActor.PERSISTENCE_ID_PREFIX + thingId),
-                        DittoHeaders.empty()));
-
-                // we expect only the latest snapshot to exist after cleanup
+                final EntityId entityId = DefaultEntityId.of(thingId.getEntityType(), thingId); //TODO: yannic fix this. It should not be necessary to wrap this in an anonymous entity ID.
+                expectMsg(CleanupPersistenceResponse.success(entityId, DittoHeaders.empty()));
+                // we expect only the latest snapshot and latest event to exist after cleanup
+                expectedEvents.remove(thingCreated);
                 assertSnapshots(thingId, Collections.singletonList(expectedDeletedSnapshot));
-                assertJournal(thingId, Collections.emptyList());
+                assertJournal(thingId, expectedEvents);
             }
         };
     }

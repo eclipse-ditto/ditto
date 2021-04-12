@@ -1549,8 +1549,8 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
             DittoPolicyAssertions.assertThat(createPolicy1Response.getPolicyCreated().get())
                     .isEqualEqualToButModified(policy);
 
-            final EntityId entityId = DefaultEntityId.of(PolicyPersistenceActor.PERSISTENCE_ID_PREFIX +
-                    policy.getEntityId().orElseThrow(IllegalStateException::new));
+            final PolicyId policyId = policy.getEntityId().orElseThrow(IllegalStateException::new);
+            final EntityId entityId = DefaultEntityId.of(policyId.getEntityType(), policyId); //TODO: yannic fix this. It should not be necessary to wrap this in an anonymous entity ID.
             policyPersistenceActor.tell(CleanupPersistence.of(entityId, DittoHeaders.empty()), getRef());
             expectMsg(CleanupPersistenceResponse.success(entityId, DittoHeaders.empty()));
         }};
@@ -1574,9 +1574,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
             policyPersistenceActor.tell(deletePolicyCommand, getRef());
             expectMsgClass(DeletePolicyResponse.class);
 
-            final EntityId entityId = DefaultEntityId.of(PolicyPersistenceActor.PERSISTENCE_ID_PREFIX +
-                    policy.getEntityId().orElseThrow(IllegalStateException::new));
-            policyPersistenceActor.tell(CleanupPersistence.of(entityId, DittoHeaders.empty()), getRef());
+            final PolicyId policyId = policy.getEntityId().orElseThrow(IllegalStateException::new);
+            final EntityId entityId = DefaultEntityId.of(policyId.getEntityType(), policyId); //TODO: yannic fix this. It should not be necessary to wrap this in an anonymous entity ID.
+            policyPersistenceActor.tell(CleanupPersistence.of(policyId, DittoHeaders.empty()), getRef());
             expectMsg(CleanupPersistenceResponse.success(entityId, DittoHeaders.empty()));
         }};
     }

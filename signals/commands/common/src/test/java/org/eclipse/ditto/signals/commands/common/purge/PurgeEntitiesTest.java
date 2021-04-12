@@ -41,9 +41,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class PurgeEntitiesTest {
 
-    private static final List<EntityId> ENTITY_IDS =
-            Lists.list(DefaultEntityId.of("my.ns1:id"), DefaultEntityId.of("my.ns2:id"));
     private static final EntityType ENTITY_TYPE = EntityType.of("policy");
+    private static final List<EntityId> ENTITY_IDS =
+            Lists.list(DefaultEntityId.of(ENTITY_TYPE, "my.ns1:id"), DefaultEntityId.of(ENTITY_TYPE, "my.ns2:id"));
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(CommonCommandResponse.JsonFields.TYPE, PurgeEntities.TYPE)

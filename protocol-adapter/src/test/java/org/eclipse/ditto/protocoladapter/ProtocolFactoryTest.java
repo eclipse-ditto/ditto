@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.model.things.ThingId;
 import org.junit.Test;
 
@@ -87,7 +88,7 @@ public class ProtocolFactoryTest {
     @Test
     public void testNewTopicPathBuilderFromNamespacedEntityId() {
         final TopicPathBuilder topicPathBuilder =
-                ProtocolFactory.newTopicPathBuilder(DefaultNamespacedEntityId.of(NAMESPACE, ID));
+                ProtocolFactory.newTopicPathBuilder(DefaultNamespacedEntityId.of(ThingConstants.ENTITY_TYPE, NAMESPACE, ID));
         final TopicPath topicPath = topicPathBuilder.twin().commands().modify().build();
         assertThat(topicPath.getNamespace()).isEqualTo(NAMESPACE);
         assertThat(topicPath.getEntityName()).isEqualTo(ID);

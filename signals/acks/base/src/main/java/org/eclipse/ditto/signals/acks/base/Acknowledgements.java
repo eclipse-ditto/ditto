@@ -31,7 +31,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.common.ResponseType;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.entity.type.WithEntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -107,10 +107,10 @@ public interface Acknowledgements
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if the given {@code acknowledgements} are empty or if the entity IDs or entity
      * types of the given acknowledgements are not equal.
-     * @deprecated as of 2.0.0 please use {@link #of(EntityIdWithType, Collection, HttpStatus, DittoHeaders)} instead.
+     * @deprecated as of 2.0.0 please use {@link #of(EntityId, Collection, HttpStatus, DittoHeaders)} instead.
      */
     @Deprecated
-    static Acknowledgements of(final EntityIdWithType entityId,
+    static Acknowledgements of(final EntityId entityId,
             final Collection<? extends Acknowledgement> acknowledgements,
             final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders) {
@@ -136,7 +136,7 @@ public interface Acknowledgements
      * types of the given acknowledgements are not equal.
      * @since 2.0.0
      */
-    static Acknowledgements of(final EntityIdWithType entityId,
+    static Acknowledgements of(final EntityId entityId,
             final Collection<? extends Acknowledgement> acknowledgements,
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
@@ -152,7 +152,7 @@ public interface Acknowledgements
      * @return the Acknowledgements.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    static Acknowledgements empty(final EntityIdWithType entityId, final DittoHeaders dittoHeaders) {
+    static Acknowledgements empty(final EntityId entityId, final DittoHeaders dittoHeaders) {
         return AcknowledgementFactory.emptyAcknowledgements(entityId, dittoHeaders);
     }
 
@@ -317,7 +317,7 @@ public interface Acknowledgements
     }
 
     @Override
-    EntityIdWithType getEntityId();
+    EntityId getEntityId();
 
     /**
      * Definition of fields of the JSON representation of an {@link Acknowledgements}.

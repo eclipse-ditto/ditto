@@ -50,11 +50,6 @@ public interface ThingCommand<T extends ThingCommand<T>> extends Command<T>, Wit
     }
 
     @Override
-    default ThingId getEntityId() {
-        return getEntityId();
-    }
-
-    @Override
     default String getResourceType() {
         return RESOURCE_TYPE;
     }

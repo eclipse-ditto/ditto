@@ -20,6 +20,7 @@ import java.util.Optional;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
 
@@ -28,13 +29,12 @@ import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException
  * input value is a String and must be a valid Entity ID.
  */
 @Immutable
-final class ImmutableEntityPlaceholder extends AbstractEntityPlaceholder<NamespacedEntityId>
-        implements EntityPlaceholder {
+final class ImmutableEntityIdPlaceholder extends AbstractEntityIdPlaceholder<NamespacedEntityId> {
 
     /**
      * Singleton instance of the ImmutableEntityPlaceholder.
      */
-    static final ImmutableEntityPlaceholder INSTANCE = new ImmutableEntityPlaceholder();
+    static final ImmutableEntityIdPlaceholder INSTANCE = new ImmutableEntityIdPlaceholder();
 
     @Override
     public String getPrefix() {
@@ -42,11 +42,12 @@ final class ImmutableEntityPlaceholder extends AbstractEntityPlaceholder<Namespa
     }
 
     @Override
-    public Optional<String> resolve(final CharSequence entityId, final String placeholder) {
+    public Optional<String> resolve(final EntityId entityId, final String placeholder) {
         argumentNotEmpty(placeholder, "placeholder");
         checkNotNull(entityId, "Entity ID");
         try {
-            final NamespacedEntityId namespacedEntityId = DefaultNamespacedEntityId.of(entityId);
+            final NamespacedEntityId namespacedEntityId =
+                    DefaultNamespacedEntityId.of(entityId.getEntityType(), entityId);
             return doResolve(namespacedEntityId, placeholder);
         } catch (final NamespacedEntityIdInvalidException e) {
             // not a namespaced entity ID; does not resolve.

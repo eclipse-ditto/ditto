@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.expression.FieldExpressionFactory;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
+import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.models.streaming.LowerBound;
@@ -96,7 +97,7 @@ public final class SudoIT extends AbstractReadPersistenceITBase {
     public void sudoStreamMetadata() {
         final Metadata metadata1 = Metadata.of(THING1_ID, 1L, PolicyId.of(THING1_ID), 0L, TIMESTAMP1, null);
         final Metadata metadata2 = Metadata.of(THING2_ID, 2L, PolicyId.of(THING2_ID), 0L, TIMESTAMP2, null);
-        assertThat(waitFor(readPersistence.sudoStreamMetadata(LowerBound.emptyEntityId())))
+        assertThat(waitFor(readPersistence.sudoStreamMetadata(LowerBound.emptyEntityId(ThingConstants.ENTITY_TYPE))))
                 .containsExactly(metadata1, metadata2);
 
         assertThat(waitFor(readPersistence.sudoStreamMetadata(THING1_ID)))

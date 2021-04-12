@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
+import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
@@ -198,7 +199,8 @@ public final class InboundMappingProcessor
                 if (key.equals("device_id")) {
                     // this is kind of a workaround to preserve "best effort" an entityId by a special header value
                     // whenever the device connectivity layer sends the "entity id" in this header
-                    headersBuilder.putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), value);
+                    headersBuilder.putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(),
+                            ThingConstants.ENTITY_TYPE + ":" + value);
                 }
             } catch (final Exception e) {
                 // ignore this single invalid header

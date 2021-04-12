@@ -21,6 +21,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -35,7 +36,8 @@ public final class ConnectionTagTest {
     private static final long REVISION = 5624191235L;
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(ConnectionTag.JsonFields.ID, CONNECTION_ID.toString())
+            .set(EntityIdWithRevision.JsonFields.ENTITY_TYPE, CONNECTION_ID.getEntityType().toString())
+            .set(ConnectionTag.JsonFields.ENTITY_ID, CONNECTION_ID.toString())
             .set(ConnectionTag.JsonFields.REVISION, REVISION)
             .build();
 

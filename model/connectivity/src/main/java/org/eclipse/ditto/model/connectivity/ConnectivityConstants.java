@@ -29,7 +29,7 @@ public final class ConnectivityConstants {
     }
 
     /**
-     * The entity type of connectivity.
+     * The entity type of connectivity. TODO: yannic is this correct?
      */
     public static final EntityType ENTITY_TYPE = EntityType.of("connectivity");
 

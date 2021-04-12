@@ -127,7 +127,7 @@ public final class ThingsUpdaterTest {
         new TestKit(actorSystem) {{
             final ActorRef underTest = createThingsUpdater();
             underTest.tell(message, getRef());
-            expectShardedMessage(shardMessageReceiver, message, message.getEntityId());
+            expectShardedMessage(shardMessageReceiver, message, message.getThingId());
         }};
     }
 
@@ -136,7 +136,7 @@ public final class ThingsUpdaterTest {
         new TestKit(actorSystem) {{
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
             final ActorRef underTest = createThingsUpdater();
-            final Collection<NamespacedEntityId> thingIds = IntStream.range(0, 10)
+            final Collection<ThingId> thingIds = IntStream.range(0, 10)
                     .mapToObj(i -> ThingId.of("a:" + i))
                     .collect(Collectors.toList());
             underTest.tell(ThingsOutOfSync.of(thingIds, dittoHeaders), getRef());
@@ -174,7 +174,7 @@ public final class ThingsUpdaterTest {
                 Instant.now(), KNOWN_HEADERS, null);
         final ThingTag thingTag = ThingTag.of(ThingId.of(blockedNamespace, "thing3"), 11L);
         final PolicyReferenceTag refTag =
-                PolicyReferenceTag.of(DefaultEntityId.of(blockedNamespace + ":thing4"),
+                PolicyReferenceTag.of(ThingId.of(blockedNamespace + ":thing4"),
                         PolicyTag.of(KNOWN_POLICY_ID, 12L));
 
         blockedNamespaces.add(blockedNamespace).toCompletableFuture().get();

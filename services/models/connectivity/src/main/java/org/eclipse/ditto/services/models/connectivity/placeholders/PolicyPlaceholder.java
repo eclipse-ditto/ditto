@@ -13,10 +13,12 @@
 package org.eclipse.ditto.services.models.connectivity.placeholders;
 
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.placeholders.Placeholder;
+import org.eclipse.ditto.model.policies.PolicyId;
 
 /**
  * A {@link org.eclipse.ditto.model.placeholders.Placeholder} that requires a {@code String} (a valid Policy ID) to resolve its placeholders.
  */
-public interface PolicyPlaceholder extends Placeholder<CharSequence> {
+public interface PolicyPlaceholder extends Placeholder<EntityId> {
 }

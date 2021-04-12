@@ -29,7 +29,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotDeclaredExceptio
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.model.base.acks.FatalPubSubException;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -456,10 +456,10 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
 
     // no precondition; forwarder starter does not start for signals without ack requests, in contrast to ackregator
     private Signal<?> startAckForwarder(final Signal<?> signal) {
-        final Optional<EntityIdWithType> entityIdOptional =
-                WithEntityId.getEntityIdOfType(EntityIdWithType.class, signal);
+        final Optional<EntityId> entityIdOptional =
+                WithEntityId.getEntityIdOfType(EntityId.class, signal);
         if (entityIdOptional.isPresent()) {
-            final EntityIdWithType entityIdWithType = entityIdOptional.get();
+            final EntityId entityIdWithType = entityIdOptional.get();
             return AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(),
                     entityIdWithType, signal, acknowledgementConfig, declaredAcks::contains);
         } else {

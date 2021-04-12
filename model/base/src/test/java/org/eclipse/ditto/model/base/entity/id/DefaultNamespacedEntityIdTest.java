@@ -14,6 +14,7 @@ package org.eclipse.ditto.model.base.entity.id;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -23,6 +24,7 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.entity.id.restriction.LengthRestrictionTestBase;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -38,10 +40,12 @@ public class DefaultNamespacedEntityIdTest extends LengthRestrictionTestBase {
     private static final String NAMESPACE_DELIMITER = ":";
     private static final String VALID_NAME = "validName";
     private static final String VALID_ID = VALID_NAMESPACE + NAMESPACE_DELIMITER + VALID_NAME;
+    private static final EntityType THING_TYPE = EntityType.of("thing");
 
     @Test
     public void testImmutability() {
-        assertInstancesOf(DefaultNamespacedEntityId.class, areImmutable());
+        assertInstancesOf(DefaultNamespacedEntityId.class, areImmutable(),
+                provided(EntityType.class).isAlsoImmutable());
     }
 
     @Test
@@ -51,14 +55,16 @@ public class DefaultNamespacedEntityIdTest extends LengthRestrictionTestBase {
 
     @Test
     public void fromNameHasEmptyNamespace() {
-        final NamespacedEntityId namespacedEntityId = DefaultNamespacedEntityId.fromName(VALID_NAME);
+        final NamespacedEntityId namespacedEntityId = DefaultNamespacedEntityId.fromName(THING_TYPE, VALID_NAME);
         assertThat(namespacedEntityId.getNamespace()).isEmpty();
     }
 
     @Test
     public void defaultNamespacedEntityIdFromDefaultNamespacedEntityIdIsSameInstance() {
-        final NamespacedEntityId namespacedEntityIdOne = DefaultNamespacedEntityId.of(VALID_NAMESPACE, VALID_NAME);
-        final NamespacedEntityId namespacedEntityIdTwo = DefaultNamespacedEntityId.of(namespacedEntityIdOne);
+        final NamespacedEntityId namespacedEntityIdOne =
+                DefaultNamespacedEntityId.of(THING_TYPE, VALID_NAMESPACE, VALID_NAME);
+        final NamespacedEntityId namespacedEntityIdTwo =
+                DefaultNamespacedEntityId.of(THING_TYPE, namespacedEntityIdOne);
         assertThat((CharSequence) namespacedEntityIdOne).isSameAs(namespacedEntityIdTwo);
     }
 
@@ -74,6 +80,11 @@ public class DefaultNamespacedEntityIdTest extends LengthRestrictionTestBase {
         final NamespacedEntityId invalidNamespacedEntityId = new NamespacedEntityId() {
 
             @Override
+            public EntityType getEntityType() {
+                return THING_TYPE;
+            }
+
+            @Override
             public String getName() {
                 return invalidName;
             }
@@ -84,7 +95,8 @@ public class DefaultNamespacedEntityIdTest extends LengthRestrictionTestBase {
             }
         };
 
-        final NamespacedEntityId namespacedEntityId = DefaultNamespacedEntityId.of(invalidNamespacedEntityId);
+        final NamespacedEntityId namespacedEntityId =
+                DefaultNamespacedEntityId.of(THING_TYPE, invalidNamespacedEntityId);
 
         assertThat(namespacedEntityId.getNamespace()).isEqualTo(invalidNamespace);
         assertThat(namespacedEntityId.getName()).isEqualTo(invalidName);
@@ -103,7 +115,7 @@ public class DefaultNamespacedEntityIdTest extends LengthRestrictionTestBase {
     @Test
     public void nullId() {
         assertThatExceptionOfType(NamespacedEntityIdInvalidException.class)
-                .isThrownBy(() -> DefaultNamespacedEntityId.of(null));
+                .isThrownBy(() -> DefaultNamespacedEntityId.of(THING_TYPE, null));
     }
 
     @Test
@@ -125,8 +137,9 @@ public class DefaultNamespacedEntityIdTest extends LengthRestrictionTestBase {
 
     @Test
     public void toStringConcatenatesNamespaceAndName() {
-        assertThat(DefaultNamespacedEntityId.of(VALID_NAMESPACE, VALID_NAME).toString()).isEqualTo(VALID_ID);
-        assertThat(DefaultNamespacedEntityId.of(VALID_ID).toString()).isEqualTo(VALID_ID);
+        assertThat(DefaultNamespacedEntityId.of(THING_TYPE, VALID_NAMESPACE, VALID_NAME).toString()).isEqualTo(
+                VALID_ID);
+        assertThat(DefaultNamespacedEntityId.of(THING_TYPE, VALID_ID).toString()).isEqualTo(VALID_ID);
     }
 
     @Test
@@ -203,12 +216,12 @@ public class DefaultNamespacedEntityIdTest extends LengthRestrictionTestBase {
     }
 
     private static void assertValidId(@Nullable final String namespace, @Nullable final String name) {
-        final NamespacedEntityId idBySeparated = DefaultNamespacedEntityId.of(namespace, name);
+        final NamespacedEntityId idBySeparated = DefaultNamespacedEntityId.of(THING_TYPE, namespace, name);
         assertThat(idBySeparated.getNamespace()).isEqualTo(namespace);
         assertThat(idBySeparated.getName()).isEqualTo(name);
 
         final NamespacedEntityId idByCombined =
-                DefaultNamespacedEntityId.of(concatenateNamespaceAndName(namespace, name));
+                DefaultNamespacedEntityId.of(THING_TYPE, concatenateNamespaceAndName(namespace, name));
         assertThat(idByCombined.getNamespace()).isEqualTo(namespace);
         assertThat(idByCombined.getName()).isEqualTo(name);
     }
@@ -216,10 +229,11 @@ public class DefaultNamespacedEntityIdTest extends LengthRestrictionTestBase {
     private static void assertInValidId(@Nullable final String namespace, @Nullable final String name) {
 
         assertThatExceptionOfType(NamespacedEntityIdInvalidException.class)
-                .isThrownBy(() -> DefaultNamespacedEntityId.of(concatenateNamespaceAndName(namespace, name)));
+                .isThrownBy(
+                        () -> DefaultNamespacedEntityId.of(THING_TYPE, concatenateNamespaceAndName(namespace, name)));
 
         assertThatExceptionOfType(NamespacedEntityIdInvalidException.class)
-                .isThrownBy(() -> DefaultNamespacedEntityId.of(namespace, name));
+                .isThrownBy(() -> DefaultNamespacedEntityId.of(THING_TYPE, namespace, name));
     }
 
     private static String concatenateNamespaceAndName(@Nullable final String namespace, @Nullable final String name) {

@@ -42,7 +42,7 @@ import org.apache.qpid.jms.message.JmsMessage;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.Placeholders;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -386,8 +386,8 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
         final Optional<AcknowledgementLabel> acknowledgementLabel = getAcknowledgementLabel(autoAckTarget);
-        final Optional<EntityIdWithType> entityIdOptional =
-                WithEntityId.getEntityIdOfType(EntityIdWithType.class, signal);
+        final Optional<EntityId> entityIdOptional =
+                WithEntityId.getEntityIdOfType(EntityId.class, signal);
         final Acknowledgement issuedAck;
         if (acknowledgementLabel.isPresent() && entityIdOptional.isPresent()) {
             issuedAck = Acknowledgement.of(

@@ -82,6 +82,7 @@ public class MongoReadJournal {
      * ID field of documents delivered by the read journal.
      */
     public static final String J_ID = JournallingFieldNames$.MODULE$.ID();
+    public static final String J_PROCESSOR_ID = JournallingFieldNames$.MODULE$.PROCESSOR_ID();
 
     /**
      * Prefix of the priority tag which is used in
@@ -98,7 +99,6 @@ public class MongoReadJournal {
     private static final String JOURNAL_COLLECTION_NAME_KEY = "overrides.journal-collection";
     private static final String SNAPS_COLLECTION_NAME_KEY = "overrides.snaps-collection";
 
-    private static final String J_PROCESSOR_ID = JournallingFieldNames$.MODULE$.PROCESSOR_ID();
     private static final String J_TAGS = JournallingFieldNames$.MODULE$.TAGS();
     private static final String S_SN = SnapshottingFieldNames$.MODULE$.SEQUENCE_NUMBER();
 

@@ -890,13 +890,11 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
             // send cleanup command
             underTest.tell(
-                    CleanupPersistence.of(DefaultEntityId.of(
-                            ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX + connectionId),
-                            DittoHeaders.empty()),
+                    CleanupPersistence.of(connectionId, DittoHeaders.empty()),
                     getRef());
             expectMsg(CleanupPersistenceResponse.success(
-                    DefaultEntityId.of(ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX + connectionId),
-                    DittoHeaders.empty()));
+                    DefaultEntityId.of(connectionId.getEntityType(), connectionId), DittoHeaders.empty() //TODO: yannic fix this. it should not be necessary to wrap the connection ID in an anonymous DefaultEntityId
+            ));
         }};
     }
 

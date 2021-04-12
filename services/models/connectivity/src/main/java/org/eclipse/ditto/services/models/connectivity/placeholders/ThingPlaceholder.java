@@ -13,10 +13,12 @@
 package org.eclipse.ditto.services.models.connectivity.placeholders;
 
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.placeholders.Placeholder;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * A {@link org.eclipse.ditto.model.placeholders.Placeholder} that requires a {@code String} (a valid Thing ID) to resolve its placeholders.
  */
-public interface ThingPlaceholder extends Placeholder<CharSequence> {
+public interface ThingPlaceholder extends Placeholder<EntityId> {
 }

@@ -18,15 +18,9 @@ import org.eclipse.ditto.model.base.entity.id.EntityId;
 
 /**
  * Entity ID together with resource type.
+ * TODO: yannic This class is not an entity ID but a CacheKey. Unwrap CacheLookupContext so this class contains those methods. Remove CacheLookupContext afterwards. EntityId will have an entity type in the future so getResourceType can be removed/replace by something like getId().getType().
  */
-public interface EntityIdWithResourceType {
-
-    /**
-     * Retrieve the resource type.
-     *
-     * @return the resource type.
-     */
-    String getResourceType();
+public interface CacheKey {
 
     /**
      * Retrieve the ID.
@@ -50,37 +44,34 @@ public interface EntityIdWithResourceType {
     String toString();
 
     /**
-     * Create a new entity ID from the given  {@code resourceType} and {@code id}.
+     * Create a new cache key from the given {@code id}.
      *
-     * @param resourceType the resource type.
      * @param id the entity ID.
-     * @return the entity ID with resource type object.
+     * @return the cache key with resource type object.
      */
-    static EntityIdWithResourceType of(final String resourceType, final EntityId id) {
-        return CacheFactory.newEntityId(resourceType, id);
+    static CacheKey of(final EntityId id) {
+        return CacheFactory.newCacheKey(id);
     }
 
     /**
-     * Create a new entity ID from the given  {@code resourceType} and {@code id}.
+     * Create a new cache key from the given {@code id}.
      *
-     * @param resourceType the resource type.
      * @param id the entity ID.
      * @param cacheLookupContext additional context information to use for the cache lookup.
-     * @return the entity ID with resource type object.
+     * @return the cache key with resource type object.
      */
-    static EntityIdWithResourceType of(final String resourceType, final EntityId id,
-            final CacheLookupContext cacheLookupContext) {
-        return CacheFactory.newEntityId(resourceType, id, cacheLookupContext);
+    static CacheKey of(final EntityId id, final CacheLookupContext cacheLookupContext) {
+        return CacheFactory.newCacheKey(id, cacheLookupContext);
     }
 
     /**
-     * Deserialize entity ID with resource type from a string.
+     * Deserialize cache key from a string.
      *
      * @param string the string.
-     * @return the entity ID with resource type.
+     * @return the cache key with resource type.
      * @throws IllegalArgumentException if the string does not have the expected format.
      */
-    static EntityIdWithResourceType readFrom(final String string) {
+    static CacheKey readFrom(final String string) {
         return CacheFactory.readEntityIdFrom(string);
     }
 

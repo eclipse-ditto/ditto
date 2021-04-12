@@ -23,7 +23,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
@@ -40,7 +40,7 @@ import org.junit.rules.TestName;
 public final class DefaultExceptionToAcknowledgementConverterTest {
 
     private static final AcknowledgementLabel ACK_LABEL = AcknowledgementLabel.of("twin-persisted");
-    private static final EntityIdWithType ENTITY_ID = ThingId.generateRandom();
+    private static final EntityId ENTITY_ID = ThingId.generateRandom();
 
     @Rule
     public final TestName testName = new TestName();

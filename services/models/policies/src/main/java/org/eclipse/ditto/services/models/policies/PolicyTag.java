@@ -60,7 +60,7 @@ public final class PolicyTag extends AbstractEntityIdWithRevision<PolicyId> {
      */
     public static PolicyTag fromJson(final JsonObject jsonObject) {
         checkNotNull(jsonObject, "JSON object");
-        final PolicyId policyId = PolicyId.of(jsonObject.getValueOrThrow(JsonFields.ID));
+        final PolicyId policyId = PolicyId.of(jsonObject.getValueOrThrow(JsonFields.ENTITY_ID));
         final Long revision = jsonObject.getValueOrThrow(JsonFields.REVISION);
 
         return new PolicyTag(policyId, revision);

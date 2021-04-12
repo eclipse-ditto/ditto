@@ -54,7 +54,7 @@ public final class ConnectionTag extends AbstractEntityIdWithRevision<Connection
      */
     public static ConnectionTag fromJson(final JsonObject jsonObject) {
         checkNotNull(jsonObject, "JSON object");
-        final ConnectionId connectionId = ConnectionId.of(jsonObject.getValueOrThrow(JsonFields.ID));
+        final ConnectionId connectionId = ConnectionId.of(jsonObject.getValueOrThrow(JsonFields.ENTITY_ID));
         final Long revision = jsonObject.getValueOrThrow(JsonFields.REVISION);
         return new ConnectionTag(connectionId, revision);
     }

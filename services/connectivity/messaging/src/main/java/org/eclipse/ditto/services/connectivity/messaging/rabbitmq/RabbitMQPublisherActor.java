@@ -41,7 +41,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.CharsetDeterminer;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -310,8 +310,8 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
         final var autoAckLabel = Optional.ofNullable(autoAckTarget)
                 .flatMap(Target::getIssuedAcknowledgementLabel)
                 .flatMap(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel));
-        final Optional<EntityIdWithType> entityIdOptional =
-                WithEntityId.getEntityIdOfType(EntityIdWithType.class, signal);
+        final Optional<EntityId> entityIdOptional =
+                WithEntityId.getEntityIdOfType(EntityId.class, signal);
         final Acknowledgement issuedAck;
         if (autoAckLabel.isPresent() && entityIdOptional.isPresent()) {
             issuedAck = Acknowledgement.of(autoAckLabel.get(),
