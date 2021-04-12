@@ -242,13 +242,13 @@ public final class AttributesCreated extends AbstractThingEvent<AttributesCreate
 
     @Override
     public AttributesCreated setRevision(final long revision) {
-        return of(getThingEntityId(), attributesCreated, revision, getTimestamp().orElse(null), getDittoHeaders(),
+        return of(getEntityId(), attributesCreated, revision, getTimestamp().orElse(null), getDittoHeaders(),
                 getMetadata().orElse(null));
     }
 
     @Override
     public AttributesCreated setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), attributesCreated, getRevision(), getTimestamp().orElse(null), dittoHeaders,
+        return of(getEntityId(), attributesCreated, getRevision(), getTimestamp().orElse(null), dittoHeaders,
                 getMetadata().orElse(null));
     }
 

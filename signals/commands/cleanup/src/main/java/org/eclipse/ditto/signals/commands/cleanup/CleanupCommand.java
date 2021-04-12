@@ -18,6 +18,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 /**
@@ -25,7 +26,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  *
  * @param <T> the type of the implementing class.
  */
-public interface CleanupCommand<T extends CleanupCommand<T>> extends Command<T> {
+public interface CleanupCommand<T extends CleanupCommand<T>> extends Command<T>, SignalWithEntityId<T> {
 
     /**
      * Type Prefix of Thing commands.

@@ -169,7 +169,7 @@ public final class ModifyFeatureDefinition extends AbstractCommand<ModifyFeature
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

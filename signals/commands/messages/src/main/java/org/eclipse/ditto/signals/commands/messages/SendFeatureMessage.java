@@ -191,7 +191,7 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
 
     @Override
     public SendFeatureMessage setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), featureId, getMessage(), dittoHeaders);
+        return of(getEntityId(), featureId, getMessage(), dittoHeaders);
     }
 
     @Override
@@ -203,7 +203,7 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
         jsonObjectBuilder.remove(MessageCommand.JsonFields.JSON_THING_ID);
         final JsonObject superBuild = jsonObjectBuilder.build();
         jsonObjectBuilder.removeAll();
-        jsonObjectBuilder.set(MessageCommand.JsonFields.JSON_THING_ID, getThingEntityId().toString());
+        jsonObjectBuilder.set(MessageCommand.JsonFields.JSON_THING_ID, getEntityId().toString());
         jsonObjectBuilder.set(JSON_FEATURE_ID, getFeatureId());
         jsonObjectBuilder.setAll(superBuild);
     }

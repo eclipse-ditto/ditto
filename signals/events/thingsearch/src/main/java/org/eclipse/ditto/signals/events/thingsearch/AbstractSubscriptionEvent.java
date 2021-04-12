@@ -87,13 +87,6 @@ abstract class AbstractSubscriptionEvent<T extends AbstractSubscriptionEvent<T>>
     }
 
     @Override
-    public EntityId getEntityId() {
-        // subscription events relate to no entity.
-        // subscription ID is ephemeral, similar to correlation ID.
-        return DefaultEntityId.dummy();
-    }
-
-    @Override
     public Optional<Instant> getTimestamp() {
         // subscription events have no timestamp.
         return Optional.empty();

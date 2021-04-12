@@ -234,13 +234,13 @@ public final class AttributeDeleted extends AbstractThingEvent<AttributeDeleted>
 
     @Override
     public AttributeDeleted setRevision(final long revision) {
-        return of(getThingEntityId(), attributePointer, revision, getTimestamp().orElse(null), getDittoHeaders(),
+        return of(getEntityId(), attributePointer, revision, getTimestamp().orElse(null), getDittoHeaders(),
                 getMetadata().orElse(null));
     }
 
     @Override
     public AttributeDeleted setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), attributePointer, getRevision(), getTimestamp().orElse(null), dittoHeaders,
+        return of(getEntityId(), attributePointer, getRevision(), getTimestamp().orElse(null), dittoHeaders,
                 getMetadata().orElse(null));
     }
 

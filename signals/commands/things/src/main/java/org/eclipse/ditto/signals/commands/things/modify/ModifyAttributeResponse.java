@@ -226,7 +226,7 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

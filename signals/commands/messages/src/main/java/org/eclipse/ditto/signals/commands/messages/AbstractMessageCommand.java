@@ -52,7 +52,7 @@ abstract class AbstractMessageCommand<T, C extends AbstractMessageCommand<T, C>>
         this.thingId = checkNotNull(thingId, "thingId");
         this.message = checkNotNull(message, "message");
 
-        validateThingId(message.getThingEntityId(), dittoHeaders);
+        validateThingId(message.getEntityId(), dittoHeaders);
     }
 
     private void validateThingId(final ThingId thingIdFromMessage, final DittoHeaders dittoHeaders) {
@@ -71,7 +71,7 @@ abstract class AbstractMessageCommand<T, C extends AbstractMessageCommand<T, C>>
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 
@@ -84,7 +84,7 @@ abstract class AbstractMessageCommand<T, C extends AbstractMessageCommand<T, C>>
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicate) {
 
-        jsonObjectBuilder.set(MessageCommand.JsonFields.JSON_THING_ID, getThingEntityId().toString(), predicate);
+        jsonObjectBuilder.set(MessageCommand.JsonFields.JSON_THING_ID, getEntityId().toString(), predicate);
 
         final JsonObjectBuilder messageBuilder = JsonFactory.newObjectBuilder();
         final JsonObject headersObject = message.getHeaders().toJson();

@@ -119,7 +119,7 @@ public final class ModifyConnectionResponse extends AbstractCommandResponse<Modi
     }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return connectionId;
     }
 

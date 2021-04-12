@@ -183,7 +183,7 @@ public final class RetrieveThing extends AbstractCommand<RetrieveThing> implemen
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

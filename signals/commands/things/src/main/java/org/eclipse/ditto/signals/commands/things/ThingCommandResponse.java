@@ -19,6 +19,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.WithThingId;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 /**
@@ -26,7 +27,8 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ThingCommandResponse<T extends ThingCommandResponse<T>> extends CommandResponse<T>, WithThingId {
+public interface ThingCommandResponse<T extends ThingCommandResponse<T>> extends CommandResponse<T>, WithThingId,
+        SignalWithEntityId<T> {
 
     /**
      * Type Prefix of Thing command responses.
@@ -35,7 +37,7 @@ public interface ThingCommandResponse<T extends ThingCommandResponse<T>> extends
 
     @Override
     default ThingId getEntityId() {
-        return getThingEntityId();
+        return getEntityId();
     }
 
     @Override

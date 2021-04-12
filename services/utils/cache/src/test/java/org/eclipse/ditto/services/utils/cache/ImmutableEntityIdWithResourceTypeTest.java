@@ -95,11 +95,6 @@ public class ImmutableEntityIdWithResourceTypeTest {
         }
 
         @Override
-        public boolean isDummy() {
-            return false;
-        }
-
-        @Override
         public String toString() {
             return getClass().getSimpleName() + " [" +
                     "id=" + id +

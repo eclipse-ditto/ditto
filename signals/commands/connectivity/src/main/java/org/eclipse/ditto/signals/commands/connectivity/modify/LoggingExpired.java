@@ -129,7 +129,7 @@ public final class LoggingExpired extends AbstractCommand<LoggingExpired>
     }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return connectionId;
     }
 

@@ -45,19 +45,15 @@ abstract class AbstractEntityPlaceholder<T extends NamespacedEntityId> implement
     }
 
     protected Optional<String> doResolve(final T entityId, final String placeholder) {
-        if (entityId.isDummy()) {
-            return Optional.empty();
-        } else {
-            switch (placeholder) {
-                case NAMESPACE_PLACEHOLDER:
-                    return Optional.of(entityId.getNamespace());
-                case NAME_PLACEHOLDER:
-                    return Optional.of(entityId.getName());
-                case ID_PLACEHOLDER:
-                    return Optional.of(entityId.toString());
-                default:
-                    return Optional.empty();
-            }
+        switch (placeholder) {
+            case NAMESPACE_PLACEHOLDER:
+                return Optional.of(entityId.getNamespace());
+            case NAME_PLACEHOLDER:
+                return Optional.of(entityId.getName());
+            case ID_PLACEHOLDER:
+                return Optional.of(entityId.toString());
+            default:
+                return Optional.empty();
         }
     }
 

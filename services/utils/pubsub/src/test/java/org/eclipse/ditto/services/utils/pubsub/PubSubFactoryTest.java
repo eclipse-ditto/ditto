@@ -110,7 +110,7 @@ public final class PubSubFactoryTest {
         thingIdMap = new ConcurrentHashMap<>();
         dittoHeadersMap = new ConcurrentHashMap<>();
         ackExtractor = AckExtractor.of(
-                s -> thingIdMap.getOrDefault(s.getLabel().toString(), ThingId.dummy()),
+                s -> thingIdMap.getOrDefault(s.getLabel().toString(), ThingId.of("pub.sub.test:thing-id")),
                 s -> dittoHeadersMap.getOrDefault(s.getLabel().toString(), DittoHeaders.empty())
         );
         factory1 = TestPubSubFactory.of(context1, ackExtractor, distributedAcks1);
@@ -723,7 +723,8 @@ public final class PubSubFactoryTest {
     }
 
     private static Acknowledgement signal(final String string) {
-        return Acknowledgement.of(AcknowledgementLabel.of(string), ThingId.dummy(), HttpStatus.OK,
+        return Acknowledgement.of(AcknowledgementLabel.of(string), ThingId.of("pub.sub.ack.test:thing-id"),
+                HttpStatus.OK,
                 DittoHeaders.empty());
     }
 

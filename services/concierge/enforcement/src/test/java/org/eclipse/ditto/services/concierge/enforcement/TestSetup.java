@@ -49,11 +49,13 @@ import org.eclipse.ditto.services.utils.pubsub.LiveSignalPub;
 import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.typesafe.config.Config;
@@ -229,7 +231,7 @@ public final class TestSetup {
         }
 
         @Override
-        public DistributedPub<Command> command() {
+        public DistributedPub<ThingCommand<?>> command() {
             return new DistributedPub<>() {
                 @Override
                 public ActorRef getPublisher() {
@@ -237,12 +239,12 @@ public final class TestSetup {
                 }
 
                 @Override
-                public Object wrapForPublication(final Command message) {
+                public Object wrapForPublication(final ThingCommand<?> message) {
                     return DistPubSubAccess.publish(StreamingType.LIVE_COMMANDS.getDistributedPubSubTopic(), message);
                 }
 
                 @Override
-                public <S extends Command> Object wrapForPublicationWithAcks(final S message,
+                public <S extends ThingCommand<?>> Object wrapForPublicationWithAcks(final S message,
                         final AckExtractor<S> ackExtractor) {
                     return wrapForPublication(message);
                 }
@@ -250,7 +252,7 @@ public final class TestSetup {
         }
 
         @Override
-        public DistributedPub<Event> event() {
+        public DistributedPub<ThingEvent<?>> event() {
             return new DistributedPub<>() {
                 @Override
                 public ActorRef getPublisher() {
@@ -258,12 +260,12 @@ public final class TestSetup {
                 }
 
                 @Override
-                public Object wrapForPublication(final Event message) {
+                public Object wrapForPublication(final ThingEvent<?> message) {
                     return DistPubSubAccess.publish(StreamingType.LIVE_EVENTS.getDistributedPubSubTopic(), message);
                 }
 
                 @Override
-                public <S extends Event> Object wrapForPublicationWithAcks(final S message,
+                public <S extends ThingEvent<?>> Object wrapForPublicationWithAcks(final S message,
                         final AckExtractor<S> ackExtractor) {
                     return wrapForPublication(message);
                 }
@@ -271,7 +273,7 @@ public final class TestSetup {
         }
 
         @Override
-        public DistributedPub<Signal> message() {
+        public DistributedPub<SignalWithEntityId<?>> message() {
             return new DistributedPub<>() {
 
                 @Override
@@ -280,12 +282,12 @@ public final class TestSetup {
                 }
 
                 @Override
-                public Object wrapForPublication(final Signal message) {
+                public Object wrapForPublication(final SignalWithEntityId<?> message) {
                     return DistPubSubAccess.publish(StreamingType.MESSAGES.getDistributedPubSubTopic(), message);
                 }
 
                 @Override
-                public <S extends Signal> Object wrapForPublicationWithAcks(final S message,
+                public <S extends SignalWithEntityId<?>> Object wrapForPublicationWithAcks(final S message,
                         final AckExtractor<S> ackExtractor) {
                     return wrapForPublication(message);
                 }

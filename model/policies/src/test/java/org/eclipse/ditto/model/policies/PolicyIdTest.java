@@ -57,23 +57,6 @@ public class PolicyIdTest {
     }
 
     @Test
-    public void dummyIsDummy() {
-        assertThat(PolicyId.dummy().isDummy()).isTrue();
-    }
-
-    @Test
-    public void manuallyCreatedDummyIsDummy() {
-        assertThat(PolicyId.of("", "_").isDummy()).isTrue();
-        assertThat(PolicyId.of(":_").isDummy()).isTrue();
-    }
-
-    @Test
-    public void validPolicyIdIsNoDummy() {
-        assertThat(PolicyId.of("namespace", "name").isDummy()).isFalse();
-        assertThat(PolicyId.of("namespace:name").isDummy()).isFalse();
-    }
-
-    @Test
     public void toStringConcatenatesNamespaceAndName() {
         assertThat(PolicyId.of("namespace", "name").toString()).isEqualTo("namespace:name");
         assertThat(PolicyId.of("namespace:name").toString()).isEqualTo("namespace:name");

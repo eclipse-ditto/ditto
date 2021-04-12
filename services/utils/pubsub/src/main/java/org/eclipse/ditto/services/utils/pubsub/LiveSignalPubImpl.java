@@ -16,9 +16,9 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.pubsub.extractors.ConstantTopics;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.ReadSubjectExtractor;
-import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.actor.ActorContext;
 
@@ -27,14 +27,14 @@ import akka.actor.ActorContext;
  */
 final class LiveSignalPubImpl implements LiveSignalPub {
 
-    private final DistributedPub<Command> liveCommandPub;
-    private final DistributedPub<Event> liveEventPub;
-    private final DistributedPub<Signal> messagePub;
+    private final DistributedPub<ThingCommand<?>> liveCommandPub;
+    private final DistributedPub<ThingEvent<?>> liveEventPub;
+    private final DistributedPub<SignalWithEntityId<?>> messagePub;
 
     private LiveSignalPubImpl(
-            final DistributedPub<Command> liveCommandPub,
-            final DistributedPub<Event> liveEventPub,
-            final DistributedPub<Signal> messagePub) {
+            final DistributedPub<ThingCommand<?>> liveCommandPub,
+            final DistributedPub<ThingEvent<?>> liveEventPub,
+            final DistributedPub<SignalWithEntityId<?>> messagePub) {
         this.liveCommandPub = liveCommandPub;
         this.liveEventPub = liveEventPub;
         this.messagePub = messagePub;
@@ -50,27 +50,27 @@ final class LiveSignalPubImpl implements LiveSignalPub {
     static LiveSignalPubImpl of(final ActorContext context, final DistributedAcks distributedAcks) {
         final DistributedPub<?> distributedPub =
                 LiveSignalPubSubFactory.of(context, distributedAcks).startDistributedPub();
-        final DistributedPub<Command> liveCommandPub =
+        final DistributedPub<ThingCommand<?>> liveCommandPub =
                 distributedPub.withTopicExtractor(getTopicExtractor(StreamingType.LIVE_COMMANDS));
-        final DistributedPub<Event> liveEventPub =
+        final DistributedPub<ThingEvent<?>> liveEventPub =
                 distributedPub.withTopicExtractor(getTopicExtractor(StreamingType.LIVE_EVENTS));
-        final DistributedPub<Signal> messagePub =
+        final DistributedPub<SignalWithEntityId<?>> messagePub =
                 distributedPub.withTopicExtractor(getTopicExtractor(StreamingType.MESSAGES));
         return new LiveSignalPubImpl(liveCommandPub, liveEventPub, messagePub);
     }
 
     @Override
-    public DistributedPub<Command> command() {
+    public DistributedPub<ThingCommand<?>> command() {
         return liveCommandPub;
     }
 
     @Override
-    public DistributedPub<Event> event() {
+    public DistributedPub<ThingEvent<?>> event() {
         return liveEventPub;
     }
 
     @Override
-    public DistributedPub<Signal> message() {
+    public DistributedPub<SignalWithEntityId<?>> message() {
         return messagePub;
     }
 

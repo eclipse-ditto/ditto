@@ -112,7 +112,7 @@ public final class CloseConnectionResponse extends AbstractCommandResponse<Close
     }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return connectionId;
     }
 

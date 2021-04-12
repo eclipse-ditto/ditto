@@ -145,11 +145,6 @@ public final class PublishSignal extends AbstractCommand<PublishSignal> {
     }
 
     @Override
-    public EntityId getEntityId() {
-        return signal.getEntityId();
-    }
-
-    @Override
     public JsonPointer getResourcePath() {
         return signal.getResourcePath();
     }

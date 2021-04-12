@@ -107,7 +107,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveThing command = RetrieveThing.of(context.getState(), DittoHeaders.empty());
         final ThingNotAccessibleException expectedException =
-                new ThingNotAccessibleException(command.getThingEntityId(), command.getDittoHeaders());
+                new ThingNotAccessibleException(command.getEntityId(), command.getDittoHeaders());
 
         assertUnhandledResult(underTest, THING_V2, command, expectedException);
     }

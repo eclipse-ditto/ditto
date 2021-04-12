@@ -81,7 +81,7 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
                 : copyPolicyId(context, thing, command.getThing());
 
         return applyModifyCommand(context, thing, eventTs, nextRevision,
-                ModifyThing.of(command.getThingEntityId(), thingWithPolicyId, null, command.getDittoHeaders()),
+                ModifyThing.of(command.getEntityId(), thingWithPolicyId, null, command.getDittoHeaders()),
                 metadata);
     }
 

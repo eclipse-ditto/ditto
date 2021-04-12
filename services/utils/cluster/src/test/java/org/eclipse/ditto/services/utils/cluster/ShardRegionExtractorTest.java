@@ -25,7 +25,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
-import org.eclipse.ditto.signals.base.WithId;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
@@ -122,7 +122,7 @@ public final class ShardRegionExtractorTest {
 
     @Test
     public void shardIdForMessageWhoseIdHashCodeIsIntegerMinValue() {
-        final var message = Mockito.mock(WithId.class);
+        final var message = Mockito.mock(WithEntityId.class);
         final var entityId = Mockito.mock(EntityId.class);
         final var stringWithMinHashCode = "polygenelubricants";
         Mockito.when(entityId.toString()).thenReturn(stringWithMinHashCode);
@@ -134,7 +134,7 @@ public final class ShardRegionExtractorTest {
     @Test
     public void shardIdReturnsExpected() {
         final var numberOfShards = 10;
-        final var message = Mockito.mock(WithId.class);
+        final var message = Mockito.mock(WithEntityId.class);
         final var entityId = Mockito.mock(EntityId.class);
         Mockito.when(entityId.toString()).thenReturn("Plumbus");
         Mockito.when(message.getEntityId()).thenReturn(entityId);

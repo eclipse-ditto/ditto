@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.withSettings;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -27,19 +28,23 @@ import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.GenericTarget;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.base.WithHttpStatus;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -108,7 +113,7 @@ public final class SendingTest {
     public void createInstanceWithNullFuture() {
         assertThatNullPointerException()
                 .isThrownBy(() -> new Sending(sendingContext, null, connectionIdResolver, logger))
-                .withMessage("The futureResponse must not be null!")
+                .withMessage("The futureResult must not be null!")
                 .withNoCause();
     }
 
@@ -124,11 +129,12 @@ public final class SendingTest {
     @Test
     public void acknowledgeAndMonitorNullCommandResponseWhenShouldAcknowledge() {
         Mockito.when(autoAckTarget.getIssuedAcknowledgementLabel()).thenReturn(Optional.of(ACKNOWLEDGEMENT_LABEL));
-        final var source = Mockito.mock(Signal.class);
+        final var source = Mockito.mock(WithThingId.class, withSettings()
+                .extraInterfaces(DittoHeadersSettable.class, Signal.class));
         final var thingId = ThingId.generateRandom();
         Mockito.when(source.getEntityId()).thenReturn(thingId);
-        Mockito.when(source.getDittoHeaders()).thenReturn(dittoHeaders);
-        Mockito.when(mappedOutboundSignal.getSource()).thenReturn(source);
+        Mockito.when(((DittoHeadersSettable)source).getDittoHeaders()).thenReturn(dittoHeaders);
+        Mockito.when(mappedOutboundSignal.getSource()).thenReturn((Signal)source);
         final Acknowledgement expectedResponse =
                 exceptionConverter.convertException(MessageSendingFailedException.newBuilder()
                                 .message("Message sending terminated without the expected acknowledgement.")
@@ -154,10 +160,11 @@ public final class SendingTest {
     @Test
     public void monitorAcknowledgementSendSuccessKeepOriginalResponse() {
         final var acknowledgement = Mockito.mock(Acknowledgement.class);
+        final SendResult sendResult = new SendResult(acknowledgement, DittoHeaders.empty());
         final var acknowledgementStatus = HttpStatus.ACCEPTED;
         Mockito.when(acknowledgement.getHttpStatus()).thenReturn(acknowledgementStatus);
         final Sending underTest =
-                new Sending(sendingContext, CompletableFuture.completedStage(acknowledgement), connectionIdResolver,
+                new Sending(sendingContext, CompletableFuture.completedStage(sendResult), connectionIdResolver,
                         logger);
 
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);
@@ -171,6 +178,7 @@ public final class SendingTest {
     @Test
     public void monitorAcknowledgementSendSuccessInCaseOfHandledException() {
         final var acknowledgement = Mockito.mock(Acknowledgement.class);
+        final SendResult sendResult = new SendResult(acknowledgement, DittoHeaders.empty());
         final var acknowledgementPayload = JsonObject.newBuilder().set("foo", "bar").build();
         final var acknowledgementStatus = HttpStatus.INTERNAL_SERVER_ERROR;
         Mockito.when(acknowledgement.getHttpStatus()).thenReturn(acknowledgementStatus);
@@ -182,7 +190,7 @@ public final class SendingTest {
                 .description("Payload: " + acknowledgementPayload)
                 .build();
         final Sending underTest =
-                new Sending(sendingContext, CompletableFuture.completedStage(acknowledgement), connectionIdResolver,
+                new Sending(sendingContext, CompletableFuture.completedStage(sendResult), connectionIdResolver,
                         logger);
 
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);
@@ -195,11 +203,12 @@ public final class SendingTest {
 
     @Test
     public void monitorAcknowledgementSendFailureInCaseOfUnhandledException() {
-        final var source = Mockito.mock(Signal.class);
+        final var source = Mockito.mock(WithThingId.class, withSettings()
+                        .extraInterfaces(Signal.class, DittoHeadersSettable.class));
         final var thingId = ThingId.generateRandom();
         Mockito.when(source.getEntityId()).thenReturn(thingId);
-        Mockito.when(source.getDittoHeaders()).thenReturn(dittoHeaders);
-        Mockito.when(mappedOutboundSignal.getSource()).thenReturn(source);
+        Mockito.when(((DittoHeadersSettable<?>)source).getDittoHeaders()).thenReturn(dittoHeaders);
+        Mockito.when(mappedOutboundSignal.getSource()).thenReturn((Signal)source);
         Mockito.when(autoAckTarget.getIssuedAcknowledgementLabel()).thenReturn(Optional.of(ACKNOWLEDGEMENT_LABEL));
         final var thrownException = new IllegalStateException("Test");
         final var acknowledgementPayload = JsonObject.newBuilder()
@@ -212,7 +221,7 @@ public final class SendingTest {
                 .message("Received negative acknowledgement for label <" + ACKNOWLEDGEMENT_LABEL + ">.")
                 .description("Payload: " + acknowledgementPayload)
                 .build();
-        final CompletableFuture<CommandResponse<?>> failedFuture = new CompletableFuture<>();
+        final CompletableFuture<SendResult> failedFuture = new CompletableFuture<>();
         failedFuture.completeExceptionally(thrownException);
         final Sending underTest = new Sending(sendingContext, failedFuture, connectionIdResolver, logger);
 
@@ -239,10 +248,11 @@ public final class SendingTest {
         final var issuedAckLabel = DittoAcknowledgementLabel.LIVE_RESPONSE;
         Mockito.when(autoAckTarget.getIssuedAcknowledgementLabel()).thenReturn(Optional.of(issuedAckLabel));
         final CommandResponse<?> commandResponse = Mockito.mock(CommandResponse.class);
+        final SendResult sendResult = new SendResult(commandResponse, DittoHeaders.empty());
         final var commandResponseStatus = HttpStatus.ACCEPTED;
         Mockito.when(commandResponse.getHttpStatus()).thenReturn(commandResponseStatus);
         final Sending underTest =
-                new Sending(sendingContext, CompletableFuture.completedStage(commandResponse), connectionIdResolver,
+                new Sending(sendingContext, CompletableFuture.completedStage(sendResult), connectionIdResolver,
                         logger);
 
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);
@@ -258,10 +268,11 @@ public final class SendingTest {
         final var issuedAckLabel = DittoAcknowledgementLabel.LIVE_RESPONSE;
         Mockito.when(autoAckTarget.getIssuedAcknowledgementLabel()).thenReturn(Optional.of(issuedAckLabel));
         final CommandResponse<?> commandResponse = Mockito.mock(CommandResponse.class);
+        final SendResult sendResult = new SendResult(commandResponse, DittoHeaders.empty());
         final var commandResponseStatus = HttpStatus.CONFLICT;
         Mockito.when(commandResponse.getHttpStatus()).thenReturn(commandResponseStatus);
         final Sending underTest =
-                new Sending(sendingContext, CompletableFuture.completedStage(commandResponse), connectionIdResolver,
+                new Sending(sendingContext, CompletableFuture.completedStage(sendResult), connectionIdResolver,
                         logger);
 
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);
@@ -282,8 +293,9 @@ public final class SendingTest {
                 .droppedMonitor(droppedMonitor)
                 .build();
         final CommandResponse<?> commandResponse = null;
+        final SendResult sendResult = new SendResult(commandResponse, DittoHeaders.empty());
         final Sending underTest =
-                new Sending(sendingContext, CompletableFuture.completedStage(commandResponse), connectionIdResolver,
+                new Sending(sendingContext, CompletableFuture.completedStage(sendResult), connectionIdResolver,
                         logger);
 
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);

@@ -310,7 +310,7 @@ public final class LiveSignalEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
 
-            final ThingEvent liveEvent = liveEvent();
+            final ThingEvent<?> liveEvent = liveEvent();
             mockEntitiesActorInstance.setReply(liveEvent);
             underTest.tell(liveEvent, getRef());
 
@@ -318,7 +318,7 @@ public final class LiveSignalEnforcementTest {
                     fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.LIVE_EVENTS.getDistributedPubSubTopic());
             assertThat(publish.msg()).isInstanceOf(Event.class);
-            assertThat((CharSequence) ((Event) publish.msg()).getEntityId()).isEqualTo(liveEvent.getEntityId());
+            assertThat((CharSequence) ((ThingEvent<?>) publish.msg()).getEntityId()).isEqualTo(liveEvent.getEntityId());
         }};
     }
 
@@ -369,7 +369,7 @@ public final class LiveSignalEnforcementTest {
     }
 
     private static MessageCommandResponse thingMessageCommandResponse(final MessageCommand<?, ?> command) {
-        return SendThingMessageResponse.of(command.getThingEntityId(), command.getMessage(),
+        return SendThingMessageResponse.of(command.getEntityId(), command.getMessage(),
                 HttpStatus.VARIANT_ALSO_NEGOTIATES, command.getDittoHeaders());
     }
 

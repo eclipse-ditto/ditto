@@ -277,12 +277,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         }
 
         @Override
-        public String getId() {
-            return null;
-        }
-
-        @Override
-        public ThingId getThingEntityId() {
+        public ThingId getEntityId() {
             return EndpointTestConstants.KNOWN_THING_ID;
         }
 

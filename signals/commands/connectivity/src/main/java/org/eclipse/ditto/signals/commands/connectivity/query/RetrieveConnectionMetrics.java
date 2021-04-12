@@ -31,9 +31,11 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
+import org.eclipse.ditto.model.connectivity.WithConnectionId;
 
 /**
  * Command which retrieves the current/live {@link ConnectivityStatus} and other connection specific metrics of an
@@ -42,7 +44,7 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 @Immutable
 @JsonParsableCommand(typePrefix = ConnectivityCommand.TYPE_PREFIX, name = RetrieveConnectionMetrics.NAME)
 public final class RetrieveConnectionMetrics extends AbstractCommand<RetrieveConnectionMetrics>
-        implements ConnectivityQueryCommand<RetrieveConnectionMetrics> {
+        implements ConnectivityQueryCommand<RetrieveConnectionMetrics>, WithConnectionId, SignalWithEntityId<RetrieveConnectionMetrics> {
 
     /**
      * Name of this command.
@@ -118,7 +120,7 @@ public final class RetrieveConnectionMetrics extends AbstractCommand<RetrieveCon
     }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return connectionId;
     }
 

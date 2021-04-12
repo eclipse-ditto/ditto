@@ -27,7 +27,6 @@ import org.eclipse.ditto.model.base.entity.validation.EntityIdPatternValidator;
 @Immutable
 public final class DefaultNamespacedEntityId implements NamespacedEntityId {
 
-    private static final NamespacedEntityId DUMMY_ID = DefaultNamespacedEntityId.of(":_");
     private static final String DEFAULT_NAMESPACE = "";
 
     private final String namespace;
@@ -107,16 +106,6 @@ public final class DefaultNamespacedEntityId implements NamespacedEntityId {
         return new DefaultNamespacedEntityId(namespace, name, true);
     }
 
-    /**
-     * Returns a dummy {@link NamespacedEntityId}. This ID should not be used. It can be identified by
-     * checking {@link NamespacedEntityId#isDummy()}.
-     *
-     * @return the dummy ID.
-     */
-    public static NamespacedEntityId dummy() {
-        return DUMMY_ID;
-    }
-
     private String validate(final @Nullable String namespace, final @Nullable String name) {
         final String sp = namespace + NAMESPACE_DELIMITER + name;
 
@@ -125,11 +114,6 @@ public final class DefaultNamespacedEntityId implements NamespacedEntityId {
         }
 
         return sp;
-    }
-
-    @Override
-    public boolean isDummy() {
-        return DUMMY_ID.equals(this);
     }
 
     @Override

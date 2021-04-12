@@ -20,6 +20,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.events.base.Event;
 
 /**
@@ -27,7 +28,7 @@ import org.eclipse.ditto.signals.events.base.Event;
  *
  * @param <T> the type of the implementing class.
  */
-public interface PolicyEvent<T extends PolicyEvent<T>> extends Event<T> {
+public interface PolicyEvent<T extends PolicyEvent<T>> extends Event<T>, SignalWithEntityId<T> {
 
     /**
      * Type Prefix of Policy events.

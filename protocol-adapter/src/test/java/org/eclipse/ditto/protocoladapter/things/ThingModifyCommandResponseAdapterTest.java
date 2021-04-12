@@ -84,7 +84,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
             }
 
             @Override
-            public ThingId getThingEntityId() {
+            public ThingId getEntityId() {
                 return TestConstants.THING_ID;
             }
 

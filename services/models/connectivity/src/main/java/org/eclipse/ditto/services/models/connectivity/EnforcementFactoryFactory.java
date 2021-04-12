@@ -19,6 +19,7 @@ import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
 import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders;
+import org.eclipse.ditto.signals.base.Signal;
 
 /**
  * Factory class that creates instances of {@link EnforcementFilterFactory}s.
@@ -35,22 +36,27 @@ public final class EnforcementFactoryFactory {
      * @param <I> the type from which the input values are resolved
      * @return the new {@link EnforcementFactoryFactory}
      */
-    private static <I> EnforcementFilterFactory<I, CharSequence> newEnforcementFilterFactory(
+    private static <I> EnforcementFilterFactory<I, Signal<?>> newEnforcementFilterFactory(
             final Enforcement enforcement,
             final Placeholder<I> inputFilter, final List<Placeholder<CharSequence>> filterPlaceholderResolver) {
-        return new ImmutableEnforcementFilterFactory<>(enforcement, inputFilter, filterPlaceholderResolver);
+        return new SignalEnforcementFilterFactory<>(enforcement, inputFilter, filterPlaceholderResolver);
     }
 
     /**
-     * Creates new instance of {@link EnforcementFilterFactory} that is preconfigured with a
-     * {@link org.eclipse.ditto.services.models.connectivity.placeholders.ThingPlaceholder} for the filters.
+     * Creates new instance of {@link EnforcementFilterFactory} that is preconfigured with the following placeholders
+     * for the filters:
+     * <ul>
+     * <li>{@link org.eclipse.ditto.services.models.connectivity.placeholders.ThingPlaceholder}</li>
+     * <li>{@link org.eclipse.ditto.services.models.connectivity.placeholders.PolicyPlaceholder}</li>
+     * <li>{@link org.eclipse.ditto.services.models.connectivity.placeholders.EntityPlaceholder}</li>
+     * </ul>
      *
      * @param <I> the type from which the input values are resolved
      * @param enforcement the enforcement options
      * @param inputFilter the input filter that is applied to resolve input value
      * @return the new {@link EnforcementFactoryFactory} used to match the input
      */
-    public static <I> EnforcementFilterFactory<I, CharSequence> newEnforcementFilterFactory(
+    public static <I> EnforcementFilterFactory<I, Signal<?>> newEnforcementFilterFactory(
             final Enforcement enforcement,
             final Placeholder<I> inputFilter) {
         return newEnforcementFilterFactory(enforcement, inputFilter, Arrays.asList(

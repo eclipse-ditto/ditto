@@ -46,7 +46,7 @@ public final class SendClaimMessage<T> extends AbstractMessageCommand<T, SendCla
 
     @Override
     public SendClaimMessage<T> setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), getMessage(), dittoHeaders);
+        return of(getEntityId(), getMessage(), dittoHeaders);
     }
 
     /**

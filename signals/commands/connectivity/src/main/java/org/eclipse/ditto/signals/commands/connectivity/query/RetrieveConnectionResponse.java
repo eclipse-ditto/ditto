@@ -33,8 +33,10 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.model.connectivity.WithConnectionId;
 
 /**
  * Response to a {@link RetrieveConnection} command.
@@ -42,7 +44,8 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 @Immutable
 @JsonParsableCommandResponse(type = RetrieveConnectionResponse.TYPE)
 public final class RetrieveConnectionResponse extends AbstractCommandResponse<RetrieveConnectionResponse>
-        implements ConnectivityQueryCommandResponse<RetrieveConnectionResponse> {
+        implements ConnectivityQueryCommandResponse<RetrieveConnectionResponse>, WithConnectionId,
+        SignalWithEntityId<RetrieveConnectionResponse> {
 
     /**
      * Type of this response.
@@ -117,7 +120,7 @@ public final class RetrieveConnectionResponse extends AbstractCommandResponse<Re
     public JsonObject getJsonObject() { return jsonObject; }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return ConnectionId.of(jsonObject.getValueOrThrow(Connection.JsonFields.ID));
     }
 

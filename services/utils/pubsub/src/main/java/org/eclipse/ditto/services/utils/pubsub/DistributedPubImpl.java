@@ -18,7 +18,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.services.utils.pubsub.actors.Publisher;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 
 import akka.actor.ActorRef;
 
@@ -28,7 +28,7 @@ import akka.actor.ActorRef;
  *
  * @param <T> type of messages.
  */
-final class DistributedPubImpl<T extends Signal<?>> implements DistributedPub<T> {
+final class DistributedPubImpl<T extends SignalWithEntityId<?>> implements DistributedPub<T> {
 
     private final ActorRef pubSupervisor;
     private final PubSubTopicExtractor<T> topicExtractor;

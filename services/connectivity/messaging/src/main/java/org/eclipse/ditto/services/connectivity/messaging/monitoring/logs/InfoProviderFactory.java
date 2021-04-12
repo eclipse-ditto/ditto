@@ -22,9 +22,9 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.signals.base.Signal;
@@ -107,10 +107,7 @@ public final class InfoProviderFactory {
 
     @Nullable
     private static ThingId extractThingId(final Signal<?> signal) {
-        if (signal instanceof WithThingId) {
-            return ((WithThingId) signal).getThingEntityId();
-        }
-        return null;
+        return WithEntityId.getEntityIdOfType(ThingId.class, signal).orElse(null);
     }
 
     public static ConnectionMonitor.InfoProvider empty() {

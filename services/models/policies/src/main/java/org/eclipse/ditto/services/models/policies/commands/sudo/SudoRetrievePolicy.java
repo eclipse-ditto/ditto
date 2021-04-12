@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
@@ -39,7 +40,7 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 @AllValuesAreNonnullByDefault
 @JsonParsableCommand(typePrefix = SudoRetrievePolicy.TYPE_PREFIX, name = SudoRetrievePolicy.NAME)
 public final class SudoRetrievePolicy extends AbstractCommand<SudoRetrievePolicy>
-        implements SudoCommand<SudoRetrievePolicy> {
+        implements SudoCommand<SudoRetrievePolicy>, SignalWithEntityId<SudoRetrievePolicy> {
 
     /**
      * Name of the "Sudo Retrieve Policy" command.

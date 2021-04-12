@@ -26,14 +26,14 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.signals.base.WithId;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 
 /**
  * Internal simple "ping" command to be sent to PersistenceActors (identified by the contained {@code entityId})
  * which is Jsonifiable and has an optional correlationId and optionally payload.
  */
 @Immutable
-public final class PingCommand implements Jsonifiable<JsonObject>, WithId {
+public final class PingCommand implements Jsonifiable<JsonObject>, WithEntityId {
 
     private final EntityId entityId;
     @Nullable private final String correlationId;

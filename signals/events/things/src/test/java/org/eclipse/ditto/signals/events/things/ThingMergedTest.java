@@ -87,7 +87,7 @@ public final class ThingMergedTest {
                 ThingMerged.fromJson(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat((Object) underTest.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((Object) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getResourcePath()).isEqualTo(TestConstants.Thing.ABSOLUTE_LOCATION_ATTRIBUTE_POINTER);
         assertThat(underTest.getValue()).isEqualTo(TestConstants.Thing.LOCATION_ATTRIBUTE_VALUE);
         assertThat(underTest.getMetadata()).contains(TestConstants.METADATA);

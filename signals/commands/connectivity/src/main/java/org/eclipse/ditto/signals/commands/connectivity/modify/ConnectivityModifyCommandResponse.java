@@ -13,8 +13,10 @@
 package org.eclipse.ditto.signals.commands.connectivity.modify;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
+import org.eclipse.ditto.model.connectivity.WithConnectionId;
 
 /**
  * Aggregates all {@link ConnectivityCommandResponse} which respond to a
@@ -23,7 +25,7 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandRespon
  * @param <T> the type of the implementing class.
  */
 public interface ConnectivityModifyCommandResponse<T extends ConnectivityModifyCommandResponse<T>>
-        extends ConnectivityCommandResponse<T>, WithOptionalEntity {
+        extends ConnectivityCommandResponse<T>, WithOptionalEntity, WithConnectionId, SignalWithEntityId<T> {
 
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);

@@ -126,7 +126,7 @@ public final class CreateThingResponse extends AbstractCommandResponse<CreateThi
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return createdThing.getEntityId()
                 .orElseThrow(() -> new IllegalStateException("Thing ID was not present in created Thing"));
     }

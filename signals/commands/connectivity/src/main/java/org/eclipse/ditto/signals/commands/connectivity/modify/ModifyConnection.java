@@ -126,7 +126,7 @@ public final class ModifyConnection extends AbstractCommand<ModifyConnection>
     }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return connection.getId();
     }
 

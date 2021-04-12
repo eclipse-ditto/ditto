@@ -69,7 +69,7 @@ final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveT
     private static DittoHeadersSettable<?> getRetrieveThingResponse(@Nullable final Thing thing,
             final ThingQueryCommand<RetrieveThing> command) {
         if (thing != null) {
-            return RetrieveThingResponse.of(command.getThingEntityId(), getThingJson(thing, command),
+            return RetrieveThingResponse.of(command.getEntityId(), getThingJson(thing, command),
                     command.getDittoHeaders());
         } else {
             return notAccessible(command);
@@ -83,7 +83,7 @@ final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveT
     }
 
     private static ThingNotAccessibleException notAccessible(final ThingQueryCommand<?> command) {
-        return new ThingNotAccessibleException(command.getThingEntityId(), command.getDittoHeaders());
+        return new ThingNotAccessibleException(command.getEntityId(), command.getDittoHeaders());
     }
 
     @Override

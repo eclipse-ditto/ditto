@@ -127,7 +127,7 @@ public final class TestConnection extends AbstractCommand<TestConnection>
     }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return connection.getId();
     }
 

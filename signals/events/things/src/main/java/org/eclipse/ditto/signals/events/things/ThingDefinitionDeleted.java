@@ -162,13 +162,13 @@ public final class ThingDefinitionDeleted extends AbstractThingEvent<ThingDefini
 
     @Override
     public ThingDefinitionDeleted setRevision(final long revision) {
-        return of(getThingEntityId(), revision, getTimestamp().orElse(null), getDittoHeaders(),
+        return of(getEntityId(), revision, getTimestamp().orElse(null), getDittoHeaders(),
                 getMetadata().orElse(null));
     }
 
     @Override
     public ThingDefinitionDeleted setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), getRevision(), getTimestamp().orElse(null), dittoHeaders,
+        return of(getEntityId(), getRevision(), getTimestamp().orElse(null), dittoHeaders,
                 getMetadata().orElse(null));
     }
 

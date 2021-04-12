@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
@@ -42,7 +43,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  */
 @Immutable
 @JsonParsableEvent(name = EmptyEvent.NAME, typePrefix = EmptyEvent.TYPE_PREFIX)
-public final class EmptyEvent implements Event<EmptyEvent> {
+public final class EmptyEvent implements Event<EmptyEvent>, WithEntityId {
 
     /**
      * Known effect of the "empty event" which shall keep an persistence actor always alive.

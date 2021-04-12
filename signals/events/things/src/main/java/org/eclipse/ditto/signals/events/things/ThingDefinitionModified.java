@@ -212,13 +212,13 @@ public final class ThingDefinitionModified extends AbstractThingEvent<ThingDefin
 
     @Override
     public ThingDefinitionModified setRevision(final long revision) {
-        return of(getThingEntityId(), definition, revision, getTimestamp().orElse(null), getDittoHeaders(),
+        return of(getEntityId(), definition, revision, getTimestamp().orElse(null), getDittoHeaders(),
                 getMetadata().orElse(null));
     }
 
     @Override
     public ThingDefinitionModified setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), definition, getRevision(), getTimestamp().orElse(null), dittoHeaders,
+        return of(getEntityId(), definition, getRevision(), getTimestamp().orElse(null), dittoHeaders,
                 getMetadata().orElse(null));
     }
 

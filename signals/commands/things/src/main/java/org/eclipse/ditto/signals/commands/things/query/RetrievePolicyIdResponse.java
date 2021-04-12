@@ -150,7 +150,7 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

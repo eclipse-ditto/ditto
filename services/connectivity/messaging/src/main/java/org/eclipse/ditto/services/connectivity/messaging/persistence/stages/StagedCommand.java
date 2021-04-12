@@ -12,23 +12,23 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.persistence.stages;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.function.Predicate;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
-import org.eclipse.ditto.signals.events.connectivity.ConnectionClosed;
 import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
 
 import akka.actor.ActorRef;
@@ -42,17 +42,14 @@ import akka.actor.ActorRef;
  */
 public final class StagedCommand implements ConnectivityCommand<StagedCommand>, Iterator<StagedCommand> {
 
-    private static final ConnectivityEvent<?> DUMMY_EVENT =
-            ConnectionClosed.of(ConnectionId.dummy(), DittoHeaders.empty());
-
     private final ConnectivityCommand<?> command;
-    private final ConnectivityEvent<?> event;
+    @Nullable private final ConnectivityEvent<?> event;
     private final WithDittoHeaders response;
     private final ActorRef sender;
     private final Collection<ConnectionAction> actions;
 
     private StagedCommand(final ConnectivityCommand<?> command,
-            final ConnectivityEvent<?> event,
+            @Nullable final ConnectivityEvent<?> event,
             final WithDittoHeaders response,
             final ActorRef sender,
             final Collection<ConnectionAction> actions) {
@@ -72,16 +69,9 @@ public final class StagedCommand implements ConnectivityCommand<StagedCommand>, 
      * @param actions remaining actions.
      * @return the staged command.
      */
-    public static StagedCommand of(final ConnectivityCommand<?> command, final ConnectivityEvent<?> event,
+    public static StagedCommand of(final ConnectivityCommand<?> command, @Nullable final ConnectivityEvent<?> event,
             final WithDittoHeaders response, final List<ConnectionAction> actions) {
         return new StagedCommand(command, event, response, ActorRef.noSender(), actions);
-    }
-
-    /**
-     * @return a dummy placeholder event.
-     */
-    public static ConnectivityEvent<?> dummyEvent() {
-        return DUMMY_EVENT;
     }
 
     /**
@@ -92,10 +82,10 @@ public final class StagedCommand implements ConnectivityCommand<StagedCommand>, 
     }
 
     /**
-     * @return the event to persist, apply or publish.
+     * @return the event to persist, apply or publish or dummy-event.
      */
-    public ConnectivityEvent<?> getEvent() {
-        return event;
+    public Optional<ConnectivityEvent<?>> getEvent() {
+        return Optional.ofNullable(event);
     }
 
     /**
@@ -137,11 +127,6 @@ public final class StagedCommand implements ConnectivityCommand<StagedCommand>, 
     }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
-        return command.getConnectionEntityId();
-    }
-
-    @Override
     public Category getCategory() {
         return command.getCategory();
     }
@@ -180,8 +165,11 @@ public final class StagedCommand implements ConnectivityCommand<StagedCommand>, 
     public boolean equals(final Object o) {
         if (o instanceof StagedCommand) {
             final StagedCommand that = (StagedCommand) o;
-            return Arrays.asList(command, event, response, sender, actions)
-                    .equals(Arrays.asList(that.command, that.event, that.response, that.sender, that.actions));
+            return Objects.equals(command, that.command) &&
+                    Objects.equals(event, that.event) &&
+                    Objects.equals(response, that.response) &&
+                    Objects.equals(sender, that.sender) &&
+                    Objects.equals(actions, that.actions);
         } else {
             return false;
         }

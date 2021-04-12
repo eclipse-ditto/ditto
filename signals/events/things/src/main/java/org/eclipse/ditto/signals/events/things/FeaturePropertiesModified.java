@@ -270,13 +270,13 @@ public final class FeaturePropertiesModified extends AbstractThingEvent<FeatureP
 
     @Override
     public FeaturePropertiesModified setRevision(final long revision) {
-        return of(getThingEntityId(), featureId, properties, revision, getTimestamp().orElse(null), getDittoHeaders(),
+        return of(getEntityId(), featureId, properties, revision, getTimestamp().orElse(null), getDittoHeaders(),
                 getMetadata().orElse(null));
     }
 
     @Override
     public FeaturePropertiesModified setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), featureId, properties, getRevision(), getTimestamp().orElse(null), dittoHeaders,
+        return of(getEntityId(), featureId, properties, getRevision(), getTimestamp().orElse(null), dittoHeaders,
                 getMetadata().orElse(null));
     }
 

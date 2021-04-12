@@ -113,7 +113,7 @@ public final class ResetConnectionLogs extends AbstractCommand<ResetConnectionLo
     }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return connectionId;
     }
 

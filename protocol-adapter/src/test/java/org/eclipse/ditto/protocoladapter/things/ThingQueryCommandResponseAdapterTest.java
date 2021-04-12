@@ -115,45 +115,6 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
     }
 
     @Test
-    public void retrieveThingsResponseToAdaptable() {
-        retrieveThingsResponseToAdaptable("");
-    }
-
-    @Test
-    public void retrieveThingsResponseToAdaptableWithWildcardNamespace() {
-        retrieveThingsResponseToAdaptable(null);
-    }
-
-    private void retrieveThingsResponseToAdaptable(final String namespace) {
-        final JsonPointer path = JsonPointer.empty();
-
-        final TopicPathBuilder topicPathBuilder = TopicPath.fromNamespace(Optional.ofNullable(namespace).orElse("_"));
-        final TopicPath topicPath =
-                (channel == TopicPath.Channel.LIVE ? topicPathBuilder.live() : topicPathBuilder.twin())
-                        .things()
-                        .commands()
-                        .retrieve()
-                        .build();
-
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
-                .withPayload(Payload.newBuilder(path).withValue(JsonFactory.newArray()
-                        .add(TestConstants.THING.toJsonString())
-                        .add(TestConstants.THING2.toJsonString()))
-                        .withStatus(HttpStatus.OK).build())
-                .withHeaders(TestConstants.HEADERS_V_2).build();
-
-        final RetrieveThingsResponse retrieveThingsResponse = RetrieveThingsResponse.of(JsonFactory.newArray()
-                        .add(TestConstants.THING.toJsonString())
-                        .add(TestConstants.THING2.toJsonString()),
-                namespace,
-                TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-
-        final Adaptable actual = underTest.toAdaptable(retrieveThingsResponse, channel);
-
-        assertWithExternalHeadersThat(actual).isEqualTo(expected);
-    }
-
-    @Test
     public void retrieveAttributesResponseFromAdaptable() {
         final RetrieveAttributesResponse expected =
                 RetrieveAttributesResponse.of(THING_ID, TestConstants.ATTRIBUTES, DITTO_HEADERS_V_2);
@@ -588,42 +549,6 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
-    @Test
-    public void retrieveThingsResponseFromAdaptable() {
-        retrieveThingsResponseFromAdaptable(TestConstants.NAMESPACE);
-    }
-
-    @Test
-    public void retrieveThingsResponseWithWildcardNamespaceFromAdaptable() {
-        retrieveThingsResponseFromAdaptable(null);
-    }
-
-    private void retrieveThingsResponseFromAdaptable(final String namespace) {
-        final RetrieveThingsResponse expected = RetrieveThingsResponse.of(JsonFactory.newArray()
-                        .add(TestConstants.THING.toJsonString())
-                        .add(TestConstants.THING2.toJsonString()),
-                namespace,
-                TestConstants.DITTO_HEADERS_V_2);
-
-        final TopicPath topicPath = TopicPath.fromNamespace(Optional.ofNullable(namespace).orElse("_"))
-                .things()
-                .twin()
-                .commands()
-                .retrieve()
-                .build();
-
-        final JsonPointer path = JsonPointer.empty();
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
-                .withPayload(Payload.newBuilder(path).withValue(JsonFactory.newArray()
-                        .add(TestConstants.THING.toJsonString())
-                        .add(TestConstants.THING2.toJsonString())).build())
-                .withHeaders(TestConstants.HEADERS_V_2).build();
-
-        final ThingQueryCommandResponse<?> actual = underTest.fromAdaptable(adaptable);
-
-        assertWithExternalHeadersThat(actual).isEqualTo(expected);
-    }
-
     private static class UnknownThingQueryCommandResponse
             implements ThingQueryCommandResponse<UnknownThingQueryCommandResponse> {
 
@@ -633,7 +558,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
         }
 
         @Override
-        public ThingId getThingEntityId() {
+        public ThingId getEntityId() {
             return THING_ID;
         }
 

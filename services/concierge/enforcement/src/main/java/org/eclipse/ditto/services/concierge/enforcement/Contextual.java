@@ -20,8 +20,6 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -30,7 +28,7 @@ import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapt
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
-import org.eclipse.ditto.signals.base.WithId;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.signals.base.WithResource;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
@@ -40,7 +38,7 @@ import akka.actor.ActorRef;
 /**
  * A message together with contextual information about the actor processing it.
  */
-public final class Contextual<T extends WithDittoHeaders> implements WithSender<T>, WithId, WithDittoHeaders {
+public final class Contextual<T extends WithDittoHeaders> implements WithSender<T>, WithDittoHeaders {
 
     @Nullable
     private final T message;
@@ -149,17 +147,6 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
     }
 
     @Override
-    public EntityId getEntityId() {
-        if (message instanceof WithId) {
-            return ((WithId) message).getEntityId();
-        } else if (message != null) {
-            return DefaultEntityId.of(String.valueOf(message.hashCode()));
-        } else {
-            return DefaultEntityId.dummy();
-        }
-    }
-
-    @Override
     public DittoHeaders getDittoHeaders() {
         if (message != null) {
             return message.getDittoHeaders();
@@ -260,18 +247,19 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
             return null;
         } else if (signal instanceof DittoRuntimeException) {
             return null;
-        } else if (signal instanceof WithResource && signal instanceof WithId) {
+        } else if (signal instanceof WithResource && signal instanceof WithEntityId) {
             final EntityIdWithResourceType entityId;
             if (MessageCommand.RESOURCE_TYPE.equals(((WithResource) signal).getResourceType())) {
-                entityId = EntityIdWithResourceType.of(ThingCommand.RESOURCE_TYPE, ((WithId) signal).getEntityId());
+                entityId =
+                        EntityIdWithResourceType.of(ThingCommand.RESOURCE_TYPE, ((WithEntityId) signal).getEntityId());
             } else {
                 entityId = EntityIdWithResourceType.of(((WithResource) signal).getResourceType(),
-                        ((WithId) signal).getEntityId());
+                        ((WithEntityId) signal).getEntityId());
             }
             return entityId;
         } else {
             throw new IllegalArgumentException("Contextual: processed WithDittoHeaders message did not implement " +
-                    "WithResource or WithId: " + signal.getClass().getSimpleName());
+                    "WithResource or WithEntityId: " + signal.getClass().getSimpleName());
         }
     }
 

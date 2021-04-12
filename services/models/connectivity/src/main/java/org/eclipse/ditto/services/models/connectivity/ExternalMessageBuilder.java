@@ -25,6 +25,7 @@ import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.signals.base.Signal;
 
 /**
  * Builder for building instances of {@link ExternalMessage}.
@@ -127,7 +128,7 @@ public interface ExternalMessageBuilder {
      * @param enforcement enforcement data
      * @return this builder in order to enable method chaining
      */
-    <F extends EnforcementFilter<CharSequence>> ExternalMessageBuilder withEnforcement(@Nullable F enforcement);
+    <F extends EnforcementFilter<Signal<?>>> ExternalMessageBuilder withEnforcement(@Nullable F enforcement);
 
     /**
      * Associates {@link HeaderMapping} data with the message. Pass {@code null} to disable headerMapping.

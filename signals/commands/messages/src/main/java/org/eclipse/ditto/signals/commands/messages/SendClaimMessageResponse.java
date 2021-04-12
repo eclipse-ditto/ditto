@@ -52,7 +52,7 @@ public final class SendClaimMessageResponse<T> extends AbstractMessageCommandRes
 
     @Override
     public SendClaimMessageResponse<T> setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), getMessage(), getHttpStatus(), dittoHeaders);
+        return of(getEntityId(), getMessage(), getHttpStatus(), dittoHeaders);
     }
 
     /**

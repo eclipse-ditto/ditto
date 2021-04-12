@@ -112,7 +112,7 @@ public final class EnableConnectionLogsResponse extends AbstractCommandResponse<
     }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return connectionId;
     }
 

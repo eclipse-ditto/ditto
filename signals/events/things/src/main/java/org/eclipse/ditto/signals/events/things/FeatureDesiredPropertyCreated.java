@@ -187,13 +187,13 @@ public final class FeatureDesiredPropertyCreated extends AbstractThingEvent<Feat
 
     @Override
     public FeatureDesiredPropertyCreated setRevision(final long revision) {
-        return of(getThingEntityId(), featureId, desiredPropertyPointer, desiredPropertyValue, revision, getTimestamp().orElse(null),
+        return of(getEntityId(), featureId, desiredPropertyPointer, desiredPropertyValue, revision, getTimestamp().orElse(null),
                 getDittoHeaders(), getMetadata().orElse(null));
     }
 
     @Override
     public FeatureDesiredPropertyCreated setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), featureId, desiredPropertyPointer, desiredPropertyValue, getRevision(),
+        return of(getEntityId(), featureId, desiredPropertyPointer, desiredPropertyValue, getRevision(),
                 getTimestamp().orElse(null), dittoHeaders, getMetadata().orElse(null));
     }
 

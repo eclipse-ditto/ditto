@@ -84,7 +84,7 @@ import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.base.WithId;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
@@ -108,7 +108,7 @@ import scala.runtime.BoxedUnit;
  * This Actor processes {@link OutboundSignal outbound signals} and dispatches them.
  */
 public final class OutboundMappingProcessorActor
-        extends AbstractGraphActor<OutboundMappingProcessorActor.OutboundSignalWithId, OutboundSignal> {
+        extends AbstractGraphActor<OutboundMappingProcessorActor.OutboundSignalWithSender, OutboundSignal> {
 
     /**
      * The name of this Actor in the ActorSystem.
@@ -182,8 +182,11 @@ public final class OutboundMappingProcessorActor
         final Set<AcknowledgementRequest> requestedAcks = signal.getDittoHeaders().getAcknowledgementRequests();
         final boolean customAckRequested = requestedAcks.stream()
                 .anyMatch(request -> !DittoAcknowledgementLabel.contains(request.getLabel()));
-        final EntityId entityId = signal.getEntityId();
-        if (customAckRequested && entityId instanceof EntityIdWithType) {
+
+        final Optional<EntityIdWithType> entityIdWithType = extractEntityId(signal)
+                .filter(EntityIdWithType.class::isInstance)
+                .map(EntityIdWithType.class::cast);
+        if (customAckRequested && entityIdWithType.isPresent()) {
             final List<AcknowledgementLabel> weakAckLabels = requestedAcks.stream()
                     .map(AcknowledgementRequest::getLabel)
                     .filter(isWeakAckLabel)
@@ -191,7 +194,7 @@ public final class OutboundMappingProcessorActor
             if (!weakAckLabels.isEmpty()) {
                 final DittoHeaders dittoHeaders = signal.getDittoHeaders();
                 final List<Acknowledgement> ackList = weakAckLabels.stream()
-                        .map(label -> weakAck(label, (EntityIdWithType) entityId, dittoHeaders))
+                        .map(label -> weakAck(label, entityIdWithType.get(), dittoHeaders))
                         .collect(Collectors.toList());
                 final Acknowledgements weakAcks = Acknowledgements.of(ackList, dittoHeaders);
                 sender.tell(weakAcks, ActorRef.noSender());
@@ -281,20 +284,20 @@ public final class OutboundMappingProcessorActor
     }
 
     @Override
-    protected OutboundSignalWithId mapMessage(final OutboundSignal message) {
-        if (message instanceof OutboundSignalWithId) {
+    protected OutboundSignalWithSender mapMessage(final OutboundSignal message) {
+        if (message instanceof OutboundSignalWithSender) {
             // message contains original sender already
-            return (OutboundSignalWithId) message;
+            return (OutboundSignalWithSender) message;
         } else {
-            return OutboundSignalWithId.of(message, getSender());
+            return OutboundSignalWithSender.of(message, getSender());
         }
     }
 
     @Override
-    protected Sink<OutboundSignalWithId, ?> createSink() {
+    protected Sink<OutboundSignalWithSender, ?> createSink() {
         // Enrich outbound signals by extra fields if necessary.
         // Targets attached to the OutboundSignal are pre-selected by authorization, topic and filter sans enrichment.
-        final Flow<OutboundSignalWithId, OutboundSignal.MultiMapped, ?> flow = Flow.<OutboundSignalWithId>create()
+        final Flow<OutboundSignalWithSender, OutboundSignal.MultiMapped, ?> flow = Flow.<OutboundSignalWithSender>create()
                 .mapAsync(processorPoolSize, outbound -> toMultiMappedOutboundSignal(
                         outbound,
                         Source.single(outbound)
@@ -323,8 +326,8 @@ public final class OutboundMappingProcessorActor
      *
      * @return the flow.
      */
-    private static Flow<OutboundSignalWithId, Pair<OutboundSignalWithId, FilteredTopic>, NotUsed> splitByTargetExtraFieldsFlow() {
-        return Flow.<OutboundSignalWithId>create()
+    private static Flow<OutboundSignalWithSender, Pair<OutboundSignalWithSender, FilteredTopic>, NotUsed> splitByTargetExtraFieldsFlow() {
+        return Flow.<OutboundSignalWithSender>create()
                 .mapConcat(outboundSignal -> {
                     final Pair<List<Target>, List<Pair<Target, FilteredTopic>>> splitTargets =
                             splitTargetsByExtraFields(outboundSignal);
@@ -333,12 +336,12 @@ public final class OutboundMappingProcessorActor
                             !splitTargets.first().isEmpty() ||
                                     isCommandResponseWithReplyTarget(outboundSignal.getSource()) ||
                                     outboundSignal.getTargets().isEmpty(); // no target - this is an error response
-                    final Stream<Pair<OutboundSignalWithId, FilteredTopic>> outboundSignalWithoutExtraFields =
+                    final Stream<Pair<OutboundSignalWithSender, FilteredTopic>> outboundSignalWithoutExtraFields =
                             shouldSendSignalWithoutExtraFields
                                     ? Stream.of(Pair.create(outboundSignal.setTargets(splitTargets.first()), null))
                                     : Stream.empty();
 
-                    final Stream<Pair<OutboundSignalWithId, FilteredTopic>> outboundSignalWithExtraFields =
+                    final Stream<Pair<OutboundSignalWithSender, FilteredTopic>> outboundSignalWithExtraFields =
                             splitTargets.second().stream()
                                     .map(targetAndSelector -> Pair.create(
                                             outboundSignal.setTargets(
@@ -353,10 +356,10 @@ public final class OutboundMappingProcessorActor
 
     // Called inside stream; must be thread-safe
     // precondition: whenever filteredTopic != null, it contains an extra fields
-    private CompletionStage<Collection<OutboundSignalWithId>> enrichAndFilterSignal(
-            final Pair<OutboundSignalWithId, FilteredTopic> outboundSignalWithExtraFields) {
+    private CompletionStage<Collection<OutboundSignalWithSender>> enrichAndFilterSignal(
+            final Pair<OutboundSignalWithSender, FilteredTopic> outboundSignalWithExtraFields) {
 
-        final OutboundSignalWithId outboundSignal = outboundSignalWithExtraFields.first();
+        final OutboundSignalWithSender outboundSignal = outboundSignalWithExtraFields.first();
         final FilteredTopic filteredTopic = outboundSignalWithExtraFields.second();
         final Optional<JsonFieldSelector> extraFieldsOptional =
                 Optional.ofNullable(filteredTopic).flatMap(FilteredTopic::getExtraFields);
@@ -366,7 +369,7 @@ public final class OutboundMappingProcessorActor
         final JsonFieldSelector extraFields = extraFieldsOptional.get();
         final Target target = outboundSignal.getTargets().get(0);
 
-        final ThingId thingId = ThingId.of(outboundSignal.getEntityId());
+
         final DittoHeaders headers = DittoHeaders.newBuilder()
                 .authorizationContext(target.getAuthorizationContext())
                 // the correlation-id MUST NOT be set! as the DittoHeaders are used as a caching key in the Caffeine
@@ -374,10 +377,19 @@ public final class OutboundMappingProcessorActor
                 // schema version is always the latest for connectivity signal enrichment.
                 .schemaVersion(JsonSchemaVersion.LATEST)
                 .build();
-        final CompletionStage<JsonObject> extraFuture =
-                signalEnrichmentFacade.retrievePartialThing(thingId, extraFields, headers, outboundSignal.getSource());
 
-        return extraFuture.thenApply(outboundSignal::setExtra)
+        return extractEntityId(outboundSignal.delegate.getSource())
+                .filter(ThingId.class::isInstance)
+                .map(ThingId.class::cast)
+                .map(thingId -> {
+                    return signalEnrichmentFacade.retrievePartialThing(
+                            thingId,
+                            extraFields,
+                            headers,
+                            outboundSignal.getSource());
+                })
+                .map(partialThingCompletionStage -> partialThingCompletionStage.thenApply(outboundSignal::setExtra))
+                .orElse(CompletableFuture.completedStage(outboundSignal))
                 .thenApply(outboundSignalWithExtra -> applyFilter(outboundSignalWithExtra, filteredTopic))
                 .exceptionally(error -> {
                     logger.withCorrelationId(outboundSignal.getSource())
@@ -388,8 +400,15 @@ public final class OutboundMappingProcessorActor
                 });
     }
 
+    private static Optional<EntityId> extractEntityId(Signal<?> signal) {
+        return Optional.of(signal)
+                .filter(WithEntityId.class::isInstance)
+                .map(WithEntityId.class::cast)
+                .map(WithEntityId::getEntityId);
+    }
+
     // Called inside future; must be thread-safe
-    private OutboundSignalWithId recoverFromEnrichmentError(final OutboundSignalWithId outboundSignal,
+    private OutboundSignalWithSender recoverFromEnrichmentError(final OutboundSignalWithSender outboundSignal,
             final Target target, final Throwable error) {
 
         // show enrichment failure in the connection logs
@@ -397,9 +416,8 @@ public final class OutboundMappingProcessorActor
         // show enrichment failure in service logs according to severity
         if (error instanceof ThingNotAccessibleException) {
             // This error should be rare but possible due to user action; log on INFO level
-            logger.withCorrelationId(outboundSignal.getSource())
-                    .info("Enrichment of <{}> failed for <{}> due to <{}>.", outboundSignal.getSource().getClass(),
-                            outboundSignal.getEntityId(), error);
+            logger.withCorrelationId(outboundSignal.getSource()).info("Enrichment of <{}> failed due to <{}>.",
+                    outboundSignal.getSource().getClass(), error);
         } else {
             // This error should not have happened during normal operation.
             // There is a (possibly transient) problem with the Ditto cluster. Request parent to restart.
@@ -476,7 +494,7 @@ public final class OutboundMappingProcessorActor
         }
     }
 
-    private Source<OutboundSignalWithId, ?> handleOutboundSignal(final OutboundSignalWithId outbound) {
+    private Source<OutboundSignalWithSender, ?> handleOutboundSignal(final OutboundSignalWithSender outbound) {
         final Signal<?> source = outbound.getSource();
         if (logger.isDebugEnabled()) {
             logger.withCorrelationId(source).debug("Handling outbound signal <{}>.", source);
@@ -496,17 +514,17 @@ public final class OutboundMappingProcessorActor
     private Object handleSignal(final Signal<?> signal, final ActorRef sender) {
         // map to outbound signal without authorized target (responses and errors are only sent to its origin)
         logger.withCorrelationId(signal).debug("Handling raw signal <{}>.", signal);
-        return OutboundSignalWithId.of(signal, sender);
+        return OutboundSignalWithSender.of(signal, sender);
     }
 
-    private Source<OutboundSignalWithId, ?> mapToExternalMessage(final OutboundSignalWithId outbound) {
+    private Source<OutboundSignalWithSender, ?> mapToExternalMessage(final OutboundSignalWithSender outbound) {
         final ConnectionMonitor.InfoProvider infoProvider = InfoProviderFactory.forSignal(outbound.getSource());
         final Set<ConnectionMonitor> outboundMapped = getMonitorsForMappedSignal(outbound);
         final Set<ConnectionMonitor> outboundDropped = getMonitorsForDroppedSignal(outbound);
         final Set<ConnectionMonitor> monitorsForOther = getMonitorsForOther(outbound);
 
-        final MappingOutcome.Visitor<OutboundSignal.Mapped, Source<OutboundSignalWithId, ?>> visitor =
-                MappingOutcome.<OutboundSignal.Mapped, Source<OutboundSignalWithId, ?>>newVisitorBuilder()
+        final MappingOutcome.Visitor<OutboundSignal.Mapped, Source<OutboundSignalWithSender, ?>> visitor =
+                MappingOutcome.<OutboundSignal.Mapped, Source<OutboundSignalWithSender, ?>>newVisitorBuilder()
                         .onMapped((mapperId, mapped) -> {
                             outboundMapped.forEach(monitor -> monitor.success(infoProvider,
                                     "Mapped outgoing signal with mapper <{0}>.", mapperId));
@@ -539,7 +557,7 @@ public final class OutboundMappingProcessorActor
                         .build();
 
         return outboundMappingProcessor.process(outbound).stream()
-                .<Source<OutboundSignalWithId, ?>>map(visitor::eval)
+                .<Source<OutboundSignalWithSender, ?>>map(visitor::eval)
                 .reduce(Source::concat)
                 .orElse(Source.empty());
     }
@@ -578,8 +596,8 @@ public final class OutboundMappingProcessorActor
     }
 
     private <T> CompletionStage<Collection<OutboundSignal.MultiMapped>> toMultiMappedOutboundSignal(
-            final OutboundSignalWithId outbound,
-            final Source<OutboundSignalWithId, T> source) {
+            final OutboundSignalWithSender outbound,
+            final Source<OutboundSignalWithSender, T> source) {
 
         return source.runWith(Sink.seq(), materializer)
                 .thenApply(outboundSignals -> {
@@ -592,7 +610,7 @@ public final class OutboundMappingProcessorActor
                     } else {
                         final ActorRef sender = outboundSignals.get(0).sender;
                         final List<Mapped> mappedSignals = outboundSignals.stream()
-                                .map(OutboundSignalWithId::asMapped)
+                                .map(OutboundSignalWithSender::asMapped)
                                 .collect(Collectors.toList());
                         final List<Target> targetsToPublishAt = outboundSignals.stream()
                                 .map(OutboundSignal::getTargets)
@@ -610,7 +628,7 @@ public final class OutboundMappingProcessorActor
                 });
     }
 
-    private Collection<OutboundSignalWithId> applyFilter(final OutboundSignalWithId outboundSignalWithExtra,
+    private Collection<OutboundSignalWithSender> applyFilter(final OutboundSignalWithSender outboundSignalWithExtra,
             final FilteredTopic filteredTopic) {
 
         final Optional<String> filter = filteredTopic.getFilter();
@@ -698,36 +716,31 @@ public final class OutboundMappingProcessorActor
         return Acknowledgement.weak(label, entityId, dittoHeaders, payload);
     }
 
-    static final class OutboundSignalWithId implements OutboundSignal, WithId {
+    static final class OutboundSignalWithSender implements OutboundSignal {
 
         private final OutboundSignal delegate;
-        private final EntityId entityId;
         private final ActorRef sender;
 
         @Nullable
         private final JsonObject extra;
 
-        private OutboundSignalWithId(final OutboundSignal delegate,
-                final EntityId entityId,
+        private OutboundSignalWithSender(final OutboundSignal delegate,
                 final ActorRef sender,
                 @Nullable final JsonObject extra) {
 
             this.delegate = delegate;
-            this.entityId = entityId;
             this.sender = sender;
             this.extra = extra;
         }
 
-        static OutboundSignalWithId of(final Signal<?> signal, final ActorRef sender) {
+        static OutboundSignalWithSender of(final Signal<?> signal, final ActorRef sender) {
             final OutboundSignal outboundSignal =
                     OutboundSignalFactory.newOutboundSignal(signal, Collections.emptyList());
-            final EntityId entityId = signal.getEntityId();
-            return new OutboundSignalWithId(outboundSignal, entityId, sender, null);
+            return new OutboundSignalWithSender(outboundSignal, sender, null);
         }
 
-        static OutboundSignalWithId of(final OutboundSignal outboundSignal, final ActorRef sender) {
-            final EntityId entityId = outboundSignal.getSource().getEntityId();
-            return new OutboundSignalWithId(outboundSignal, entityId, sender, null);
+        static OutboundSignalWithSender of(final OutboundSignal outboundSignal, final ActorRef sender) {
+            return new OutboundSignalWithSender(outboundSignal, sender, null);
         }
 
         @Override
@@ -750,25 +763,20 @@ public final class OutboundMappingProcessorActor
             return delegate.toJson(schemaVersion, predicate);
         }
 
-        @Override
-        public EntityId getEntityId() {
-            return entityId;
+        private OutboundSignalWithSender setTargets(final List<Target> targets) {
+            return new OutboundSignalWithSender(OutboundSignalFactory.newOutboundSignal(delegate.getSource(), targets),
+                    sender, extra);
         }
 
-        private OutboundSignalWithId setTargets(final List<Target> targets) {
-            return new OutboundSignalWithId(OutboundSignalFactory.newOutboundSignal(delegate.getSource(), targets),
-                    entityId, sender, extra);
-        }
-
-        private OutboundSignalWithId setExtra(final JsonObject extra) {
-            return new OutboundSignalWithId(
+        private OutboundSignalWithSender setExtra(final JsonObject extra) {
+            return new OutboundSignalWithSender(
                     OutboundSignalFactory.newOutboundSignal(delegate.getSource(), getTargets()),
-                    entityId, sender, extra
+                    sender, extra
             );
         }
 
-        private OutboundSignalWithId mapped(final Mapped mapped) {
-            return new OutboundSignalWithId(mapped, entityId, sender, extra);
+        private OutboundSignalWithSender mapped(final Mapped mapped) {
+            return new OutboundSignalWithSender(mapped, sender, extra);
         }
 
         private Mapped asMapped() {
@@ -779,7 +787,6 @@ public final class OutboundMappingProcessorActor
         public String toString() {
             return getClass().getSimpleName() + " [" +
                     "delegate=" + delegate +
-                    ", entityId=" + entityId +
                     ", sender=" + sender +
                     ", extra=" + extra +
                     "]";
@@ -793,16 +800,15 @@ public final class OutboundMappingProcessorActor
             if (o == null || getClass() != o.getClass()) {
                 return false;
             }
-            final OutboundSignalWithId that = (OutboundSignalWithId) o;
+            final OutboundSignalWithSender that = (OutboundSignalWithSender) o;
             return Objects.equals(delegate, that.delegate) &&
-                    Objects.equals(entityId, that.entityId) &&
                     Objects.equals(sender, that.sender) &&
                     Objects.equals(extra, that.extra);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(delegate, entityId, sender, extra);
+            return Objects.hash(delegate, sender, extra);
         }
 
     }

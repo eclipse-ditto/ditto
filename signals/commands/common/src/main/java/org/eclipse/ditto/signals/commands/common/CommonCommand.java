@@ -22,7 +22,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 
 /**
@@ -39,8 +38,7 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommand;
  * @param <T> the type of the implementing class.
  */
 @Immutable
-public abstract class CommonCommand<T extends CommonCommand<T>> extends AbstractCommand<T>
-        implements WithIdButActuallyNot {
+public abstract class CommonCommand<T extends CommonCommand<T>> extends AbstractCommand<T> {
 
     /**
      * Type prefix of common commands.

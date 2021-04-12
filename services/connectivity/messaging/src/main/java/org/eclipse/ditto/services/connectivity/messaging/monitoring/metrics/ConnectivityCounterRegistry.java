@@ -341,7 +341,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
         final ConnectionMetrics mergedConnectionMetrics =
                 ConnectivityModelFactory.newConnectionMetrics(inboundMetrics, outboundMetrics);
 
-        return RetrieveConnectionMetricsResponse.getBuilder(first.getConnectionEntityId(), first.getDittoHeaders())
+        return RetrieveConnectionMetricsResponse.getBuilder(first.getEntityId(), first.getDittoHeaders())
                 .connectionMetrics(mergedConnectionMetrics)
                 .sourceMetrics(mergedSourceMetrics)
                 .targetMetrics(mergedTargetMetrics)

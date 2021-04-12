@@ -31,7 +31,6 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -123,16 +122,6 @@ public final class ConnectivityErrorResponse extends AbstractCommandResponse<Con
      */
     public DittoRuntimeException getDittoRuntimeException() {
         return dittoRuntimeException;
-    }
-
-    /**
-     * This command does not have an ID. Thus this implementation always returns an empty string.
-     *
-     * @return an empty string.
-     */
-    @Override
-    public ConnectionId getConnectionEntityId() {
-        return ConnectionId.dummy();
     }
 
     @Override

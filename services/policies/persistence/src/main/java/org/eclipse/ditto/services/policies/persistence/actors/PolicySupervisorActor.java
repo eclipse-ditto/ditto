@@ -98,7 +98,7 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
 
     @Override
     protected DittoRuntimeExceptionBuilder<?> getUnavailableExceptionBuilder(@Nullable final PolicyId entityId) {
-        final PolicyId policyId = entityId != null ? entityId : PolicyId.of(DefaultNamespacedEntityId.dummy());
+        final PolicyId policyId = entityId != null ? entityId : PolicyId.of(DefaultNamespacedEntityId.of("UNKNOWN:ID"));
         return PolicyUnavailableException.newBuilder(policyId);
     }
 

@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.models.streaming.LowerBound;
 import org.eclipse.ditto.services.models.streaming.StreamedSnapshot;
 import org.eclipse.ditto.services.models.streaming.SudoStreamSnapshots;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
@@ -40,6 +41,7 @@ import akka.stream.javadsl.Source;
  */
 final class ThingsMetadataSource {
 
+    private static final ThingId EMPTY_THING_ID = ThingId.of(LowerBound.emptyEntityId());
     private static final String REVISION = "_revision";
     private static final String POLICY_ID = "policyId";
     private static final String MODIFIED = "_modified";
@@ -78,7 +80,8 @@ final class ThingsMetadataSource {
         final SudoStreamSnapshots commandWithoutLowerBound =
                 SudoStreamSnapshots.of(burst, idleTimeout.toMillis(), SNAPSHOT_FIELDS, DittoHeaders.empty());
         final SudoStreamSnapshots command =
-                lowerBound.isDummy() ? commandWithoutLowerBound : commandWithoutLowerBound.withLowerBound(lowerBound);
+                lowerBound.equals(EMPTY_THING_ID) ? commandWithoutLowerBound :
+                        commandWithoutLowerBound.withLowerBound(lowerBound);
         return DistPubSubAccess.send(ThingsMessagingConstants.THINGS_SNAPSHOT_STREAMING_ACTOR_PATH, command);
     }
 

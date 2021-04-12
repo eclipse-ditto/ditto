@@ -41,11 +41,12 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.base.WithEntity;
 import org.eclipse.ditto.signals.commands.base.WithNamespace;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * Response to a {@link RetrieveThings} command.
@@ -53,12 +54,12 @@ import org.eclipse.ditto.signals.commands.base.WithNamespace;
 @Immutable
 @JsonParsableCommandResponse(type = RetrieveThingsResponse.TYPE)
 public final class RetrieveThingsResponse extends AbstractCommandResponse<RetrieveThingsResponse>
-        implements ThingQueryCommandResponse<RetrieveThingsResponse>, WithNamespace {
+        implements WithNamespace, WithEntity<RetrieveThingsResponse> {
 
     /**
      * Type of this response.
      */
-    public static final String TYPE = TYPE_PREFIX + RetrieveThings.NAME;
+    public static final String TYPE = ThingCommandResponse.TYPE_PREFIX + RetrieveThings.NAME;
 
     static final JsonFieldDefinition<JsonArray> JSON_THINGS =
             JsonFactory.newJsonArrayFieldDefinition("things", FieldType.REGULAR,
@@ -239,11 +240,6 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
     }
 
     @Override
-    public ThingId getThingEntityId() {
-        return ThingId.inDefaultNamespace("_");
-    }
-
-    @Override
     public Optional<String> getNamespace() {
         return Optional.ofNullable(namespace);
     }
@@ -295,6 +291,11 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
     @Override
     public JsonPointer getResourcePath() {
         return JsonPointer.empty(); // no path for retrieve of multiple things
+    }
+
+    @Override
+    public String getResourceType() {
+        return null;
     }
 
     @Override

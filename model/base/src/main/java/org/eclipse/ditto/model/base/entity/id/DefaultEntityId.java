@@ -26,8 +26,6 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 public final class DefaultEntityId implements EntityId {
 
-    private static final DefaultEntityId DUMMY_ID = DefaultEntityId.of(":_");
-
     private final String id;
 
     private DefaultEntityId(final CharSequence id) {
@@ -57,22 +55,6 @@ public final class DefaultEntityId implements EntityId {
      */
     public static DefaultEntityId generateRandom() {
         return new DefaultEntityId(UUID.randomUUID().toString());
-    }
-
-    /**
-     * Returns a dummy {@link EntityId}.
-     * This ID should not be used.
-     * It can be identified by checking {@link EntityId#isDummy()}.
-     *
-     * @return the dummy ID.
-     */
-    public static DefaultEntityId dummy() {
-        return DUMMY_ID;
-    }
-
-    @Override
-    public boolean isDummy() {
-        return DUMMY_ID.equals(this);
     }
 
     @Override

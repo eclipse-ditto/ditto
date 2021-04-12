@@ -226,7 +226,7 @@ public final class ModifyFeatureDefinitionResponse extends AbstractCommandRespon
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

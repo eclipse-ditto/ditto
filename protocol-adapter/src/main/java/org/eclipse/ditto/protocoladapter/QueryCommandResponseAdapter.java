@@ -15,7 +15,6 @@ package org.eclipse.ditto.protocoladapter;
 import java.util.EnumSet;
 import java.util.Set;
 
-import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 /**

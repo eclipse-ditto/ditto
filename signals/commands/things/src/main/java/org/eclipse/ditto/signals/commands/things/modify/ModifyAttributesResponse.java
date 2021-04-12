@@ -179,7 +179,7 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

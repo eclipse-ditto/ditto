@@ -133,7 +133,7 @@ public final class SendClaimMessageTest {
                 SendClaimMessage.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat((CharSequence) underTest.getThingEntityId()).isEqualTo(THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(THING_ID);
         assertThat(underTest.getMessageType()).isEqualTo(SendClaimMessage.NAME);
         assertThat(underTest.getMessage()).isEqualTo(DESERIALIZED_MESSAGE);
     }

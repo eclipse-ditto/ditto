@@ -123,7 +123,7 @@ public final class KafkaClientActor extends BaseClientActor {
         testConnectionFuture = new CompletableFuture<>();
         final DittoHeaders dittoHeaders = testConnectionCommand.getDittoHeaders();
         final String correlationId = dittoHeaders.getCorrelationId().orElse(null);
-        connectClient(true, testConnectionCommand.getConnectionEntityId(), correlationId);
+        connectClient(true, testConnectionCommand.getEntityId(), correlationId);
         return testConnectionFuture;
     }
 
