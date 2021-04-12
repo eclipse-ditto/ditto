@@ -403,7 +403,7 @@ final class ImmutableConnection implements Connection {
         if (!specificConfig.isEmpty()) {
             jsonObjectBuilder.set(JsonFields.SPECIFIC_CONFIG, specificConfig.entrySet()
                     .stream()
-                    .map(entry -> mapSpecificConfigValues(entry))
+                    .map(entry -> JsonField.newInstance(entry.getKey(), JsonValue.of(entry.getValue())))
                     .collect(JsonCollectors.fieldsToObject()), predicate);
         }
         if (!payloadMappingDefinition.isEmpty()) {
@@ -423,19 +423,6 @@ final class ImmutableConnection implements Connection {
                 .map(JsonFactory::newValue)
                 .collect(JsonCollectors.valuesToArray()), predicate);
         return jsonObjectBuilder.build();
-    }
-
-    private JsonField mapSpecificConfigValues(final Map.Entry<String, String> entry) {
-        final String specificConfigFieldMqttLastWillRetain = "lastWillRetain";
-        final String specificConfigFieldMqttLastWillQos = "lastWillQos";
-        switch (entry.getKey()) {
-            case specificConfigFieldMqttLastWillRetain:
-                return JsonField.newInstance(entry.getKey(), JsonValue.of(Boolean.parseBoolean(entry.getValue())));
-            case specificConfigFieldMqttLastWillQos:
-                return JsonField.newInstance(entry.getKey(), JsonValue.of(Integer.parseInt(entry.getValue())));
-            default:
-                return JsonField.newInstance(entry.getKey(), JsonValue.of(entry.getValue()));
-        }
     }
 
     @SuppressWarnings("OverlyComplexMethod")
@@ -633,13 +620,6 @@ final class ImmutableConnection implements Connection {
 
         @Override
         public ConnectionBuilder specificConfig(final Map<String, String> specificConfig) {
-            this.specificConfig.putAll(checkNotNull(specificConfig, "Specific Config"));
-            return this;
-        }
-
-        @Override
-        public ConnectionBuilder overwriteSpecificConfigWith(final Map<String, String> specificConfig) {
-            this.specificConfig.clear();
             this.specificConfig.putAll(checkNotNull(specificConfig, "Specific Config"));
             return this;
         }

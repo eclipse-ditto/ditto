@@ -80,33 +80,34 @@ abstract class AbstractHiveMqttClientFactory {
         }
     }
 
-    void configureWillPublish(final Mqtt3WillPublishBuilder.Nested<? extends Mqtt3ClientBuilder> willPublish,
-            final Connection connection) {
+    void configureWillPublish(final Mqtt3ClientBuilder clientBuilder, final Connection connection) {
         final MqttSpecificConfig mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection);
-        //Since topic is required, the other LWT parameter will only be applied if the topic is set
-        mqttSpecificConfig.getMqttWillTopic().ifPresent(topic -> {
-            final Mqtt3WillPublishBuilder.Nested.Complete<? extends Mqtt3ClientBuilder> willPublishStep = willPublish
-                    .topic(topic)
-                    .qos(MqttQos.fromCode(mqttSpecificConfig.getMqttWillQos()))
-                    .retain(mqttSpecificConfig.getMqttWillRetain());
-
-            mqttSpecificConfig.getMqttWillMessage().ifPresent(message -> willPublishStep.payload(message.getBytes()));
-            willPublishStep.applyWillPublish();
-        });
+        // since topic is required, the other last will parameters will only be applied if the topic is set
+        mqttSpecificConfig.getMqttWillTopic()
+                .map(topic -> clientBuilder.willPublish().topic(topic))
+                .map(step -> step.retain(mqttSpecificConfig.getMqttWillRetain()))
+                .map(step -> Optional.ofNullable(MqttQos.fromCode(mqttSpecificConfig.getMqttWillQos()))
+                        .map(step::qos)
+                        .orElse(step))
+                .map(step -> mqttSpecificConfig.getMqttWillMessage()
+                        .map(msg -> step.payload(msg.getBytes(StandardCharsets.UTF_8)))
+                        .orElse(step))
+                .map(Mqtt3WillPublishBuilder.Nested.Complete::applyWillPublish);
     }
 
-    void configureWillPublish(final Mqtt5WillPublishBuilder.Nested<? extends Mqtt5ClientBuilder> willPublish,
-            Connection connection) {
+    void configureWillPublish(final Mqtt5ClientBuilder clientBuilder, final Connection connection) {
         final MqttSpecificConfig mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection);
-        //Since topic is required, the other LWT parameter will only be applied if the topic is set
-        mqttSpecificConfig.getMqttWillTopic().ifPresent(topic -> {
-            final Mqtt5WillPublishBuilder.Nested.Complete<? extends Mqtt5ClientBuilder> willPublishStep = willPublish
-                    .topic(topic)
-                    .qos(MqttQos.fromCode(mqttSpecificConfig.getMqttWillQos()))
-                    .retain(mqttSpecificConfig.getMqttWillRetain());
-            mqttSpecificConfig.getMqttWillMessage().ifPresent(message -> willPublishStep.payload(message.getBytes()));
-            willPublishStep.applyWillPublish();
-        });
+        // since topic is required, the other last will parameters will only be applied if the topic is set
+        mqttSpecificConfig.getMqttWillTopic()
+                .map(topic -> clientBuilder.willPublish().topic(topic))
+                .map(step -> step.retain(mqttSpecificConfig.getMqttWillRetain()))
+                .map(step -> Optional.ofNullable(MqttQos.fromCode(mqttSpecificConfig.getMqttWillQos()))
+                        .map(step::qos)
+                        .orElse(step))
+                .map(step -> mqttSpecificConfig.getMqttWillMessage()
+                        .map(msg -> step.payload(msg.getBytes(StandardCharsets.UTF_8)))
+                        .orElse(step))
+                .map(Mqtt5WillPublishBuilder.Nested.Complete::applyWillPublish);
     }
 
     <T extends MqttClientBuilderBase<T>> T configureClientBuilder(

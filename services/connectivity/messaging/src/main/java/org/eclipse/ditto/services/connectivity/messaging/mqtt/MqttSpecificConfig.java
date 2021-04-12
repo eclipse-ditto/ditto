@@ -23,7 +23,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.connectivity.Connection;
 
-import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
@@ -45,10 +44,10 @@ public final class MqttSpecificConfig {
     private static final boolean DEFAULT_RECONNECT_FOR_REDELIVERY = true;
     private static final Duration DEFAULT_RECONNECT_DURATION = Duration.ofSeconds(2L);
 
-    public static final String LAST_WILL_TOPIC = "lastWillTopic";
-    private static final String LAST_WILL_QOS = "lastWillQos";
-    private static final String LAST_WILL_RETAIN = "lastWillRetain";
-    private static final String LAST_WILL_MESSAGE = "lastWillMessage";
+    static final String LAST_WILL_TOPIC = "lastWillTopic";
+    static final String LAST_WILL_QOS = "lastWillQos";
+    static final String LAST_WILL_RETAIN = "lastWillRetain";
+    static final String LAST_WILL_MESSAGE = "lastWillMessage";
 
     private static final boolean DEFAULT_LAST_WILL_RETAIN = false;
     private static final int DEFAULT_LAST_WILL_QOS = 0;
@@ -135,12 +134,8 @@ public final class MqttSpecificConfig {
     /**
      * @return the Qos which should be used on Last Will message.
      */
-    public Integer getMqttWillQos() {
-        final Integer safely = getSafely(() -> specificConfig.getInt(LAST_WILL_QOS), DEFAULT_LAST_WILL_QOS);
-        if (safely < 0 || safely >= MqttQos.values().length){
-            return DEFAULT_LAST_WILL_QOS;
-        }
-        return safely ;
+    public int getMqttWillQos() {
+        return getSafely(() -> specificConfig.getInt(LAST_WILL_QOS), DEFAULT_LAST_WILL_QOS);
     }
 
     /**

@@ -166,8 +166,8 @@ Overall example JSON of the MQTT `"specificConfig"`:
     "separatePublisherClient": true,
     "publisherId": "my-awesome-mqtt-publisher-client-id",
     "reconnectForRedeliveryDelay": "5s",
-    "lastWillTopic": "my-last-will-topic",
-    "lastWillQos": "EXACTLY_ONCE",
+    "lastWillTopic": "my/last/will/topic",
+    "lastWillQos": 1,
     "lastWillRetain": false,
     "lastWillMessage": "my last will message"
   },
@@ -231,7 +231,7 @@ Default: `2s`
 
 #### lastWillTopic
 
-Configures the topic which should be used on Last Will. This field is mandatory when Last Will should be activated.
+Configures the topic which should be used on Last Will. This field is mandatory when Last Will should be enabled.
 
 #### lastWillQos
 
@@ -251,18 +251,20 @@ Default: `false`
 
 #### lastWillMessage
 
-Configures the message which should be published when the connection is ungracefully disconnected form the broker. 
-The Message will be published in the topic chosen in [Last Will topic](#lastwilltopic).
+Configures the message which should be published when the connection is disconnected ungracefully from the broker. 
+The message will be published as UTF8-encoded text on the topic chosen in [Last Will topic](#lastwilltopic).
 
 Default: empty string
 
-### Configure Last Will
+### Configure Last Will message
 
-To notify other clients when the connection is ungracefully disconnected the Last Will feature can be used. The 
+To notify other clients when the connection is disconnected ungracefully the `Last Will` feature can be used. The 
 message which will be published, is specified in the connection and stored in the broker when it connects. The message 
-contains a topic, retained message flag, QoS, and the payload to be published. These can be configured in the 
-[Specific Configuration](#specificconfiguration) of the connection. (Notice this feature is activated as soon as you 
-enter the topic, which is also the only mandatory field)
+contains a topic, retained message flag, QoS, and the text payload to be published. These can be configured in the 
+[Specific Configuration](#specificconfiguration) of the connection. The last will message is sent as text payload 
+using UTF8 encoding.  
+
+{% include note.html content="This feature is enabled if the _last will topic_ is set." %}
 
 ## Establishing a connection to an MQTT 3.1.1 endpoint
 

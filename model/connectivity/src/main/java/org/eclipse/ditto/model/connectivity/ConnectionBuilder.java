@@ -169,15 +169,6 @@ public interface ConnectionBuilder {
     ConnectionBuilder specificConfig(Map<String, String> specificConfig);
 
     /**
-     * Set configuration which is only applicable for a specific {@code ConnectionType}.
-     *
-     * @param specificConfig the ConnectionType specific configuration to set.
-     * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code specificConfig} is {@code null}.
-     */
-    ConnectionBuilder overwriteSpecificConfigWith(Map<String, String> specificConfig);
-
-    /**
      * Sets the MappingContext to apply for the connection containing either JavaScript scripts or a custom
      * implementation in Java mapping from external messages to internal Ditto Protocol messages.
      *

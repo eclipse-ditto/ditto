@@ -28,6 +28,7 @@ public final class MqttSpecificConfigTest {
 
     @Test
     public void parseMqttSpecificConfig() {
+        // GIVEN
         final Map<String, String> configuredSpecificConfig = new HashMap<>();
         configuredSpecificConfig.put("reconnectForRedelivery", "false");
         configuredSpecificConfig.put("separatePublisherClient", "false");
@@ -35,15 +36,24 @@ public final class MqttSpecificConfigTest {
         configuredSpecificConfig.put("publisherId", "publisher-client-id");
         configuredSpecificConfig.put("reconnectForRedeliveryDelay", "4m");
         configuredSpecificConfig.put("lastWillTopic", "lastWillTopic");
-        configuredSpecificConfig.put("lastWillQos", "EXACTLY_ONCE");
+        configuredSpecificConfig.put("lastWillQos", "1");
         configuredSpecificConfig.put("lastWillMessage", "last will message");
         configuredSpecificConfig.put("lastWillRetain", "true");
+
+        // WHEN
         final MqttSpecificConfig specificConfig = new MqttSpecificConfig(configuredSpecificConfig);
+
+        // THEN
         assertThat(specificConfig.reconnectForRedelivery()).isFalse();
         assertThat(specificConfig.separatePublisherClient()).isFalse();
         assertThat(specificConfig.getMqttClientId()).contains("consumer-client-id");
         assertThat(specificConfig.getMqttPublisherId()).contains("publisher-client-id");
         assertThat(specificConfig.getReconnectForDeliveryDelay()).isEqualTo(Duration.ofMinutes(4L));
+
+        assertThat(specificConfig.getMqttWillTopic()).contains("lastWillTopic");
+        assertThat(specificConfig.getMqttWillQos()).isEqualTo(1);
+        assertThat(specificConfig.getMqttWillRetain()).isEqualTo(true);
+        assertThat(specificConfig.getMqttWillMessage()).contains("last will message");
     }
 
     @Test
