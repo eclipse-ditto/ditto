@@ -229,6 +229,13 @@ and `separatePublisherClient` are both enabled. The minimum value is `1s`.
 
 Default: `2s`
 
+#### keepAlive
+
+Configures the keep alive time interval (in seconds) in which the client sends a ping to the broker 
+if no other MQTT packets are sent during this period of time. It is used to determine if the connection is still up.
+
+Default: `60s` [see here](https://hivemq.github.io/hivemq-mqtt-client/docs/mqtt-operations/connect/#keep-alive)
+
 #### lastWillTopic
 
 Configures the topic which should be used on Last Will. This field is mandatory when Last Will should be enabled.
