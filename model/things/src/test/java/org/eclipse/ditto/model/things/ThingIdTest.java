@@ -69,23 +69,6 @@ public final class ThingIdTest {
     }
 
     @Test
-    public void dummyIsDummy() {
-        assertThat(ThingId.dummy().isDummy()).isTrue();
-    }
-
-    @Test
-    public void manuallyCreatedDummyIsDummy() {
-        softly.assertThat(ThingId.of("", "_").isDummy()).isTrue();
-        softly.assertThat(ThingId.of(":_").isDummy()).isTrue();
-    }
-
-    @Test
-    public void validThingIdIsNoDummy() {
-        softly.assertThat(ThingId.of("namespace", "name").isDummy()).isFalse();
-        softly.assertThat(ThingId.of("namespace:name").isDummy()).isFalse();
-    }
-
-    @Test
     public void toStringConcatenatesNamespaceAndName() {
         softly.assertThat(ThingId.of("namespace", "name").toString()).isEqualTo("namespace:name");
         softly.assertThat(ThingId.of("namespace:name").toString()).isEqualTo("namespace:name");

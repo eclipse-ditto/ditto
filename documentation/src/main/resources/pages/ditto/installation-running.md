@@ -33,7 +33,8 @@ Now you have running:
 
 The running port on which Ditto can be accessed is described in the Readme of the respective deployment section.
 
-If you want to change the MongoDB config or Ditto config please have a look here: [Operating Ditto](installation-operating.html)
+If you want to change the MongoDB config or Ditto config please have a look here: 
+[Operating Ditto](installation-operating.html)
 
 ### Managed MongoDB service
 When using a managed MongoDB service the following recommendations should be taken into account:

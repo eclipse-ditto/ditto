@@ -13,15 +13,8 @@
 package org.eclipse.ditto.protocoladapter.adaptables;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableMapper;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributes;
@@ -34,7 +27,6 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatures;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingDefinition;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 
 /**
@@ -58,11 +50,6 @@ final class ThingQueryCommandMappingStrategies extends AbstractThingMappingStrat
                 dittoHeadersFrom(adaptable))
                 .withSelectedFields(selectedFieldsFrom(adaptable))
                 .build());
-
-        mappingStrategies.put(RetrieveThings.TYPE, adaptable -> RetrieveThings.getBuilder(thingsIdsFrom(adaptable))
-                .dittoHeaders(dittoHeadersFrom(adaptable))
-                .namespace(namespaceFrom(adaptable))
-                .selectedFields(selectedFieldsFrom(adaptable)).build());
 
         mappingStrategies.put(RetrieveAttributes.TYPE, adaptable -> RetrieveAttributes.of(thingIdFrom(adaptable),
                 selectedFieldsFrom(adaptable), dittoHeadersFrom(adaptable)));
@@ -101,23 +88,6 @@ final class ThingQueryCommandMappingStrategies extends AbstractThingMappingStrat
                         featurePropertyPointerFrom(adaptable), dittoHeadersFrom(adaptable)));
 
         return mappingStrategies;
-    }
-
-    private static List<ThingId> thingsIdsFrom(final Adaptable adaptable) {
-        final JsonArray array = adaptable.getPayload()
-                .getValue()
-                .filter(JsonValue::isObject)
-                .map(JsonValue::asObject)
-                .orElseThrow(() -> new JsonParseException("Adaptable payload was non existing or no JsonObject"))
-                .getValue(RetrieveThings.JSON_THING_IDS)
-                .filter(JsonValue::isArray)
-                .map(JsonValue::asArray)
-                .orElseThrow(() -> new JsonParseException("Could not map 'thingIds' value to expected JsonArray"));
-
-        return array.stream()
-                .map(JsonValue::asString)
-                .map(ThingId::of)
-                .collect(Collectors.toList());
     }
 
 }

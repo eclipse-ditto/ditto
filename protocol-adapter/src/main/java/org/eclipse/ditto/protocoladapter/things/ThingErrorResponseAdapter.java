@@ -51,7 +51,7 @@ final class ThingErrorResponseAdapter extends AbstractErrorResponseAdapter<Thing
 
     @Override
     public TopicPathBuilder getTopicPathBuilder(final ThingErrorResponse errorResponse) {
-        return ProtocolFactory.newTopicPathBuilder(errorResponse.getThingEntityId());
+        return ProtocolFactory.newTopicPathBuilder(errorResponse.getEntityId());
     }
 
     @Override

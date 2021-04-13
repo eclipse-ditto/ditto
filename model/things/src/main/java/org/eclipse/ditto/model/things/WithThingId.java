@@ -12,23 +12,24 @@
  */
 package org.eclipse.ditto.model.things;
 
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
+
 /**
  * Implementations of this interface are associated to a {@code Thing} identified by the value
- * returned from {@link #getThingEntityId()} ()}.
+ * returned from {@link #getEntityId()} ()}.
  */
-public interface WithThingId {
+public interface WithThingId extends WithEntityId {
 
     /**
-     * Returns the identifier of the associated Thing.
-     *
-     * @return the identifier of the associated Thing.
-     * @deprecated The thing ID is now typed. Use {@link #getThingEntityId()} instead.
+     * @return the thing ID.
+     * @deprecated since 2.0.0 use {@link #getEntityId() instead}.
      */
     @Deprecated
-    default String getThingId() {
-        return String.valueOf(getThingEntityId());
+    default ThingId getThingEntityId() {
+        return getEntityId();
     }
 
-    ThingId getThingEntityId();
+    @Override
+    ThingId getEntityId();
 
 }

@@ -127,7 +127,7 @@ public final class ConnectionDeleted extends AbstractConnectivityEvent<Connectio
 
     @Override
     public ConnectionDeleted setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getConnectionEntityId(), getRevision(), getTimestamp().orElse(null), dittoHeaders,
+        return of(getEntityId(), getRevision(), getTimestamp().orElse(null), dittoHeaders,
                 getMetadata().orElse(null));
     }
 

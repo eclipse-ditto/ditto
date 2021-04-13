@@ -24,10 +24,10 @@ import java.util.stream.IntStream;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
-import org.eclipse.ditto.signals.base.WithId;
 
 import akka.actor.ActorSystem;
 import akka.cluster.sharding.ShardRegion;
@@ -80,8 +80,8 @@ public final class ShardRegionExtractor implements ShardRegion.MessageExtractor 
     @Override
     public String entityId(final Object message) {
         final String result;
-        if (message instanceof WithId) {
-            final var entityId = ((WithId) message).getEntityId();
+        if (message instanceof WithEntityId) {
+            final var entityId = ((WithEntityId) message).getEntityId();
             result = entityId.toString();
         } else if (message instanceof ShardRegion.StartEntity) {
             result = ((ShardRegion.StartEntity) message).entityId();

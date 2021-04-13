@@ -140,7 +140,7 @@ public final class DeleteFeatureProperties extends AbstractCommand<DeleteFeature
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

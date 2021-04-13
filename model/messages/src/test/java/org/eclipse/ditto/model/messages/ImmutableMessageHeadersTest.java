@@ -183,7 +183,7 @@ public final class ImmutableMessageHeadersTest {
     public void getThingIdReturnsExpected() {
         final MessageHeaders underTest = MessageHeadersBuilder.newInstance(DIRECTION, THING_ID, SUBJECT).build();
 
-        assertThat((CharSequence) underTest.getThingEntityId()).isEqualTo(THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(THING_ID);
     }
 
     @Test
@@ -258,7 +258,7 @@ public final class ImmutableMessageHeadersTest {
         final MessageHeaders underTest = ImmutableMessageHeaders.of(DittoHeaders.empty());
 
         assertThatExceptionOfType(IllegalStateException.class)
-                .isThrownBy(underTest::getThingEntityId)
+                .isThrownBy(underTest::getEntityId)
                 .withMessage("MessageHeaders did not contain a value for key <%s>!",
                         MessageHeaderDefinition.THING_ID.getKey())
                 .withNoCause();

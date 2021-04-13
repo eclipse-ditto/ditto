@@ -12,7 +12,7 @@ The "policies" service takes care of persisting [Policies](basic-policy.html).
 The model of the policies service is defined around the entity `Policy`:
 
 
-* [model](https://github.com/eclipse/ditto/tree/master/model/policies/src/main/java/org/eclipse/ditto/model/policies)
+* [Policy model](https://github.com/eclipse/ditto/tree/master/model/policies/src/main/java/org/eclipse/ditto/model/policies)
 
 ## Signals
 

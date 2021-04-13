@@ -226,8 +226,9 @@ final class DefaultAdapterResolver implements AdapterResolver {
                         new ForEnum<>(Bool.class, Bool.values(), Bool.composeAsSet(Adapter::isForResponses),
                                 Bool.compose(DefaultAdapterResolver::isResponse)),
                         new ForEnum<>(Bool.class, Bool.values(), Bool.composeAsSet(Adapter::requiresSubject),
-                                Bool.compose(adaptable -> adaptable.getTopicPath().getSubject().isPresent())
-                        )
+                                Bool.compose(adaptable -> adaptable.getTopicPath().getSubject().isPresent())),
+                        new ForEnum<>(Bool.class, Bool.values(), Bool.composeAsSet(Adapter::supportsWildcardTopics),
+                                Bool.compose(adaptable -> adaptable.getTopicPath().isWildcardTopic()))
                 ));
     }
 

@@ -116,7 +116,7 @@ public final class DeleteFeaturesResponse extends AbstractCommandResponse<Delete
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

@@ -45,7 +45,7 @@ abstract class AbstractSignalEnrichmentFacadeTest {
             JsonFieldSelector.newInstance("policyId", "attributes/x", "features/y/properties/z");
 
     protected static final String RESULT_POLICY_ID = "policy:id";
-    protected static final AttributeModified THING_EVENT = AttributeModified.of(ThingId.dummy(),
+    protected static final AttributeModified THING_EVENT = AttributeModified.of(ThingId.generateRandom(),
             JsonPointer.of("x"),
             JsonValue.of(5),
             3L,
@@ -59,7 +59,7 @@ abstract class AbstractSignalEnrichmentFacadeTest {
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
-            final ThingId thingId = ThingId.dummy();
+            final ThingId thingId = ThingId.of("test:thing-id");
             final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
             final CompletionStage<JsonObject> askResult =
                     underTest.retrievePartialThing(thingId, SELECTOR, headers, THING_EVENT);
@@ -97,7 +97,7 @@ abstract class AbstractSignalEnrichmentFacadeTest {
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
-            final ThingId thingId = ThingId.dummy();
+            final ThingId thingId = ThingId.generateRandom();
             final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
             final CompletionStage<JsonObject> askResult =
                     underTest.retrievePartialThing(thingId, SELECTOR, headers, THING_EVENT);
@@ -121,7 +121,7 @@ abstract class AbstractSignalEnrichmentFacadeTest {
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
-            final ThingId thingId = ThingId.dummy();
+            final ThingId thingId = ThingId.generateRandom();
             final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
             final CompletionStage<JsonObject> askResult =
                     underTest.retrievePartialThing(thingId, SELECTOR, headers, THING_EVENT);
@@ -146,7 +146,7 @@ abstract class AbstractSignalEnrichmentFacadeTest {
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing() with a short timeout
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofMillis(1L));
-            final ThingId thingId = ThingId.dummy();
+            final ThingId thingId = ThingId.generateRandom();
             final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
             final CompletionStage<JsonObject> askResult =
                     underTest.retrievePartialThing(thingId, SELECTOR, headers, THING_EVENT);
@@ -168,7 +168,7 @@ abstract class AbstractSignalEnrichmentFacadeTest {
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
-            final ThingId thingId = ThingId.dummy();
+            final ThingId thingId = ThingId.generateRandom();
             final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
             final ThingDeleted thingDeleted = ThingDeleted.of(thingId, 2L, Instant.EPOCH, headers, null);
 

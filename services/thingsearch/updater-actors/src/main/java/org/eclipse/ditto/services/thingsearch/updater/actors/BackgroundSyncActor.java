@@ -19,6 +19,7 @@ import java.util.function.Function;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.models.streaming.LowerBound;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThing;
 import org.eclipse.ditto.services.thingsearch.common.config.BackgroundSyncConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.DefaultBackgroundSyncConfig;
@@ -46,6 +47,7 @@ import akka.stream.javadsl.Source;
 public final class BackgroundSyncActor
         extends AbstractBackgroundStreamingActorWithConfigWithStatusReport<BackgroundSyncConfig> {
 
+    private static final ThingId EMPTY_THING_ID = ThingId.of(LowerBound.emptyEntityId());
     /**
      * Name of the singleton coordinator.
      */
@@ -57,8 +59,8 @@ public final class BackgroundSyncActor
     private final BackgroundSyncStream backgroundSyncStream;
     private final ActorRef thingsUpdater;
 
-    private ThingId progressPersisted = ThingId.dummy();
-    private ThingId progressIndexed = ThingId.dummy();
+    private ThingId progressPersisted = EMPTY_THING_ID;
+    private ThingId progressIndexed = EMPTY_THING_ID;
 
     private BackgroundSyncActor(final BackgroundSyncConfig backgroundSyncConfig,
             final ThingsMetadataSource thingsMetadataSource,
@@ -138,8 +140,8 @@ public final class BackgroundSyncActor
     protected void streamTerminated(final Event streamTerminated) {
         super.streamTerminated(streamTerminated);
         // reset progress for the next round
-        progressPersisted = ThingId.dummy();
-        progressIndexed = ThingId.dummy();
+        progressPersisted = EMPTY_THING_ID;
+        progressIndexed = EMPTY_THING_ID;
         doBookmarkThingId("");
     }
 
@@ -170,7 +172,7 @@ public final class BackgroundSyncActor
         final ThingId thingIdToBookmark = BackgroundSyncStream.compareThingIds(progressIndexed, progressPersisted) <= 0
                 ? progressIndexed
                 : progressPersisted;
-        if (!thingIdToBookmark.isDummy()) {
+        if (!thingIdToBookmark.equals(EMPTY_THING_ID)) {
             doBookmarkThingId(thingIdToBookmark.toString());
         }
     }
@@ -206,7 +208,7 @@ public final class BackgroundSyncActor
                         if (bookmarkedThingId != null && !bookmarkedThingId.isEmpty())
                             return ThingId.of(bookmarkedThingId);
                     }
-                    return ThingId.dummy();
+                    return EMPTY_THING_ID;
                 });
     }
 

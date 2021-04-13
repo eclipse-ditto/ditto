@@ -115,9 +115,9 @@ public class ThingPersistenceActorMailbox implements MailboxType,
                                 + "{} -> rejecting ThingModifyCommand '{}'", numberOfMessages(), command.getEntityId(), capacity,
                         command.getType());
 
-                final ThingErrorResponse errorResponse = ThingErrorResponse.of(command.getThingEntityId(),
+                final ThingErrorResponse errorResponse = ThingErrorResponse.of(command.getEntityId(),
                         ThingTooManyModifyingRequestsException //
-                                .newBuilder(command.getThingEntityId()) //
+                                .newBuilder(command.getEntityId()) //
                                 .dittoHeaders(command.getDittoHeaders()) //
                                 .build());
                 sender.tell(errorResponse, null);

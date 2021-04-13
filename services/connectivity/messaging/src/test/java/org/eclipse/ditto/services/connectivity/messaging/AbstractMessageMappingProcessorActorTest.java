@@ -171,17 +171,17 @@ public abstract class AbstractMessageMappingProcessorActorTest {
     }
 
     void testExternalMessageInDittoProtocolIsProcessed(
-            @Nullable final EnforcementFilter<CharSequence> enforcement) {
+            @Nullable final EnforcementFilter<Signal<?>> enforcement) {
         testExternalMessageInDittoProtocolIsProcessed(enforcement, null);
     }
 
     void testExternalMessageInDittoProtocolIsProcessed(
-            @Nullable final EnforcementFilter<CharSequence> enforcement, @Nullable final String mapping) {
+            @Nullable final EnforcementFilter<Signal<?>> enforcement, @Nullable final String mapping) {
         testExternalMessageInDittoProtocolIsProcessed(enforcement, true, mapping, r -> {});
     }
 
     void testExternalMessageInDittoProtocolIsProcessed(
-            @Nullable final EnforcementFilter<CharSequence> enforcement, final boolean expectSuccess,
+            @Nullable final EnforcementFilter<Signal<?>> enforcement, final boolean expectSuccess,
             @Nullable final String mapping, final Consumer<ThingErrorResponse> verifyErrorResponse) {
 
         new TestKit(actorSystem) {{

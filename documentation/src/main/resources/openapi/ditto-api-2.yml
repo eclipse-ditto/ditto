@@ -780,17 +780,9 @@ paths:
         '412':
           $ref: '#/components/responses/PreconditionFailed'
     put:
-      summary: Create or update the policy ID of a thing
+      summary: Update the policy ID of a thing
       description: |-
-        Create or update the policy ID of the thing identified by the `thingId`
-        path parameter.
-
-        ### Create
-        If the thing does not have a `policyId` yet, it is
-        considered to have been created via API version 1, where the access control list `acl`
-        mechanism is used. In that case, this request will create the `policyId`.
-
-        Note: You will need to create the policy content separately.
+        Update the policy ID of the thing identified by the `thingId` path parameter.
 
         ### Update
         If the thing already has a `policyId` you can assign it to an existing policy by setting
@@ -805,19 +797,6 @@ paths:
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
-        '201':
-          description: 'The policy ID was successfully created. Note: You will need to create the policy content separately.'
-          headers:
-            ETag:
-              description: |-
-                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
-                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
-              schema:
-                type: string
-          content:
-            application/json:
-              schema:
-                type: string
         '204':
           description: The policy ID was successfully updated.
           headers:

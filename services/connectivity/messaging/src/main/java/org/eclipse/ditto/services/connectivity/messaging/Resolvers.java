@@ -21,6 +21,8 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
@@ -50,13 +52,8 @@ public final class Resolvers {
     private static final List<ResolverCreator<?>> RESOLVER_CREATORS = Arrays.asList(
             // For incoming messages, header mapping injects headers of external messages into Ditto headers.
             ResolverCreator.of(PlaceholderFactory.newHeadersPlaceholder(), (e, s, t, a, c) -> e),
-            ResolverCreator.of(ConnectivityPlaceholders.newThingPlaceholder(), (e, s, t, a, c) -> {
-                if (s != null) {
-                    return s.getEntityId();
-                } else {
-                    return null;
-                }
-            }),
+            ResolverCreator.of(ConnectivityPlaceholders.newThingPlaceholder(),
+                    (e, s, t, a, c) -> WithEntityId.getEntityIdOfType(EntityId.class, s).orElse(null)),
             ResolverCreator.of(ConnectivityPlaceholders.newFeaturePlaceholder(), (e, s, t, a, c) -> {
                 if (s instanceof WithFeatureId) {
                     return ((WithFeatureId) s).getFeatureId();

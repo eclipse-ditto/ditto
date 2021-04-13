@@ -105,7 +105,7 @@ final class ModifyFeaturePropertyStrategy extends AbstractThingCommandStrategy<M
         final JsonPointer propertyPointer = command.getPropertyPointer();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final ThingEvent<?> event = FeaturePropertyModified.of(command.getThingEntityId(), featureId, propertyPointer,
+        final ThingEvent<?> event = FeaturePropertyModified.of(command.getEntityId(), featureId, propertyPointer,
                 command.getPropertyValue(), nextRevision, getEventTimestamp(), dittoHeaders, metadata);
         final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                 ModifyFeaturePropertyResponse.modified(context.getState(), featureId, propertyPointer,
@@ -124,7 +124,7 @@ final class ModifyFeaturePropertyStrategy extends AbstractThingCommandStrategy<M
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         final ThingEvent<?> event =
-                FeaturePropertyCreated.of(command.getThingEntityId(), featureId, propertyPointer, propertyValue,
+                FeaturePropertyCreated.of(command.getEntityId(), featureId, propertyPointer, propertyValue,
                         nextRevision, getEventTimestamp(), dittoHeaders, metadata);
         final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                 ModifyFeaturePropertyResponse.created(context.getState(), featureId, propertyPointer,

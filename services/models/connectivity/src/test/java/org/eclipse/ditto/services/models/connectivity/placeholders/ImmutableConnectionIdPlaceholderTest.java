@@ -56,10 +56,4 @@ public final class ImmutableConnectionIdPlaceholderTest {
         assertThat(result).isEmpty();
     }
 
-    @Test
-    public void resolveWithDummyConnectionId() {
-        final Optional<String> result = underTest.resolve(ConnectionId.dummy(), "id");
-        assertThat(result).isEmpty();
-    }
-
 }

@@ -29,8 +29,6 @@ import org.eclipse.ditto.model.base.entity.type.EntityType;
 @Immutable
 public final class PolicyId extends NamespacedEntityIdWithType {
 
-    private static final PolicyId DUMMY_ID = PolicyId.of(DefaultNamespacedEntityId.dummy());
-
     private PolicyId(final NamespacedEntityId entityId) {
         super(entityId);
     }
@@ -83,16 +81,6 @@ public final class PolicyId extends NamespacedEntityIdWithType {
         } catch (final NamespacedEntityIdInvalidException e) {
             throw PolicyIdInvalidException.newBuilder(e.getEntityId().orElse(null)).cause(e).build();
         }
-    }
-
-    /**
-     * Returns a dummy {@link PolicyId}. This ID should not be used. It can be identified by
-     * checking {@link PolicyId#isDummy()}.
-     *
-     * @return the dummy ID.
-     */
-    public static PolicyId dummy() {
-        return DUMMY_ID;
     }
 
     @Override

@@ -49,6 +49,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.SignalEnrichmentFailedException;
@@ -675,8 +676,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable =
                     sessionedJsonifiable.getJsonifiable();
             final ActorRef streamingSessionActor = session.getStreamingSessionActor();
-            if (jsonifiable instanceof Signal<?>) {
-                final EntityId entityId = ((Signal<?>) jsonifiable).getEntityId();
+            WithEntityId.getEntityIdOfType(EntityId.class, jsonifiable).ifPresent(entityId -> {
                 if (entityId instanceof EntityIdWithType) {
                     dittoHeaders.getAcknowledgementRequests()
                             .stream()
@@ -684,7 +684,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                             .map(IncomingSignal::of)
                             .forEach(weakAck -> streamingSessionActor.tell(weakAck, ActorRef.noSender()));
                 }
-            }
+            });
         });
     }
 

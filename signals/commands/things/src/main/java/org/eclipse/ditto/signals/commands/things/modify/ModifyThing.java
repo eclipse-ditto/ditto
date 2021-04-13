@@ -230,7 +230,7 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

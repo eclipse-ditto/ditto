@@ -14,6 +14,7 @@ package org.eclipse.ditto.signals.events.base;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -26,7 +27,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  * @param <T> the type of the implementing class.
  * @since 2.0.0
  */
-public interface EventsourcedEvent<T extends EventsourcedEvent<T>> extends Event<T> {
+public interface EventsourcedEvent<T extends EventsourcedEvent<T>> extends Event<T>, WithEntityId {
 
     /**
      * Returns the event's revision.

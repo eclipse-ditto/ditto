@@ -99,7 +99,7 @@ public final class CachingSignalEnrichmentFacadeTest extends AbstractSignalEnric
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
-            final ThingId thingId = ThingId.dummy();
+            final ThingId thingId = ThingId.generateRandom();
             final String userId = ISSUER_PREFIX + "user";
             final DittoHeaders headers = DittoHeaders.newBuilder()
                     .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
@@ -137,7 +137,7 @@ public final class CachingSignalEnrichmentFacadeTest extends AbstractSignalEnric
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
-            final ThingId thingId = ThingId.dummy();
+            final ThingId thingId = ThingId.generateRandom();
             final DittoHeaders headers = DittoHeaders.newBuilder().randomCorrelationId().build();
             final CompletionStage<JsonObject> askResult =
                     underTest.retrievePartialThing(thingId, SELECTOR, headers, THING_EVENT);
@@ -176,7 +176,7 @@ public final class CachingSignalEnrichmentFacadeTest extends AbstractSignalEnric
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
-            final ThingId thingId = ThingId.dummy();
+            final ThingId thingId = ThingId.generateRandom();
             final String userId1 = ISSUER_PREFIX + "user1";
             final String userId2 = ISSUER_PREFIX + "user2";
             final DittoHeaders headers = DittoHeaders.newBuilder()
@@ -220,7 +220,7 @@ public final class CachingSignalEnrichmentFacadeTest extends AbstractSignalEnric
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
-            final ThingId thingId = ThingId.dummy();
+            final ThingId thingId = ThingId.generateRandom();
             final String userId = ISSUER_PREFIX + "user1";
             final DittoHeaders headers = DittoHeaders.newBuilder()
                     .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,

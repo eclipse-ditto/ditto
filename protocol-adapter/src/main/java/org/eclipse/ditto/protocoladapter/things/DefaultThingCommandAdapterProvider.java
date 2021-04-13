@@ -27,6 +27,8 @@ import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
 import org.eclipse.ditto.signals.commands.things.modify.MergeThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
@@ -53,10 +55,14 @@ public class DefaultThingCommandAdapterProvider implements ThingCommandAdapterPr
     private final ThingMergedEventAdapter thingMergedEventAdapter;
     private final SubscriptionEventAdapter subscriptionEventAdapter;
     private final ThingErrorResponseAdapter errorResponseAdapter;
+    private final RetrieveThingsCommandAdapter retrieveThingsCommandAdapter;
+    private final RetrieveThingsCommandResponseAdapter retrieveThingsCommandResponseAdapter;
 
     public DefaultThingCommandAdapterProvider(final ErrorRegistry<DittoRuntimeException> errorRegistry,
             final HeaderTranslator headerTranslator) {
         this.queryCommandAdapter = ThingQueryCommandAdapter.of(headerTranslator);
+        this.retrieveThingsCommandAdapter = RetrieveThingsCommandAdapter.of(headerTranslator);
+        this.retrieveThingsCommandResponseAdapter = RetrieveThingsCommandResponseAdapter.of(headerTranslator);
         this.modifyCommandAdapter = ThingModifyCommandAdapter.of(headerTranslator);
         this.mergeCommandAdapter = ThingMergeCommandAdapter.of(headerTranslator);
         this.queryCommandResponseAdapter = ThingQueryCommandResponseAdapter.of(headerTranslator);
@@ -75,6 +81,8 @@ public class DefaultThingCommandAdapterProvider implements ThingCommandAdapterPr
     public List<Adapter<?>> getAdapters() {
         return Arrays.asList(
                 queryCommandAdapter,
+                retrieveThingsCommandAdapter,
+                retrieveThingsCommandResponseAdapter,
                 modifyCommandAdapter,
                 mergeCommandAdapter,
                 queryCommandResponseAdapter,
@@ -155,4 +163,13 @@ public class DefaultThingCommandAdapterProvider implements ThingCommandAdapterPr
         return searchCommandAdapter;
     }
 
+    @Override
+    public Adapter<RetrieveThings> getRetrieveThingsCommandAdapter() {
+        return retrieveThingsCommandAdapter;
+    }
+
+    @Override
+    public Adapter<RetrieveThingsResponse> getRetrieveThingsCommandResponseAdapter() {
+        return retrieveThingsCommandResponseAdapter;
+    }
 }

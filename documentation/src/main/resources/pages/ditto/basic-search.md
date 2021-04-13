@@ -36,7 +36,8 @@ will not reflect that change in that instant. The change will most likely be ref
 1-2 seconds. In rare cases the duration until consistency is reached again might be higher.
 
 If it is important to know when a twin modification is reflected in the search index, request the
-[built-in acknowledgement](basic-acknowledgements.html#built-in-acknowledgement-labels) `search-persisted` in the corresponding command.
+[built-in acknowledgement](basic-acknowledgements.html#built-in-acknowledgement-labels) `search-persisted` 
+in the corresponding command.
 Search index update is successful if the status code of `search-persisted` in the command response is 204 "no content".
 Status codes at or above 400 indicate failed search index update due to client or server errors.
 
@@ -45,8 +46,8 @@ Status codes at or above 400 indicate failed search index update due to client o
 Queries can be made via Ditto's APIs ([HTTP](httpapi-search.html) or 
 [Ditto Protocol](protocol-specification-things-search.html) e.g. via [WebSocket](httpapi-protocol-bindings-websocket.html)).
 
-**Example:** Search for all things located in "living-room", reorder the list to start with the lowest thing ID as the first element, 
-and return the first 5 results:
+**Example:** Search for all things located in "living-room", reorder the list to start with the lowest thing ID as 
+the first element, and return the first 5 results:
 ```
 Filter:     eq(attributes/location,"living-room")
 Sorting:    sort(+thingId)
@@ -56,8 +57,8 @@ Paging:     size(5),cursor(CURSOR_ID)
 
 ## Search count queries 
 
-The same syntax applies for search count queries - only the [sorting](basic-rql.html#rql-sorting) and [paging](#rql-paging-deprecated) makes no 
-sense here, so there are not necessary to specify. 
+The same syntax applies for search count queries - only the [sorting](basic-rql.html#rql-sorting) and 
+[paging](#rql-paging-deprecated) makes no sense here, so there are not necessary to specify. 
 
 
 ## Namespaces
@@ -88,8 +89,8 @@ size(<count>)
 ```
 limits the search results delivered in one HTTP response or one Ditto protocol message to `<count>` items.
 
-If the paging option is not explicitly specified a **default value** of _25_ is used. The **maximum** allowed count is 
-_200_.
+If the paging option is not explicitly specified a **default value** of _25_ is used. 
+The **maximum** allowed count is _200_.
 
 ```
 cursor(<cursor-id>)
@@ -98,7 +99,8 @@ Starts the search at the position of the cursor with ID `<cursor-id>`. The curso
 `cursor` of a previous response and marks the **position after the last entry** of the previous search. A response 
 includes no cursor if there are no more results.
 
-If a request has a `cursor` option, then any included `filter` or `sort` option may not differ from the original request of the cursor. Otherwise, the request is rejected.
+If a request has a `cursor` option, then any included `filter` or `sort` option may not differ from the original request 
+of the cursor. Otherwise, the request is rejected.
 
 **Example - return ten items with a cursor**
 ```
@@ -117,7 +119,8 @@ limit(<offset>,<count>)
 ```
 
 Limits the search results to `<count>` items, starting with the item at index `<offset>`. 
-* if the paging option is not explicitly specified, the **default** value `limit(0,25)` is used, i.e. the first `25` results are returned.
+* if the paging option is not explicitly specified, the **default** value `limit(0,25)` is used, 
+  i.e. the first `25` results are returned.
 * the **maximum** allowed count is `200`.
 
 **Example - return the first ten items**

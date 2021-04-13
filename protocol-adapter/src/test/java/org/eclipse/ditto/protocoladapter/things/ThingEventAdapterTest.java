@@ -23,7 +23,6 @@ import javax.annotation.Nonnull;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -1598,11 +1597,6 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     private static final class UnknownThingEvent implements ThingEvent<UnknownThingEvent> {
 
         @Override
-        public ThingId getThingEntityId() {
-            return TestConstants.THING_ID;
-        }
-
-        @Override
         public String getType() {
             return "things.events:policyIdDeleted";
         }
@@ -1632,7 +1626,7 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
             return JsonObject.newBuilder()
                     .set(Event.JsonFields.TYPE, getType())
                     .set(EventsourcedEvent.JsonFields.REVISION, getRevision())
-                    .set(JsonFields.THING_ID, getThingEntityId().toString())
+                    .set(JsonFields.THING_ID, getEntityId().toString())
                     .build();
         }
 
@@ -1653,7 +1647,7 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
         }
 
         @Override
-        public EntityId getEntityId() {
+        public ThingId getEntityId() {
             return TestConstants.THING_ID;
         }
     }

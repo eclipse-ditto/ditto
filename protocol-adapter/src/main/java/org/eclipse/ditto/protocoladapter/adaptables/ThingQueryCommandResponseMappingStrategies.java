@@ -15,10 +15,6 @@ package org.eclipse.ditto.protocoladapter.adaptables;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableMapper;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributesResponse;
@@ -31,7 +27,6 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturesResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
 
 /**
@@ -58,9 +53,6 @@ final class ThingQueryCommandResponseMappingStrategies
                 adaptable -> RetrieveThingResponse.of(thingIdFrom(adaptable), payloadValueAsJsonObjectFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
 
-        mappingStrategies.put(RetrieveThingsResponse.TYPE,
-                adaptable -> RetrieveThingsResponse.of(thingsArrayFrom(adaptable),
-                        namespaceFrom(adaptable), dittoHeadersFrom(adaptable)));
 
         mappingStrategies.put(RetrieveAttributesResponse.TYPE,
                 adaptable -> RetrieveAttributesResponse.of(thingIdFrom(adaptable), attributesFrom(adaptable),
@@ -110,11 +102,4 @@ final class ThingQueryCommandResponseMappingStrategies
         return mappingStrategies;
     }
 
-    protected static JsonArray thingsArrayFrom(final Adaptable adaptable) {
-        return adaptable.getPayload()
-                .getValue()
-                .filter(JsonValue::isArray)
-                .map(JsonValue::asArray)
-                .orElseThrow(() -> JsonParseException.newBuilder().build());
-    }
 }

@@ -1,6 +1,3 @@
-acl: "An access control list (ACL) holds the current status on who (subject) is permitted to which extent
-      (read, write, administrate) to manage a Thing."
-
 asset: "An asset can be anything from a tangible and physical device to the more intangible such as the reputation of a
        company. In our context we define an asset as any item, entity, application or even system of applications that
        can be registered at Eclipse Ditto using the `Thing` concept."
@@ -38,4 +35,4 @@ sse: "Server Sent Events - one way messaging/push from a HTTP server to a consum
 
 thing: "A Thing is a generic entity and is mostly used to cluster multiple Features and manage the access to the data
         and functionality the Thing represents.
-        A Thing may have additional meta data (Attributes) that describes the Thing in more detail."
+        A Thing may have additional metadata (Attributes) that describes the Thing in more detail."

@@ -127,7 +127,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
     }
 
     private void handleRetrieveThings(final RetrieveThings rt, final Object msgToAsk) {
-        final List<ThingId> thingIds = rt.getThingEntityIds();
+        final List<ThingId> thingIds = rt.getEntityIds();
         log.withCorrelationId(rt)
                 .info("Got '{}' message. Retrieving requested '{}' Things..",
                         RetrieveThings.class.getSimpleName(), thingIds.size());
@@ -233,7 +233,9 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                 final SudoRetrieveThingResponse response = (SudoRetrieveThingResponse) jsonifiable;
                 final String json = response.getEntityPlainString().orElseGet(() ->
                         response.getEntity(response.getImplementedSchemaVersion()).toString());
-                return PlainJson.of(response.getEntityId(), json);
+                return response.getThing().getEntityId()
+                        .map(thingId -> PlainJson.of(thingId, json))
+                        .orElse(null);
             } else {
                 return null;
             }

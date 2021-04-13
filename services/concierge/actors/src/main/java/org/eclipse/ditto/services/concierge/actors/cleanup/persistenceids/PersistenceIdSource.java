@@ -16,15 +16,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.concierge.common.PersistenceIdsConfig;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
-import org.eclipse.ditto.services.models.streaming.AbstractEntityIdWithRevision;
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
+import org.eclipse.ditto.services.models.streaming.LowerBound;
 import org.eclipse.ditto.services.models.streaming.SudoStreamPids;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.utils.akka.controlflow.ResumeSource;
@@ -74,7 +72,7 @@ public final class PersistenceIdSource {
             final ActorRef pubSubMediator,
             final String path) {
 
-        final EntityIdWithRevision<?> emptyLowerBound = new EmptyEntityIdWithRevision();
+        final EntityIdWithRevision<?> emptyLowerBound = LowerBound.empty();
 
         final Function<EntityIdWithRevision<?>, Source<EntityIdWithRevision<?>, ?>> resumptionFunction =
                 seed -> Source.single(requestStreamCommand(config, path, seed))
@@ -152,12 +150,5 @@ public final class PersistenceIdSource {
         }
         return Source.failed(error);
 
-    }
-
-    private static final class EmptyEntityIdWithRevision extends AbstractEntityIdWithRevision<EntityId> {
-
-        private EmptyEntityIdWithRevision() {
-            super(DefaultEntityId.dummy(), 0L);
-        }
     }
 }

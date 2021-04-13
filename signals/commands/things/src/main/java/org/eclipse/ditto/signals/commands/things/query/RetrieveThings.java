@@ -42,9 +42,12 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.WithNamespace;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.commands.things.WithSelectedFields;
 import org.eclipse.ditto.signals.commands.things.exceptions.MissingThingIdsException;
 
 /**
@@ -52,9 +55,9 @@ import org.eclipse.ditto.signals.commands.things.exceptions.MissingThingIdsExcep
  * Thing IDs.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = RetrieveThings.TYPE_PREFIX, name = RetrieveThings.NAME)
+@JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = RetrieveThings.NAME)
 public final class RetrieveThings extends AbstractCommand<RetrieveThings>
-        implements ThingQueryCommand<RetrieveThings>, WithNamespace {
+        implements WithNamespace, WithSelectedFields {
 
     /**
      * Name of the "Retrieve Things" command.
@@ -62,9 +65,14 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
     public static final String NAME = "retrieveThings";
 
     /**
+     * Thing resource type.
+     */
+    public static final String RESOURCE_TYPE = ThingConstants.ENTITY_TYPE.toString();
+
+    /**
      * Type of this command.
      */
-    public static final String TYPE = TYPE_PREFIX + NAME;
+    public static final String TYPE = ThingCommand.TYPE_PREFIX + NAME;
 
     public static final JsonFieldDefinition<JsonArray> JSON_THING_IDS =
             JsonFactory.newJsonArrayFieldDefinition("thingIds", FieldType.REGULAR,
@@ -230,11 +238,11 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
      * Returns an unmodifiable unsorted List of the identifiers of the {@code Thing}s to be retrieved.
      *
      * @return the identifiers of the Things.
-     * @deprecated the thing ID is now typed. Use {@link #getThingEntityIds()} instead.
+     * @deprecated the thing ID is now typed. Use {@link #getEntityIds()} instead.
      */
     @Deprecated
     public List<String> getThingIds() {
-        return getThingEntityIds().stream().map(String::valueOf).collect(Collectors.toList());
+        return getEntityIds().stream().map(String::valueOf).collect(Collectors.toList());
     }
 
     /**
@@ -242,7 +250,7 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
      *
      * @return the identifiers of the Things.
      */
-    public List<ThingId> getThingEntityIds() {
+    public List<ThingId> getEntityIds() {
         return thingIds;
     }
 
@@ -257,13 +265,13 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
     }
 
     @Override
-    public ThingId getThingEntityId() {
-        return ThingId.dummy();
+    public JsonPointer getResourcePath() {
+        return JsonPointer.empty(); // no path for retrieve of multiple things
     }
 
     @Override
-    public JsonPointer getResourcePath() {
-        return JsonPointer.empty(); // no path for retrieve of multiple things
+    public String getResourceType() {
+        return RESOURCE_TYPE;
     }
 
     @Override
@@ -281,6 +289,15 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
         if (null != selectedFields) {
             jsonObjectBuilder.set(JSON_SELECTED_FIELDS, selectedFields.toString(), predicate);
         }
+    }
+
+    @Override
+    public String getTypePrefix() {
+        return ThingCommand.TYPE_PREFIX;
+    }
+    @Override
+    public Category getCategory() {
+        return Category.QUERY;
     }
 
     @Override
@@ -340,7 +357,7 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
         }
 
         private Builder(final RetrieveThings retrieveThings) {
-            this.thingIds = retrieveThings.getThingEntityIds();
+            this.thingIds = retrieveThings.getEntityIds();
             dittoHeaders = retrieveThings.getDittoHeaders();
             selectedFields = retrieveThings.getSelectedFields().orElse(null);
             namespace = retrieveThings.getNamespace().orElse(null);

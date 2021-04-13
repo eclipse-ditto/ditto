@@ -180,7 +180,7 @@ public final class SendMessageAcceptedResponse
 
     @Override
     public SendMessageAcceptedResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return newInstance(getThingEntityId(), getMessage().getHeaders(), getHttpStatus(), dittoHeaders);
+        return newInstance(getEntityId(), getMessage().getHeaders(), getHttpStatus(), dittoHeaders);
     }
 
     public Optional<String> getCorrelationId() {

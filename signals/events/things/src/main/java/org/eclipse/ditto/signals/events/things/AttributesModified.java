@@ -153,13 +153,13 @@ public final class AttributesModified extends AbstractThingEvent<AttributesModif
 
     @Override
     public AttributesModified setRevision(final long revision) {
-        return of(getThingEntityId(), modifiedAttributes, revision, getTimestamp().orElse(null), getDittoHeaders(),
+        return of(getEntityId(), modifiedAttributes, revision, getTimestamp().orElse(null), getDittoHeaders(),
                 getMetadata().orElse(null));
     }
 
     @Override
     public AttributesModified setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), modifiedAttributes, getRevision(), getTimestamp().orElse(null), dittoHeaders,
+        return of(getEntityId(), modifiedAttributes, getRevision(), getTimestamp().orElse(null), dittoHeaders,
                 getMetadata().orElse(null));
     }
 

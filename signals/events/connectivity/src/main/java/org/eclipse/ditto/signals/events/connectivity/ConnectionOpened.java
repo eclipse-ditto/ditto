@@ -121,13 +121,13 @@ public final class ConnectionOpened extends AbstractConnectivityEvent<Connection
 
     @Override
     public ConnectionOpened setRevision(final long revision) {
-        return of(getConnectionEntityId(), revision, getTimestamp().orElse(null), getDittoHeaders(),
+        return of(getEntityId(), revision, getTimestamp().orElse(null), getDittoHeaders(),
                 getMetadata().orElse(null));
     }
 
     @Override
     public ConnectionOpened setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getConnectionEntityId(), getRevision(), getTimestamp().orElse(null), dittoHeaders,
+        return of(getEntityId(), getRevision(), getTimestamp().orElse(null), dittoHeaders,
                 getMetadata().orElse(null));
     }
 

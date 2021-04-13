@@ -44,7 +44,7 @@ public class ThingModifiedEventAssert extends AbstractEventAssert<ThingModifiedE
 
     public ThingModifiedEventAssert hasThingId(final ThingId expectedThingId) {
         isNotNull();
-        final ThingId actualThingId = actual.getThingEntityId();
+        final ThingId actualThingId = actual.getEntityId();
         Assertions.assertThat(actualThingId.toString())
                 .overridingErrorMessage("Expected ThingModifiedEvent to have Thing ID\n<%s> but it had\n<%s>",
                         expectedThingId, actualThingId)

@@ -48,7 +48,7 @@ public final class SendThingMessage<T> extends AbstractMessageCommand<T, SendThi
 
     @Override
     public SendThingMessage setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), getMessage(), dittoHeaders);
+        return of(getEntityId(), getMessage(), dittoHeaders);
     }
 
     /**

@@ -12,15 +12,15 @@
  */
 package org.eclipse.ditto.services.models.connectivity;
 
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 
 import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
+import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -32,8 +32,8 @@ import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
+import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.AllowedReason;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
@@ -42,13 +42,13 @@ import org.mutabilitydetector.unittesting.MutabilityMatchers;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Tests {@link org.eclipse.ditto.services.models.connectivity.ImmutableEnforcementFilter}.
+ * Tests {@link SignalEnforcementFilter}.
  */
-public class ImmutableEnforcementFilterTest {
+public class SignalEnforcementFilterTest {
 
     @Test
     public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(ImmutableEnforcementFilter.class, MutabilityMatchers.areImmutable(),
+        MutabilityAssert.assertInstancesOf(SignalEnforcementFilter.class, MutabilityMatchers.areImmutable(),
                 AllowedReason.provided(Enforcement.class, Placeholder.class).areAlsoImmutable(),
                 assumingFields("filterPlaceholders").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements()
         );
@@ -56,7 +56,7 @@ public class ImmutableEnforcementFilterTest {
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ImmutableEnforcementFilter.class)
+        EqualsVerifier.forClass(SignalEnforcementFilter.class)
                 .usingGetClass()
                 .verify();
     }
@@ -157,47 +157,35 @@ public class ImmutableEnforcementFilterTest {
         testDeviceIdHeaderEnforcement("entity", DefaultNamespacedEntityId.of("eclipse:ditto"));
     }
 
-    @Test
-    public void testThingSearchFilter() {
-        final CreateSubscription command =
-                CreateSubscription.of(DittoHeaders.empty())
-                        .setNamespaces(new HashSet<>(Arrays.asList("a", "b", "c")));
-
-        assertThatExceptionOfType(ConnectionSignalIdEnforcementFailedException.class)
-                .isThrownBy(() -> testDeviceIdHeaderEnforcement("entity", command.getEntityId()));
-        assertThatExceptionOfType(ConnectionSignalIdEnforcementFailedException.class)
-                .isThrownBy(() -> testDeviceIdHeaderEnforcement("policy", command.getEntityId()));
-        assertThatExceptionOfType(ConnectionSignalIdEnforcementFailedException.class)
-                .isThrownBy(() -> testDeviceIdHeaderEnforcement("thing", command.getEntityId()));
-
-        final SubscriptionComplete event = SubscriptionComplete.of("abc", DittoHeaders.empty());
-        assertThatExceptionOfType(ConnectionSignalIdEnforcementFailedException.class)
-                .isThrownBy(() -> testDeviceIdHeaderEnforcement("entity", event.getEntityId()));
-        assertThatExceptionOfType(ConnectionSignalIdEnforcementFailedException.class)
-                .isThrownBy(() -> testDeviceIdHeaderEnforcement("policy", event.getEntityId()));
-        assertThatExceptionOfType(ConnectionSignalIdEnforcementFailedException.class)
-                .isThrownBy(() -> testDeviceIdHeaderEnforcement("thing", event.getEntityId()));
-    }
-
-    public void testDeviceIdHeaderEnforcement(final String prefix, final CharSequence namespacedEntityId) {
+    public void testDeviceIdHeaderEnforcement(final String prefix, final NamespacedEntityId namespacedEntityId) {
         final HashMap<String, String> map = new HashMap<>();
         map.put("device_id", "eclipse:ditto");
         final Enforcement enforcement = ConnectivityModelFactory.newEnforcement("{{ header:device_id }}",
                 "{{ " + prefix + ":name }}", // does not match
                 "{{ " + prefix + ":id }}");  // matches
-        final EnforcementFilterFactory<Map<String, String>, CharSequence> enforcementFilterFactory =
+        final EnforcementFilterFactory<Map<String, String>, Signal<?>> enforcementFilterFactory =
                 EnforcementFactoryFactory.newEnforcementFilterFactory(enforcement,
                         PlaceholderFactory.newHeadersPlaceholder());
-        final EnforcementFilter<CharSequence> enforcementFilter = enforcementFilterFactory.getFilter(map);
-        enforcementFilter.match(namespacedEntityId, DittoHeaders.empty());
+        final EnforcementFilter<Signal<?>> enforcementFilter = enforcementFilterFactory.getFilter(map);
+        final Signal<?> signal = mockSignalWithId(namespacedEntityId);
+        enforcementFilter.match(signal);
     }
 
     private void testSimplePlaceholder(final String inputTemplate, final String filterTemplate,
-            final String inputValue, final CharSequence filterValue) {
+            final String inputValue, final NamespacedEntityId namespacedEntityId) {
         final Enforcement enforcement = ConnectivityModelFactory.newEnforcement(inputTemplate, filterTemplate);
-        final EnforcementFilterFactory<String, CharSequence> enforcementFilterFactory =
+        final EnforcementFilterFactory<String, Signal<?>> enforcementFilterFactory =
                 EnforcementFactoryFactory.newEnforcementFilterFactory(enforcement, SimplePlaceholder.INSTANCE);
-        final EnforcementFilter<CharSequence> enforcementFilter = enforcementFilterFactory.getFilter(inputValue);
-        enforcementFilter.match(filterValue, DittoHeaders.empty());
+        final EnforcementFilter<Signal<?>> enforcementFilter = enforcementFilterFactory.getFilter(inputValue);
+        final Signal<?> signal = mockSignalWithId(namespacedEntityId);
+        enforcementFilter.match(signal);
     }
+
+    private static Signal<?> mockSignalWithId(final NamespacedEntityId namespacedEntityId) {
+        final SignalWithEntityId<?> signal = mock(SignalWithEntityId.class);
+        when(signal.getEntityId()).thenReturn(namespacedEntityId);
+        when(signal.getDittoHeaders()).thenReturn(DittoHeaders.empty());
+        return signal;
+    }
+
 }

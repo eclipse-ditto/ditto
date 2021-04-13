@@ -19,7 +19,6 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.thingsearch.ThingSearchConstants;
-import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 /**
@@ -30,7 +29,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  * @param <T> the type of the implementing class.
  */
 public interface ThingSearchCommand<T extends ThingSearchCommand<T>>
-        extends Command<T>, WithIdButActuallyNot {
+        extends Command<T> {
 
     /**
      * Type Prefix of Search commands.

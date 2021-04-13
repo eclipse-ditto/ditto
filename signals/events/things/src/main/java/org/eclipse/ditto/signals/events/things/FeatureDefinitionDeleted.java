@@ -137,13 +137,13 @@ public final class FeatureDefinitionDeleted extends AbstractThingEvent<FeatureDe
 
     @Override
     public FeatureDefinitionDeleted setRevision(final long revision) {
-        return of(getThingEntityId(), featureId, revision, getTimestamp().orElse(null), getDittoHeaders(),
+        return of(getEntityId(), featureId, revision, getTimestamp().orElse(null), getDittoHeaders(),
                 getMetadata().orElse(null));
     }
 
     @Override
     public FeatureDefinitionDeleted setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), featureId, getRevision(), getTimestamp().orElse(null), dittoHeaders,
+        return of(getEntityId(), featureId, getRevision(), getTimestamp().orElse(null), dittoHeaders,
                 getMetadata().orElse(null));
     }
 

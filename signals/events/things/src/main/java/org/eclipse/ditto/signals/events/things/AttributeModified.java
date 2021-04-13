@@ -173,13 +173,13 @@ public final class AttributeModified extends AbstractThingEvent<AttributeModifie
 
     @Override
     public AttributeModified setRevision(final long revision) {
-        return of(getThingEntityId(), attributePointer, attributeValue, revision, getTimestamp().orElse(null),
+        return of(getEntityId(), attributePointer, attributeValue, revision, getTimestamp().orElse(null),
                 getDittoHeaders(), getMetadata().orElse(null));
     }
 
     @Override
     public AttributeModified setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), attributePointer, attributeValue, getRevision(), getTimestamp().orElse(null),
+        return of(getEntityId(), attributePointer, attributeValue, getRevision(), getTimestamp().orElse(null),
                 dittoHeaders, getMetadata().orElse(null));
     }
 
@@ -197,7 +197,7 @@ public final class AttributeModified extends AbstractThingEvent<AttributeModifie
     public int hashCode() {
         final int prime = 31;
         int result = super.hashCode();
-        result = prime * result + Objects.hashCode(getThingEntityId());
+        result = prime * result + Objects.hashCode(getEntityId());
         result = prime * result + Objects.hashCode(attributePointer);
         result = prime * result + Objects.hashCode(attributeValue);
         return result;
@@ -216,7 +216,7 @@ public final class AttributeModified extends AbstractThingEvent<AttributeModifie
             return false;
         }
         final AttributeModified that = (AttributeModified) o;
-        return that.canEqual(this) && Objects.equals(getThingEntityId(), that.getThingEntityId())
+        return that.canEqual(this) && Objects.equals(getEntityId(), that.getEntityId())
                 && Objects.equals(attributePointer, that.attributePointer)
                 && Objects.equals(attributeValue, that.attributeValue) && super.equals(that);
     }

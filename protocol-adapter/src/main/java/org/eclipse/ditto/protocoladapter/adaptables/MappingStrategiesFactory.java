@@ -51,6 +51,14 @@ public final class MappingStrategiesFactory {
         return ThingQueryCommandMappingStrategies.getInstance();
     }
 
+    public static RetrieveThingsCommandMappingStrategies getRetrieveThingsCommandMappingStrategies() {
+        return RetrieveThingsCommandMappingStrategies.getInstance();
+    }
+
+    public static RetrieveThingsCommandResponseMappingStrategies getRetrieveThingsCommandResponseMappingStrategies() {
+        return RetrieveThingsCommandResponseMappingStrategies.getInstance();
+    }
+
     public static ThingModifyCommandResponseMappingStrategies getThingModifyCommandResponseMappingStrategies() {
         return ThingModifyCommandResponseMappingStrategies.getInstance();
     }

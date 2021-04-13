@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.signals.base.Signal;
 
 /**
  * Implementation of {@link ExternalMessage} that SHOULD NOT be modified
@@ -45,7 +46,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
     @Nullable private final ByteBuffer bytePayload;
     @Nullable private final AuthorizationContext authorizationContext;
     @Nullable private final TopicPath topicPath;
-    @Nullable private final EnforcementFilter<CharSequence> enforcementFilter;
+    @Nullable private final EnforcementFilter<Signal<?>> enforcementFilter;
     @Nullable private final HeaderMapping headerMapping;
     @Nullable private final String sourceAddress;
     @Nullable private final Source source;
@@ -60,7 +61,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
             @Nullable final ByteBuffer bytePayload,
             @Nullable final AuthorizationContext authorizationContext,
             @Nullable final TopicPath topicPath,
-            @Nullable final EnforcementFilter<CharSequence> enforcementFilter,
+            @Nullable final EnforcementFilter<Signal<?>> enforcementFilter,
             @Nullable final HeaderMapping headerMapping,
             @Nullable final PayloadMapping payloadMapping,
             @Nullable final String sourceAddress,
@@ -162,7 +163,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
     }
 
     @Override
-    public Optional<EnforcementFilter<CharSequence>> getEnforcementFilter() {
+    public Optional<EnforcementFilter<Signal<?>>> getEnforcementFilter() {
         return Optional.ofNullable(enforcementFilter);
     }
 

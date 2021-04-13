@@ -58,7 +58,7 @@ public abstract class AbstractThingEvent<T extends AbstractThingEvent<T>> extend
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

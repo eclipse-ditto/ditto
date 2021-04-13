@@ -162,13 +162,13 @@ public final class FeatureDesiredPropertyDeleted extends AbstractThingEvent<Feat
 
     @Override
     public FeatureDesiredPropertyDeleted setRevision(final long revision) {
-        return of(getThingEntityId(), featureId, desiredPropertyPointer, revision, getTimestamp().orElse(null),
+        return of(getEntityId(), featureId, desiredPropertyPointer, revision, getTimestamp().orElse(null),
                 getDittoHeaders(), getMetadata().orElse(null));
     }
 
     @Override
     public FeatureDesiredPropertyDeleted setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), featureId, desiredPropertyPointer, getRevision(), getTimestamp().orElse(null),
+        return of(getEntityId(), featureId, desiredPropertyPointer, getRevision(), getTimestamp().orElse(null),
                 dittoHeaders, getMetadata().orElse(null));
     }
 

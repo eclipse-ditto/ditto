@@ -156,11 +156,11 @@ public interface MessageHeaders extends DittoHeaders {
      *
      * @return the thing ID.
      * @throws IllegalStateException if this headers did not contain the thing ID.
-     * @deprecated the thing ID is now typed. Use {@link #getThingEntityId()} instead.
+     * @deprecated the thing ID is now typed. Use {@link #getEntityId()} instead.
      */
     @Deprecated
     default String getThingId() {
-        return getThingEntityId().toString();
+        return getEntityId().toString();
     }
 
     /**
@@ -169,7 +169,7 @@ public interface MessageHeaders extends DittoHeaders {
      * @return the thing ID.
      * @throws IllegalStateException if this headers did not contain the thing ID.
      */
-    ThingId getThingEntityId();
+    ThingId getEntityId();
 
     /**
      * Returns the ID of the {@code Feature} from/to which this message is sent (may be empty if the message is not sent

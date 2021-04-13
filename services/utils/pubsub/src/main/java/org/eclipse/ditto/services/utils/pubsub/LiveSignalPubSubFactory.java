@@ -20,6 +20,7 @@ import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.ReadSubjectExtractor;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorRefFactory;
@@ -28,9 +29,9 @@ import akka.actor.ActorSystem;
 /**
  * Pub-sub factory for live signals.
  */
-final class LiveSignalPubSubFactory extends AbstractPubSubFactory<Signal<?>> {
+final class LiveSignalPubSubFactory extends AbstractPubSubFactory<SignalWithEntityId<?>> {
 
-    private static final AckExtractor<Signal<?>> ACK_EXTRACTOR =
+    private static final AckExtractor<SignalWithEntityId<?>> ACK_EXTRACTOR =
             AckExtractor.of(LiveSignalPubSubFactory::getThingId, Signal::getDittoHeaders);
 
     private static final DDataProvider PROVIDER = DDataProvider.of("live-signal-aware");
@@ -38,9 +39,9 @@ final class LiveSignalPubSubFactory extends AbstractPubSubFactory<Signal<?>> {
     @SuppressWarnings("unchecked")
     private LiveSignalPubSubFactory(final ActorRefFactory actorRefFactory,
             final ActorSystem actorSystem,
-            final PubSubTopicExtractor<Signal<?>> topicExtractor,
+            final PubSubTopicExtractor<SignalWithEntityId<?>> topicExtractor,
             final DistributedAcks distributedAcks) {
-        super(actorRefFactory, actorSystem, (Class<Signal<?>>) (Object) Signal.class, topicExtractor, PROVIDER,
+        super(actorRefFactory, actorSystem, (Class<SignalWithEntityId<?>>) (Object) Signal.class, topicExtractor, PROVIDER,
                 ACK_EXTRACTOR, distributedAcks);
     }
 
@@ -73,12 +74,12 @@ final class LiveSignalPubSubFactory extends AbstractPubSubFactory<Signal<?>> {
                 .orElse(Collections.emptySet());
     }
 
-    private static PubSubTopicExtractor<Signal<?>> topicExtractor() {
-        return ReadSubjectExtractor.<Signal<?>>of().with(LiveSignalPubSubFactory::getStreamingTypeTopic);
+    private static PubSubTopicExtractor<SignalWithEntityId<?>> topicExtractor() {
+        return ReadSubjectExtractor.<SignalWithEntityId<?>>of().with(LiveSignalPubSubFactory::getStreamingTypeTopic);
     }
 
     // precondition: all live signals are thing signals.
-    private static ThingId getThingId(final Signal<?> signal) {
+    private static ThingId getThingId(final SignalWithEntityId<?> signal) {
         return ThingId.of(signal.getEntityId());
     }
 }

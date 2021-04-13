@@ -8,7 +8,7 @@ permalink: protocol-specification-policies-create-or-modify.html
 ## Create a Policy
 
 Create a Policy with the ID specified by the `<namespace>/<policyName>` pair in the topic and the 
- JSON representation provided in the `value`.
+JSON representation provided in the `value`.
 
 ### Command
 
@@ -32,8 +32,8 @@ Create a Policy with the ID specified by the `<namespace>/<policyName>` pair in 
 
 ## Create or modify a Policy
 
-This command modifies the Policy with the ID specified by the `<namespace>/<policyName>` pair in the `topic` and with the
- JSON provided in the `value`, if it already exists. Otherwise, the Policy is created.
+This command modifies the Policy with the ID specified by the `<namespace>/<policyName>` pair in the `topic` and with 
+the JSON provided in the `value`, if it already exists. Otherwise, the Policy is created.
 
 ### Command
 
@@ -84,8 +84,8 @@ Modify the Policy entries of the Policy identified by the `<namespace>/<policyNa
 
 ## Create or modify a Policy entry
 
-Create or modify the Policy entry identified by the `<namespace>/<policyName>` pair in the `topic` field and the `<label>` in
- the `path` field.
+Create or modify the Policy entry identified by the `<namespace>/<policyName>` pair in the `topic` field and the `
+<label>` in the `path` field.
 <br/>
 If you specify a new label, the respective Policy entry will be created. <br/>
 If you specify an existing label, the respective Policy entry will be updated.
@@ -137,8 +137,8 @@ field and by the `<label>` in the `path` topic.
 
 ## Create or modify a single subject
 
-Create or modify the subject with ID `subjectId` of the Policy identified by the `<namespace>/<policyName>` pair in the
- `topic` field and by the `<label>` and the `<subjectId>` in the `path` field.
+Create or modify the subject with ID `subjectId` of the Policy identified by the `<namespace>/<policyName>` pair in 
+the `topic` field and by the `<label>` and the `<subjectId>` in the `path` field.
 
 ### Command
 

@@ -125,7 +125,7 @@ public final class DeleteFeatureDesiredPropertiesResponse
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

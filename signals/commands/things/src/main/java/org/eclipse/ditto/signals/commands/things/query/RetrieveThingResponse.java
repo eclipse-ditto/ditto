@@ -262,7 +262,7 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

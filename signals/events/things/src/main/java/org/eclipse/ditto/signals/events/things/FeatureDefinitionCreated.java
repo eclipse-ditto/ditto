@@ -173,13 +173,13 @@ public final class FeatureDefinitionCreated extends AbstractThingEvent<FeatureDe
 
     @Override
     public FeatureDefinitionCreated setRevision(final long revision) {
-        return of(getThingEntityId(), featureId, definition, revision, getTimestamp().orElse(null), getDittoHeaders(),
+        return of(getEntityId(), featureId, definition, revision, getTimestamp().orElse(null), getDittoHeaders(),
                 getMetadata().orElse(null));
     }
 
     @Override
     public FeatureDefinitionCreated setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), featureId, definition, getRevision(), getTimestamp().orElse(null), dittoHeaders,
+        return of(getEntityId(), featureId, definition, getRevision(), getTimestamp().orElse(null), dittoHeaders,
                 getMetadata().orElse(null));
     }
 

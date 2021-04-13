@@ -130,7 +130,7 @@ public abstract class PersistenceActorTestBaseWithSnapshotting extends Persisten
         });
         commandToEventMapperRegistry.put(DeleteThing.class, (command, thing) -> {
             final DeleteThing deleteCommand = (DeleteThing) command;
-            return ThingDeleted.of(deleteCommand.getThingEntityId(),
+            return ThingDeleted.of(deleteCommand.getEntityId(),
                     thing.getRevision().orElseThrow().toLong(),
                     thing.getModified().orElse(null),
                     DittoHeaders.empty(),

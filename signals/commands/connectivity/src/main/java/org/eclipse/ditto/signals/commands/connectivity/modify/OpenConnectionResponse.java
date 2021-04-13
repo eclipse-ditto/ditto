@@ -111,7 +111,7 @@ public final class OpenConnectionResponse extends AbstractCommandResponse<OpenCo
     }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return connectionId;
     }
 

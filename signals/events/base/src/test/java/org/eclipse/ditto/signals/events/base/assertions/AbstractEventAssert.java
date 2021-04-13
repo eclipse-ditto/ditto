@@ -19,8 +19,6 @@ import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.assertions.AbstractJsonifiableAssert;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.base.assertions.WithDittoHeadersChecker;
@@ -54,26 +52,6 @@ public abstract class AbstractEventAssert<S extends AbstractJsonifiableAssert<S,
     public S hasCorrelationId(final CharSequence expectedCorrelationId) {
         isNotNull();
         withDittoHeadersChecker.hasCorrelationId(expectedCorrelationId);
-        return myself;
-    }
-
-    public S hasId(final CharSequence expectedId) {
-
-        isNotNull();
-        final EntityId actualId = actual.getEntityId();
-        Assertions.assertThat((CharSequence) actualId)
-                .overridingErrorMessage("Expected Event to have ID\n<%s> but it had\n<%s>",
-                        DefaultEntityId.of(String.valueOf(expectedId)), actualId)
-                .isEqualTo(expectedId.toString());
-        return myself;
-    }
-
-    public S hasId(final EntityId expectedId) {
-        isNotNull();
-        final EntityId actualId = actual.getEntityId();
-        Assertions.assertThat(actualId.toString())
-                .overridingErrorMessage("Expected Event to have ID\n<%s> but it had\n<%s>", expectedId, actualId)
-                .hasToString(expectedId.toString());
         return myself;
     }
 

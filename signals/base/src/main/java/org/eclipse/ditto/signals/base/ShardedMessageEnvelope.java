@@ -21,6 +21,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -30,7 +31,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
  * message (message) which should be delivered to the PersistenceActor.
  */
 public final class ShardedMessageEnvelope
-        implements Jsonifiable<JsonObject>, DittoHeadersSettable<ShardedMessageEnvelope>, WithId {
+        implements Jsonifiable<JsonObject>, DittoHeadersSettable<ShardedMessageEnvelope>, WithEntityId {
 
     /**
      * JSON field containing the identifier of a {@code ShardedMessageEnvelope}.

@@ -133,7 +133,7 @@ public final class RetrieveThingsTest {
                 RetrieveThings.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getThingEntityIds()).isEqualTo(getThingIds());
+        assertThat(underTest.getEntityIds()).isEqualTo(getThingIds());
         assertThat(underTest.getSelectedFields()).isEmpty();
         assertThat(underTest.getNamespace()).isEmpty();
     }
@@ -145,7 +145,7 @@ public final class RetrieveThingsTest {
                         TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getThingEntityIds()).isEqualTo(
+        assertThat(underTest.getEntityIds()).isEqualTo(
                 THING_IDS_WITH_DISTINCT_NAMESPACE.stream()
                         .map(JsonValue::asString)
                         .map(ThingId::of)
@@ -170,7 +170,7 @@ public final class RetrieveThingsTest {
                         TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getThingEntityIds()).isEqualTo(getThingIds());
+        assertThat(underTest.getEntityIds()).isEqualTo(getThingIds());
         assertThat(underTest.getSelectedFields()).contains(getJsonFieldSelector());
     }
 

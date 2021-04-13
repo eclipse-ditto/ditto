@@ -21,6 +21,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.WithThingId;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 
 /**
@@ -28,7 +29,7 @@ import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ThingEvent<T extends ThingEvent<T>> extends EventsourcedEvent<T>, WithThingId {
+public interface ThingEvent<T extends ThingEvent<T>> extends EventsourcedEvent<T>, WithThingId, SignalWithEntityId<T> {
 
     /**
      * Type Prefix of Thing events.

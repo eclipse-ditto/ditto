@@ -70,7 +70,7 @@ final class ImmutableMessageHeaders extends AbstractDittoHeaders implements Mess
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         final String thingId = getStringForDefinition(MessageHeaderDefinition.THING_ID)
                 .orElseThrow(() -> newIllegalStateException(MessageHeaderDefinition.THING_ID));
 

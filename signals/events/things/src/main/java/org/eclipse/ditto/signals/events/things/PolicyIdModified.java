@@ -153,13 +153,13 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
 
     @Override
     public PolicyIdModified setRevision(final long revision) {
-        return of(getThingEntityId(), policyId, revision, getTimestamp().orElse(null), getDittoHeaders(),
+        return of(getEntityId(), policyId, revision, getTimestamp().orElse(null), getDittoHeaders(),
                 getMetadata().orElse(null));
     }
 
     @Override
     public PolicyIdModified setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), policyId, getRevision(), getTimestamp().orElse(null), dittoHeaders,
+        return of(getEntityId(), policyId, getRevision(), getTimestamp().orElse(null), dittoHeaders,
                 getMetadata().orElse(null));
     }
 

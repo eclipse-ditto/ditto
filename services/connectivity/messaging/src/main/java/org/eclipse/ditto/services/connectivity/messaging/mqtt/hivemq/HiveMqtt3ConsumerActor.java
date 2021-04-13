@@ -22,6 +22,7 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.EnforcementFilter;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttSpecificConfig;
+import org.eclipse.ditto.signals.base.Signal;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
@@ -87,7 +88,7 @@ public final class HiveMqtt3ConsumerActor extends AbstractMqttConsumerActor<Mqtt
 
     @Override
     @Nullable
-    EnforcementFilter<CharSequence> getEnforcementFilter(final Map<String, String> headers, final String topic) {
+    EnforcementFilter<Signal<?>> getEnforcementFilter(final Map<String, String> headers, final String topic) {
         if (topicEnforcementFilterFactory != null) {
             return topicEnforcementFilterFactory.getFilter(topic);
         } else {

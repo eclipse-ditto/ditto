@@ -96,8 +96,8 @@ public final class AcknowledgementsJsonParserTest {
     public void parseJsonWithSeveralAcksOfSameLabel() {
         final AcknowledgementLabel label = AcknowledgementLabel.of("same-label");
         final Acknowledgements acks = Acknowledgements.of(Arrays.asList(
-                Acknowledgement.of(label, ThingId.dummy(), HttpStatus.OK, DittoHeaders.empty()),
-                Acknowledgement.of(label, ThingId.dummy(), HttpStatus.FORBIDDEN, DittoHeaders.empty())
+                Acknowledgement.of(label, ThingId.of("test:thing-id"), HttpStatus.OK, DittoHeaders.empty()),
+                Acknowledgement.of(label, ThingId.of("test:thing-id"), HttpStatus.FORBIDDEN, DittoHeaders.empty())
         ), DittoHeaders.empty());
 
         final Acknowledgements parsedAcknowledgements = underTest.apply(acks.toJson());

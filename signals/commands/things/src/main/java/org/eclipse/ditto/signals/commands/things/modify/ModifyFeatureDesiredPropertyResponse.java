@@ -178,7 +178,7 @@ public final class ModifyFeatureDesiredPropertyResponse
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

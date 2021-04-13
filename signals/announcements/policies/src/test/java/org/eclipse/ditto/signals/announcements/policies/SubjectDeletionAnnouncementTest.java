@@ -56,17 +56,18 @@ public final class SubjectDeletionAnnouncementTest {
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullExpiry() {
-        SubjectDeletionAnnouncement.of(PolicyId.dummy(), null, Collections.emptyList(), DittoHeaders.empty());
+        SubjectDeletionAnnouncement.of(PolicyId.of("test:policyid"), null, Collections.emptyList(),
+                DittoHeaders.empty());
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullExpiringSubjects() {
-        SubjectDeletionAnnouncement.of(PolicyId.dummy(), Instant.EPOCH, null, DittoHeaders.empty());
+        SubjectDeletionAnnouncement.of(PolicyId.of("test:policyid"), Instant.EPOCH, null, DittoHeaders.empty());
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullDittoHeaders() {
-        SubjectDeletionAnnouncement.of(PolicyId.dummy(), Instant.EPOCH, Collections.emptyList(), null);
+        SubjectDeletionAnnouncement.of(PolicyId.of("test:policyid"), Instant.EPOCH, Collections.emptyList(), null);
     }
 
     @Test

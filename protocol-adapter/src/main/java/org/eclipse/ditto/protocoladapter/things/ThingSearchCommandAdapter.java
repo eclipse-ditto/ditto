@@ -80,4 +80,10 @@ public class ThingSearchCommandAdapter extends AbstractThingAdapter<ThingSearchC
         return EnumSet.of(TopicPath.SearchAction.SUBSCRIBE, TopicPath.SearchAction.REQUEST,
                 TopicPath.SearchAction.CANCEL);
     }
+
+    @Override
+    public boolean supportsWildcardTopics() {
+        return true;
+    }
+
 }

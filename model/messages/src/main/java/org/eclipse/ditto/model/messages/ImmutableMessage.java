@@ -133,8 +133,8 @@ final class ImmutableMessage<T> implements Message<T> {
     }
 
     @Override
-    public ThingId getThingEntityId() {
-        return headers.getThingEntityId();
+    public ThingId getEntityId() {
+        return headers.getEntityId();
     }
 
     @Override

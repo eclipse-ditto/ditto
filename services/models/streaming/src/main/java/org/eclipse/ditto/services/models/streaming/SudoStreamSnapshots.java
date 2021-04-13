@@ -36,7 +36,6 @@ import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
@@ -47,7 +46,7 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 @AllValuesAreNonnullByDefault
 @JsonParsableCommand(typePrefix = SudoStreamSnapshots.TYPE_PREFIX, name = SudoStreamSnapshots.NAME)
 public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapshots>
-        implements StartStreamRequest, WithIdButActuallyNot {
+        implements StartStreamRequest {
 
     static final String NAME = "SudoStreamSnapshots";
 
@@ -91,7 +90,7 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
         final JsonArray snapshotFields = fields.stream()
                 .map(JsonValue::of)
                 .collect(JsonCollectors.valuesToArray());
-        return new SudoStreamSnapshots(burst, timeoutMillis, DefaultEntityId.dummy(), snapshotFields, dittoHeaders);
+        return new SudoStreamSnapshots(burst, timeoutMillis, LowerBound.emptyEntityId(), snapshotFields, dittoHeaders);
     }
 
     /**
@@ -109,8 +108,8 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
         final int burst = jsonObject.getValueOrThrow(JsonFields.JSON_BURST);
         final long timeoutMillis = jsonObject.getValueOrThrow(JsonFields.JSON_TIMEOUT_MILLIS);
         final EntityId lowerBound = jsonObject.getValue(JsonFields.JSON_LOWER_BOUND)
-                .map(DefaultEntityId::of)
-                .orElseGet(DefaultEntityId::dummy);
+                .<EntityId>map(DefaultEntityId::of)
+                .orElseGet(() -> LowerBound.emptyEntityId());
         final JsonArray snapshotFields =
                 jsonObject.getValue(JsonFields.JSON_SNAPSHOT_FIELDS).orElseGet(JsonArray::empty);
         return new SudoStreamSnapshots(burst, timeoutMillis, lowerBound, snapshotFields, dittoHeaders);
@@ -142,7 +141,7 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
      * @return whether the command has a non-empty lower bound.
      */
     public boolean hasNonEmptyLowerBound() {
-        return !lowerBound.isDummy();
+        return !lowerBound.equals(LowerBound.emptyEntityId());
     }
 
     /**
@@ -173,7 +172,7 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
         jsonObjectBuilder.set(JsonFields.JSON_BURST, burst, predicate);
         jsonObjectBuilder.set(JsonFields.JSON_TIMEOUT_MILLIS, timeoutMillis, predicate);
         jsonObjectBuilder.set(JsonFields.JSON_SNAPSHOT_FIELDS, snapshotFields, predicate);
-        if (!lowerBound.isDummy()) {
+        if (!lowerBound.equals(LowerBound.emptyEntityId())) {
             jsonObjectBuilder.set(JsonFields.JSON_LOWER_BOUND, lowerBound.toString(), predicate);
         }
     }

@@ -38,7 +38,7 @@ public abstract class AbstractThingCommandAssert<S extends AbstractThingCommandA
     }
 
     public S withId(final ThingId expectedThingId) {
-        return assertThatEquals(actual.getThingEntityId(), expectedThingId, "thingId");
+        return assertThatEquals(actual.getEntityId(), expectedThingId, "thingId");
     }
 
 }

@@ -16,12 +16,10 @@ import static org.eclipse.ditto.protocoladapter.TestConstants.DITTO_HEADERS_V_2;
 import static org.eclipse.ditto.protocoladapter.TestConstants.FEATURE_ID;
 import static org.eclipse.ditto.protocoladapter.TestConstants.THING_ID;
 
-import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nonnull;
 
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -37,7 +35,6 @@ import org.eclipse.ditto.protocoladapter.Payload;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapterTest;
 import org.eclipse.ditto.protocoladapter.TestConstants;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.protocoladapter.TopicPathBuilder;
 import org.eclipse.ditto.protocoladapter.UnknownCommandResponseException;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse;
@@ -51,7 +48,6 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturesResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
 import org.junit.Before;
 import org.junit.Test;
@@ -110,45 +106,6 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
         final RetrieveThingResponse retrieveThing =
                 RetrieveThingResponse.of(THING_ID, TestConstants.THING, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveThing, channel);
-
-        assertWithExternalHeadersThat(actual).isEqualTo(expected);
-    }
-
-    @Test
-    public void retrieveThingsResponseToAdaptable() {
-        retrieveThingsResponseToAdaptable("");
-    }
-
-    @Test
-    public void retrieveThingsResponseToAdaptableWithWildcardNamespace() {
-        retrieveThingsResponseToAdaptable(null);
-    }
-
-    private void retrieveThingsResponseToAdaptable(final String namespace) {
-        final JsonPointer path = JsonPointer.empty();
-
-        final TopicPathBuilder topicPathBuilder = TopicPath.fromNamespace(Optional.ofNullable(namespace).orElse("_"));
-        final TopicPath topicPath =
-                (channel == TopicPath.Channel.LIVE ? topicPathBuilder.live() : topicPathBuilder.twin())
-                        .things()
-                        .commands()
-                        .retrieve()
-                        .build();
-
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
-                .withPayload(Payload.newBuilder(path).withValue(JsonFactory.newArray()
-                        .add(TestConstants.THING.toJsonString())
-                        .add(TestConstants.THING2.toJsonString()))
-                        .withStatus(HttpStatus.OK).build())
-                .withHeaders(TestConstants.HEADERS_V_2).build();
-
-        final RetrieveThingsResponse retrieveThingsResponse = RetrieveThingsResponse.of(JsonFactory.newArray()
-                        .add(TestConstants.THING.toJsonString())
-                        .add(TestConstants.THING2.toJsonString()),
-                namespace,
-                TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
-
-        final Adaptable actual = underTest.toAdaptable(retrieveThingsResponse, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -588,42 +545,6 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
-    @Test
-    public void retrieveThingsResponseFromAdaptable() {
-        retrieveThingsResponseFromAdaptable(TestConstants.NAMESPACE);
-    }
-
-    @Test
-    public void retrieveThingsResponseWithWildcardNamespaceFromAdaptable() {
-        retrieveThingsResponseFromAdaptable(null);
-    }
-
-    private void retrieveThingsResponseFromAdaptable(final String namespace) {
-        final RetrieveThingsResponse expected = RetrieveThingsResponse.of(JsonFactory.newArray()
-                        .add(TestConstants.THING.toJsonString())
-                        .add(TestConstants.THING2.toJsonString()),
-                namespace,
-                TestConstants.DITTO_HEADERS_V_2);
-
-        final TopicPath topicPath = TopicPath.fromNamespace(Optional.ofNullable(namespace).orElse("_"))
-                .things()
-                .twin()
-                .commands()
-                .retrieve()
-                .build();
-
-        final JsonPointer path = JsonPointer.empty();
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
-                .withPayload(Payload.newBuilder(path).withValue(JsonFactory.newArray()
-                        .add(TestConstants.THING.toJsonString())
-                        .add(TestConstants.THING2.toJsonString())).build())
-                .withHeaders(TestConstants.HEADERS_V_2).build();
-
-        final ThingQueryCommandResponse<?> actual = underTest.fromAdaptable(adaptable);
-
-        assertWithExternalHeadersThat(actual).isEqualTo(expected);
-    }
-
     private static class UnknownThingQueryCommandResponse
             implements ThingQueryCommandResponse<UnknownThingQueryCommandResponse> {
 
@@ -633,7 +554,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
         }
 
         @Override
-        public ThingId getThingEntityId() {
+        public ThingId getEntityId() {
             return THING_ID;
         }
 

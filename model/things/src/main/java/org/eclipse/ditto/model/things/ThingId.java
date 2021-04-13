@@ -29,8 +29,6 @@ import org.eclipse.ditto.model.base.entity.type.EntityType;
 @Immutable
 public final class ThingId extends NamespacedEntityIdWithType {
 
-    private static final ThingId DUMMY_ID = ThingId.of(DefaultNamespacedEntityId.dummy());
-
     private ThingId(final NamespacedEntityId entityId) {
         super(entityId);
     }
@@ -89,17 +87,6 @@ public final class ThingId extends NamespacedEntityIdWithType {
         } catch (final NamespacedEntityIdInvalidException e) {
             throw ThingIdInvalidException.newBuilder(e.getEntityId().orElse(null)).cause(e).build();
         }
-    }
-
-    /**
-     * Returns a dummy ThingId.
-     * <em>This ID should not be used for entities.</em>
-     * It can be identified by checking {@link ThingId#isDummy()}.
-     *
-     * @return the dummy ID.
-     */
-    public static ThingId dummy() {
-        return DUMMY_ID;
     }
 
     /**

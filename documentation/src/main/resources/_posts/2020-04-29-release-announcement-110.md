@@ -27,7 +27,7 @@ The Ditto team was quite busy, 1.1.0 focuses on the following areas:
     * Addition of acknowledgement APIs in Ditto [Java client](client-sdk-java.html) 
 * Officially documented [pre-authenticated](installation-operating.html#pre-authentication) authentication mechanism
 * Use of Java 11 for running Ditto containers
-* Deprecation of API version 1 (authorization via [ACL](basic-acl.html) mechanism)
+* Deprecation of API version 1 (authorization via ACL mechanism)
 * Use of CBOR as cluster internal replacement for JSON serialization
 * Further improvements on increasing throughput
 

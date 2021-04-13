@@ -22,40 +22,40 @@ import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
 import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.signals.base.Signal;
 
 /**
  * Factory that creates instances of EnforcementFilterFactory.
  *
  * @param <I> the type required to resolve the placeholders in the input
- * @param <M> the type required to resolve the placeholders in the filters
  */
 @Immutable
-final class ImmutableEnforcementFilterFactory<I, M> implements EnforcementFilterFactory<I, M> {
+final class SignalEnforcementFilterFactory<I> implements EnforcementFilterFactory<I, Signal<?>> {
 
     private final Enforcement enforcement;
     private final Placeholder<I> inputPlaceholder;
-    private final List<Placeholder<M>> filterPlaceholder;
+    private final List<Placeholder<CharSequence>> filterPlaceholder;
 
     /**
-     * Instantiates a new {@link ImmutableEnforcementFilterFactory}.
+     * Instantiates a new {@link SignalEnforcementFilterFactory}.
      *
      * @param enforcement the enforcement configuration, contains the input and filters templates
      * @param inputPlaceholder the input placeholder used to resolve the values in the input template
      * @param filterPlaceholder the filters placeholder used to resolve the values in the filters template
      */
-    ImmutableEnforcementFilterFactory(final Enforcement enforcement,
+    SignalEnforcementFilterFactory(final Enforcement enforcement,
             final Placeholder<I> inputPlaceholder,
-            final List<Placeholder<M>> filterPlaceholder) {
+            final List<Placeholder<CharSequence>> filterPlaceholder) {
         this.enforcement = enforcement;
         this.inputPlaceholder = inputPlaceholder;
         this.filterPlaceholder = filterPlaceholder;
     }
 
     @Override
-    public EnforcementFilter<M> getFilter(final I input) {
+    public EnforcementFilter<Signal<?>> getFilter(final I input) {
         final String inputResolved = PlaceholderFilter.apply(enforcement.getInput(),
                 PlaceholderFactory.newExpressionResolver(inputPlaceholder, input));
-        return new ImmutableEnforcementFilter<>(enforcement, filterPlaceholder, inputResolved);
+        return new SignalEnforcementFilter(enforcement, filterPlaceholder, inputResolved);
     }
 
 }

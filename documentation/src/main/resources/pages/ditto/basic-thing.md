@@ -29,12 +29,8 @@ Unique identifier of a Thing. For choosing custom Thing IDs when creating a Thin
 
 ### Access control
 
-A Thing in API version 1 contains an inline [ACL](basic-acl.html) defining which authenticated parties may READ, WRITE
-and ADMINISTRATE the `Thing`. (Please note that ACL's are part of deprecated API 1)
-
-A Thing in API version 2 does no longer contain the <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.acl}}">ACL</a>.
-Instead it contains a link to a [Policy](basic-policy.html) in form of a `policyId`. This 
-<a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.policy}}">Policy</a> defines which 
+A Thing in API version 2 contains a link to a [Policy](basic-policy.html) in form of a `policyId`. 
+This <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.policy}}">Policy</a> defines which 
 authenticated subjects may READ and WRITE the Thing or even parts of it (hierarchically specified).
 
 
@@ -68,16 +64,12 @@ semantics of the data or adding other useful information about the data points o
 
 ### Model specification
 
-#### API version 1 - Deprecated
-
-{% include docson.html schema="jsonschema/thing_v1.json" %}
-
 #### API version 2
 
 {% include docson.html schema="jsonschema/thing_v2.json" %}
 
 
-### Example (API version 2)
+### Example
 
 ```json
 {

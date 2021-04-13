@@ -33,7 +33,7 @@ public final class ThingEventAssert extends AbstractEventAssert<ThingEventAssert
 
     public ThingEventAssert hasThingId(final ThingId expectedThingId) {
         isNotNull();
-        final ThingId actualThingId = actual.getThingEntityId();
+        final ThingId actualThingId = actual.getEntityId();
         Assertions.assertThat((CharSequence) actualThingId)
                 .overridingErrorMessage("Expected ThingEvent to have Thing ID\n<%s> but it had\n<%s>",
                         expectedThingId, actualThingId)

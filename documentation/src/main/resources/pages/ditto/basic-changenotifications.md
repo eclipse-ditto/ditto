@@ -44,8 +44,8 @@ namespaces=org.eclipse.ditto.one,org.eclipse.ditto.two
 
 ### By RQL expression
 
-If filtering by namespaces it not sufficient, Ditto also allows to provide an [RQL expression](basic-rql.html) specifying a
-Thing payload based condition determining which events should be emitted and which don't.
+If filtering by namespaces it not sufficient, Ditto also allows to provide an [RQL expression](basic-rql.html) specifying 
+a Thing payload based condition determining which events should be emitted and which don't.
 
 {% include note.html content="This filter is applied on the modified data of a Thing, data which was not changed will 
     not be considered when applying the filter." %}

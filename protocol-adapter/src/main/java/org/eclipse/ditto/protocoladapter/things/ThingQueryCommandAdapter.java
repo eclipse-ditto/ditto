@@ -32,8 +32,6 @@ final class ThingQueryCommandAdapter extends AbstractThingAdapter<ThingQueryComm
 
     private final SignalMapper<ThingQueryCommand<?>> thingQuerySignalMapper =
             SignalMapperFactory.newThingQuerySignalMapper();
-    private final SignalMapper<RetrieveThings> retrieveThingsSignalMapper =
-            SignalMapperFactory.newRetrieveThingsSignalMapper();
 
     private ThingQueryCommandAdapter(final HeaderTranslator headerTranslator) {
         super(MappingStrategiesFactory.getThingQueryCommandMappingStrategies(), headerTranslator);
@@ -62,10 +60,6 @@ final class ThingQueryCommandAdapter extends AbstractThingAdapter<ThingQueryComm
 
     @Override
     public Adaptable mapSignalToAdaptable(final ThingQueryCommand<?> command, final TopicPath.Channel channel) {
-        if (command instanceof RetrieveThings) {
-            return retrieveThingsSignalMapper.mapSignalToAdaptable((RetrieveThings) command, channel);
-        } else {
-            return thingQuerySignalMapper.mapSignalToAdaptable(command, channel);
-        }
+        return thingQuerySignalMapper.mapSignalToAdaptable(command, channel);
     }
 }

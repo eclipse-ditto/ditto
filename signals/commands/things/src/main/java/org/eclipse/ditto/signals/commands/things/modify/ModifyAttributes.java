@@ -161,7 +161,7 @@ public final class ModifyAttributes extends AbstractCommand<ModifyAttributes>
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

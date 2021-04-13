@@ -34,7 +34,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -117,11 +116,6 @@ public final class RetrieveAllConnectionIdsResponse extends AbstractCommandRespo
      * @return set of all connection ids.
      */
     public Set<String> getAllConnectionIds() { return connectionIds; }
-
-    @Override
-    public ConnectionId getConnectionEntityId() {
-        return ConnectionId.dummy();
-    }
 
     @Override
     public RetrieveAllConnectionIdsResponse setEntity(final JsonValue entity) {

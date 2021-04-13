@@ -40,7 +40,6 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.acks.things.ThingAcknowledgementFactory;
-import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayCommandTimeoutException;
@@ -98,8 +97,8 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
     /**
      * Creates Akka configuration object Props for this AcknowledgementAggregatorActor.
      *
-     * @param signal the signal which potentially includes {@code AcknowledgementRequests}
-     * based on which the AggregatorActor is started.
+     * @param thingId the thing ID of the originating signal.
+     * @param dittoHeaders the ditto headers of the originating signal.
      * @param acknowledgementConfig provides configuration setting regarding acknowledgement handling.
      * @param headerTranslator translates headers from external sources or to external sources.
      * @param responseSignalConsumer a consumer which is invoked with the response signal, e.g. in order to send the
@@ -108,18 +107,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
      * @throws org.eclipse.ditto.model.base.acks.AcknowledgementRequestParseException if a contained acknowledgement
      * request could not be parsed.
      */
-    static Props props(final Signal<?> signal,
-            final AcknowledgementConfig acknowledgementConfig,
-            final HeaderTranslator headerTranslator,
-            final Consumer<Object> responseSignalConsumer) {
-
-        final ThingId thingId = (ThingId) signal.getEntityId();
-        return props(thingId, signal.getDittoHeaders(), acknowledgementConfig,
-                headerTranslator, responseSignalConsumer);
-    }
-
-
-    private static Props props(final ThingId thingId,
+    static Props props(final ThingId thingId,
             final DittoHeaders dittoHeaders,
             final AcknowledgementConfig acknowledgementConfig,
             final HeaderTranslator headerTranslator,
@@ -178,7 +166,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
 
         return ThingAcknowledgementFactory.newAcknowledgement(
                 LIVE_RESPONSE,
-                withThingId.getThingEntityId(),
+                withThingId.getEntityId(),
                 commandResponse.getHttpStatus(),
                 liveResponseAckHeaders,
                 getPayload(commandResponse).orElse(null));
@@ -188,7 +176,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
             final WithThingId withThingId) {
         return ThingAcknowledgementFactory.newAcknowledgement(
                 TWIN_PERSISTED,
-                withThingId.getThingEntityId(),
+                withThingId.getEntityId(),
                 commandResponse.getHttpStatus(),
                 commandResponse.getDittoHeaders(),
                 getPayload(commandResponse).orElse(null)

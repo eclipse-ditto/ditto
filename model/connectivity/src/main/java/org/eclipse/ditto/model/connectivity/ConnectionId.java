@@ -32,8 +32,6 @@ public final class ConnectionId implements EntityId {
     static final String ID_REGEX = "[a-zA-Z0-9-_]{1,80}";
     static final Pattern ID_PATTERN = Pattern.compile(ID_REGEX);
 
-    private static final ConnectionId DUMMY_ID = ConnectionId.of("_");
-
     private final String stringRepresentation;
 
     private ConnectionId(final String stringRepresentation, final boolean shouldValidate) {
@@ -61,21 +59,6 @@ public final class ConnectionId implements EntityId {
             return (ConnectionId) connectionId;
         }
         return new ConnectionId(checkNotNull(connectionId, "connectionId").toString(), true);
-    }
-
-    /**
-     * Returns a dummy {@link ConnectionId}. This ID should not be used. It can be identified by
-     * checking {@link ConnectionId#isDummy()}.
-     *
-     * @return the dummy ID.
-     */
-    public static ConnectionId dummy() {
-        return DUMMY_ID;
-    }
-
-    @Override
-    public boolean isDummy() {
-        return DUMMY_ID.equals(this);
     }
 
     @Override

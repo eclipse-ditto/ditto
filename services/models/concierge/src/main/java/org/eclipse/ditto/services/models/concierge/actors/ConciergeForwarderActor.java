@@ -14,9 +14,10 @@ package org.eclipse.ditto.services.models.concierge.actors;
 
 import static org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants.DISPATCHER_ACTOR_PATH;
 
+import java.util.Optional;
 import java.util.function.Function;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.services.models.concierge.ConciergeWrapper;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
@@ -104,21 +105,33 @@ public class ConciergeForwarderActor extends AbstractActor {
 
         final Signal<?> transformedSignal = signalTransformer.apply(signal);
 
-        final EntityId signalId = transformedSignal.getEntityId();
         final String signalType = transformedSignal.getType();
         final DittoDiagnosticLoggingAdapter l = log.withCorrelationId(signal);
-        if (signalId.isDummy()) {
-            l.info("Sending signal without ID and type <{}> via pubSub to concierge-dispatcherActor", signalType);
-            l.debug("Sending signal without ID and type <{}> via pubSub to concierge-dispatcherActor: <{}>",
-                    signalType, transformedSignal);
-            final DistributedPubSubMediator.Send msg = wrapForPubSub(transformedSignal);
-            l.debug("Forwarding message to concierge-dispatcherActor via pub/sub: <{}>.", msg);
-            pubSubMediator.forward(msg, ctx);
+        toSignalWithEntityId(transformedSignal).ifPresentOrElse(
+                transformedSignalWithEntityId -> {
+                    l.info("Forwarding signal with ID <{}> and type <{}> to concierge enforcer",
+                            transformedSignalWithEntityId.getEntityId(), signalType);
+                    final Object msg = ConciergeWrapper.wrapForEnforcerRouter(transformedSignalWithEntityId);
+                    l.debug("Forwarding message to concierge enforcer: <{}>", msg);
+                    conciergeEnforcer.forward(msg, ctx);
+                },
+                () -> {
+                    l.info("Sending signal without ID and type <{}> via pubSub to concierge-dispatcherActor",
+                            signalType);
+                    l.debug("Sending signal without ID and type <{}> via pubSub to concierge-dispatcherActor: <{}>",
+                            signalType, transformedSignal);
+                    final DistributedPubSubMediator.Send msg = wrapForPubSub(transformedSignal);
+                    l.debug("Forwarding message to concierge-dispatcherActor via pub/sub: <{}>.", msg);
+                    pubSubMediator.forward(msg, ctx);
+                }
+        );
+    }
+
+    private static <C extends Signal<?> & WithEntityId> Optional<C> toSignalWithEntityId(Signal<?> signal) {
+        if (signal instanceof WithEntityId) {
+            return Optional.of((C) signal);
         } else {
-            l.info("Forwarding signal with ID <{}> and type <{}> to concierge enforcer", signalId, signalType);
-            final Object msg = ConciergeWrapper.wrapForEnforcerRouter(transformedSignal);
-            l.debug("Forwarding message to concierge enforcer: <{}>", msg);
-            conciergeEnforcer.forward(msg, ctx);
+            return Optional.empty();
         }
     }
 

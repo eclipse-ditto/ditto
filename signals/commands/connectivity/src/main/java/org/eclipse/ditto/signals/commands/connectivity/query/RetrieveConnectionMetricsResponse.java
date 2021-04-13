@@ -39,6 +39,8 @@ import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
+import org.eclipse.ditto.model.connectivity.WithConnectionId;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
@@ -51,7 +53,8 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandRespon
 @JsonParsableCommandResponse(type = RetrieveConnectionMetricsResponse.TYPE)
 public final class RetrieveConnectionMetricsResponse
         extends AbstractCommandResponse<RetrieveConnectionMetricsResponse>
-        implements ConnectivityQueryCommandResponse<RetrieveConnectionMetricsResponse> {
+        implements ConnectivityQueryCommandResponse<RetrieveConnectionMetricsResponse>, WithConnectionId,
+        SignalWithEntityId<RetrieveConnectionMetricsResponse> {
 
     /**
      * Type of this response.
@@ -168,7 +171,7 @@ public final class RetrieveConnectionMetricsResponse
     }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return connectionId;
     }
 

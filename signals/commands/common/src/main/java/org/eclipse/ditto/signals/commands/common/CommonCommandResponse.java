@@ -15,7 +15,6 @@ package org.eclipse.ditto.signals.commands.common;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 
 /**
@@ -23,8 +22,7 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
  *
  * @param <T> the type of the implementing class.
  */
-public abstract class CommonCommandResponse<T extends CommonCommandResponse<T>> extends AbstractCommandResponse<T>
-        implements WithIdButActuallyNot {
+public abstract class CommonCommandResponse<T extends CommonCommandResponse<T>> extends AbstractCommandResponse<T> {
 
     /**
      * Type prefix.

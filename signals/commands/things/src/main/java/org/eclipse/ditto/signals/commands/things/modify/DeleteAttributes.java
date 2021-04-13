@@ -123,7 +123,7 @@ public final class DeleteAttributes extends AbstractCommand<DeleteAttributes>
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

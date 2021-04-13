@@ -62,7 +62,7 @@ public abstract class AbstractConnectivityEvent<T extends AbstractConnectivityEv
      * @return the identifier of this event.
      */
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return connectionId;
     }
 

@@ -30,6 +30,7 @@ import org.eclipse.ditto.protocoladapter.provider.ThingCommandAdapterProvider;
 import org.eclipse.ditto.protocoladapter.things.DefaultThingCommandAdapterProvider;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
+import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
 import org.eclipse.ditto.signals.base.ErrorRegistry;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.base.Signal;
@@ -49,6 +50,8 @@ import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
 import org.eclipse.ditto.signals.commands.things.modify.MergeThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
@@ -56,7 +59,6 @@ import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingMerged;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
-import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
 
 /**
  * Adapter for the Ditto protocol.
@@ -184,6 +186,9 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         } else if (commandResponse instanceof ThingCommandResponse) {
             validateChannel(channel, commandResponse, LIVE, TWIN);
             return toAdaptable((ThingCommandResponse<?>) commandResponse, channel);
+        } else if (commandResponse instanceof RetrieveThingsResponse) {
+            validateChannel(channel, commandResponse, LIVE, TWIN);
+            return toAdaptable((RetrieveThingsResponse) commandResponse, channel);
         } else if (commandResponse instanceof PolicyCommandResponse) {
             validateChannel(channel, commandResponse, NONE);
             return toAdaptable((PolicyCommandResponse<?>) commandResponse);
@@ -237,6 +242,9 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         } else if (command instanceof ThingQueryCommand) {
             validateChannel(channel, command, LIVE, TWIN);
             return toAdaptable((ThingQueryCommand<?>) command, channel);
+        } else if (command instanceof RetrieveThings) {
+            validateChannel(channel, command, LIVE, TWIN);
+            return toAdaptable((RetrieveThings) command, channel);
         } else if (command instanceof PolicyModifyCommand) {
             validateChannel(channel, command, NONE);
             return toAdaptable((PolicyModifyCommand<?>) command);
@@ -252,6 +260,16 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     public Adaptable toAdaptable(final ThingQueryCommand<?> thingQueryCommand, final TopicPath.Channel channel) {
         validateChannel(channel, thingQueryCommand, TWIN, LIVE);
         return thingsAdapters.getQueryCommandAdapter().toAdaptable(thingQueryCommand, channel);
+    }
+
+    public Adaptable toAdaptable(final RetrieveThings retrieveThings, final TopicPath.Channel channel) {
+        validateChannel(channel, retrieveThings, TWIN, LIVE);
+        return thingsAdapters.getRetrieveThingsCommandAdapter().toAdaptable(retrieveThings, channel);
+    }
+
+    public Adaptable toAdaptable(final RetrieveThingsResponse retrieveThingsResponse, final TopicPath.Channel channel) {
+        validateChannel(channel, retrieveThingsResponse, TWIN, LIVE);
+        return thingsAdapters.getRetrieveThingsCommandResponseAdapter().toAdaptable(retrieveThingsResponse, channel);
     }
 
     public Adaptable toAdaptable(final ThingSearchCommand<?> thingSearchCommand, final TopicPath.Channel channel) {

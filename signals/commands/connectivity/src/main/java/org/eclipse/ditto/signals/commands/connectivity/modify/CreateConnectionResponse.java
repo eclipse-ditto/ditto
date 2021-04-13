@@ -132,7 +132,7 @@ public final class CreateConnectionResponse extends AbstractCommandResponse<Crea
     }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return connection.getId();
     }
 

@@ -37,7 +37,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.events.base.Event;
 
 /**
@@ -45,7 +44,7 @@ import org.eclipse.ditto.signals.events.base.Event;
  */
 @Immutable
 @JsonParsableEvent(name = ThingsOutOfSync.NAME, typePrefix = ThingsOutOfSync.TYPE_PREFIX)
-public final class ThingsOutOfSync implements Event<ThingsOutOfSync>, WithIdButActuallyNot {
+public final class ThingsOutOfSync implements Event<ThingsOutOfSync> {
 
     private static final String RESOURCE_TYPE = "thing-search";
 

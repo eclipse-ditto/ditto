@@ -287,7 +287,7 @@ public final class RawMessageMapper extends AbstractMessageMapper {
     }
 
     private static TopicPath toTopicPath(final MessageHeaders messageHeaders) {
-        return ProtocolFactory.newTopicPathBuilder(messageHeaders.getThingEntityId())
+        return ProtocolFactory.newTopicPathBuilder(messageHeaders.getEntityId())
                 .live()
                 .messages()
                 .subject(messageHeaders.getSubject())

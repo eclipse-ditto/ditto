@@ -18,8 +18,6 @@ import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.junit.Test;
@@ -62,11 +60,6 @@ public final class AbstractCommandTest {
         @Override
         public String getResourceType() {
             return "resourceType";
-        }
-
-        @Override
-        public EntityId getEntityId() {
-            return DefaultEntityId.dummy();
         }
 
         @Override

@@ -153,7 +153,7 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
     }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return connectionId;
     }
 

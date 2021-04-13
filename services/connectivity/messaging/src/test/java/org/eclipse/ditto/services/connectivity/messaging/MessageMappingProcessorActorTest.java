@@ -68,6 +68,7 @@ import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
@@ -104,9 +105,9 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
         final Enforcement mqttEnforcement =
                 ConnectivityModelFactory.newEnforcement("{{ test:placeholder }}",
                         "mqtt/topic/{{ thing:namespace }}/{{ thing:name }}");
-        final EnforcementFilterFactory<String, CharSequence> factory =
+        final EnforcementFilterFactory<String, Signal<?>> factory =
                 EnforcementFactoryFactory.newEnforcementFilterFactory(mqttEnforcement, new TestPlaceholder());
-        final EnforcementFilter<CharSequence> enforcementFilter = factory.getFilter("mqtt/topic/my/thing");
+        final EnforcementFilter<Signal<?>> enforcementFilter = factory.getFilter("mqtt/topic/my/thing");
         testExternalMessageInDittoProtocolIsProcessed(enforcementFilter);
     }
 
@@ -116,9 +117,9 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
         final Enforcement mqttEnforcement =
                 ConnectivityModelFactory.newEnforcement("{{ test:placeholder }}",
                         "mqtt/topic/{{ thing:namespace }}/{{ thing:name }}");
-        final EnforcementFilterFactory<String, CharSequence> factory =
+        final EnforcementFilterFactory<String, Signal<?>> factory =
                 EnforcementFactoryFactory.newEnforcementFilterFactory(mqttEnforcement, new TestPlaceholder());
-        final EnforcementFilter<CharSequence> enforcementFilter = factory.getFilter("some/invalid/target");
+        final EnforcementFilter<Signal<?>> enforcementFilter = factory.getFilter("some/invalid/target");
         testExternalMessageInDittoProtocolIsProcessed(enforcementFilter, false, null,
                 r -> assertThat(r.getDittoRuntimeException())
                         .isInstanceOf(ConnectionSignalIdEnforcementFailedException.class)
@@ -694,7 +695,9 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
             assertThat(source).isInstanceOf(ErrorResponse.class);
             assertThat(((ErrorResponse<?>) source).getDittoRuntimeException())
                     .isEqualTo(AcknowledgementLabelNotDeclaredException.of(label, acknowledgement.getDittoHeaders()));
-            assertThat((CharSequence) source.getEntityId()).isEqualTo(KNOWN_THING_ID);
+            assertThat(source).isInstanceOf(SignalWithEntityId.class);
+            final CharSequence entityId = ((SignalWithEntityId<?>) source).getEntityId();
+            assertThat(entityId).isEqualTo(KNOWN_THING_ID);
         }};
     }
 

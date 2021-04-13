@@ -29,13 +29,16 @@ Each property itself can be either a simple/scalar value or a complex object; al
 
 ### Feature desired properties
 
-Desired properties represent the desired state of the properties. They are a tool to represent the desired target state of the properties. The **desiredProperties** related to Features are managed in form of a **list of properties**. These desired properties can be categorized,
-e.g. to manage the status, the configuration or any fault information.
+Desired properties represent the desired state of the properties. They are a tool to represent the desired target state 
+of the properties. 
+The **desiredProperties** related to Features are managed in form of a **list of properties**. These desired properties 
+can be categorized, e.g. to manage the status, the configuration or any fault information.
 Feature desired properties are represented as one JSON object.
 
 Each desired property itself can be either a simple/scalar value or a complex object; allowed is any JSON value.
 
-Please note however, that besides persisting the desired properties, and indexing the fields for search requests, filtering etc. for the time being, Ditto does not implement their further processing. Such functionality will come with future releases.
+Please note however, that besides persisting the desired properties, and indexing the fields for search requests, filtering 
+etc. for the time being, Ditto does not implement their further processing. Such functionality will come with future releases.
 
 ### Feature definition
 
@@ -89,22 +92,19 @@ The following snippet shows a Feature with the ID "arbitrary-feature" and a defi
 
 ## Model specification
 
-The feature model differs for API version 1 and 2:
-
-### V1
-{% include docson.html schema="jsonschema/feature.json" %}
+The feature model API version 2:
 
 ### V2
 {% include docson.html schema="jsonschema/feature_v2.json" %}
 
 ## The link to Eclipse Vorto
 
-> Vorto is an open source tool that allows to create and manage technology agnostic, abstract device descriptions, so
-called information models. Information models describe the attributes and the capabilities of real world devices.
+> Vorto is an open source tool that allows to create and manage technology agnostic, abstract device descriptions, 
+so called information models. Information models describe the attributes and the capabilities of real world devices.
 Source: [http://www.eclipse.org/vorto/](http://www.eclipse.org/vorto/)
 
-Ditto's feature definition may be mapped to the Vorto type system which is defined by so called "information models" and
-"function blocks":
+Ditto's feature definition may be mapped to the Vorto type system which is defined by so called "information models" 
+and "function blocks":
 > Information models represent the capabilities of a particular type of device entirely.
 An information model contains one or more function blocks.
 

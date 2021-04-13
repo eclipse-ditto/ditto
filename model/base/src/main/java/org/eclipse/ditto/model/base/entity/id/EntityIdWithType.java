@@ -88,11 +88,6 @@ public abstract class EntityIdWithType implements EntityId, WithEntityType {
     }
 
     @Override
-    public boolean isDummy() {
-        return entityId.isDummy();
-    }
-
-    @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;

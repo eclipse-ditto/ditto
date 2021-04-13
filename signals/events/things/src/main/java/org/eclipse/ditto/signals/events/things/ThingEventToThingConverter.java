@@ -55,7 +55,7 @@ public final class ThingEventToThingConverter {
         return Optional.ofNullable(EVENT_TO_THING_MAPPERS.get(thingEvent.getClass()))
                 .map(eventToThingMapper -> {
                     final ThingBuilder.FromScratch thingBuilder = Thing.newBuilder()
-                            .setId(thingEvent.getThingEntityId())
+                            .setId(thingEvent.getEntityId())
                             .setRevision(thingEvent.getRevision())
                             .setModified(thingEvent.getTimestamp().orElse(null));
                     return eventToThingMapper.apply(thingEvent, thingBuilder);

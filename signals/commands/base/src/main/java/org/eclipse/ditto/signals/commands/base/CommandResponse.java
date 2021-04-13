@@ -37,7 +37,7 @@ import org.eclipse.ditto.signals.base.Signal;
  * @param <T> the type of the implementing class.
  */
 @IndexSubclasses
-public interface CommandResponse<T extends CommandResponse<T>> extends Signal<T> {
+public interface CommandResponse<T extends CommandResponse<T>> extends Signal<T>, WithHttpStatus {
 
     /**
      * Type qualifier of command responses.
@@ -89,14 +89,6 @@ public interface CommandResponse<T extends CommandResponse<T>> extends Signal<T>
             return new IllegalStateException(MessageFormat.format(msgPattern, httpStatus.getCode()));
         });
     }
-
-    /**
-     * Returns the HTTP status of the issued command.
-     *
-     * @return the HTTP status.
-     * @since 2.0.0
-     */
-    HttpStatus getHttpStatus();
 
     /**
      * This convenience method returns the status code value of the issued {@link Command}. The semantics of the codes

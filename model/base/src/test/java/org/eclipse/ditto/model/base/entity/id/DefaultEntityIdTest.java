@@ -62,11 +62,5 @@ public final class DefaultEntityIdTest {
         assertThat((CharSequence) DefaultEntityId.of(underTest)).isSameAs(underTest);
     }
 
-    @Test
-    public void dummyEntityIdIsDummy() {
-        final DefaultEntityId dummy = DefaultEntityId.dummy();
-
-        assertThat(dummy.isDummy()).isTrue();
-    }
 
 }

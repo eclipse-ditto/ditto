@@ -22,7 +22,8 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.WithConnectionId;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 
 /**
@@ -30,7 +31,8 @@ import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ConnectivityEvent<T extends ConnectivityEvent<T>> extends EventsourcedEvent<T> {
+public interface ConnectivityEvent<T extends ConnectivityEvent<T>> extends EventsourcedEvent<T>, SignalWithEntityId<T>,
+        WithConnectionId {
 
     /**
      * Type Prefix of Connectivity events.
@@ -41,13 +43,6 @@ public interface ConnectivityEvent<T extends ConnectivityEvent<T>> extends Event
      * Connectivity resource type.
      */
     String RESOURCE_TYPE = "connectivity";
-
-    /**
-     * Returns the identifier of the related Connection.
-     *
-     * @return the identifier of the related Connection.
-     */
-    ConnectionId getConnectionEntityId();
 
     @Override
     default JsonPointer getResourcePath() {
