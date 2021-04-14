@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.things.persistence.testhelper;
 
 import static java.util.Objects.requireNonNull;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -30,12 +31,11 @@ import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.pattern.PatternsCS;
+import akka.pattern.Patterns;
 import akka.persistence.Persistence;
 import akka.persistence.SelectedSnapshot;
 import akka.persistence.SnapshotProtocol;
 import akka.persistence.SnapshotSelectionCriteria;
-import akka.util.Timeout;
 import scala.Option;
 
 /**
@@ -142,7 +142,7 @@ public final class ThingsSnapshotTestHelper<S> {
 
         return convertScalaOpt(
                 waitForFuture(
-                        PatternsCS.ask(snapshotPlugin, loadSnapshot, Timeout.apply(WAIT_TIMEOUT, TimeUnit.SECONDS))
+                        Patterns.ask(snapshotPlugin, loadSnapshot, Duration.ofSeconds(WAIT_TIMEOUT))
                                 .thenApply(obj -> (SnapshotProtocol.LoadSnapshotResult) obj)
                                 .thenApply(SnapshotProtocol.LoadSnapshotResult::snapshot)
                                 .toCompletableFuture()
