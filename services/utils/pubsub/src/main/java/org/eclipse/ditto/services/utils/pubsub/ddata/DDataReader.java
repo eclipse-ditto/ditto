@@ -13,12 +13,14 @@
 package org.eclipse.ditto.services.utils.pubsub.ddata;
 
 import akka.actor.ActorRef;
+import akka.actor.Address;
 import akka.cluster.ddata.Key;
 import akka.cluster.ddata.ORMultiMap;
 
 /**
  * Reader of distributed Bloom filters of subscribed topics.
  *
+ * @param <K> type of keys of the multimap.
  * @param <T> type of topic approximations.
  */
 public interface DDataReader<K, T> {
@@ -47,7 +49,19 @@ public interface DDataReader<K, T> {
     int getNumberOfShards();
 
     /**
+     * Creates/gets a key for the passed {@code hashProvider} object.
+     *
+     * @param hashProvider the key used to calculate the number of the shard to append to the key.
+     * @return Key of the distributed data.
+     */
+    default Key<ORMultiMap<K, T>> getKey(final Address hashProvider) {
+        final int shardNumber = Math.abs(hashProvider.hashCode() % getNumberOfShards());
+        return getKey(shardNumber);
+    }
+
+    /**
      * Creates/gets a key for the passed {@code shardNumber}.
+     * Should only be directly called in order to iterate over all existing keys.
      *
      * @param shardNumber the number of the shard to append to the key.
      * @return Key of the distributed data.

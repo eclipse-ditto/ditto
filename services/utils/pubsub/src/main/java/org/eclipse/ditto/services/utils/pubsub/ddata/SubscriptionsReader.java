@@ -83,4 +83,11 @@ public final class SubscriptionsReader {
     public int hashCode() {
         return subscriberDataMap.hashCode();
     }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "subscriberDataMap=" + subscriberDataMap +
+                "]";
+    }
 }
