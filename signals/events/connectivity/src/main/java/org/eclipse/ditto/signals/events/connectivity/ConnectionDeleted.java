@@ -121,7 +121,7 @@ public final class ConnectionDeleted extends AbstractConnectivityEvent<Connectio
 
     @Override
     public ConnectionDeleted setRevision(final long revision) {
-        return of(getConnectionEntityId(), revision, getTimestamp().orElse(null), getDittoHeaders(),
+        return of(getEntityId(), revision, getTimestamp().orElse(null), getDittoHeaders(),
                 getMetadata().orElse(null));
     }
 

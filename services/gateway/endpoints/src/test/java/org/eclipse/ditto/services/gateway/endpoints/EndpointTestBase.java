@@ -186,7 +186,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
     protected Route handleExceptions(final Supplier<Route> inner) {
         return handleExceptions(
                 RootRouteExceptionHandler.getInstance(exception ->
-                        HttpResponse.create().withStatus(exception.getStatusCode().toInt())
+                        HttpResponse.create().withStatus(exception.getHttpStatus().getCode())
                                 .withEntity(HttpEntities.create(APPLICATION_JSON, exception.toJsonString()))
                 ),
                 inner);

@@ -75,8 +75,7 @@ public class HealthRouteSupplier implements Supplier<Route> {
 
     private HttpResponse completeHealthRequest(final StatusInfo statusInfo) {
         final int httpStatusCode =
-                statusInfo.getStatus() == StatusInfo.Status.DOWN ? HTTP_STATUS_SERVICE_UNAVAILABLE :
-                        HTTP_STATUS_OK;
+                statusInfo.getStatus() == StatusInfo.Status.DOWN ? HTTP_STATUS_SERVICE_UNAVAILABLE : HTTP_STATUS_OK;
 
         if (statusInfo.getStatus() == StatusInfo.Status.DOWN) {
             log.warning("Own health check returned DOWN: {}", statusInfo);

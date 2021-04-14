@@ -393,7 +393,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
     }
 
     private static boolean targetThingIdMatches(final ThingEvent<?> event, final Collection<ThingId> targetThingIds) {
-        return targetThingIds.isEmpty() || targetThingIds.contains(event.getThingEntityId());
+        return targetThingIds.isEmpty() || targetThingIds.contains(event.getEntityId());
     }
 
     private static Collection<JsonObject> toNonemptyThingJson(final Thing thing, final ThingEvent<?> event,
@@ -432,7 +432,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
     }
 
     private static String namespaceFromId(final ThingEvent<?> thingEvent) {
-        return thingEvent.getThingEntityId().getNamespace();
+        return thingEvent.getEntityId().getNamespace();
     }
 
     private static PartialFunction<HttpHeader, Accept> newAcceptHeaderExtractor() {

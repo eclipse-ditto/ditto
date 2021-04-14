@@ -53,7 +53,7 @@ final class DefaultAdapterResolver implements AdapterResolver {
     }
 
     private static boolean isResponse(final Adaptable adaptable) {
-        return adaptable.getPayload().getStatus().isPresent();
+        return adaptable.getPayload().getHttpStatus().isPresent();
     }
 
     private static <T> List<T> filter(final List<T> list, final Predicate<T> predicate) {
