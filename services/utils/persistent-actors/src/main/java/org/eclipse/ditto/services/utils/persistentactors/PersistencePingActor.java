@@ -18,7 +18,6 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -226,7 +225,7 @@ public final class PersistencePingActor extends AbstractActor {
         }
         final String id = persistenceId.substring(indexOfSeparator + 1);
         final EntityType type = EntityType.of(persistenceId.substring(0, indexOfSeparator));
-        return DefaultEntityId.of(type, id);
+        return EntityId.of(type, id);
     }
 
     static String toCorrelationId(final EntityId persistenceId) {

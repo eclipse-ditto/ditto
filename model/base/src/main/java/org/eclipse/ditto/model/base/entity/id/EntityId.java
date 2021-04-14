@@ -23,6 +23,18 @@ import org.eclipse.ditto.model.base.entity.type.EntityType;
 @Immutable
 public interface EntityId extends CharSequence, Comparable<EntityId> {
 
+    /**
+     * Instantiates a {@link EntityId} based on the given entity type and entity ID.
+     *
+     * @param entityType The type of the entity which is identified by the given ID.
+     * @param entityId The ID of the entity.
+     * @return the instance.
+     * @since 2.0.0
+     */
+    static EntityId of(final EntityType entityType, final CharSequence entityId) {
+        return EntityIds.getEntityId(entityType, entityId);
+    }
+
     @Override
     default int length() {
         return toString().length();

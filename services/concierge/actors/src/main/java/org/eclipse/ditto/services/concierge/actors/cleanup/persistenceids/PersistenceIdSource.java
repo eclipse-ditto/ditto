@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.concierge.actors.cleanup.persistenceids;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -51,7 +50,7 @@ public final class PersistenceIdSource {
             Map.of(ThingsMessagingConstants.THINGS_STREAM_PROVIDER_ACTOR_PATH, ThingConstants.ENTITY_TYPE,
                     PoliciesMessagingConstants.POLICIES_STREAM_PROVIDER_ACTOR_PATH, PolicyConstants.ENTITY_TYPE,
                     ConnectivityMessagingConstants.STREAM_PROVIDER_ACTOR_PATH,
-                    ConnectivityConstants.CONNECTION_ENTITY_TYPE);
+                    ConnectivityConstants.ENTITY_TYPE);
 
     private PersistenceIdSource() {
         throw new AssertionError();

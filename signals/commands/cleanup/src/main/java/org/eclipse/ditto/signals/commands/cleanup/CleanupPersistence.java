@@ -22,7 +22,6 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -103,7 +102,7 @@ public final class CleanupPersistence
                     final EntityType entityType =
                             EntityType.of(jsonObject.getValueOrThrow(CleanupCommand.JsonFields.ENTITY_TYPE));
                     final String readEntityId = jsonObject.getValueOrThrow(CleanupCommand.JsonFields.ENTITY_ID);
-                    final EntityId entityId = DefaultEntityId.of(entityType, readEntityId);
+                    final EntityId entityId = EntityId.of(entityType, readEntityId);
                     return of(entityId, dittoHeaders);
                 });
     }

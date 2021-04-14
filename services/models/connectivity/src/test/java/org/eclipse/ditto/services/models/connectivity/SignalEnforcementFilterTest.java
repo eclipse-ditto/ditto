@@ -19,7 +19,7 @@ import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
+import org.eclipse.ditto.model.base.entity.id.AbstractNamespacedEntityId;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
@@ -104,7 +104,7 @@ public class SignalEnforcementFilterTest {
                 "some/{{  test:placeholder  }}/topic",
                 "some/{{ entity:id }}/topic",
                 "eclipse:ditto",
-                DefaultNamespacedEntityId.of(ThingConstants.ENTITY_TYPE, "eclipse:ditto"));
+                new AbstractNamespacedEntityId(ThingConstants.ENTITY_TYPE, "eclipse:ditto") {});
     }
 
     @Test
@@ -156,7 +156,7 @@ public class SignalEnforcementFilterTest {
     @Test
     public void testDeviceIdHeaderMatchesEntityId() {
         testDeviceIdHeaderEnforcement("entity",
-                DefaultNamespacedEntityId.of(ThingConstants.ENTITY_TYPE, "eclipse:ditto"));
+                new AbstractNamespacedEntityId(ThingConstants.ENTITY_TYPE, "eclipse:ditto") {});
     }
 
     public void testDeviceIdHeaderEnforcement(final String prefix, final NamespacedEntityId namespacedEntityId) {

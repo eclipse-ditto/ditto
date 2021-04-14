@@ -21,7 +21,6 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 
@@ -47,7 +46,7 @@ final class ImmutableCacheKey implements CacheKey {
             final EntityId id,
             @Nullable final CacheLookupContext cacheLookupContext) {
         // build a default entity id, so that serializing and deserializing works properly
-        this.id = DefaultEntityId.of(checkNotNull(id, "id").getEntityType(), id);
+        this.id = EntityId.of(checkNotNull(id, "id").getEntityType(), id);
         this.cacheLookupContext = cacheLookupContext;
     }
 
@@ -88,7 +87,7 @@ final class ImmutableCacheKey implements CacheKey {
             throw new IllegalArgumentException(message);
         } else {
             final EntityType entityType = EntityType.of(string.substring(0, delimiterIndex));
-            final EntityId id = DefaultEntityId.of(entityType, string.substring(delimiterIndex + 1));
+            final EntityId id = EntityId.of(entityType, string.substring(delimiterIndex + 1));
             return new ImmutableCacheKey(id, null);
         }
     }

@@ -23,7 +23,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -113,7 +112,7 @@ public final class CleanupPersistenceResponse extends AbstractCommandResponse<Cl
                     final EntityType entityType =
                             EntityType.of(jsonObject.getValueOrThrow(CleanupCommandResponse.JsonFields.ENTITY_TYPE));
                     final String readEntityId = jsonObject.getValueOrThrow(CleanupCommandResponse.JsonFields.ENTITY_ID);
-                    return new CleanupPersistenceResponse(DefaultEntityId.of(entityType, readEntityId), httpStatus,
+                    return new CleanupPersistenceResponse(EntityId.of(entityType, readEntityId), httpStatus,
                             dittoHeaders);
                 }
         );

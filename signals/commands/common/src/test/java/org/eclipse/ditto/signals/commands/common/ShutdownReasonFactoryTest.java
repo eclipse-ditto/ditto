@@ -23,7 +23,6 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.junit.BeforeClass;
@@ -37,9 +36,9 @@ public final class ShutdownReasonFactoryTest {
     private static final String NAMESPACE = "com.example.test";
     private static final EntityType THING_TYPE = EntityType.of("thing");
     private static final List<EntityId> ENTITY_IDS_TO_PURGE = Arrays.asList(
-            DefaultEntityId.of(THING_TYPE, "x:y"),
-            DefaultEntityId.of(THING_TYPE, "a:b"),
-            DefaultEntityId.of(THING_TYPE, "f:oo"));
+            EntityId.of(THING_TYPE, "x:y"),
+            EntityId.of(THING_TYPE, "a:b"),
+            EntityId.of(THING_TYPE, "f:oo"));
 
     private static JsonObject purgeNamespaceReasonJson;
     private static JsonObject purgeEntitiesReasonJson;

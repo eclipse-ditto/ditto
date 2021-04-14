@@ -21,9 +21,7 @@ import java.util.Collection;
 
 import org.bson.BsonString;
 import org.bson.Document;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
-import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.things.ThingConstants;
 import org.junit.Test;
@@ -61,17 +59,6 @@ public class MongoPersistenceOperationsSelectionProviderTest {
     }
 
     @Test
-    public void selectEntityWithoutNamespaceWhenNamespacesEnabledFails() {
-        final MongoEventSourceSettings settings = MongoEventSourceSettings.of(PERSISTENCE_ID_PREFIX,
-                true, METADATA_COLLECTION_NAME, JOURNAL_COLLECTION_NAME, SNAPSHOT_COLLECTION_NAME);
-        final MongoPersistenceOperationsSelectionProvider underTest =
-                MongoPersistenceOperationsSelectionProvider.of(settings);
-
-        assertThatExceptionOfType(NamespacedEntityIdInvalidException.class)
-                .isThrownBy(() -> underTest.selectEntity(DefaultNamespacedEntityId.of(THING_TYPE, ENTITY_NAME)));
-    }
-
-    @Test
     public void selectEntityWhenNamespacesDisabled() {
         final MongoEventSourceSettings settings = MongoEventSourceSettings.of(PERSISTENCE_ID_PREFIX,
                 false, METADATA_COLLECTION_NAME, JOURNAL_COLLECTION_NAME, SNAPSHOT_COLLECTION_NAME);
@@ -79,7 +66,7 @@ public class MongoPersistenceOperationsSelectionProviderTest {
                 MongoPersistenceOperationsSelectionProvider.of(settings);
 
         final Collection<MongoPersistenceOperationsSelection> selections =
-                underTest.selectEntity(DefaultEntityId.of(THING_TYPE, ENTITY_NAME));
+                underTest.selectEntity(EntityId.of(THING_TYPE, ENTITY_NAME));
 
         final String pid = PERSISTENCE_ID_PREFIX + ENTITY_NAME;
         final Document pidFilter = new Document().append(KEY_PID, new BsonString(pid));

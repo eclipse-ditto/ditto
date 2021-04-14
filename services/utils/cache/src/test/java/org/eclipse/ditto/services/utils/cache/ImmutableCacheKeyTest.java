@@ -21,7 +21,6 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.junit.Test;
@@ -31,10 +30,10 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Tests {@link ImmutableCacheKey}.
  */
-public class ImmutableEntityIdWithResourceTypeTest {
+public class ImmutableCacheKeyTest {
 
     private static final EntityType THING_TYPE = EntityType.of("thing");
-    private static final EntityId ENTITY_ID = DefaultEntityId.of(THING_TYPE, "entity:id");
+    private static final EntityId ENTITY_ID = EntityId.of(THING_TYPE, "entity:id");
     private static final CacheKey CACHE_KEY = ImmutableCacheKey.of(ENTITY_ID);
     private static final String EXPECTED_SERIALIZED_ENTITY_ID =
             String.join(ImmutableCacheKey.DELIMITER, THING_TYPE, ENTITY_ID);

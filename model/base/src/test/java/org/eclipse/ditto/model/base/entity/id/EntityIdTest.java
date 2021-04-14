@@ -27,15 +27,15 @@ public final class EntityIdTest {
 
     @Test
     public void checkSameId() {
-        final EntityId entityIdFoo = DefaultEntityId.of(ENTITY_TYPE_PLUMBUS, "foo");
+        final EntityId entityIdFoo = FallbackEntityId.of(ENTITY_TYPE_PLUMBUS, "foo");
 
         assertThat(entityIdFoo.isCompatible(entityIdFoo)).isTrue();
     }
 
     @Test
     public void checkDifferentIds() {
-        final EntityId entityIdFoo = DefaultEntityId.of(ENTITY_TYPE_PLUMBUS, "foo");
-        final EntityId entityIdBar = DefaultEntityId.of(ENTITY_TYPE_PLUMBUS, "bar");
+        final EntityId entityIdFoo = FallbackEntityId.of(ENTITY_TYPE_PLUMBUS, "foo");
+        final EntityId entityIdBar = FallbackEntityId.of(ENTITY_TYPE_PLUMBUS, "bar");
 
         assertThat(entityIdFoo.isCompatible(entityIdBar)).isFalse();
     }

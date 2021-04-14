@@ -31,7 +31,6 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 
 import org.awaitility.Awaitility;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -889,11 +888,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             expectMsg(createConnectionResponse);
 
             // send cleanup command
-            underTest.tell(
-                    CleanupPersistence.of(connectionId, DittoHeaders.empty()),
-                    getRef());
-            expectMsg(CleanupPersistenceResponse.success(
-                    DefaultEntityId.of(connectionId.getEntityType(), connectionId), DittoHeaders.empty() //TODO: yannic fix this. it should not be necessary to wrap the connection ID in an anonymous DefaultEntityId
+            underTest.tell(CleanupPersistence.of(connectionId, DittoHeaders.empty()), getRef());
+            expectMsg(CleanupPersistenceResponse.success(connectionId, DittoHeaders.empty()
             ));
         }};
     }

@@ -18,7 +18,6 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.services.utils.akka.PingCommand;
@@ -77,13 +76,9 @@ public final class PersistencePingActorTest {
 
             final PingConfig pingConfig =
                     DefaultPingConfig.of(actorSystem.settings().config().getConfig("ditto.test"));
-            final PolicyId policyId1 = PolicyId.of("some:pid-1");
-            final PolicyId policyId2 = PolicyId.of("some:pid-2");
-            final PolicyId policyId3 = PolicyId.of("some:pid-3");
-            //TODO: yannic fix this. It should not be necessary to wrap the id in an anonymous ID
-            final EntityId persistenceId1 = DefaultEntityId.of(policyId1.getEntityType(), policyId1);
-            final EntityId persistenceId2 = DefaultEntityId.of(policyId2.getEntityType(), policyId2);
-            final EntityId persistenceId3 =  DefaultEntityId.of(policyId3.getEntityType(), policyId3);
+            final PolicyId persistenceId1 = PolicyId.of("some:pid-1");
+            final PolicyId persistenceId2 = PolicyId.of("some:pid-2");
+            final PolicyId persistenceId3 = PolicyId.of("some:pid-3");
             final Props props = PersistencePingActor.propsForTests(probe.ref(), pingConfig,
                     () -> Source.from(Arrays.asList(
                             persistenceId1.getEntityType() + ":" + persistenceId1,

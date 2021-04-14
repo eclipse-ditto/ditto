@@ -19,7 +19,6 @@ import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
@@ -46,8 +45,7 @@ final class ImmutableEntityIdPlaceholder extends AbstractEntityIdPlaceholder<Nam
         argumentNotEmpty(placeholder, "placeholder");
         checkNotNull(entityId, "Entity ID");
         try {
-            final NamespacedEntityId namespacedEntityId =
-                    DefaultNamespacedEntityId.of(entityId.getEntityType(), entityId);
+            final NamespacedEntityId namespacedEntityId = NamespacedEntityId.of(entityId.getEntityType(), entityId);
             return doResolve(namespacedEntityId, placeholder);
         } catch (final NamespacedEntityIdInvalidException e) {
             // not a namespaced entity ID; does not resolve.

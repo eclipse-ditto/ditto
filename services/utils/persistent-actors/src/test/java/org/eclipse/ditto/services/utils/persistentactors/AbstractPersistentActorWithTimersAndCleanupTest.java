@@ -22,7 +22,6 @@ import java.util.UUID;
 import java.util.stream.IntStream;
 
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -263,7 +262,7 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
         }
         final String id = persistenceId.substring(indexOfSeparator + 1);
         final EntityType type = EntityType.of(persistenceId.substring(0, indexOfSeparator));
-        return DefaultEntityId.of(type, id);
+        return EntityId.of(type, id);
     }
 
     static class DummyPersistentActor extends AbstractPersistentActorWithTimersAndCleanup {

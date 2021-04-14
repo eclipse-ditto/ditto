@@ -41,7 +41,6 @@ import org.assertj.core.api.Assertions;
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.model.base.common.DittoDuration;
 import org.eclipse.ditto.model.base.entity.Revision;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -1550,9 +1549,8 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                     .isEqualEqualToButModified(policy);
 
             final PolicyId policyId = policy.getEntityId().orElseThrow(IllegalStateException::new);
-            final EntityId entityId = DefaultEntityId.of(policyId.getEntityType(), policyId); //TODO: yannic fix this. It should not be necessary to wrap this in an anonymous entity ID.
-            policyPersistenceActor.tell(CleanupPersistence.of(entityId, DittoHeaders.empty()), getRef());
-            expectMsg(CleanupPersistenceResponse.success(entityId, DittoHeaders.empty()));
+            policyPersistenceActor.tell(CleanupPersistence.of(policyId, DittoHeaders.empty()), getRef());
+            expectMsg(CleanupPersistenceResponse.success(policyId, DittoHeaders.empty()));
         }};
     }
 
@@ -1575,9 +1573,8 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
             expectMsgClass(DeletePolicyResponse.class);
 
             final PolicyId policyId = policy.getEntityId().orElseThrow(IllegalStateException::new);
-            final EntityId entityId = DefaultEntityId.of(policyId.getEntityType(), policyId); //TODO: yannic fix this. It should not be necessary to wrap this in an anonymous entity ID.
             policyPersistenceActor.tell(CleanupPersistence.of(policyId, DittoHeaders.empty()), getRef());
-            expectMsg(CleanupPersistenceResponse.success(entityId, DittoHeaders.empty()));
+            expectMsg(CleanupPersistenceResponse.success(policyId, DittoHeaders.empty()));
         }};
     }
 

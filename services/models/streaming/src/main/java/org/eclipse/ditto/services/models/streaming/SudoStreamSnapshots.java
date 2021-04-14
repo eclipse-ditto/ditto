@@ -31,7 +31,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -113,7 +112,7 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
 
         final EntityType entityType = EntityType.of(jsonObject.getValueOrThrow(JsonFields.JSON_LOWER_BOUND_TYPE));
         final EntityId lowerBound =
-                DefaultEntityId.of(entityType, jsonObject.getValueOrThrow(JsonFields.JSON_LOWER_BOUND));
+                EntityId.of(entityType, jsonObject.getValueOrThrow(JsonFields.JSON_LOWER_BOUND));
         final JsonArray snapshotFields =
                 jsonObject.getValue(JsonFields.JSON_SNAPSHOT_FIELDS).orElseGet(JsonArray::empty);
         return new SudoStreamSnapshots(burst, timeoutMillis, lowerBound, snapshotFields, dittoHeaders);

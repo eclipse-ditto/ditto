@@ -18,7 +18,6 @@ import org.eclipse.ditto.model.base.entity.id.EntityId;
 
 /**
  * Entity ID together with resource type.
- * TODO: yannic This class is not an entity ID but a CacheKey. Unwrap CacheLookupContext so this class contains those methods. Remove CacheLookupContext afterwards. EntityId will have an entity type in the future so getResourceType can be removed/replace by something like getId().getType().
  */
 public interface CacheKey {
 

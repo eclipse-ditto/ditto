@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.models.streaming;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 
@@ -34,7 +33,7 @@ public final class LowerBound extends AbstractEntityIdWithRevision<EntityId> {
     }
 
     public static EntityId emptyEntityId(final EntityType entityType) {
-        return DefaultEntityId.of(entityType, ":_");
+        return EntityId.of(entityType, ":_");
     }
 
     public static EntityIdWithRevision<EntityId> empty(final EntityType entityType) {
@@ -43,8 +42,8 @@ public final class LowerBound extends AbstractEntityIdWithRevision<EntityId> {
 
     public static EntityIdWithRevision<EntityId> fromJson(JsonObject jsonObject) {
         final EntityType entityType = EntityType.of(jsonObject.getValueOrThrow(JsonFields.ENTITY_TYPE));
-        final DefaultEntityId entityId =
-                DefaultEntityId.of(entityType, jsonObject.getValueOrThrow(JsonFields.ENTITY_ID));
+        final EntityId entityId =
+                EntityId.of(entityType, jsonObject.getValueOrThrow(JsonFields.ENTITY_ID));
         final Long revision = jsonObject.getValueOrThrow(JsonFields.REVISION);
         return new LowerBound(entityId, revision);
     }

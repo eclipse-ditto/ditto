@@ -17,6 +17,8 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.entity.type.EntityType;
+
 /**
  * Interface for all entity IDs that contain a namespace in their string representation.
  * Every implementation of this interface needs to ensure that name and namespace are valid according to
@@ -26,6 +28,18 @@ import javax.annotation.concurrent.Immutable;
  */
 @Immutable
 public interface NamespacedEntityId extends EntityId {
+
+    /**
+     * Instantiates a {@link NamespacedEntityId} based on the given entity type and entity ID.
+     *
+     * @param entityType The type of the entity which is identified by the given ID.
+     * @param entityId The ID of the entity.
+     * @return the instance.
+     * @since 2.0.0
+     */
+    static NamespacedEntityId of(final EntityType entityType, final CharSequence entityId) {
+        return EntityIds.getNamespacedEntityId(entityType, entityId);
+    }
 
     /**
      * Gets the name part of this entity ID.
@@ -40,7 +54,6 @@ public interface NamespacedEntityId extends EntityId {
      * @return the namespace o the entity.
      */
     String getNamespace();
-
 
     /**
      * Checks if the passed entity ID is compatible with this entity ID.

@@ -18,6 +18,7 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.junit.Test;
 
@@ -33,8 +34,21 @@ public class PolicyIdTest {
     @Test
     public void testEqualsAndHashcode() {
         EqualsVerifier.forClass(PolicyId.class)
+                .withRedefinedSuperclass()
                 .usingGetClass()
+                //already contained in string representation which is compared in base class
+                .withIgnoredFields("name", "namespace")
                 .verify();
+    }
+
+    @Test
+    public void instantiationFromEntityTypeCreatesPolicyId() {
+        final NamespacedEntityId namespacedEntityId =
+                NamespacedEntityId.of(PolicyConstants.ENTITY_TYPE, "namespace:name");
+        final EntityId entityId = EntityId.of(PolicyConstants.ENTITY_TYPE, "namespace:name");
+
+        assertThat((CharSequence) namespacedEntityId).isInstanceOf(PolicyId.class);
+        assertThat((CharSequence) entityId).isInstanceOf(PolicyId.class);
     }
 
     @Test

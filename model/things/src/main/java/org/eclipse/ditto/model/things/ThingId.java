@@ -18,18 +18,24 @@ import java.util.function.Supplier;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.entity.id.AbstractNamespacedEntityId;
-import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
-import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
+import org.eclipse.ditto.model.base.entity.id.TypedEntityId;
 
 /**
  * Java representation of a validated Thing ID.
  */
 @Immutable
+@TypedEntityId(type = "thing")
 public final class ThingId extends AbstractNamespacedEntityId {
 
-    private ThingId(final NamespacedEntityId entityId) {
-        super(entityId);
+    private static final String DEFAULT_NAMESPACE = "";
+
+    private ThingId(final CharSequence thingId) {
+        super(ThingConstants.ENTITY_TYPE, thingId);
+    }
+
+    private ThingId(final String namespace, final String name, final boolean shouldValidate) {
+        super(ThingConstants.ENTITY_TYPE, namespace, name, shouldValidate);
     }
 
     /**
@@ -46,8 +52,13 @@ public final class ThingId extends AbstractNamespacedEntityId {
             return (ThingId) thingId;
         }
 
-        return wrapInThingIdInvalidException(
-                () -> new ThingId(DefaultNamespacedEntityId.of(ThingConstants.ENTITY_TYPE, thingId)));
+        if (thingId instanceof AbstractNamespacedEntityId) {
+            final String namespace = ((AbstractNamespacedEntityId) thingId).getNamespace();
+            final String name = ((AbstractNamespacedEntityId) thingId).getName();
+            return new ThingId(namespace, name, false);
+        }
+
+        return wrapInThingIdInvalidException(() -> new ThingId(thingId));
     }
 
     /**
@@ -58,8 +69,7 @@ public final class ThingId extends AbstractNamespacedEntityId {
      * @return the created ID.
      */
     public static ThingId of(final String namespace, final String name) {
-        return wrapInThingIdInvalidException(
-                () -> new ThingId(DefaultNamespacedEntityId.of(ThingConstants.ENTITY_TYPE, namespace, name)));
+        return wrapInThingIdInvalidException(() -> new ThingId(namespace, name, true));
     }
 
     /**
@@ -70,8 +80,7 @@ public final class ThingId extends AbstractNamespacedEntityId {
      * @throws ThingIdInvalidException if for the given {@code name} a ThingId cannot be derived.
      */
     public static ThingId inDefaultNamespace(final String name) {
-        return wrapInThingIdInvalidException(
-                () -> new ThingId(DefaultNamespacedEntityId.fromName(ThingConstants.ENTITY_TYPE, name)));
+        return wrapInThingIdInvalidException(() -> new ThingId(DEFAULT_NAMESPACE, name, true));
     }
 
     /**
@@ -80,9 +89,7 @@ public final class ThingId extends AbstractNamespacedEntityId {
      * @return the generated thing ID.
      */
     public static ThingId generateRandom() {
-        return wrapInThingIdInvalidException(
-                () -> new ThingId(
-                        DefaultNamespacedEntityId.fromName(ThingConstants.ENTITY_TYPE, UUID.randomUUID().toString())));
+        return wrapInThingIdInvalidException(() -> new ThingId(DEFAULT_NAMESPACE, UUID.randomUUID().toString(), true));
     }
 
     private static <T> T wrapInThingIdInvalidException(final Supplier<T> supplier) {

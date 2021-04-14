@@ -17,7 +17,6 @@ import java.util.function.BiFunction;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -98,7 +97,7 @@ final class DittoRuntimeExceptionToErrorResponseFunction
                             final int indexOfSeparator = entityId.indexOf(":");
                             final EntityType entityType = EntityType.of(entityId.substring(0, indexOfSeparator));
                             final String id = entityId.substring(indexOfSeparator + 1);
-                            return DefaultNamespacedEntityId.of(entityType, id);
+                            return EntityId.of(entityType, id);
                         })
                 );
     }

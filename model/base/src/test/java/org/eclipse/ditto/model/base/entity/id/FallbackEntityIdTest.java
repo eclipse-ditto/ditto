@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.model.base.entity.id;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
@@ -25,20 +24,20 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link DefaultEntityId}.
+ * Unit test for {@link FallbackEntityId}.
  */
-public final class DefaultEntityIdTest {
+public final class FallbackEntityIdTest {
 
-    private static final EntityType THING_TYPE = EntityType.of("thing");
+    private static final EntityType UNKNOWN_TYPE = EntityType.of("unknown");
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DefaultEntityId.class, areImmutable(), provided(EntityType.class).isAlsoImmutable());
+        assertInstancesOf(FallbackEntityId.class, areImmutable(), provided(EntityType.class).isAlsoImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(DefaultEntityId.class)
+        EqualsVerifier.forClass(FallbackEntityId.class)
                 .usingGetClass()
                 .verify();
     }
@@ -46,7 +45,7 @@ public final class DefaultEntityIdTest {
     @Test
     public void tryToGetInstanceFromNull() {
         assertThatNullPointerException()
-                .isThrownBy(() -> DefaultEntityId.of(THING_TYPE, null))
+                .isThrownBy(() -> FallbackEntityId.of(UNKNOWN_TYPE, null))
                 .withMessage("The entityId must not be null!")
                 .withNoCause();
     }
@@ -54,17 +53,9 @@ public final class DefaultEntityIdTest {
     @Test
     public void tryToGetInstanceFromEmptyString() {
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> DefaultEntityId.of(THING_TYPE, ""))
+                .isThrownBy(() -> FallbackEntityId.of(UNKNOWN_TYPE, ""))
                 .withMessage("The argument 'entityId' must not be empty!")
                 .withNoCause();
     }
-
-    @Test
-    public void getInstanceFromDefaultEntityIdReturnsSame() {
-        final DefaultEntityId underTest = DefaultEntityId.generateRandom(THING_TYPE);
-
-        assertThat((CharSequence) DefaultEntityId.of(THING_TYPE, underTest)).isSameAs(underTest);
-    }
-
 
 }

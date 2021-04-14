@@ -20,7 +20,7 @@ import java.util.List;
 
 import org.bson.Document;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.models.streaming.StreamedSnapshot;
@@ -119,12 +119,12 @@ public final class SnapshotStreamingActorTest {
                     .join();
 
             assertThat(results).containsExactly(
-                    StreamedSnapshot.of(DefaultEntityId.of(THING_TYPE, "snap:1"),
-                            JsonObject.of("{\"_revision\":1,\"_modified\":\"2001-01-01\"}")),
-                    StreamedSnapshot.of(DefaultEntityId.of(THING_TYPE, "snap:2"),
-                            JsonObject.of("{\"_revision\":2,\"_modified\":\"2002-02-02\"}")),
-                    StreamedSnapshot.of(DefaultEntityId.of(THING_TYPE, "snap:3"),
-                            JsonObject.of("{\"_revision\":3,\"_modified\":\"2003-03-03\"}"))
+                    StreamedSnapshot.of(EntityId.of(THING_TYPE, "snap:1"),
+                            JsonObject.of("{\"pid\":\"thing:snap:1\",\"_revision\":1,\"_modified\":\"2001-01-01\"}")),
+                    StreamedSnapshot.of(EntityId.of(THING_TYPE, "snap:2"),
+                            JsonObject.of("{\"pid\":\"thing:snap:2\",\"_revision\":2,\"_modified\":\"2002-02-02\"}")),
+                    StreamedSnapshot.of(EntityId.of(THING_TYPE, "snap:3"),
+                            JsonObject.of("{\"pid\":\"thing:snap:3\",\"_revision\":3,\"_modified\":\"2003-03-03\"}"))
             );
         }};
 
@@ -136,7 +136,7 @@ public final class SnapshotStreamingActorTest {
 
     private ActorRef createSnapshotStreamingActor() {
         final Props props = SnapshotStreamingActor.propsForTest(
-                pid -> DefaultEntityId.of(EntityType.of(pid.substring(0, pid.indexOf(":"))),
+                pid -> EntityId.of(EntityType.of(pid.substring(0, pid.indexOf(":"))),
                         pid.substring(pid.indexOf(':') + 1)),
                 entityId -> THING_TYPE + ":" + entityId.toString(),
                 mockClient,

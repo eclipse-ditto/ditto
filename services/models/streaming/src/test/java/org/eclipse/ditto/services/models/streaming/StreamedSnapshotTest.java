@@ -18,7 +18,6 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.junit.Test;
@@ -46,7 +45,7 @@ public final class StreamedSnapshotTest {
     @Test
     public void testSerialization() {
         final StreamedSnapshot underTest =
-                StreamedSnapshot.of(DefaultEntityId.of(EntityType.of("thing"), "hello:world"),
+                StreamedSnapshot.of(EntityId.of(EntityType.of("thing"), "hello:world"),
                         JsonObject.of("{\"hello\":\"world\"}"));
 
         final StreamedSnapshot deserialized = StreamedSnapshot.fromJson(underTest.toJson());

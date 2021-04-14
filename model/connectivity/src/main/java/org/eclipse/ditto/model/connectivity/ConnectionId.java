@@ -14,29 +14,28 @@ package org.eclipse.ditto.model.connectivity;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.Objects;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.base.entity.type.EntityType;
+import org.eclipse.ditto.model.base.entity.id.AbstractEntityId;
+import org.eclipse.ditto.model.base.entity.id.TypedEntityId;
 
 /**
  * Java representation of a connection ID.
  */
 @Immutable
-public final class ConnectionId implements EntityId {
+@TypedEntityId(type = "connection")
+public final class ConnectionId extends AbstractEntityId {
 
     static final String ID_REGEX = "[a-zA-Z0-9-_]{1,80}";
     static final Pattern ID_PATTERN = Pattern.compile(ID_REGEX);
 
-    private final String stringRepresentation;
-
     private ConnectionId(final String stringRepresentation, final boolean shouldValidate) {
-        this.stringRepresentation = shouldValidate ? validate(stringRepresentation) : stringRepresentation;
+        super(ConnectivityConstants.ENTITY_TYPE,
+                shouldValidate ? validate(stringRepresentation) : stringRepresentation);
     }
 
     /**
@@ -62,35 +61,11 @@ public final class ConnectionId implements EntityId {
         return new ConnectionId(checkNotNull(connectionId, "connectionId").toString(), true);
     }
 
-    @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        final ConnectionId connectionId = (ConnectionId) o;
-        return Objects.equals(stringRepresentation, connectionId.stringRepresentation);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(stringRepresentation);
-    }
-
-
-    @Override
-    public String toString() {
-        return stringRepresentation;
-    }
-
-    private String validate(final @Nullable String entityId) {
+    private static String validate(final @Nullable String entityId) {
         if (entityId == null || !ConnectionIdPatternValidator.getInstance(entityId).isValid()) {
             throw ConnectionIdInvalidException.newBuilder(entityId).build();
         }
         return entityId;
-    }
-
-    @Override
-    public EntityType getEntityType() {
-        return ConnectivityConstants.CONNECTION_ENTITY_TYPE;
     }
 
 }

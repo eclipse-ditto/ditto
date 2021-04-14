@@ -23,11 +23,9 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
@@ -92,7 +90,7 @@ public final class PingCommand implements Jsonifiable<JsonObject>, WithEntityId 
     public static PingCommand fromJson(final JsonObject jsonObject) {
         final EntityType entityType = EntityType.of(jsonObject.getValueOrThrow(JsonFields.ENTITY_TYPE));
         final EntityId extractedEntityId =
-                DefaultEntityId.of(entityType, jsonObject.getValueOrThrow(JsonFields.ENTITY_ID));
+                EntityId.of(entityType, jsonObject.getValueOrThrow(JsonFields.ENTITY_ID));
         final String extractedCorrelationId = jsonObject.getValue(JsonFields.CORRELATION_ID).orElse(null);
         final JsonValue extractedPayload = jsonObject.getValue(JsonFields.PAYLOAD).orElse(null);
 

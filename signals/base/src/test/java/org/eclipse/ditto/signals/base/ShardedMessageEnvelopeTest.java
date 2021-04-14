@@ -16,7 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -32,7 +31,7 @@ public final class ShardedMessageEnvelopeTest {
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.empty();
 
     private static final EntityId MESSAGE_ID =
-            DefaultEntityId.of(EntityType.of("thing"), "org.eclipse.ditto.test:thingId"); // TODO: Yannic maybe initialize thing id?
+            EntityId.of(EntityType.of("thing"), "org.eclipse.ditto.test:thingId"); // TODO: Yannic maybe initialize thing id?
     private static final String TYPE = "message-type";
     private static final JsonObject MESSAGE = JsonFactory.newObjectBuilder().set("hello", "world").build();
 

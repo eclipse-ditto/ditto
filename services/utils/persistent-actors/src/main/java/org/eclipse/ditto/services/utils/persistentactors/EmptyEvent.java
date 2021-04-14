@@ -26,7 +26,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
@@ -100,7 +99,7 @@ public final class EmptyEvent implements Event<EmptyEvent>, WithEntityId {
                 .deserialize((revision, timestamp, metadata) -> {
                     final EntityType entityType = EntityType.of(jsonObject.getValueOrThrow(JSON_ENTITY_TYPE));
                     final EntityId readEntityId =
-                            DefaultEntityId.of(entityType, jsonObject.getValueOrThrow(JSON_ENTITY_ID));
+                            EntityId.of(entityType, jsonObject.getValueOrThrow(JSON_ENTITY_ID));
                     final JsonValue readEffect = jsonObject.getValueOrThrow(JSON_EFFECT);
                     return new EmptyEvent(readEntityId, readEffect, revision, dittoHeaders);
                 });

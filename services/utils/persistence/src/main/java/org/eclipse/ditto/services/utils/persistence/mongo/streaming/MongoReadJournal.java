@@ -82,7 +82,7 @@ public class MongoReadJournal {
      * ID field of documents delivered by the read journal.
      */
     public static final String J_ID = JournallingFieldNames$.MODULE$.ID();
-    public static final String J_PROCESSOR_ID = JournallingFieldNames$.MODULE$.PROCESSOR_ID();
+    public static final String S_PROCESSOR_ID = SnapshottingFieldNames$.MODULE$.PROCESSOR_ID();
 
     /**
      * Prefix of the priority tag which is used in
@@ -105,6 +105,7 @@ public class MongoReadJournal {
     // Not working: SnapshottingFieldNames.V2$.MODULE$.SERIALIZED()
     private static final String S_SERIALIZED_SNAPSHOT = "s2";
     private static final String LIFECYCLE = "__lifecycle";
+    private static final String J_PROCESSOR_ID = JournallingFieldNames$.MODULE$.PROCESSOR_ID();
 
     private static final Duration MAX_BACK_OFF_DURATION = Duration.ofSeconds(128L);
 

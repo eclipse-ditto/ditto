@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
@@ -107,8 +106,7 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
 
                 // tell the persistence actor to clean up
                 persistenceActorUnderTest.tell(CleanupPersistence.of(thingId, DittoHeaders.empty()), getRef());
-                final EntityId entityId = DefaultEntityId.of(thingId.getEntityType(), thingId); //TODO: yannic fix this. It should not be necessary to wrap this in an anonymous entity ID.
-                expectMsg(CleanupPersistenceResponse.success(entityId, DittoHeaders.empty()));
+                expectMsg(CleanupPersistenceResponse.success(thingId, DittoHeaders.empty()));
 
                 // we expect only the latest snapshot to exist after cleanup
                 final List<Thing> expectedSnapshotsAfterCleanup =
@@ -177,8 +175,7 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
 
                 // tell the persistence actor to clean up
                 persistenceActorUnderTest.tell(CleanupPersistence.of(thingId, DittoHeaders.empty()), getRef());
-                final EntityId entityId = DefaultEntityId.of(thingId.getEntityType(), thingId); //TODO: yannic fix this. It should not be necessary to wrap this in an anonymous entity ID.
-                expectMsg(CleanupPersistenceResponse.success(entityId, DittoHeaders.empty()));
+                expectMsg(CleanupPersistenceResponse.success(thingId, DittoHeaders.empty()));
                 // we expect only the latest snapshot and latest event to exist after cleanup
                 expectedEvents.remove(thingCreated);
                 assertSnapshots(thingId, Collections.singletonList(expectedDeletedSnapshot));
