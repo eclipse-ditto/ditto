@@ -100,9 +100,9 @@ final class DittoRuntimeExceptionToErrorResponseFunction
     private static Optional<EntityId> getEntityIdFromTopicPath(final TopicPath topicPath) {
         switch (topicPath.getGroup()) {
             case THINGS:
-                return Optional.of(ThingId.of(topicPath.getNamespace(), topicPath.getId()));
+                return Optional.of(ThingId.of(topicPath.getNamespace(), topicPath.getEntityName()));
             case POLICIES:
-                return Optional.of(PolicyId.of(topicPath.getNamespace(), topicPath.getId()));
+                return Optional.of(PolicyId.of(topicPath.getNamespace(), topicPath.getEntityName()));
             default:
                 return Optional.empty();
         }

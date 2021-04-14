@@ -135,10 +135,10 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
      */
     private static DittoHeaders mapTopicPathToHeaders(final TopicPath topicPath) {
         final DittoHeadersBuilder<?, ?> headersBuilder = DittoHeaders.newBuilder();
-        if (topicPath.getNamespace() != null && topicPath.getId() != null) {
+        if (topicPath.getNamespace() != null && topicPath.getEntityName() != null) {
             // add entity ID for known topic-paths for error reporting.
             headersBuilder.putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(),
-                    (topicPath.getNamespace() + ":" + topicPath.getId()));
+                    (topicPath.getNamespace() + ":" + topicPath.getEntityName()));
         }
         if (topicPath.getChannel() == TopicPath.Channel.LIVE) {
             headersBuilder.channel(TopicPath.Channel.LIVE.getName());

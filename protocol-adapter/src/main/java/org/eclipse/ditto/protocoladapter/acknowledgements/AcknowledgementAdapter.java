@@ -30,7 +30,6 @@ import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabelExternalUseForbiddenException;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.AcknowledgementTopicPathBuilder;
@@ -38,7 +37,6 @@ import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.Adapter;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.Payload;
-import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.protocoladapter.TopicPathBuilder;
 import org.eclipse.ditto.protocoladapter.UnknownTopicPathException;
@@ -88,7 +86,7 @@ final class AcknowledgementAdapter implements Adapter<Acknowledgement> {
 
     private static ThingId getThingId(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();
-        return ThingId.of(topicPath.getNamespace(), topicPath.getId());
+        return ThingId.of(topicPath.getNamespace(), topicPath.getEntityName());
     }
 
     private static HttpStatus getHttpStatusOrThrow(final Adaptable adaptable) {

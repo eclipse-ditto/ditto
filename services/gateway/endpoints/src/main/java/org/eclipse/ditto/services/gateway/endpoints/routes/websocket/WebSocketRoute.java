@@ -718,7 +718,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         final JsonifiableAdaptable errorAdaptable =
                 ProtocolFactory.wrapAsJsonifiableAdaptable(adapter.toAdaptable((Signal<?>)
                         ThingErrorResponse.of(
-                                ThingId.of(adaptable.getTopicPath().getNamespace(), adaptable.getTopicPath().getId()),
+                                ThingId.of(adaptable.getTopicPath().getNamespace(), adaptable.getTopicPath().getEntityName()),
                                 errorToReport,
                                 adaptable.getDittoHeaders()
                         )

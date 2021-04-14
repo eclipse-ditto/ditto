@@ -95,7 +95,7 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
         final Optional<JsonValue> payloadValue = payload.getValue();
         final Optional<JsonObject> extraData = payload.getExtra();
         final JsonObjectBuilder builder = JsonObject.newBuilder();
-        builder.set(THING_ID, ThingId.of(topicPath.getNamespace(), topicPath.getId()).toString());
+        builder.set(THING_ID, ThingId.of(topicPath.getNamespace(), topicPath.getEntityName()).toString());
 
         // enrich with data selected by "extraFields", do this first - the actual changed data applied on top of that:
         extraData.ifPresent(builder::setAll);

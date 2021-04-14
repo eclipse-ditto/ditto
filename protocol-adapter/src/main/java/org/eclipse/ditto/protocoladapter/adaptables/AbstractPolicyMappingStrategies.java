@@ -63,7 +63,7 @@ abstract class AbstractPolicyMappingStrategies<T extends Jsonifiable.WithPredica
      */
     protected static PolicyId policyIdFromTopicPath(final TopicPath topicPath) {
         checkNotNull(topicPath, "topicPath");
-        return PolicyId.of(topicPath.getNamespace(), topicPath.getId());
+        return PolicyId.of(topicPath.getNamespace(), topicPath.getEntityName());
     }
 
     /**

@@ -74,7 +74,7 @@ final class AcknowledgementsAdapter implements Adapter<Acknowledgements> {
 
     private static ThingId getThingId(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();
-        return ThingId.of(topicPath.getNamespace(), topicPath.getId());
+        return ThingId.of(topicPath.getNamespace(), topicPath.getEntityName());
     }
 
     private static List<Acknowledgement> gatherContainedAcknowledgements(final Adaptable adaptable,
