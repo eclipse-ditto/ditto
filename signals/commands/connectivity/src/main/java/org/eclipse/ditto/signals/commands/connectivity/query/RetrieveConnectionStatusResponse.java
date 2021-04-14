@@ -46,12 +46,12 @@ import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
+import org.eclipse.ditto.model.connectivity.WithConnectionId;
 import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
-import org.eclipse.ditto.model.connectivity.WithConnectionId;
 
 /**
  * Response to a {@link RetrieveConnection} command.

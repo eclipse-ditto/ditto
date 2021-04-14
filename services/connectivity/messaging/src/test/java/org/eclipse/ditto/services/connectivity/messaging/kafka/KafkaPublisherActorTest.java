@@ -19,6 +19,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -186,7 +187,8 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
                         .topics(Topic.TWIN_EVENTS)
                         .build();
 
-                final ThingEvent source = ThingDeleted.of(TestConstants.Things.THING_ID, 99L, dittoHeaders);
+                final ThingEvent<?> source = ThingDeleted.of(TestConstants.Things.THING_ID, 99L, Instant.now(), dittoHeaders,
+                        null);
                 final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(source, List.of(target));
                 final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(Map.of())
                         .withText("payload")

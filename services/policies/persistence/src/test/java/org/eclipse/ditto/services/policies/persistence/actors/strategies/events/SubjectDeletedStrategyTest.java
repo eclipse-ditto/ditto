@@ -38,7 +38,7 @@ public class SubjectDeletedStrategyTest extends AbstractPolicyEventStrategyTest<
     SubjectDeleted getPolicyEvent(final Instant instant, final Policy policy) {
         final PolicyId policyId = policy.getEntityId().orElseThrow();
         return SubjectDeleted.of(policyId, SUPPORT_LABEL, ADDITIONAL_SUPPORT_SUBJECT_ID, 10L, instant,
-                DittoHeaders.empty());
+                DittoHeaders.empty(), METADATA);
     }
 
     @Override

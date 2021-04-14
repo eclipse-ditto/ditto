@@ -81,7 +81,7 @@ public final class NormalizedMessageMapperTest {
                         .properties(JsonObject.of("{\"y\":6}"))
                         .withId("feature")
                         .build()))
-                .build(), 1L, Instant.ofEpochSecond(1L), DittoHeaders.empty());
+                .build(), 1L, Instant.ofEpochSecond(1L), DittoHeaders.empty(), null);
 
         final Adaptable adaptable = ADAPTER.toAdaptable(event);
         Assertions.assertThat(mapToJson(adaptable))
@@ -202,7 +202,7 @@ public final class NormalizedMessageMapperTest {
                         .properties(JsonObject.of("{\"y\":6}"))
                         .withId("feature")
                         .build()))
-                .build(), 1L, Instant.ofEpochSecond(1L), DittoHeaders.empty());
+                .build(), 1L, Instant.ofEpochSecond(1L), DittoHeaders.empty(), null);
 
         final Map<String, JsonValue> options = Map.of(NormalizedMessageMapper.FIELDS, JsonValue.of(
                 "thingId,policyId,attributes,features,_modified,_revision,_context(topic,path)," +
@@ -274,8 +274,9 @@ public final class NormalizedMessageMapperTest {
                 Instant.ofEpochSecond(3L), DittoHeaders.empty(), null));
         assertNotMapped(FeaturePropertyDeleted.of(ThingId.of("thing:id"), "featureId",
                 JsonPointer.of("jumps/over/the/lazy/dog"), 4L, Instant.ofEpochSecond(4L), DittoHeaders.empty(), null));
-        assertNotMapped(FeatureDeleted.of(ThingId.of("thing:id"), "featureId", 5L, DittoHeaders.empty()));
-        assertNotMapped(ThingDeleted.of(ThingId.of("thing:id"), 6L, DittoHeaders.empty()));
+        assertNotMapped(FeatureDeleted.of(ThingId.of("thing:id"), "featureId", 5L, Instant.EPOCH,
+                DittoHeaders.empty(), null));
+        assertNotMapped(ThingDeleted.of(ThingId.of("thing:id"), 6L, Instant.EPOCH, DittoHeaders.empty(), null));
     }
 
     @Test

@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.models.signalenrichment;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 
@@ -30,7 +31,6 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.events.things.AttributeModified;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.junit.Test;
 
 import akka.pattern.AskTimeoutException;
@@ -45,11 +45,13 @@ abstract class AbstractSignalEnrichmentFacadeTest {
             JsonFieldSelector.newInstance("policyId", "attributes/x", "features/y/properties/z");
 
     protected static final String RESULT_POLICY_ID = "policy:id";
-    protected static final ThingEvent<?> THING_EVENT = AttributeModified.of(ThingId.generateRandom(),
+    protected static final AttributeModified THING_EVENT = AttributeModified.of(ThingId.generateRandom(),
             JsonPointer.of("x"),
             JsonValue.of(5),
             3L,
-            DittoHeaders.empty());
+            Instant.EPOCH,
+            DittoHeaders.empty(),
+            null);
 
     @Test
     public void success() {
@@ -168,7 +170,7 @@ abstract class AbstractSignalEnrichmentFacadeTest {
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
             final ThingId thingId = ThingId.generateRandom();
             final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
-            final ThingDeleted thingDeleted = ThingDeleted.of(thingId, 2L, headers);
+            final ThingDeleted thingDeleted = ThingDeleted.of(thingId, 2L, Instant.EPOCH, headers, null);
 
             // WHEN: ThingDeleted event is about to be enriched by facade
             underTest.retrievePartialThing(thingId, SELECTOR, headers, thingDeleted);

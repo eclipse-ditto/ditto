@@ -48,7 +48,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.connectivity.config.Amqp10Config;
 import org.eclipse.ditto.services.connectivity.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;

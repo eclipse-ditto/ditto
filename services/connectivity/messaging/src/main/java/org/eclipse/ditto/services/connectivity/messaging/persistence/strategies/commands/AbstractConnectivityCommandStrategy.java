@@ -60,7 +60,7 @@ abstract class AbstractConnectivityCommandStrategy<C extends ConnectivityCommand
     }
 
     static Optional<DittoRuntimeException> validate(final Context<ConnectionState> context,
-            final ConnectivityCommand<?> command, final Connection connection) {
+            final ConnectivityCommand<?> command, @Nullable final Connection connection) {
         try {
             context.getState().getValidator().accept(command, () -> connection);
             return Optional.empty();

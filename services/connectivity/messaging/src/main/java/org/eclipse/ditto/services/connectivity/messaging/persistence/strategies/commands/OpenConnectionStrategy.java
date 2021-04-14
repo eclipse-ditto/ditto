@@ -58,7 +58,8 @@ final class OpenConnectionStrategy extends AbstractConnectivityCommandStrategy<O
         if (validationError.isPresent()) {
             return newErrorResult(validationError.get(), command);
         } else {
-            final ConnectivityEvent<?> event = ConnectionOpened.of(context.getState().id(), command.getDittoHeaders());
+            final ConnectivityEvent<?> event = ConnectionOpened.of(context.getState().id(), nextRevision,
+                    getEventTimestamp(), command.getDittoHeaders(), metadata);
             final WithDittoHeaders response =
                     OpenConnectionResponse.of(context.getState().id(), command.getDittoHeaders());
             final List<ConnectionAction> actions =

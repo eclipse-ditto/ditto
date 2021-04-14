@@ -27,8 +27,6 @@ import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.SendResult;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.AbstractMqttValidator;
@@ -37,7 +35,6 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.WithHttpStatus;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 

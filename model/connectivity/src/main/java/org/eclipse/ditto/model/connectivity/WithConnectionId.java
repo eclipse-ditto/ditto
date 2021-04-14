@@ -13,7 +13,6 @@
 package org.eclipse.ditto.model.connectivity;
 
 import org.eclipse.ditto.model.base.entity.id.WithEntityId;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
 
 /**
  * Represents a signal type that is able to return its ConnectionId. Provides a default implementation for

@@ -22,9 +22,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -41,8 +40,8 @@ public final class FeatureDesiredPropertyModifiedTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, FeatureDesiredPropertyModified.TYPE)
-            .set(Event.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
             .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
+            .set(EventsourcedEvent.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
             .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ThingEvent.JsonFields.FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(FeatureDesiredPropertyModified.JSON_DESIRED_PROPERTY, PROPERTY_JSON_POINTER.toString())
@@ -64,14 +63,6 @@ public final class FeatureDesiredPropertyModifiedTest {
                 .withRedefinedSuperclass()
                 .verify();
     }
-
-    @Test(expected = ThingIdInvalidException.class)
-    public void tryToCreateInstanceWithNullThingIdString() {
-        FeatureDesiredPropertyModified
-                .of(ThingId.of(null), TestConstants.Feature.FLUX_CAPACITOR_ID, PROPERTY_JSON_POINTER, NEW_PROPERTY_VALUE,
-                        TestConstants.Thing.REVISION_NUMBER, null, TestConstants.EMPTY_DITTO_HEADERS, null);
-    }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {

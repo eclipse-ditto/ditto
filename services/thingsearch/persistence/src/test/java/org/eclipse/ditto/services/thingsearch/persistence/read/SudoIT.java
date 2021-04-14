@@ -30,7 +30,6 @@ import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.models.streaming.LowerBound;
-import org.eclipse.ditto.services.models.streaming.SudoStreamPids;
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceReportResult;
 import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQueryBuilderFactory;

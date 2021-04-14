@@ -28,8 +28,10 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 @JsonParsableEvent(name = TestEvent.NAME, typePrefix= TestEvent.TYPE_PREFIX)
+@AllValuesAreNonnullByDefault
 public final class TestEvent implements Event<TestEvent> {
 
     @SuppressWarnings("WeakerAccess") public static final String TYPE_PREFIX = "test.event.";
@@ -73,16 +75,6 @@ public final class TestEvent implements Event<TestEvent> {
     @Override
     public String getType() {
         return TYPE;
-    }
-
-    @Override
-    public long getRevision() {
-        return 0;
-    }
-
-    @Override
-    public TestEvent setRevision(final long revision) {
-        return new TestEvent(id);
     }
 
     @Override

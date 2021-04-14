@@ -28,6 +28,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -39,7 +40,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a {@link Connection} was modified.
  */
 @Immutable
-@JsonParsableEvent(name = ConnectionModified.NAME, typePrefix= ConnectionModified.TYPE_PREFIX)
+@JsonParsableEvent(name = ConnectionModified.NAME, typePrefix= ConnectivityEvent.TYPE_PREFIX)
 public final class ConnectionModified extends AbstractConnectivityEvent<ConnectionModified>
         implements ConnectivityEvent<ConnectionModified> {
 
@@ -55,9 +56,13 @@ public final class ConnectionModified extends AbstractConnectivityEvent<Connecti
 
     private final Connection connection;
 
-    private ConnectionModified(final Connection connection, @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
-        super(TYPE, connection.getId(), timestamp, dittoHeaders);
+    private ConnectionModified(final Connection connection,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
+
+        super(TYPE, connection.getId(), revision, timestamp, dittoHeaders, metadata);
         this.connection = connection;
     }
 
@@ -65,27 +70,20 @@ public final class ConnectionModified extends AbstractConnectivityEvent<Connecti
      * Returns a new {@code ConnectionModified} event.
      *
      * @param connection the modified Connection.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the event.
-     * @throws NullPointerException if any argument is {@code null}.
-     */
-    public static ConnectionModified of(final Connection connection, final DittoHeaders dittoHeaders) {
-        return of(connection,null, dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code ConnectionModified} event.
-     *
-     * @param connection the modified Connection.
+     * @param revision the revision of the Connection.
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @param metadata the metadata to apply for the event.
      * @return the event.
      * @throws NullPointerException if {@code connection} or {@code dittoHeaders} are {@code null}.
      */
-    public static ConnectionModified of(final Connection connection, @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
+    public static ConnectionModified of(final Connection connection,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
         checkNotNull(connection, "Connection");
-        return new ConnectionModified(connection, timestamp, dittoHeaders);
+        return new ConnectionModified(connection, revision, timestamp, dittoHeaders, metadata);
     }
 
     /**
@@ -115,10 +113,11 @@ public final class ConnectionModified extends AbstractConnectivityEvent<Connecti
     public static ConnectionModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<ConnectionModified>(TYPE, jsonObject)
                 .deserialize((revision, timestamp, metadata) -> {
-                    final JsonObject connectionJsonObject = jsonObject.getValueOrThrow(JsonFields.CONNECTION);
+                    final JsonObject connectionJsonObject = jsonObject.getValueOrThrow(
+                            ConnectivityEvent.JsonFields.CONNECTION);
                     final Connection readConnection = ConnectivityModelFactory.connectionFromJson(connectionJsonObject);
 
-                    return of(readConnection, timestamp, dittoHeaders);
+                    return of(readConnection, revision, timestamp, dittoHeaders, metadata);
                 });
     }
 
@@ -142,15 +141,23 @@ public final class ConnectionModified extends AbstractConnectivityEvent<Connecti
     }
 
     @Override
+    public ConnectionModified setRevision(final long revision) {
+        return of(connection, revision, getTimestamp().orElse(null), getDittoHeaders(),
+                getMetadata().orElse(null));
+    }
+
+    @Override
     public ConnectionModified setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(connection, getTimestamp().orElse(null), dittoHeaders);
+        return of(connection, getRevision(), getTimestamp().orElse(null), dittoHeaders,
+                getMetadata().orElse(null));
     }
 
     @Override
     protected void appendPayloadAndBuild(final JsonObjectBuilder jsonObjectBuilder,
             final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(JsonFields.CONNECTION, connection.toJson(schemaVersion, thePredicate), predicate);
+        jsonObjectBuilder.set(ConnectivityEvent.JsonFields.CONNECTION,
+                connection.toJson(schemaVersion, thePredicate), predicate);
     }
 
     @Override

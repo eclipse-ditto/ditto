@@ -35,7 +35,6 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 
 /**

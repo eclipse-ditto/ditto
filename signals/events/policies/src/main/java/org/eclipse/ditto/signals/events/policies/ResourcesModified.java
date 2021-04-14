@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
@@ -41,7 +42,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
 
 @Immutable
-@JsonParsableEvent(name = ResourcesModified.NAME, typePrefix= ResourcesModified.TYPE_PREFIX)
+@JsonParsableEvent(name = ResourcesModified.NAME, typePrefix = PolicyEvent.TYPE_PREFIX)
 public final class ResourcesModified extends AbstractPolicyEvent<ResourcesModified>
         implements PolicyEvent<ResourcesModified> {
 
@@ -69,9 +70,10 @@ public final class ResourcesModified extends AbstractPolicyEvent<ResourcesModifi
             final Resources resources,
             final long revision,
             @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
 
-        super(TYPE, checkNotNull(policyId, "Policy identifier"), revision, timestamp, dittoHeaders);
+        super(TYPE, checkNotNull(policyId, "Policy identifier"), revision, timestamp, dittoHeaders, metadata);
         this.label = checkNotNull(label, "Label");
         this.resources = checkNotNull(resources, "Resources");
     }
@@ -83,78 +85,9 @@ public final class ResourcesModified extends AbstractPolicyEvent<ResourcesModifi
      * @param label the label of the Policy Entry to which the modified resources belongs
      * @param resources the modified {@link Resources}
      * @param revision the revision of the Policy.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the created ResourcesModified.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.Resources, long, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ResourcesModified of(final String policyId,
-            final Label label,
-            final Resources resources,
-            final long revision,
-            final DittoHeaders dittoHeaders) {
-
-        return of(PolicyId.of(policyId), label, resources, revision, dittoHeaders);
-    }
-
-    /**
-     * Constructs a new {@code ResourcesModified} object.
-     *
-     * @param policyId the identifier of the Policy to which the modified resources belongs
-     * @param label the label of the Policy Entry to which the modified resources belongs
-     * @param resources the modified {@link Resources}
-     * @param revision the revision of the Policy.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the created ResourcesModified.
-     * @throws NullPointerException if any argument is {@code null}.
-     */
-    public static ResourcesModified of(final PolicyId policyId,
-            final Label label,
-            final Resources resources,
-            final long revision,
-            final DittoHeaders dittoHeaders) {
-
-        return of(policyId, label, resources, revision, null, dittoHeaders);
-    }
-
-    /**
-     * Constructs a new {@code ResourcesModified} object.
-     *
-     * @param policyId the identifier of the Policy to which the modified resources belongs
-     * @param label the label of the Policy Entry to which the modified resources belongs
-     * @param resources the modified {@link Resources}
-     * @param revision the revision of the Policy.
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the created ResourcesModified.
-     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.Resources, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ResourcesModified of(final String policyId,
-            final Label label,
-            final Resources resources,
-            final long revision,
-            @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
-
-        return of(PolicyId.of(policyId), label, resources, revision, timestamp, dittoHeaders);
-    }
-
-    /**
-     * Constructs a new {@code ResourcesModified} object.
-     *
-     * @param policyId the identifier of the Policy to which the modified resources belongs
-     * @param label the label of the Policy Entry to which the modified resources belongs
-     * @param resources the modified {@link Resources}
-     * @param revision the revision of the Policy.
-     * @param timestamp the timestamp of this event.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @param metadata the metadata to apply for the event.
      * @return the created ResourcesModified.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
@@ -163,9 +96,10 @@ public final class ResourcesModified extends AbstractPolicyEvent<ResourcesModifi
             final Resources resources,
             final long revision,
             @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
 
-        return new ResourcesModified(policyId, label, resources, revision, timestamp, dittoHeaders);
+        return new ResourcesModified(policyId, label, resources, revision, timestamp, dittoHeaders, metadata);
     }
 
     /**
@@ -175,7 +109,8 @@ public final class ResourcesModified extends AbstractPolicyEvent<ResourcesModifi
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the {@code ResourcesModified} which was created from the given JSON string.
      * @throws NullPointerException if {@code jsonString} is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected 'ResourcesModified'
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
+     * 'ResourcesModified'
      * format.
      */
     public static ResourcesModified fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
@@ -189,19 +124,20 @@ public final class ResourcesModified extends AbstractPolicyEvent<ResourcesModifi
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the {@code ResourcesModified} which was created from the given JSON object.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected 'ResourcesModified'
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * 'ResourcesModified'
      * format.
      */
     public static ResourcesModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<ResourcesModified>(TYPE, jsonObject)
                 .deserialize((revision, timestamp, metadata) -> {
-                    final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+                    final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyEvent.JsonFields.POLICY_ID);
                     final PolicyId policyId = PolicyId.of(extractedPolicyId);
                     final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
                     final JsonObject resourcesJsonObject = jsonObject.getValueOrThrow(JSON_RESOURCES);
                     final Resources extractedModifiedResources = PoliciesModelFactory.newResources(resourcesJsonObject);
 
-                    return of(policyId, label, extractedModifiedResources, revision, timestamp, dittoHeaders);
+                    return of(policyId, label, extractedModifiedResources, revision, timestamp, dittoHeaders, metadata);
                 });
     }
 
@@ -236,16 +172,18 @@ public final class ResourcesModified extends AbstractPolicyEvent<ResourcesModifi
 
     @Override
     public ResourcesModified setRevision(final long revision) {
-        return of(getPolicyEntityId(), label, resources, revision, getTimestamp().orElse(null), getDittoHeaders());
+        return of(getPolicyEntityId(), label, resources, revision, getTimestamp().orElse(null), getDittoHeaders(),
+                getMetadata().orElse(null));
     }
 
     @Override
     public ResourcesModified setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getPolicyEntityId(), label, resources, getRevision(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getPolicyEntityId(), label, resources, getRevision(), getTimestamp().orElse(null), dittoHeaders,
+                getMetadata().orElse(null));
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayloadAndBuild(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);

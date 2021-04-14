@@ -84,8 +84,8 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
     public void init() {
         connectionId = TestConstants.createRandomConnectionId();
         final Connection connection = TestConstants.createConnection(connectionId);
-        connectionCreated = ConnectionCreated.of(connection, INSTANT, DittoHeaders.empty());
-        connectionDeleted = ConnectionDeleted.of(connectionId, INSTANT, DittoHeaders.empty());
+        connectionCreated = ConnectionCreated.of(connection, 1L, INSTANT, DittoHeaders.empty(), null);
+        connectionDeleted = ConnectionDeleted.of(connectionId, 2L, INSTANT, DittoHeaders.empty(), null);
     }
 
     /**
@@ -95,7 +95,7 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
     @Test
     public void testRecoveryOfDeletedConnectionsWithoutSnapshot() {
         new TestKit(actorSystem) {{
-            final Queue<ConnectivityEvent> existingEvents
+            final Queue<ConnectivityEvent<?>> existingEvents
                     = new LinkedList<>(Arrays.asList(connectionCreated, connectionDeleted));
             final Props fakeProps = FakePersistenceActor.props(connectionId, getRef(), existingEvents);
 
@@ -128,7 +128,7 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
 
         try {
             new TestKit(akkaTestSystem) {{
-                final Queue<ConnectivityEvent> existingEvents = new LinkedList<>(List.of(connectionCreated));
+                final Queue<ConnectivityEvent<?>> existingEvents = new LinkedList<>(List.of(connectionCreated));
                 final Props fakeProps = FakePersistenceActor.props(connectionId, getRef(), existingEvents);
 
                 akkaTestSystem.actorOf(fakeProps);
@@ -259,17 +259,17 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
 
         private final ConnectionId connectionId;
         private final ActorRef probe;
-        private final Queue<ConnectivityEvent> events;
+        private final Queue<ConnectivityEvent<?>> events;
 
         private FakePersistenceActor(final ConnectionId connectionId, final ActorRef probe,
-                final Queue<ConnectivityEvent> events) {
+                final Queue<ConnectivityEvent<?>> events) {
             this.connectionId = connectionId;
             this.probe = probe;
             this.events = events;
         }
 
         static Props props(final ConnectionId connectionId, final ActorRef probe,
-                final Queue<ConnectivityEvent> events) {
+                final Queue<ConnectivityEvent<?>> events) {
             return Props.create(FakePersistenceActor.class,
                     (Creator<FakePersistenceActor>) () -> new FakePersistenceActor(connectionId, probe, events));
         }
@@ -287,7 +287,7 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
         }
 
         private void persistNextEvent() {
-            final ConnectivityEvent next = events.poll();
+            final ConnectivityEvent<?> next = events.poll();
             if (next != null) {
                 getSelf().tell(next, getSelf());
             } else {

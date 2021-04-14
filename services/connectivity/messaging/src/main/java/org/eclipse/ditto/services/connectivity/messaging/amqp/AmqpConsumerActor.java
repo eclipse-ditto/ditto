@@ -49,7 +49,6 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
-import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.connectivity.config.Amqp10Config;
 import org.eclipse.ditto.services.connectivity.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
@@ -63,7 +62,6 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConne
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
-import org.eclipse.ditto.services.models.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;

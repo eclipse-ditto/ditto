@@ -12,8 +12,11 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.events;
 
+import java.time.Instant;
+
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
@@ -131,6 +134,12 @@ abstract class AbstractStrategyTest {
      * Revision of a Thing.
      */
     static final long REVISION = 0;
+
+    static final Instant TIMESTAMP = Instant.EPOCH;
+
+    static final Metadata METADATA = Metadata.newBuilder()
+            .set("creator", "The epic Ditto team")
+            .build();
 
     /**
      * Incremented revision of a Thing.

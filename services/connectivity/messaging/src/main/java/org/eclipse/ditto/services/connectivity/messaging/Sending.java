@@ -35,8 +35,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
-import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;

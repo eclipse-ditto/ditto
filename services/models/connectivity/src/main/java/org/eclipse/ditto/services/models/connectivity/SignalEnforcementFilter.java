@@ -22,6 +22,7 @@ import java.util.Optional;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.Enforcement;
@@ -30,7 +31,6 @@ import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 
 /**
  * Implementation of an {@link EnforcementFilter} which is applicable to signals.

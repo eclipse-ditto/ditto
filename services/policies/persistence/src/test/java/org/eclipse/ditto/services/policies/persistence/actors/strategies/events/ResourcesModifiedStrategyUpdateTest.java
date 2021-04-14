@@ -44,7 +44,8 @@ public class ResourcesModifiedStrategyUpdateTest extends AbstractPolicyEventStra
     ResourcesModified getPolicyEvent(final Instant instant, final Policy policy) {
         final PolicyId policyId = policy.getEntityId().orElseThrow();
         final Resources resources = Resources.newInstance(NEW_ATTRIBUTE_RESOURCE);
-        return ResourcesModified.of(policyId, SUPPORT_LABEL, resources, 10L, instant, DittoHeaders.empty());
+        return ResourcesModified.of(policyId, SUPPORT_LABEL, resources, 10L, instant, DittoHeaders.empty(),
+                METADATA);
     }
 
     @Override

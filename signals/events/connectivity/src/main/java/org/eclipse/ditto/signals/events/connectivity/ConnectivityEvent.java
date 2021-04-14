@@ -24,14 +24,14 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.WithConnectionId;
 import org.eclipse.ditto.signals.base.SignalWithEntityId;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 
 /**
  * Interface for all {@link Connection} related events.
  *
  * @param <T> the type of the implementing class.
  */
-public interface ConnectivityEvent<T extends ConnectivityEvent<T>> extends Event<T>, SignalWithEntityId<T>,
+public interface ConnectivityEvent<T extends ConnectivityEvent<T>> extends EventsourcedEvent<T>, SignalWithEntityId<T>,
         WithConnectionId {
 
     /**
@@ -52,28 +52,6 @@ public interface ConnectivityEvent<T extends ConnectivityEvent<T>> extends Event
     @Override
     default String getResourceType() {
         return RESOURCE_TYPE;
-    }
-
-    /**
-     * A {@code ConnectivityEvent} doesn't have a revision. Thus this implementation always throws an {@code
-     * UnsupportedOperationException}.
-     *
-     * @throws UnsupportedOperationException if invoked.
-     */
-    @Override
-    default long getRevision() {
-        throw new UnsupportedOperationException("An ConnectivityEvent doesn't have a revision!");
-    }
-
-    /**
-     * A {@code ConnectivityEvent} doesn't have a revision. Thus this implementation always throws an {@code
-     * UnsupportedOperationException}.
-     *
-     * @throws UnsupportedOperationException if invoked.
-     */
-    @Override
-    default T setRevision(final long revision) {
-        throw new UnsupportedOperationException("An ConnectivityEvent doesn't have a revision!");
     }
 
     @Override

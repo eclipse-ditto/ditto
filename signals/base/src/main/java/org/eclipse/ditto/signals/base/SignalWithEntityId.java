@@ -1,4 +1,4 @@
- /*
+/*
   * Copyright (c) 2021 Contributors to the Eclipse Foundation
   *
   * See the NOTICE file(s) distributed with this work for additional
@@ -10,12 +10,12 @@
   *
   * SPDX-License-Identifier: EPL-2.0
   */
- package org.eclipse.ditto.signals.base;
+package org.eclipse.ditto.signals.base;
 
- import org.eclipse.ditto.model.base.entity.id.WithEntityId;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 
- /**
-  * An intersection type for all Signals with an entity associated to it.
-  */
- public interface SignalWithEntityId<T extends SignalWithEntityId<T>> extends Signal<T>, WithEntityId {
- }
+/**
+ * An intersection type for all Signals with an entity associated to it.
+ */
+public interface SignalWithEntityId<T extends SignalWithEntityId<T>> extends Signal<T>, WithEntityId {
+}

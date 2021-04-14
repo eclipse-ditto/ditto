@@ -18,19 +18,16 @@ import static org.eclipse.ditto.services.models.policies.Permission.MIN_REQUIRED
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
-import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonFieldSelectorBuilder;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;

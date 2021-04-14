@@ -291,7 +291,7 @@ public class ConnectionStatusMessageMapperTest {
         underTest.configure(mappingConfig, thingIdWithPlaceholder);
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
-        assertThat(mappingResult.get(0).getTopicPath().getId())
+        assertThat(mappingResult.get(0).getTopicPath().getEntityName())
                 .isEqualTo(ThingId.of(validHeader.get(HEADER_HONO_DEVICE_ID)).getName());
     }
 

@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.eclipse.ditto.services.connectivity.messaging.FaultyClientActor.faultyClientActorPropsFactory;
 
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -72,7 +73,7 @@ public class ErrorHandlingActorTest extends WithMockServers {
             watch(underTest);
 
             // create connection
-            final ConnectivityModifyCommand command = CreateConnection.of(connection, DittoHeaders.empty());
+            final ConnectivityModifyCommand<?> command = CreateConnection.of(connection, DittoHeaders.empty());
             underTest.tell(command, getRef());
             expectMsg(CreateConnectionResponse.of(connection, DittoHeaders.empty()));
         }};
@@ -103,12 +104,12 @@ public class ErrorHandlingActorTest extends WithMockServers {
             underTest.tell(createConnection, getRef());
             final CreateConnectionResponse createConnectionResponse =
                     CreateConnectionResponse.of(connection, DittoHeaders.empty());
-            expectMsg(createConnectionResponse);
+            expectMsg(dilated(Duration.ofSeconds(5)), createConnectionResponse);
 
             // delete connection
-            final ConnectivityModifyCommand command = DeleteConnection.of(connectionId, DittoHeaders.empty());
+            final ConnectivityModifyCommand<?> command = DeleteConnection.of(connectionId, DittoHeaders.empty());
             underTest.tell(command, getRef());
-            expectMsg(DeleteConnectionResponse.of(connectionId, DittoHeaders.empty()));
+            expectMsg(dilated(Duration.ofSeconds(5)),DeleteConnectionResponse.of(connectionId, DittoHeaders.empty()));
         }};
     }
 
@@ -129,7 +130,7 @@ public class ErrorHandlingActorTest extends WithMockServers {
             expectMsg(createConnectionResponse);
 
             // modify connection
-            final ConnectivityModifyCommand command;
+            final ConnectivityModifyCommand<?> command;
             switch (action) {
                 case "open":
                     command = OpenConnection.of(connectionId, DittoHeaders.empty());

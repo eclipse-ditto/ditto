@@ -29,11 +29,11 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.WithConnectionId;
 import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
-import org.eclipse.ditto.model.connectivity.WithConnectionId;
 
 /**
  * Command which retrieves the logs of an established {@link org.eclipse.ditto.model.connectivity.Connection}.

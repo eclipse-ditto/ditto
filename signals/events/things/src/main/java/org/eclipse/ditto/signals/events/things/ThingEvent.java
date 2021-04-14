@@ -20,17 +20,16 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.signals.base.SignalWithEntityId;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 
 /**
  * Interface for all Thing-related events.
  *
  * @param <T> the type of the implementing class.
  */
-public interface ThingEvent<T extends ThingEvent<T>> extends Event<T>, WithThingId, SignalWithEntityId<T> {
+public interface ThingEvent<T extends ThingEvent<T>> extends EventsourcedEvent<T>, WithThingId, SignalWithEntityId<T> {
 
     /**
      * Type Prefix of Thing events.
@@ -41,11 +40,6 @@ public interface ThingEvent<T extends ThingEvent<T>> extends Event<T>, WithThing
      * Thing resource type.
      */
     String RESOURCE_TYPE = "thing";
-
-    @Override
-    default ThingId getEntityId() {
-        return getEntityId();
-    }
 
     @Override
     default String getResourceType() {

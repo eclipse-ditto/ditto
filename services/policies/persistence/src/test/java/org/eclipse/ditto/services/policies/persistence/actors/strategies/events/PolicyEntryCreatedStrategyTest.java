@@ -38,7 +38,7 @@ public class PolicyEntryCreatedStrategyTest extends AbstractPolicyEventStrategyT
     @Override
     PolicyEntryCreated getPolicyEvent(final Instant instant, final Policy policy) {
         final PolicyId policyId = policy.getEntityId().orElseThrow();
-        return PolicyEntryCreated.of(policyId, CREATED, 10L, instant, DittoHeaders.empty());
+        return PolicyEntryCreated.of(policyId, CREATED, 10L, instant, DittoHeaders.empty(), METADATA);
     }
 
     @Override

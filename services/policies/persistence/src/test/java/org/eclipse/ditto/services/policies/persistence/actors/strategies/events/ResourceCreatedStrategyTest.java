@@ -40,7 +40,7 @@ public class ResourceCreatedStrategyTest extends AbstractPolicyEventStrategyTest
     ResourceCreated getPolicyEvent(final Instant instant, final Policy policy) {
         final PolicyId policyId = policy.getEntityId().orElseThrow();
         return ResourceCreated.of(policyId, SUPPORT_LABEL, TestConstants.Policy.NEW_ATTRIBUTE_RESOURCE,
-                10L, instant, DittoHeaders.empty());
+                10L, instant, DittoHeaders.empty(), METADATA);
     }
 
     @Override

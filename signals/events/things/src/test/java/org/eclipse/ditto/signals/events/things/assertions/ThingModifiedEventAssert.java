@@ -27,7 +27,7 @@ import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 /**
  * An Assert for {@link ThingModifiedEvent}s.
  */
-public class ThingModifiedEventAssert extends AbstractEventAssert<ThingModifiedEventAssert, ThingModifiedEvent> {
+public class ThingModifiedEventAssert extends AbstractEventAssert<ThingModifiedEventAssert, ThingModifiedEvent<?>> {
 
     /**
      * Constructs a new {@code ThingEventAssert} object.
@@ -48,7 +48,7 @@ public class ThingModifiedEventAssert extends AbstractEventAssert<ThingModifiedE
         Assertions.assertThat(actualThingId.toString())
                 .overridingErrorMessage("Expected ThingModifiedEvent to have Thing ID\n<%s> but it had\n<%s>",
                         expectedThingId, actualThingId)
-                .isEqualTo(expectedThingId.toString());
+                .hasToString(expectedThingId.toString());
         return this;
     }
 
@@ -58,10 +58,6 @@ public class ThingModifiedEventAssert extends AbstractEventAssert<ThingModifiedE
 
     public ThingModifiedEventAssert withDittoHeaders(final DittoHeaders expectedDittoHeaders) {
         return hasDittoHeaders(expectedDittoHeaders);
-    }
-
-    public ThingModifiedEventAssert withRevision(final long expectedRevision) {
-        return hasRevision(expectedRevision);
     }
 
     public ThingModifiedEventAssert withEntity(final JsonValue expectedEntity) {

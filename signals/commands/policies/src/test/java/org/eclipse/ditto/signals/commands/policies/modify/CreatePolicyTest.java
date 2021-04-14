@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.TestConstants;
@@ -64,7 +65,7 @@ public final class CreatePolicyTest {
 
     @Test(expected = PolicyIdInvalidException.class)
     public void tryToCreateInstanceWithInvalidPolicyId() {
-        final Policy policy = PoliciesModelFactory.newPolicyBuilder("test.ns:foo/bar")
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(PolicyId.of("test.ns:foo/bar"))
                 .set(TestConstants.Policy.POLICY_ENTRY)
                 .build();
 
@@ -73,7 +74,7 @@ public final class CreatePolicyTest {
 
     @Test
     public void createInstanceWithValidPolicyId() {
-        final Policy policy = PoliciesModelFactory.newPolicyBuilder("test.ns:foo-bar")
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(PolicyId.of("test.ns:foo-bar"))
                 .set(TestConstants.Policy.POLICY_ENTRY)
                 .build();
 

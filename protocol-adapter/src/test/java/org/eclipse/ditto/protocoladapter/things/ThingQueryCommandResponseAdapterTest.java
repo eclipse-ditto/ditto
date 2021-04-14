@@ -16,12 +16,10 @@ import static org.eclipse.ditto.protocoladapter.TestConstants.DITTO_HEADERS_V_2;
 import static org.eclipse.ditto.protocoladapter.TestConstants.FEATURE_ID;
 import static org.eclipse.ditto.protocoladapter.TestConstants.THING_ID;
 
-import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nonnull;
 
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -37,7 +35,6 @@ import org.eclipse.ditto.protocoladapter.Payload;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapterTest;
 import org.eclipse.ditto.protocoladapter.TestConstants;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.protocoladapter.TopicPathBuilder;
 import org.eclipse.ditto.protocoladapter.UnknownCommandResponseException;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse;
@@ -51,7 +48,6 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturesResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
 import org.junit.Before;
 import org.junit.Test;

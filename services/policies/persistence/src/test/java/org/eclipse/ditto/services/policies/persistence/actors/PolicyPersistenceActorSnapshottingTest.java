@@ -54,7 +54,8 @@ import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicy;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicyResponse;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicy;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyResponse;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.AbstractEventsourcedEvent;
+import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 import org.eclipse.ditto.signals.events.policies.PolicyCreated;
 import org.eclipse.ditto.signals.events.policies.PolicyDeleted;
 import org.eclipse.ditto.signals.events.policies.PolicyModified;
@@ -80,12 +81,11 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
     private static final String POLICY_SNAPSHOT_PREFIX = "ditto.policies.policy.snapshot.";
     private static final String SNAPSHOT_INTERVAL = POLICY_SNAPSHOT_PREFIX + "interval";
     private static final String SNAPSHOT_THRESHOLD = POLICY_SNAPSHOT_PREFIX + "threshold";
-    private static final Duration VERY_LONG_DURATION = Duration.ofDays(100);
 
     private DefaultPolicyMongoEventAdapter eventAdapter;
-    private PoliciesJournalTestHelper<Event> journalTestHelper;
+    private PoliciesJournalTestHelper<EventsourcedEvent<?>> journalTestHelper;
     private PoliciesSnapshotTestHelper<Policy> snapshotTestHelper;
-    private Map<Class<? extends Command>, BiFunction<Command, Long, Event>> commandToEventMapperRegistry;
+    private Map<Class<? extends Command<?>>, BiFunction<Command<?>, Long, EventsourcedEvent<?>>> commandToEventMapperRegistry;
     private DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub = Mockito.mock(DistributedPub.class);
 
     @Override
@@ -102,20 +102,21 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
         commandToEventMapperRegistry = new HashMap<>();
         commandToEventMapperRegistry.put(CreatePolicy.class, (command, revision) -> {
             final CreatePolicy createCommand = (CreatePolicy) command;
-            return PolicyCreated.of(createCommand.getPolicy(), revision, DittoHeaders.empty());
+            return PolicyCreated.of(createCommand.getPolicy(), revision, TIMESTAMP, DittoHeaders.empty(), null);
         });
         commandToEventMapperRegistry.put(ModifyPolicy.class, (command, revision) -> {
             final ModifyPolicy modifyCommand = (ModifyPolicy) command;
-            return PolicyModified.of(modifyCommand.getPolicy(), revision, DittoHeaders.empty());
+            return PolicyModified.of(modifyCommand.getPolicy(), revision, TIMESTAMP, DittoHeaders.empty(), null);
         });
         commandToEventMapperRegistry.put(DeletePolicy.class, (command, revision) -> {
             final DeletePolicy deleteCommand = (DeletePolicy) command;
-            return PolicyDeleted.of(deleteCommand.getEntityId(), revision, DittoHeaders.empty());
+            return PolicyDeleted.of(deleteCommand.getEntityId(), revision, TIMESTAMP, DittoHeaders.empty(), null);
         });
     }
 
-    private Event convertJournalEntryToEvent(final BsonDocument dbObject, final long sequenceNumber) {
-        return ((Event) eventAdapter.fromJournal(dbObject, null).events().head()).setRevision(sequenceNumber);
+    private EventsourcedEvent<?> convertJournalEntryToEvent(final BsonDocument dbObject, final long sequenceNumber) {
+        return ((AbstractEventsourcedEvent<?>) eventAdapter.fromJournal(dbObject, null).events().head())
+                .setRevision(sequenceNumber);
     }
 
     private static String convertDomainIdToPersistenceId(final PolicyId domainId) {
@@ -157,7 +158,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                         .orElseThrow(IllegalStateException::new);
                 assertPolicyInResponse(policyCreated, policy, 1);
 
-                final Event expectedCreatedEvent = toEvent(createPolicy, 1);
+                final EventsourcedEvent<?> expectedCreatedEvent = toEvent(createPolicy, 1);
                 assertJournal(policyId, Collections.singletonList(expectedCreatedEvent));
                 assertSnapshotsEmpty(policyId);
 
@@ -170,7 +171,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                         .setLifecycle(PolicyLifecycle.DELETED)
                         .build();
                 assertSnapshots(policyId, Collections.singletonList(expectedDeletedSnapshot));
-                final Event expectedDeletedEvent = toEvent(deletePolicy, 2);
+                final EventsourcedEvent<?> expectedDeletedEvent = toEvent(deletePolicy, 2);
                 // created-event has been deleted due to snapshot
                 assertJournal(policyId, Arrays.asList(expectedCreatedEvent, expectedDeletedEvent));
 
@@ -194,7 +195,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 assertPolicyInResponse(
                         reCreatePolicyResponse.getPolicyCreated().orElseThrow(NoSuchElementException::new), policy, 3);
 
-                final Event expectedReCreatedEvent = toEvent(createPolicy, 3);
+                final EventsourcedEvent<?> expectedReCreatedEvent = toEvent(createPolicy, 3);
                 assertJournal(policyId,
                         Arrays.asList(expectedCreatedEvent, expectedDeletedEvent, expectedReCreatedEvent));
                 assertSnapshots(policyId, Collections.singletonList(expectedDeletedSnapshot));
@@ -230,7 +231,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 assertPolicyInResponse(createPolicyResponse.getPolicyCreated().orElseThrow(IllegalStateException::new),
                         policy, 1);
 
-                final Event expectedCreatedEvent = toEvent(createPolicy, 1);
+                final EventsourcedEvent<?> expectedCreatedEvent = toEvent(createPolicy, 1);
                 assertJournal(policyId, Collections.singletonList(expectedCreatedEvent));
                 assertSnapshotsEmpty(policyId);
 
@@ -243,7 +244,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 final ModifyPolicyResponse modifyPolicyResponse = expectMsgClass(ModifyPolicyResponse.class);
                 assertThat(modifyPolicyResponse.getHttpStatus()).isEqualTo(HttpStatus.NO_CONTENT);
 
-                final Event expectedModifiedEvent = toEvent(modifyPolicy, 2);
+                final EventsourcedEvent<?> expectedModifiedEvent = toEvent(modifyPolicy, 2);
                 // snapshot created
                 assertJournal(policyId, Arrays.asList(expectedCreatedEvent, expectedModifiedEvent));
                 assertSnapshots(policyId, Collections.singletonList(policyForModify));
@@ -298,7 +299,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                         .orElseThrow(NoSuchElementException::new);
                 assertPolicyInResponse(createdPolicy, policy, 1);
 
-                final Event expectedCreatedEvent = toEvent(createPolicy, 1);
+                final EventsourcedEvent<?> expectedCreatedEvent = toEvent(createPolicy, 1);
                 assertJournal(policyId, Collections.singletonList(expectedCreatedEvent));
                 // snapshots are empty, because the snapshot-interval has not yet passed
                 assertSnapshotsEmpty(policyId);
@@ -321,7 +322,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 waitFor(snapshotIntervalSecs);
 
                 // snapshot has been created
-                final Event expectedModifiedEvent1 = toEvent(modifyPolicy, 2);
+                final EventsourcedEvent<?> expectedModifiedEvent1 = toEvent(modifyPolicy, 2);
                 assertJournal(policyId, Arrays.asList(expectedCreatedEvent, expectedModifiedEvent1));
                 assertSnapshots(policyId, Arrays.asList(createdPolicy, policyForModify));
             }
@@ -350,7 +351,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                         .orElseThrow(NoSuchElementException::new);
                 assertPolicyInResponse(createdPolicy, policy, 1);
 
-                final Event expectedCreatedEvent = toEvent(createPolicy, 1);
+                final EventsourcedEvent<?> expectedCreatedEvent = toEvent(createPolicy, 1);
                 assertJournal(policyId, Collections.singletonList(expectedCreatedEvent));
                 assertSnapshotsEmpty(policyId);
 
@@ -361,7 +362,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 final ModifyPolicyResponse modifyPolicyResponse1 = expectMsgClass(ModifyPolicyResponse.class);
                 assertThat(modifyPolicyResponse1.getHttpStatus()).isEqualTo(HttpStatus.NO_CONTENT);
 
-                final Event expectedModifiedEvent1 = toEvent(modifyPolicy, 2);
+                final EventsourcedEvent<?> expectedModifiedEvent1 = toEvent(modifyPolicy, 2);
                 assertJournal(policyId, Arrays.asList(expectedCreatedEvent, expectedModifiedEvent1));
                 assertSnapshots(policyId, Collections.singletonList(policyForModify));
 
@@ -377,9 +378,9 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
         assertSnapshots(policyId, Collections.emptyList());
     }
 
-    private void assertJournal(final PolicyId policyId, final List<Event> expectedEvents) {
+    private void assertJournal(final PolicyId policyId, final List<EventsourcedEvent<?>> expectedEvents) {
         retryOnAssertionError(() -> {
-            final List<Event> actualEvents = journalTestHelper.getAllEvents(policyId);
+            final List<EventsourcedEvent<?>> actualEvents = journalTestHelper.getAllEvents(policyId);
 
             Assertions.assertListWithIndexInfo(actualEvents, (actual, expected) -> {
                 assertThat(actual.getType()).isEqualTo(expected.getType());
@@ -415,9 +416,9 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
         return actorSystem.actorOf(props);
     }
 
-    private Event toEvent(final Command command, final long revision) {
+    private EventsourcedEvent<?> toEvent(final Command<?> command, final long revision) {
         final Class<? extends Command> clazz = command.getClass();
-        final BiFunction<Command, Long, Event> commandToEventFunction = commandToEventMapperRegistry.get(clazz);
+        final BiFunction<Command<?>, Long, EventsourcedEvent<?>> commandToEventFunction = commandToEventMapperRegistry.get(clazz);
         if (commandToEventFunction == null) {
             throw new UnsupportedOperationException("Mapping not yet implemented for type: " + clazz);
         }

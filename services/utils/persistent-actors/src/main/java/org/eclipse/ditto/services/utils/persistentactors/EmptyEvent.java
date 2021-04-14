@@ -28,12 +28,12 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
@@ -147,16 +147,6 @@ public final class EmptyEvent implements Event<EmptyEvent>, WithEntityId {
     @Override
     public String getResourceType() {
         return "empty";
-    }
-
-    @Override
-    public long getRevision() {
-        return revision;
-    }
-
-    @Override
-    public EmptyEvent setRevision(final long revision) {
-        return new EmptyEvent(entityId, effect, revision, dittoHeaders);
     }
 
     @Override

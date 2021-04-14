@@ -51,7 +51,6 @@ import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
-import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.SendResult;
@@ -59,7 +58,6 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.WithHttpStatus;
 
 import com.newmotion.akka.rabbitmq.ChannelCreated;
 import com.newmotion.akka.rabbitmq.ChannelMessage;

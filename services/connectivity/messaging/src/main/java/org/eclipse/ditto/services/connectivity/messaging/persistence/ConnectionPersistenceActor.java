@@ -911,7 +911,8 @@ public final class ConnectionPersistenceActor
 
     private void restoreOpenConnection() {
         final OpenConnection connect = OpenConnection.of(entityId, DittoHeaders.empty());
-        final ConnectionOpened connectionOpened = ConnectionOpened.of(entityId, Instant.now(), DittoHeaders.empty());
+        final ConnectionOpened connectionOpened =
+                ConnectionOpened.of(entityId, getRevisionNumber(), Instant.now(), DittoHeaders.empty(), null);
         final StagedCommand stagedCommand = StagedCommand.of(connect, connectionOpened, connect,
                 Collections.singletonList(UPDATE_SUBSCRIPTIONS));
         openConnection(stagedCommand, false);

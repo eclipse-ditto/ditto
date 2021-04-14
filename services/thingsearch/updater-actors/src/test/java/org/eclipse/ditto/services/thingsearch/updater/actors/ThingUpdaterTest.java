@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
+import java.time.Instant;
+
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyId;
@@ -96,7 +98,7 @@ public final class ThingUpdaterTest {
             {
                 final ActorRef underTest = createThingUpdaterActor();
 
-                final ThingCreated thingCreated = ThingCreated.of(thing, 1L, dittoHeaders);
+                final ThingCreated thingCreated = ThingCreated.of(thing, 1L, Instant.now(), dittoHeaders, null);
                 underTest.tell(thingCreated, getRef());
 
                 final Metadata metadata = changeQueueTestProbe.expectMsgClass(Metadata.class);
@@ -123,7 +125,8 @@ public final class ThingUpdaterTest {
             {
                 final ActorRef underTest = createThingUpdaterActor();
 
-                underTest.tell(ThingModified.of(currentThing, revision, DittoHeaders.empty()), ActorRef.noSender());
+                underTest.tell(ThingModified.of(currentThing, revision, Instant.now(), DittoHeaders.empty(), null),
+                        ActorRef.noSender());
                 final Metadata metadata = changeQueueTestProbe.expectMsgClass(Metadata.class);
                 Assertions.assertThat((CharSequence) metadata.getThingId()).isEqualTo(THING_ID);
                 Assertions.assertThat(metadata.getThingRevision()).isEqualTo(revision);
@@ -155,7 +158,8 @@ public final class ThingUpdaterTest {
             {
                 final ActorRef underTest = createThingUpdaterActor();
 
-                underTest.tell(ThingModified.of(currentThing, revision, DittoHeaders.empty()), ActorRef.noSender());
+                underTest.tell(ThingModified.of(currentThing, revision, Instant.now(), DittoHeaders.empty(), null),
+                        ActorRef.noSender());
                 final Metadata metadata = changeQueueTestProbe.expectMsgClass(Metadata.class);
                 Assertions.assertThat((CharSequence) metadata.getThingId()).isEqualTo(THING_ID);
                 Assertions.assertThat(metadata.getThingRevision()).isEqualTo(revision);

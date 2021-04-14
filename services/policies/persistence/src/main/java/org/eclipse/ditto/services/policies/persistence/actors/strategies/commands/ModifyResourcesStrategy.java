@@ -99,7 +99,7 @@ final class ModifyResourcesStrategy extends AbstractPolicyCommandStrategy<Modify
             if (validator.isValid()) {
                 final ResourcesModified event =
                         ResourcesModified.of(policyId, label, resources, nextRevision, getEventTimestamp(),
-                                dittoHeaders);
+                                dittoHeaders, metadata);
                 final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                         ModifyResourcesResponse.of(policyId, label, dittoHeaders), policy);
                 return ResultFactory.newMutationResult(command, event, response);

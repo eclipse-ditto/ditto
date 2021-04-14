@@ -40,7 +40,6 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.acks.things.ThingAcknowledgementFactory;
-import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayCommandTimeoutException;

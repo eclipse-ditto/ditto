@@ -30,6 +30,7 @@ import org.eclipse.ditto.protocoladapter.provider.ThingCommandAdapterProvider;
 import org.eclipse.ditto.protocoladapter.things.DefaultThingCommandAdapterProvider;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
+import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
 import org.eclipse.ditto.signals.base.ErrorRegistry;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.base.Signal;
@@ -58,7 +59,6 @@ import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingMerged;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
-import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
 
 /**
  * Adapter for the Ditto protocol.

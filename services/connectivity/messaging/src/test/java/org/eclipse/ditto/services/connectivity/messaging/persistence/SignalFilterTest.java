@@ -54,11 +54,11 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
+import org.eclipse.ditto.signals.announcements.policies.SubjectDeletionAnnouncement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.events.things.ThingModified;
-import org.eclipse.ditto.signals.announcements.policies.SubjectDeletionAnnouncement;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -242,7 +242,8 @@ public final class SignalFilterTest {
                 .readGrantedSubjects(readSubjects)
                 .build();
 
-        final ThingModified thingModified = ThingModified.of(thing, 1L, dittoHeaders);
+        final ThingModified thingModified = ThingModified.of(thing, 1L, Instant.now(),
+                dittoHeaders, null);
 
         final DittoHeaders liveHeaders = DittoHeaders.newBuilder(dittoHeaders)
                 .channel(TopicPath.Channel.LIVE.getName())

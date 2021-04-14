@@ -16,12 +16,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.concierge.common.PersistenceIdsConfig;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
-import org.eclipse.ditto.services.models.streaming.AbstractEntityIdWithRevision;
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.models.streaming.LowerBound;

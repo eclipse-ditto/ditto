@@ -44,7 +44,8 @@ import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.AbstractEventsourcedEvent;
+import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
@@ -80,7 +81,7 @@ public abstract class PersistenceActorTestBaseWithSnapshotting extends Persisten
     private ThingsJournalTestHelper<ThingEvent<?>> journalTestHelper;
     private ThingsSnapshotTestHelper<Thing> snapshotTestHelper;
 
-    private Map<Class<? extends Command<?>>, BiFunction<Command<?>, Thing, ThingEvent<?>>> commandToEventMapperRegistry;
+    private Map<Class<? extends Command<?>>, BiFunction<Command<?>, Thing, EventsourcedEvent<?>>> commandToEventMapperRegistry;
 
     Config createNewDefaultTestConfig() {
         return ConfigFactory.empty()
@@ -165,13 +166,12 @@ public abstract class PersistenceActorTestBaseWithSnapshotting extends Persisten
         assertSnapshots(thingId, Collections.emptyList());
     }
 
-    void assertJournal(final ThingId thingId, final List<Event<?>> expectedEvents) {
+    void assertJournal(final ThingId thingId, final List<EventsourcedEvent<?>> expectedEvents) {
         retryOnAssertionError(() -> {
             final List<ThingEvent<?>> actualEvents = journalTestHelper.getAllEvents(thingId);
             Assertions.assertListWithIndexInfo(actualEvents, (actual, expected) -> {
                 assertThat(actual)
-                        .hasType(expected.getType())
-                        .hasRevision(expected.getRevision());
+                        .hasType(expected.getType());
 
                 if (actual instanceof ThingModified) {
                     assertThingInJournal(((ThingModified) actual).getThing(), ((ThingModified) expected).getThing());
@@ -191,8 +191,8 @@ public abstract class PersistenceActorTestBaseWithSnapshotting extends Persisten
         return thing.toBuilder().setRevision(newRevision).setLifecycle(ThingLifecycle.DELETED).build();
     }
 
-    Event<?> toEvent(final Command<?> command, final Thing templateThing) {
-        final BiFunction<Command<?>, Thing, ThingEvent<?>> commandToEventFunction =
+    EventsourcedEvent<?> toEvent(final Command<?> command, final Thing templateThing) {
+        final BiFunction<Command<?>, Thing, EventsourcedEvent<?>> commandToEventFunction =
                 commandToEventMapperRegistry.get(command.getClass());
         if (commandToEventFunction == null) {
             throw new UnsupportedOperationException("Mapping not yet implemented for type: " + command.getClass());
@@ -215,8 +215,9 @@ public abstract class PersistenceActorTestBaseWithSnapshotting extends Persisten
     }
 
     private ThingEvent<?> convertJournalEntryToEvent(final BsonDocument dbObject, final long sequenceNumber) {
-        final ThingEvent<?> head = (ThingEvent<?>) eventAdapter.fromJournal(dbObject, null).events().head();
-        return head.setRevision(sequenceNumber);
+        final AbstractEventsourcedEvent<?> head = (AbstractEventsourcedEvent<?>)
+                eventAdapter.fromJournal(dbObject, null).events().head();
+        return (ThingEvent<?>) head.setRevision(sequenceNumber);
     }
 
     private static Thing convertSnapshotDataToThing(final BsonDocument dbObject, final long sequenceNumber) {

@@ -161,7 +161,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
     private OutboundSignal.MultiMapped newMultiMappedThingDeleted(final DittoHeaders dittoHeaders,
             final String issuedAck, final ActorRef sender) {
         final Signal<ThingDeleted> thingEvent =
-                ThingDeleted.of(TestConstants.Things.THING_ID, 25L, Instant.now(), dittoHeaders);
+                ThingDeleted.of(TestConstants.Things.THING_ID, 25L, Instant.now(), dittoHeaders, null);
         final Target target = decorateTarget(createTestTarget(issuedAck));
         final OutboundSignal outboundSignal =
                 OutboundSignalFactory.newOutboundSignal(thingEvent, Collections.singletonList(target));
@@ -185,7 +185,8 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
 
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(TestConstants.CORRELATION_ID)
                     .putHeader("device_id", "ditto:thing").build();
-            final ThingEvent thingEvent = ThingDeleted.of(TestConstants.Things.THING_ID, 25L, dittoHeaders);
+            final ThingEvent<?> thingEvent = ThingDeleted.of(TestConstants.Things.THING_ID, 25L, Instant.now(),
+                    dittoHeaders, null);
             final Target target = decorateTarget(createTestTarget());
             final OutboundSignal outboundSignal =
                     OutboundSignalFactory.newOutboundSignal(thingEvent, Collections.singletonList(target));
@@ -245,7 +246,8 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             setupMocks(probe);
 
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().putHeader("device_id", "ditto:thing").build();
-            final ThingEvent source = ThingDeleted.of(TestConstants.Things.THING_ID, 30L, dittoHeaders);
+            final ThingEvent<?> source = ThingDeleted.of(TestConstants.Things.THING_ID, 30L, Instant.now(),
+                    dittoHeaders, null);
             final Target target = createTestTarget();
             final OutboundSignal outboundSignal =
                     OutboundSignalFactory.newOutboundSignal(source, Collections.singletonList(target));

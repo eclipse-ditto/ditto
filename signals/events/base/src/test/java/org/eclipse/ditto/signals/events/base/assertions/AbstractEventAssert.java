@@ -19,8 +19,6 @@ import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.assertions.AbstractJsonifiableAssert;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.base.assertions.WithDittoHeadersChecker;
@@ -121,16 +119,6 @@ public abstract class AbstractEventAssert<S extends AbstractJsonifiableAssert<S,
         Assertions.assertThat(actualName)
                 .overridingErrorMessage("Expected Event to have name\n<%s> but it had\n<%s>", expectedName, actualName)
                 .isEqualTo(expectedName.toString());
-        return myself;
-    }
-
-    public S hasRevision(final long expectedRevision) {
-        isNotNull();
-        final long actualRevision = actual.getRevision();
-        Assertions.assertThat(actualRevision)
-                .overridingErrorMessage("Expected Event to have revision\n<%s> but it had\n<%s>", expectedRevision,
-                        actualRevision)
-                .isEqualTo(expectedRevision);
         return myself;
     }
 

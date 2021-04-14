@@ -15,9 +15,9 @@ package org.eclipse.ditto.services.concierge.enforcement;
 import java.util.Optional;
 
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 
 import akka.NotUsed;
 import akka.stream.javadsl.Flow;

@@ -24,10 +24,10 @@ import java.util.stream.IntStream;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
-import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 
 import akka.actor.ActorSystem;
 import akka.cluster.sharding.ShardRegion;

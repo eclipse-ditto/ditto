@@ -31,8 +31,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.common.HttpStatus;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -78,6 +78,10 @@ public final class TestConstants {
     public static final String CORRELATION_ID = "dittoCorrelationId";
 
     public static final long REVISION = 1337;
+    public static final Instant TIMESTAMP = Instant.EPOCH;
+    public static final Metadata METADATA = Metadata.newBuilder()
+            .set("creator", "The epic Ditto team")
+            .build();
 
     public static final Instant CREATED = Instant.now().minus(Duration.ofDays(100));
     public static final Instant MODIFIED = Instant.now().minus(Duration.ofDays(50));

@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -25,6 +26,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -114,6 +116,13 @@ public class JsonExamplesProducer {
                             "    );\n" +
                             "}"));
 
+    private static final long REVISION_NUMBER = 1L;
+    private static final Instant TIMESTAMP = Instant.EPOCH;
+    private static final DittoHeaders DITTO_HEADERS = DittoHeaders.empty();
+    private static final Metadata METADATA = Metadata.newBuilder()
+            .set("creator", "The epic Ditto team")
+            .build();
+
     public static void main(final String... args) throws IOException {
         run(args, new JsonExamplesProducer());
     }
@@ -148,19 +157,24 @@ public class JsonExamplesProducer {
                         .build();
         final DittoHeaders headers = DittoHeaders.empty();
 
-        final ConnectionCreated connectionCreated = ConnectionCreated.of(connection, headers);
+        final ConnectionCreated connectionCreated = ConnectionCreated.of(connection,
+                REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("connectionCreated.json")), connectionCreated);
 
-        final ConnectionModified connectionModified = ConnectionModified.of(connection, headers);
+        final ConnectionModified connectionModified = ConnectionModified.of(connection,
+                REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("connectionModified.json")), connectionModified);
 
-        final ConnectionOpened connectionOpened = ConnectionOpened.of(ID, headers);
+        final ConnectionOpened connectionOpened = ConnectionOpened.of(ID,
+                REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("connectionOpened.json")), connectionOpened);
 
-        final ConnectionClosed connectionClosed = ConnectionClosed.of(ID, headers);
+        final ConnectionClosed connectionClosed = ConnectionClosed.of(ID,
+                REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("connectionClosed.json")), connectionClosed);
 
-        final ConnectionDeleted connectionDeleted = ConnectionDeleted.of(ID, headers);
+        final ConnectionDeleted connectionDeleted = ConnectionDeleted.of(ID,
+                REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("connectionDeleted.json")), connectionDeleted);
     }
 

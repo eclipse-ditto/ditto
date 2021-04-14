@@ -61,7 +61,8 @@ final class DeletePolicyEntryStrategy extends AbstractPolicyCommandStrategy<Dele
 
             if (validator.isValid()) {
                 final PolicyEntryDeleted policyEntryDeleted =
-                        PolicyEntryDeleted.of(policyId, label, nextRevision, getEventTimestamp(), dittoHeaders);
+                        PolicyEntryDeleted.of(policyId, label, nextRevision, getEventTimestamp(), dittoHeaders,
+                                metadata);
                 final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                         DeletePolicyEntryResponse.of(policyId, label, dittoHeaders), nonNullPolicy);
                 return ResultFactory.newMutationResult(command, policyEntryDeleted, response);

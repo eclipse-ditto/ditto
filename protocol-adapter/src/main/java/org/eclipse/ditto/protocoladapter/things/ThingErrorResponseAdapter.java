@@ -57,6 +57,6 @@ final class ThingErrorResponseAdapter extends AbstractErrorResponseAdapter<Thing
     @Override
     public ThingErrorResponse buildErrorResponse(final TopicPath topicPath, final DittoRuntimeException exception,
             final DittoHeaders dittoHeaders) {
-        return ThingErrorResponse.of(ThingId.of(topicPath.getNamespace(), topicPath.getId()), exception, dittoHeaders);
+        return ThingErrorResponse.of(ThingId.of(topicPath.getNamespace(), topicPath.getEntityName()), exception, dittoHeaders);
     }
 }

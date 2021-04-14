@@ -35,7 +35,6 @@ import org.eclipse.ditto.services.utils.pubsub.ddata.DDataReader;
 import org.eclipse.ditto.services.utils.pubsub.ddata.ack.Grouped;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
-import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.SignalWithEntityId;
 
 import akka.actor.AbstractActor;

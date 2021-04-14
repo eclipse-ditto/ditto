@@ -44,7 +44,7 @@ import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.services.utils.health.status.StatusSupplierActor;
 
 import akka.actor.ActorSystem;
-import akka.pattern.PatternsCS;
+import akka.pattern.Patterns;
 
 /**
  * Helper for retrieving status and health information via the cluster.
@@ -248,7 +248,7 @@ final class ClusterStatusAndHealthHelper {
                     final String addressString = selection.toSerializationFormat()
                             .substring(selection.toSerializationFormat().indexOf('@') + 1)
                             .replace(STATUS_SUPPLIER_PATH, "");
-                    return PatternsCS.ask(selection, command, healthCheckServiceTimeout)
+                    return Patterns.ask(selection, command, healthCheckServiceTimeout)
                             .handle((response, throwable) ->
                                     responseTransformer.apply(response, throwable, addressString))
                             .toCompletableFuture();

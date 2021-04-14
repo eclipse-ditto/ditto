@@ -12,27 +12,17 @@
  */
 package org.eclipse.ditto.signals.events.connectivity;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-
 import java.time.Instant;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.function.Predicate;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.AbstractEventsourcedEvent;
 
 /**
  * Abstract base class of a {@link Connection} related event.
@@ -40,12 +30,10 @@ import org.eclipse.ditto.signals.events.base.Event;
  * @param <T> the type of the implementing class.
  */
 @Immutable
-public abstract class AbstractConnectivityEvent<T extends AbstractConnectivityEvent<T>> implements ConnectivityEvent<T> {
+public abstract class AbstractConnectivityEvent<T extends AbstractConnectivityEvent<T>> extends
+        AbstractEventsourcedEvent<T> implements ConnectivityEvent<T> {
 
-    private final String type;
     private final ConnectionId connectionId;
-    @Nullable private final Instant timestamp;
-    private final DittoHeaders dittoHeaders;
 
     /**
      * Constructs a new {@code AbstractConnectivityEvent} object.
@@ -56,17 +44,16 @@ public abstract class AbstractConnectivityEvent<T extends AbstractConnectivityEv
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    protected AbstractConnectivityEvent(final String type, final ConnectionId connectionId,
-            @Nullable final Instant timestamp, final DittoHeaders dittoHeaders) {
-        this.type = checkNotNull(type, "Event type");
-        this.connectionId = checkNotNull(connectionId, "Connection ID");
-        this.timestamp = timestamp;
-        this.dittoHeaders = checkNotNull(dittoHeaders, "Command Headers");
-    }
+    protected AbstractConnectivityEvent(final String type,
+            final ConnectionId connectionId,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
 
-    @Override
-    public String getType() {
-        return type;
+        super(type, connectionId, timestamp, dittoHeaders, metadata, revision,
+                ConnectivityEvent.JsonFields.CONNECTION_ID);
+        this.connectionId = connectionId;
     }
 
     /**
@@ -79,53 +66,6 @@ public abstract class AbstractConnectivityEvent<T extends AbstractConnectivityEv
         return connectionId;
     }
 
-    @Override
-    public Optional<Instant> getTimestamp() {
-        return Optional.ofNullable(timestamp);
-    }
-
-    @Override
-    public Optional<Metadata> getMetadata() {
-        return Optional.empty();
-    }
-
-    @Override
-    public DittoHeaders getDittoHeaders() {
-        return dittoHeaders;
-    }
-
-    @Nonnull
-    @Override
-    public String getManifest() {
-        return getType();
-    }
-
-    @Override
-    public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
-        final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
-
-        // TYPE is included unconditionally
-        jsonObjectBuilder.set(Event.JsonFields.TYPE, type);
-        getTimestamp().ifPresent(timestampPresent ->
-                jsonObjectBuilder.set(Event.JsonFields.TIMESTAMP, timestampPresent.toString(), predicate));
-        jsonObjectBuilder.set(JsonFields.CONNECTION_ID, String.valueOf(connectionId));
-
-        appendPayloadAndBuild(jsonObjectBuilder, schemaVersion, thePredicate);
-
-        return jsonObjectBuilder.build();
-    }
-
-    /**
-     * Appends the event specific custom payload to the passed {@code jsonObjectBuilder}.
-     *
-     * @param jsonObjectBuilder the JsonObjectBuilder to add the custom payload to.
-     * @param schemaVersion the JsonSchemaVersion used in toJson().
-     * @param predicate the predicate to evaluate when adding the payload.
-     */
-    protected abstract void appendPayloadAndBuild(final JsonObjectBuilder jsonObjectBuilder,
-            final JsonSchemaVersion schemaVersion, final Predicate<JsonField> predicate);
-
     @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067", "OverlyComplexMethod"})
     @Override
     public boolean equals(@Nullable final Object o) {
@@ -135,30 +75,30 @@ public abstract class AbstractConnectivityEvent<T extends AbstractConnectivityEv
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final AbstractConnectivityEvent
-                that = (AbstractConnectivityEvent) o;
+        if (!super.equals(o)) {
+            return false;
+        }
+        final AbstractConnectivityEvent<?> that = (AbstractConnectivityEvent<?>) o;
         return that.canEqual(this) &&
-                Objects.equals(type, that.type) &&
-                Objects.equals(connectionId, that.connectionId) &&
-                Objects.equals(timestamp, that.timestamp) &&
-                Objects.equals(dittoHeaders, that.dittoHeaders);
+                Objects.equals(connectionId, that.connectionId);
     }
 
+    @Override
     protected boolean canEqual(@Nullable final Object other) {
         return (other instanceof AbstractConnectivityEvent);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(type, connectionId, timestamp, dittoHeaders);
+        final int prime = 31;
+        int result = super.hashCode();
+        result = prime * result + Objects.hashCode(connectionId);
+        return result;
     }
 
     @Override
     public String toString() {
-        return "type=" + type
-                + ", connectionId=" + connectionId
-                + ", timestamp=" + timestamp
-                + ", dittoHeaders=" + dittoHeaders;
+        return super.toString() + ", connectionId=" + connectionId;
     }
 
 }

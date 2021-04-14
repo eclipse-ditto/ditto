@@ -88,7 +88,7 @@ final class ImmutableTopicPathPlaceholder implements TopicPathPlaceholder {
             case ENTITY_NAME_PLACEHOLDER:
                 return Optional.of(topicPath.getEntityName());
             case ENTITYID_PLACEHOLDER:
-                return Optional.of(topicPath.getId());
+                return Optional.of(topicPath.getEntityName());
             case GROUP_PLACEHOLDER:
                 return Optional.of(topicPath.getGroup().getName());
             case CHANNEL_PLACEHOLDER:

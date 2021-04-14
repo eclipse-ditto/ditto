@@ -165,16 +165,6 @@ public final class ThingsOutOfSync implements Event<ThingsOutOfSync> {
     }
 
     @Override
-    public long getRevision() {
-        return 0L; // this event has no revision
-    }
-
-    @Override
-    public ThingsOutOfSync setRevision(final long revision) {
-        return this; // this event has no revision
-    }
-
-    @Override
     public Optional<Instant> getTimestamp() {
         return Optional.empty(); // this event has no timestamp
     }

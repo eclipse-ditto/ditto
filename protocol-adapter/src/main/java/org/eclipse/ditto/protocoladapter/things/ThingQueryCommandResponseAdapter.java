@@ -21,7 +21,6 @@ import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategiesFactory;
 import org.eclipse.ditto.protocoladapter.signals.SignalMapper;
 import org.eclipse.ditto.protocoladapter.signals.SignalMapperFactory;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
 
 /**

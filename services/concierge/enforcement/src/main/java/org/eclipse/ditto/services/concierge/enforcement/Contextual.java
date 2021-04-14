@@ -20,6 +20,7 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -28,7 +29,6 @@ import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapt
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
-import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.signals.base.WithResource;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;

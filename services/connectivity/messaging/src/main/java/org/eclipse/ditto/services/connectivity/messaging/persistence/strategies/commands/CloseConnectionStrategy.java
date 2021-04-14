@@ -52,7 +52,8 @@ final class CloseConnectionStrategy extends AbstractConnectivityCommandStrategy<
             final CloseConnection command,
             @Nullable final Metadata metadata) {
 
-        final ConnectivityEvent<?> event = ConnectionClosed.of(context.getState().id(), command.getDittoHeaders());
+        final ConnectivityEvent<?> event = ConnectionClosed.of(context.getState().id(), nextRevision,
+                getEventTimestamp(), command.getDittoHeaders(), metadata);
         final WithDittoHeaders response =
                 CloseConnectionResponse.of(context.getState().id(), command.getDittoHeaders());
         final List<ConnectionAction> actions =

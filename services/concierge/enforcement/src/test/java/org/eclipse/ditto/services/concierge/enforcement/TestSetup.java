@@ -48,13 +48,10 @@ import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.services.utils.pubsub.LiveSignalPub;
 import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
-import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.SignalWithEntityId;
-import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
-import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import com.github.benmanes.caffeine.cache.Caffeine;

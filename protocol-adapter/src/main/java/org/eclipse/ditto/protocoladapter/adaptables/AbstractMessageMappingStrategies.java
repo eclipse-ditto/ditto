@@ -102,7 +102,7 @@ abstract class AbstractMessageMappingStrategies<T extends Jsonifiable.WithPredic
 
         // these headers are used to store message attributes of Message that are not fields.
         // their content comes from elsewhere; overwrite message headers of the same names.
-        dittoHeadersBuilder.putHeader(THING_ID.getKey(), topicPath.getNamespace() + ":" + topicPath.getId());
+        dittoHeadersBuilder.putHeader(THING_ID.getKey(), topicPath.getNamespace() + ":" + topicPath.getEntityName());
         dittoHeadersBuilder.putHeader(SUBJECT.getKey(), topicPath.getSubject().orElse(""));
         final Payload payload = adaptable.getPayload();
         final MessagePath payloadPath = payload.getPath();

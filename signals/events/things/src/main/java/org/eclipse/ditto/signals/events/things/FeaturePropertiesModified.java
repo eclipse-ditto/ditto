@@ -44,7 +44,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a Feature's {@link FeatureProperties} were modified.
  */
 @Immutable
-@JsonParsableEvent(name = FeaturePropertiesModified.NAME, typePrefix = FeaturePropertiesModified.TYPE_PREFIX)
+@JsonParsableEvent(name = FeaturePropertiesModified.NAME, typePrefix = ThingEvent.TYPE_PREFIX)
 public final class FeaturePropertiesModified extends AbstractThingEvent<FeaturePropertiesModified> implements
         ThingModifiedEvent<FeaturePropertiesModified>, WithFeatureId {
 
@@ -76,104 +76,6 @@ public final class FeaturePropertiesModified extends AbstractThingEvent<FeatureP
         super(TYPE, thingId, revision, timestamp, dittoHeaders, metadata);
         this.featureId = checkNotNull(featureId, "Feature ID");
         this.properties = checkNotNull(properties, "Feature Properties");
-    }
-
-    /**
-     * Constructs a new {@code PropertiesModified} object.
-     *
-     * @param thingId the ID of the Thing whose Feature's Properties were modified.
-     * @param featureId the ID of the Feature whose Properties were modified.
-     * @param properties the modified {@link FeatureProperties}.
-     * @param revision the revision of the Thing.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the FeaturePropertiesModified created.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.things.FeatureProperties, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
-     * instead.
-     */
-    @Deprecated
-    public static FeaturePropertiesModified of(final String thingId,
-            final String featureId,
-            final FeatureProperties properties,
-            final long revision,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), featureId, properties, revision, null, dittoHeaders, null);
-    }
-
-    /**
-     * Constructs a new {@code PropertiesModified} object.
-     *
-     * @param thingId the ID of the Thing whose Feature's Properties were modified.
-     * @param featureId the ID of the Feature whose Properties were modified.
-     * @param properties the modified {@link FeatureProperties}.
-     * @param revision the revision of the Thing.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the FeaturePropertiesModified created.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.things.FeatureProperties, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
-     * instead.
-     */
-    @Deprecated
-    public static FeaturePropertiesModified of(final ThingId thingId,
-            final String featureId,
-            final FeatureProperties properties,
-            final long revision,
-            final DittoHeaders dittoHeaders) {
-
-        return of(thingId, featureId, properties, revision, null, dittoHeaders, null);
-    }
-
-    /**
-     * Constructs a new {@code PropertiesModified} object.
-     *
-     * @param thingId the ID of the Thing whose Feature's Properties were modified.
-     * @param featureId the ID of the Feature whose Properties were modified.
-     * @param properties the modified {@link FeatureProperties}.
-     * @param revision the revision of the Thing.
-     * @param timestamp the timestamp of this event.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the FeaturePropertiesModified created.
-     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.things.FeatureProperties, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
-     * instead.
-     */
-    @Deprecated
-    public static FeaturePropertiesModified of(final String thingId,
-            final String featureId,
-            final FeatureProperties properties,
-            final long revision,
-            @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), featureId, properties, revision, timestamp, dittoHeaders, null);
-    }
-
-    /**
-     * Constructs a new {@code PropertiesModified} object.
-     *
-     * @param thingId the ID of the Thing whose Feature's Properties were modified.
-     * @param featureId the ID of the Feature whose Properties were modified.
-     * @param properties the modified {@link FeatureProperties}.
-     * @param revision the revision of the Thing.
-     * @param timestamp the timestamp of this event.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the FeaturePropertiesModified created.
-     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
-     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.things.FeatureProperties, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
-     * instead.
-     */
-    @Deprecated
-    public static FeaturePropertiesModified of(final ThingId thingId,
-            final String featureId,
-            final FeatureProperties properties,
-            final long revision,
-            @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
-
-        return of(thingId, featureId, properties, revision, timestamp, dittoHeaders, null);
     }
 
     /**
@@ -230,9 +132,9 @@ public final class FeaturePropertiesModified extends AbstractThingEvent<FeatureP
     public static FeaturePropertiesModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<FeaturePropertiesModified>(TYPE, jsonObject)
                 .deserialize((revision, timestamp, metadata) -> {
-                    final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+                    final String extractedThingId = jsonObject.getValueOrThrow(ThingEvent.JsonFields.THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
-                    final String extractedFeatureId = jsonObject.getValueOrThrow(JsonFields.FEATURE_ID);
+                    final String extractedFeatureId = jsonObject.getValueOrThrow(ThingEvent.JsonFields.FEATURE_ID);
                     final JsonObject propertiesJsonObject = jsonObject.getValueOrThrow(JSON_PROPERTIES);
 
                     final FeatureProperties extractedProperties = (null != propertiesJsonObject)
@@ -285,7 +187,7 @@ public final class FeaturePropertiesModified extends AbstractThingEvent<FeatureP
             final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(JsonFields.FEATURE_ID, featureId, predicate);
+        jsonObjectBuilder.set(ThingEvent.JsonFields.FEATURE_ID, featureId, predicate);
         jsonObjectBuilder.set(JSON_PROPERTIES, properties, predicate);
     }
 

@@ -583,19 +583,6 @@ public final class PoliciesModelFactory {
      *
      * @param id the ID of the new Policy.
      * @return the new builder.
-     * @throws PolicyIdInvalidException if {@code id} is invalid.
-     * @deprecated policy ID is now typed. Use {@link #newPolicyBuilder(PolicyId)} instead.
-     */
-    @Deprecated
-    public static PolicyBuilder newPolicyBuilder(final CharSequence id) {
-        return ImmutablePolicyBuilder.of(PolicyId.of(id));
-    }
-
-    /**
-     * Returns a mutable builder with a fluent API for an immutable {@link Policy}.
-     *
-     * @param id the ID of the new Policy.
-     * @return the new builder.
      */
     public static PolicyBuilder newPolicyBuilder(final PolicyId id) {
         return ImmutablePolicyBuilder.of(id);

@@ -21,14 +21,14 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.base.SignalWithEntityId;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 
 /**
  * Interface for all policy-related events.
  *
  * @param <T> the type of the implementing class.
  */
-public interface PolicyEvent<T extends PolicyEvent<T>> extends Event<T>, SignalWithEntityId<T> {
+public interface PolicyEvent<T extends PolicyEvent<T>> extends EventsourcedEvent<T>, SignalWithEntityId<T> {
 
     /**
      * Type Prefix of Policy events.
@@ -54,24 +54,8 @@ public interface PolicyEvent<T extends PolicyEvent<T>> extends Event<T>, SignalW
      * Returns the identifier of the {@code Policy} related to this event.
      *
      * @return the identifier of the Policy related to this event.
-     * @deprecated policyId is now typed. Use {@link #getPolicyEntityId()} instead.
-     */
-    @Deprecated
-    default String getPolicyId() {
-        return String.valueOf(getPolicyEntityId());
-    }
-
-    /**
-     * Returns the identifier of the {@code Policy} related to this event.
-     *
-     * @return the identifier of the Policy related to this event.
      */
     PolicyId getPolicyEntityId();
-
-    @Override
-    default PolicyId getEntityId() {
-        return getPolicyEntityId();
-    }
 
     @Override
     default String getResourceType() {

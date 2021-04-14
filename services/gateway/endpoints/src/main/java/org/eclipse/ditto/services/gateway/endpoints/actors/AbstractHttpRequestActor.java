@@ -57,7 +57,6 @@ import org.eclipse.ditto.services.utils.cluster.JsonValueSourceRef;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;

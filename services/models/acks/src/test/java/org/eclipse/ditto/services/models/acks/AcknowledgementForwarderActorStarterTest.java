@@ -16,6 +16,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
+import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -155,7 +156,7 @@ public final class AcknowledgementForwarderActorStarterTest {
 
     private AcknowledgementForwarderActorStarter getActorStarter(final DittoHeaders dittoHeaders) {
         return AcknowledgementForwarderActorStarter.getInstance(actorContext, KNOWN_ENTITY_ID,
-                ThingDeleted.of(KNOWN_ENTITY_ID, 1L, dittoHeaders),
+                ThingDeleted.of(KNOWN_ENTITY_ID, 1L, Instant.EPOCH, dittoHeaders, null),
                 acknowledgementConfig, label -> true);
     }
 

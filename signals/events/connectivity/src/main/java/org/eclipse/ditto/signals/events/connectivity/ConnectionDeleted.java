@@ -25,6 +25,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -36,7 +37,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a {@link Connection} was deleted.
  */
 @Immutable
-@JsonParsableEvent(name = ConnectionDeleted.NAME, typePrefix= ConnectionDeleted.TYPE_PREFIX)
+@JsonParsableEvent(name = ConnectionDeleted.NAME, typePrefix= ConnectivityEvent.TYPE_PREFIX)
 public final class ConnectionDeleted extends AbstractConnectivityEvent<ConnectionDeleted>
         implements ConnectivityEvent<ConnectionDeleted> {
 
@@ -50,70 +51,33 @@ public final class ConnectionDeleted extends AbstractConnectivityEvent<Connectio
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private ConnectionDeleted(final ConnectionId connectionId, @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
-        super(TYPE, connectionId, timestamp, dittoHeaders);
+    private ConnectionDeleted(final ConnectionId connectionId,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
+
+        super(TYPE, connectionId, revision, timestamp, dittoHeaders, metadata);
     }
 
     /**
      * Returns a new {@code ConnectionDeleted} event.
      *
      * @param connectionId the identifier of the deleted Connection.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the event.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Connection ID is now typed. Use
-     * {@link #of(ConnectionId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ConnectionDeleted of(final String connectionId, final DittoHeaders dittoHeaders) {
-        return of(ConnectionId.of(connectionId), dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code ConnectionDeleted} event.
-     *
-     * @param connectionId the identifier of the deleted Connection.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the event.
-     * @throws NullPointerException if any argument is {@code null}.
-     */
-    public static ConnectionDeleted of(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
-        return of(connectionId, null, dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code ConnectionDeleted} event.
-     *
-     * @param connectionId the identifier of the deleted Connection.
+     * @param revision the revision of the Connection.
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the event.
-     * @throws NullPointerException if {@code connectionId} or {@code dittoHeaders} are {@code null}.
-     * @deprecated Connection ID is now typed. Use
-     * {@link #of(ConnectionId, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ConnectionDeleted of(final String connectionId, @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
-        return of(ConnectionId.of(connectionId), timestamp, dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code ConnectionDeleted} event.
-     *
-     * @param connectionId the identifier of the deleted Connection.
-     * @param timestamp the timestamp of this event.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @param metadata the metadata to apply for the event.
      * @return the event.
      * @throws NullPointerException if {@code connectionId} or {@code dittoHeaders} are {@code null}.
      */
-    public static ConnectionDeleted of(final ConnectionId connectionId, @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
+    public static ConnectionDeleted of(final ConnectionId connectionId,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
         checkNotNull(connectionId, "Connection ID");
-        return new ConnectionDeleted(connectionId, timestamp, dittoHeaders);
+        return new ConnectionDeleted(connectionId, revision, timestamp, dittoHeaders, metadata);
     }
 
     /**
@@ -143,9 +107,10 @@ public final class ConnectionDeleted extends AbstractConnectivityEvent<Connectio
     public static ConnectionDeleted fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<ConnectionDeleted>(TYPE, jsonObject)
                 .deserialize((revision, timestamp, metadata) -> {
-                    final String readConnectionId = jsonObject.getValueOrThrow(JsonFields.CONNECTION_ID);
+                    final String readConnectionId = jsonObject
+                            .getValueOrThrow(ConnectivityEvent.JsonFields.CONNECTION_ID);
                     final ConnectionId connectionId = ConnectionId.of(readConnectionId);
-                    return of(connectionId, timestamp, dittoHeaders);
+                    return of(connectionId, revision, timestamp, dittoHeaders, metadata);
                 });
     }
 
@@ -155,8 +120,15 @@ public final class ConnectionDeleted extends AbstractConnectivityEvent<Connectio
     }
 
     @Override
+    public ConnectionDeleted setRevision(final long revision) {
+        return of(getEntityId(), revision, getTimestamp().orElse(null), getDittoHeaders(),
+                getMetadata().orElse(null));
+    }
+
+    @Override
     public ConnectionDeleted setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getEntityId(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getEntityId(), getRevision(), getTimestamp().orElse(null), dittoHeaders,
+                getMetadata().orElse(null));
     }
 
     @Override

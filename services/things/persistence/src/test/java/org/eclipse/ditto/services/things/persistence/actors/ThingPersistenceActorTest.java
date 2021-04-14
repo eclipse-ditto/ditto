@@ -41,6 +41,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.entity.Revision;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -118,6 +119,12 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
     private static final JsonParseOptions JSON_PARSE_OPTIONS =
             JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build();
+
+    private static final Instant TIMESTAMP = Instant.EPOCH;
+    private static final Metadata METADATA = Metadata.newBuilder()
+            .set("creator", "The epic Ditto team")
+            .build();
+
 
     private static void assertThingInResponse(final Thing actualThing, final Thing expectedThing) {
         // Policy entries are ignored by things-persistence.
@@ -354,14 +361,16 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
                 assertThingInResponse(createThingResponse.getThingCreated().orElse(null), thingWithFirstLevelFields);
 
-                assertPublishEvent(ThingCreated.of(thingWithFirstLevelFields, 1L, dittoHeaders));
+                assertPublishEvent(ThingCreated.of(thingWithFirstLevelFields, 1L, TIMESTAMP, dittoHeaders,
+                        null));
 
                 underTest.tell(modifyThingCommand, getRef());
 
                 expectMsgEquals(modifyThingResponse(thingWithFirstLevelFields, thingWithDifferentFirstLevelFields,
                         dittoHeaders, false));
 
-                assertPublishEvent(ThingModified.of(thingWithDifferentFirstLevelFields, 2L, dittoHeaders));
+                assertPublishEvent(ThingModified.of(thingWithDifferentFirstLevelFields, 2L, TIMESTAMP, dittoHeaders,
+                        null));
 
                 final RetrieveThing retrieveThing =
                         RetrieveThing.getBuilder(thingId, dittoHeaders)
@@ -403,14 +412,16 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
                 assertThingInResponse(createThingResponse.getThingCreated().orElse(null), thingWithFirstLevelFields);
 
-                assertPublishEvent(ThingCreated.of(thingWithFirstLevelFields, 1L, dittoHeaders));
+                assertPublishEvent(ThingCreated.of(thingWithFirstLevelFields, 1L, TIMESTAMP, dittoHeaders,
+                        null));
 
                 underTest.tell(modifyThingCommand, getRef());
 
                 expectMsgEquals(modifyThingResponse(thingWithFirstLevelFields, minimalThing, dittoHeaders, false));
 
                 // we expect that in the Event the minimalThing was merged with thingWithFirstLevelFields:
-                assertPublishEvent(ThingModified.of(thingWithFirstLevelFields, 2L, dittoHeaders));
+                assertPublishEvent(ThingModified.of(thingWithFirstLevelFields, 2L, TIMESTAMP, dittoHeaders,
+                        null));
 
                 final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, dittoHeaders)
                         .withSelectedFields(ALL_FIELDS_SELECTOR)
@@ -1152,7 +1163,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                             JsonSchemaVersion.V_2,
                             modifyThing -> modifyThingResponse(thing, thing_2, modifyThing.getDittoHeaders(),
                                     false));
-            assertPublishEvent(ThingModified.of(thing_2, 2L, headersUsed));
+            assertPublishEvent(ThingModified.of(thing_2, 2L, TIMESTAMP, headersUsed, null));
         }};
     }
 
@@ -1189,7 +1200,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             underTest.tell(createThing, getRef());
             final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
             assertThingInResponse(createThingResponse.getThingCreated().orElse(null), createThing.getThing());
-            assertPublishEvent(ThingCreated.of(toCreate, 1L, createThing.getDittoHeaders()));
+            assertPublishEvent(ThingCreated.of(toCreate, 1L, TIMESTAMP, createThing.getDittoHeaders(), null));
 
             underTest.tell(modifyThing, getRef());
             expectMsgEquals(expectedMessage.apply(modifyThing));
@@ -1197,8 +1208,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         return modifyThing.getDittoHeaders();
     }
 
-    private void assertPublishEvent(final ThingEvent event) {
-        final ThingEvent msg = pubSubTestProbe.expectMsgClass(ThingEvent.class);
+    private void assertPublishEvent(final ThingEvent<?> event) {
+        final ThingEvent<?> msg = pubSubTestProbe.expectMsgClass(ThingEvent.class);
         Assertions.assertThat(msg.toJson())
                 .isEqualTo(event.toJson().set(msg.toJson().getField(Event.JsonFields.TIMESTAMP.getPointer()).get()));
         assertThat(msg.getDittoHeaders().getSchemaVersion()).isEqualTo(event.getDittoHeaders().getSchemaVersion());

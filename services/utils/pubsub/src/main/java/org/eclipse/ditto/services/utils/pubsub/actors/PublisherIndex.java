@@ -29,7 +29,6 @@ import org.eclipse.ditto.services.utils.pubsub.PubSubFactory;
 import org.eclipse.ditto.services.utils.pubsub.api.PublishSignal;
 import org.eclipse.ditto.services.utils.pubsub.ddata.SubscriptionsReader;
 import org.eclipse.ditto.services.utils.pubsub.ddata.ack.Grouped;
-import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.SignalWithEntityId;
 
 import akka.actor.ActorRef;

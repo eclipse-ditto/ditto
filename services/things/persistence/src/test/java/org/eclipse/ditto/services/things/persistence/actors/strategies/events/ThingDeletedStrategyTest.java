@@ -35,13 +35,14 @@ public final class ThingDeletedStrategyTest extends AbstractStrategyTest {
     @Test
     public void appliesEventCorrectly() {
         final ThingDeletedStrategy strategy = new ThingDeletedStrategy();
-        final ThingDeleted event = ThingDeleted.of(THING_ID, REVISION, DittoHeaders.empty());
+        final ThingDeleted event = ThingDeleted.of(THING_ID, REVISION, TIMESTAMP, DittoHeaders.empty(), null);
 
         final Thing thingWithEventApplied = strategy.handle(event, THING, NEXT_REVISION);
 
         final Thing expected = THING.toBuilder()
                 .setLifecycle(ThingLifecycle.DELETED)
                 .setRevision(NEXT_REVISION)
+                .setModified(TIMESTAMP)
                 .build();
 
         assertThat(thingWithEventApplied).isEqualTo(expected);

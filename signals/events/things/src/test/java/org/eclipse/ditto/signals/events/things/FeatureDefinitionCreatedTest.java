@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.signals.events.things;
 
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
@@ -23,9 +22,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.FeatureDefinition;
-import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -38,8 +36,8 @@ public final class FeatureDefinitionCreatedTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, FeatureDefinitionCreated.TYPE)
-            .set(Event.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
             .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
+            .set(EventsourcedEvent.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
             .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ThingEvent.JsonFields.FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(FeatureDefinitionCreated.JSON_DEFINITION,
@@ -62,21 +60,12 @@ public final class FeatureDefinitionCreatedTest {
     }
 
     @Test
-    public void tryToCreateInstanceWithNullThingIdString() {
-        assertThatExceptionOfType(ThingIdInvalidException.class)
-                .isThrownBy(() -> FeatureDefinitionCreated.of((String) null, TestConstants.Feature.FLUX_CAPACITOR_ID,
-                        TestConstants.Feature.FLUX_CAPACITOR_DEFINITION, TestConstants.Thing.REVISION_NUMBER,
-                        TestConstants.EMPTY_DITTO_HEADERS))
-                .withMessage("Thing ID 'null' is not valid!");
-    }
-
-    @Test
     public void tryToCreateInstanceWithNullThingId() {
         assertThatNullPointerException()
-                .isThrownBy(() -> FeatureDefinitionCreated.of((ThingId) null, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                .isThrownBy(() -> FeatureDefinitionCreated.of(null, TestConstants.Feature.FLUX_CAPACITOR_ID,
                         TestConstants.Feature.FLUX_CAPACITOR_DEFINITION, TestConstants.Thing.REVISION_NUMBER,
-                        TestConstants.EMPTY_DITTO_HEADERS))
-                .withMessage("The %s must not be null!", "Thing identifier")
+                        TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA))
+                .withMessage("The %s must not be null!", "entityId")
                 .withNoCause();
     }
 
@@ -85,7 +74,7 @@ public final class FeatureDefinitionCreatedTest {
         assertThatNullPointerException()
                 .isThrownBy(() -> FeatureDefinitionCreated.of(TestConstants.Thing.THING_ID, null,
                         TestConstants.Feature.FLUX_CAPACITOR_DEFINITION, TestConstants.Thing.REVISION_NUMBER,
-                        TestConstants.EMPTY_DITTO_HEADERS))
+                        TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA))
                 .withMessage("The %s must not be null!", "Feature ID")
                 .withNoCause();
     }
@@ -95,7 +84,7 @@ public final class FeatureDefinitionCreatedTest {
         assertThatNullPointerException()
                 .isThrownBy(() -> FeatureDefinitionCreated.of(TestConstants.Thing.THING_ID,
                         TestConstants.Feature.FLUX_CAPACITOR_ID, null, TestConstants.Thing.REVISION_NUMBER,
-                        TestConstants.EMPTY_DITTO_HEADERS))
+                        TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA))
                 .withMessage("The %s must not be null!", "Definition")
                 .withNoCause();
     }

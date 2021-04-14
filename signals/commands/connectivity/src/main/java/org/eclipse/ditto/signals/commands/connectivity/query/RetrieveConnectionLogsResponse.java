@@ -47,11 +47,11 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.LogEntry;
+import org.eclipse.ditto.model.connectivity.WithConnectionId;
 import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
-import org.eclipse.ditto.model.connectivity.WithConnectionId;
 
 /**
  * Response to a {@link org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionLogs} command.

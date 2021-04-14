@@ -20,7 +20,6 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.streaming.LowerBound;
-import org.eclipse.ditto.services.models.streaming.SudoStreamPids;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThing;
 import org.eclipse.ditto.services.thingsearch.common.config.BackgroundSyncConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.DefaultBackgroundSyncConfig;

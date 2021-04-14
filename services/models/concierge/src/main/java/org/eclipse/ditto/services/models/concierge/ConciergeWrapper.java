@@ -12,9 +12,9 @@
  */
 package org.eclipse.ditto.services.models.concierge;
 
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 
 import akka.routing.ConsistentHashingRouter;
 

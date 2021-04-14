@@ -40,8 +40,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * @since 1.5.0
  */
 @Immutable
-@JsonParsableEvent(name = FeatureDesiredPropertiesDeleted.NAME,
-        typePrefix = FeatureDesiredPropertiesDeleted.TYPE_PREFIX)
+@JsonParsableEvent(name = FeatureDesiredPropertiesDeleted.NAME, typePrefix = ThingEvent.TYPE_PREFIX)
 public final class FeatureDesiredPropertiesDeleted extends AbstractThingEvent<FeatureDesiredPropertiesDeleted>
         implements
         ThingModifiedEvent<FeatureDesiredPropertiesDeleted>, WithFeatureId {
@@ -122,9 +121,9 @@ public final class FeatureDesiredPropertiesDeleted extends AbstractThingEvent<Fe
 
         return new EventJsonDeserializer<FeatureDesiredPropertiesDeleted>(TYPE, jsonObject)
                 .deserialize((revision, timestamp, metadata) -> {
-                    final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+                    final String extractedThingId = jsonObject.getValueOrThrow(ThingEvent.JsonFields.THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
-                    final String extractedFeatureId = jsonObject.getValueOrThrow(JsonFields.FEATURE_ID);
+                    final String extractedFeatureId = jsonObject.getValueOrThrow(ThingEvent.JsonFields.FEATURE_ID);
 
                     return of(thingId, extractedFeatureId, revision, timestamp, dittoHeaders, metadata);
                 });
@@ -158,7 +157,7 @@ public final class FeatureDesiredPropertiesDeleted extends AbstractThingEvent<Fe
             final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(JsonFields.FEATURE_ID, featureId, predicate);
+        jsonObjectBuilder.set(ThingEvent.JsonFields.FEATURE_ID, featureId, predicate);
     }
 
     @SuppressWarnings("squid:S109")
@@ -184,7 +183,7 @@ public final class FeatureDesiredPropertiesDeleted extends AbstractThingEvent<Fe
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
+    protected boolean canEqual(@Nullable final Object other) {
         return (other instanceof FeatureDesiredPropertiesDeleted);
     }
 

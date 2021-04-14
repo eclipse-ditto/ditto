@@ -34,13 +34,15 @@ public final class FeaturesModifiedStrategyTest extends AbstractStrategyTest {
     @Test
     public void appliesEventCorrectly() {
         final FeaturesModifiedStrategy strategy = new FeaturesModifiedStrategy();
-        final FeaturesModified event = FeaturesModified.of(THING_ID, FEATURES, REVISION, DittoHeaders.empty());
+        final FeaturesModified event = FeaturesModified.of(THING_ID, FEATURES, REVISION, TIMESTAMP, DittoHeaders.empty(),
+                null);
 
         final Thing thingWithEventApplied = strategy.handle(event, THING, NEXT_REVISION);
 
         final Thing expected = THING.toBuilder()
                 .setFeatures(FEATURES)
                 .setRevision(NEXT_REVISION)
+                .setModified(TIMESTAMP)
                 .build();
 
         assertThat(thingWithEventApplied).isEqualTo(expected);

@@ -15,10 +15,6 @@ package org.eclipse.ditto.protocoladapter.adaptables;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableMapper;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributesResponse;
@@ -31,7 +27,6 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturesResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
 
 /**

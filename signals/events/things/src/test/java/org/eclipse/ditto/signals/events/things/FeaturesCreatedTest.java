@@ -23,10 +23,9 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Features;
-import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -39,7 +38,7 @@ public final class FeaturesCreatedTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, FeaturesCreated.TYPE)
-            .set(Event.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
+            .set(EventsourcedEvent.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
             .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
             .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(FeaturesCreated.JSON_FEATURES, TestConstants.Feature.FEATURES.toJson(FieldType.regularOrSpecial()))
@@ -59,25 +58,18 @@ public final class FeaturesCreatedTest {
                 .verify();
     }
 
-    @Test(expected = ThingIdInvalidException.class)
-    public void tryToCreateInstanceWithNullThingIdString() {
-        FeaturesCreated.of((String) null, TestConstants.Feature.FEATURES, TestConstants.Thing.REVISION_NUMBER,
-                TestConstants.EMPTY_DITTO_HEADERS);
-    }
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        FeaturesCreated.of((ThingId) null, TestConstants.Feature.FEATURES, TestConstants.Thing.REVISION_NUMBER,
-                TestConstants.EMPTY_DITTO_HEADERS);
+        FeaturesCreated.of(null, TestConstants.Feature.FEATURES, TestConstants.Thing.REVISION_NUMBER,
+                TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
     }
 
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullFeatures() {
         FeaturesCreated.of(TestConstants.Thing.THING_ID, null, TestConstants.Thing.REVISION_NUMBER,
-                TestConstants.EMPTY_DITTO_HEADERS);
+                TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
