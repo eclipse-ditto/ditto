@@ -85,6 +85,7 @@ final class CreatePolicyStrategy extends AbstractPolicyCommandStrategy<CreatePol
                     .setModified(timestamp)
                     .setCreated(timestamp)
                     .setRevision(nextRevision)
+                    .setMetadata(metadata)
                     .build();
             final PolicyCreated policyCreated =
                     PolicyCreated.of(newPolicyWithImplicits, nextRevision, timestamp, adjustedHeaders, metadata);

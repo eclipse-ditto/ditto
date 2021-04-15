@@ -91,31 +91,6 @@ public final class RetrieveAttributeResponse extends AbstractCommandResponse<Ret
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributePointer} are not valid
      * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer,
-     * org.eclipse.ditto.json.JsonValue, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrieveAttributeResponse of(final String thingId,
-            final JsonPointer attributePointer,
-            final JsonValue attributeValue,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), attributePointer, attributeValue, dittoHeaders);
-    }
-
-    /**
-     * Creates a response to a {@link RetrieveAttribute} command.
-     *
-     * @param thingId the Thing ID of the retrieved attribute.
-     * @param attributePointer the JSON pointer of the attribute to retrieve.
-     * @param attributeValue the retrieved Attribute value.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributePointer} are not valid
-     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static RetrieveAttributeResponse of(final ThingId thingId,
             final JsonPointer attributePointer,

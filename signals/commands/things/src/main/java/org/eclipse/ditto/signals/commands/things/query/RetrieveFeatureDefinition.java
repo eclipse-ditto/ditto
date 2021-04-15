@@ -77,25 +77,6 @@ public final class RetrieveFeatureDefinition extends AbstractCommand<RetrieveFea
      * @param dittoHeaders the headers of the command.
      * @return a Command for retrieving the Definition of the specified Feature.
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrieveFeatureDefinition of(final String thingId, final String featureId,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), featureId, dittoHeaders);
-    }
-
-    /**
-     * Returns a Command for retrieving a Feature's Definition on a Thing.
-     *
-     * @param thingId the {@code Thing}'s ID whose {@code Feature}'s Definition to retrieve.
-     * @param featureId the {@code Feature}'s ID whose Definition to retrieve.
-     * @param dittoHeaders the headers of the command.
-     * @return a Command for retrieving the Definition of the specified Feature.
-     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
      */
     public static RetrieveFeatureDefinition of(final ThingId thingId, final String featureId,
             final DittoHeaders dittoHeaders) {

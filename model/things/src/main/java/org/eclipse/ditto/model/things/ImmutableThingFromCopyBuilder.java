@@ -27,7 +27,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.policies.PolicyId;
 
@@ -665,12 +664,6 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
         if (existingMetadataPredicate.test(fromScratchBuilder.metadata)) {
             setMetadata(metadata);
         }
-        return this;
-    }
-
-    @Override
-    public FromCopy setId(@Nullable final String thingId) {
-        fromScratchBuilder.setId(thingId);
         return this;
     }
 

@@ -14,7 +14,6 @@ package org.eclipse.ditto.signals.commands.base;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.text.MessageFormat;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -27,7 +26,6 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
@@ -42,24 +40,6 @@ public abstract class AbstractCommandResponse<T extends AbstractCommandResponse<
     private final String responseType;
     private final HttpStatus httpStatus;
     private final DittoHeaders dittoHeaders;
-
-    /**
-     * Constructs a new {@code AbstractCommandResponse} object.
-     *
-     * @param responseType the type of this response.
-     * @param statusCode the HTTP statusCode of this response.
-     * @param dittoHeaders the headers of the CommandType which caused this CommandResponseType.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated as of 2.0.0 please use {@link #AbstractCommandResponse(String, HttpStatus, DittoHeaders)} instead.
-     */
-    @Deprecated
-    protected AbstractCommandResponse(final String responseType, final HttpStatusCode statusCode,
-            final DittoHeaders dittoHeaders) {
-
-        this.responseType = checkNotNull(responseType, "responseType");
-        httpStatus = checkNotNull(statusCode, "statusCode").getAsHttpStatus();
-        this.dittoHeaders = ensureNoResponseRequired(checkNotNull(dittoHeaders, "dittoHeaders"));
-    }
 
     /**
      * Constructs a new {@code AbstractCommandResponse} object.
@@ -86,17 +66,6 @@ public abstract class AbstractCommandResponse<T extends AbstractCommandResponse<
             result = dittoHeaders;
         }
         return result;
-    }
-
-    @Override
-    public HttpStatusCode getStatusCode() {
-        return HttpStatusCode.forInt(httpStatus.getCode()).orElseThrow(() -> {
-
-            // This might happen at runtime when httpStatus has a code which is
-            // not reflected as constant in HttpStatusCode.
-            final String msgPattern = "Found no HttpStatusCode for int <{0}>!";
-            return new IllegalStateException(MessageFormat.format(msgPattern, httpStatus.getCode()));
-        });
     }
 
     @Override
@@ -151,7 +120,7 @@ public abstract class AbstractCommandResponse<T extends AbstractCommandResponse<
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final AbstractCommandResponse that = (AbstractCommandResponse) o;
+        final AbstractCommandResponse<?> that = (AbstractCommandResponse<?>) o;
         return that.canEqual(this) && Objects.equals(dittoHeaders, that.dittoHeaders)
                 && Objects.equals(httpStatus, that.httpStatus)
                 && Objects.equals(responseType, that.responseType);

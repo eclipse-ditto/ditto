@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
-import java.util.Optional;
-
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 
 /**
@@ -47,15 +44,6 @@ public interface Adaptable extends DittoHeadersSettable<Adaptable> {
      * @return the payload.
      */
     Payload getPayload();
-
-    /**
-     * Returns the {@code DittoHeaders} of this {@code Adaptable} if present.
-     *
-     * @return the optional headers.
-     * @deprecated since 1.3.0, will be removed in a future release. Use {@link #getDittoHeaders()} instead.
-     */
-    @Deprecated
-    Optional<DittoHeaders> getHeaders();
 
     /**
      * Indicates whether this Adaptable contains a header with the specified key.

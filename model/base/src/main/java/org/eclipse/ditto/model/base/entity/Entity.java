@@ -38,17 +38,6 @@ public interface Entity<T extends Revision<T>> extends Jsonifiable.WithFieldSele
      * Returns the ID of this entity.
      *
      * @return the ID of this entity.
-     * @deprecated entity IDs are now typed. Use {@link #getEntityId()} instead.
-     */
-    @Deprecated
-    default Optional<String> getId() {
-        return getEntityId().map(String::valueOf);
-    }
-
-    /**
-     * Returns the ID of this entity.
-     *
-     * @return the ID of this entity.
      */
     Optional<? extends EntityId> getEntityId();
 

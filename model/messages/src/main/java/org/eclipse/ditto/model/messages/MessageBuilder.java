@@ -37,26 +37,6 @@ public interface MessageBuilder<T> {
      * @return the builder.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code thingId} or {@code subject} is empty.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #newHeadersBuilder(MessageDirection, org.eclipse.ditto.model.things.ThingId, CharSequence)}
-     * instead.
-     */
-    @Deprecated
-    static MessageHeadersBuilder newHeadersBuilder(final MessageDirection direction, final CharSequence thingId,
-            final CharSequence subject) {
-
-        return newHeadersBuilder(direction, ThingId.of(thingId), subject);
-    }
-
-    /**
-     * Returns a new builder for {@link MessageHeaders}.
-     *
-     * @param direction the direction of the message.
-     * @param thingId the thing ID of the message.
-     * @param subject the subject of the message.
-     * @return the builder.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @throws IllegalArgumentException if {@code thingId} or {@code subject} is empty.
      */
     static MessageHeadersBuilder newHeadersBuilder(final MessageDirection direction, final ThingId thingId,
             final CharSequence subject) {
@@ -90,16 +70,6 @@ public interface MessageBuilder<T> {
      * @throws UnsupportedOperationException if the parameter was already predefined for the Message to build.
      */
     MessageBuilder<T> extra(@Nullable JsonObject extra);
-
-    /**
-     * Adds a {@code responseConsumer} which is stored together with the message but never serialized.
-     *
-     * @param responseConsumer the consumer to store.
-     * @return this builder to allow method chaining.
-     * @deprecated since 1.2.0.
-     */
-    @Deprecated
-    MessageBuilder<T> responseConsumer(@Nullable MessageResponseConsumer<?> responseConsumer);
 
     /**
      * Creates a new immutable {@link Message} containing all properties which were set to this builder beforehand.

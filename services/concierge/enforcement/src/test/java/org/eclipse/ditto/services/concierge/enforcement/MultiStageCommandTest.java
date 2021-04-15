@@ -128,7 +128,7 @@ public final class MultiStageCommandTest {
                     SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
             mockThingsActor.underlyingActor()
                     .setReply(THING_SUDO, sudoRetrieveThingResponse)
-                    .setReply(THING, RetrieveThingResponse.of(thingId, thing, DEFAULT_HEADERS));
+                    .setReply(THING, RetrieveThingResponse.of(thingId, thing, null, null, DEFAULT_HEADERS));
             mockPoliciesActor.underlyingActor()
                     .setReply(POLICY_SUDO, sudoRetrievePolicyResponse)
                     .setReply(POLICY, RetrievePolicyResponse.of(policyId, policy, DEFAULT_HEADERS));
@@ -166,7 +166,7 @@ public final class MultiStageCommandTest {
                     SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
             mockThingsActor.underlyingActor()
                     .setReply(THING_SUDO, sudoRetrieveThingResponse)
-                    .setReply(THING, RetrieveThingResponse.of(thingId, thing, DEFAULT_HEADERS));
+                    .setReply(THING, RetrieveThingResponse.of(thingId, thing, null, null, DEFAULT_HEADERS));
             mockPoliciesActor.underlyingActor()
                     .setReply(POLICY_SUDO, sudoRetrievePolicyResponse);
 
@@ -220,7 +220,7 @@ public final class MultiStageCommandTest {
 
             // WHEN: Thing exists but Policy exists only in cache
             mockThingsActor.underlyingActor()
-                    .setReply(THING, RetrieveThingResponse.of(thingId, thing, DEFAULT_HEADERS));
+                    .setReply(THING, RetrieveThingResponse.of(thingId, thing, null, null, DEFAULT_HEADERS));
             underTest.tell(retrieveThing, getRef());
 
             // THEN: initial requester receives Thing without Policy
@@ -265,7 +265,7 @@ public final class MultiStageCommandTest {
 
             // WHEN: Thing is responsive but Policy times out
             mockThingsActor.underlyingActor()
-                    .setReply(THING, RetrieveThingResponse.of(thingId, thing, DEFAULT_HEADERS));
+                    .setReply(THING, RetrieveThingResponse.of(thingId, thing, null, null, DEFAULT_HEADERS));
             underTest.tell(retrieveThing, getRef());
 
             // THEN: initial requester receives Thing without Policy

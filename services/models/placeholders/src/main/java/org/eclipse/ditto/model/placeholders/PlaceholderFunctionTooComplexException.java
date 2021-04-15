@@ -85,22 +85,6 @@ public final class PlaceholderFunctionTooComplexException extends DittoRuntimeEx
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
-    /**
-     * Returns a mutable builder for this exception.
-     *
-     * @return the builder.
-     * @deprecated since 1.3.0; might be removed in future releases.
-     */
-    @Deprecated
-    public DittoRuntimeExceptionBuilder<PlaceholderFunctionTooComplexException> toBuilder() {
-        return new Builder()
-                .dittoHeaders(getDittoHeaders())
-                .message(getMessage())
-                .description(getDescription().orElse(DESCRIPTION_TEMPLATE))
-                .cause(getCause())
-                .href(getHref().orElse(null));
-    }
-
     @Override
     public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new Builder()

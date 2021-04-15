@@ -19,6 +19,8 @@ import java.time.Instant;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
+
 /**
  * A mutable builder for a {@link ImmutablePolicy} with a fluent API scoped to a specified {@link Label}.
  */
@@ -58,13 +60,7 @@ final class ImmutablePolicyBuilderLabelScoped implements PolicyBuilder.LabelScop
     }
 
     @Override
-    @Deprecated
-    public ImmutablePolicyBuilderLabelScoped setId(@Nullable final CharSequence id) {
-        return setId(PolicyId.of(id));
-    }
-
-    @Override
-    public ImmutablePolicyBuilderLabelScoped setId(@Nullable final PolicyId id) {
+    public ImmutablePolicyBuilderLabelScoped setId(final PolicyId id) {
         delegate.setId(id);
         return this;
     }
@@ -90,6 +86,12 @@ final class ImmutablePolicyBuilderLabelScoped implements PolicyBuilder.LabelScop
     @Override
     public ImmutablePolicyBuilderLabelScoped setCreated(@Nullable final Instant created) {
         delegate.setCreated(created);
+        return this;
+    }
+
+    @Override
+    public PolicyBuilder setMetadata(@Nullable final Metadata metadata) {
+        delegate.setMetadata(metadata);
         return this;
     }
 

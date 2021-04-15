@@ -74,23 +74,6 @@ public final class DeleteFeature extends AbstractCommand<DeleteFeature> implemen
      * @param dittoHeaders the headers of the command.
      * @return a Command for deleting the provided new Feature.
      * @throws NullPointerException if the any argument but {@code thingId} is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static DeleteFeature of(final String thingId, final String featureId, final DittoHeaders dittoHeaders) {
-        return of(ThingId.of(thingId), featureId, dittoHeaders);
-    }
-
-    /**
-     * Returns a Command for deleting a new Feature on a Thing.
-     *
-     * @param thingId the ID of the {@code Thing} on which the {@code Feature} to delete.
-     * @param featureId the ID of the {@code Feature} to delete.
-     * @param dittoHeaders the headers of the command.
-     * @return a Command for deleting the provided new Feature.
-     * @throws NullPointerException if the any argument but {@code thingId} is {@code null}.
      */
     public static DeleteFeature of(final ThingId thingId, final String featureId, final DittoHeaders dittoHeaders) {
         return new DeleteFeature(thingId, featureId, dittoHeaders);

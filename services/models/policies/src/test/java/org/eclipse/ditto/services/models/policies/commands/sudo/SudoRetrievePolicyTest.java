@@ -41,14 +41,12 @@ public final class SudoRetrievePolicyTest {
 
     private static final DittoHeaders EMPTY_DITTO_HEADERS = DittoHeaders.empty();
 
-    /** */
     @Test
     public void assertImmutability() {
         assertInstancesOf(SudoRetrievePolicy.class, areImmutable(),
                 provided(JsonFieldSelector.class, PolicyId.class).isAlsoImmutable());
     }
 
-    /** */
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(SudoRetrievePolicy.class)
@@ -56,13 +54,11 @@ public final class SudoRetrievePolicyTest {
                 .verify();
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
         SudoRetrievePolicy.of(null, EMPTY_DITTO_HEADERS);
     }
 
-    /** */
     @Test
     public void toJsonReturnsExpected() {
         final SudoRetrievePolicy underTest =
@@ -72,7 +68,6 @@ public final class SudoRetrievePolicyTest {
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
 
-    /** */
     @Test
     public void createInstanceFromValidJson() {
         final SudoRetrievePolicy underTest = SudoRetrievePolicy.fromJson(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);

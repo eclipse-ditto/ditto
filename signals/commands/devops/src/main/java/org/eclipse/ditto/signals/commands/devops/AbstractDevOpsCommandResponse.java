@@ -22,7 +22,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
@@ -38,28 +37,6 @@ abstract class AbstractDevOpsCommandResponse<T extends AbstractDevOpsCommandResp
 
     @Nullable private final String serviceName;
     @Nullable private final String instance;
-
-    /**
-     * Constructs a new {@code AbstractDevOpsCommandResponse} object.
-     *
-     * @param serviceName the service name from which the DevOpsCommandResponse originated.
-     * @param instance the instance identifier of the serviceName from which the DevOpsCommandResponse originated.
-     * @param responseType the name of this command response.
-     * @param statusCode the status code of this command response.
-     * @param dittoHeaders the headers of this command response.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated as of 2.0.0 please use
-     * {@link #AbstractDevOpsCommandResponse(String, String, String, HttpStatus, DittoHeaders)} instead.
-     */
-    @Deprecated
-    protected AbstractDevOpsCommandResponse(final String responseType,
-            @Nullable final String serviceName,
-            @Nullable final String instance,
-            final HttpStatusCode statusCode,
-            final DittoHeaders dittoHeaders) {
-
-        this(responseType, serviceName, instance, statusCode.getAsHttpStatus(), dittoHeaders);
-    }
 
     /**
      * Constructs a new {@code AbstractDevOpsCommandResponse} object.

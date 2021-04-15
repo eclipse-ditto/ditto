@@ -82,23 +82,6 @@ public final class ModifyPolicy extends AbstractCommand<ModifyPolicy> implements
      * @param dittoHeaders the headers of the command.
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Policy, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifyPolicy of(final String policyId, final Policy policy, final DittoHeaders dittoHeaders) {
-        return of(PolicyId.of(policyId), policy, dittoHeaders);
-    }
-
-    /**
-     * Creates a command for modifying a {@code Policy}.
-     *
-     * @param policyId the Policy ID of the Policy to modify.
-     * @param policy the Policy to modify.
-     * @param dittoHeaders the headers of the command.
-     * @return the command.
-     * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyPolicy of(final PolicyId policyId, final Policy policy, final DittoHeaders dittoHeaders) {
         Objects.requireNonNull(policyId, "The Policy identifier must not be null!");

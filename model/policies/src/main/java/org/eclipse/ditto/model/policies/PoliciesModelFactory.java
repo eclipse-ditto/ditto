@@ -606,50 +606,9 @@ public final class PoliciesModelFactory {
      * @param policyEntries the initial entries of the new builder.
      * @return the new builder.
      * @throws NullPointerException if {@code policyEntries} is {@code null}.
-     * @throws org.eclipse.ditto.model.policies.PolicyIdInvalidException if {@code id} is invalid.
-     * @deprecated Policy ID is now typed. Use {@link #newPolicyBuilder(PolicyId, Iterable)} )} instead.
-     */
-    @Deprecated
-    public static PolicyBuilder newPolicyBuilder(final CharSequence id, final Iterable<PolicyEntry> policyEntries) {
-        return ImmutablePolicyBuilder.of(PolicyId.of(id), policyEntries);
-    }
-
-    /**
-     * Returns a mutable builder with a fluent API for an immutable {@link Policy}. The builder is initialised
-     * with the given Policy entries.
-     *
-     * @param id the ID of the new Policy.
-     * @param policyEntries the initial entries of the new builder.
-     * @return the new builder.
-     * @throws NullPointerException if {@code policyEntries} is {@code null}.
      */
     public static PolicyBuilder newPolicyBuilder(final PolicyId id, final Iterable<PolicyEntry> policyEntries) {
         return ImmutablePolicyBuilder.of(id, policyEntries);
-    }
-
-    /**
-     * Returns a new immutable Policy which is initialised with the specified entries.
-     *
-     * @param id the ID of the new Policy.
-     * @param entry the mandatory entry of the Policy.
-     * @param furtherEntries additional entries of the Policy.
-     * @return the new initialised Policy.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use {@link #newPolicy(PolicyId, PolicyEntry, PolicyEntry...)} instead.
-     */
-    @Deprecated
-    public static Policy newPolicy(final CharSequence id, final PolicyEntry entry,
-            final PolicyEntry... furtherEntries) {
-
-        checkNotNull(entry, "mandatory entry");
-        checkNotNull(furtherEntries, "additional policy entries");
-
-        final Collection<PolicyEntry> allEntries = new HashSet<>(1 + furtherEntries.length);
-        allEntries.add(entry);
-        Collections.addAll(allEntries, furtherEntries);
-
-        return ImmutablePolicy.of(PolicyId.of(id), PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null,
-                allEntries);
     }
 
     /**
@@ -671,22 +630,7 @@ public final class PoliciesModelFactory {
         allEntries.add(entry);
         Collections.addAll(allEntries, furtherEntries);
 
-        return ImmutablePolicy.of(id, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null, allEntries);
-    }
-
-    /**
-     * Returns a new immutable Policy which is initialised with the specified entries.
-     *
-     * @param id the ID of the new Policy.
-     * @param entries the entries of the Policy.
-     * @return the new initialised Policy.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use {@link #newPolicy(PolicyId, Iterable)} instead.
-     */
-    @Deprecated
-    public static Policy newPolicy(final CharSequence id, final Iterable<PolicyEntry> entries) {
-        return ImmutablePolicy.of(PolicyId.of(id), PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null,
-                entries);
+        return ImmutablePolicy.of(id, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null, null, allEntries);
     }
 
     /**
@@ -698,7 +642,7 @@ public final class PoliciesModelFactory {
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static Policy newPolicy(final PolicyId id, final Iterable<PolicyEntry> entries) {
-        return ImmutablePolicy.of(id, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null, entries);
+        return ImmutablePolicy.of(id, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null, null, entries);
     }
 
     /**

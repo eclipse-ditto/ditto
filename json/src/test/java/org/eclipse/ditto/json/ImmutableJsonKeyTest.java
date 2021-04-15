@@ -26,31 +26,26 @@ import nl.jqno.equalsverifier.Warning;
  */
 public final class ImmutableJsonKeyTest {
 
-    /** */
     @Test
     public void assertImmutability() {
         assertInstancesOf(ImmutableJsonKey.class, areImmutable());
     }
 
-    /** */
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ImmutableJsonKey.class).suppress(Warning.NULL_FIELDS).verify();
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullKeyValue() {
         ImmutableJsonKey.of(null);
     }
 
-    /** */
     @Test(expected = IllegalArgumentException.class)
     public void tryToCreateInstanceWithEmptyKeyValue() {
         ImmutableJsonKey.of("");
     }
 
-    /** */
     @Test
     public void toStringReturnsExpected() {
         final String expected = "key";

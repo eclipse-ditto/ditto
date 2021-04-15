@@ -342,11 +342,6 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
         }
 
         @Override
-        public String getId() {
-            return null;
-        }
-
-        @Override
         public String getPath() {
             return "";
         }

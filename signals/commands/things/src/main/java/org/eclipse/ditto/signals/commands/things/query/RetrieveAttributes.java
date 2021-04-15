@@ -77,46 +77,9 @@ public final class RetrieveAttributes extends AbstractCommand<RetrieveAttributes
      * @return a Command for retrieving attributes of the Thing with the {@code thingId} as its ID which is readable
      * from the passed authorization context.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrieveAttributes of(final String thingId, final DittoHeaders dittoHeaders) {
-        return of(ThingId.of(thingId), dittoHeaders);
-    }
-
-    /**
-     * Returns a command for retrieving the attributes of a Thing with the given ID.
-     *
-     * @param thingId the ID of a single Thing whose attributes will be retrieved by this command.
-     * @param dittoHeaders the headers of the command.
-     * @return a Command for retrieving attributes of the Thing with the {@code thingId} as its ID which is readable
-     * from the passed authorization context.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
     public static RetrieveAttributes of(final ThingId thingId, final DittoHeaders dittoHeaders) {
         return new RetrieveAttributes(null, thingId, dittoHeaders);
-    }
-
-    /**
-     * Returns a command for retrieving an attribute of a Thing with the given ID.
-     *
-     * @param thingId the ID of a single Thing whose attributes will be retrieved by this command.
-     * @param selectedFields defines the optionally selected fields.
-     * @param dittoHeaders the headers of the command.
-     * @return a Command for retrieving attributes of the Thing with the {@code thingId} as its ID which is readable
-     * from the passed authorization context.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonFieldSelector, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrieveAttributes of(final String thingId, @Nullable final JsonFieldSelector selectedFields,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), selectedFields, dittoHeaders);
     }
 
     /**

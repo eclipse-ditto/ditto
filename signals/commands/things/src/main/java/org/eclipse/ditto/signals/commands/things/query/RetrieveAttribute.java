@@ -84,29 +84,6 @@ public final class RetrieveAttribute extends AbstractCommand<RetrieveAttribute>
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributeJsonPointer} are not valid
      * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer,
-     * org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrieveAttribute of(final String thingId, final JsonPointer attributeJsonPointer,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), attributeJsonPointer, dittoHeaders);
-    }
-
-    /**
-     * Returns a command for retrieving an attribute of a Thing with the given ID.
-     *
-     * @param thingId the ID of a single Thing from which a single attribute will be retrieved by this command.
-     * @param attributeJsonPointer defines one JSON pointer of the attribute to retrieve.
-     * @param dittoHeaders the headers of the command.
-     * @return a Command for retrieving a single attribute of the Thing with the {@code thingId} as its ID which is
-     * readable from the passed authorization context.
-     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributeJsonPointer} are not valid
-     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static RetrieveAttribute of(final ThingId thingId, final JsonPointer attributeJsonPointer,
             final DittoHeaders dittoHeaders) {

@@ -16,6 +16,7 @@ package org.eclipse.ditto.services.gateway.endpoints.routes.devops;
 import java.util.Collections;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevopsAuthenticationDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevopsAuthenticationDirectiveFactory;
@@ -65,7 +66,7 @@ public final class DevOpsRouteTest extends EndpointTestBase {
 
     @Test
     public void testPiggyback() {
-        final RetrieveThing retrieveThing = RetrieveThing.of("thing:id", DittoHeaders.empty());
+        final RetrieveThing retrieveThing = RetrieveThing.of(ThingId.of("thing:id"), DittoHeaders.empty());
         final ExecutePiggybackCommand body =
                 ExecutePiggybackCommand.of("things", "1", retrieveThing.toJson(), DittoHeaders.empty());
         final RequestEntity requestEntity = HttpEntities.create(ContentTypes.APPLICATION_JSON, body.toJsonString());

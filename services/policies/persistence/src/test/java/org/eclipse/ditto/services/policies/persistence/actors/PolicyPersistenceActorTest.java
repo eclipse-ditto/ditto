@@ -1569,7 +1569,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                     .isEqualEqualToButModified(policy);
 
             final DeletePolicy deletePolicyCommand =
-                    DeletePolicy.of(policy.getId().orElseThrow(() -> new IllegalStateException("no id")),
+                    DeletePolicy.of(policy.getEntityId().orElseThrow(() -> new IllegalStateException("no id")),
                             dittoHeadersV2);
             policyPersistenceActor.tell(deletePolicyCommand, getRef());
             expectMsgClass(DeletePolicyResponse.class);

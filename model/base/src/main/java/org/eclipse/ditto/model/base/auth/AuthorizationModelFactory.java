@@ -73,24 +73,6 @@ public final class AuthorizationModelFactory {
     }
 
     /**
-     * Returns a new immutable {@link AuthorizationContext} with the given authorization subjects.
-     *
-     * @param authorizationSubject the mandatory authorization subject of the new authorization context.
-     * @param furtherAuthorizationSubjects additional authorization subjects of the new authorization context.
-     * @return the new {@code AuthorizationContext}.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated as of 1.1.0, please use
-     * {@link #newAuthContext(AuthorizationContextType, AuthorizationSubject, AuthorizationSubject...)} instead
-     */
-    @Deprecated
-    public static AuthorizationContext newAuthContext(final AuthorizationSubject authorizationSubject,
-            final AuthorizationSubject... furtherAuthorizationSubjects) {
-
-        return ImmutableAuthorizationContext.of(DittoAuthorizationContextType.UNSPECIFIED, authorizationSubject,
-                furtherAuthorizationSubjects);
-    }
-
-    /**
      * Returns a new immutable {@link AuthorizationContext} based on the given JSON object.
      *
      * @param jsonObject the JSON object representation of an authorization context.
@@ -116,21 +98,6 @@ public final class AuthorizationModelFactory {
         final List<AuthorizationSubject> authSubjectsList = new ArrayList<>();
         authorizationSubjects.forEach(authSubjectsList::add);
         return ImmutableAuthorizationContext.of(type, authSubjectsList);
-    }
-
-    /**
-     * Returns a new immutable {@link AuthorizationContext} with the given authorization subjects.
-     *
-     * @param authorizationSubjects the authorization subjects of the new authorization context.
-     * @return the new {@code AuthorizationContext}.
-     * @throws NullPointerException if {@code authorizationSubjects} is {@code null}.
-     * @deprecated as of 1.1.0, please use {@link #newAuthContext(AuthorizationContextType, java.lang.Iterable)} instead
-     */
-    @Deprecated
-    public static AuthorizationContext newAuthContext(final Iterable<AuthorizationSubject> authorizationSubjects) {
-        final List<AuthorizationSubject> authSubjectsList = new ArrayList<>();
-        authorizationSubjects.forEach(authSubjectsList::add);
-        return ImmutableAuthorizationContext.of(DittoAuthorizationContextType.UNSPECIFIED, authSubjectsList);
     }
 
 }

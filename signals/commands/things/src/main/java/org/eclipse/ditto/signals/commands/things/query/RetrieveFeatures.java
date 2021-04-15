@@ -74,44 +74,9 @@ public final class RetrieveFeatures extends AbstractCommand<RetrieveFeatures>
      * @param dittoHeaders the headers of the command.
      * @return a Command for retrieving the Features.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrieveFeatures of(final String thingId, final DittoHeaders dittoHeaders) {
-        return of(ThingId.of(thingId), dittoHeaders);
-    }
-
-    /**
-     * Returns a Command for retrieving all Features of a Thing.
-     *
-     * @param thingId the ID of a Thing whose Features to be retrieved by this command.
-     * @param dittoHeaders the headers of the command.
-     * @return a Command for retrieving the Features.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
     public static RetrieveFeatures of(final ThingId thingId, final DittoHeaders dittoHeaders) {
         return of(thingId, null, dittoHeaders);
-    }
-
-    /**
-     * Returns a Command for retrieving all Features of a Thing.
-     *
-     * @param thingId the ID of a Thing whose Features to be retrieved by this command.
-     * @param selectedFields defines the fields of the JSON representation of the Features to retrieve.
-     * @param dittoHeaders the headers of the command.
-     * @return a Command for retrieving the Features.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonFieldSelector, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrieveFeatures of(final String thingId, @Nullable final JsonFieldSelector selectedFields,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), selectedFields, dittoHeaders);
     }
 
     /**

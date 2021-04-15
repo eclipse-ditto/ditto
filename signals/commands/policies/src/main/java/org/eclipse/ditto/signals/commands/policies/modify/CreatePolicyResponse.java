@@ -86,26 +86,6 @@ public final class CreatePolicyResponse extends AbstractCommandResponse<CreatePo
     }
 
     /**
-     * Returns a new {@code CreatePolicyResponse} for a created Policy. This corresponds to the HTTP status
-     * {@link HttpStatus#CREATED}.
-     *
-     * @param policyId the Policy ID of the created Policy.
-     * @param policy the created Policy.
-     * @param dittoHeaders the headers of the PolicyCommand which caused the new response.
-     * @return a command response for a created Policy.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Policy, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static CreatePolicyResponse of(final String policyId, @Nullable final Policy policy,
-            final DittoHeaders dittoHeaders) {
-
-        return new CreatePolicyResponse(PolicyId.of(policyId), HttpStatus.CREATED, policy, dittoHeaders);
-    }
-
-    /**
      * Creates a response to a {@code CreatePolicy} command from a JSON string.
      *
      * @param jsonString the JSON string of which the response is to be created.

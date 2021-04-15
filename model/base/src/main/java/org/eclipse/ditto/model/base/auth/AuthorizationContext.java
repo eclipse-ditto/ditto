@@ -71,23 +71,6 @@ public interface AuthorizationContext
     }
 
     /**
-     * Returns a new immutable {@code AuthorizationContext} with the given authorization subjects.
-     *
-     * @param authorizationSubject the mandatory authorization subject of the new authorization context.
-     * @param furtherAuthorizationSubjects additional authorization subjects of the new authorization context.
-     * @return the new {@code AuthorizationContext}.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated as of 1.1.0, please use
-     * {@link #newInstance(AuthorizationContextType, AuthorizationSubject, AuthorizationSubject...)} instead
-     */
-    @Deprecated
-    static AuthorizationContext newInstance(final AuthorizationSubject authorizationSubject,
-            final AuthorizationSubject... furtherAuthorizationSubjects) {
-
-        return AuthorizationModelFactory.newAuthContext(authorizationSubject, furtherAuthorizationSubjects);
-    }
-
-    /**
      * Returns the type the authorization context was created with, specifying its "kind".
      *
      * @return the type of this authorization context.
@@ -193,15 +176,6 @@ public interface AuthorizationContext
      */
     @Immutable
     final class JsonFields {
-
-        /**
-         * JSON field containing the {@link JsonSchemaVersion}.
-         * @deprecated as of 1.1.0 this field is no longer in use.
-         */
-        @Deprecated
-        public static final JsonFieldDefinition<Integer> JSON_SCHEMA_VERSION =
-                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the authorization context's type.

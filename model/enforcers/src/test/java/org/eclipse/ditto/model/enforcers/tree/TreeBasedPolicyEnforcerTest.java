@@ -33,7 +33,6 @@ import org.junit.Test;
  */
 public final class TreeBasedPolicyEnforcerTest {
 
-    /** */
     @Test
     public void tryToCreateInstanceWithNullPolicy() {
         assertThatExceptionOfType(NullPointerException.class)

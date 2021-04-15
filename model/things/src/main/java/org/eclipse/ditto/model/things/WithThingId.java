@@ -20,15 +20,6 @@ import org.eclipse.ditto.model.base.entity.id.WithEntityId;
  */
 public interface WithThingId extends WithEntityId {
 
-    /**
-     * @return the thing ID.
-     * @deprecated since 2.0.0 use {@link #getEntityId() instead}.
-     */
-    @Deprecated
-    default ThingId getThingEntityId() {
-        return getEntityId();
-    }
-
     @Override
     ThingId getEntityId();
 

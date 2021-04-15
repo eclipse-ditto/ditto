@@ -65,24 +65,6 @@ public final class RetrieveFeaturesResponse extends AbstractCommandResponse<Retr
         this.features = features;
     }
 
-    /**
-     * Creates a response to a {@link RetrieveFeatures} command.
-     *
-     * @param thingId the Thing ID of the retrieved features.
-     * @param features the retrieved Features.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.Features, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrieveFeaturesResponse of(final String thingId, final Features features,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), features, dittoHeaders);
-    }
 
     /**
      * Creates a response to a {@link RetrieveFeatures} command.
@@ -97,25 +79,6 @@ public final class RetrieveFeaturesResponse extends AbstractCommandResponse<Retr
             final DittoHeaders dittoHeaders) {
 
         return new RetrieveFeaturesResponse(thingId, checkNotNull(features, "retrieved Features"), dittoHeaders);
-    }
-
-    /**
-     * Creates a response to a {@link RetrieveFeatures} command.
-     *
-     * @param thingId the Thing ID of the retrieved features.
-     * @param jsonObject the retrieved Features.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonObject, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrieveFeaturesResponse of(final String thingId, @Nullable final JsonObject jsonObject,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), jsonObject, dittoHeaders);
     }
 
     /**

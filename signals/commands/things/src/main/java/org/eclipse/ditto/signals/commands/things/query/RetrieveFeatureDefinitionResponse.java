@@ -85,28 +85,6 @@ public final class RetrieveFeatureDefinitionResponse extends AbstractCommandResp
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.things.FeatureDefinition, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrieveFeatureDefinitionResponse of(final String thingId,
-            final String featureId,
-            final FeatureDefinition definition,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), featureId, definition, dittoHeaders);
-    }
-
-    /**
-     * Creates a response to a {@link RetrieveFeatureDefinition} command.
-     *
-     * @param thingId the Thing ID of the retrieved Feature Definition.
-     * @param featureId the identifier of the Feature whose Definition was retrieved.
-     * @param definition the retrieved FeatureDefinition.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
      */
     public static RetrieveFeatureDefinitionResponse of(final ThingId thingId,
             final String featureId,
@@ -115,28 +93,6 @@ public final class RetrieveFeatureDefinitionResponse extends AbstractCommandResp
 
         checkNotNull(definition, "Definition");
         return new RetrieveFeatureDefinitionResponse(thingId, featureId, definition.toJson(), dittoHeaders);
-    }
-
-    /**
-     * Creates a response to a {@link RetrieveFeatureDefinition} command.
-     *
-     * @param thingId the Thing ID of the retrieved Feature Definition.
-     * @param featureId the identifier of the Feature whose Definition was retrieved.
-     * @param definitionJsonArray the retrieved FeatureDefinition JSON array.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.json.JsonArray, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrieveFeatureDefinitionResponse of(final String thingId,
-            final String featureId,
-            final JsonArray definitionJsonArray,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), featureId, definitionJsonArray, dittoHeaders);
     }
 
     /**

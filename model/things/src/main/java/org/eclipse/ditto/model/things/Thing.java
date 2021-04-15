@@ -24,9 +24,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.entity.Entity;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyId;
@@ -593,29 +591,6 @@ public interface Thing extends Entity<ThingRevision> {
     }
 
     /**
-     * Returns the Policy ID of this Thing.
-     *
-     * @return the Policy ID of this Thing.
-     * @deprecated Policy ID of the thing is now typed. Use {@link #getPolicyEntityId()} instead.
-     */
-    @Deprecated
-    default Optional<String> getPolicyId() {
-        return getPolicyEntityId().map(String::valueOf);
-    }
-
-    /**
-     * Sets the given Policy ID on a copy of this Thing.
-     *
-     * @param policyId the Policy ID to set.
-     * @return a copy of this Thing with {@code policyId} as its Policy ID.
-     * @deprecated Policy ID of the thing is now typed. Use {@link #setPolicyId(PolicyId)} ()} instead.
-     */
-    @Deprecated
-    default Thing setPolicyId(@Nullable String policyId) {
-        return setPolicyId(policyId == null ? null : PolicyId.of(policyId));
-    }
-
-    /**
      * Sets the given Policy ID on a copy of this Thing.
      *
      * @param policyId the Policy ID to set.
@@ -668,12 +643,6 @@ public interface Thing extends Entity<ThingRevision> {
      * @return a copy of this Thing without the Feature with the given ID.
      */
     Thing removeFeature(String featureId);
-
-    /**
-     * @deprecated this method does nothing anymore. IDs are now typed and already validated.
-     */
-    @Deprecated
-    default void validate(DittoHeaders headers) { }
 
     /**
      * An enumeration of the known {@link JsonField}s of a Thing.

@@ -70,37 +70,9 @@ public final class MessageSendNotAllowedException extends DittoRuntimeException 
      *
      * @param thingId the ID of the Thing for which a message should be sent.
      * @return the builder.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #newBuilder(org.eclipse.ditto.model.things.ThingId)}
-     * instead.
-     */
-    @Deprecated
-    public static Builder newBuilder(@Nullable final String thingId) {
-        return newBuilder(ThingId.of(thingId));
-    }
-
-    /**
-     * A mutable builder for a {@code MessageNotSendableException}.
-     *
-     * @param thingId the ID of the Thing for which a message should be sent.
-     * @return the builder.
      */
     public static Builder newBuilder(@Nullable final ThingId thingId) {
         return new Builder(thingId);
-    }
-
-    /**
-     * Constructs a new {@code MessageNotSendableException} object with the given exception message.
-     *
-     * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
-     * @return the new SubjectInvalidException.
-     * @deprecated since DittoHeaders are required for the builder. Use {@code #fromMessage(String, DittoHeaders)} instead.
-     */
-    @Deprecated
-    public static MessageSendNotAllowedException fromMessage(@Nullable final String message) {
-        return new Builder()
-                .message(message)
-                .build();
     }
 
     /**

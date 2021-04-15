@@ -83,24 +83,6 @@ public final class ModifyFeatures extends AbstractCommand<ModifyFeatures>
      * @param dittoHeaders the headers of the command.
      * @return a Command for modifying the provided Features.
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.Features, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifyFeatures of(final String thingId, final Features features, final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), features, dittoHeaders);
-    }
-
-    /**
-     * Returns a Command for modifying the Features of a Thing.
-     *
-     * @param thingId the ID of the {@code Thing} on which the {@code Features} to modify.
-     * @param features the {@code Features} to modify.
-     * @param dittoHeaders the headers of the command.
-     * @return a Command for modifying the provided Features.
-     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
      */
     public static ModifyFeatures of(final ThingId thingId, final Features features, final DittoHeaders dittoHeaders) {
 

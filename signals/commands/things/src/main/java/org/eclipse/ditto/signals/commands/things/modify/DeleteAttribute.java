@@ -92,31 +92,6 @@ public final class DeleteAttribute extends AbstractCommand<DeleteAttribute>
      * {@code attributeJsonPointer} is empty.
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributeJsonPointer} are not valid
      * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer,
-     * org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static DeleteAttribute of(final String thingId, final JsonPointer attributeJsonPointer,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), attributeJsonPointer, dittoHeaders);
-    }
-
-    /**
-     * Returns a command for deleting a Thing's attribute which can be accessed with the given authorization context.
-     * The attribute's key and the Thing's ID are passed as arguments.
-     *
-     * @param thingId the thing's key.
-     * @param attributeJsonPointer the JSON pointer of the attribute key to delete.
-     * @param dittoHeaders the headers of the command.
-     * @return a command for deleting a Thing's attribute.
-     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
-     * @throws org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException if
-     * {@code attributeJsonPointer} is empty.
-     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributeJsonPointer} are not valid
-     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static DeleteAttribute of(final ThingId thingId, final JsonPointer attributeJsonPointer,
             final DittoHeaders dittoHeaders) {

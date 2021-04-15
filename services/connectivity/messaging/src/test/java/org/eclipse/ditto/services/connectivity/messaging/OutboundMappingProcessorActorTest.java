@@ -358,7 +358,7 @@ public final class OutboundMappingProcessorActorTest {
 
     private static RetrieveThingResponse retrieveThingResponse(final Attributes attributes) {
         return RetrieveThingResponse.of(thingId(),
-                Thing.newBuilder().setId(thingId()).setAttributes(attributes).build(),
+                Thing.newBuilder().setId(thingId()).setAttributes(attributes).build(), null, null,
                 DittoHeaders.empty());
     }
 }

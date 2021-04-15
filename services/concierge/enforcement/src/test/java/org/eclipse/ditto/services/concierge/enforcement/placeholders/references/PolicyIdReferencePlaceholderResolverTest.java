@@ -80,7 +80,8 @@ public class PolicyIdReferencePlaceholderResolverTest {
         assertThat(retrieveThing.getSelectedFields()).contains(JsonFieldSelector.newInstance("policyId"));
 
         conciergeForwarderActorProbe.reply(RetrieveThingResponse.of(THING_ID,
-                Thing.newBuilder().setPolicyId(PolicyId.of("namespace:myPolicy")).build(), DittoHeaders.empty()));
+                Thing.newBuilder().setPolicyId(PolicyId.of("namespace:myPolicy")).build(), null, null,
+                DittoHeaders.empty()));
 
         Awaitility.await()
                 .atMost(Duration.ofSeconds(1))
@@ -104,7 +105,7 @@ public class PolicyIdReferencePlaceholderResolverTest {
 
         conciergeForwarderActorProbe.reply(RetrieveThingResponse.of(THING_ID,
                 Thing.newBuilder().setAttribute(JsonPointer.of("policyId"), JsonValue.of("namespace:myPolicy")).build(),
-                DittoHeaders.empty()));
+                null, null, DittoHeaders.empty()));
 
         Awaitility.await()
                 .atMost(Duration.ofSeconds(1))
@@ -129,7 +130,7 @@ public class PolicyIdReferencePlaceholderResolverTest {
 
         conciergeForwarderActorProbe.reply(RetrieveThingResponse.of(THING_ID,
                 Thing.newBuilder().build(),
-                DittoHeaders.empty()));
+                null, null, DittoHeaders.empty()));
 
         Awaitility.await()
                 .atMost(Duration.ofSeconds(1))
@@ -153,7 +154,7 @@ public class PolicyIdReferencePlaceholderResolverTest {
         assertThat(retrieveThing.getSelectedFields()).contains(JsonFieldSelector.newInstance("policyId"));
 
         conciergeForwarderActorProbe.reply(
-                RetrieveThingResponse.of(THING_ID, Thing.newBuilder().build(), DittoHeaders.empty()));
+                RetrieveThingResponse.of(THING_ID, Thing.newBuilder().build(), null, null, DittoHeaders.empty()));
 
         Awaitility.await()
                 .atMost(Duration.ofSeconds(1))

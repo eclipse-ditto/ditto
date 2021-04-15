@@ -200,11 +200,6 @@ public final class RetrieveThingsTest {
     }
 
     @Test(expected = NullPointerException.class)
-    public void initializationWithNullForThingIdsStringArrayThrowsNullPointerException(){
-        RetrieveThings.getBuilder((String[]) null).build();
-    }
-
-    @Test(expected = NullPointerException.class)
     public void initializationWithNullForThingIdsListThrowsNullPointerException(){
         RetrieveThings.getBuilder((List<ThingId>) null).build();
     }
@@ -227,7 +222,7 @@ public final class RetrieveThingsTest {
                 TestConstants.Thing.THING_ID, TestConstants.DITTO_HEADERS);
         final JsonObject jsonObject = command.toJson(FieldType.regularOrSpecial());
 
-        final Command parsedCommand = commandRegistry.parse(jsonObject, TestConstants.DITTO_HEADERS);
+        final Command<?> parsedCommand = commandRegistry.parse(jsonObject, TestConstants.DITTO_HEADERS);
 
         assertThat(parsedCommand).isEqualTo(command);
     }

@@ -120,10 +120,10 @@ public final class RawMessageMapper extends AbstractMessageMapper {
     /**
      * The context representing this mapper.
      */
-    public static final MappingContext CONTEXT = ConnectivityModelFactory.newMappingContext(
+    public static final MappingContext CONTEXT = ConnectivityModelFactory.newMappingContextBuilder(
             RawMessageMapper.class.getCanonicalName(),
             DEFAULT_CONFIG
-    );
+    ).build();
 
     @Override
     public List<Adaptable> map(final ExternalMessage externalMessage) {

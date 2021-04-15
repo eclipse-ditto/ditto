@@ -80,11 +80,6 @@ public class ImmutableTopicPathPlaceholderTest {
     }
 
     @Test
-    public void testReplaceEntityId() {
-        assertThat(UNDER_TEST.resolve(KNOWN_TOPIC_PATH, "entityId")).contains(KNOWN_NAME);
-    }
-
-    @Test
     public void testReplaceEntityName() {
         assertThat(UNDER_TEST.resolve(KNOWN_TOPIC_PATH, "entityName")).contains(KNOWN_NAME);
     }

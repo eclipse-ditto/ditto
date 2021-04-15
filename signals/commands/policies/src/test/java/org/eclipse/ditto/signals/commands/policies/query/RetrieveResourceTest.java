@@ -25,7 +25,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.TestConstants;
@@ -66,23 +65,7 @@ public final class RetrieveResourceTest {
     @Test
     public void tryToCreateInstanceWithNullPolicyId() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> RetrieveResource.of((PolicyId) null, TestConstants.Policy.LABEL,
-                        TestConstants.Policy.RESOURCE.getResourceKey(), EMPTY_DITTO_HEADERS));
-    }
-
-
-    @Test
-    public void tryToCreateInstanceWithNullPolicyIdString() {
-        assertThatExceptionOfType(PolicyIdInvalidException.class)
-                .isThrownBy(() -> RetrieveResource.of((String) null, TestConstants.Policy.LABEL,
-                        TestConstants.Policy.RESOURCE.getResourceKey(), EMPTY_DITTO_HEADERS));
-    }
-
-
-    @Test
-    public void tryToCreateInstanceWithInvalidPolicyId() {
-        assertThatExceptionOfType(PolicyIdInvalidException.class)
-                .isThrownBy(() -> RetrieveResource.of("undefined", TestConstants.Policy.LABEL,
+                .isThrownBy(() -> RetrieveResource.of(null, TestConstants.Policy.LABEL,
                         TestConstants.Policy.RESOURCE.getResourceKey(), EMPTY_DITTO_HEADERS));
     }
 

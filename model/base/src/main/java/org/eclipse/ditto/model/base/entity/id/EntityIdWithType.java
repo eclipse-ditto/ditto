@@ -16,7 +16,6 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
 import java.util.Objects;
-import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -36,29 +35,6 @@ public abstract class EntityIdWithType implements EntityId, WithEntityType {
 
     protected EntityIdWithType(final EntityId entityId) {
         this.entityId = checkNotNull(entityId, "entityId");
-    }
-
-    /**
-     * Creates an equality validator as {@code Consumer} accepting {@code EntityIdWithType} instances comparing them to
-     * the passed in {@code expectedEntityId}.
-     * <p>
-     * When the entity IDs don't match, the an {@link IllegalArgumentException} will be thrown to the one providing the
-     * entity id to compare with.
-     * </p>
-     * The equality validator will for {@code NamespacedEntityIdWithType} IDs compare equality of the IDs {@code name}s
-     * excluding the {@code namespace} part as the {@code namespace} part might not yet be available.
-     *
-     * @param <I> the type of EntityIdWithType which may also be NamespacedEntityIdWithType.
-     * @param expectedEntityId the expected entity ID.
-     * @return a consumer accepting an instance of {@code <I>} which gets compared with {@code expectedEntityId} - if
-     * the IDs are not equal, an {@link IllegalArgumentException} will be thrown, if they are equal, no other side
-     * effect happens.
-     * @throws NullPointerException if {@code expectedEntityId} is {@code null}.
-     * @deprecated as of 1.2.0 please use {@link #isCompatibleOrThrow(EntityIdWithType)} instead.
-     */
-    @Deprecated
-    public static <I extends EntityIdWithType> Consumer<I> createEqualityValidator(final I expectedEntityId) {
-        return expectedEntityId::isCompatibleOrThrow;
     }
 
     /**

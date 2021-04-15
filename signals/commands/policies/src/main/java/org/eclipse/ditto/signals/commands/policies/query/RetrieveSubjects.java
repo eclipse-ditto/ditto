@@ -74,24 +74,6 @@ public final class RetrieveSubjects extends AbstractCommand<RetrieveSubjects>
      * @return a Command for retrieving the Subjects of one Policy entry of the Policy with the {@code policyId} and
      * {@code label} which is readable from the passed authorization context.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrieveSubjects of(final String policyId, final Label label, final DittoHeaders dittoHeaders) {
-        return of(PolicyId.of(policyId), label, dittoHeaders);
-    }
-
-    /**
-     * Returns a command for retrieving the Subjects with the given Policy ID and Label.
-     *
-     * @param policyId the ID of a single Policy whose Subjects of the Policy entry will be retrieved by this command.
-     * @param label the specified label of the Policy entry for which to retrieve the Subjects for.
-     * @param dittoHeaders the optional command headers of the request.
-     * @return a Command for retrieving the Subjects of one Policy entry of the Policy with the {@code policyId} and
-     * {@code label} which is readable from the passed authorization context.
-     * @throws NullPointerException if any argument is {@code null}.
      */
     public static RetrieveSubjects of(final PolicyId policyId, final Label label, final DittoHeaders dittoHeaders) {
         return new RetrieveSubjects(label, policyId, dittoHeaders);

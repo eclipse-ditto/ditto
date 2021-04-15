@@ -181,11 +181,6 @@ final class ImmutableTopicPath implements TopicPath {
     }
 
     @Override
-    public String getId() {
-        return name;
-    }
-
-    @Override
     public String getEntityName() {
         return name;
     }

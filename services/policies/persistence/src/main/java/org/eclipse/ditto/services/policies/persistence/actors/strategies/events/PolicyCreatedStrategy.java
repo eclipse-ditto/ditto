@@ -31,6 +31,7 @@ final class PolicyCreatedStrategy implements EventStrategy<PolicyCreated, Policy
                 .setRevision(revision)
                 .setModified(event.getTimestamp().orElseGet(() -> event.getPolicy().getModified().orElse(null)))
                 .setCreated(event.getTimestamp().orElseGet(() -> event.getPolicy().getCreated().orElse(null)))
+                .setMetadata(event.getMetadata().orElseGet(() -> event.getPolicy().getMetadata().orElse(null)))
                 .build();
     }
 }

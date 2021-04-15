@@ -212,7 +212,14 @@ public final class Mqtt5ValidatorTest {
         return ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.MQTT_5,
                 ConnectivityStatus.OPEN, "tcp://localhost:1883")
                 .targets(singletonList(
-                        ConnectivityModelFactory.newTarget(target, AUTHORIZATION_CONTEXT, null, 1, Topic.LIVE_EVENTS)))
+                        ConnectivityModelFactory.newTargetBuilder()
+                                .address(target)
+                                .authorizationContext(AUTHORIZATION_CONTEXT)
+                                .qos(1)
+                                .topics(Topic.LIVE_EVENTS)
+                                .build()
+                        )
+                )
                 .build();
     }
 

@@ -74,24 +74,6 @@ public final class RetrievePolicyEntry extends AbstractCommand<RetrievePolicyEnt
      * @return a Command for retrieving one Policy entry with the {@code policyId} and {@code label} which is readable
      * from the passed authorization context.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrievePolicyEntry of(final String policyId, final Label label, final DittoHeaders dittoHeaders) {
-        return of(PolicyId.of(policyId), label, dittoHeaders);
-    }
-
-    /**
-     * Returns a command for retrieving a specific Policy entry with the given ID and Label.
-     *
-     * @param policyId the ID of a single Policy whose Policy entry will be retrieved by this command.
-     * @param label the specified label for which to retrieve the Policy entry for.
-     * @param dittoHeaders the optional command headers of the request.
-     * @return a Command for retrieving one Policy entry with the {@code policyId} and {@code label} which is readable
-     * from the passed authorization context.
-     * @throws NullPointerException if any argument is {@code null}.
      */
     public static RetrievePolicyEntry of(final PolicyId policyId, final Label label, final DittoHeaders dittoHeaders) {
         return new RetrievePolicyEntry(label, policyId, dittoHeaders);

@@ -25,19 +25,16 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public class ExistsNodeTest {
 
-    /** */
     @Test
     public void hashcodeAndEquals() {
         EqualsVerifier.forClass(ExistsNode.class).usingGetClass().verify();
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void typeConstructorWithNull() {
         new ExistsNode(null);
     }
 
-    /** */
     @Test
     public void constructorSuccess() {
         final ExistsNode existsNode = new ExistsNode("propertyName");

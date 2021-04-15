@@ -14,8 +14,6 @@ package org.eclipse.ditto.model.query.things;
 
 import java.util.List;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.criteria.visitors.CriteriaVisitor;
@@ -42,11 +40,6 @@ public final class ThingPredicateVisitor implements CriteriaVisitor<Predicate<Th
     }
 
     @Override
-    public Predicate<Thing> visitAnd(final Stream<Predicate<Thing>> conjuncts) {
-        return visitAnd(conjuncts.collect(Collectors.toList()));
-    }
-
-    @Override
     public Predicate<Thing> visitAny() {
         return any -> true;
     }
@@ -69,17 +62,7 @@ public final class ThingPredicateVisitor implements CriteriaVisitor<Predicate<Th
     }
 
     @Override
-    public Predicate<Thing> visitNor(final Stream<Predicate<Thing>> negativeDisjoints) {
-        return visitNor(negativeDisjoints.collect(Collectors.toList()));
-    }
-
-    @Override
     public Predicate<Thing> visitOr(final List<Predicate<Thing>> disjoints) {
         return thing -> disjoints.stream().anyMatch(p -> p.test(thing));
-    }
-
-    @Override
-    public Predicate<Thing> visitOr(final Stream<Predicate<Thing>> disjoints) {
-        return visitOr(disjoints.collect(Collectors.toList()));
     }
 }

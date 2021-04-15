@@ -66,23 +66,6 @@ public final class RetrievePolicy extends AbstractCommand<RetrievePolicy>
      * @return a Command for retrieving the Policy with the {@code policyId} as its ID which is readable from the passed
      * authorization context.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrievePolicy of(final String policyId, final DittoHeaders dittoHeaders) {
-        return of(PolicyId.of(policyId), dittoHeaders);
-    }
-
-    /**
-     * Returns a Command for retrieving the Policy with the given ID.
-     *
-     * @param policyId the ID of a single Policy to be retrieved by this command.
-     * @param dittoHeaders the optional command headers of the request.
-     * @return a Command for retrieving the Policy with the {@code policyId} as its ID which is readable from the passed
-     * authorization context.
-     * @throws NullPointerException if any argument is {@code null}.
      */
     public static RetrievePolicy of(final PolicyId policyId, final DittoHeaders dittoHeaders) {
         return new RetrievePolicy(policyId, dittoHeaders);

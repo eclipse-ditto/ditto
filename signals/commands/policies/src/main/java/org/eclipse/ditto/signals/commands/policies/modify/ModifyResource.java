@@ -89,28 +89,6 @@ public final class ModifyResource extends AbstractCommand<ModifyResource>
      * @param dittoHeaders the headers of the command.
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.Resource, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifyResource of(final String policyId,
-            final Label label,
-            final Resource resource,
-            final DittoHeaders dittoHeaders) {
-
-        return of(PolicyId.of(policyId), label, resource, dittoHeaders);
-    }
-
-    /**
-     * Creates a command for modifying {@code Resource} of a {@code Policy}'s {@code PolicyEntry}.
-     *
-     * @param policyId the identifier of the Policy.
-     * @param label the Label of the PolicyEntry.
-     * @param resource the Resource to modify.
-     * @param dittoHeaders the headers of the command.
-     * @return the command.
-     * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyResource of(final PolicyId policyId,
             final Label label,
@@ -192,7 +170,7 @@ public final class ModifyResource extends AbstractCommand<ModifyResource>
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(resource.toJson(schemaVersion, FieldType.regularOrSpecial()));
+        return Optional.of(resource.toJson(schemaVersion, FieldType.regularOrSpecial()));
     }
 
     @Override

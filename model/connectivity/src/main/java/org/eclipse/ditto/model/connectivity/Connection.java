@@ -351,7 +351,8 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
          * JSON field containing the {@code Connection} {@link MappingContext} to apply.
          * @deprecated MAPPING_CONTEXT is deprecated, use MAPPING_DEFINITIONS instead
          */
-        @Deprecated
+        @Deprecated(/*forRemoval = false*/) // This MUST NOT be deleted from the model as there are still connections
+                                            // with that field which have to be deserialized.
         public static final JsonFieldDefinition<JsonObject> MAPPING_CONTEXT =
                 JsonFactory.newJsonObjectFieldDefinition("mappingContext", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);

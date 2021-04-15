@@ -10,17 +10,9 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.connectivity;
-
-import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 
 /**
- * Represents a signal type that is able to return its ConnectionId. Provides a default implementation for
- * {@link #getEntityId()} which returns the ConnectionId as well.
+ * Provides classes and interfaces for describing the metadata of an entity.
  */
-public interface WithConnectionId extends WithEntityId {
-
-    @Override
-    ConnectionId getEntityId();
-
-}
+@org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault
+package org.eclipse.ditto.model.base.entity;

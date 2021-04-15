@@ -86,51 +86,11 @@ public final class RetrieveFeature extends AbstractCommand<RetrieveFeature> impl
      * @param dittoHeaders the headers of the command.
      * @return a Command for retrieving the Feature with the {@code featureId} as its ID.
      * @throws NullPointerException if any argument but {@code dittoHeaders} is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrieveFeature of(final String thingId, final String featureId, final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), featureId, dittoHeaders);
-    }
-
-    /**
-     * Returns a Command for retrieving a Feature with the given ID of a Thing.
-     *
-     * @param thingId the ID of a Thing whose Feature to be retrieved by this command.
-     * @param featureId the ID of the a single Feature to be retrieved by this command.
-     * @param dittoHeaders the headers of the command.
-     * @return a Command for retrieving the Feature with the {@code featureId} as its ID.
-     * @throws NullPointerException if any argument but {@code dittoHeaders} is {@code null}.
      */
     public static RetrieveFeature of(final ThingId thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
 
         return of(thingId, featureId, null, dittoHeaders);
-    }
-
-    /**
-     * Returns a Command for retrieving a Feature with the given ID of a Thing.
-     *
-     * @param thingId the ID of a Thing whose Feature to be retrieved by this command.
-     * @param featureId the ID of the a single Feature to be retrieved by this command.
-     * @param selectedFields defines the fields of the JSON representation of the Feature to retrieve.
-     * @param dittoHeaders the headers of the command.
-     * @return a Command for retrieving the Feature with the {@code featureId} as its ID.
-     * @throws NullPointerException if {@code featureId} or {@code dittoHeaders} is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.json.JsonFieldSelector, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrieveFeature of(final String thingId,
-            final String featureId,
-            @Nullable final JsonFieldSelector selectedFields,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), featureId, selectedFields, dittoHeaders);
     }
 
     /**

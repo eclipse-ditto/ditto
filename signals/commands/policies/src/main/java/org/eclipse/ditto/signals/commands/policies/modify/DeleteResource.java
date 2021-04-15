@@ -81,26 +81,6 @@ public final class DeleteResource extends AbstractCommand<DeleteResource>
      * @param dittoHeaders the headers of the command.
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.ResourceKey, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static DeleteResource of(final String policyId, final Label label, final ResourceKey resourceKey,
-            final DittoHeaders dittoHeaders) {
-
-        return of(PolicyId.of(policyId), label, resourceKey, dittoHeaders);
-    }
-
-    /**
-     * Creates a command for deleting a {@code Resource} of a {@code Policy}'s {@code PolicyEntry}.
-     *
-     * @param policyId the identifier of the Policy.
-     * @param label the Label of the PolicyEntry.
-     * @param resourceKey the ResourceKey of the Resource to delete.
-     * @param dittoHeaders the headers of the command.
-     * @return the command.
-     * @throws NullPointerException if any argument is {@code null}.
      */
     public static DeleteResource of(final PolicyId policyId, final Label label, final ResourceKey resourceKey,
             final DittoHeaders dittoHeaders) {

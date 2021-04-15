@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.signals.commands.base;
 
-import java.text.MessageFormat;
 import java.util.function.Predicate;
 
 import javax.annotation.concurrent.Immutable;
@@ -23,8 +22,6 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -69,39 +66,6 @@ public interface CommandResponse<T extends CommandResponse<T>> extends Signal<T>
      */
     default ResponseType getResponseType() {
         return ResponseType.RESPONSE;
-    }
-
-    /**
-     * Returns the status code of the issued {@code CommandType}. The semantics of the codes is the one of HTTP Status
-     * Codes (e.g.: {@literal 200} for "OK", {@literal 409} for "Conflict").
-     *
-     * @return the status code of the issued CommandType.
-     * @deprecated as of 2.0.0 please use {@link #getHttpStatus()} instead.
-     */
-    @Deprecated
-    default HttpStatusCode getStatusCode() {
-        final HttpStatus httpStatus = getHttpStatus();
-        return HttpStatusCode.forInt(httpStatus.getCode()).orElseThrow(() -> {
-
-            // This might happen at runtime when httpStatus has a code which is
-            // not reflected as constant in HttpStatusCode.
-            final String msgPattern = "Found no HttpStatusCode for int <{0}>!";
-            return new IllegalStateException(MessageFormat.format(msgPattern, httpStatus.getCode()));
-        });
-    }
-
-    /**
-     * This convenience method returns the status code value of the issued {@link Command}. The semantics of the codes
-     * is the one of HTTP Status Codes (e.g.: {@literal 200} for "OK", {@literal 409} for "Conflict").
-     *
-     * @return the status code value of the issued CommandType.
-     * @see #getHttpStatus()
-     * @deprecated as of 2.0.0 please use {@link #getHttpStatus()}{@link HttpStatus#getCode() .getCode()} instead.
-     */
-    @Deprecated
-    default int getStatusCodeValue() {
-        final HttpStatus httpStatus = getHttpStatus();
-        return httpStatus.getCode();
     }
 
     /**

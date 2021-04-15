@@ -72,23 +72,6 @@ public final class DeletePolicyEntry extends AbstractCommand<DeletePolicyEntry>
      * @param dittoHeaders the headers of the command.
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static DeletePolicyEntry of(final String policyId, final Label label, final DittoHeaders dittoHeaders) {
-        return of(PolicyId.of(policyId), label, dittoHeaders);
-    }
-
-    /**
-     * Creates a command for deleting a {@code PolicyEntry}.
-     *
-     * @param policyId the identifier of the Policy.
-     * @param label the Label of the PolicyEntry to delete.
-     * @param dittoHeaders the headers of the command.
-     * @return the command.
-     * @throws NullPointerException if any argument is {@code null}.
      */
     public static DeletePolicyEntry of(final PolicyId policyId, final Label label, final DittoHeaders dittoHeaders) {
         Objects.requireNonNull(policyId, "The Policy identifier must not be null!");

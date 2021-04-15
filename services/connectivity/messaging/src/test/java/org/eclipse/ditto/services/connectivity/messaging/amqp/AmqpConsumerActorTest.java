@@ -163,7 +163,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
     @Test
     public void plainStringMappingTest() {
         new TestKit(actorSystem) {{
-            final MappingContext mappingContext = ConnectivityModelFactory.newMappingContext(
+            final MappingContext mappingContext = ConnectivityModelFactory.newMappingContextBuilder(
                     "JavaScript",
                     JavaScriptMessageMapperFactory.createJavaScriptMessageMapperConfigurationBuilder(
                             "plainStringMapping", Collections.emptyMap())
@@ -171,7 +171,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
                             .outgoingScript(TestConstants.Mapping.OUTGOING_MAPPING_SCRIPT)
                             .build()
                             .getPropertiesAsJson()
-            );
+            ).build();
 
             final ActorRef processor = setupActor(getRef(), mappingContext);
 
@@ -199,7 +199,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
     @Test
     public void plainStringMappingMultipleTest() {
         new TestKit(actorSystem) {{
-            final MappingContext mappingContext = ConnectivityModelFactory.newMappingContext(
+            final MappingContext mappingContext = ConnectivityModelFactory.newMappingContextBuilder(
                     "JavaScript",
                     JavaScriptMessageMapperFactory.createJavaScriptMessageMapperConfigurationBuilder(
                             "plainStringMultiMapping", Collections.emptyMap())
@@ -209,7 +209,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
                             .outgoingScript(TestConstants.Mapping.OUTGOING_MAPPING_SCRIPT)
                             .build()
                             .getPropertiesAsJson()
-            );
+            ).build();
 
             final ActorRef processor = setupActor(getRef(), mappingContext);
 

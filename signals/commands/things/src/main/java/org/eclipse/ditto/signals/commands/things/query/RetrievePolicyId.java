@@ -60,23 +60,6 @@ public final class RetrievePolicyId extends AbstractCommand<RetrievePolicyId>
     /**
      * Returns a command for retrieving the Policy ID of a Thing with the given ID.
      *
-     * @param thingId the ID of a single Thing whose Policy ID entry will be retrieved by this command.
-     * @param dittoHeaders the headers of the command.
-     * @return a Command for retrieving the Policy ID of the Thing with the {@code thingId} as its ID which is readable
-     * from the passed authorization context.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrievePolicyId of(final String thingId, final DittoHeaders dittoHeaders) {
-        return of(ThingId.of(thingId), dittoHeaders);
-    }
-
-    /**
-     * Returns a command for retrieving the Policy ID of a Thing with the given ID.
-     *
      * @param thingId the ID of a single Thing whose Policy ID will be retrieved by this command.
      * @param dittoHeaders the headers of the command.
      * @return a Command for retrieving the Policy ID of the Thing with the {@code thingId} as its ID which is readable
@@ -176,7 +159,7 @@ public final class RetrievePolicyId extends AbstractCommand<RetrievePolicyId>
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
+    protected boolean canEqual(@Nullable final Object other) {
         return (other instanceof RetrievePolicyId);
     }
 

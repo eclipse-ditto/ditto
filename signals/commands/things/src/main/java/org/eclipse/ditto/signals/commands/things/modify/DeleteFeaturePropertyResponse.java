@@ -89,31 +89,6 @@ public final class DeleteFeaturePropertyResponse extends AbstractCommandResponse
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code propertyPointer} are not valid
      * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.json.JsonPointer,
-     * org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static DeleteFeaturePropertyResponse of(final String thingId,
-            final String featureId,
-            final JsonPointer propertyPointer,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), featureId, propertyPointer, dittoHeaders);
-    }
-
-    /**
-     * Creates a response to a {@link DeleteFeatureProperty} command.
-     *
-     * @param thingId the Thing ID of the deleted feature property.
-     * @param featureId the {@code Feature}'s ID whose Property was deleted.
-     * @param propertyPointer the JSON pointer of the deleted Property.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code propertyPointer} are not valid
-     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static DeleteFeaturePropertyResponse of(final ThingId thingId,
             final String featureId,

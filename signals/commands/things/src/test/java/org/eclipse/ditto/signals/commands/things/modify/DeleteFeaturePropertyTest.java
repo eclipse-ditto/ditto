@@ -24,7 +24,6 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
@@ -64,15 +63,9 @@ public final class DeleteFeaturePropertyTest {
     }
 
 
-    @Test(expected = ThingIdInvalidException.class)
-    public void tryToCreateInstanceWithNullThingIdString() {
-        DeleteFeatureProperty.of((String) null, TestConstants.Feature.FLUX_CAPACITOR_ID, PROPERTY_JSON_POINTER,
-                TestConstants.EMPTY_DITTO_HEADERS);
-    }
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        DeleteFeatureProperty.of((ThingId) null, TestConstants.Feature.FLUX_CAPACITOR_ID, PROPERTY_JSON_POINTER,
+        DeleteFeatureProperty.of(null, TestConstants.Feature.FLUX_CAPACITOR_ID, PROPERTY_JSON_POINTER,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 

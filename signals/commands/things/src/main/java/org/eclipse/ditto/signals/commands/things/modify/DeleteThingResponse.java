@@ -61,22 +61,6 @@ public final class DeleteThingResponse extends AbstractCommandResponse<DeleteThi
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static DeleteThingResponse of(final String thingId, final DittoHeaders dittoHeaders) {
-        return of(ThingId.of(thingId), dittoHeaders);
-    }
-
-    /**
-     * Creates a response to a {@code DeleteThing} command.
-     *
-     * @param thingId the Thing ID of the deleted Thing.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
     public static DeleteThingResponse of(final ThingId thingId, final DittoHeaders dittoHeaders) {
         return new DeleteThingResponse(thingId, dittoHeaders);

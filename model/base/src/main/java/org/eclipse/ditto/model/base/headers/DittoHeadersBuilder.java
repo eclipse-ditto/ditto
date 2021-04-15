@@ -77,42 +77,6 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder<B, R>, R exte
     B authorizationContext(@Nullable AuthorizationContext authorizationContext);
 
     /**
-     * Sets the IDs of Authorization Subjects.
-     *
-     * @param authorizationSubjectIds the IDs to be set.
-     * @return this builder for Method Chaining.
-     * @throws NullPointerException if {@code authorizationSubjectIds} is {@code null}.
-     * @deprecated as of 1.1.0, please use {@link #authorizationContext(AuthorizationContext)} instead for adding the
-     * {@code authorizationSubjects}
-     */
-    @Deprecated
-    B authorizationSubjects(Collection<String> authorizationSubjectIds);
-
-    /**
-     * Sets the authorizationSubjects value.
-     *
-     * @param authorizationSubject the authorizationSubject value to be set.
-     * @param furtherAuthorizationSubjects further of "authorized subjects" to be set.
-     * @return this builder for Method Chaining.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated as of 1.1.0, please use {@link #authorizationContext(AuthorizationContext)} instead for adding the
-     * {@code authorizationSubjects}
-     */
-    @Deprecated
-    B authorizationSubjects(CharSequence authorizationSubject, CharSequence... furtherAuthorizationSubjects);
-
-    /**
-     * Sets the readSubjects value.
-     *
-     * @param readSubjects the readSubjects value to be set.
-     * @return this builder for Method Chaining.
-     * @throws NullPointerException if {@code readSubjects} is {@code null}.
-     * @deprecated as of 1.1.0, please use {@link #readGrantedSubjects(Collection)}.
-     */
-    @Deprecated
-    B readSubjects(Collection<String> readSubjects);
-
-    /**
      * Sets the subjects with granted READ access.
      *
      * @param readGrantedSubjects the value to be set.

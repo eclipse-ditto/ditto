@@ -63,13 +63,6 @@ public final class ImmutablePolicyBuilderTest {
                 .withNoCause();
     }
 
-    @Test
-    public void tryToSetNullPolicyIdCharSequence() {
-        assertThatExceptionOfType(PolicyIdInvalidException.class)
-                .isThrownBy(() -> underTest.setId((CharSequence) null))
-                .withMessage("Policy ID 'null' is not valid!");
-    }
-
     @Test(expected = NullPointerException.class)
     public void tryToSetNullPolicyEntry() {
         underTest.set(null);

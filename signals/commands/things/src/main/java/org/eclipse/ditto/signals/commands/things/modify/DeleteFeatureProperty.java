@@ -91,29 +91,6 @@ public final class DeleteFeatureProperty extends AbstractCommand<DeleteFeaturePr
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code propertyPointer} are not valid
      * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.json.JsonPointer,
-     * org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static DeleteFeatureProperty of(final String thingId, final String featureId,
-            final JsonPointer propertyPointer, final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), featureId, propertyPointer, dittoHeaders);
-    }
-
-    /**
-     * Returns a Command for deleting a Feature's Property on a Thing.
-     *
-     * @param thingId the {@code Thing}'s ID whose {@code Feature}'s Property to delete.
-     * @param featureId the {@code Feature}'s ID whose Property to delete.
-     * @param propertyPointer the JSON pointer of the Property key to delete.
-     * @param dittoHeaders the headers of the command.
-     * @return a Command for deleting the provided Property.
-     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code propertyPointer} are not valid
-     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static DeleteFeatureProperty of(final ThingId thingId, final String featureId,
             final JsonPointer propertyPointer, final DittoHeaders dittoHeaders) {

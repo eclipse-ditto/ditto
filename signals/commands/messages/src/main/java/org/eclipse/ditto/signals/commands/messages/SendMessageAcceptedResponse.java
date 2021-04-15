@@ -20,7 +20,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.messages.Message;
@@ -60,64 +59,11 @@ public final class SendMessageAcceptedResponse
      * @param thingId the ID of the Thing to send the message from.
      * @param dittoHeaders the command headers.
      * @return the new instance.
-     * @deprecated Thing ID is now typed. Use {@link #newInstance(ThingId, MessageHeaders, DittoHeaders)} instead.
-     */
-    @Deprecated
-    public static SendMessageAcceptedResponse newInstance(final String thingId, final MessageHeaders messageHeaders,
-            final DittoHeaders dittoHeaders) {
-
-        return newInstance(ThingId.of(thingId), messageHeaders, dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code SendMessageAcceptedResponse} instance.
-     *
-     * @param thingId the ID of the Thing to send the message from.
-     * @param dittoHeaders the command headers.
-     * @return the new instance.
      */
     public static SendMessageAcceptedResponse newInstance(final ThingId thingId, final MessageHeaders messageHeaders,
             final DittoHeaders dittoHeaders) {
 
         return newInstance(thingId, messageHeaders, HttpStatus.ACCEPTED, dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code SendMessageAcceptedResponse} instance.
-     *
-     * @param thingId the ID of the Thing to send the message from.
-     * @param statusCode the HttpStatusCode to use.
-     * @param dittoHeaders the DittoHeaders.
-     * @return the new instance.
-     * @deprecated Thing ID is now typed. Use {@link #newInstance(ThingId, MessageHeaders, HttpStatus, DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static SendMessageAcceptedResponse newInstance(final String thingId,
-            final MessageHeaders messageHeaders,
-            final HttpStatusCode statusCode,
-            final DittoHeaders dittoHeaders) {
-
-        return newInstance(ThingId.of(thingId), messageHeaders, statusCode, dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code SendMessageAcceptedResponse} instance.
-     *
-     * @param thingId the ID of the Thing to send the message from.
-     * @param statusCode the HttpStatusCode to use.
-     * @param dittoHeaders the DittoHeaders.
-     * @return the new instance.
-     * @deprecated as of 2.0.0 please use {@link #newInstance(ThingId, MessageHeaders, HttpStatus, DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static SendMessageAcceptedResponse newInstance(final ThingId thingId,
-            final MessageHeaders messageHeaders,
-            final HttpStatusCode statusCode,
-            final DittoHeaders dittoHeaders) {
-
-        return newInstance(thingId, messageHeaders, statusCode.getAsHttpStatus(), dittoHeaders);
     }
 
     /**

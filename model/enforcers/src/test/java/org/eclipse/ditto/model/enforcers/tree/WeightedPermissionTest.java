@@ -24,13 +24,11 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class WeightedPermissionTest {
 
-    /** */
     @Test
     public void assertImmutability() {
         assertInstancesOf(WeightedPermission.class, areImmutable());
     }
 
-    /** */
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(WeightedPermission.class)
