@@ -47,6 +47,7 @@ public final class Mqtt5Validator extends AbstractMqttValidator {
         validateSourceConfigs(connection, dittoHeaders);
         validateTargetConfigs(connection, dittoHeaders);
         validatePayloadMappings(connection, actorSystem, dittoHeaders);
+        validateSpecificConfig(connection, dittoHeaders);
     }
 
 }

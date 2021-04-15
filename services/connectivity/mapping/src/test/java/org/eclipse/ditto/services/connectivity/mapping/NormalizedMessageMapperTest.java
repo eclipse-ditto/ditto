@@ -52,6 +52,7 @@ import org.eclipse.ditto.signals.events.things.FeaturePropertyModified;
 import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.signals.events.things.ThingMerged;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -84,6 +85,7 @@ public final class NormalizedMessageMapperTest {
                 .build(), 1L, Instant.ofEpochSecond(1L), DittoHeaders.empty(), null);
 
         final Adaptable adaptable = ADAPTER.toAdaptable(event);
+
         Assertions.assertThat(mapToJson(adaptable))
                 .isEqualTo(JsonObject.of("{\n" +
                         "  \"thingId\": \"thing:created\",\n" +
@@ -112,6 +114,124 @@ public final class NormalizedMessageMapperTest {
     }
 
     @Test
+    public void thingMerged() {
+        final JsonObject mergedObject = ThingsModelFactory.newThingBuilder()
+                .setId(ThingId.of("thing:merged"))
+                .setAttributes(Attributes.newBuilder().set("x", 5).build())
+                .setFeatures(Features.newBuilder().set(Feature.newBuilder()
+                        .properties(JsonObject.of("{\"y\":6}"))
+                        .withId("feature")
+                        .build()))
+                .build().toJson();
+        final ThingMerged event = ThingMerged.of(ThingId.of("thing:merged"), JsonPointer.empty(), mergedObject,
+                1L, Instant.ofEpochSecond(1L), DittoHeaders.empty(), null);
+
+        final Adaptable adaptable = ADAPTER.toAdaptable(event);
+
+        Assertions.assertThat(mapToJson(adaptable))
+                .isEqualTo(JsonObject.of("{\n" +
+                        "  \"thingId\": \"thing:merged\",\n" +
+                        "  \"attributes\": {\n" +
+                        "    \"x\": 5\n" +
+                        "  },\n" +
+                        "  \"features\": {\n" +
+                        "    \"feature\": {\n" +
+                        "      \"properties\": {\n" +
+                        "        \"y\": 6\n" +
+                        "      }\n" +
+                        "    }\n" +
+                        "  },\n" +
+                        "  \"_modified\": \"1970-01-01T00:00:01Z\",\n" +
+                        "  \"_revision\": 1,\n" +
+                        "  \"_context\": {\n" +
+                        "    \"topic\": \"thing/merged/things/twin/events/merged\",\n" +
+                        "    \"path\": \"/\",\n" +
+                        "    \"headers\": {\n" +
+                        "      \"response-required\": \"false\",\n" +
+                        "      \"content-type\": \"application/merge-patch+json\"\n" +
+                        "    }\n" +
+                        "  }\n" +
+                        "}"));
+    }
+
+    @Test
+    public void thingMergedWithNullValues() {
+        final JsonObject mergedObject = ThingsModelFactory.newThingBuilder()
+                .setId(ThingId.of("thing:merged"))
+                .setAttributes(Attributes.newBuilder()
+                        .set("x", 5)
+                        .set("nullValue", JsonValue.nullLiteral())
+                        .build())
+                .setFeatures(Features.newBuilder().set(Feature.newBuilder()
+                        .properties(JsonObject.of("{\"y\":6, \"z\": null}"))
+                        .withId("feature")
+                        .build()))
+                .build().toJson();
+        final ThingMerged event = ThingMerged.of(ThingId.of("thing:merged"), JsonPointer.empty(), mergedObject,
+                1L, Instant.ofEpochSecond(1L), DittoHeaders.empty(), null);
+
+        final Adaptable adaptable = ADAPTER.toAdaptable(event);
+
+        Assertions.assertThat(mapToJson(adaptable))
+                .isEqualTo(JsonObject.of("{\n" +
+                        "  \"thingId\": \"thing:merged\",\n" +
+                        "  \"attributes\": {\n" +
+                        "    \"x\": 5\n" +
+                        "  },\n" +
+                        "  \"features\": {\n" +
+                        "    \"feature\": {\n" +
+                        "      \"properties\": {\n" +
+                        "        \"y\": 6\n" +
+                        "      }\n" +
+                        "    }\n" +
+                        "  },\n" +
+                        "  \"_modified\": \"1970-01-01T00:00:01Z\",\n" +
+                        "  \"_revision\": 1,\n" +
+                        "  \"_context\": {\n" +
+                        "    \"topic\": \"thing/merged/things/twin/events/merged\",\n" +
+                        "    \"path\": \"/\",\n" +
+                        "    \"headers\": {\n" +
+                        "      \"response-required\": \"false\",\n" +
+                        "      \"content-type\": \"application/merge-patch+json\"\n" +
+                        "    }\n" +
+                        "  }\n" +
+                        "}"));
+    }
+
+    @Test
+    public void thingMergedWithOnlyNullValues() {
+        final JsonObject mergedObject = ThingsModelFactory.newThingBuilder()
+                .setId(ThingId.of("thing:merged"))
+                .setAttributes(Attributes.newBuilder()
+                        .set("nullValue", JsonValue.nullLiteral())
+                        .build())
+                .setFeatures(Features.newBuilder().set(Feature.newBuilder()
+                        .properties(JsonObject.of("{\"z\": null}"))
+                        .withId("feature")
+                        .build()))
+                .build().toJson();
+        final ThingMerged event = ThingMerged.of(ThingId.of("thing:merged"), JsonPointer.empty(), mergedObject,
+                1L, Instant.ofEpochSecond(1L), DittoHeaders.empty(), null);
+
+        final Adaptable adaptable = ADAPTER.toAdaptable(event);
+
+        Assertions.assertThat(mapToJson(adaptable))
+                .isEqualTo(JsonObject.of("{\n" +
+                        "  \"thingId\": \"thing:merged\",\n" +
+                        "  \"_modified\": \"1970-01-01T00:00:01Z\",\n" +
+                        "  \"_revision\": 1,\n" +
+                        "  \"_context\": {\n" +
+                        "    \"topic\": \"thing/merged/things/twin/events/merged\",\n" +
+                        "    \"path\": \"/\",\n" +
+                        "    \"headers\": {\n" +
+                        "      \"response-required\": \"false\",\n" +
+                        "      \"content-type\": \"application/merge-patch+json\"\n" +
+                        "    }\n" +
+                        "  }\n" +
+                        "}"));
+    }
+
+    @Test
     public void featurePropertyModified() {
         final FeaturePropertyModified event = FeaturePropertyModified.of(
                 ThingId.of("thing:id"),
@@ -124,6 +244,7 @@ public final class NormalizedMessageMapperTest {
                 null);
 
         final Adaptable adaptable = ADAPTER.toAdaptable(event);
+
         Assertions.assertThat(mapToJson(adaptable))
                 .isEqualTo(JsonObject.of("{\n" +
                         "  \"thingId\": \"thing:id\",\n" +
@@ -159,7 +280,9 @@ public final class NormalizedMessageMapperTest {
                 null);
 
         final Adaptable adaptable = ADAPTER.toAdaptable(event, TopicPath.Channel.TWIN);
-        Assertions.assertThat(underTest.map(adaptable).get(0).getHeaders()).isEmpty();
+
+        Assertions.assertThat(underTest.map(adaptable).get(0).getHeaders())
+                .contains(Map.entry("content-type", "application/json"));
     }
 
     @Test
@@ -180,6 +303,7 @@ public final class NormalizedMessageMapperTest {
                 DefaultMessageMapperConfiguration.of("normalizer", options, Map.of(), Map.of()));
 
         final Adaptable adaptable = ADAPTER.toAdaptable(event);
+
         Assertions.assertThat(mapToJson(adaptable))
                 .isEqualTo(JsonObject.of("{\n" +
                         "  \"_modified\": \"1970-01-01T00:00:02Z\",\n" +
@@ -212,6 +336,7 @@ public final class NormalizedMessageMapperTest {
                         options, Map.of(), Map.of()));
 
         final Adaptable adaptable = ADAPTER.toAdaptable(event);
+
         Assertions.assertThat(mapToJson(adaptable))
                 .isEqualTo(JsonObject.of("{\n" +
                         "  \"thingId\": \"thing:created\",\n" +
@@ -257,6 +382,7 @@ public final class NormalizedMessageMapperTest {
         final Adaptable adaptableWithExtra = ProtocolFactory.setExtra(adaptable, thing.toJson(
                 JsonFactory.newFieldSelector("policyId,attributes,features/my-feature/properties/def",
                         JsonParseOptions.newBuilder().withoutUrlDecoding().build())));
+
         Assertions.assertThat(mapToJson(adaptableWithExtra))
                 .isEqualTo(JsonObject.of("{\n" +
                         "  \"thingId\": \"thing:feature-modified\",\n" +
@@ -308,4 +434,5 @@ public final class NormalizedMessageMapperTest {
                 .map(JsonObject::of)
                 .orElse(JsonObject.empty());
     }
+
 }

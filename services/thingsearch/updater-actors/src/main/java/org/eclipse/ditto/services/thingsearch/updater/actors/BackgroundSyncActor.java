@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import java.time.Instant;
+import java.util.Deque;
 import java.util.List;
 import java.util.function.Function;
 
@@ -110,12 +111,12 @@ public final class BackgroundSyncActor
     protected void preEnhanceSleepingBehavior(final ReceiveBuilder sleepingReceiveBuilder) {
         sleepingReceiveBuilder.matchEquals(Control.BOOKMARK_THING_ID,
                 trigger ->
-                    // ignore scheduled bookmark messages when sleeping
-                    log.debug("Ignoring: <{}>", trigger)
-                )
+                        // ignore scheduled bookmark messages when sleeping
+                        log.debug("Ignoring: <{}>", trigger)
+        )
                 .match(ThingId.class, thingId ->
-                    // got outdated progress update message after actor resumes sleeping; ignore it.
-                    log.debug("Ignoring: <{}>", thingId)
+                        // got outdated progress update message after actor resumes sleeping; ignore it.
+                        log.debug("Ignoring: <{}>", thingId)
                 );
     }
 
@@ -152,6 +153,23 @@ public final class BackgroundSyncActor
                 .wireTap(this::handleInconsistency);
     }
 
+    @Override
+    protected StatusDetailMessage.Level getMostSevereLevelFromEvents(final Deque<Pair<Instant, Event>> events) {
+        // ignore status detail message after the second "StreamTerminated" so that only the ongoing sync and
+        // the last completed sync count
+        StatusDetailMessage.Level level = StatusDetailMessage.Level.DEFAULT;
+        int terminationCount = 0;
+        for (final var pair : events) {
+            final var event = pair.second();
+            final var eventLevel = event.level();
+            level = level.compareTo(eventLevel) >= 0 ? level : eventLevel;
+            if (event instanceof StreamTerminated && ++terminationCount > 1) {
+                break;
+            }
+        }
+        return level;
+    }
+
     private Source<Metadata, NotUsed> streamMetadataFromLowerBound(final ThingId lowerBound) {
         final Source<Metadata, NotUsed> persistedMetadata =
                 getPersistedMetadataSourceWithProgressReporting(lowerBound);
@@ -185,7 +203,7 @@ public final class BackgroundSyncActor
     private void handleInconsistency(final Metadata metadata) {
         final ThingId thingId = metadata.getThingId();
         thingsUpdater.tell(UpdateThing.of(thingId, DittoHeaders.empty()), ActorRef.noSender());
-        if(isInconsistentAgain(metadata)) {
+        if (isInconsistentAgain(metadata)) {
             getSelf().tell(SyncEvent.inconsistencyAgain(metadata), ActorRef.noSender());
         } else {
             getSelf().tell(SyncEvent.inconsistency(metadata), ActorRef.noSender());
@@ -194,10 +212,15 @@ public final class BackgroundSyncActor
 
     private boolean isInconsistentAgain(final Metadata metadata) {
         // check if the previous events already contain a SyncEvent for the same thing with the same revision
-        return this.getEventStream().map(Pair::second)
+        return this.getEventStream()
+                .map(Pair::second)
+                // only consider events in the previous run
+                .dropWhile(event -> !(event instanceof StreamTerminated))
+                .takeWhile(event -> !(event instanceof WokeUp))
                 .filter(event -> SyncEvent.class.isAssignableFrom(event.getClass()))
                 .map(event -> (SyncEvent) event)
-                .anyMatch(event -> metadata.getThingId().equals(event.thingId) && metadata.getThingRevision() == event.thingRevision);
+                .anyMatch(event -> metadata.getThingId().equals(event.thingId) &&
+                        metadata.getThingRevision() == event.thingRevision);
     }
 
     private Source<ThingId, NotUsed> getLowerBoundSource() {
@@ -253,7 +276,8 @@ public final class BackgroundSyncActor
         private final long thingRevision;
         private final StatusDetailMessage.Level level;
 
-        private SyncEvent(final String description, final ThingId thingId, final long thingRevision, final StatusDetailMessage.Level level) {
+        private SyncEvent(final String description, final ThingId thingId, final long thingRevision,
+                final StatusDetailMessage.Level level) {
             this.description = description;
             this.thingId = thingId;
             this.thingRevision = thingRevision;
@@ -261,11 +285,13 @@ public final class BackgroundSyncActor
         }
 
         private static Event inconsistency(final Metadata metadata) {
-            return new SyncEvent("Inconsistent: " + metadata, metadata.getThingId(), metadata.getThingRevision(), StatusDetailMessage.Level.DEFAULT);
+            return new SyncEvent("Inconsistent: " + metadata, metadata.getThingId(), metadata.getThingRevision(),
+                    StatusDetailMessage.Level.DEFAULT);
         }
 
         private static Event inconsistencyAgain(final Metadata metadata) {
-            return new SyncEvent("Inconsistent again: " + metadata, metadata.getThingId(), metadata.getThingRevision(), StatusDetailMessage.Level.WARN);
+            return new SyncEvent("Inconsistent again: " + metadata, metadata.getThingId(), metadata.getThingRevision(),
+                    StatusDetailMessage.Level.WARN);
         }
 
         @Override

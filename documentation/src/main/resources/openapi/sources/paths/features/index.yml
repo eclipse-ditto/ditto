@@ -11,8 +11,7 @@
 get:
   summary: List all features of a specific thing
   description: |-
-    Returns all features of the thing identified by the `thingId` path
-    parameter.
+    Returns all features of the thing identified by the `thingId` path parameter.
   tags:
     - Features
   parameters:
@@ -20,7 +19,9 @@ get:
     - $ref: '../../parameters/featuresFieldsQueryParam.yml'
     - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
     - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/requestedAcksParam.yml'
     - $ref: '../../parameters/timeoutParam.yml'
+    - $ref: '../../parameters/responseRequiredParam.yml'
   responses:
     '200':
       description: |-
@@ -78,8 +79,8 @@ get:
 put:
   summary: Create or modify all features of a specific thing at once
   description: |-
-    Create or modify all features of a thing identified by the `thingId`
-    path parameter.
+    Create or modify all features of a thing identified by the `thingId` path parameter.
+
     ### Create all features at once
     In case at the initial creation of your thing you have not specified any features, these can be created here.
 
@@ -90,30 +91,30 @@ put:
     but the content will be **overwritten**.
     If you need to update single features or their paths, please use the sub-resources instead.
 
-    Example:
+    ### Example:
 
     ```
     {
-      "coffee-brewer": {
-        "definition": ["com.acme:coffeebrewer:0.1.0"],
-        "properties": {
-          "brewed-coffees": 0
-        }
-      },
-      "water-tank": {
-        "properties": {
-          "configuration": {
-            "smartMode": true,
-            "brewingTemp": 87,
-            "tempToHold": 44,
-            "timeoutSeconds": 6000
-          },
-          "status": {
-            "waterAmount": 731,
-            "temperature": 44
-          }
-        }
-      }
+         "coffee-brewer": {
+           "definition": ["com.acme:coffeebrewer:0.1.0"],
+           "properties": {
+             "brewed-coffees": 0
+           }
+         },
+         "water-tank": {
+           "properties": {
+             "configuration": {
+               "smartMode": true,
+               "brewingTemp": 87,
+               "tempToHold": 44,
+               "timeoutSeconds": 6000
+             },
+             "status": {
+               "waterAmount": 731,
+               "temperature": 44
+             }
+           }
+         }
     }
     ```
   tags:
@@ -180,8 +181,7 @@ put:
             $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
-        The request could not be completed. The thing with the given ID was
-        not found.
+        The request could not be completed. The thing with the given ID was not found.
       content:
         application/json:
           schema:
@@ -230,11 +230,129 @@ put:
       * a nested object with multiple features as shown in the example value field
 
     required: true
+patch:
+  summary: Patch all features of a specific thing
+  description: |-
+    Patch all features of a thing identified by the `thingId` path parameter.
+
+    The existing features will be merged with the JSON content set in the request body.
+
+    Notice that the `null` value has a special meaning and can be used to delete specific features from the thing.
+    For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
+
+    **Note**: In contrast to the "PUT thing/{thingId}/features" request, a partial update is supported here
+    and request body is merged with the existing features.
+
+    ### Example
+
+    The following example will add/update the properties `brewed-coffees`, `tempToHold` and `failState`.
+    The configuration property `smartMode` will be deleted from the thing.
+
+
+    ```
+    {
+      "coffee-brewer": {
+        "properties": {
+          "brewed-coffees": 10
+        }
+      },
+      "water-tank": {
+        "properties": {
+          "configuration": {
+            "smartMode": null,
+            "tempToHold": 50,
+          },
+          "status": {
+            "failState": true
+          }
+        }
+      }
+    }
+    ```
+  tags:
+    - Features
+  parameters:
+    - $ref: '../../parameters/thingIdPathParam.yml'
+    - $ref: '../../parameters/featureIdPathPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/requestedAcksParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+    - $ref: '../../parameters/responseRequiredParam.yml'
+  responses:
+    '204':
+      description: The features were successfully patched.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+          * the JSON body of the feature to be created/modified is invalid
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the caller has insufficient permissions.
+            For modifying all features of an existing thing, `WRITE` permission is required.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The thing with the given ID was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'
+    '413':
+      $ref: '../../responses/entityTooLarge.yml'
+  requestBody:
+    content:
+      application/merge-patch+json:
+        schema:
+          $ref: '../../schemas/features/features.yml'
+        example:
+          coffee-brewer:
+            properties:
+              brewed-coffees: 10
+          water-tank:
+            properties:
+              configuration:
+                smartMode: null
+                tempToHold: 50
+              status:
+                failState: true
+    description: |-
+      JSON object of all features to be patched. Consider that the value has to be a [JSON merge patch](https://tools.ietf.org/html/rfc7396).
+
+      Examples:
+      * a nested object with multiple features as shown in the example value field
+
+      * **Note**: To delete certain entries of a feature the `null` value can be used.
+        For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
+    required: true
 delete:
   summary: Delete all features of a specific thing
   description: |-
-    Deletes all features of the thing identified by the `thingId` path
-    parameter.
+    Deletes all features of the thing identified by the `thingId` path parameter.
   tags:
     - Features
   parameters:

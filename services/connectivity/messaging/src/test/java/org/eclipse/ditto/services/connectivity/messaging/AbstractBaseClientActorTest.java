@@ -162,6 +162,7 @@ public abstract class AbstractBaseClientActorTest {
         final SSLContext sslContext =
                 SSLContextCreator.fromConnection(serverConnection, DittoHeaders.empty(), connectionLogger)
                         .clientCertificate(credentials);
+        // TODO the above code is not used??? what does this test do?
 
         final ActorSystem actorSystem = getActorSystem();
         final ServerBinding binding = Http.get(actorSystem)

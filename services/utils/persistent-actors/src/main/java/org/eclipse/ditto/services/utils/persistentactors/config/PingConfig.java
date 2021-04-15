@@ -62,6 +62,30 @@ public interface PingConfig {
     RateConfig getRateConfig();
 
     /**
+     * Returns the order in which the {@code PersistencePingActor} will stream the elements.
+     *
+     * @return the streaming order.
+     */
+    StreamingOrder getStreamingOrder();
+
+    /**
+     * The order in which the {@code PersistencePingActor} will stream the elements.
+     */
+    enum StreamingOrder {
+
+        /**
+         * Elements will be ordered by their document ID.
+         */
+        ID,
+
+        /**
+         * Elements will be ordered by their tags.
+         */
+        TAGS
+
+    }
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code PingConfig}.
      */
@@ -86,7 +110,12 @@ public interface PingConfig {
         /**
          * The number of events to read in one query.
          */
-        READ_JOURNAL_BATCH_SIZE("read-journal-batch-size", 500);
+        READ_JOURNAL_BATCH_SIZE("read-journal-batch-size", 500),
+
+        /**
+         * The field to order the events in the source.
+         */
+        STREAMING_ORDER("streaming-order", StreamingOrder.ID.name());
 
         private final String path;
         private final Object defaultValue;

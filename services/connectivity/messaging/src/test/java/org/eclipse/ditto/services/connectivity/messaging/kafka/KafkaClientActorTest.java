@@ -195,6 +195,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
             final ActorRef kafkaClientActor = actorSystem.actorOf(props);
 
             kafkaClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
+            expectMsgClass(Duration.ofSeconds(10), KafkaPublisherActor.GracefulStop.class);
             expectMsgClass(Duration.ofSeconds(10), Status.Failure.class);
         }};
     }

@@ -51,6 +51,7 @@ import akka.actor.ActorRef;
 import akka.actor.Address;
 import akka.actor.Props;
 import akka.actor.Terminated;
+import akka.cluster.ddata.ORMultiMap;
 import akka.cluster.ddata.Replicator;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
@@ -192,8 +193,8 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
     }
 
     private void onChanged(final Replicator.Changed<?> event) {
-        final Map<Address, List<Grouped<String>>> mmap =
-                Grouped.deserializeORMultiMap(event.get(ackDData.getReader().getKey()), JsonValue::asString);
+        final Map<Address, List<Grouped<String>>> mmap = Grouped.deserializeORMultiMap(
+                ((ORMultiMap<Address, String>) event.dataValue()), JsonValue::asString);
         final List<Grouped<String>> remoteGroupedAckLabels = getRemoteGroupedAckLabelsOrderByAddress(mmap);
         remoteGroups = getRemoteGroups(remoteGroupedAckLabels);
         remoteAckLabels = getRemoteAckLabels(remoteGroupedAckLabels);

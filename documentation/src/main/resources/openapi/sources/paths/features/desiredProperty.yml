@@ -11,11 +11,9 @@
 get:
   summary: Retrieve a specific desired property of a feature
   description: |-
-    Returns the a specific desired property path of the feature identified by the `thingId` and
-    `featureId` path parameter.
+    Returns the a specific desired property path of the feature identified by the `thingId` and `featureId` path parameter.
 
-    The desired property (JSON) can be referenced
-    hierarchically, by applying JSON Pointer notation (RFC-6901)
+    The desired property (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901)
 
     ### Example
     To retrieve the value of the `brewingTemp` in the `water-tank` of our coffeemaker example the full path is:
@@ -58,9 +56,8 @@ get:
             $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
-        The request could not be completed. The specified desired property or the
-        thing with the specified `thingId` or the feature with `featureId`
-        was not found.
+        The request could not be completed. The specified desired property or
+        the thing with the specified `thingId` or the feature with `featureId` was not found.
       content:
         application/json:
           schema:
@@ -70,14 +67,11 @@ get:
 put:
   summary: Create or update a specific desired property of a feature
   description: |-
-    Create or update a specific desired property of a feature identified by the
-    `thingId` and `featureId` path parameter.
+    Create or update a specific desired property of a feature identified by the `thingId` and `featureId` path parameter.
 
-    The desired property will be created
-    if it doesn't exist or else updated.
+    The desired property will be created if it doesn't exist or else updated.
 
-    The desired property (JSON) can be
-    referenced hierarchically, by applying JSON Pointer notation (RFC-6901),
+    The desired property (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901),
 
     ### Example
     To set the value of the brewingTemp in the water-tank of our coffeemaker example the full path is:
@@ -139,8 +133,7 @@ put:
             $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
-        The request could not be completed. The thing or the feature with
-        the given ID was not found.
+        The request could not be completed. The thing or the feature with the given ID was not found.
       content:
         application/json:
           schema:
@@ -151,6 +144,79 @@ put:
       $ref: '../../responses/entityTooLarge.yml'
   requestBody:
     $ref: '../../requests/value.yml'
+patch:
+  summary: Patch a specific desired property of a feature
+  description: |-
+    Patch a specific desired property of a feature identified by the `thingId` and `featureId` path parameter.
+
+    The exisiting desired property of a feature will be merged with the JSON content set in the request body.
+
+    Notice that the `null` value can be used to delete the specified propertyPath.
+    For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
+
+    The desired property (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901).
+
+    ### Example
+    To set the value of the brewingTemp in the water-tank of our coffeemaker example the full path is:
+    `/things/{thingId}/features/water-tank/desiredProperties/configuration/brewingTemp`
+  tags:
+    - Features
+  parameters:
+    - $ref: '../../parameters/thingIdPathParam.yml'
+    - $ref: '../../parameters/featureIdPathPathParam.yml'
+    - $ref: '../../parameters/propertyPathPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/requestedAcksParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+    - $ref: '../../parameters/responseRequiredParam.yml'
+  responses:
+    '204':
+      description: The desired property was successfully patched.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+          * the JSON body is invalid
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the caller has insufficient permissions.
+            For creating/updating a desired property of an existing feature, `WRITE` permission is required.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The thing or the feature with the given ID was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'
+    '413':
+      $ref: '../../responses/entityTooLarge.yml'
+  requestBody:
+    $ref: '../../requests/patchValue.yml'
 delete:
   summary: Delete a specific desired property of a feature
   description: |-
@@ -192,11 +258,19 @@ delete:
         application/json:
           schema:
             $ref: '../../schemas/errors/advancedError.yml'
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the caller has insufficient permissions.
+            For deleting the properties of an existing feature, `WRITE` permission is required.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
-        The request could not be completed. The specified desired property or the
-        thing with the specified `thingId` or the feature with `featureId`
-        was not found.
+        The request could not be completed. The specified desired property or
+        the thing with the specified `thingId` or the feature with `featureId` was not found.
       content:
         application/json:
           schema:

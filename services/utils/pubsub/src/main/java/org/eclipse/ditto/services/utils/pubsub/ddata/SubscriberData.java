@@ -119,4 +119,13 @@ public final class SubscriberData {
     public int hashCode() {
         return Objects.hash(topics, filter, group);
     }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "topics=" + topics +
+                ", filter=" + filter +
+                ", group=" + group +
+                "]";
+    }
 }

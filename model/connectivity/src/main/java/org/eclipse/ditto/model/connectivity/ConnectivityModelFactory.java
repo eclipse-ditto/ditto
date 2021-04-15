@@ -240,6 +240,29 @@ public final class ConnectivityModelFactory {
                 inStateSince);
     }
 
+
+    /**
+     * Returns a new ssh tunnel {@code ResourceStatus}.
+     *
+     * @param client a client identifier e.g. on which node this client is running
+     * @param status the ConnectionStatus of the source metrics to create
+     * @param statusDetails the optional details about the connection status
+     * @param inStateSince the instant since the resource is in the given state
+     * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if any parameter is {@code null}.
+     *
+     * @since 2.0.0
+     */
+    public static ResourceStatus newSshTunnelStatus(final String client,
+            final ConnectivityStatus status,
+            @Nullable final String statusDetails,
+            final Instant inStateSince) {
+
+        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.SSH_TUNNEL, client, status, null, statusDetails,
+                inStateSince);
+    }
+
+
     /**
      * Returns a new source {@code ResourceStatus}.
      *
@@ -622,6 +645,72 @@ public final class ConnectivityModelFactory {
                 .issuedAcknowledgementLabel(label)
                 .topics(target.getTopics())
                 .build();
+    }
+
+    /**
+     * Creates a new {@link org.eclipse.ditto.model.connectivity.SshTunnelBuilder} for building {@link org.eclipse.ditto.model.connectivity.SshTunnel}s.
+     *
+     * @param enabled sets if the ssh tunnel is active
+     * @param credentials the credentials of the ssh tunnel
+     * @param uri the uri of the ssh tunnel
+     * @return new {@link org.eclipse.ditto.model.connectivity.SshTunnelBuilder} builder
+     * @since 2.0.0
+     */
+    public static SshTunnelBuilder newSshTunnelBuilder(final boolean enabled, final Credentials credentials,
+            final String uri) {
+        return new ImmutableSshTunnel.Builder(enabled, credentials, uri);
+    }
+
+    /**
+     * Creates a new {@link org.eclipse.ditto.model.connectivity.SshTunnelBuilder} for building {@link org.eclipse.ditto.model.connectivity.SshTunnel}s.
+     *
+     * @return new {@link org.eclipse.ditto.model.connectivity.SshTunnelBuilder} builder
+     * @since 2.0.0
+     */
+    public static SshTunnelBuilder newSshTunnelBuilder(final SshTunnel sshTunnel) {
+        return new ImmutableSshTunnel.Builder(sshTunnel);
+    }
+
+    /**
+     * Creates a new {@code SshTunnel} object from the specified JSON object.
+     *
+     * @param jsonObject a JSON object which provides the data for the SshTunnel to be created.
+     * @return a new SshTunnel which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
+     * @since 2.0.0
+     */
+    public static SshTunnel sshTunnelFromJson(final JsonObject jsonObject) {
+        return ImmutableSshTunnel.fromJson(jsonObject);
+    }
+
+    /**
+     * Creates a new {@code SshTunnel}.
+     *
+     * @param enabled {@code true} if the ssh tunnel is enabled
+     * @param credentials the credentials of the ssh tunnel
+     * @param validateHost {@code true} if host validation is enabled
+     * @param knownHosts the known hosts of the ssh tunnel
+     * @param uri the uri of the ssh tunnel
+     * @return the created {@link org.eclipse.ditto.model.connectivity.SshTunnel}
+     * @since 2.0.0
+     */
+    public static SshTunnel newSshTunnel(final boolean enabled, final Credentials credentials,
+            final boolean validateHost, final List<String> knownHosts, final String uri) {
+        return new ImmutableSshTunnel.Builder(enabled, credentials, validateHost, knownHosts, uri).build();
+    }
+
+    /**
+     * Creates a new {@code SshTunnel} without knownHosts.
+     *
+     * @param enabled {@code true} if the ssh tunnel is enabled
+     * @param credentials the credentials of the ssh tunnel
+     * @param uri the uri of the ssh tunnel
+     * @return the created {@link org.eclipse.ditto.model.connectivity.SshTunnel}
+     * @since 2.0.0
+     */
+    public static SshTunnel newSshTunnel(final boolean enabled, final Credentials credentials, final String uri) {
+        return new ImmutableSshTunnel.Builder(enabled, credentials, uri).build();
     }
 
     /**

@@ -801,7 +801,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                             (connection, proxyActor, connectionActor) -> {
                                 throw ConnectionConfigurationInvalidException.newBuilder("validation failed...")
                                         .build();
-                            }, null);
+                            }, null, UsageBasedPriorityProvider::getInstance);
             // create another actor because this it is stopped and we want to test if the child is terminated
             final TestKit parent = new TestKit(actorSystem);
             final ActorRef connectionActorRef = watch(parent.childActorOf(connectionActorProps));
@@ -829,7 +829,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                                         .dittoHeaders(command.getDittoHeaders())
                                         .message("not valid")
                                         .build();
-                            });
+                            }, UsageBasedPriorityProvider::getInstance);
 
             // create another actor because we want to test if the child is terminated
             final TestKit parent = new TestKit(actorSystem);
@@ -1110,7 +1110,9 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                     });
             final Props connectionActorProps = Props.create(ConnectionPersistenceActor.class, () ->
                     new ConnectionPersistenceActor(myConnectionId, proxyActorProbe.ref(),
-                            propsFactory, null, Trilean.TRUE
+                            propsFactory, null,
+                            UsageBasedPriorityProvider::getInstance,
+                            Trilean.TRUE
                     ));
 
             // GIVEN: connection persistence actor created with 2 client actors that are allowed to start on same node

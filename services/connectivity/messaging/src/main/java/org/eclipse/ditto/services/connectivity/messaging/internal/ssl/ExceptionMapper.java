@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -12,19 +12,16 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.internal.ssl;
 
-import java.security.InvalidAlgorithmParameterException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
-
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.SshPublicKeyCredentials;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnavailableException;
 
 /**
@@ -32,16 +29,67 @@ import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnav
  */
 final class ExceptionMapper {
 
-    private static final String CERTIFICATE_LABEL = "CERTIFICATE";
     private final DittoHeaders dittoHeaders;
+    private final JsonPointer privateKeyPath;
+    private final JsonPointer publicKeyPath;
+    private final JsonPointer certificatePath;
 
     /**
-     * Instantiates a new {@link ExceptionMapper}.
-     *
-     * @param dittoHeaders ditto headers
+     * @return an instance of the ExceptionMapper prepared to be used when working with
+     * {@link org.eclipse.ditto.model.connectivity.ClientCertificateCredentials}.
      */
-    ExceptionMapper(@Nullable final DittoHeaders dittoHeaders) {
-        this.dittoHeaders = dittoHeaders != null ? dittoHeaders : DittoHeaders.empty();
+    static ExceptionMapper forClientCertificateCredentials() {
+        return forClientCertificateCredentials(DittoHeaders.empty());
+    }
+
+    /**
+     * @return an instance of the ExceptionMapper prepared to be used when working with
+     * {@link org.eclipse.ditto.model.connectivity.ClientCertificateCredentials}.
+     */
+    static ExceptionMapper forClientCertificateCredentials(@Nullable final DittoHeaders dittoHeaders) {
+        final JsonPointer certificatePath = Connection.JsonFields.CREDENTIALS.getPointer()
+                .append(ClientCertificateCredentials.JsonFields.CLIENT_CERTIFICATE.getPointer());
+        final JsonPointer privateKeyPath = Connection.JsonFields.CREDENTIALS.getPointer()
+                .append(ClientCertificateCredentials.JsonFields.CLIENT_KEY.getPointer());
+        return new ExceptionMapper(dittoHeaders == null ? DittoHeaders.empty() : dittoHeaders, privateKeyPath,
+                JsonPointer.empty(), certificatePath);
+    }
+
+    /**
+     * @return an instance of the ExceptionMapper prepared to be used when working with
+     * {@link org.eclipse.ditto.model.connectivity.SshPublicKeyCredentials}.
+     */
+    static ExceptionMapper forSshPublicKeyCredentials(final DittoHeaders dittoHeaders) {
+        final JsonPointer publicKeyPath = Connection.JsonFields.CREDENTIALS.getPointer()
+                .append(SshPublicKeyCredentials.JsonFields.PUBLIC_KEY.getPointer());
+        final JsonPointer privateKeyPath = Connection.JsonFields.CREDENTIALS.getPointer()
+                .append(SshPublicKeyCredentials.JsonFields.PRIVATE_KEY.getPointer());
+        return new ExceptionMapper(dittoHeaders, privateKeyPath, publicKeyPath, JsonPointer.empty());
+    }
+
+    /**
+     * @return an instance of the ExceptionMapper prepared to be used when working with
+     * trusted certificates.
+     */
+    static ExceptionMapper forTrustedCertificates(final DittoHeaders dittoHeaders) {
+        final JsonPointer trustedCertificates = Connection.JsonFields.TRUSTED_CERTIFICATES.getPointer();
+        return new ExceptionMapper(dittoHeaders, JsonPointer.empty(), JsonPointer.empty(), trustedCertificates);
+    }
+
+    /**
+     * Constructor.
+     *
+     * @param dittoHeaders the ditto headers
+     * @param privateKeyPath the path to the private key in the connection configuration json
+     * @param publicKeyPath the path to the public key in the connection configuration json
+     * @param certificatePath the path to the certificate(s) in the connection configuration json
+     */
+    ExceptionMapper(final DittoHeaders dittoHeaders, final JsonPointer privateKeyPath,
+            final JsonPointer publicKeyPath, final JsonPointer certificatePath) {
+        this.dittoHeaders = dittoHeaders;
+        this.privateKeyPath = privateKeyPath;
+        this.publicKeyPath = publicKeyPath;
+        this.certificatePath = certificatePath;
     }
 
     /**
@@ -55,52 +103,38 @@ final class ExceptionMapper {
     }
 
     /**
-     * @return preconfigured builder for bad format errors
+     * @return preconfigured builder for private key bad format errors
      */
-    DittoRuntimeExceptionBuilder<ConnectionConfigurationInvalidException> badFormat(
-            final JsonPointer errorLocation,
-            final String label,
+    DittoRuntimeExceptionBuilder<ConnectionConfigurationInvalidException> badPrivateKeyFormat(final String label,
             final String binaryFormat) {
-        final String message = String.format("%s: bad format. " +
-                        "Expect PEM-encoded %s data specified by RFC-7468 starting with '-----BEGIN %s-----'",
-                errorLocation.toString(), binaryFormat, label);
-        return ConnectionConfigurationInvalidException.newBuilder(message)
-                .dittoHeaders(dittoHeaders);
+        return badFormat(privateKeyPath, label, binaryFormat);
     }
 
     /**
-     * Handles common ssl exceptions and maps them to Ditto exceptions.
-     *
-     * @param supplier the supplier that may throw an exception
-     * @param <T> the result type
-     * @return the result if no exception occurred
+     * @return preconfigured builder for public key bad format errors
      */
-    <T> T handleExceptions(final ThrowingSupplier<T> supplier) {
-        try {
-            return supplier.get();
-        } catch (final CertificateException e) {
-            final JsonPointer errorLocation = Connection.JsonFields.TRUSTED_CERTIFICATES.getPointer();
-            throw badFormat(errorLocation, CERTIFICATE_LABEL, "DER")
-                    .cause(e)
-                    .build();
-        } catch (final KeyStoreException e) {
-            throw fatalError("Engine failed to configure trusted CA certificates")
-                    .cause(e)
-                    .build();
-        } catch (final NoSuchAlgorithmException | InvalidAlgorithmParameterException e) {
-            throw fatalError("Failed to start TLS engine")
-                    .cause(e)
-                    .build();
-        }
+    DittoRuntimeExceptionBuilder<ConnectionConfigurationInvalidException> badPublicKeyFormat(final String label,
+            final String binaryFormat) {
+        return badFormat(publicKeyPath, label, binaryFormat);
     }
 
-    @FunctionalInterface
-    interface ThrowingSupplier<T> {
-
-        /**
-         * @return the result.
-         */
-        T get() throws CertificateException, KeyStoreException, NoSuchAlgorithmException,
-                InvalidAlgorithmParameterException;
+    /**
+     * @return preconfigured builder for certificate bad format errors
+     */
+    DittoRuntimeExceptionBuilder<ConnectionConfigurationInvalidException> badCertificateFormat(final String label,
+            final String binaryFormat) {
+        return badFormat(certificatePath, label, binaryFormat);
     }
+
+    /**
+     * @return preconfigured builder for bad format errors
+     */
+    DittoRuntimeExceptionBuilder<ConnectionConfigurationInvalidException> badFormat(final JsonPointer errorLocation,
+            final String label, final String binaryFormat) {
+        final String message = String.format("%s: bad format. " +
+                        "Expect PEM-encoded %s data specified by RFC-7468 starting with '-----BEGIN %s-----'",
+                errorLocation, binaryFormat, label);
+        return ConnectionConfigurationInvalidException.newBuilder(message).dittoHeaders(dittoHeaders);
+    }
+
 }

@@ -453,15 +453,15 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     private HttpResponse enhanceResponseWithExternalDittoHeaders(final HttpResponse response,
             final DittoHeaders allDittoHeaders) {
 
-        logger.setCorrelationId(allDittoHeaders);
+        final DittoDiagnosticLoggingAdapter l = logger.withCorrelationId(allDittoHeaders);
         final Map<String, String> externalHeaders = getExternalHeaders(allDittoHeaders);
 
         if (externalHeaders.isEmpty()) {
-            logger.debug("No external headers for enhancing the response, returning it as-is.");
+            l.debug("No external headers for enhancing the response, returning it as-is.");
             return response;
         }
 
-        logger.debug("Enhancing response with external headers <{}>.", externalHeaders);
+        l.debug("Enhancing response with external headers <{}>.", externalHeaders);
         final List<HttpHeader> externalHttpHeaders = externalHeaders
                 .entrySet()
                 .stream()
@@ -472,7 +472,6 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                 .filter(entry -> !entry.getKey().equalsIgnoreCase(DittoHeaderDefinition.CONTENT_TYPE.getKey()))
                 .map(entry -> RawHeader.create(entry.getKey(), entry.getValue()))
                 .collect(Collectors.toList());
-        logger.discardCorrelationId();
 
         return response.withHeaders(externalHttpHeaders);
     }

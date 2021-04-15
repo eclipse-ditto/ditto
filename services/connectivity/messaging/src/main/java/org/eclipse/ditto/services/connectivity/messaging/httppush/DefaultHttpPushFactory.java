@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLContext;
@@ -27,6 +28,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.services.connectivity.config.HttpPushConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.services.connectivity.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.services.utils.akka.controlflow.TimeoutFlow;
 
 import akka.actor.ActorSystem;
@@ -55,9 +57,9 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
 
     private static final String PATH_DELIMITER = "/";
 
-    private final ConnectionId connectionId;
-    private final Uri baseUri;
+    private final Connection connection;
     private final int parallelism;
+    private final Supplier<SshTunnelState> tunnelConfigSupplier;
 
     @Nullable
     private final ClientTransport clientTransport;
@@ -65,11 +67,12 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
     @Nullable
     private final HttpsConnectionContext httpsConnectionContext;
 
-    private DefaultHttpPushFactory(final ConnectionId connectionId, final Uri baseUri, final int parallelism,
-            final HttpPushConfig httpPushConfig, @Nullable final HttpsConnectionContext httpsConnectionContext) {
-        this.connectionId = connectionId;
-        this.baseUri = baseUri;
+    private DefaultHttpPushFactory(final Connection connection, final int parallelism,
+            final HttpPushConfig httpPushConfig, @Nullable final HttpsConnectionContext httpsConnectionContext,
+            final Supplier<SshTunnelState> tunnelConfigSupplier) {
+        this.connection = connection;
         this.parallelism = parallelism;
+        this.tunnelConfigSupplier = tunnelConfigSupplier;
         if (!httpPushConfig.getHttpProxyConfig().isEnabled()) {
             clientTransport = null;
         } else {
@@ -79,8 +82,7 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
     }
 
     static HttpPushFactory of(final Connection connection, final HttpPushConfig httpPushConfig,
-            final ConnectionLogger connectionLogger) {
-        final ConnectionId connectionId = connection.getId();
+            final ConnectionLogger connectionLogger, final Supplier<SshTunnelState> tunnelConfigSupplier) {
         final Uri baseUri = Uri.create(connection.getUri());
         final int parallelism = parseParallelism(connection.getSpecificConfig());
 
@@ -96,11 +98,12 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
             httpsConnectionContext = null;
         }
 
-        return new DefaultHttpPushFactory(connectionId, baseUri, parallelism, httpPushConfig, httpsConnectionContext);
+        return new DefaultHttpPushFactory(connection, parallelism, httpPushConfig, httpsConnectionContext, tunnelConfigSupplier);
     }
 
     @Override
     public HttpRequest newRequest(final HttpPublishTarget httpPublishTarget) {
+        final Uri baseUri = getBaseUri();
         final String baseUriStrToUse = determineBaseUri(baseUri);
         final String pathWithQueryToUse = determineHttpPath(httpPublishTarget);
         final String userInfo = baseUri.getUserInfo();
@@ -115,6 +118,10 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
         } else {
             return request;
         }
+    }
+
+    private Uri getBaseUri() {
+        return Uri.create(tunnelConfigSupplier.get().getURI(connection).toString());
     }
 
     private static String determineBaseUri(final Uri baseUri) {
@@ -148,6 +155,7 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
         final Http http = Http.get(system);
         final ConnectionPoolSettings poolSettings = getConnectionPoolSettings(system);
         final Flow<Pair<HttpRequest, T>, Pair<Try<HttpResponse>, T>, ?> flow;
+        final Uri baseUri = getBaseUri();
         if (null != httpsConnectionContext) {
             final ConnectHttp connectHttpsWithCustomSSLContext =
                     ConnectHttp.toHostHttps(baseUri).withCustomHttpsContext(httpsConnectionContext);
@@ -166,7 +174,7 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
 
     private ConnectionPoolSettings getConnectionPoolSettings(final ActorSystem system) {
         final ConnectionPoolSettings settings =
-                disambiguateByConnectionId(system, connectionId).withMaxConnections(parallelism);
+                disambiguateByConnectionId(system, connection.getId()).withMaxConnections(parallelism);
         return clientTransport == null
                 ? settings
                 : settings.withTransport(clientTransport);

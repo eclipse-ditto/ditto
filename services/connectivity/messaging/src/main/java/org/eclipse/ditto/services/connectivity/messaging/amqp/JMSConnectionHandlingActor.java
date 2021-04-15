@@ -26,6 +26,7 @@ import javax.annotation.Nullable;
 import javax.jms.Destination;
 import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
+import javax.jms.JMSSecurityException;
 import javax.jms.MessageConsumer;
 import javax.jms.Session;
 import javax.naming.NamingException;
@@ -39,8 +40,8 @@ import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
+import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnauthorizedException;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -206,13 +207,13 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
             try {
                 log.debug("Creating new JMS session.");
                 final Session session = createSession(jmsConnection);
-                log.debug("Creating consumers for new session.");
+                log.debug("Creating consumers for new session <{}>.", session);
                 final List<ConsumerData> consumers = createConsumers(session);
                 final AmqpClientActor.JmsSessionRecovered r =
                         new AmqpClientActor.JmsSessionRecovered(origin, session, consumers);
                 sender.tell(r, self);
                 log.debug("Session of connection <{}> recovered successfully.", connection.getId());
-            } catch (final ConnectionFailedException e) {
+            } catch (final ConnectionFailedException | ConnectionUnauthorizedException e) {
                 sender.tell(new ImmutableConnectionFailure(origin, e, e.getMessage()), self);
                 log.warning(e.getMessage());
             } catch (final Exception e) {
@@ -249,7 +250,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
             final AmqpClientActor.JmsConnected connectedMessage = tryConnect(origin, clientId);
             sender.tell(connectedMessage, self);
             log.debug("Connection <{}> established successfully.", connection.getId());
-        } catch (final ConnectionFailedException e) {
+        } catch (final ConnectionFailedException | ConnectionUnauthorizedException e) {
             sender.tell(new ImmutableConnectionFailure(origin, e, e.getMessage()), self);
             log.warning(e.getMessage());
         } catch (final Exception e) {
@@ -260,19 +261,26 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
 
     private AmqpClientActor.JmsConnected tryConnect(@Nullable final ActorRef origin, final String clientId) {
         final JmsConnection jmsConnection = createJmsConnection(clientId);
-        try {
-            startConnection(jmsConnection);
-            final Session session = createSession(jmsConnection);
-            final List<ConsumerData> consumers = createConsumers(session);
-            return new AmqpClientActor.JmsConnected(origin, jmsConnection, session, consumers);
-        } catch (final ConnectionFailedException e) {
-            // thrown by createConsumers
-            terminateConnection(jmsConnection);
-            throw e;
-        } catch (final RuntimeException e) {
-            log.error(e, "An unexpected exception occurred. Terminating JMS connection.");
-            terminateConnection(jmsConnection);
-            throw e;
+        if (null != jmsConnection) {
+            try {
+                startConnection(jmsConnection);
+                final Session session = createSession(jmsConnection);
+                final List<ConsumerData> consumers = createConsumers(session);
+                return new AmqpClientActor.JmsConnected(origin, jmsConnection, session, consumers);
+            } catch (final ConnectionFailedException | ConnectionUnauthorizedException e) {
+                // thrown by createConsumers
+                terminateConnection(jmsConnection);
+                throw e;
+            } catch (final RuntimeException e) {
+                log.error(e, "An unexpected exception occurred. Terminating JMS connection.");
+                terminateConnection(jmsConnection);
+                throw e;
+            }
+        } else {
+            log.error("Created JMS connection for clientId <{}> was null, " +
+                    "not creating connection as a result!", clientId);
+            throw ConnectionFailedException.newBuilder(connection.getId())
+                    .build();
         }
     }
 
@@ -284,6 +292,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
         });
     }
 
+    @Nullable
     private Session createSession(final JmsConnection jmsConnection) {
         final Session session = safelyExecuteJmsOperation(jmsConnection, "create session",
                 () -> jmsConnection.createSession(JMS_INDIVIDUAL_ACKNOWLEDGE_MODE_MAGIC_NUMBER));
@@ -291,11 +300,15 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
         return session;
     }
 
+    @Nullable
     private <T> T safelyExecuteJmsOperation(@Nullable final JmsConnection jmsConnection,
             final String task, final ThrowingSupplier<T> jmsOperation) {
 
         try {
             return jmsOperation.get();
+        } catch (final JMSSecurityException e) {
+            terminateConnection(jmsConnection);
+            throw ConnectionUnauthorizedException.forConnectionId(connection.getId(), e.getMessage());
         } catch (final JMSException | NamingException e) {
             terminateConnection(jmsConnection);
             throw ConnectionFailedException.newBuilder(connection.getId())
@@ -313,7 +326,13 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
      * @throws org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException if creation of one
      * or more consumers failed
      */
-    private List<ConsumerData> createConsumers(final Session session) {
+    private List<ConsumerData> createConsumers(@Nullable final Session session) {
+        if (null == session) {
+            log.warning("Trying to create consumer for 'null' session, throwing ConnectionFailedException");
+            throw ConnectionFailedException.newBuilder(connection.getId())
+                    .build();
+        }
+
         final Map<String, Exception> failedSources = new HashMap<>();
         final List<ConsumerData> consumers = connection.getSources().stream().flatMap(source ->
                 source.getAddresses().stream().flatMap(sourceAddress ->
@@ -354,22 +373,16 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
     /**
      * @return The JmsConnection
      */
+    @Nullable
     private JmsConnection createJmsConnection(final String clientId) {
         return safelyExecuteJmsOperation(null, "create JMS connection", () -> {
+            final JmsConnection jmsConnection =
+                    jmsConnectionFactory.createConnection(connection, exceptionListener, connectionLogger, clientId);
             if (log.isDebugEnabled()) {
-                final ConnectionConfig connectionConfig =
-                        DittoConnectivityConfig.of(
-                                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
-                                .getConnectionConfig();
-                final Map<String, String> defaultConfig =
-                        AmqpSpecificConfig.toDefaultConfig(connectionConfig.getAmqp10Config());
-                if (log.isDebugEnabled()) {
-                    log.debug("Attempt to create connection {} for URI [{}]", connection.getId(),
-                            ConnectionBasedJmsConnectionFactory
-                                    .buildAmqpConnectionUriFromConnection(connection, defaultConfig, clientId));
-                }
+                log.debug("Attempt to create connection {} for URI [{}]", connection.getId(),
+                        jmsConnection.getConfiguredURI());
             }
-            return jmsConnectionFactory.createConnection(connection, exceptionListener, connectionLogger, clientId);
+            return jmsConnection;
         });
     }
 

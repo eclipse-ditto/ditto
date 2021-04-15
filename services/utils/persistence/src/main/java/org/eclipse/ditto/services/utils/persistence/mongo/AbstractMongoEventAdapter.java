@@ -74,7 +74,7 @@ public abstract class AbstractMongoEventAdapter<T extends Event<?>> implements E
             final Event<?> theEvent = (Event<?>) event;
             final JsonSchemaVersion schemaVersion = theEvent.getImplementedSchemaVersion();
             final JsonObject jsonObject = performToJournalMigration(
-                    theEvent.toJson(schemaVersion, IS_REVISION.negate().and(FieldType.regularOrSpecial()))
+                    theEvent.toJson(schemaVersion, IS_REVISION.negate())
             );
             final BsonDocument bson = DittoBsonJson.getInstance().parse(jsonObject);
             final Set<String> tags = theEvent.getDittoHeaders().getJournalTags();

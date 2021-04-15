@@ -20,12 +20,12 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.exceptions.SignalEnrichmentFailedException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.things.ThingFieldSelector;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.signals.base.Signal;
@@ -58,7 +58,7 @@ final class SessionedSignal implements SessionedJsonifiable {
 
     @Override
     public CompletionStage<JsonObject> retrieveExtraFields(@Nullable final SignalEnrichmentFacade facade) {
-        final Optional<JsonFieldSelector> extraFields = session.getExtraFields();
+        final Optional<ThingFieldSelector> extraFields = session.getExtraFields();
         if (extraFields.isPresent()) {
             final Optional<ThingId> thingIdOptional = WithEntityId.getEntityIdOfType(ThingId.class, signal);
             if (facade != null && thingIdOptional.isPresent()) {

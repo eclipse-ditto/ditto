@@ -79,6 +79,14 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
     List<Target> getTargets();
 
     /**
+     * Return the ssh tunnel if any exist.
+     *
+     * @return the ssh tunnel or an empty optional.
+     * @since 2.0.0
+     */
+    Optional<SshTunnel> getSshTunnel();
+
+    /**
      * Returns how many clients on different cluster nodes should establish the {@code Connection}.
      * <p>
      * If greater than 1, the connection is created in a HA mode, running on at least 2 cluster nodes.
@@ -261,101 +269,94 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
          * JSON field containing the {@code Connection} identifier.
          */
         public static final JsonFieldDefinition<String> ID =
-                JsonFactory.newStringFieldDefinition("id", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newStringFieldDefinition("id", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Connection} name.
          */
         public static final JsonFieldDefinition<String> NAME =
-                JsonFactory.newStringFieldDefinition("name", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newStringFieldDefinition("name", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code ConnectionType}.
          */
         public static final JsonFieldDefinition<String> CONNECTION_TYPE =
-                JsonFactory.newStringFieldDefinition("connectionType", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newStringFieldDefinition("connectionType", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code ConnectionStatus}.
          */
         public static final JsonFieldDefinition<String> CONNECTION_STATUS =
-                JsonFactory.newStringFieldDefinition("connectionStatus", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newStringFieldDefinition("connectionStatus", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing credentials.
          */
         public static final JsonFieldDefinition<JsonObject> CREDENTIALS =
-                JsonFactory.newJsonObjectFieldDefinition("credentials", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonObjectFieldDefinition("credentials", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Connection} uri.
          */
         public static final JsonFieldDefinition<String> URI =
-                JsonFactory.newStringFieldDefinition("uri", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newStringFieldDefinition("uri", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Connection} sources configuration.
          */
         public static final JsonFieldDefinition<JsonArray> SOURCES =
-                JsonFactory.newJsonArrayFieldDefinition("sources", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonArrayFieldDefinition("sources", FieldType.REGULAR, JsonSchemaVersion.V_2);
         /**
          * JSON field containing the {@code Connection} targets configuration.
          */
         public static final JsonFieldDefinition<JsonArray> TARGETS =
-                JsonFactory.newJsonArrayFieldDefinition("targets", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonArrayFieldDefinition("targets", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code sshTunnel} configuration.
+         */
+        public static final JsonFieldDefinition<JsonObject> SSH_TUNNEL =
+                JsonFactory.newJsonObjectFieldDefinition("sshTunnel", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Connection} client count.
          */
         public static final JsonFieldDefinition<Integer> CLIENT_COUNT =
-                JsonFactory.newIntFieldDefinition("clientCount", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newIntFieldDefinition("clientCount", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Connection} failover enabled.
          */
         public static final JsonFieldDefinition<Boolean> FAILOVER_ENABLED =
-                JsonFactory.newBooleanFieldDefinition("failoverEnabled", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newBooleanFieldDefinition("failoverEnabled", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Connection} trust all certificates.
          */
         public static final JsonFieldDefinition<Boolean> VALIDATE_CERTIFICATES =
-                JsonFactory.newBooleanFieldDefinition("validateCertificates", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newBooleanFieldDefinition("validateCertificates", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Connection} processor pool size.
          */
         public static final JsonFieldDefinition<Integer> PROCESSOR_POOL_SIZE =
-                JsonFactory.newIntFieldDefinition("processorPoolSize", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newIntFieldDefinition("processorPoolSize", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Connection} {@link ConnectionType} specific config.
          */
         public static final JsonFieldDefinition<JsonObject> SPECIFIC_CONFIG =
-                JsonFactory.newJsonObjectFieldDefinition("specificConfig", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonObjectFieldDefinition("specificConfig", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Connection} {@link MappingContext} to apply.
+         *
          * @deprecated MAPPING_CONTEXT is deprecated, use MAPPING_DEFINITIONS instead
          */
         @Deprecated(/*forRemoval = false*/) // This MUST NOT be deleted from the model as there are still connections
                                             // with that field which have to be deserialized.
         public static final JsonFieldDefinition<JsonObject> MAPPING_CONTEXT =
-                JsonFactory.newJsonObjectFieldDefinition("mappingContext", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonObjectFieldDefinition("mappingContext", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the definitions of {@code Connection} mappings.
@@ -368,15 +369,13 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
          * JSON field containing the {@code Connection} tags configuration.
          */
         public static final JsonFieldDefinition<JsonArray> TAGS =
-                JsonFactory.newJsonArrayFieldDefinition("tags", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonArrayFieldDefinition("tags", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field definition of trusted certificates.
          */
         public static final JsonFieldDefinition<String> TRUSTED_CERTIFICATES =
-                JsonFieldDefinition.ofString("ca", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFieldDefinition.ofString("ca", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

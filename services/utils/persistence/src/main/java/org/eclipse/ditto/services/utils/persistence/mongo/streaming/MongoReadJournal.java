@@ -23,6 +23,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.bson.BsonDocument;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
@@ -38,7 +39,9 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 import com.mongodb.client.model.Accumulators;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.BsonField;
+import com.mongodb.client.model.Collation;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.Sorts;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.typesafe.config.Config;
@@ -79,6 +82,13 @@ public class MongoReadJournal {
      * ID field of documents delivered by the read journal.
      */
     public static final String J_ID = JournallingFieldNames$.MODULE$.ID();
+
+    /**
+     * Prefix of the priority tag which is used in
+     * {@link #getJournalPidsWithTagOrderedByPriorityTag(String, java.time.Duration)}
+     * for sorting/ordering by.
+     */
+    public static final String PRIORITY_TAG_PREFIX = "priority-";
 
     private static final String AKKA_PERSISTENCE_JOURNAL_AUTO_START =
             "akka.persistence.journal.auto-start-journals";
@@ -203,6 +213,28 @@ public class MongoReadJournal {
     }
 
     /**
+     * Retrieve all unique PIDs in journals selected by a provided {@code tag}.
+     * The PIDs are ordered based on the {@link #PRIORITY_TAG_PREFIX} tags of the events: Descending by the appended
+     * priority (an integer value).
+     *
+     * @param tag the Tag name the journal entries have to contain in order to be selected, or an empty string to select
+     * all journal entries.
+     * @param maxIdleTime how long the stream is allowed to idle without sending any element. Bounds the number of
+     * retries with exponential back-off.
+     * @return Source of all persistence IDs tagged with the provided {@code tag}, sorted ascending by the value of an
+     * additional {@link #PRIORITY_TAG_PREFIX} tag.
+     */
+    public Source<String, NotUsed> getJournalPidsWithTagOrderedByPriorityTag(final String tag,
+            final Duration maxIdleTime) {
+
+        final int maxRestarts = computeMaxRestarts(maxIdleTime);
+        return getJournal().withAttributes(Attributes.inputBuffer(1, 1))
+                .flatMapConcat(journal ->
+                        listPidsInJournalOrderedByPriorityTag(journal, tag, MAX_BACK_OFF_DURATION, maxRestarts)
+                );
+    }
+
+    /**
      * Retrieve all unique PIDs in journals above a lower bound. Does not limit database access in any way.
      *
      * @param lowerBoundPid the lower-bound PID.
@@ -312,10 +344,63 @@ public class MongoReadJournal {
                 .withAttributes(Attributes.inputBuffer(1, 1));
     }
 
+    private Source<String, NotUsed> listPidsInJournalOrderedByPriorityTag(final MongoCollection<Document> journal,
+            final String tag, final Duration maxBackOff, final int maxRestarts) {
+
+        final List<Bson> pipeline = new ArrayList<>(4);
+        // optional match stages: consecutive match stages are optimized together ($match + $match coalescence)
+        if (!tag.isEmpty()) {
+            pipeline.add(Aggregates.match(Filters.eq(J_TAGS, tag)));
+        }
+
+        // group stage. We can assume that the $last element ist also new latest event because of the insert order.
+        pipeline.add(Aggregates.group("$" + J_PROCESSOR_ID, Accumulators.last(J_TAGS, "$" + J_TAGS)));
+
+        // Filter irrelevant tags for priority ordering.
+        final BsonDocument arrayFilter = BsonDocument.parse(
+                "{\n" +
+                "    $filter: {\n" +
+                "        input: \"$" + J_TAGS + "\",\n" +
+                "        as: \"tags\",\n" +
+                "        cond: {\n" +
+                "            $eq: [\n" +
+                "                {\n" +
+                "                    $substrCP: [\"$$tags\", 0, " + PRIORITY_TAG_PREFIX.length() + "]\n" +
+                "                }\n," +
+                "                \"" + PRIORITY_TAG_PREFIX + "\"\n" +
+                "            ]\n" +
+                "        }\n" +
+                "    }\n" +
+                "}"
+        );
+        pipeline.add(Aggregates.project(Projections.computed(J_TAGS, arrayFilter)));
+
+        // sort stage 2 -- order after group stage is not defined
+        pipeline.add(Aggregates.sort(Sorts.orderBy(Sorts.descending(J_TAGS))));
+
+        final Duration minBackOff = Duration.ofSeconds(1L);
+        final double randomFactor = 0.1;
+
+        final RestartSettings restartSettings = RestartSettings.create(minBackOff, maxBackOff, randomFactor)
+                .withMaxRestarts(maxRestarts, minBackOff);
+        return RestartSource.onFailuresWithBackoff(restartSettings, () ->
+                Source.fromPublisher(journal.aggregate(pipeline)
+                        .collation(Collation.builder().locale("en_US").numericOrdering(true).build()))
+                        .flatMapConcat(document -> {
+                            final Object pid = document.get(J_ID);
+                            if (pid instanceof CharSequence) {
+                                return Source.single(pid.toString());
+                            } else {
+                                return Source.empty();
+                            }
+                        })
+        );
+    }
+
     private Source<String, NotUsed> listJournalPidsAbove(final MongoCollection<Document> journal, final String startPid,
             final String tag, final int batchSize, final Duration maxBackOff, final int maxRestarts) {
 
-        final List<Bson> pipeline = new ArrayList<>(5);
+        final List<Bson> pipeline = new ArrayList<>(6);
         // optional match stages: consecutive match stages are optimized together ($match + $match coalescence)
         if (!tag.isEmpty()) {
             pipeline.add(Aggregates.match(Filters.eq(J_TAGS, tag)));

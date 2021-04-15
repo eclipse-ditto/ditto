@@ -41,8 +41,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
  */
 @Immutable
 @JsonParsableCommandResponse(type = ThingErrorResponse.TYPE)
-public final class ThingErrorResponse
-        extends AbstractErrorResponse<ThingErrorResponse>
+public final class ThingErrorResponse extends AbstractErrorResponse<ThingErrorResponse>
         implements ThingCommandResponse<ThingErrorResponse> {
 
     /**

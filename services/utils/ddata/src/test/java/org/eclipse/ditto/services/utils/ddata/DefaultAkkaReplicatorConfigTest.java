@@ -79,6 +79,9 @@ public final class DefaultAkkaReplicatorConfigTest {
         softly.assertThat(underTest.getRole())
                 .as(AkkaReplicatorConfig.AkkaReplicatorConfigValue.ROLE.getConfigPath())
                 .isEqualTo("a-role");
+        softly.assertThat(underTest.getGossipInterval())
+                .as(AkkaReplicatorConfig.AkkaReplicatorConfigValue.GOSSIP_INTERVAL.getConfigPath())
+                .isEqualTo(Duration.ofMillis(1337));
         softly.assertThat(underTest.getNotifySubscribersInterval())
                 .as(AkkaReplicatorConfig.AkkaReplicatorConfigValue.NOTIFY_SUBSCRIBERS_INTERVAL.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(1));
@@ -100,7 +103,7 @@ public final class DefaultAkkaReplicatorConfigTest {
 
         // test that akka default config values are copied
         final Config completeConfig = underTest.getCompleteConfig();
-        assertThat(completeConfig.getDuration("gossip-interval")).isEqualTo(Duration.ofSeconds(2L));
+        assertThat(completeConfig.getDuration("gossip-interval")).isEqualTo(Duration.ofMillis(1337L));
         assertThat(completeConfig.getBoolean("delta-crdt.enabled")).isEqualTo(true);
     }
 

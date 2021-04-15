@@ -175,4 +175,4 @@ post:
             }
           }
         }
-    description: JSON representation of the thing to be created. Use `{ }` to create an empty thing with a default policy.
+    description: JSON representation of the thing to be created. Use '{}' to create an empty thing with a default policy.

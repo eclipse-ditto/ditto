@@ -226,7 +226,7 @@ public final class PubSubFactoryTest {
 
             // THEN: the subscriber is removed
             Awaitility.await().untilAsserted(() ->
-                    assertThat(factory1.getSubscribers().toCompletableFuture().join())
+                    assertThat(factory1.getSubscribers())
                             .describedAs("subscriber should be removed from ddata after termination")
                             .isEmpty()
             );
@@ -256,9 +256,10 @@ public final class PubSubFactoryTest {
 
             // THEN: the subscriber is removed
             Awaitility.await().untilAsserted(() ->
-                    assertThat(factory1.getSubscribers().toCompletableFuture().join())
+                    assertThat(factory1.getSubscribers())
                             .describedAs("subscriber should be removed from ddata")
-                            .isEmpty());
+                            .isEmpty()
+                            );
         }};
     }
 

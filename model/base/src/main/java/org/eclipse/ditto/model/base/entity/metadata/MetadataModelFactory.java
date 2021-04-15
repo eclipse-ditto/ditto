@@ -67,6 +67,7 @@ public final class MetadataModelFactory {
      * @param jsonObject provides the initial values of the result.
      * @return the new immutable initialised {@code Metadata}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws JsonPointerInvalidException if {@code jsonObject} contained leading or trailing slashes.
      */
     public static Metadata newMetadata(final JsonObject jsonObject) {
         checkNotNull(jsonObject, "JSON object for initialization");

@@ -77,6 +77,11 @@ public final class DefaultPingConfigTest {
                 .as(PingConfig.PingConfigValue.READ_JOURNAL_BATCH_SIZE.getConfigPath())
                 .isEqualTo(PingConfig.PingConfigValue.READ_JOURNAL_BATCH_SIZE.getDefaultValue());
 
+        softly.assertThat(underTest.getStreamingOrder())
+                .as(PingConfig.PingConfigValue.STREAMING_ORDER.getConfigPath())
+                .isEqualTo(PingConfig.StreamingOrder.valueOf(
+                        String.valueOf(PingConfig.PingConfigValue.STREAMING_ORDER.getDefaultValue())));
+
         softly.assertThat(underTest.getRateConfig())
                 .as("rateConfig")
                 .satisfies(rateConfig -> {
@@ -119,5 +124,9 @@ public final class DefaultPingConfigTest {
                             .as(RateConfig.RateConfigValue.FREQUENCY.getConfigPath())
                             .isEqualTo(Duration.ofSeconds(2L));
                 });
+
+        softly.assertThat(underTest.getStreamingOrder())
+                .as(PingConfig.PingConfigValue.STREAMING_ORDER.getConfigPath())
+                .isEqualTo(PingConfig.StreamingOrder.TAGS);
     }
 }

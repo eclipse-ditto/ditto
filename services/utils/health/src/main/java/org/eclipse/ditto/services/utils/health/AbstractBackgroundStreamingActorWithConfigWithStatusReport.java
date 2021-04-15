@@ -185,6 +185,7 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
         return sleepingReceiveBuilder.match(WokeUp.class, this::wokeUp)
                 .match(Event.class, this::addCustomEventToLog)
                 .match(RetrieveHealth.class, this::retrieveHealth)
+                .match(ResetHealthEvents.class, this::resetHealthEvents)
                 .match(Shutdown.class, this::shutdownStream)
                 .build()
                 .orElse(retrieveConfigBehavior())
@@ -198,6 +199,7 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
                 .match(StreamTerminated.class, this::streamTerminated)
                 .match(Event.class, this::addCustomEventToLog)
                 .match(RetrieveHealth.class, this::retrieveHealth)
+                .match(ResetHealthEvents.class, this::resetHealthEvents)
                 .match(Shutdown.class, this::shutdownStream)
                 .build()
                 .orElse(retrieveConfigBehavior())
@@ -240,7 +242,7 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
     }
 
     private void scheduleWakeUp(final Duration when) {
-        getTimers().startSingleTimer(WokeUp.class, WokeUp.ENABLED, when);
+        getTimers().startSingleTimer(WokeUp.class, WokeUp.ENABLED_INSTANCE, when);
     }
 
     private void shutdownStream(final Shutdown shutdown) {
@@ -302,12 +304,30 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
         getSender().tell(RetrieveHealthResponse.of(renderStatusInfo(), trigger.getDittoHeaders()), getSelf());
     }
 
-    private StatusInfo renderStatusInfo() {
-        return StatusInfo.fromStatus(StatusInfo.Status.UP,
-                Collections.singletonList(StatusDetailMessage.of(getMostSevereLevelFromEvents(), render())));
+    private void resetHealthEvents(final ResetHealthEvents resetHealthEvents) {
+        events.clear();
+        getSender().tell(ResetHealthEventsResponse.of(resetHealthEvents.getDittoHeaders()), getSelf());
     }
 
-    private StatusDetailMessage.Level getMostSevereLevelFromEvents() {
+    private StatusInfo renderStatusInfo() {
+        return StatusInfo.fromStatus(StatusInfo.Status.UP,
+                Collections.singletonList(StatusDetailMessage.of(getMostSevereLevelFromEvents(events), render())));
+    }
+
+    private JsonObject render() {
+        final JsonObjectBuilder statusReportBuilder = JsonObject.newBuilder()
+                .set(JsonFields.ENABLED, config.isEnabled())
+                .set(JsonFields.EVENTS, renderEvents(events));
+        postEnhanceStatusReport(statusReportBuilder);
+        return statusReportBuilder.build();
+    }
+
+    /**
+     * Get the most severe log level from evennts.
+     *
+     * @return The most severe log level to report.
+     */
+    protected StatusDetailMessage.Level getMostSevereLevelFromEvents(final Deque<Pair<Instant, Event>> events) {
         return events.stream()
                 .map(Pair::second)
                 .map(Event::level)
@@ -315,17 +335,25 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
                 .orElse(StatusDetailMessage.Level.DEFAULT);
     }
 
-    private JsonObject render() {
-        final JsonObjectBuilder statusReportBuilder = JsonObject.newBuilder()
-                .set(JsonFields.ENABLED, config.isEnabled())
-                .set(JsonFields.EVENTS, events.stream()
-                        .map(AbstractBackgroundStreamingActorWithConfigWithStatusReport::renderEvent)
-                        .collect(JsonCollectors.valuesToArray()));
-        postEnhanceStatusReport(statusReportBuilder);
-        return statusReportBuilder.build();
+    /**
+     * Render known events as a JSON array.
+     *
+     * @param events events to render.
+     * @return the rendered events.
+     */
+    protected JsonArray renderEvents(final Deque<Pair<Instant, Event>> events) {
+        return events.stream()
+                .map(this::renderEvent)
+                .collect(JsonCollectors.valuesToArray());
     }
 
-    private static JsonObject renderEvent(final Pair<Instant, Event> element) {
+    /**
+     * Render a single event as JSON for health reporting.
+     *
+     * @param element the event together with its timestamp.
+     * @return the rendered JSON object.
+     */
+    protected JsonObject renderEvent(final Pair<Instant, Event> element) {
         return JsonObject.newBuilder()
                 .set(element.first().toString(), element.second().name())
                 .build();
@@ -344,9 +372,12 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
 
     }
 
-    private static final class WokeUp implements Event {
+    /**
+     * Event for when a stream started.
+     */
+    protected static final class WokeUp implements Event {
 
-        private static final WokeUp ENABLED = new WokeUp(true);
+        private static final WokeUp ENABLED_INSTANCE = new WokeUp(true);
 
         private final boolean enabled;
 
@@ -365,7 +396,10 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
 
     }
 
-    private static final class StreamTerminated implements Event {
+    /**
+     * Event for when a stream terminated.
+     */
+    protected static final class StreamTerminated implements Event {
 
         private static final StatusDetailMessage.Level STREAM_ERROR_STATUS_LEVEL = StatusDetailMessage.Level.WARN;
         private final String whatHappened;

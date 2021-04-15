@@ -31,7 +31,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.signals.base.MergeToggle;
+import org.eclipse.ditto.signals.base.FeatureToggle;
 import org.eclipse.ditto.signals.base.UnsupportedSchemaVersionException;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
@@ -56,7 +56,7 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
     private final JsonPointer path;
 
     private MergeThingResponse(final ThingId thingId, final JsonPointer path, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatus.NO_CONTENT, MergeToggle.checkMergeFeatureEnabled(TYPE, dittoHeaders));
+        super(TYPE, HttpStatus.NO_CONTENT, FeatureToggle.checkMergeFeatureEnabled(TYPE, dittoHeaders));
         this.thingId = checkNotNull(thingId, "thingId");
         this.path = checkNotNull(path, "path");
         checkSchemaVersion();

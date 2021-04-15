@@ -11,13 +11,14 @@
 get:
   summary: Retrieve a specific thing
   description: |-
-    Returns the thing identified by the `thingId` path parameter. The
-    response includes details about the thing, including the `policyId`, attributes, definition and features.
+    Returns the thing identified by the `thingId` path parameter. The response includes details about the thing,
+    including the `policyId`, attributes, definition and features.
 
-    Optionally, you can use the field selectors (see parameter `fields`) to only get specific
-    fields, which you are interested in.
+    Optionally, you can use the field selectors (see parameter `fields`) to only get specific fields,
+    which you are interested in.
 
-    Example: Use the field selector `_policy` to retrieve the content of the policy.
+    ### Example:
+    Use the field selector `_policy` to retrieve the content of the policy.
   tags:
     - Things
   parameters:
@@ -60,8 +61,7 @@ get:
             $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
-        The request could not be completed. The thing with the given ID was
-        not found.
+        The request could not be completed. The thing with the given ID was not found.
       content:
         application/json:
           schema:
@@ -71,8 +71,7 @@ get:
 put:
   summary: Create or update a thing with a specified ID
   description: |-
-    Create or update the thing specified by the `thingId` path parameter and
-    the optional JSON body.
+    Create or update the thing specified by the `thingId` path parameter and the optional JSON body.
 
     * If you set a new `thingId` in the path, a thing will be created.
     * If you set an existing `thingId` in the path, the thing will be updated.
@@ -82,43 +81,43 @@ put:
     At the initial creation of a thing, only a valid `thingId` is required.
     However, you can create a full-fledged thing all at once.
 
-    Example:
+    ### Example:
     To create a coffee maker thing, set the `thingId` in the path, e.g. to "com.acme.coffeemaker:BE-42"
     and the body part, like in the following snippet.
 
     ```
-    {
-      "definition": "com.acme:coffeebrewer:0.1.0",
-      "attributes": {
-        "manufacturer": "ACME demo corp.",
-        "location": "Berlin, main floor",
-        "serialno": "42",
-        "model": "Speaking coffee machine"
-      },
-      "features": {
-        "coffee-brewer": {
-          "definition": ["com.acme:coffeebrewer:0.1.0"],
-          "properties": {
-            "brewed-coffees": 0
-          }
-        },
-        "water-tank": {
-          "properties": {
-            "configuration": {
-              "smartMode": true,
-              "brewingTemp": 87,
-              "tempToHold": 44,
-              "timeoutSeconds": 6000
-            },
-            "status": {
-              "waterAmount": 731,
-              "temperature": 44
-            }
-          }
-        }
+     {
+       "definition": "com.acme:coffeebrewer:0.1.0",
+       "attributes": {
+         "manufacturer": "ACME demo corp.",
+         "location": "Berlin, main floor",
+         "serialno": "42",
+         "model": "Speaking coffee machine"
+       },
+       "features": {
+         "coffee-brewer": {
+           "definition": [ "com.acme:coffeebrewer:0.1.0" ],
+           "properties": {
+             "brewed-coffees": 0
+           }
+         },
+         "water-tank": {
+           "properties": {
+             "configuration": {
+               "smartMode": true,
+               "brewingTemp": 87,
+               "tempToHold": 44,
+               "timeoutSeconds": 6000
+             },
+             "status": {
+               "waterAmount": 731,
+               "temperature": 44
+             }
+           }
+         }
+       }
       }
-    }
-    ```
+     ```
     As the example does not set a policy in the request body, but the thing concept requires one,
     the service will create a default policy. The default policy, has the exactly same id
     as the thing, and grants ALL permissions to the authorized subject.
@@ -306,6 +305,205 @@ put:
           }
         }
     description: JSON representation of the thing to be modified.
+patch:
+  summary: Patch a thing with a specified ID
+  description: |-
+    Patch an existing thing specified by the `thingId` path parameter.
+
+    Patching a thing will merge the provided request body with the exisiting thing.
+    This makes it possible to change only some parts of a thing in single request without providing the full thing
+    structure in the request body.
+
+
+    ### Patch a thing
+
+    With this resource it is possible to add, update or delete parts of an existing thing.
+    The request body provided in *JSON merge patch* (RFC-7396) format will be merged with the existing thing.
+    Notice that the `null` value in the JSON body will delete the specified JSON key from the thing.
+    For further documentation of JSON merge patch see [RFC 7396](https://tools.ietf.org/html/rfc7396).
+
+
+    ### Example
+    A Thing already exists with the following content:
+
+    ```
+    {
+      "definition": "com.acme:coffeebrewer:0.1.0",
+      "attributes": {
+        "manufacturer": "ACME demo corp.",
+        "location": "Berlin, main floor",
+        "serialno": "42",
+        "model": "Speaking coffee machine"
+      },
+      "features": {
+        "coffee-brewer": {
+          "definition": ["com.acme:coffeebrewer:0.1.0"],
+          "properties": {
+            "brewed-coffees": 0
+          }
+        },
+        "water-tank": {
+          "properties": {
+            "configuration": {
+              "smartMode": true,
+              "brewingTemp": 87,
+              "tempToHold": 44,
+              "timeoutSeconds": 6000
+            },
+            "status": {
+              "waterAmount": 731,
+              "temperature": 44
+            }
+          }
+        }
+      }
+    }
+    ```
+
+    To make changes that only affect parts of the existing thing, e.g. add some attribute and delete a
+    specific feature property, the content of the request body could look like this:
+
+    ```
+    {
+      "attributes": {
+        "manufacturingYear": "2020"
+      },
+      "features": {
+        "water-tank": {
+          "properties": {
+            "configuration": {
+              "smartMode": null,
+              "tempToHold": 50,
+            }
+          }
+        }
+      }
+    }
+    ```
+
+    The request body will be merged with the existing thing and the result will be the following thing:
+
+    ```
+    {
+      "definition": "com.acme:coffeebrewer:0.1.0",
+      "attributes": {
+        "manufacturer": "ACME demo corp.",
+        "manufacturingYear": "2020",
+        "location": "Berlin, main floor",
+        "serialno": "42",
+        "model": "Speaking coffee machine"
+      },
+      "features": {
+        "coffee-brewer": {
+          "definition": ["com.acme:coffeebrewer:0.1.0"],
+          "properties": {
+            "brewed-coffees": 0
+          }
+        },
+        "water-tank": {
+          "properties": {
+            "configuration": {
+              "brewingTemp": 87,
+              "tempToHold": 50,
+              "timeoutSeconds": 6000
+            },
+            "status": {
+              "waterAmount": 731,
+              "temperature": 44
+            }
+          }
+        }
+      }
+    }
+    ```
+
+    ### Permissions for patching an existing Thing
+
+    For updating an existing thing, the authorized subject needs **WRITE** permission on those parts of the thing
+    that are affected by the merge update.
+
+    For example, to successfully execute the above example the authorized subject needs to have unrestricted
+    *WRITE* permissions on all affected paths of the JSON merge patch: `attributes/manufacturingYear`,
+    `features/water-tank/properties/configuration/smartMode`,
+    `features/water-tank/properties/configuration/tempToHold`. The *WRITE* permission must not be revoked on any
+    level further down the hierarchy. Consequently it is also sufficient for the authorized subject to have
+    unrestricted *WRITE* permission at root level or unrestricted *WRITE* permission at `/attributes` and
+    `/features` etc.
+  tags:
+    - Things
+  parameters:
+    - $ref: '../../parameters/thingIdPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParam.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/putMetadataParam.yml'
+    - $ref: '../../parameters/requestedAcksParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+    - $ref: '../../parameters/responseRequiredParam.yml'
+  responses:
+    '204':
+      description: The thing was successfully patched.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+
+          * the JSON body of the thing to be patched is invalid
+          * the JSON body of the thing to be patched contains a `thingId` which does not match the ID in the path
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the caller would not have access to the thing after creating it with the given policy
+          * the caller has insufficient permissions.
+            For modifying an existing thing, an unrestricted `WRITE` permission on the thing's root resource is required.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the referenced thing does not exist.
+          * the caller has insufficient permissions to read the referenced thing.
+          * the policy that should be copied does not exist.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'
+    '413':
+      $ref: '../../responses/entityTooLarge.yml'
+  requestBody:
+    content:
+      application/merge-patch+json:
+        schema:
+          $ref: '../../schemas/things/patchThing.yml'
+        example:
+          attributes:
+            manufacturingYear: '2020'
+          features:
+            water-tank:
+              properties:
+                configuration:
+                  smartMode: null
+                  tempToHold: 50
+    description: JSON representation of the thing to be patched.
 delete:
   summary: Delete a specific thing
   description: |-
@@ -351,8 +549,7 @@ delete:
             $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
-        The request could not be completed. The thing with the given ID was
-        not found.
+        The request could not be completed. The thing with the given ID was not found.
       content:
         application/json:
           schema:
