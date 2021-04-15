@@ -299,9 +299,13 @@ public final class InboundDispatchingActor extends AbstractActor
                                 e.getMessage());
                 mappedHeaders = applyInboundHeaderMapping(errorResponse, message, authorizationContext,
                         message.getTopicPath().orElse(null), message.getInternalHeaders());
-                logger.withCorrelationId(mappedHeaders)
-                        .info("Resolved mapped headers of {} : with HeaderMapping {} : and external headers {}",
-                                mappedHeaders, message.getHeaderMapping(), message.getHeaders());
+                final DittoDiagnosticLoggingAdapter l = logger.withCorrelationId(mappedHeaders);
+                l.info("Got exception <{}> when processing external message with mapper <{}>: <{}>",
+                        dittoRuntimeException.getErrorCode(),
+                        mapperId,
+                        e.getMessage());
+                l.info("Resolved mapped headers of {} : with HeaderMapping {} : and external headers {}",
+                        mappedHeaders, message.getHeaderMapping(), message.getHeaders());
             } else {
                 mappedHeaders = dittoRuntimeException.getDittoHeaders();
             }
@@ -310,12 +314,11 @@ public final class InboundDispatchingActor extends AbstractActor
         } else if (e != null) {
             responseMappedMonitor.getLogger()
                     .failure("Got unknown exception when processing external message: {0}", e.getMessage());
-            if (message != null) {
-                logger.setCorrelationId(message.getInternalHeaders());
-            }
-            logger.warning("Got <{}> when message was processed: <{}>", e.getClass().getSimpleName(),
-                    e.getMessage());
-            logger.discardCorrelationId();
+            logger.withCorrelationId(Optional.ofNullable(message)
+                    .map(ExternalMessage::getInternalHeaders)
+                    .orElseGet(DittoHeaders::empty)
+            ).warning("Got unknown exception <{}> when processing external message with mapper <{}>: <{}>",
+                    e.getClass().getSimpleName(), mapperId, e.getMessage());
         }
         return Optional.empty();
     }

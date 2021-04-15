@@ -5,6 +5,7 @@ pipeline {
     }
     parameters {
         string(name: 'EXTRA_MAVEN_ARGS', defaultValue: '', description: 'Additional maven arguments.')
+        booleanParam(name: 'SKIP_SONAR_SCAN', defaultValue: false, description: 'Set to true to skip Sonarqube Scan.')
     }
     environment {
         // Need to replace the '%2F' used by Jenkins to deal with / in the path (e.g. story/...)
@@ -53,6 +54,31 @@ pipeline {
             post {
                 always {
                     junit "**/**/target/surefire-reports/*.xml,**/**/**/target/surefire-reports/*.xml,**/**/**/target/failsafe-reports/*.xml,**/**/target/failsafe-reports/*.xml"
+                }
+            }
+        }
+        stage('SonarQube Scan') {
+            agent {
+                docker {
+                    args "$DITTO_DOCKER_ARGUMENTS"
+                    image "$DITTO_DOCKER_IMAGE_MAVEN_JDK_11"
+                    reuseNode true
+                }
+            }
+            when {
+                expression {
+                    return !params.SKIP_SONAR_SCAN
+                }
+            }
+            steps {
+                configFileProvider([configFile(fileId: 'mvn-bdc-settings', variable: 'MVN_SETTINGS')]) {
+                    echo 'Sonar Scan'
+                    withSonarQubeEnv(installationName: "${env.SONAR_QUBE_ENV}", credentialsId: 'sonarqube') {
+                        sh "mvn -s $MVN_SETTINGS --batch-mode --errors $SONAR_MAVEN_GOAL " +
+                                   "-Dsonar.host.url=$SONAR_HOST_URL " +
+                                   "-Dsonar.projectKey=org.eclipse.ditto:${theBranch} " +
+                                   "-Drevision=${theVersion}"
+                    }
                 }
             }
         }

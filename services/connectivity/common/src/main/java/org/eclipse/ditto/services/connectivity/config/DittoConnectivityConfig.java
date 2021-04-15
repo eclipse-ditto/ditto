@@ -61,6 +61,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
     private final MappingConfig mappingConfig;
     private final SignalEnrichmentConfig signalEnrichmentConfig;
     private final AcknowledgementConfig acknowledgementConfig;
+    private final TunnelConfig tunnelConfig;
 
     private DittoConnectivityConfig(final ScopedConfig dittoScopedConfig) {
         serviceSpecificConfig = DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH);
@@ -76,6 +77,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
         mappingConfig = DefaultMappingConfig.of(serviceSpecificConfig);
         signalEnrichmentConfig = DefaultSignalEnrichmentConfig.of(serviceSpecificConfig);
         acknowledgementConfig = DefaultAcknowledgementConfig.of(serviceSpecificConfig);
+        tunnelConfig = DefaultTunnelConfig.of(serviceSpecificConfig);
     }
 
     /**
@@ -170,6 +172,11 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
         return acknowledgementConfig;
     }
 
+    @Override
+    public TunnelConfig getTunnelConfig() {
+        return tunnelConfig;
+    }
+
     @SuppressWarnings("OverlyComplexMethod")
     @Override
     public boolean equals(@Nullable final Object o) {
@@ -192,14 +199,15 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
                 Objects.equals(monitoringConfig, that.monitoringConfig) &&
                 Objects.equals(mappingConfig, that.mappingConfig) &&
                 Objects.equals(signalEnrichmentConfig, that.signalEnrichmentConfig) &&
-                Objects.equals(acknowledgementConfig, that.acknowledgementConfig);
+                Objects.equals(acknowledgementConfig, that.acknowledgementConfig) &&
+                Objects.equals(tunnelConfig, that.tunnelConfig);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(serviceSpecificConfig, persistenceOperationsConfig, mongoDbConfig, healthCheckConfig,
                 connectionConfig, pingConfig, connectionIdsRetrievalConfig, clientConfig, protocolConfig,
-                monitoringConfig, mappingConfig, signalEnrichmentConfig, acknowledgementConfig);
+                monitoringConfig, mappingConfig, signalEnrichmentConfig, acknowledgementConfig, tunnelConfig);
     }
 
     @Override
@@ -218,6 +226,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
                 ", mappingConfig=" + mappingConfig +
                 ", signalEnrichmentConfig" + signalEnrichmentConfig +
                 ", acknowledgementConfig" + acknowledgementConfig +
+                ", tunnelConfig" + tunnelConfig +
                 "]";
     }
 

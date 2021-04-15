@@ -57,6 +57,7 @@ import org.eclipse.ditto.services.models.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.services.models.connectivity.placeholders.SourceAddressPlaceholder;
 import org.eclipse.ditto.services.models.connectivity.placeholders.ThingPlaceholder;
 
+import com.hivemq.client.internal.util.UnsignedDataTypes;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.datatypes.MqttTopic;
 import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
@@ -211,6 +212,20 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
                 .stream()
                 .map(Target::getAddress)
                 .forEach(a -> validateAddress(a, false, dittoHeaders));
+    }
+
+    protected void validateSpecificConfig(final Connection connection, final DittoHeaders dittoHeaders) {
+        final MqttSpecificConfig mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection);
+        mqttSpecificConfig.getKeepAliveInterval().ifPresent(keepAlive -> {
+            final long seconds = keepAlive.toSeconds();
+            if (!UnsignedDataTypes.isUnsignedShort(seconds)) {
+                throw ConnectionConfigurationInvalidException
+                        .newBuilder("Keep alive interval '"+seconds+"' is not within the allowed range of [0, 65535] seconds.")
+                        .description("Please adjust the interval to be within the allowed range.")
+                        .dittoHeaders(dittoHeaders)
+                        .build();
+            }
+        });
     }
 
     private static void validateAddress(final String address, final boolean wildcardAllowed,

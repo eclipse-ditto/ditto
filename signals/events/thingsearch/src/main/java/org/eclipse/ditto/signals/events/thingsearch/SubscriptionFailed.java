@@ -128,7 +128,6 @@ public final class SubscriptionFailed extends AbstractSubscriptionEvent<Subscrip
 
     @Override
     public boolean equals(final Object o) {
-        // super.equals(o) guarantees getClass() == o.getClass()
         return super.equals(o) && Objects.equals(error, ((SubscriptionFailed) o).error);
     }
 

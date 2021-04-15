@@ -38,5 +38,4 @@ public interface JmsConnectionFactory {
      */
     JmsConnection createConnection(Connection connection, ExceptionListener exceptionListener,
             ConnectionLogger connectionLogger, String clientId) throws JMSException, NamingException;
-
 }

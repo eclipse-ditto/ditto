@@ -30,8 +30,16 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
  */
 public final class StatusDetailMessage implements Jsonifiable<JsonObject> {
 
+    /**
+     * The available levels of a StatusDetailMessage.
+     * <p>
+     * Order of Level entries is important - as {@code compareTo} of Enum uses defined order - first entry is less than
+     * second entry.
+     */
     public enum Level {
-        INFO, WARN, ERROR;
+        INFO,
+        WARN,
+        ERROR;
 
         public static final Level DEFAULT = INFO;
     }

@@ -50,6 +50,11 @@ public final class EmptyEvent implements Event<EmptyEvent>, WithEntityId {
      */
     public static final JsonValue EFFECT_ALWAYS_ALIVE = JsonValue.of("alwaysAlive");
 
+    /**
+     * Known effect of the "empty event" which shall update the priority of an entity.
+     */
+    public static final JsonValue EFFECT_PRIORITY_UPDATE = JsonValue.of("priorityUpdate");
+
     static final String TYPE_PREFIX = "persistence-actor-internal:";
 
     static final String NAME = "empty-event";

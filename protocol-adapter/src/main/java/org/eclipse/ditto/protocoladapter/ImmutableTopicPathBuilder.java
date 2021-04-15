@@ -228,6 +228,12 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     }
 
     @Override
+    public TopicPathBuildable error() {
+        this.searchAction = TopicPath.SearchAction.ERROR;
+        return this;
+    }
+
+    @Override
     public EventsTopicPathBuilder created() {
         this.action = TopicPath.Action.CREATED;
         return this;

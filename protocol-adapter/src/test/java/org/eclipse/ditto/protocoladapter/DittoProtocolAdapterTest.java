@@ -35,6 +35,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
@@ -43,6 +44,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.announcements.policies.SubjectDeletionAnnouncement;
@@ -61,6 +63,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
+import org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
@@ -76,10 +79,15 @@ import org.junit.Test;
 public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
 
     private ProtocolAdapter underTest;
+    private DittoRuntimeException dittoRuntimeException;
 
     @Before
     public void setUp() {
         underTest = DittoProtocolAdapter.newInstance();
+        dittoRuntimeException = ThingIdInvalidException.newBuilder("invalid")
+                .message("the error message")
+                .description("the error description")
+                .build();
     }
 
     @Test
@@ -218,6 +226,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                                 .build())
                         .withHeaders(TestConstants.HEADERS_V_2)
                         .build());
+
         assertWithExternalHeadersThat(actualCommandResponseCreated).isEqualTo(modifyThingResponseCreated);
 
         final ThingModifyCommandResponse<?> actualCommandResponseModified =
@@ -227,6 +236,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                                 .build())
                         .withHeaders(TestConstants.HEADERS_V_2)
                         .build());
+
         assertWithExternalHeadersThat(actualCommandResponseModified).isEqualTo(modifyThingResponseModified);
     }
 
@@ -263,6 +273,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                                 .build())
                         .withHeaders(TestConstants.HEADERS_V_2)
                         .build());
+
         assertWithExternalHeadersThat(actualCommandWithFields).isEqualTo(retrieveThingWithFields);
     }
 
@@ -353,6 +364,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                                 .build())
                         .withHeaders(TestConstants.HEADERS_V_2)
                         .build());
+
         assertWithExternalHeadersThat(actualCommandWithFields).isEqualTo(createSubscriptionWithFields);
     }
 
@@ -538,6 +550,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
 
         final Adaptable reverseAdaptable =
                 ProtocolFactory.wrapAsJsonifiableAdaptable(underTest.toAdaptable(acknowledgement));
+
         assertThat(reverseAdaptable).isEqualTo(adaptable);
     }
 
@@ -599,4 +612,28 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
         assertThat(announcement.getDittoHeaders().getCorrelationId()).contains(correlationId);
     }
 
+    @Test
+    public void searchErrorResponseToAdaptable() {
+        final SearchErrorResponse errorResponse =
+                SearchErrorResponse.of(dittoRuntimeException, TestConstants.HEADERS_V_2);
+
+        final TopicPath expectedTopicPath = ProtocolFactory.newTopicPathBuilderFromNamespace(TopicPath.ID_PLACEHOLDER)
+                .things()
+                .none()
+                .search()
+                .error()
+                .build();
+
+        final Adaptable expected = Adaptable.newBuilder(expectedTopicPath)
+                .withPayload(Payload.newBuilder(JsonPointer.empty())
+                        .withValue(dittoRuntimeException.toJson(FieldType.regularOrSpecial()))
+                        .withStatus(HttpStatus.BAD_REQUEST)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final Adaptable actual = underTest.toAdaptable(errorResponse);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
 }

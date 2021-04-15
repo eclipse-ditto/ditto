@@ -59,6 +59,7 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.DisconnectClie
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RecoverSession;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.services.connectivity.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.connectivity.BaseClientState;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
@@ -125,7 +126,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         final Amqp10Config amqp10Config = connectionConfig.getAmqp10Config();
 
         this.jmsConnectionFactory =
-                ConnectionBasedJmsConnectionFactory.getInstance(AmqpSpecificConfig.toDefaultConfig(amqp10Config));
+                ConnectionBasedJmsConnectionFactory.getInstance(AmqpSpecificConfig.toDefaultConfig(amqp10Config),
+                        this::getSshTunnelState);
         connectionListener = new StatusReportingListener(getSelf(), logger, connectionLogger);
         consumerByNamePrefix = new HashMap<>();
         recoverSessionOnSessionClosed = isRecoverSessionOnSessionClosedEnabled(connection);
@@ -202,8 +204,11 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
     private static Connection validateConnection(final Connection connection) {
         try {
-            ProviderFactory.create(URI.create(ConnectionBasedJmsConnectionFactory
-                    .buildAmqpConnectionUriFromConnection(connection, Map.of())));
+            final String connectionUri = ConnectionBasedJmsConnectionFactory.buildAmqpConnectionUri(connection,
+                    connection.getId().toString(),
+                    // fake established tunnel state for uri validation
+                    () -> SshTunnelState.from(connection).established(22222), Map.of());
+            ProviderFactory.create(URI.create(connectionUri));
             // it is safe to pass an empty map as default config as only default values are loaded via that config
             // of which we can be certain that they are always valid
             return connection;
@@ -252,8 +257,9 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                             .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionToBeTested.getId())
                             .debug("Closing JMS connection after testing connection.");
                     if (response instanceof JmsConnected) {
-                        final JmsConnection jmsConnection = ((JmsConnected) response).connection;
-                        final JmsDisconnect jmsDisconnect = new JmsDisconnect(ActorRef.noSender(), jmsConnection);
+                        final JmsConnection connectedJmsConnection = ((JmsConnected) response).connection;
+                        final JmsDisconnect jmsDisconnect = new JmsDisconnect(ActorRef.noSender(),
+                                connectedJmsConnection);
                         return Patterns.ask(getDisconnectConnectionHandler(connectionToBeTested), jmsDisconnect,
                                 clientConfig.getTestingTimeout())
                                 // replace jmsDisconnected message with original response
@@ -684,12 +690,12 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     static final class JmsConnected extends AbstractWithOrigin implements ClientConnected {
 
         private final JmsConnection connection;
-        private final Session session;
+        @Nullable private final Session session;
         private final List<ConsumerData> consumerList;
 
         JmsConnected(@Nullable final ActorRef origin,
                 final JmsConnection connection,
-                final Session session,
+                @Nullable final Session session,
                 final List<ConsumerData> consumerList) {
 
             super(origin);
@@ -704,11 +710,11 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      */
     static final class JmsSessionRecovered extends AbstractWithOrigin {
 
-        private final Session session;
+        @Nullable private final Session session;
         private final List<ConsumerData> consumerList;
 
         JmsSessionRecovered(@Nullable final ActorRef origin,
-                final Session session,
+                @Nullable final Session session,
                 final List<ConsumerData> consumerList) {
 
             super(origin);
@@ -716,6 +722,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             this.consumerList = consumerList;
         }
 
+        @Nullable
         Session getSession() {
             return session;
         }

@@ -2,834 +2,1090 @@
 
 ## Logback Classic Module (1.2.3)
 
- * Maven coordinates: `ch.qos.logback:logback-classic:1.2.3`
- * License: [EPL-1.0](licenses/EPL-1.0.txt), [LGPL-2.1](licenses/LGPL-2.1.txt)
- * Project: http://logback.qos.ch/logback-classic
- * Source: https://github.com/ceki/logback/logback-classic
+* Maven coordinates: `ch.qos.logback:logback-classic:1.2.3`
+* License: [EPL-1.0](https://spdx.org/licenses/EPL-1.0.html), [LGPL-2.1](https://spdx.org/licenses/LGPL-2.1.html)
+* Project: http://logback.qos.ch/logback-classic
+* Sources: 
+   * declared as SCM: https://github.com/ceki/logback/logback-classic
+   * Maven sources: https://search.maven.org/remotecontent?filepath=ch/qos/logback/logback-classic/1.2.3/logback-classic-1.2.3-sources.jar
 
 
 ## Logback Core Module (1.2.3)
 
- * Maven coordinates: `ch.qos.logback:logback-core:1.2.3`
- * License: [EPL-1.0](licenses/EPL-1.0.txt), [LGPL-2.1](licenses/LGPL-2.1.txt)
- * Project: http://logback.qos.ch/logback-core
- * Source: https://github.com/ceki/logback/logback-core
+* Maven coordinates: `ch.qos.logback:logback-core:1.2.3`
+* License: [EPL-1.0](https://spdx.org/licenses/EPL-1.0.html), [LGPL-2.1](https://spdx.org/licenses/LGPL-2.1.html)
+* Project: http://logback.qos.ch/logback-core
+* Sources: 
+   * declared as SCM: https://github.com/ceki/logback/logback-core
+   * Maven sources: https://search.maven.org/remotecontent?filepath=ch/qos/logback/logback-core/1.2.3/logback-core-1.2.3-sources.jar
 
 
 ## minimal-json (0.9.5)
 
- * Maven coordinates: `com.eclipsesource.minimal-json:minimal-json:0.9.5`
- * License: [MIT](licenses/MIT.txt)
- * Project: https://github.com/ralfstx/minimal-json
- * Source: https://github.com/ralfstx/minimal-json
+* Maven coordinates: `com.eclipsesource.minimal-json:minimal-json:0.9.5`
+* License: [MIT](https://spdx.org/licenses/MIT.html)
+* Project: https://github.com/ralfstx/minimal-json
+* Sources: 
+   * declared as SCM: https://github.com/ralfstx/minimal-json
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/eclipsesource/minimal-json/minimal-json/0.9.5/minimal-json-0.9.5-sources.jar
 
 
-## Jackson-core (2.10.5)
+## Jackson-annotations (2.11.4)
 
- * Maven coordinates: `com.fasterxml.jackson.core:jackson-core:2.10.5`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://github.com/FasterXML/jackson-core
- * Source: https://github.com/FasterXML/jackson-core
-
-
-## Jackson dataformat: CBOR (2.10.5)
-
- * Maven coordinates: `com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.10.5`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://github.com/FasterXML/jackson-dataformats-binary
- * Source: https://github.com/FasterXML/jackson-dataformats-binary/jackson-dataformat-cbor
+* Maven coordinates: `com.fasterxml.jackson.core:jackson-annotations:2.11.4`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: http://github.com/FasterXML/jackson
+* Sources: 
+   * declared as SCM: https://github.com/FasterXML/jackson-annotations
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/core/jackson-annotations/2.11.4/jackson-annotations-2.11.4-sources.jar
 
 
-## Caffeine cache (2.8.5)
+## Jackson-core (2.11.4)
 
- * Maven coordinates: `com.github.ben-manes.caffeine:caffeine:2.8.5`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://github.com/ben-manes/caffeine
- * Source: https://github.com/ben-manes/caffeine
+* Maven coordinates: `com.fasterxml.jackson.core:jackson-core:2.11.4`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/FasterXML/jackson-core
+* Sources: 
+   * declared as SCM: https://github.com/FasterXML/jackson-core
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/core/jackson-core/2.11.4/jackson-core-2.11.4-sources.jar
+
+
+## jackson-databind (2.11.4)
+
+* Maven coordinates: `com.fasterxml.jackson.core:jackson-databind:2.11.4`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: http://github.com/FasterXML/jackson
+* Sources: 
+   * declared as SCM: https://github.com/FasterXML/jackson-databind
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/core/jackson-databind/2.11.4/jackson-databind-2.11.4-sources.jar
+
+
+## Jackson dataformat: CBOR (2.11.4)
+
+* Maven coordinates: `com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.11.4`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: http://github.com/FasterXML/jackson-dataformats-binary
+* Sources: 
+   * declared as SCM: https://github.com/FasterXML/jackson-dataformats-binary/jackson-dataformat-cbor
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/dataformat/jackson-dataformat-cbor/2.11.4/jackson-dataformat-cbor-2.11.4-sources.jar
+
+
+## Jackson datatype: jdk8 (2.11.4)
+
+* Maven coordinates: `com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.11.4`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/FasterXML/jackson-modules-java8/jackson-datatype-jdk8
+* Sources: 
+   * declared as SCM: https://github.com/FasterXML/jackson-modules-java8/jackson-datatype-jdk8
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.11.4/jackson-datatype-jdk8-2.11.4-sources.jar
+
+
+## Jackson datatype: JSR310 (2.11.4)
+
+* Maven coordinates: `com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.11.4`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/FasterXML/jackson-modules-java8/jackson-datatype-jsr310
+* Sources: 
+   * declared as SCM: https://github.com/FasterXML/jackson-modules-java8/jackson-datatype-jsr310
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.11.4/jackson-datatype-jsr310-2.11.4-sources.jar
+
+
+## Jackson-module-parameter-names (2.11.4)
+
+* Maven coordinates: `com.fasterxml.jackson.module:jackson-module-parameter-names:2.11.4`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/FasterXML/jackson-modules-java8/jackson-module-parameter-names
+* Sources: 
+   * declared as SCM: https://github.com/FasterXML/jackson-modules-java8/jackson-module-parameter-names
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/module/jackson-module-parameter-names/2.11.4/jackson-module-parameter-names-2.11.4-sources.jar
+
+
+## Jackson module: Paranamer (2.11.4)
+
+* Maven coordinates: `com.fasterxml.jackson.module:jackson-module-paranamer:2.11.4`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/FasterXML/jackson-modules-base
+* Sources: 
+   * declared as SCM: https://github.com/FasterXML/jackson-modules-base/jackson-module-paranamer
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/module/jackson-module-paranamer/2.11.4/jackson-module-paranamer-2.11.4-sources.jar
+
+
+## jackson-module-scala (2.11.4)
+
+* Maven coordinates: `com.fasterxml.jackson.module:jackson-module-scala_2.13:2.11.4`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: http://wiki.fasterxml.com/JacksonModuleScala
+* Sources: 
+   * declared as SCM: https://github.com/FasterXML/jackson-module-scala
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/module/jackson-module-scala_2.13/2.11.4/jackson-module-scala_2.13-2.11.4-sources.jar
+
+
+## Caffeine cache (2.8.8)
+
+* Maven coordinates: `com.github.ben-manes.caffeine:caffeine:2.8.8`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/ben-manes/caffeine
+* Sources: 
+   * declared as SCM: https://github.com/ben-manes/caffeine
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/github/ben-manes/caffeine/caffeine/2.8.8/caffeine-2.8.8-sources.jar
 
 
 ## jffi (1.2.18)
 
- * Maven coordinates: `com.github.jnr:jffi:1.2.18`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://github.com/jnr/jffi
- * Source: https://github.com/jnr/jffi
+* Maven coordinates: `com.github.jnr:jffi:1.2.18`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: http://github.com/jnr/jffi
+* Sources: 
+   * declared as SCM: https://github.com/jnr/jffi
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/github/jnr/jffi/1.2.18/jffi-1.2.18-sources.jar
 
 
 ## jnr-a64asm (1.0.0)
 
- * Maven coordinates: `com.github.jnr:jnr-a64asm:1.0.0`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://nexus.sonatype.org/oss-repository-hosting.html/jnr-a64asm
- * Source: https://github.com/jnr/jnr-a64asm
+* Maven coordinates: `com.github.jnr:jnr-a64asm:1.0.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: http://nexus.sonatype.org/oss-repository-hosting.html/jnr-a64asm
+* Sources: 
+   * declared as SCM: https://github.com/jnr/jnr-a64asm
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/github/jnr/jnr-a64asm/1.0.0/jnr-a64asm-1.0.0-sources.jar
 
 
 ## jnr-constants (0.9.12)
 
- * Maven coordinates: `com.github.jnr:jnr-constants:0.9.12`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://github.com/jnr/jnr-constants
- * Source: https://github.com/jnr/jnr-constants
-
-
-## jnr-constants (0.9.9)
-
- * Maven coordinates: `com.github.jnr:jnr-constants:0.9.9`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://github.com/jnr/jnr-constants
- * Source: https://github.com/jnr/jnr-constants
+* Maven coordinates: `com.github.jnr:jnr-constants:0.9.12`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: http://github.com/jnr/jnr-constants
+* Sources: 
+   * declared as SCM: https://github.com/jnr/jnr-constants
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/github/jnr/jnr-constants/0.9.12/jnr-constants-0.9.12-sources.jar
 
 
 ## jnr-ffi (2.1.9)
 
- * Maven coordinates: `com.github.jnr:jnr-ffi:2.1.9`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://github.com/jnr/jnr-ffi
- * Source: https://github.com/jnr/jnr-ffi
+* Maven coordinates: `com.github.jnr:jnr-ffi:2.1.9`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: http://github.com/jnr/jnr-ffi
+* Sources: 
+   * declared as SCM: https://github.com/jnr/jnr-ffi
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/github/jnr/jnr-ffi/2.1.9/jnr-ffi-2.1.9-sources.jar
 
 
 ## jnr-x86asm (1.0.2)
 
- * Maven coordinates: `com.github.jnr:jnr-x86asm:1.0.2`
- * License: [MIT](licenses/MIT.txt)
- * Project: http://github.com/jnr/jnr-x86asm
- * Source: https://github.com/jnr/jnr-x86asm
+* Maven coordinates: `com.github.jnr:jnr-x86asm:1.0.2`
+* License: [MIT](https://spdx.org/licenses/MIT.html)
+* Project: http://github.com/jnr/jnr-x86asm
+* Sources: 
+   * declared as SCM: https://github.com/jnr/jnr-x86asm
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/github/jnr/jnr-x86asm/1.0.2/jnr-x86asm-1.0.2-sources.jar
 
 
 ## zstd-jni (1.4.4-7)
 
- * Maven coordinates: `com.github.luben:zstd-jni:1.4.4-7`
- * License: [BSD-2-Clause](licenses/BSD-2-Clause.txt)
- * Project: https://github.com/luben/zstd-jni
- * Source: https://github.com/luben/zstd-jni
+* Maven coordinates: `com.github.luben:zstd-jni:1.4.4-7`
+* License: [BSD-2-Clause](https://spdx.org/licenses/BSD-2-Clause.html)
+* Project: https://github.com/luben/zstd-jni
+* Sources: 
+   * declared as SCM: https://github.com/luben/zstd-jni
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/github/luben/zstd-jni/1.4.4-7/zstd-jni-1.4.4-7-sources.jar
 
 
-## oshi-core (4.2.1)
+## akka-persistence-mongo-common (3.0.6)
 
- * Maven coordinates: `com.github.oshi:oshi-core:4.2.1`
- * License: [MIT](licenses/MIT.txt)
- * Project: https://github.com/oshi/oshi/oshi-core
- * Source: https://github.com/oshi/oshi
-
-
-## akka-persistence-mongo-common (3.0.3)
-
- * Maven coordinates: `com.github.scullxbones:akka-persistence-mongo-common_2.13:3.0.3`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://github.com/scullxbones/akka-persistence-mongo
- * Source: github.com/scullxbones/akka-persistence-mongo
+* Maven coordinates: `com.github.scullxbones:akka-persistence-mongo-common_2.13:3.0.6`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/scullxbones/akka-persistence-mongo
+* Sources: 
+   * declared as SCM: https://github.com/scullxbones/akka-persistence-mongo
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/github/scullxbones/akka-persistence-mongo-common_2.13/3.0.6/akka-persistence-mongo-common_2.13-3.0.6-sources.jar
 
 
-## akka-persistence-mongo-scala (3.0.3)
+## akka-persistence-mongo-scala (3.0.6)
 
- * Maven coordinates: `com.github.scullxbones:akka-persistence-mongo-scala_2.13:3.0.3`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://github.com/scullxbones/akka-persistence-mongo
- * Source: github.com/scullxbones/akka-persistence-mongo
-
-
-## asn-one (0.4.0)
-
- * Maven coordinates: `com.hierynomus:asn-one:0.4.0`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://gitlab.com/hierynomus/asn-one
- * Source: https://gitlab.com/hierynomus/asn-one
+* Maven coordinates: `com.github.scullxbones:akka-persistence-mongo-scala_2.13:3.0.6`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/scullxbones/akka-persistence-mongo
+* Sources: 
+   * declared as SCM: https://github.com/scullxbones/akka-persistence-mongo
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/github/scullxbones/akka-persistence-mongo-scala_2.13/3.0.6/akka-persistence-mongo-scala_2.13-3.0.6-sources.jar
 
 
-## HiveMQ MQTT Client (1.2.0)
+## asn-one (0.5.0)
 
- * Maven coordinates: `com.hivemq:hivemq-mqtt-client:1.2.0`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://github.com/hivemq/hivemq-mqtt-client
- * Source: https://github.com/hivemq/hivemq-mqtt-client
-
-
-## akka-discovery-kubernetes-api (1.0.8)
-
- * Maven coordinates: `com.lightbend.akka.discovery:akka-discovery-kubernetes-api_2.13:1.0.8`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io/
- * Source: https://github.com/akka/akka-management
+* Maven coordinates: `com.hierynomus:asn-one:0.5.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://gitlab.com/hierynomus/asn-one
+* Sources: 
+   * declared as SCM: https://gitlab.com/hierynomus/asn-one
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/hierynomus/asn-one/0.5.0/asn-one-0.5.0-sources.jar
 
 
-## akka-management-cluster-bootstrap (1.0.8)
+## HiveMQ MQTT Client (1.2.1)
 
- * Maven coordinates: `com.lightbend.akka.management:akka-management-cluster-bootstrap_2.13:1.0.8`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io/
- * Source: https://github.com/akka/akka-management
-
-
-## akka-management-cluster-http (1.0.8)
-
- * Maven coordinates: `com.lightbend.akka.management:akka-management-cluster-http_2.13:1.0.8`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io/
- * Source: https://github.com/akka/akka-management
+* Maven coordinates: `com.hivemq:hivemq-mqtt-client:1.2.1`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/hivemq/hivemq-mqtt-client
+* Sources: 
+   * declared as SCM: https://github.com/hivemq/hivemq-mqtt-client
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/hivemq/hivemq-mqtt-client/1.2.1/hivemq-mqtt-client-1.2.1-sources.jar
 
 
-## akka-management (1.0.8)
+## akka-discovery-kubernetes-api (1.0.10)
 
- * Maven coordinates: `com.lightbend.akka.management:akka-management_2.13:1.0.8`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io/
- * Source: https://github.com/akka/akka-management
+* Maven coordinates: `com.lightbend.akka.discovery:akka-discovery-kubernetes-api_2.13:1.0.10`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://akka.io/
+* Sources: 
+   * declared as SCM: https://github.com/akka/akka-management
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/lightbend/akka/discovery/akka-discovery-kubernetes-api_2.13/1.0.10/akka-discovery-kubernetes-api_2.13-1.0.10-sources.jar
+
+
+## akka-lease-kubernetes (1.0.10)
+
+* Maven coordinates: `com.lightbend.akka.management:akka-lease-kubernetes_2.13:1.0.10`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://akka.io/
+* Sources: 
+   * declared as SCM: https://github.com/akka/akka-management
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/lightbend/akka/management/akka-lease-kubernetes_2.13/1.0.10/akka-lease-kubernetes_2.13-1.0.10-sources.jar
+
+
+## akka-management-cluster-bootstrap (1.0.10)
+
+* Maven coordinates: `com.lightbend.akka.management:akka-management-cluster-bootstrap_2.13:1.0.10`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://akka.io/
+* Sources: 
+   * declared as SCM: https://github.com/akka/akka-management
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/lightbend/akka/management/akka-management-cluster-bootstrap_2.13/1.0.10/akka-management-cluster-bootstrap_2.13-1.0.10-sources.jar
+
+
+## akka-management-cluster-http (1.0.10)
+
+* Maven coordinates: `com.lightbend.akka.management:akka-management-cluster-http_2.13:1.0.10`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://akka.io/
+* Sources: 
+   * declared as SCM: https://github.com/akka/akka-management
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/lightbend/akka/management/akka-management-cluster-http_2.13/1.0.10/akka-management-cluster-http_2.13-1.0.10-sources.jar
+
+
+## akka-management (1.0.10)
+
+* Maven coordinates: `com.lightbend.akka.management:akka-management_2.13:1.0.10`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://akka.io/
+* Sources: 
+   * declared as SCM: https://github.com/akka/akka-management
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/lightbend/akka/management/akka-management_2.13/1.0.10/akka-management_2.13-1.0.10-sources.jar
 
 
 ## akka-rabbitmq (5.1.2)
 
- * Maven coordinates: `com.newmotion:akka-rabbitmq_2.13:5.1.2`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://github.com/NewMotion/akka-rabbitmq
- * Source: https://github.com/NewMotion/akka-rabbitmq
+* Maven coordinates: `com.newmotion:akka-rabbitmq_2.13:5.1.2`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/NewMotion/akka-rabbitmq
+* Sources: 
+   * declared as SCM: https://github.com/NewMotion/akka-rabbitmq
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/newmotion/akka-rabbitmq_2.13/5.1.2/akka-rabbitmq_2.13-5.1.2-sources.jar
 
 
 ## RabbitMQ Java Client (5.7.3)
 
- * Maven coordinates: `com.rabbitmq:amqp-client:5.7.3`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://www.rabbitmq.com
- * Source: https://github.com/rabbitmq/rabbitmq-java-client
+* Maven coordinates: `com.rabbitmq:amqp-client:5.7.3`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html), [GPL-2.0](https://spdx.org/licenses/GPL-2.0.html), [MPL 1.1](https://spdx.org/licenses/MPL 1.1.html)
+* Project: https://www.rabbitmq.com
+* Sources: 
+   * declared as SCM: https://github.com/rabbitmq/rabbitmq-java-client
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/rabbitmq/amqp-client/5.7.3/amqp-client-5.7.3-sources.jar
+
+
+## ParaNamer Core (2.8)
+
+* Maven coordinates: `com.thoughtworks.paranamer:paranamer:2.8`
+* License: [BSD-3-Clause](https://spdx.org/licenses/BSD-3-Clause.html)
+* Project: https://github.com/paul-hammant/paranamer/paranamer
+* Sources: 
+   * declared as SCM: https://github.com/paul-hammant/paranamer/paranamer
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/thoughtworks/paranamer/paranamer/2.8/paranamer-2.8-sources.jar
+
+
+## HPACK (1.0.2)
+
+* Maven coordinates: `com.twitter:hpack:1.0.2`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: http://github.com/twitter/hpack/hpack
+* Sources: 
+   * declared as SCM: scm:git:https://github.com/twitter/hpack/hpack
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/twitter/hpack/1.0.2/hpack-1.0.2-sources.jar
 
 
 ## config (1.3.1)
 
- * Maven coordinates: `com.typesafe:config:1.3.1`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://github.com/typesafehub/config
- * Source: https://github.com/typesafehub/config
+* Maven coordinates: `com.typesafe:config:1.3.1`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/typesafehub/config
+* Sources: 
+   * declared as SCM: https://github.com/typesafehub/config
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/config/1.3.1/config-1.3.1-sources.jar
+
+
+## config (1.3.3)
+
+* Maven coordinates: `com.typesafe:config:1.3.3`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/lightbend/config
+* Sources: 
+   * declared as SCM: https://github.com/lightbend/config
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/config/1.3.3/config-1.3.3-sources.jar
 
 
 ## config (1.4.0)
 
- * Maven coordinates: `com.typesafe:config:1.4.0`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://github.com/lightbend/config
- * Source: https://github.com/lightbend/config
+* Maven coordinates: `com.typesafe:config:1.4.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/lightbend/config
+* Sources: 
+   * declared as SCM: https://github.com/lightbend/config
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/config/1.4.0/config-1.4.0-sources.jar
 
 
 ## ssl-config-core (0.3.8)
 
- * Maven coordinates: `com.typesafe:ssl-config-core_2.13:0.3.8`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://github.com/lightbend/ssl-config
- * Source: https://github.com/lightbend/ssl-config
+* Maven coordinates: `com.typesafe:ssl-config-core_2.13:0.3.8`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/lightbend/ssl-config
+* Sources: 
+   * declared as SCM: https://github.com/lightbend/ssl-config
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/ssl-config-core_2.13/0.3.8/ssl-config-core_2.13-0.3.8-sources.jar
 
 
-## ssl-config-core (0.4.1)
+## ssl-config-core (0.4.2)
 
- * Maven coordinates: `com.typesafe:ssl-config-core_2.13:0.4.1`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://github.com/lightbend/ssl-config
- * Source: https://github.com/lightbend/ssl-config
+* Maven coordinates: `com.typesafe:ssl-config-core_2.13:0.4.2`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/lightbend/ssl-config
+* Sources: 
+   * declared as SCM: https://github.com/lightbend/ssl-config
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/ssl-config-core_2.13/0.4.2/ssl-config-core_2.13-0.4.2-sources.jar
 
 
-## akka-actor (2.6.9)
+## akka-actor (2.6.13)
 
- * Maven coordinates: `com.typesafe.akka:akka-actor_2.13:2.6.9`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io/
- * Source: https://github.com/akka/akka
+* Maven coordinates: `com.typesafe.akka:akka-actor_2.13:2.6.13`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://akka.io/
+* Sources: 
+   * declared as SCM: https://github.com/akka/akka
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-actor_2.13/2.6.13/akka-actor_2.13-2.6.13-sources.jar
 
 
-## akka-cluster-sharding (2.6.9)
+## akka-cluster-sharding (2.6.13)
 
- * Maven coordinates: `com.typesafe.akka:akka-cluster-sharding_2.13:2.6.9`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io/
- * Source: https://github.com/akka/akka
+* Maven coordinates: `com.typesafe.akka:akka-cluster-sharding_2.13:2.6.13`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://akka.io/
+* Sources: 
+   * declared as SCM: https://github.com/akka/akka
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-cluster-sharding_2.13/2.6.13/akka-cluster-sharding_2.13-2.6.13-sources.jar
 
 
-## akka-cluster-tools (2.6.9)
+## akka-cluster-tools (2.6.13)
 
- * Maven coordinates: `com.typesafe.akka:akka-cluster-tools_2.13:2.6.9`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io/
- * Source: https://github.com/akka/akka
+* Maven coordinates: `com.typesafe.akka:akka-cluster-tools_2.13:2.6.13`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://akka.io/
+* Sources: 
+   * declared as SCM: https://github.com/akka/akka
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-cluster-tools_2.13/2.6.13/akka-cluster-tools_2.13-2.6.13-sources.jar
 
 
-## akka-cluster (2.6.9)
+## akka-cluster (2.6.13)
 
- * Maven coordinates: `com.typesafe.akka:akka-cluster_2.13:2.6.9`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io/
- * Source: https://github.com/akka/akka
+* Maven coordinates: `com.typesafe.akka:akka-cluster_2.13:2.6.13`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://akka.io/
+* Sources: 
+   * declared as SCM: https://github.com/akka/akka
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-cluster_2.13/2.6.13/akka-cluster_2.13-2.6.13-sources.jar
 
 
-## akka-coordination (2.6.9)
+## akka-coordination (2.6.13)
 
- * Maven coordinates: `com.typesafe.akka:akka-coordination_2.13:2.6.9`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io/
- * Source: https://github.com/akka/akka
+* Maven coordinates: `com.typesafe.akka:akka-coordination_2.13:2.6.13`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://akka.io/
+* Sources: 
+   * declared as SCM: https://github.com/akka/akka
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-coordination_2.13/2.6.13/akka-coordination_2.13-2.6.13-sources.jar
 
 
-## akka-discovery (2.6.9)
+## akka-distributed-data (2.6.13)
 
- * Maven coordinates: `com.typesafe.akka:akka-discovery_2.13:2.6.9`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io/
- * Source: https://github.com/akka/akka
+* Maven coordinates: `com.typesafe.akka:akka-distributed-data_2.13:2.6.13`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://akka.io/
+* Sources: 
+   * declared as SCM: https://github.com/akka/akka
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-distributed-data_2.13/2.6.13/akka-distributed-data_2.13-2.6.13-sources.jar
 
 
-## akka-distributed-data (2.6.9)
+## akka-http-core (10.2.4)
 
- * Maven coordinates: `com.typesafe.akka:akka-distributed-data_2.13:2.6.9`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io/
- * Source: https://github.com/akka/akka
+* Maven coordinates: `com.typesafe.akka:akka-http-core_2.13:10.2.4`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://akka.io
+* Sources: 
+   * declared as SCM: https://github.com/akka/akka-http
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-http-core_2.13/10.2.4/akka-http-core_2.13-10.2.4-sources.jar
 
 
-## akka-http-core (10.2.0)
+## akka-http-spray-json (10.2.4)
 
- * Maven coordinates: `com.typesafe.akka:akka-http-core_2.13:10.2.0`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io
- * Source: https://github.com/akka/akka-http
+* Maven coordinates: `com.typesafe.akka:akka-http-spray-json_2.13:10.2.4`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://akka.io
+* Sources: 
+   * declared as SCM: https://github.com/akka/akka-http
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-http-spray-json_2.13/10.2.4/akka-http-spray-json_2.13-10.2.4-sources.jar
 
 
-## akka-http-spray-json (10.2.0)
+## akka-http (10.2.4)
 
- * Maven coordinates: `com.typesafe.akka:akka-http-spray-json_2.13:10.2.0`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io
- * Source: https://github.com/akka/akka-http
+* Maven coordinates: `com.typesafe.akka:akka-http_2.13:10.2.4`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://akka.io
+* Sources: 
+   * declared as SCM: https://github.com/akka/akka-http
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-http_2.13/10.2.4/akka-http_2.13-10.2.4-sources.jar
 
 
-## akka-http (10.2.0)
+## akka-parsing (10.2.4)
 
- * Maven coordinates: `com.typesafe.akka:akka-http_2.13:10.2.0`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io
- * Source: https://github.com/akka/akka-http
+* Maven coordinates: `com.typesafe.akka:akka-parsing_2.13:10.2.4`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://akka.io
+* Sources: 
+   * declared as SCM: https://github.com/akka/akka-http
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-parsing_2.13/10.2.4/akka-parsing_2.13-10.2.4-sources.jar
 
 
-## akka-parsing (10.2.0)
+## akka-persistence-query (2.6.13)
 
- * Maven coordinates: `com.typesafe.akka:akka-parsing_2.13:10.2.0`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io
- * Source: https://github.com/akka/akka-http
+* Maven coordinates: `com.typesafe.akka:akka-persistence-query_2.13:2.6.13`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://akka.io/
+* Sources: 
+   * declared as SCM: https://github.com/akka/akka
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-persistence-query_2.13/2.6.13/akka-persistence-query_2.13-2.6.13-sources.jar
 
 
-## akka-persistence-query (2.6.9)
+## akka-persistence (2.6.13)
 
- * Maven coordinates: `com.typesafe.akka:akka-persistence-query_2.13:2.6.9`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io/
- * Source: https://github.com/akka/akka
+* Maven coordinates: `com.typesafe.akka:akka-persistence_2.13:2.6.13`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://akka.io/
+* Sources: 
+   * declared as SCM: https://github.com/akka/akka
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-persistence_2.13/2.6.13/akka-persistence_2.13-2.6.13-sources.jar
 
 
-## akka-persistence (2.6.9)
+## akka-pki (2.6.13)
 
- * Maven coordinates: `com.typesafe.akka:akka-persistence_2.13:2.6.9`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io/
- * Source: https://github.com/akka/akka
+* Maven coordinates: `com.typesafe.akka:akka-pki_2.13:2.6.13`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://akka.io/
+* Sources: 
+   * declared as SCM: https://github.com/akka/akka
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-pki_2.13/2.6.13/akka-pki_2.13-2.6.13-sources.jar
 
 
-## akka-pki (2.6.9)
+## akka-protobuf-v3 (2.6.13)
 
- * Maven coordinates: `com.typesafe.akka:akka-pki_2.13:2.6.9`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io/
- * Source: https://github.com/akka/akka
+* Maven coordinates: `com.typesafe.akka:akka-protobuf-v3_2.13:2.6.13`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://akka.io/
+* Sources: 
+   * declared as SCM: https://github.com/akka/akka
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-protobuf-v3_2.13/2.6.13/akka-protobuf-v3_2.13-2.6.13-sources.jar
 
 
-## akka-protobuf-v3 (2.6.9)
+## akka-remote (2.6.13)
 
- * Maven coordinates: `com.typesafe.akka:akka-protobuf-v3_2.13:2.6.9`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io/
- * Source: https://github.com/akka/akka
+* Maven coordinates: `com.typesafe.akka:akka-remote_2.13:2.6.13`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://akka.io/
+* Sources: 
+   * declared as SCM: https://github.com/akka/akka
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-remote_2.13/2.6.13/akka-remote_2.13-2.6.13-sources.jar
 
 
-## akka-remote (2.6.9)
+## akka-serialization-jackson (2.6.13)
 
- * Maven coordinates: `com.typesafe.akka:akka-remote_2.13:2.6.9`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io/
- * Source: https://github.com/akka/akka
+* Maven coordinates: `com.typesafe.akka:akka-serialization-jackson_2.13:2.6.13`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://akka.io/
+* Sources: 
+   * declared as SCM: https://github.com/akka/akka
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-serialization-jackson_2.13/2.6.13/akka-serialization-jackson_2.13-2.6.13-sources.jar
 
 
-## akka-slf4j (2.6.9)
+## akka-slf4j (2.6.13)
 
- * Maven coordinates: `com.typesafe.akka:akka-slf4j_2.13:2.6.9`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io/
- * Source: https://github.com/akka/akka
+* Maven coordinates: `com.typesafe.akka:akka-slf4j_2.13:2.6.13`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://akka.io/
+* Sources: 
+   * declared as SCM: https://github.com/akka/akka
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-slf4j_2.13/2.6.13/akka-slf4j_2.13-2.6.13-sources.jar
 
 
-## akka-stream (2.6.9)
+## akka-stream (2.6.13)
 
- * Maven coordinates: `com.typesafe.akka:akka-stream_2.13:2.6.9`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://akka.io/
- * Source: https://github.com/akka/akka
+* Maven coordinates: `com.typesafe.akka:akka-stream_2.13:2.6.13`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://akka.io/
+* Sources: 
+   * declared as SCM: https://github.com/akka/akka
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-stream_2.13/2.6.13/akka-stream_2.13-2.6.13-sources.jar
 
 
-## Metrics Core (4.1.9)
+## aeron (1.15.1)
 
- * Maven coordinates: `io.dropwizard.metrics:metrics-core:4.1.9`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://metrics.dropwizard.io/metrics-core
- * Source: https://github.com/dropwizard/metrics/metrics-core/
+* Maven coordinates: `io.aeron:aeron-client:1.15.1`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/real-logic/aeron
+* Sources: 
+   * declared as SCM: https://github.com/real-logic/aeron
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/aeron/aeron-client/1.15.1/aeron-client-1.15.1-sources.jar
 
 
-## Metrics Health Checks (4.1.9)
+## aeron (1.15.1)
 
- * Maven coordinates: `io.dropwizard.metrics:metrics-healthchecks:4.1.9`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://metrics.dropwizard.io/metrics-healthchecks
- * Source: https://github.com/dropwizard/metrics/metrics-healthchecks/
+* Maven coordinates: `io.aeron:aeron-driver:1.15.1`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/real-logic/aeron
+* Sources: 
+   * declared as SCM: https://github.com/real-logic/aeron
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/aeron/aeron-driver/1.15.1/aeron-driver-1.15.1-sources.jar
 
 
-## JJWT :: API (0.10.7)
+## CloudEvents - API (2.0.0)
 
- * Maven coordinates: `io.jsonwebtoken:jjwt-api:0.10.7`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://github.com/jwtk/jjwt/jjwt-api
- * Source: https://github.com/jwtk/jjwt/jjwt-api
+* Maven coordinates: `io.cloudevents:cloudevents-api:2.0.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://cloudevents.github.io/sdk-java/cloudevents-api/
+* Sources: 
+   * declared as SCM: https://github.com/cloudevents/sdk-java/cloudevents-api
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/cloudevents/cloudevents-api/2.0.0/cloudevents-api-2.0.0-sources.jar
 
 
-## JJWT :: Impl (0.10.7)
+## CloudEvents - Core (2.0.0)
 
- * Maven coordinates: `io.jsonwebtoken:jjwt-impl:0.10.7`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://github.com/jwtk/jjwt/jjwt-impl
- * Source: https://github.com/jwtk/jjwt/jjwt-impl
+* Maven coordinates: `io.cloudevents:cloudevents-core:2.0.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://cloudevents.github.io/sdk-java/cloudevents-core/
+* Sources: 
+   * declared as SCM: https://github.com/cloudevents/sdk-java/cloudevents-core
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/cloudevents/cloudevents-core/2.0.0/cloudevents-core-2.0.0-sources.jar
+
+
+## CloudEvents - Basic Http Binding (2.0.0)
+
+* Maven coordinates: `io.cloudevents:cloudevents-http-basic:2.0.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://cloudevents.github.io/sdk-java/cloudevents-http-basic/
+* Sources: 
+   * declared as SCM: https://github.com/cloudevents/sdk-java/cloudevents-http-basic
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/cloudevents/cloudevents-http-basic/2.0.0/cloudevents-http-basic-2.0.0-sources.jar
+
+
+## JJWT :: API (0.11.2)
+
+* Maven coordinates: `io.jsonwebtoken:jjwt-api:0.11.2`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/jwtk/jjwt/jjwt-api
+* Sources: 
+   * declared as SCM: https://github.com/jwtk/jjwt/jjwt-api
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/jsonwebtoken/jjwt-api/0.11.2/jjwt-api-0.11.2-sources.jar
 
 
 ## kamon-core (2.1.4)
 
- * Maven coordinates: `io.kamon:kamon-core_2.13:2.1.4`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://kamon.io
- * Source: https://github.com/kamon-io/Kamon
+* Maven coordinates: `io.kamon:kamon-core_2.13:2.1.4`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: http://kamon.io
+* Sources: 
+   * declared as SCM: https://github.com/kamon-io/Kamon
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-core_2.13/2.1.4/kamon-core_2.13-2.1.4-sources.jar
 
 
 ## kamon-prometheus (2.1.4)
 
- * Maven coordinates: `io.kamon:kamon-prometheus_2.13:2.1.4`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://kamon.io
- * Source: https://github.com/kamon-io/Kamon
+* Maven coordinates: `io.kamon:kamon-prometheus_2.13:2.1.4`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: http://kamon.io
+* Sources: 
+   * declared as SCM: https://github.com/kamon-io/Kamon
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-prometheus_2.13/2.1.4/kamon-prometheus_2.13-2.1.4-sources.jar
 
 
 ## kamon-system-metrics (2.1.4)
 
- * Maven coordinates: `io.kamon:kamon-system-metrics_2.13:2.1.4`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://kamon.io
- * Source: https://github.com/kamon-io/Kamon
+* Maven coordinates: `io.kamon:kamon-system-metrics_2.13:2.1.4`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: http://kamon.io
+* Sources: 
+   * declared as SCM: https://github.com/kamon-io/Kamon
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-system-metrics_2.13/2.1.4/kamon-system-metrics_2.13-2.1.4-sources.jar
 
 
-## Netty/Buffer (4.1.50.Final)
+## Netty/Buffer (4.1.59.Final)
 
- * Maven coordinates: `io.netty:netty-buffer:4.1.50.Final`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://netty.io/netty-buffer/
- * Source: https://github.com/netty/netty/netty-buffer
-
-
-## Netty/Codec (4.1.50.Final)
-
- * Maven coordinates: `io.netty:netty-codec:4.1.50.Final`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://netty.io/netty-codec/
- * Source: https://github.com/netty/netty/netty-codec
+* Maven coordinates: `io.netty:netty-buffer:4.1.59.Final`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://netty.io/netty-buffer/
+* Sources: 
+   * declared as SCM: https://github.com/netty/netty/netty-buffer
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-buffer/4.1.59.Final/netty-buffer-4.1.59.Final-sources.jar
 
 
-## Netty/Codec/HTTP (4.1.48.Final)
+## Netty/Codec (4.1.59.Final)
 
- * Maven coordinates: `io.netty:netty-codec-http:4.1.48.Final`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://netty.io/netty-codec-http/
- * Source: https://github.com/netty/netty/netty-codec-http
-
-
-
-## Netty/Common (4.1.50.Final)
-
- * Maven coordinates: `io.netty:netty-common:4.1.50.Final`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://netty.io/netty-common/
- * Source: https://github.com/netty/netty/netty-common
+* Maven coordinates: `io.netty:netty-codec:4.1.59.Final`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://netty.io/netty-codec/
+* Sources: 
+   * declared as SCM: https://github.com/netty/netty/netty-codec
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-codec/4.1.59.Final/netty-codec-4.1.59.Final-sources.jar
 
 
-## Netty/Handler (4.1.50.Final)
+## Netty/Codec/HTTP (4.1.59.Final)
 
- * Maven coordinates: `io.netty:netty-handler:4.1.50.Final`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://netty.io/netty-handler/
- * Source: https://github.com/netty/netty/netty-handler
-
-
-## Netty/Resolver (4.1.50.Final)
-
- * Maven coordinates: `io.netty:netty-resolver:4.1.50.Final`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://netty.io/netty-resolver/
- * Source: https://github.com/netty/netty/netty-resolver
+* Maven coordinates: `io.netty:netty-codec-http:4.1.59.Final`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://netty.io/netty-codec-http/
+* Sources: 
+   * declared as SCM: https://github.com/netty/netty/netty-codec-http
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-codec-http/4.1.59.Final/netty-codec-http-4.1.59.Final-sources.jar
 
 
-## Netty/Transport (4.1.50.Final)
+## Netty/Common (4.1.59.Final)
 
- * Maven coordinates: `io.netty:netty-transport:4.1.50.Final`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://netty.io/netty-transport/
- * Source: https://github.com/netty/netty/netty-transport
-
-
-## Netty/Transport/Native/Epoll (4.1.48.Final)
-
- * Maven coordinates: `io.netty:netty-transport-native-epoll:4.1.48.Final`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://netty.io/netty-transport-native-epoll/
- * Source: https://github.com/netty/netty/netty-transport-native-epoll
+* Maven coordinates: `io.netty:netty-common:4.1.59.Final`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://netty.io/netty-common/
+* Sources: 
+   * declared as SCM: https://github.com/netty/netty/netty-common
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-common/4.1.59.Final/netty-common-4.1.59.Final-sources.jar
 
 
-## Netty/Transport/Native/KQueue (4.1.48.Final)
+## Netty/Handler (4.1.59.Final)
 
- * Maven coordinates: `io.netty:netty-transport-native-kqueue:4.1.48.Final`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://netty.io/netty-transport-native-kqueue/
- * Source: https://github.com/netty/netty/netty-transport-native-kqueue
+* Maven coordinates: `io.netty:netty-handler:4.1.59.Final`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://netty.io/netty-handler/
+* Sources: 
+   * declared as SCM: https://github.com/netty/netty/netty-handler
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-handler/4.1.59.Final/netty-handler-4.1.59.Final-sources.jar
 
 
-## Netty/Transport/Native/Unix/Common (4.1.48.Final)
+## Netty/Resolver (4.1.59.Final)
 
- * Maven coordinates: `io.netty:netty-transport-native-unix-common:4.1.48.Final`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://netty.io/netty-transport-native-unix-common/
- * Source: https://github.com/netty/netty/netty-transport-native-unix-common
+* Maven coordinates: `io.netty:netty-resolver:4.1.59.Final`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://netty.io/netty-resolver/
+* Sources: 
+   * declared as SCM: https://github.com/netty/netty/netty-resolver
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-resolver/4.1.59.Final/netty-resolver-4.1.59.Final-sources.jar
+
+
+## Netty/Transport (4.1.59.Final)
+
+* Maven coordinates: `io.netty:netty-transport:4.1.59.Final`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://netty.io/netty-transport/
+* Sources: 
+   * declared as SCM: https://github.com/netty/netty/netty-transport
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-transport/4.1.59.Final/netty-transport-4.1.59.Final-sources.jar
+
+
+## Netty/Transport/Native/Epoll (4.1.59.Final)
+
+* Maven coordinates: `io.netty:netty-transport-native-epoll:4.1.59.Final`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://netty.io/netty-transport-native-epoll/
+* Sources: 
+   * declared as SCM: https://github.com/netty/netty/netty-transport-native-epoll
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-transport-native-epoll/4.1.59.Final/netty-transport-native-epoll-4.1.59.Final-sources.jar
+
+
+## Netty/Transport/Native/KQueue (4.1.59.Final)
+
+* Maven coordinates: `io.netty:netty-transport-native-kqueue:4.1.59.Final`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://netty.io/netty-transport-native-kqueue/
+* Sources: 
+   * declared as SCM: https://github.com/netty/netty/netty-transport-native-kqueue
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-transport-native-kqueue/4.1.59.Final/netty-transport-native-kqueue-4.1.59.Final-sources.jar
+
+
+## Netty/Transport/Native/Unix/Common (4.1.59.Final)
+
+* Maven coordinates: `io.netty:netty-transport-native-unix-common:4.1.59.Final`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://netty.io/netty-transport-native-unix-common/
+* Sources: 
+   * declared as SCM: https://github.com/netty/netty/netty-transport-native-unix-common
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-transport-native-unix-common/4.1.59.Final/netty-transport-native-unix-common-4.1.59.Final-sources.jar
 
 
 ## RxJava (2.2.19)
 
- * Maven coordinates: `io.reactivex.rxjava2:rxjava:2.2.19`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://github.com/ReactiveX/RxJava
- * Source: scm:git:https://github.com/ReactiveX/RxJava
+* Maven coordinates: `io.reactivex.rxjava2:rxjava:2.2.19`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/ReactiveX/RxJava
+* Sources: 
+   * declared as SCM: scm:git:https://github.com/ReactiveX/RxJava
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/reactivex/rxjava2/rxjava/2.2.19/rxjava-2.2.19-sources.jar
 
 
 ## spray-json (1.3.5)
 
- * Maven coordinates: `io.spray:spray-json_2.13:1.3.5`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://github.com/spray/spray-json
- * Source: https://github.com/spray/spray
+* Maven coordinates: `io.spray:spray-json_2.13:1.3.5`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/spray/spray-json
+* Sources: 
+   * declared as SCM: https://github.com/spray/spray
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/spray/spray-json_2.13/1.3.5/spray-json_2.13-1.3.5-sources.jar
 
 
-## Java Native Access (5.5.0)
+## EdDSA-Java (0.3.0)
 
- * Maven coordinates: `net.java.dev.jna:jna:5.5.0`
- * License: [Apache-2.0](licenses/Apache-2.0.txt), [LGPL-2.1](licenses/LGPL-2.1.txt)
- * Project: https://github.com/java-native-access/jna
- * Source: https://github.com/java-native-access/jna
-
-
-## Java Native Access Platform (5.5.0)
-
- * Maven coordinates: `net.java.dev.jna:jna-platform:5.5.0`
- * License: [Apache-2.0](licenses/Apache-2.0.txt), [LGPL-2.1](licenses/LGPL-2.1.txt)
- * Project: https://github.com/java-native-access/jna
- * Source: https://github.com/java-native-access/jna
+* Maven coordinates: `net.i2p.crypto:eddsa:0.3.0`
+* License: [CC0-1.0](https://spdx.org/licenses/CC0-1.0.html)
+* Project: https://github.com/str4d/ed25519-java
+* Sources: 
+   * declared as SCM: https://github.com/str4d/ed25519-java
+   * Maven sources: https://search.maven.org/remotecontent?filepath=net/i2p/crypto/eddsa/0.3.0/eddsa-0.3.0-sources.jar
 
 
-## metrics4-akka_a25 (4.1.9)
+## metrics4-akka_a25 (4.1.14)
 
- * Maven coordinates: `nl.grons:metrics4-akka_a25_2.13:4.1.9`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://github.com/erikvanoosten/metrics-scala
- * Source: https://github.com/erikvanoosten/metrics-scala
-
-
-## metrics4-scala (4.1.9)
-
- * Maven coordinates: `nl.grons:metrics4-scala_2.13:4.1.9`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://github.com/erikvanoosten/metrics-scala
- * Source: https://github.com/erikvanoosten/metrics-scala
+* Maven coordinates: `nl.grons:metrics4-akka_a25_2.13:4.1.14`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/erikvanoosten/metrics-scala
+* Sources: 
+   * declared as SCM: https://github.com/erikvanoosten/metrics-scala
+   * Maven sources: https://search.maven.org/remotecontent?filepath=nl/grons/metrics4-akka_a25_2.13/4.1.14/metrics4-akka_a25_2.13-4.1.14-sources.jar
 
 
-## agrona (0.9.31)
+## metrics4-scala (4.1.14)
 
- * Maven coordinates: `org.agrona:agrona:0.9.31`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://github.com/real-logic/agrona
- * Source: https://github.com/real-logic/agrona
+* Maven coordinates: `nl.grons:metrics4-scala_2.13:4.1.14`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/erikvanoosten/metrics-scala
+* Sources: 
+   * declared as SCM: https://github.com/erikvanoosten/metrics-scala
+   * Maven sources: https://search.maven.org/remotecontent?filepath=nl/grons/metrics4-scala_2.13/4.1.14/metrics4-scala_2.13-4.1.14-sources.jar
 
 
-## agrona (1.4.1)
+## agrona (1.9.0)
 
- * Maven coordinates: `org.agrona:agrona:1.4.1`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://github.com/real-logic/agrona
- * Source: https://github.com/real-logic/agrona
+* Maven coordinates: `org.agrona:agrona:1.9.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/real-logic/agrona
+* Sources: 
+   * declared as SCM: https://github.com/real-logic/agrona
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/agrona/agrona/1.9.0/agrona-1.9.0-sources.jar
 
 
 ## Apache Geronimo JMS Spec 2.0 (1.0-alpha-2)
 
- * Maven coordinates: `org.apache.geronimo.specs:geronimo-jms_2.0_spec:1.0-alpha-2`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://geronimo.apache.org/maven/specs/geronimo-jms_2.0_spec/1.0-alpha-2
- * Source: https://svn.apache.org/viewcvs.cgi/geronimo/specs/tags/geronimo-jms_2.0_spec-1.0-alpha-2
+* Maven coordinates: `org.apache.geronimo.specs:geronimo-jms_2.0_spec:1.0-alpha-2`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: http://geronimo.apache.org/maven/specs/geronimo-jms_2.0_spec/1.0-alpha-2
+* Sources: 
+   * declared as SCM: https://svn.apache.org/viewcvs.cgi/geronimo/specs/tags/geronimo-jms_2.0_spec-1.0-alpha-2
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/geronimo/specs/geronimo-jms_2.0_spec/1.0-alpha-2/geronimo-jms_2.0_spec-1.0-alpha-2-sources.jar
 
 
-## Apache Kafka (2.5.0)
+## Apache Kafka (2.5.1)
 
- * Maven coordinates: `org.apache.kafka:kafka-clients:2.5.0`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://kafka.apache.org
- * Source: not declared
-
-
-## Proton-J (0.33.4)
-
- * Maven coordinates: `org.apache.qpid:proton-j:0.33.4`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://qpid.apache.org/proton/proton-j
- * Source: https://gitbox.apache.org/repos/asf?p=qpid-proton-j/proton-j
+* Maven coordinates: `org.apache.kafka:kafka-clients:2.5.1`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://kafka.apache.org
+* Sources: 
+   * declared as SCM: not declared
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/kafka/kafka-clients/2.5.1/kafka-clients-2.5.1-sources.jar
 
 
-## QpidJMS Client (0.51.0)
+## Proton-J (0.33.6)
 
- * Maven coordinates: `org.apache.qpid:qpid-jms-client:0.51.0`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://qpid.apache.org/qpid-jms-client
- * Source: https://gitbox.apache.org/repos/asf?p=qpid-jms/qpid-jms-client
+* Maven coordinates: `org.apache.qpid:proton-j:0.33.6`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://qpid.apache.org/proton/proton-j
+* Sources: 
+   * declared as SCM: https://gitbox.apache.org/repos/asf?p=qpid-proton-j/proton-j
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/qpid/proton-j/0.33.6/proton-j-0.33.6-sources.jar
+
+
+## QpidJMS Client (0.54.0)
+
+* Maven coordinates: `org.apache.qpid:qpid-jms-client:0.54.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://qpid.apache.org/qpid-jms-client
+* Sources: 
+   * declared as SCM: https://gitbox.apache.org/repos/asf?p=qpid-jms/qpid-jms-client
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/qpid/qpid-jms-client/0.54.0/qpid-jms-client-0.54.0-sources.jar
+
+## Apache Mina SSHD :: Common support utilities (2.6.0)
+
+* Maven coordinates: `org.apache.sshd:sshd-common:2.6.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://www.apache.org/sshd/sshd-common/
+* Sources:
+  * declared as SCM: https://github.com/apache/mina-sshd/tree/sshd-2.6.0/sshd-common
+  * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/sshd/sshd-common/2.6.0/sshd-common-2.6.0-sources.jar
+
+
+## Apache Mina SSHD :: Core (2.6.0)
+
+* Maven coordinates: `org.apache.sshd:sshd-core:2.6.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://www.apache.org/sshd/sshd-core/
+* Sources:
+  * declared as SCM: https://github.com/apache/mina-sshd/tree/sshd-2.6.0/sshd-core
+  * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/sshd/sshd-core/2.6.0/sshd-core-2.6.0-sources.jar
 
 
 ## Atteo Class Index (3.8)
 
- * Maven coordinates: `org.atteo.classindex:classindex:3.8`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://atteo.org/static/classindex/classindex
- * Source: https://github.com/atteo/classindex/classindex
+* Maven coordinates: `org.atteo.classindex:classindex:3.8`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: http://atteo.org/static/classindex/classindex
+* Sources: 
+   * declared as SCM: https://github.com/atteo/classindex/classindex
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/atteo/classindex/classindex/3.8/classindex-3.8-sources.jar
 
 
 ## LmdbJava (0.7.0)
 
- * Maven coordinates: `org.lmdbjava:lmdbjava:0.7.0`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://github.com/lmdbjava/lmdbjava/lmdbjava
- * Source: https://github.com/lmdbjava/lmdbjava
+* Maven coordinates: `org.lmdbjava:lmdbjava:0.7.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/lmdbjava/lmdbjava/lmdbjava
+* Sources: 
+   * declared as SCM: https://github.com/lmdbjava/lmdbjava
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/lmdbjava/lmdbjava/0.7.0/lmdbjava-0.7.0-sources.jar
 
 
 ## LZ4 and xxHash (1.7.1)
 
- * Maven coordinates: `org.lz4:lz4-java:1.7.1`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://github.com/lz4/lz4-java
- * Source: https://github.com/lz4/lz4-java
+* Maven coordinates: `org.lz4:lz4-java:1.7.1`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/lz4/lz4-java
+* Sources: 
+   * declared as SCM: https://github.com/lz4/lz4-java
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/lz4/lz4-java/1.7.1/lz4-java-1.7.1-sources.jar
 
 
-## BSON (3.12.2)
+## BSON (4.1.1)
 
- * Maven coordinates: `org.mongodb:bson:3.12.2`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://bsonspec.org
- * Source: https://github.com/mongodb/mongo-java-driver
-
-
-## BSON (3.12.6)
-
- * Maven coordinates: `org.mongodb:bson:3.12.6`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://bsonspec.org
- * Source: https://github.com/mongodb/mongo-java-driver
+* Maven coordinates: `org.mongodb:bson:4.1.1`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://bsonspec.org
+* Sources: 
+   * declared as SCM: https://github.com/mongodb/mongo-java-driver
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/mongodb/bson/4.1.1/bson-4.1.1-sources.jar
 
 
-## MongoDB Java Driver (3.12.6)
+## MongoDB Java Driver Core (4.1.1)
 
- * Maven coordinates: `org.mongodb:mongo-java-driver:3.12.6`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://www.mongodb.org
- * Source: https://github.com/mongodb/mongo-java-driver
-
-
-## The MongoDB Asynchronous Driver (3.12.2)
-
- * Maven coordinates: `org.mongodb:mongodb-driver-async:3.12.2`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://www.mongodb.org
- * Source: https://github.com/mongodb/mongo-java-driver
+* Maven coordinates: `org.mongodb:mongodb-driver-core:4.1.1`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: http://www.mongodb.org
+* Sources: 
+   * declared as SCM: https://github.com/mongodb/mongo-java-driver
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/mongodb/mongodb-driver-core/4.1.1/mongodb-driver-core-4.1.1-sources.jar
 
 
-## MongoDB Java Driver Core (3.12.2)
+## The MongoDB Reactive Streams Driver (4.1.1)
 
- * Maven coordinates: `org.mongodb:mongodb-driver-core:3.12.2`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://www.mongodb.org
- * Source: https://github.com/mongodb/mongo-java-driver
-
-
-## MongoDB Java Driver Core (3.12.6)
-
- * Maven coordinates: `org.mongodb:mongodb-driver-core:3.12.6`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://www.mongodb.org
- * Source: https://github.com/mongodb/mongo-java-driver
+* Maven coordinates: `org.mongodb:mongodb-driver-reactivestreams:4.1.1`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: http://www.mongodb.org
+* Sources: 
+   * declared as SCM: https://github.com/mongodb/mongo-java-driver
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/mongodb/mongodb-driver-reactivestreams/4.1.1/mongodb-driver-reactivestreams-4.1.1-sources.jar
 
 
-## MongoDB Reactive Streams Driver (1.13.1)
+## Mongo Scala Bson Library (4.1.1)
 
- * Maven coordinates: `org.mongodb:mongodb-driver-reactivestreams:1.13.1`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://www.mongodb.org
- * Source: https://github.com/mongodb/mongo-java-driver-reactivestreams
-
-
-## mongo-scala-bson (2.9.0)
-
- * Maven coordinates: `org.mongodb.scala:mongo-scala-bson_2.13:2.9.0`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://mongodb.github.io/mongo-scala-driver
- * Source: https://github.com/mongodb/mongo-scala-driver
+* Maven coordinates: `org.mongodb.scala:mongo-scala-bson_2.13:4.1.1`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: http://www.mongodb.org
+* Sources: 
+   * declared as SCM: https://github.com/mongodb/mongo-java-driver
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/mongodb/scala/mongo-scala-bson_2.13/4.1.1/mongo-scala-bson_2.13-4.1.1-sources.jar
 
 
-## mongo-scala-driver (2.9.0)
+## Mongo Scala Driver (4.1.1)
 
- * Maven coordinates: `org.mongodb.scala:mongo-scala-driver_2.13:2.9.0`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://mongodb.github.io/mongo-scala-driver
- * Source: https://github.com/mongodb/mongo-scala-driver
+* Maven coordinates: `org.mongodb.scala:mongo-scala-driver_2.13:4.1.1`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: http://www.mongodb.org
+* Sources: 
+   * declared as SCM: https://github.com/mongodb/mongo-java-driver
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/mongodb/scala/mongo-scala-driver_2.13/4.1.1/mongo-scala-driver_2.13-4.1.1-sources.jar
 
 
-## Mozilla Rhino (1.7.12)
+## rhino-runtime (1.7.13)
 
- * Maven coordinates: `org.mozilla:rhino-runtime:1.7.12`
- * License: [MPL-2.0](licenses/MPL-2.0.txt)
- * Project: https://developer.mozilla.org/en/Rhino
- * Source: https://github.com/mozilla/rhino
+* Maven coordinates: `org.mozilla:rhino-runtime:1.7.13`
+* License: [MPL-2.0](https://spdx.org/licenses/MPL-2.0.html)
+* Project: https://developer.mozilla.org/en/Rhino
+* Sources: 
+   * declared as SCM: https://github.com/mozilla/rhino
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/mozilla/rhino-runtime/1.7.13/rhino-runtime-1.7.13-sources.jar
 
 
 ## ASM Core (5.0.3)
 
- * Maven coordinates: `org.ow2.asm:asm:5.0.3`
- * License: [BSD-3-Clause](licenses/BSD-3-Clause.txt)
- * Project: http://asm.objectweb.org/asm/
- * Source: https://svn.forge.objectweb.org/cgi-bin/viewcvs.cgi/asm/trunk/asm/
+* Maven coordinates: `org.ow2.asm:asm:5.0.3`
+* License: [BSD-3-Clause](https://spdx.org/licenses/BSD-3-Clause.html)
+* Project: http://asm.objectweb.org/asm/
+* Sources: 
+   * declared as SCM: https://svn.forge.objectweb.org/cgi-bin/viewcvs.cgi/asm/trunk/asm/
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/ow2/asm/asm/5.0.3/asm-5.0.3-sources.jar
 
 
 ## ASM Analysis (5.0.3)
 
- * Maven coordinates: `org.ow2.asm:asm-analysis:5.0.3`
- * License: [BSD-3-Clause](licenses/BSD-3-Clause.txt)
- * Project: http://asm.objectweb.org/asm-analysis/
- * Source: https://svn.forge.objectweb.org/cgi-bin/viewcvs.cgi/asm/trunk/asm-analysis/
+* Maven coordinates: `org.ow2.asm:asm-analysis:5.0.3`
+* License: [BSD-3-Clause](https://spdx.org/licenses/BSD-3-Clause.html)
+* Project: http://asm.objectweb.org/asm-analysis/
+* Sources: 
+   * declared as SCM: https://svn.forge.objectweb.org/cgi-bin/viewcvs.cgi/asm/trunk/asm-analysis/
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/ow2/asm/asm-analysis/5.0.3/asm-analysis-5.0.3-sources.jar
 
 
 ## ASM Commons (5.0.3)
 
- * Maven coordinates: `org.ow2.asm:asm-commons:5.0.3`
- * License: [BSD-3-Clause](licenses/BSD-3-Clause.txt)
- * Project: http://asm.objectweb.org/asm-commons/
- * Source: https://svn.forge.objectweb.org/cgi-bin/viewcvs.cgi/asm/trunk/asm-commons/
+* Maven coordinates: `org.ow2.asm:asm-commons:5.0.3`
+* License: [BSD-3-Clause](https://spdx.org/licenses/BSD-3-Clause.html)
+* Project: http://asm.objectweb.org/asm-commons/
+* Sources: 
+   * declared as SCM: https://svn.forge.objectweb.org/cgi-bin/viewcvs.cgi/asm/trunk/asm-commons/
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/ow2/asm/asm-commons/5.0.3/asm-commons-5.0.3-sources.jar
 
 
 ## ASM Tree (5.0.3)
 
- * Maven coordinates: `org.ow2.asm:asm-tree:5.0.3`
- * License: [BSD-3-Clause](licenses/BSD-3-Clause.txt)
- * Project: http://asm.objectweb.org/asm-tree/
- * Source: https://svn.forge.objectweb.org/cgi-bin/viewcvs.cgi/asm/trunk/asm-tree/
+* Maven coordinates: `org.ow2.asm:asm-tree:5.0.3`
+* License: [BSD-3-Clause](https://spdx.org/licenses/BSD-3-Clause.html)
+* Project: http://asm.objectweb.org/asm-tree/
+* Sources: 
+   * declared as SCM: https://svn.forge.objectweb.org/cgi-bin/viewcvs.cgi/asm/trunk/asm-tree/
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/ow2/asm/asm-tree/5.0.3/asm-tree-5.0.3-sources.jar
 
 
 ## ASM Util (5.0.3)
 
- * Maven coordinates: `org.ow2.asm:asm-util:5.0.3`
- * License: [BSD-3-Clause](licenses/BSD-3-Clause.txt)
- * Project: http://asm.objectweb.org/asm-util/
- * Source: https://svn.forge.objectweb.org/cgi-bin/viewcvs.cgi/asm/trunk/asm-util/
+* Maven coordinates: `org.ow2.asm:asm-util:5.0.3`
+* License: [BSD-3-Clause](https://spdx.org/licenses/BSD-3-Clause.html)
+* Project: http://asm.objectweb.org/asm-util/
+* Sources: 
+   * declared as SCM: https://svn.forge.objectweb.org/cgi-bin/viewcvs.cgi/asm/trunk/asm-util/
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/ow2/asm/asm-util/5.0.3/asm-util-5.0.3-sources.jar
 
 
 ## reactive-streams (1.0.3)
 
- * Maven coordinates: `org.reactivestreams:reactive-streams:1.0.3`
- * License: [CC0](licenses/CC0.txt)
- * Project: http://www.reactive-streams.org/
- * Source: https://github.com/reactive-streams/reactive-streams
+* Maven coordinates: `org.reactivestreams:reactive-streams:1.0.3`
+* License: [CC0-1.0](https://spdx.org/licenses/CC0-1.0.html)
+* Project: http://www.reactive-streams.org/
+* Sources: 
+   * declared as SCM: https://github.com/reactive-streams/reactive-streams
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/reactivestreams/reactive-streams/1.0.3/reactive-streams-1.0.3-sources.jar
 
 
-## Scala Library (2.13.3)
+## Scala Library (2.13.5)
 
- * Maven coordinates: `org.scala-lang:scala-library:2.13.3`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://www.scala-lang.org/
- * Source: https://github.com/scala/scala
+* Maven coordinates: `org.scala-lang:scala-library:2.13.5`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://www.scala-lang.org/
+* Sources: 
+   * declared as SCM: https://github.com/scala/scala
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/scala-lang/scala-library/2.13.5/scala-library-2.13.5-sources.jar
 
 
-## Scala Compiler (2.13.1)
+## Scala Compiler (2.13.5)
 
- * Maven coordinates: `org.scala-lang:scala-reflect:2.13.1`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://www.scala-lang.org/
- * Source: https://github.com/scala/scala
+* Maven coordinates: `org.scala-lang:scala-reflect:2.13.5`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://www.scala-lang.org/
+* Sources: 
+   * declared as SCM: https://github.com/scala/scala
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/scala-lang/scala-reflect/2.13.5/scala-reflect-2.13.5-sources.jar
 
 
 ## scala-java8-compat (0.9.0)
 
- * Maven coordinates: `org.scala-lang.modules:scala-java8-compat_2.13:0.9.0`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://www.scala-lang.org/
- * Source: https://github.com/scala/scala-java8-compat
+* Maven coordinates: `org.scala-lang.modules:scala-java8-compat_2.13:0.9.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: http://www.scala-lang.org/
+* Sources: 
+   * declared as SCM: https://github.com/scala/scala-java8-compat
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/scala-lang/modules/scala-java8-compat_2.13/0.9.0/scala-java8-compat_2.13-0.9.0-sources.jar
 
 
 ## scala-parser-combinators (1.1.2)
 
- * Maven coordinates: `org.scala-lang.modules:scala-parser-combinators_2.13:1.1.2`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://www.scala-lang.org/
- * Source: https://github.com/scala/scala-parser-combinators
-
-
-## SLF4J API Module (1.7.25)
-
- * Maven coordinates: `org.slf4j:slf4j-api:1.7.25`
- * License: [MIT](licenses/MIT.txt)
- * Project: http://www.slf4j.org
- * Source: https://github.com/qos-ch/slf4j/slf4j-api
-
-
-## SLF4J API Module (1.7.28)
-
- * Maven coordinates: `org.slf4j:slf4j-api:1.7.28`
- * License: [MIT](licenses/MIT.txt)
- * Project: http://www.slf4j.org
- * Source: https://github.com/qos-ch/slf4j/slf4j-api
+* Maven coordinates: `org.scala-lang.modules:scala-parser-combinators_2.13:1.1.2`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: http://www.scala-lang.org/
+* Sources: 
+   * declared as SCM: https://github.com/scala/scala-parser-combinators
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/scala-lang/modules/scala-parser-combinators_2.13/1.1.2/scala-parser-combinators_2.13-1.1.2-sources.jar
 
 
 ## SLF4J API Module (1.7.30)
 
- * Maven coordinates: `org.slf4j:slf4j-api:1.7.30`
- * License: [MIT](licenses/MIT.txt)
- * Project: http://www.slf4j.org
- * Source: https://github.com/qos-ch/slf4j/slf4j-api
+* Maven coordinates: `org.slf4j:slf4j-api:1.7.30`
+* License: [MIT](https://spdx.org/licenses/MIT.html)
+* Project: http://www.slf4j.org
+* Sources: 
+   * declared as SCM: https://github.com/qos-ch/slf4j/slf4j-api
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/slf4j/slf4j-api/1.7.30/slf4j-api-1.7.30-sources.jar
 
 
 ## bytebuffer (5.0.1)
 
- * Maven coordinates: `org.webjars.npm:bytebuffer:5.0.1`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://webjars.org
- * Source: https://github.com/dcodeIO/bytebuffer.js
+* Maven coordinates: `org.webjars.npm:bytebuffer:5.0.1`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: http://webjars.org
+* Sources: 
+   * declared as SCM: https://github.com/dcodeIO/bytebuffer.js
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/webjars/npm/bytebuffer/5.0.1/bytebuffer-5.0.1-sources.jar
 
 
 ## long (3.2.0)
 
- * Maven coordinates: `org.webjars.npm:long:3.2.0`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://webjars.org
- * Source: https://github.com/dcodeIO/long.js
+* Maven coordinates: `org.webjars.npm:long:3.2.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: http://webjars.org
+* Sources: 
+   * declared as SCM: https://github.com/dcodeIO/long.js
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/webjars/npm/long/3.2.0/long-3.2.0-sources.jar
 
 
 ## snappy-java (1.1.7.3)
 
- * Maven coordinates: `org.xerial.snappy:snappy-java:1.1.7.3`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://github.com/xerial/snappy-java
- * Source: https://github.com/xerial/snappy-java
+* Maven coordinates: `org.xerial.snappy:snappy-java:1.1.7.3`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/xerial/snappy-java
+* Sources: 
+   * declared as SCM: https://github.com/xerial/snappy-java
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/xerial/snappy/snappy-java/1.1.7.3/snappy-java-1.1.7.3-sources.jar
 
 

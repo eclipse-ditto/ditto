@@ -377,13 +377,11 @@ public interface TopicPath {
      */
     enum SearchAction {
 
-
         SUBSCRIBE(CreateSubscription.NAME),
 
         CANCEL(CancelSubscription.NAME),
 
         REQUEST(RequestFromSubscription.NAME),
-
 
         COMPLETE(SubscriptionComplete.NAME),
 
@@ -391,7 +389,14 @@ public interface TopicPath {
 
         FAILED(SubscriptionFailed.NAME),
 
-        NEXT(SubscriptionHasNextPage.NAME);
+        NEXT(SubscriptionHasNextPage.NAME),
+
+        /**
+         * SearchAction for search errors.
+         *
+         * @since 2.0.0
+         */
+        ERROR("error");
 
         private final String name;
 
@@ -408,8 +413,8 @@ public interface TopicPath {
          * @since 1.2.0
          */
         public static Optional<SearchAction> forName(final String name) {
-            return Stream.of(values()) //
-                    .filter(a -> Objects.equals(a.getName(), name)) //
+            return Stream.of(values())
+                    .filter(a -> Objects.equals(a.getName(), name))
                     .findFirst();
         }
 

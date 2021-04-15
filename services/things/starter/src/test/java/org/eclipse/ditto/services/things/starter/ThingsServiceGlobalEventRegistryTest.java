@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.things.starter;
 
-import org.eclipse.ditto.services.models.things.DittoThingSnapshotTaken;
+import org.eclipse.ditto.services.models.things.ThingSnapshotTaken;
 import org.eclipse.ditto.services.utils.persistentactors.EmptyEvent;
 import org.eclipse.ditto.services.utils.test.GlobalEventRegistryTestCases;
 import org.eclipse.ditto.signals.events.things.FeatureDeleted;
@@ -20,7 +20,7 @@ import org.eclipse.ditto.signals.events.things.FeatureDeleted;
 public final class ThingsServiceGlobalEventRegistryTest extends GlobalEventRegistryTestCases {
 
     public ThingsServiceGlobalEventRegistryTest() {
-        super(FeatureDeleted.class, DittoThingSnapshotTaken.class, EmptyEvent.class);
+        super(FeatureDeleted.class, ThingSnapshotTaken.class, EmptyEvent.class);
     }
 
 }

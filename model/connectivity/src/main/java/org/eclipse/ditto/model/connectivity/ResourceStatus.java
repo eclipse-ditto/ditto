@@ -99,6 +99,11 @@ public interface ResourceStatus extends Jsonifiable.WithFieldSelectorAndPredicat
         CLIENT("client"),
 
         /**
+         * An ssh tunnel.
+         */
+        SSH_TUNNEL("ssh"),
+
+        /**
          * Unknown resource type.
          */
         UNKNOWN("unknown");

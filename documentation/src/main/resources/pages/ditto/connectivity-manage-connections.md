@@ -147,8 +147,8 @@ The only parameter necessary for deleting a connection is the `connectionId`.
 
 The following commands are available to help creating connections and retrieving the status of existing connections:
 
-* [test](#test-connection)
-* [Retrieve ids of all connections](#retrieve-ids-of-all-connections)
+* [test connection](#test-connection)
+* [retrieve ids of all connections](#retrieve-ids-of-all-connections)
 * [retrieve connection status](#retrieve-connection-status)
 * [retrieve connection metrics](#retrieve-connection-metrics)
 * [reset connection metrics](#reset-connection-metrics)

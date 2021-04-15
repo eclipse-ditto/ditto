@@ -11,15 +11,13 @@
 get:
   summary: Retrieve a specific attribute of a specific thing
   description: |-
-    Returns a specific attribute of the thing identified by the `thingId`
-    path parameter.
+    Returns a specific attribute of the thing identified by the `thingId` path parameter.
 
-    The attribute (JSON) can be referenced hierarchically, by
-    applying JSON Pointer notation (RFC-6901).
+    The attribute (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901).
 
-    Example:
-    In order to retrieve the `name` field of an `manufacturer` attribute,
-    the full path would be
+    ### Example:
+
+    In order to retrieve the `name` field of an `manufacturer` attribute, the full path would be
     `/things/{thingId}/attributes/manufacturer/name`
   tags:
     - Things
@@ -68,15 +66,16 @@ get:
 put:
   summary: Create or update a specific attribute of a specific thing
   description: |-
-    Create or update a specific attribute of the thing identified by the
-    `thingId` path parameter.
+    Create or update a specific attribute of the thing identified by the `thingId` path parameter.
 
     * If you specify a new attribute path, this will be created
     * If you specify an existing attribute path, this will be updated
 
     The attribute (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901).
 
-    Example: In order to put the `name` field of an `manufacturer` attribute, the full path would be
+    ### Example:
+
+    In order to put the `name` field of an `manufacturer` attribute, the full path would be
     `/things/{thingId}/attributes/manufacturer/name`
   tags:
     - Things
@@ -136,8 +135,7 @@ put:
             $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
-        The request could not be completed. The thing with the given ID was
-        not found.
+        The request could not be completed. The thing with the given ID was not found.
       content:
         application/json:
           schema:
@@ -148,16 +146,88 @@ put:
       $ref: '../../responses/entityTooLarge.yml'
   requestBody:
     $ref: '../../requests/value.yml'
-delete:
-  summary: Delete a specific attribute of a specific thing
+patch:
+  summary: Patch a specific attribute of a specific thing
   description: |-
-    Deletes a specific attribute of the thing identified by the `thingId`
-    path parameter.
+    Patch a specific attribute of a thing identified by the `thingId` path parameter.
+
+    * If you specify a new attribute path, this will be created
+    * If you specify an existing attribute path, this will be merged
+    * If you set the request body to `null` for an existing attribute path then the attribute will be deleted.
+      For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
 
     The attribute (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901).
 
-    Example: In order to delete the `name` field of an `manufacturer` attribute, the full path would be
-            `/things/{thingId}/attributes/manufacturer/name`
+    ### Example:
+
+    In order to patch the `name` field of an `manufacturer` attribute, the full path would be
+    `/things/{thingId}/attributes/manufacturer/name`
+  tags:
+    - Things
+  parameters:
+    - $ref: '../../parameters/thingIdPathParam.yml'
+    - $ref: '../../parameters/attributePathPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/requestedAcksParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+    - $ref: '../../parameters/responseRequiredParam.yml'
+  responses:
+    '204':
+      description: The attribute was successfully patched.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the caller has insufficient permissions.
+            For modifying an attribute of an existing thing, `WRITE` permission is required.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The thing with the given ID was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'
+    '413':
+      $ref: '../../responses/entityTooLarge.yml'
+  requestBody:
+    $ref: '../../requests/patchValue.yml'
+delete:
+  summary: Delete a specific attribute of a specific thing
+  description: |-
+    Deletes a specific attribute of the thing identified by the `thingId` path parameter.
+
+    The attribute (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901).
+
+    ### Example:
+    In order to delete the `name` field of an `manufacturer` attribute, the full path would be
+    `/things/{thingId}/attributes/manufacturer/name`
   tags:
     - Things
   parameters:
@@ -196,8 +266,7 @@ delete:
             $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
-        The request could not be completed. The thing with the given ID or
-        the attribute at the specified path was not found.
+        The request could not be completed. The thing with the given ID or the attribute at the specified path was not found.
       content:
         application/json:
           schema:

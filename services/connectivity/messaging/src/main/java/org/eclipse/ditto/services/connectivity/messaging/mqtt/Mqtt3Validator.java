@@ -25,6 +25,8 @@ import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 
+import com.hivemq.client.internal.util.UnsignedDataTypes;
+
 import akka.actor.ActorSystem;
 
 /**
@@ -55,6 +57,7 @@ public final class Mqtt3Validator extends AbstractMqttValidator {
         validateSourceConfigs(connection, dittoHeaders);
         validateTargetConfigs(connection, dittoHeaders);
         validatePayloadMappings(connection, actorSystem, dittoHeaders);
+        validateSpecificConfig(connection, dittoHeaders);
     }
 
     private static void validateClientCount(final Connection connection, final DittoHeaders dittoHeaders) {

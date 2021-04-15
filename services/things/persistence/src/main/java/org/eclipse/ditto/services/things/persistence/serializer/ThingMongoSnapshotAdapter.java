@@ -12,15 +12,19 @@
  */
 package org.eclipse.ditto.services.things.persistence.serializer;
 
+import java.time.Instant;
 import java.util.Optional;
 
 import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.Revision;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.services.models.things.DittoThingSnapshotTaken;
+import org.eclipse.ditto.services.base.persistence.PersistenceLifecycle;
+import org.eclipse.ditto.services.base.persistence.SnapshotTaken;
 import org.eclipse.ditto.services.models.things.ThingSnapshotTaken;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.persistence.mongo.AbstractMongoSnapshotAdapter;
@@ -28,7 +32,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import akka.actor.ActorRef;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 
 /**
  * A {@link org.eclipse.ditto.services.utils.persistence.SnapshotAdapter} for snapshotting a
@@ -57,16 +60,27 @@ public final class ThingMongoSnapshotAdapter extends AbstractMongoSnapshotAdapte
     }
 
     @Override
-    protected void onSnapshotStoreConversion(final Thing thing, final JsonObject json) {
+    protected void onSnapshotStoreConversion(final Thing thing, final JsonObject thingJson) {
         final Optional<ThingId> thingId = thing.getEntityId();
         if (thingId.isPresent()) {
-            final ThingSnapshotTaken event = DittoThingSnapshotTaken.of(thingId.get());
-            final DistributedPubSubMediator.Publish publish =
-                    DistPubSubAccess.publishViaGroup(ThingSnapshotTaken.PUBSUB_TOPIC, event);
-            pubSubMediator.tell(publish, ActorRef.noSender());
+            final var thingSnapshotTaken = ThingSnapshotTaken.newBuilder(thingId.get(),
+                    thing.getRevision().map(Revision::toLong).orElse(0L),
+                    thing.getLifecycle()
+                            .map(ThingLifecycle::name)
+                            .flatMap(PersistenceLifecycle::forName)
+                            .orElse(PersistenceLifecycle.ACTIVE),
+                    thingJson)
+                    .timestamp(Instant.now())
+                    .build();
+            publishThingSnapshotTaken(thingSnapshotTaken);
         } else {
             LOGGER.warn("Could not publish snapshot taken event for thing <{}>.", thing);
         }
+    }
+
+    private void publishThingSnapshotTaken(final SnapshotTaken<ThingSnapshotTaken> snapshotTakenEvent) {
+        final var publish = DistPubSubAccess.publishViaGroup(snapshotTakenEvent.getPubSubTopic(), snapshotTakenEvent);
+        pubSubMediator.tell(publish, ActorRef.noSender());
     }
 
 }

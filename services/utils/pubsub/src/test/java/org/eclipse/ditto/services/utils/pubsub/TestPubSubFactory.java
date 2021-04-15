@@ -13,12 +13,15 @@
 package org.eclipse.ditto.services.utils.pubsub;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
-import java.util.concurrent.CompletionStage;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.eclipse.ditto.services.utils.ddata.DistributedData;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
+import org.eclipse.ditto.services.utils.pubsub.ddata.DDataReader;
 import org.eclipse.ditto.services.utils.pubsub.ddata.Hashes;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
@@ -26,6 +29,8 @@ import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
+import akka.cluster.ddata.ORMultiMap;
+import akka.cluster.ddata.Replicator;
 
 /**
  * Pub-sub factory for tests. Messages are strings. Topics of a message are its prefixes.
@@ -60,8 +65,18 @@ public final class TestPubSubFactory extends AbstractPubSubFactory<Acknowledgeme
     /**
      * @return subscribers of a topic in the distributed data.
      */
-    CompletionStage<Collection<ActorRef>> getSubscribers() {
-        return ddata.getReader().read().thenApply(Map::keySet);
+    Collection<ActorRef> getSubscribers() {
+        final DDataReader<ActorRef, String> reader = ddata.getReader();
+        return IntStream.range(0, reader.getNumberOfShards())
+                .mapToObj(i -> ((DistributedData<ORMultiMap<ActorRef,String>>) reader)
+                        .get(reader.getKey(i), (Replicator.ReadConsistency) Replicator.readLocal())
+                        .toCompletableFuture()
+                        .thenApply(future -> future.map(ORMultiMap::getEntries)
+                                        .map(Map::keySet)
+                                        .orElse(Collections.emptySet())
+                        ).join()
+                ).flatMap(Set::stream)
+                .collect(Collectors.toSet());
     }
 
     @Override

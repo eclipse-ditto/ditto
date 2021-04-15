@@ -468,7 +468,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             } else if (commandResponse instanceof MessageCommandResponse) {
                 return (MessageCommandResponse<?, ?>) commandResponse;
             } else {
-                connectionLogger.failure("Expected <{}> to be of type <{}> but was of type <{}>.",
+                connectionLogger.failure("Expected <{0}> to be of type <{1}> but was of type <{2}>.",
                         commandResponse, MessageCommandResponse.class.getSimpleName(),
                         commandResponse.getClass().getSimpleName());
                 return null;
@@ -495,7 +495,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     return SendFeatureMessageResponse.of(messageCommand.getEntityId(),
                             sendFeatureMessage.getFeatureId(), message, status, dittoHeaders);
                 default:
-                    connectionLogger.failure("Initial message command type <{}> is unknown.", messageCommand.getType());
+                    connectionLogger.failure("Initial message command type <{0}> is unknown.",
+                            messageCommand.getType());
                     return null;
             }
         }

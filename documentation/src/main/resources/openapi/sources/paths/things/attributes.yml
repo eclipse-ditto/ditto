@@ -128,8 +128,7 @@ put:
             $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
-        The request could not be completed. The thing with the given ID was
-        not found.
+        The request could not be completed. The thing with the given ID was not found.
       content:
         application/json:
           schema:
@@ -140,11 +139,95 @@ put:
       $ref: '../../responses/entityTooLarge.yml'
   requestBody:
     $ref: '../../requests/attributes.yml'
+patch:
+  summary: Patch all attributes of a specific thing
+  description: |-
+    Patch the attributes of a thing identified by the `thingId` path parameter.
+    The existing attributes will be merged with the JSON content set in the request body.
+
+    Notice that the `null` value has a special meaning and can be used to delete all or specific attributes from a thing.
+    For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
+
+    **Note**: In contrast to the "PUT things/{thingId}/attributes" request,
+    a partial update is supported here and request body is merged with the existing attributes.
+  tags:
+    - Things
+  parameters:
+    - $ref: '../../parameters/thingIdPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/requestedAcksParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+    - $ref: '../../parameters/responseRequiredParam.yml'
+  responses:
+    '204':
+      description: The attributes were successfully patched.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+          * the JSON body of the attributes to be patched is invalid
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the caller has insufficient permissions.
+            For modifying the attributes of an existing thing, `WRITE` permission is required.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The thing with the given ID was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'
+    '413':
+      $ref: '../../responses/entityTooLarge.yml'
+  requestBody:
+    content:
+      application/merge-patch+json:
+        schema:
+          $ref: '../../schemas/things/attributes.yml'
+        example:
+          manufacturer:
+            name: ACME demo corp.
+            location: 'Berlin, main floor'
+          coffeemaker:
+            serialno: '42'
+            model: Speaking coffee machine
+    description: |-
+      JSON object of all attributes to be patched. Consider that the value has to be a [JSON merge patch](https://tools.ietf.org/html/rfc7396).
+
+      Examples:
+        * a simple object: `{ "key": "value"}` - We strongly recommend to use a restricted set of characters for the key (identifier), as the key might be needed for the (URL) path later.<br> Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
+        * a nested object as shown in the example value
+        * `null`: deletes all attributes
+    required: true
 delete:
   summary: Delete all attributes of a specific thing at once
   description: |-
-    Deletes all attributes of the thing identified by the `thingId` path
-    parameter.
+    Deletes all attributes of the thing identified by the `thingId` path parameter.
   tags:
     - Things
   parameters:
@@ -182,8 +265,7 @@ delete:
             $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
-        The request could not be completed. The thing with the given ID or
-        its attributes were not found.
+        The request could not be completed. The thing with the given ID or its attributes were not found.
       content:
         application/json:
           schema:
