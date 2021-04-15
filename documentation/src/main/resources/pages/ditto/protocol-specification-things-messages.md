@@ -99,7 +99,7 @@ The response we would get from our coffee machine could look something like this
         "content-type": "text/plain",
         "version": 1,
     },
-    "path": "/outbox/messages/ask",
+    "path": "/inbox/messages/ask",
     "value": "I do not know, since i am only a coffee machine.",
     "status": 418
 }
@@ -202,7 +202,7 @@ Message have the same `correlation-id`, the issuer would receive your response:
         "content-type": "text/plain",
         "version": 1
     },
-    "path": "/outbox/messages/ask",
+    "path": "/inbox/messages/ask",
     "status": 418,
     "value": "I don't know since i am only a coffee machine"
 }
@@ -258,7 +258,7 @@ to the issuer by setting an additional permission and respond with a *status* of
         "content-type": "text/plain",
         "correlation-id": "a-unique-string-for-this-claim-message"
     },
-    "path": "/outbox/messages/claim",
+    "path": "/inbox/messages/claim",
     "status": 204
 }
 ```
