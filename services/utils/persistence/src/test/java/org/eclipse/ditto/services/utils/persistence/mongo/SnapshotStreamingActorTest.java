@@ -98,13 +98,13 @@ public final class SnapshotStreamingActorTest {
             final SudoStreamSnapshots sudoStreamSnapshots =
                     SudoStreamSnapshots.of(100, 10_000L, List.of(), DittoHeaders.empty(), THING_TYPE);
             setSnapshotStore(Source.from(List.of(
-                    new Document().append("pid", "thing:snap:1")
+                    new Document().append("_id", "thing:snap:1")
                             .append("_revision", 1)
                             .append("_modified", "2001-01-01"),
-                    new Document().append("pid", "thing:snap:2")
+                    new Document().append("_id", "thing:snap:2")
                             .append("_revision", 2)
                             .append("_modified", "2002-02-02"),
-                    new Document().append("pid", "thing:snap:3")
+                    new Document().append("_id", "thing:snap:3")
                             .append("_revision", 3)
                             .append("_modified", "2003-03-03")
             )));
@@ -120,11 +120,11 @@ public final class SnapshotStreamingActorTest {
 
             assertThat(results).containsExactly(
                     StreamedSnapshot.of(EntityId.of(THING_TYPE, "snap:1"),
-                            JsonObject.of("{\"pid\":\"thing:snap:1\",\"_revision\":1,\"_modified\":\"2001-01-01\"}")),
+                            JsonObject.of("{\"_revision\":1,\"_modified\":\"2001-01-01\"}")),
                     StreamedSnapshot.of(EntityId.of(THING_TYPE, "snap:2"),
-                            JsonObject.of("{\"pid\":\"thing:snap:2\",\"_revision\":2,\"_modified\":\"2002-02-02\"}")),
+                            JsonObject.of("{\"_revision\":2,\"_modified\":\"2002-02-02\"}")),
                     StreamedSnapshot.of(EntityId.of(THING_TYPE, "snap:3"),
-                            JsonObject.of("{\"pid\":\"thing:snap:3\",\"_revision\":3,\"_modified\":\"2003-03-03\"}"))
+                            JsonObject.of("{\"_revision\":3,\"_modified\":\"2003-03-03\"}"))
             );
         }};
 

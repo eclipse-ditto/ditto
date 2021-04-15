@@ -38,6 +38,12 @@ public final class ShardedMessageEnvelope
      */
     public static final JsonFieldDefinition<String> JSON_ID = JsonFactory.newStringFieldDefinition("id");
 
+
+    /**
+     * JSON field containing the type of the entity the id identifies.
+     */
+    public static final JsonFieldDefinition<String> JSON_ID_TYPE = JsonFactory.newStringFieldDefinition("entityType");
+
     /**
      * JSON field containing the type of the message of a {@code ShardedMessageEnvelope}.
      */
@@ -95,8 +101,9 @@ public final class ShardedMessageEnvelope
      * @return the ShardedMessageEnvelope.
      */
     public static ShardedMessageEnvelope fromJson(final JsonObject jsonObject) {
+        final EntityType entityType = EntityType.of(jsonObject.getValueOrThrow(JSON_ID_TYPE));
         final String extractedId = jsonObject.getValueOrThrow(JSON_ID);
-        final EntityId entityId = EntityId.of(EntityType.of("thing"), extractedId); //TODO: yannic try to use constant
+        final EntityId entityId = EntityId.of(entityType, extractedId);
         final String extractedType = jsonObject.getValueOrThrow(JSON_TYPE);
         final JsonObject extractedMessage = jsonObject.getValueOrThrow(JSON_MESSAGE);
         final JsonObject jsonDittoHeaders = jsonObject.getValueOrThrow(JSON_DITTO_HEADERS);
@@ -145,6 +152,7 @@ public final class ShardedMessageEnvelope
     @Override
     public JsonObject toJson() {
         return JsonObject.newBuilder()
+                .set(JSON_ID_TYPE, id.getEntityType().toString())
                 .set(JSON_ID, String.valueOf(id))
                 .set(JSON_TYPE, type)
                 .set(JSON_MESSAGE, message)
