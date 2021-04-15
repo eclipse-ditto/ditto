@@ -163,6 +163,7 @@ public abstract class AbstractBaseClientActorTest {
                 SSLContextCreator.fromConnection(serverConnection, DittoHeaders.empty(), connectionLogger)
                         .clientCertificate(credentials);
         // TODO the above code is not used??? what does this test do?
+        //  check with YC
 
         final ActorSystem actorSystem = getActorSystem();
         final ServerBinding binding = Http.get(actorSystem)

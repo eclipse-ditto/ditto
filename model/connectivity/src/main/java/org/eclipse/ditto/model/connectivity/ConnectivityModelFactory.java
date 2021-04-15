@@ -618,7 +618,7 @@ public final class ConnectivityModelFactory {
                 .address(address)
                 .originalAddress(target.getOriginalAddress())
                 .authorizationContext(target.getAuthorizationContext())
-                .headerMapping(target.getHeaderMapping().orElse(null))
+                .headerMapping(target.getHeaderMapping())
                 .qos(qos)
                 .topics(target.getTopics())
                 .build();
@@ -640,7 +640,7 @@ public final class ConnectivityModelFactory {
                 .address(address)
                 .originalAddress(target.getOriginalAddress())
                 .authorizationContext(target.getAuthorizationContext())
-                .headerMapping(target.getHeaderMapping().orElse(null))
+                .headerMapping(target.getHeaderMapping())
                 .qos(qos)
                 .issuedAcknowledgementLabel(label)
                 .topics(target.getTopics())

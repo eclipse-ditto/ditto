@@ -88,7 +88,7 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
     @Override
     protected void validateTarget(final Target target, final DittoHeaders dittoHeaders,
             final Supplier<String> targetDescription) {
-        target.getHeaderMapping().ifPresent(mapping -> validateHeaderMapping(mapping, dittoHeaders));
+        validateHeaderMapping(target.getHeaderMapping(), dittoHeaders);
         validateTemplate(target.getAddress(), dittoHeaders, ConnectivityPlaceholders.newThingPlaceholder(),
                 ConnectivityPlaceholders.newTopicPathPlaceholder(),
                 newHeadersPlaceholder(), ConnectivityPlaceholders.newFeaturePlaceholder());
@@ -115,7 +115,7 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
     private void validateHttpMethod(final String methodName, final DittoHeaders dittoHeaders,
             final Supplier<String> targetDescriptor) {
         final Optional<HttpMethod> method = HttpMethods.lookup(methodName);
-        if (!method.isPresent() || !SUPPORTED_METHODS.contains(method.get())) {
+        if (method.isEmpty() || !SUPPORTED_METHODS.contains(method.get())) {
             final String errorMessage = String.format(
                     "%s: The method '%s' is not supported", targetDescriptor.get(), methodName);
             throw ConnectionConfigurationInvalidException.newBuilder(errorMessage)

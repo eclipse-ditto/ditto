@@ -193,8 +193,8 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
                     MQTT_RETAIN_HEADER, getHeaderPlaceholder(MQTT_RETAIN_HEADER)
             );
 
-            final Optional<HeaderMapping> sourceHeaderMapping = source.getHeaderMapping();
-            sourceHeaderMapping.ifPresent(headerMapping -> headerMappingMap.putAll(headerMapping.getMapping()));
+            final HeaderMapping sourceHeaderMapping = source.getHeaderMapping();
+            headerMappingMap.putAll(sourceHeaderMapping.getMapping());
             headerMappingMap.putAll(mqttMappings);
 
             final HeaderMapping mqttTopicHeaderMapping = ConnectivityModelFactory.newHeaderMapping(headerMappingMap);

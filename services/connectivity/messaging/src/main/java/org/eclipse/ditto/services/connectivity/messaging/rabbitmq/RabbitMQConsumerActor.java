@@ -146,7 +146,7 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
             if (headerEnforcementFilterFactory != null) {
                 externalMessageBuilder.withEnforcement(headerEnforcementFilterFactory.getFilter(headers));
             }
-            externalMessageBuilder.withHeaderMapping(source.getHeaderMapping().orElse(null));
+            externalMessageBuilder.withHeaderMapping(source.getHeaderMapping());
             externalMessageBuilder.withSourceAddress(sourceAddress);
             externalMessageBuilder.withPayloadMapping(payloadMapping);
             final ExternalMessage externalMessage = externalMessageBuilder.build();

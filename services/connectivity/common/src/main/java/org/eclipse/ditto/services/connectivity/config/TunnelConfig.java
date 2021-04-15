@@ -62,7 +62,7 @@ public interface TunnelConfig {
         /**
          * See documentation on {@link TunnelConfig#getHeartbeatInterval()}.
          */
-        HEARTBEAT_INTERVAL("heartbeat-interval", Duration.ofMinutes(5)),
+        HEARTBEAT_INTERVAL("heartbeat-interval", Duration.ofSeconds(30)),
 
         /**
          * See documentation on {@link TunnelConfig#getIdleTimeout()}.
@@ -73,7 +73,7 @@ public interface TunnelConfig {
         /**
          * See documentation on {@link TunnelConfig#getSocketKeepAlive()} .
          */
-        SOCKET_KEEPALIVE("socket-keepalive", false);
+        SOCKET_KEEPALIVE("socket-keepalive", true);
 
         private final String path;
         private final Object defaultValue;
