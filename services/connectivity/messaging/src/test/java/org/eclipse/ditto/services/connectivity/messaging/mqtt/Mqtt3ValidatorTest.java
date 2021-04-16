@@ -22,6 +22,8 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.ThrowableAssertAlternative;
@@ -32,7 +34,10 @@ import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectionUriInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
+import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Source;
+import org.eclipse.ditto.model.connectivity.SourceBuilder;
+import org.eclipse.ditto.model.connectivity.TargetBuilder;
 import org.eclipse.ditto.services.connectivity.config.MqttConfig;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.junit.Before;
@@ -225,6 +230,81 @@ public final class Mqtt3ValidatorTest extends AbstractMqttValidatorTest {
                 .withMessageContaining(MqttSpecificConfig.LAST_WILL_QOS);
     }
 
+    @Test
+    public void testInvalidSourceMappingValue() {
+        final HeaderMapping invalidHeaderMapping = ConnectivityModelFactory.newHeaderMapping(Map.of(
+                "topic", "{{ header:mqtt.topic }}",
+                "invalid", "{{ header:invalid }}",
+                "qos", "{{ header:mqtt.qos }}"
+        ));
+        testSourceMapping(invalidHeaderMapping, "header:invalid");
+    }
+
+    @Test
+    public void testProtectedSourceMappingKeys() {
+        Stream.of(Mqtt3Header.values()).map(Mqtt3Header::getName).forEach(key -> {
+            final HeaderMapping validHeaderMapping =
+                    ConnectivityModelFactory.newHeaderMapping(Map.of(key, "{{ header:mqtt.topic }}"));
+            testSourceMapping(validHeaderMapping, key);
+        });
+    }
+
+    @Test
+    public void testAllowedTargetMappingKeys() {
+        final HeaderMapping validHeaderMapping = ConnectivityModelFactory.newHeaderMapping(Map.of(
+                "mqtt.topic", "{{ header:mqtt.topic }}",
+                "mqtt.qos", "{{ header:mqtt.custom.qos }}",
+                "mqtt.retain", "false"
+        ));
+        final Connection connection = getConnectionWithTargetMapping(validHeaderMapping);
+        Mqtt3Validator.newInstance(mqttConfig).validate(connection, DittoHeaders.empty(), actorSystem);
+    }
+
+    @Test
+    public void testInvalidTargetMappingKeys() {
+        final HeaderMapping invalidHeaderMapping =
+                ConnectivityModelFactory.newHeaderMapping(Map.of("topic", "{{ header:mqtt.topic }}"));
+        testTargetMapping(invalidHeaderMapping, "topic");
+    }
+
+    @Test
+    public void testInvalidPlaceholderTargetMapping() {
+        final HeaderMapping invalidHeaderMapping = ConnectivityModelFactory.newHeaderMapping(Map.of(
+                "mqtt.topic", "{{ thing:id }}"
+        ));
+        testTargetMapping(invalidHeaderMapping, "thing:id");
+    }
+
+    private void testSourceMapping(final HeaderMapping headerMapping, final String containedInMessage) {
+        final Connection connection = connectionWithSource("ditto/#");
+        final Connection connectionWithHeaderMapping = connection.toBuilder()
+                .setSources(connection.getSources().stream()
+                        .map(ConnectivityModelFactory::newSourceBuilder)
+                        .map(sb -> sb.headerMapping(headerMapping))
+                        .map(SourceBuilder::build)
+                        .collect(Collectors.toList())).build();
+
+        verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithHeaderMapping).withMessageContaining(
+                containedInMessage);
+    }
+
+    private void testTargetMapping(final HeaderMapping headerMapping, final String containedInMessage) {
+        final Connection connectionWithHeaderMapping = getConnectionWithTargetMapping(headerMapping);
+        verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithHeaderMapping)
+                .withMessageContaining(containedInMessage);
+    }
+
+    private Connection getConnectionWithTargetMapping(final HeaderMapping headerMapping) {
+        final Connection connection = connectionWithTarget("ditto");
+        return connection.toBuilder()
+                .setTargets(connection.getTargets().stream()
+                        .map(ConnectivityModelFactory::newTargetBuilder)
+                        .map(sb -> sb.headerMapping(headerMapping))
+                        .map(TargetBuilder::build)
+                        .collect(Collectors.toList())).build();
+    }
+
+    @Override
     protected ThrowableAssertAlternative<ConnectionConfigurationInvalidException>
     verifyConnectionConfigurationInvalidExceptionIsThrown(final Connection connection) {
         return Assertions.assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)

@@ -25,6 +25,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.things.ThingId;
@@ -141,10 +142,14 @@ public abstract class AbstractPublisherActorTest {
                 .address(getOutboundAddress())
                 .originalAddress(getOutboundAddress())
                 .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
-                .headerMapping(TestConstants.HEADER_MAPPING)
+                .headerMapping(getHeaderMapping())
                 .issuedAcknowledgementLabel(acks.length != 1 ? null : AcknowledgementLabel.of(acks[0]))
                 .topics(Topic.TWIN_EVENTS)
                 .build();
+    }
+
+    protected HeaderMapping getHeaderMapping() {
+        return TestConstants.HEADER_MAPPING;
     }
 
     protected abstract String getOutboundAddress();

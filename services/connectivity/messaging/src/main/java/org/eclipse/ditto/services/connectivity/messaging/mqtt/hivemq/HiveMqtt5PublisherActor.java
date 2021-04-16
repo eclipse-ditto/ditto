@@ -16,11 +16,11 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 
 import org.eclipse.ditto.model.base.common.ByteBufferUtils;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttPublishTarget;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
@@ -40,7 +40,7 @@ public final class HiveMqtt5PublisherActor extends AbstractMqttPublisherActor<Mq
 
     static final String NAME = "HiveMqtt5PublisherActor";
 
-    private static final HashSet<String> MQTT_HEADER_MAPPING = new HashSet<>();
+    private static final Set<String> MQTT_HEADER_MAPPING = new HashSet<>();
 
     static {
         MQTT_HEADER_MAPPING.add(DittoHeaderDefinition.CORRELATION_ID.getKey());
@@ -69,8 +69,8 @@ public final class HiveMqtt5PublisherActor extends AbstractMqttPublisherActor<Mq
     }
 
     @Override
-    Mqtt5Publish mapExternalMessageToMqttMessage(final MqttPublishTarget mqttTarget, final MqttQos qos,
-            final ExternalMessage externalMessage) {
+    Mqtt5Publish mapExternalMessageToMqttMessage(final String topic, final MqttQos qos,
+            final boolean retain, final ExternalMessage externalMessage) {
 
         final Charset charset = getCharsetFromMessage(externalMessage);
 
@@ -105,8 +105,9 @@ public final class HiveMqtt5PublisherActor extends AbstractMqttPublisherActor<Mq
                 .build();
 
         return Mqtt5Publish.builder()
-                .topic(mqttTarget.getTopic())
+                .topic(topic)
                 .qos(qos)
+                .retain(retain)
                 .payload(payload)
                 .correlationData(correlationData)
                 .responseTopic(responseTopic)

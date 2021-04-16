@@ -135,6 +135,11 @@ MQTT 5 supports so-called user defined properties, which are defined for every m
 The [header mapping](connectivity-header-mapping.html) applies to the supported MQTT 5 specific headers as well as to 
 the user defined properties.
 
+The following headers have a special meaning in that the values are applied directly to the published message:
+* `mqtt.topic`: overwrites the topic configured for the target 
+* `mqtt.qos`: overwrites the qos level configured in the target 
+* `mqtt.retain`: controls whether the MQTT retain flag is set on the published message  
+
 #### Target acknowledgement handling
 
 For MQTT 5 targets, when configuring 
