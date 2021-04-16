@@ -52,7 +52,7 @@ import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
-import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
+import org.eclipse.ditto.services.models.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingFieldSelector;
 import org.eclipse.ditto.model.things.ThingId;

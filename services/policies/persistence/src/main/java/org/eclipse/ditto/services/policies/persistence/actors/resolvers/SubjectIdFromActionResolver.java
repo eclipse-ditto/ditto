@@ -29,7 +29,7 @@ public interface SubjectIdFromActionResolver {
      * @param entry the policy entry.
      * @param command the policy action command.
      * @return the subject IDs after resolution.
-     * @throws org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException if one of the subject IDs contains
+     * @throws org.eclipse.ditto.services.models.placeholders.UnresolvedPlaceholderException if one of the subject IDs contains
      * unsupported placeholders.
      * @throws org.eclipse.ditto.model.policies.SubjectIdInvalidException if one of the resolved subject IDs is invalid.
      */

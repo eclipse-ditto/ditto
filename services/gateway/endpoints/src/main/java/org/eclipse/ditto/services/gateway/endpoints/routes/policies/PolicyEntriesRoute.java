@@ -25,7 +25,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
-import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
+import org.eclipse.ditto.services.models.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyEntry;

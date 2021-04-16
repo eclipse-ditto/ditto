@@ -23,7 +23,7 @@ import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.model.placeholders.PlaceholderFunctionSignatureInvalidException;
+import org.eclipse.ditto.services.models.placeholders.PlaceholderFunctionSignatureInvalidException;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;

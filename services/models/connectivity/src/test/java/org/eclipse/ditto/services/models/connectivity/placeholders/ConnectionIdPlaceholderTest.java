@@ -17,9 +17,9 @@
  import java.util.Collections;
 
  import org.eclipse.ditto.model.connectivity.ConnectionId;
- import org.eclipse.ditto.model.placeholders.ExpressionResolver;
- import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
- import org.eclipse.ditto.model.placeholders.PlaceholderResolver;
+ import org.eclipse.ditto.services.models.placeholders.ExpressionResolver;
+ import org.eclipse.ditto.services.models.placeholders.PlaceholderFactory;
+ import org.eclipse.ditto.services.models.placeholders.PlaceholderResolver;
  import org.junit.Test;
 
  public final class ConnectionIdPlaceholderTest {

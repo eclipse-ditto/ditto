@@ -33,7 +33,7 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.GenericTarget;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.model.placeholders.ExpressionResolver;
+import org.eclipse.ditto.services.models.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;

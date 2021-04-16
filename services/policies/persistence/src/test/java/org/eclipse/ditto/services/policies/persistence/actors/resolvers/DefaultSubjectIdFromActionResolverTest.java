@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.util.Collections;
 
-import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
+import org.eclipse.ditto.services.models.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyEntry;
