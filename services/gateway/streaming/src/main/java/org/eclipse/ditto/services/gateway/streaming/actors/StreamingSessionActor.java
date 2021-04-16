@@ -687,13 +687,16 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     private static Optional<DittoHeaderInvalidException> checkForAcksWithoutResponse(final Signal<?> signal) {
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
         if (!dittoHeaders.isResponseRequired() && !dittoHeaders.getAcknowledgementRequests().isEmpty()) {
-            final String message = String.format("For websocket, it is forbidden to request acknowledgements while " +
+            final String message = String.format("For WebSocket, it is forbidden to request acknowledgements while " +
                             "'%s' is set to false.",
                     DittoHeaderDefinition.RESPONSE_REQUIRED.getKey());
+            final var invalidHeaderKey = DittoHeaderDefinition.REQUESTED_ACKS.getKey();
             final String description = String.format("Please set '%s' to [] or '%s' to true.",
-                    DittoHeaderDefinition.REQUESTED_ACKS.getKey(),
+                    invalidHeaderKey,
                     DittoHeaderDefinition.RESPONSE_REQUIRED.getKey());
-            return Optional.of(DittoHeaderInvalidException.newCustomMessageBuilder(message)
+            return Optional.of(DittoHeaderInvalidException.newBuilder()
+                    .withInvalidHeaderKey(invalidHeaderKey)
+                    .message(message)
                     .description(description)
                     .dittoHeaders(signal.getDittoHeaders())
                     .build());
