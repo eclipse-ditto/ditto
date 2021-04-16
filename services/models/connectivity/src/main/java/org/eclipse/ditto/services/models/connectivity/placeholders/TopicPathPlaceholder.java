@@ -12,11 +12,11 @@
  */
 package org.eclipse.ditto.services.models.connectivity.placeholders;
 
-import org.eclipse.ditto.model.placeholders.Placeholder;
+import org.eclipse.ditto.services.models.placeholders.Placeholder;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 
 /**
- * A {@link org.eclipse.ditto.model.placeholders.Placeholder} that requires the {@link TopicPath} to resolve its placeholders.
+ * A {@link org.eclipse.ditto.services.models.placeholders.Placeholder} that requires the {@link TopicPath} to resolve its placeholders.
  */
 public interface TopicPathPlaceholder extends Placeholder<TopicPath> {
 

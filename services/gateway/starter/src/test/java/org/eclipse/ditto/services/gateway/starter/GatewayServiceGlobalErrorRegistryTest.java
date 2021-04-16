@@ -22,7 +22,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidExcept
 import org.eclipse.ditto.model.jwt.JwtAudienceInvalidException;
 import org.eclipse.ditto.model.messages.AuthorizationSubjectBlockedException;
 import org.eclipse.ditto.model.namespaces.NamespaceBlockedException;
-import org.eclipse.ditto.model.placeholders.PlaceholderFunctionSignatureInvalidException;
+import org.eclipse.ditto.services.models.placeholders.PlaceholderFunctionSignatureInvalidException;
 import org.eclipse.ditto.model.policies.PolicyEntryInvalidException;
 import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;

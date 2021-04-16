@@ -16,7 +16,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import org.eclipse.ditto.model.placeholders.Placeholder;
+import org.eclipse.ditto.services.models.placeholders.Placeholder;
 
 /**
  * Simple placeholder for test purposes.

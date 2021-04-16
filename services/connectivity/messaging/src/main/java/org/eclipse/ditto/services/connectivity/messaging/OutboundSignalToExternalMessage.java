@@ -23,8 +23,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
-import org.eclipse.ditto.model.placeholders.ExpressionResolver;
-import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.services.models.placeholders.ExpressionResolver;
+import org.eclipse.ditto.services.models.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;

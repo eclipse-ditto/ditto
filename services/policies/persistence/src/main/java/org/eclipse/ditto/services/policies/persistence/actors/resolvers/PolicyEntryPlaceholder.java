@@ -12,11 +12,11 @@
  */
 package org.eclipse.ditto.services.policies.persistence.actors.resolvers;
 
-import org.eclipse.ditto.model.placeholders.Placeholder;
+import org.eclipse.ditto.services.models.placeholders.Placeholder;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 
 /**
- * A {@link org.eclipse.ditto.model.placeholders.Placeholder} requiring a {@link PolicyEntry} to resolve information of an policy entry.
+ * A {@link org.eclipse.ditto.services.models.placeholders.Placeholder} requiring a {@link PolicyEntry} to resolve information of an policy entry.
  *
  * @since 2.0.0
  */

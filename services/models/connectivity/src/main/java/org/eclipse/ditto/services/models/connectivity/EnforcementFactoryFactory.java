@@ -17,7 +17,7 @@ import java.util.List;
 
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
-import org.eclipse.ditto.model.placeholders.Placeholder;
+import org.eclipse.ditto.services.models.placeholders.Placeholder;
 import org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.signals.base.Signal;
 
