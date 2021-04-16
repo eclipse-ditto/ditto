@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -24,7 +24,7 @@ import org.eclipse.ditto.model.base.entity.validation.EntityIdPatternValidator;
  * Base implementation for namespaced entity IDs which are aware of their entity type.
  * <em>Subclasses are required to be immutable.</em>
  *
- * @since 1.1.0
+ * @since 2.0.0
  */
 @Immutable
 public abstract class AbstractNamespacedEntityId extends AbstractEntityId implements NamespacedEntityId {
@@ -32,6 +32,16 @@ public abstract class AbstractNamespacedEntityId extends AbstractEntityId implem
     private final String namespace;
     private final String name;
 
+    /**
+     * Constructs a new AbstractNamespacedEntityId object.
+     *
+     * @param entityType the entity type to delegate to.
+     * @param namespace the entity type to delegate to.
+     * @param name the entity type to delegate to.
+     * @param shouldValidate the entity type to delegate to.
+     * @throws NullPointerException if {@code id} or {@code entityType} is {@code null}.
+     * @throws IllegalArgumentException if {@code id} is empty.
+     */
     protected AbstractNamespacedEntityId(final EntityType entityType, final String namespace, final String name,
             final boolean shouldValidate) {
         super(entityType, shouldValidate ? validate(namespace, name) : namespace + NAMESPACE_DELIMITER + name);

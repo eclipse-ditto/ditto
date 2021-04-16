@@ -20,9 +20,9 @@ import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.EnforcementFilter;
 import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
-import org.eclipse.ditto.model.placeholders.Placeholder;
-import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
-import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.services.models.placeholders.Placeholder;
+import org.eclipse.ditto.services.models.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.services.models.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.signals.base.Signal;
 
 /**

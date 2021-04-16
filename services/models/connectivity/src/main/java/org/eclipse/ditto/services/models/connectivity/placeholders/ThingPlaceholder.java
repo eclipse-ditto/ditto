@@ -12,13 +12,12 @@
  */
 package org.eclipse.ditto.services.models.connectivity.placeholders;
 
-
-import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.placeholders.Placeholder;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.models.placeholders.Placeholder;
+import org.eclipse.ditto.services.models.placeholders.Placeholder;
 
 /**
- * A {@link org.eclipse.ditto.model.placeholders.Placeholder} that requires a {@code String} (a valid Thing ID) to resolve its placeholders.
+ * A {@link org.eclipse.ditto.services.models.placeholders.Placeholder} that requires a {@code String}
+ * (a valid Thing ID) to resolve its placeholders.
  */
 public interface ThingPlaceholder extends Placeholder<EntityId> {
 }

@@ -132,7 +132,7 @@ final class ImmutableAcknowledgements implements Acknowledgements {
         while (acknowledgementIterator.hasNext()) {
             acknowledgement = acknowledgementIterator.next();
             final EntityId acknowledgementEntityId = acknowledgement.getEntityId();
-            if (!entityId.isCompatible(acknowledgement.getEntityId())) {
+            if (!entityId.equals(acknowledgement.getEntityId())) {
                 final String pattern = "The entity ID <{0}> is not compatible with <{1}>!";
                 throw new IllegalArgumentException(MessageFormat.format(pattern, acknowledgementEntityId, entityId));
             }

@@ -194,7 +194,7 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
      * @return the entity ID.
      */
     protected CacheKey entityId() {
-        return context.getEntityIdWithResourceType();
+        return context.getCacheKey();
     }
 
     /**

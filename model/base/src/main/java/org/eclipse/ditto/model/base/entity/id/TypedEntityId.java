@@ -20,8 +20,8 @@ import java.lang.annotation.Target;
 import org.atteo.classindex.IndexAnnotated;
 
 /**
- * Annotate implementations of {@link org.eclipse.ditto.model.base.entity.id.EntityId} with this annotation to propagate
- * the factory method to {@link org.eclipse.ditto.model.base.entity.id.EntityIds}.
+ * Annotate implementations of {@link org.eclipse.ditto.model.base.entity.id.EntityId} with this annotation to
+ * propagate the factory method to {@link org.eclipse.ditto.model.base.entity.id.EntityIds}.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

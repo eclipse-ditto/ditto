@@ -30,8 +30,8 @@ import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
-import org.eclipse.ditto.services.utils.cache.CacheLookupContext;
 import org.eclipse.ditto.services.utils.cache.CacheKey;
+import org.eclipse.ditto.services.utils.cache.CacheLookupContext;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.signals.commands.base.Command;
 
@@ -172,8 +172,7 @@ public final class ActorAskCacheLoader<V, T> implements AsyncCacheLoader<CacheKe
     private ActorRef getEntityRegion(final EntityType entityType) {
         final ActorRef entityRegion = entityRegionProvider.apply(entityType);
         if (entityRegion == null) {
-            throw new IllegalStateException("null entity region returned for resource type " +
-                    entityType);
+            throw new IllegalStateException("null entity region returned for resource type " + entityType);
         }
 
         return entityRegion;

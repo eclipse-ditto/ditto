@@ -120,8 +120,7 @@ public final class PersistenceIdSource {
     private static SudoStreamPids sudoStreamPids(final PersistenceIdsConfig config,
             final EntityIdWithRevision<?> seed, final EntityType entityType) {
         return SudoStreamPids.of(config.getBurst(), config.getStreamIdleTimeout().toMillis(), DittoHeaders.empty(),
-                entityType)
-                .withLowerBound(seed);
+                entityType).withLowerBound(seed);
     }
 
     private static Source<EntityIdWithRevision<?>, NotUsed> handleSourceRef(final Object reply) {
@@ -156,6 +155,7 @@ public final class PersistenceIdSource {
                     actualMessage);
             error = new IllegalStateException(message);
         }
+
         return Source.failed(error);
 
     }

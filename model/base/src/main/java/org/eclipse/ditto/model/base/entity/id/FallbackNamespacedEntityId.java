@@ -16,13 +16,11 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 
-
 /**
  * Fallback implementation of a namespaced entity ID.
  */
 @Immutable
 final class FallbackNamespacedEntityId extends AbstractNamespacedEntityId {
-
 
     private FallbackNamespacedEntityId(final EntityType entityType, final CharSequence id) {
         super(entityType, id);

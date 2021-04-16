@@ -22,8 +22,8 @@ import java.util.Optional;
 import javax.annotation.concurrent.Immutable;
 
 /**
- * Placeholder implementation that replaces {@code feature:id}. The input value is a String and must be a valid Feature
- * ID.
+ * Placeholder implementation that replaces {@code feature:id}. The input value is a String and must be a
+ * valid Feature ID.
  *
  * @since 1.5.0
  */

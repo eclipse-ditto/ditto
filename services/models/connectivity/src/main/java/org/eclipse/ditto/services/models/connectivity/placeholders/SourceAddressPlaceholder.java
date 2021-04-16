@@ -13,10 +13,10 @@
 package org.eclipse.ditto.services.models.connectivity.placeholders;
 
 
-import org.eclipse.ditto.model.placeholders.Placeholder;
+import org.eclipse.ditto.services.models.placeholders.Placeholder;
 
 /**
- * A {@link org.eclipse.ditto.model.placeholders.Placeholder} that requires a {@code String}
+ * A {@link org.eclipse.ditto.services.models.placeholders.Placeholder} that requires a {@code String}
  * (a {@link org.eclipse.ditto.model.connectivity.Source} {@code address}) to resolve its placeholders.
  */
 public interface SourceAddressPlaceholder extends Placeholder<String> {

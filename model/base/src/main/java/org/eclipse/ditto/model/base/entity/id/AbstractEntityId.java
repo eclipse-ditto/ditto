@@ -21,11 +21,25 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 
+
+/**
+ * Abstract base class for instances of @{code EntityId}.
+ *
+ * @since 2.0.0
+ */
 public abstract class AbstractEntityId implements EntityId {
 
     private final EntityType entityType;
     private final String id;
 
+    /**
+     * Constructs a new AbstractEntityId object.
+     *
+     * @param entityType the entity type.
+     * @param id the id of the entity.
+     * @throws NullPointerException if {@code id} or {@code entityType} is {@code null}.
+     * @throws IllegalArgumentException if {@code id} is empty.
+     */
     protected AbstractEntityId(final EntityType entityType, final CharSequence id) {
         this.entityType = checkNotNull(entityType, "entityType");
         this.id = argumentNotEmpty(id, "entityId").toString();

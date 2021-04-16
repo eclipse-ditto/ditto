@@ -27,12 +27,10 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
-import org.eclipse.ditto.services.utils.cache.CacheLookupContext;
 import org.eclipse.ditto.services.utils.cache.CacheKey;
+import org.eclipse.ditto.services.utils.cache.CacheLookupContext;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
@@ -43,8 +41,7 @@ import akka.actor.ActorRef;
  * Loads entity ID relation for authorization of a Thing by asking the things-shard-region proxy.
  */
 @Immutable
-public final class ThingEnforcementIdCacheLoader
-        implements AsyncCacheLoader<CacheKey, Entry<CacheKey>> {
+public final class ThingEnforcementIdCacheLoader implements AsyncCacheLoader<CacheKey, Entry<CacheKey>> {
 
     private final ActorAskCacheLoader<CacheKey, Command<?>> delegate;
 
@@ -66,8 +63,7 @@ public final class ThingEnforcementIdCacheLoader
     }
 
     @Override
-    public CompletableFuture<Entry<CacheKey>> asyncLoad(final CacheKey key,
-            final Executor executor) {
+    public CompletableFuture<Entry<CacheKey>> asyncLoad(final CacheKey key, final Executor executor) {
         return delegate.asyncLoad(key, executor);
     }
 

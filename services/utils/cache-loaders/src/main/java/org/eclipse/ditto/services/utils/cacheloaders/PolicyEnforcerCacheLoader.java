@@ -28,11 +28,10 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyConstants;
 import org.eclipse.ditto.model.policies.PolicyRevision;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
-import org.eclipse.ditto.services.utils.cache.CacheLookupContext;
 import org.eclipse.ditto.services.utils.cache.CacheKey;
+import org.eclipse.ditto.services.utils.cache.CacheLookupContext;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
@@ -43,8 +42,7 @@ import akka.actor.ActorRef;
  * Loads a policy-enforcer by asking the policies shard-region-proxy.
  */
 @Immutable
-public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<CacheKey,
-        Entry<PolicyEnforcer>> {
+public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<CacheKey, Entry<PolicyEnforcer>> {
 
     private final ActorAskCacheLoader<PolicyEnforcer, Command<?>> delegate;
 

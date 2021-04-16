@@ -23,8 +23,8 @@ import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.policies.PolicyId;
 
 /**
- * Placeholder implementation that replaces {@code policy:id}, {@code policy:namespace} and {@code policy:name}. The
- * input value is a String and must be a valid Policy ID.
+ * Placeholder implementation that replaces {@code policy:id}, {@code policy:namespace} and {@code policy:name}.
+ * The input value is a String and must be a valid Policy ID.
  */
 @Immutable
 final class ImmutablePolicyPlaceholder extends AbstractEntityIdPlaceholder<PolicyId> implements PolicyPlaceholder {

@@ -100,8 +100,7 @@ final class EntityIds {
         return Arrays.stream(classToInstantiate.getMethods())
                 .filter(innerMethod -> Modifier.isStatic(innerMethod.getModifiers()))
                 .filter(innerMethod -> innerMethod.getParameterCount() == 1)
-                .filter(innerMethod -> innerMethod.getParameterTypes()[0].isAssignableFrom(
-                        CharSequence.class))
+                .filter(innerMethod -> innerMethod.getParameterTypes()[0].isAssignableFrom(CharSequence.class))
                 .filter(innerMethod -> classToInstantiate.isAssignableFrom(innerMethod.getReturnType()))
                 .findAny()
                 .orElseThrow(() -> {

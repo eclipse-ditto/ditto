@@ -24,8 +24,8 @@ import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
 
 /**
- * Placeholder implementation that replaces {@code entity:id}, {@code entity:namespace} and {@code entity:name}. The
- * input value is a String and must be a valid Entity ID.
+ * Placeholder implementation that replaces {@code entity:id}, {@code entity:namespace} and {@code entity:name}.
+ * The input value is a String and must be a valid Entity ID.
  */
 @Immutable
 final class ImmutableEntityIdPlaceholder extends AbstractEntityIdPlaceholder<NamespacedEntityId> {

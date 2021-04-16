@@ -40,14 +40,19 @@ final class ImmutableTopicPath implements TopicPath {
     private final Channel channel;
     private final Criterion criterion;
     @Nullable private final Action action;
-    @Nullable private final String subject;
     @Nullable private final SearchAction searchAction;
+    @Nullable private final String subject;
     private final String path;
 
-    private ImmutableTopicPath(final String namespace, final String name, final Group group,
-            @Nullable final Channel channel, final Criterion criterion, @Nullable final Action action,
+    private ImmutableTopicPath(final String namespace,
+            final String name,
+            final Group group,
+            @Nullable final Channel channel,
+            final Criterion criterion,
+            @Nullable final Action action,
             @Nullable final SearchAction searchAction,
-            @Nullable final String subject) {
+            @Nullable final String subject
+            ) {
         this.namespace = checkNotNull(namespace, PROP_NAME_NAMESPACE);
         this.name = checkNotNull(name, PROP_NAME_ID);
         this.group = checkNotNull(group, PROP_NAME_GROUP);

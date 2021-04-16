@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
@@ -67,7 +66,6 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
                 final ThingId thingId =
                         thing.getEntityId().orElseThrow(() -> new IllegalStateException("ID must not be null!"));
                 final ActorRef persistenceActorUnderTest = createPersistenceActorFor(thingId);
-
 
                 // create a thing...
                 final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
@@ -189,4 +187,5 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(modifiedThing, dittoHeaders);
         return ModifyThingResponse.modified(modifiedThing.getEntityId().get(), dittoHeadersWithETag);
     }
+
 }

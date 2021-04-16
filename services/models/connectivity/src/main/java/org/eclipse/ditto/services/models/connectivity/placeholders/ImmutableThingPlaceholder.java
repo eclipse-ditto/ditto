@@ -23,8 +23,8 @@ import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.things.ThingId;
 
 /**
- * Placeholder implementation that replaces {@code thing:id}, {@code thing:namespace} and {@code thing:name}. The
- * input value is a String and must be a valid Thing ID.
+ * Placeholder implementation that replaces {@code thing:id}, {@code thing:namespace} and {@code thing:name}.
+ * The input value is a String and must be a valid Thing ID.
  */
 @Immutable
 final class ImmutableThingPlaceholder extends AbstractEntityIdPlaceholder<ThingId> implements ThingPlaceholder {

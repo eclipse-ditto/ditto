@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.model.base.entity.id;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.entity.type.EntityType;
@@ -66,22 +65,8 @@ public interface EntityId extends CharSequence, Comparable<EntityId> {
      * Returns the entity type.
      *
      * @return the entity type.
+     * @since 2.0.0
      */
     EntityType getEntityType();
-
-    /**
-     * Checks if the passed entity ID is compatible with this entity ID.
-     * In the base implementation a given entity ID is compatible if a call of equals with that ID
-     * would yield {@code true} other wise {@code false}.
-     * Subclasses may implement a different behavior.
-     * Please have a look at the documentation of the subclass for further information.
-     *
-     * @param otherEntityId the entity ID to be compared for equality with this entity ID.
-     * @return {@code true} if {@code otherEntityId} is compatible with this entity ID {@code false} otherwise.
-     * @since 1.2.0
-     */
-    default boolean isCompatible(@Nullable final EntityId otherEntityId) {
-        return equals(otherEntityId);
-    }
 
 }
