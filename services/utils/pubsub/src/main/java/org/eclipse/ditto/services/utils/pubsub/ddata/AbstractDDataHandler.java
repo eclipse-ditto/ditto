@@ -63,8 +63,7 @@ public abstract class AbstractDDataHandler<K, S, T extends DDataUpdate<S>>
         if (update.isEmpty()) {
             return CompletableFuture.completedFuture(null);
         } else {
-            final int shardNumber = Math.abs(ownSubscriber.hashCode() % numberOfShards);
-            return update(getKey(shardNumber), writeConsistency, initialMMap -> {
+            return update(getKey(selfUniqueAddress.uniqueAddress().address()), writeConsistency, initialMMap -> {
                 ORMultiMap<K, S> mmap = initialMMap;
                 for (final S delete : update.getDeletes()) {
                     mmap = mmap.removeBinding(selfUniqueAddress, ownSubscriber, delete);
@@ -80,8 +79,7 @@ public abstract class AbstractDDataHandler<K, S, T extends DDataUpdate<S>>
     @Override
     public CompletionStage<Void> removeSubscriber(final K subscriber,
             final Replicator.WriteConsistency writeConsistency) {
-        final int shardNumber = Math.abs(subscriber.hashCode() % numberOfShards);
-        return update(getKey(shardNumber), writeConsistency, mmap -> mmap.remove(selfUniqueAddress, subscriber));
+        return update(getKey(selfUniqueAddress.uniqueAddress().address()), writeConsistency, mmap -> mmap.remove(selfUniqueAddress, subscriber));
     }
 
     @Override
