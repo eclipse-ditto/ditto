@@ -23,6 +23,9 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 final class JsonObjectMerger extends AbstractJsonMerger {
 
+    private JsonObjectMerger() {
+    }
+
     /**
      * Merge 2 JSON objects recursively into one. In case of conflict, the first object is more important.
      *

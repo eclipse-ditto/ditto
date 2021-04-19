@@ -50,7 +50,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * </pre>
  */
 @Immutable
-@JsonParsableCommand(typePrefix = ExecutePiggybackCommand.TYPE_PREFIX, name = ExecutePiggybackCommand.NAME)
+@JsonParsableCommand(typePrefix = DevOpsCommand.TYPE_PREFIX, name = ExecutePiggybackCommand.NAME)
 public final class ExecutePiggybackCommand extends AbstractDevOpsCommand<ExecutePiggybackCommand> {
 
     /**

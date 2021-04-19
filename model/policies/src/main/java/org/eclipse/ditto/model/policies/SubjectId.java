@@ -61,6 +61,7 @@ public interface SubjectId extends CharSequence {
      *
      * @return the JsonFieldDefinition for this Subject.
      */
+    @SuppressWarnings("rawtypes")
     default JsonFieldDefinition getJsonFieldDefinition() {
         return JsonFactory.newStringFieldDefinition(this, FieldType.REGULAR, JsonSchemaVersion.V_2);
     }

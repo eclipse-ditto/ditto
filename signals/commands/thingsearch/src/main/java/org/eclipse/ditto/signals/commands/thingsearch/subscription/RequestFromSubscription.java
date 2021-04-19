@@ -38,7 +38,7 @@ import org.eclipse.ditto.signals.commands.thingsearch.WithSubscriptionId;
  * @since 1.1.0
  */
 @Immutable
-@JsonParsableCommand(typePrefix = RequestFromSubscription.TYPE_PREFIX, name = RequestFromSubscription.NAME)
+@JsonParsableCommand(typePrefix = ThingSearchCommand.TYPE_PREFIX, name = RequestFromSubscription.NAME)
 public final class RequestFromSubscription extends AbstractCommand<RequestFromSubscription>
         implements ThingSearchCommand<RequestFromSubscription>, WithSubscriptionId<RequestFromSubscription> {
 

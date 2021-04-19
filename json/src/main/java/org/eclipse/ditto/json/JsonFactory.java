@@ -475,7 +475,7 @@ public final class JsonFactory {
      * @throws NullPointerException if {@code key} is {@code null}.
      */
     public static JsonField newField(final JsonKey key, @Nullable final JsonValue value,
-            @Nullable final JsonFieldDefinition definition) {
+            @Nullable final JsonFieldDefinition<?> definition) {
 
         return ImmutableJsonField.newInstance(key, null != value ? value : nullLiteral(), definition);
     }
@@ -705,15 +705,15 @@ public final class JsonFactory {
      * @return a new JSON field selector.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static JsonFieldSelector newFieldSelector(final JsonFieldDefinition fieldDefinition,
-            final JsonFieldDefinition... furtherFieldDefinitions) {
+    public static JsonFieldSelector newFieldSelector(final JsonFieldDefinition<?> fieldDefinition,
+            final JsonFieldDefinition<?>... furtherFieldDefinitions) {
 
         requireNonNull(fieldDefinition, "The JSON field definition must not be null!");
         requireNonNull(furtherFieldDefinitions, "The optional JSON field definitions must not be null!");
 
         final Collection<JsonPointer> pointers = new LinkedHashSet<>(1 + furtherFieldDefinitions.length);
         pointers.add(fieldDefinition.getPointer());
-        for (final JsonFieldDefinition furtherFieldDefinition : furtherFieldDefinitions) {
+        for (final JsonFieldDefinition<?> furtherFieldDefinition : furtherFieldDefinitions) {
             pointers.add(furtherFieldDefinition.getPointer());
         }
 

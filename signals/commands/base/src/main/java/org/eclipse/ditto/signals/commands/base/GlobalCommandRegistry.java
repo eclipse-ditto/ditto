@@ -27,8 +27,8 @@ import org.eclipse.ditto.signals.base.AbstractGlobalJsonParsableRegistry;
  */
 @Immutable
 public final class GlobalCommandRegistry
-        extends AbstractGlobalJsonParsableRegistry<Command, JsonParsableCommand>
-        implements CommandRegistry<Command> {
+        extends AbstractGlobalJsonParsableRegistry<Command<?>, JsonParsableCommand>
+        implements CommandRegistry<Command<?>> {
 
     private static final GlobalCommandRegistry INSTANCE = new GlobalCommandRegistry();
 
@@ -60,7 +60,7 @@ public final class GlobalCommandRegistry
      * from a combination of {@link JsonObject} and {@link DittoHeaders}.
      */
     private static final class CommandParsingStrategyFactory
-            extends AbstractAnnotationBasedJsonParsableFactory<Command, JsonParsableCommand> {
+            extends AbstractAnnotationBasedJsonParsableFactory<Command<?>, JsonParsableCommand> {
 
         private CommandParsingStrategyFactory() {}
 

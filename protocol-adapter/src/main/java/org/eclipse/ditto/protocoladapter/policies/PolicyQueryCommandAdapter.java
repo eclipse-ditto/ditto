@@ -43,6 +43,7 @@ final class PolicyQueryCommandAdapter extends AbstractPolicyAdapter<PolicyQueryC
         return new PolicyQueryCommandAdapter(requireNonNull(headerTranslator));
     }
 
+    @Override
     protected String getTypeCriterionAsString(final TopicPath topicPath) {
         return topicPath.getCriterion().getName();
     }

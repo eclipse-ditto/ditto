@@ -39,14 +39,14 @@ import io.jsonwebtoken.lang.Objects;
  * JJWT library Serializer implementation which translates Java Objects (e.g. Maps) to JSON strings.
  */
 @Immutable
-public final class JjwtSerializer<T> implements Serializer<T> {
+public final class JjwtSerializer implements Serializer<Map<String, ?>> {
 
-    private static Serializer instance;
+    private static Serializer<Map<String, ?>> instance;
 
     /**
      * @return the instance of {@link JjwtSerializer}.
      */
-    public static <T> Serializer<T> getInstance() {
+    public static Serializer<Map<String, ?>> getInstance() {
         if (instance == null) {
             instance = new JjwtSerializer();
         }
@@ -54,7 +54,7 @@ public final class JjwtSerializer<T> implements Serializer<T> {
     }
 
     @Override
-    public byte[] serialize(T t) {
+    public byte[] serialize(final Map<String, ?> t) {
 
         try {
             return toJson(t).toString().getBytes(StandardCharsets.UTF_8);

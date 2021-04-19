@@ -64,8 +64,8 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
         return fieldName ->
                 thing -> getThingField(fieldName, thing)
                         .flatMap(ThingPredicatePredicateVisitor::mapJsonValueToJava)
-                        .map(obj -> (Comparable) obj)
-                        .filter(obj -> compare((Comparable) value, obj) == 0)
+                        .map(Comparable.class::cast)
+                        .filter(obj -> compare((Comparable<?>) value, obj) == 0)
                         .isPresent();
     }
 
@@ -74,8 +74,8 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
         return fieldName ->
                 thing -> !getThingField(fieldName, thing)
                         .flatMap(ThingPredicatePredicateVisitor::mapJsonValueToJava)
-                        .map(obj -> (Comparable) obj)
-                        .filter(obj -> compare((Comparable) value, obj) == 0)
+                        .map(Comparable.class::cast)
+                        .filter(obj -> compare((Comparable<?>) value, obj) == 0)
                         .isPresent();
     }
 
@@ -85,8 +85,8 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
                 thing -> getThingField(fieldName, thing)
                         .flatMap(ThingPredicatePredicateVisitor::mapJsonValueToJava)
                         .filter(obj -> obj instanceof Comparable && value instanceof Comparable)
-                        .map(obj -> (Comparable) obj)
-                        .filter(obj -> compare((Comparable) value, obj) >= 0)
+                        .map(Comparable.class::cast)
+                        .filter(obj -> compare((Comparable<?>) value, obj) >= 0)
                         .isPresent();
     }
 
@@ -96,8 +96,8 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
                 thing -> getThingField(fieldName, thing)
                         .flatMap(ThingPredicatePredicateVisitor::mapJsonValueToJava)
                         .filter(obj -> obj instanceof Comparable && value instanceof Comparable)
-                        .map(obj -> (Comparable) obj)
-                        .filter(obj -> compare((Comparable) value, obj) > 0)
+                        .map(Comparable.class::cast)
+                        .filter(obj -> compare((Comparable<?>) value, obj) > 0)
                         .isPresent();
     }
 
@@ -107,8 +107,8 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
                 thing -> getThingField(fieldName, thing)
                         .flatMap(ThingPredicatePredicateVisitor::mapJsonValueToJava)
                         .filter(obj -> obj instanceof Comparable && value instanceof Comparable)
-                        .map(obj -> (Comparable) obj)
-                        .filter(obj -> compare((Comparable) value, obj) <= 0)
+                        .map(Comparable.class::cast)
+                        .filter(obj -> compare((Comparable<?>) value, obj) <= 0)
                         .isPresent();
     }
 
@@ -118,11 +118,12 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
                 thing -> getThingField(fieldName, thing)
                         .flatMap(ThingPredicatePredicateVisitor::mapJsonValueToJava)
                         .filter(obj -> obj instanceof Comparable && value instanceof Comparable)
-                        .map(obj -> (Comparable) obj)
-                        .filter(obj -> compare((Comparable) value, obj) < 0)
+                        .map(Comparable.class::cast)
+                        .filter(obj -> compare((Comparable<?>) value, obj) < 0)
                         .isPresent();
     }
 
+    @SuppressWarnings("rawtypes")
     private static int compare(final Comparable value, final Comparable obj) {
         final Comparable comparableObj = asNumber(obj);
         final Comparable comparableValue = asNumber(value);
@@ -152,7 +153,8 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
         }
     }
 
-    private static Comparable asNumber(final Comparable comparable) {
+    @SuppressWarnings("rawtypes")
+    private static Comparable asNumber(final Comparable<?> comparable) {
         return comparable instanceof Number ? new BigDecimal(comparable.toString()) : comparable;
     }
 
@@ -161,8 +163,8 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
         return fieldName ->
                 thing -> getThingField(fieldName, thing)
                         .flatMap(ThingPredicatePredicateVisitor::mapJsonValueToJava)
-                        .map(obj -> (Comparable) obj)
-                        .filter(obj -> values.stream().anyMatch(v -> compare((Comparable) v, obj) == 0))
+                        .map(Comparable.class::cast)
+                        .filter(obj -> values.stream().anyMatch(v -> compare((Comparable<?>) v, obj) == 0))
                         .isPresent();
     }
 

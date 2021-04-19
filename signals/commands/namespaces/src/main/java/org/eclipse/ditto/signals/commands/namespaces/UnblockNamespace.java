@@ -24,7 +24,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * Command for unblocking signals to a particular namespace.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = UnblockNamespace.TYPE_PREFIX, name = UnblockNamespace.NAME)
+@JsonParsableCommand(typePrefix = AbstractNamespaceCommand.TYPE_PREFIX, name = UnblockNamespace.NAME)
 public final class UnblockNamespace extends AbstractNamespaceCommand<UnblockNamespace> {
 
     /**

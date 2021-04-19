@@ -44,7 +44,7 @@ public final class DefaultIncomingMapping implements MappingFunction<ExternalMes
                 .map(JsonFactory::readFrom)
                 .map(JsonValue::asObject)
                 .map(ProtocolFactory::jsonifiableAdaptableFromJson))
-                .map(jsonifiableAdaptable -> (Adaptable) jsonifiableAdaptable)
+                .map(Adaptable.class::cast)
                 .map(Collections::singletonList)
                 .orElse(Collections.emptyList());
     }

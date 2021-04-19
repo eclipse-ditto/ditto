@@ -48,6 +48,7 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
     private final SnapshotAdapter<Policy> snapshotAdapter;
     private final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub;
 
+    @SuppressWarnings("unused")
     private PolicySupervisorActor(final ActorRef pubSubMediator, final SnapshotAdapter<Policy> snapshotAdapter,
             DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub) {
         this.pubSubMediator = pubSubMediator;

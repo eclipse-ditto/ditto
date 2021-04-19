@@ -55,7 +55,7 @@ public final class ConciergeRootActor extends DittoRootActor {
 
         enforcerActorFactory.startEnforcerActor(context, conciergeConfig, pubSubMediator, shardRegions);
 
-        final ActorRef conciergeForwarder = context.findChild(ConciergeForwarderActor.ACTOR_NAME).orElseThrow(() ->
+        context.findChild(ConciergeForwarderActor.ACTOR_NAME).orElseThrow(() ->
                 new IllegalStateException("ConciergeForwarder could not be found"));
 
         final ActorRef cleanupCoordinator = startClusterSingletonActor(

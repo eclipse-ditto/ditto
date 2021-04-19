@@ -417,7 +417,7 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
                     final Duration keepAlive = mqttSpecificConfig.getKeepAliveInterval().orElse(null);
                     return sendConn(client, cleanSession, keepAlive);
                 })
-                .handle((connAck, throwable) -> handleConnAck(connAck, throwable));
+                .handle(this::handleConnAck);
     }
 
     private InitializationResult handleConnAck(@Nullable final Object connAck, @Nullable final Throwable throwable) {

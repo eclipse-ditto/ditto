@@ -73,7 +73,7 @@ final class PipelineFunctionSubstringAfter implements PipelineFunction {
         }
 
         @Override
-        public List<ParameterDefinition> getParameterDefinitions() {
+        public List<ParameterDefinition<?>> getParameterDefinitions() {
             return Collections.singletonList(givenStringDescription);
         }
 

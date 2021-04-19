@@ -119,7 +119,7 @@ final class ImmutableMetadataBuilder implements MetadataBuilder {
     }
 
     @Override
-    public MetadataBuilder remove(final JsonFieldDefinition fieldDefinition) {
+    public MetadataBuilder remove(final JsonFieldDefinition<?> fieldDefinition) {
         jsonObjectBuilder.remove(fieldDefinition);
         return this;
     }

@@ -201,7 +201,7 @@ final class NullAttributes implements Attributes {
     }
 
     @Override
-    public JsonObject get(final JsonFieldDefinition fieldDefinition) {
+    public JsonObject get(final JsonFieldDefinition<?> fieldDefinition) {
         return this;
     }
 

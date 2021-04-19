@@ -227,7 +227,7 @@ public final class MessageCommandAdapterTest implements ProtocolAdapterTest {
     }
 
     private DittoHeaders dittoHeaders() {
-        final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder();
+        final DittoHeadersBuilder<?, ?> headersBuilder = DittoHeaders.newBuilder();
         headersBuilder.correlationId(TestConstants.CORRELATION_ID);
         headersBuilder.schemaVersion(version);
         return headersBuilder.build();

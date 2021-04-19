@@ -38,7 +38,7 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
  * Command which opens a {@link Connection}.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = OpenConnection.TYPE_PREFIX, name = OpenConnection.NAME)
+@JsonParsableCommand(typePrefix = ConnectivityCommand.TYPE_PREFIX, name = OpenConnection.NAME)
 public final class OpenConnection extends AbstractCommand<OpenConnection>
         implements ConnectivityModifyCommand<OpenConnection> {
 

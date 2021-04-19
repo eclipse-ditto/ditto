@@ -25,7 +25,7 @@ public abstract class SuperNode implements Node {
     /**
      * Constructor. Creates an instance of a super node.
      */
-    public SuperNode() {
+    protected SuperNode() {
         children = new ArrayList<>();
     }
 

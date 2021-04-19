@@ -36,13 +36,14 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
 /**
  * Ditto-internal command to start or resume a search request for a stream of thing IDs.
  * @since 1.1.0
  */
 @Immutable
-@JsonParsableCommand(typePrefix = StreamThings.TYPE_PREFIX, name = StreamThings.NAME)
+@JsonParsableCommand(typePrefix = ThingSearchCommand.TYPE_PREFIX, name = StreamThings.NAME)
 public final class StreamThings extends AbstractCommand<StreamThings> implements ThingSearchQueryCommand<StreamThings> {
 
     /**

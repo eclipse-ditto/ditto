@@ -34,7 +34,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * Command for starting the cleanup (deleting stale journal-entries + snapshots) of persistence actors.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = CleanupPersistence.TYPE_PREFIX, name = CleanupPersistence.NAME)
+@JsonParsableCommand(typePrefix = CleanupCommand.TYPE_PREFIX, name = CleanupPersistence.NAME)
 public final class CleanupPersistence
         extends AbstractCommand<CleanupPersistence> implements CleanupCommand<CleanupPersistence> {
 

@@ -32,7 +32,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  * Command to retrieve a config object from an actor.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = RetrieveConfig.TYPE_PREFIX, name = RetrieveConfig.NAME)
+@JsonParsableCommand(typePrefix = CommonCommand.TYPE_PREFIX, name = RetrieveConfig.NAME)
 public final class RetrieveConfig extends CommonCommand<RetrieveConfig> {
 
     /**

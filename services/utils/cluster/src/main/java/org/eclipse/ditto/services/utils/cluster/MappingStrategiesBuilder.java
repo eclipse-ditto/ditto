@@ -101,7 +101,6 @@ public final class MappingStrategiesBuilder {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public MappingStrategiesBuilder add(final JsonParsableRegistry<? extends Jsonifiable> jsonParsableRegistry) {
         checkNotNull(jsonParsableRegistry, "jsonParsableRegistry");
-        final BiFunction<JsonObject, DittoHeaders, Jsonifiable<?>> jsonDeserializer = jsonParsableRegistry::parse;
         for (final String type : jsonParsableRegistry.getTypes()) {
             add(type, (JsonParsable<Jsonifiable<?>>) jsonParsableRegistry);
         }

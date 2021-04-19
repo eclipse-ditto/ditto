@@ -17,7 +17,6 @@ import static org.eclipse.ditto.services.models.policies.Permission.MIN_REQUIRED
 
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -54,7 +53,6 @@ import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectId;
-import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.model.things.ThingId;
@@ -149,7 +147,7 @@ public final class ThingCommandEnforcement
         this.policyEnforcerCache = requireNonNull(policyEnforcerCache);
         this.preEnforcer = preEnforcer;
         thingEnforcerRetriever = PolicyEnforcerRetrieverFactory.create(thingIdCache, policyEnforcerCache);
-        policyEnforcerRetriever = new EnforcerRetriever<Enforcer>(IdentityCache.INSTANCE, policyEnforcerCache);
+        policyEnforcerRetriever = new EnforcerRetriever<>(IdentityCache.INSTANCE, policyEnforcerCache);
         policyIdReferencePlaceholderResolver =
                 PolicyIdReferencePlaceholderResolver.of(conciergeForwarder(), getAskTimeout());
     }
@@ -855,8 +853,6 @@ public final class ThingCommandEnforcement
     }
 
     private static boolean shouldCreatePolicyForCreateThing(final CreateThing createThing) {
-        final JsonSchemaVersion commandVersion =
-                createThing.getDittoHeaders().getSchemaVersion().orElse(JsonSchemaVersion.LATEST);
         return createThing.getInitialPolicy().isPresent() || createThing.getThing().getPolicyEntityId().isEmpty();
     }
 
@@ -1043,8 +1039,6 @@ public final class ThingCommandEnforcement
      */
     public static final class Provider implements EnforcementProvider<ThingCommand<?>> {
 
-        private static final List<SubjectIssuer> DEFAULT_SUBJECT_ISSUERS_FOR_POLICY_MIGRATION =
-                Collections.singletonList(SubjectIssuer.GOOGLE);
         private final ActorRef thingsShardRegion;
         private final ActorRef policiesShardRegion;
         private final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache;

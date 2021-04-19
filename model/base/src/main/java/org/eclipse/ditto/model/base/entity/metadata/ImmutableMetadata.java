@@ -217,7 +217,7 @@ final class ImmutableMetadata implements Metadata {
     }
 
     @Override
-    public JsonObject get(final JsonFieldDefinition fieldDefinition) {
+    public JsonObject get(final JsonFieldDefinition<?> fieldDefinition) {
         return wrapped.get(fieldDefinition);
     }
 
@@ -320,8 +320,8 @@ final class ImmutableMetadata implements Metadata {
     @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        return stream() //
-            .filter(field -> !field.getDefinition().isPresent() || predicate.test(field)) //
+        return stream()
+            .filter(field -> !field.getDefinition().isPresent() || predicate.test(field))
             .collect(JsonCollectors.fieldsToObject());
     }
 }

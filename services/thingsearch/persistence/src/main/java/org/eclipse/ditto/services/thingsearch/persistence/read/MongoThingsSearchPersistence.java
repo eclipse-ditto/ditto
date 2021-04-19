@@ -129,8 +129,8 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
      * @return copy of this object with hints configured.
      */
     public MongoThingsSearchPersistence withHintsByNamespace(final String jsonString) {
-        final MongoHints hints = MongoHints.byNamespace(jsonString);
-        return new MongoThingsSearchPersistence(collection, log, indexInitializer, maxQueryTime, hints);
+        final MongoHints theHints = MongoHints.byNamespace(jsonString);
+        return new MongoThingsSearchPersistence(collection, log, indexInitializer, maxQueryTime, theHints);
     }
 
     @Override

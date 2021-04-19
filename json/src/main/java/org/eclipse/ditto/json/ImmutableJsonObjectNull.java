@@ -118,7 +118,7 @@ final class ImmutableJsonObjectNull extends AbstractJsonValue implements JsonObj
     }
 
     @Override
-    public ImmutableJsonObjectNull get(final JsonFieldDefinition fieldDefinition) {
+    public ImmutableJsonObjectNull get(final JsonFieldDefinition<?> fieldDefinition) {
         return this;
     }
 

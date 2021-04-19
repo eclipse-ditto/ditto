@@ -255,7 +255,7 @@ public interface FeaturePropertiesBuilder extends JsonObjectBuilder {
      * @throws IllegalArgumentException if the JSON pointer of {@code fieldDefinition} is empty.
      */
     @Override
-    FeaturePropertiesBuilder remove(JsonFieldDefinition fieldDefinition);
+    FeaturePropertiesBuilder remove(JsonFieldDefinition<?> fieldDefinition);
 
     /**
      * Sets the given {@link JsonField}s to the {@code FeatureProperties} to be built. This method prevents duplicates,

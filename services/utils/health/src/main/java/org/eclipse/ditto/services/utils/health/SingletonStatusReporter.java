@@ -30,6 +30,7 @@ public final class SingletonStatusReporter extends AbstractHealthCheckingActor {
     private final String clusterRole;
     private final ActorRef healthReportingSingletonProxy;
 
+    @SuppressWarnings("unused")
     private SingletonStatusReporter(final String clusterRole, final ActorRef healthReportingSingletonProxy) {
         this.clusterRole = clusterRole;
         this.healthReportingSingletonProxy = healthReportingSingletonProxy;

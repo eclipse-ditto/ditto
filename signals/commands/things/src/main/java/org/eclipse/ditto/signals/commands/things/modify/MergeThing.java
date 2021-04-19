@@ -61,7 +61,7 @@ import org.eclipse.ditto.signals.commands.things.exceptions.ThingMergeInvalidExc
  * @since 2.0.0
  */
 @Immutable
-@JsonParsableCommand(typePrefix = MergeThing.TYPE_PREFIX, name = MergeThing.NAME)
+@JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = MergeThing.NAME)
 public final class MergeThing extends AbstractCommand<MergeThing> implements ThingModifyCommand<MergeThing> {
 
     /**

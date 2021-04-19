@@ -194,7 +194,7 @@ public final class BackgroundSyncStream {
                                     ? Source.single(persisted)
                                     : Source.empty()
                             );
-            return Source.fromSourceCompletionStage(askFuture);
+            return Source.completionStageSource(askFuture);
         } else {
             // policy ID does not exist: entry should be updated in search index
             return Source.single(persisted);
@@ -224,7 +224,7 @@ public final class BackgroundSyncStream {
                                         .map(r -> indexed);
                             }
                         });
-        return Source.fromSourceCompletionStage(sourceCompletionStage)
+        return Source.completionStageSource(sourceCompletionStage)
                 .mapMaterializedValue(ignored -> NotUsed.getInstance());
     }
 

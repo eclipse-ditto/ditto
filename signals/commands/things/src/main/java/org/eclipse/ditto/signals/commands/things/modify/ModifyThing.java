@@ -39,6 +39,7 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.exceptions.PoliciesConflictingException;
 
@@ -46,7 +47,7 @@ import org.eclipse.ditto.signals.commands.things.exceptions.PoliciesConflictingE
  * This command modifies an existing Thing. It contains the full {@link Thing} including the Thing ID which should be
  * used for modification.
  */
-@JsonParsableCommand(typePrefix = ModifyThing.TYPE_PREFIX, name = ModifyThing.NAME)
+@JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = ModifyThing.NAME)
 public final class ModifyThing extends AbstractCommand<ModifyThing> implements ThingModifyCommand<ModifyThing> {
 
     /**
@@ -209,11 +210,11 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
             final JsonObject initialPolicyObject = jsonObject.getValue(JSON_INITIAL_POLICY).orElse(null);
             final String policyIdOrPlaceholder = jsonObject.getValue(JSON_POLICY_ID_OR_PLACEHOLDER).orElse(null);
 
-            final Optional<String> optionalThingId = jsonObject.getValue(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final Optional<String> optionalThingId = jsonObject.getValue(ThingCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = optionalThingId
                     .map(ThingId::of)
                     .orElseGet(() -> extractedThing.getEntityId().orElseThrow(() ->
-                            new JsonMissingFieldException(ThingModifyCommand.JsonFields.JSON_THING_ID)
+                            new JsonMissingFieldException(ThingCommand.JsonFields.JSON_THING_ID)
                     ));
 
             return of(thingId, extractedThing, initialPolicyObject, policyIdOrPlaceholder, dittoHeaders);
@@ -270,7 +271,7 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_THING, thing.toJson(schemaVersion, thePredicate), predicate);
         if (initialPolicy != null) {
             jsonObjectBuilder.set(JSON_INITIAL_POLICY, initialPolicy, predicate);

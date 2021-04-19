@@ -34,12 +34,13 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 /**
  * This command retrieves a {@link org.eclipse.ditto.model.things.Feature}'s Definition.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = RetrieveFeatureDefinition.TYPE_PREFIX, name = RetrieveFeatureDefinition.NAME)
+@JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = RetrieveFeatureDefinition.NAME)
 public final class RetrieveFeatureDefinition extends AbstractCommand<RetrieveFeatureDefinition>
         implements ThingQueryCommand<RetrieveFeatureDefinition>, WithFeatureId {
 
@@ -127,7 +128,7 @@ public final class RetrieveFeatureDefinition extends AbstractCommand<RetrieveFea
      */
     public static RetrieveFeatureDefinition fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveFeatureDefinition>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
             final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
 
@@ -156,7 +157,7 @@ public final class RetrieveFeatureDefinition extends AbstractCommand<RetrieveFea
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
     }
 

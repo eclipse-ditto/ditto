@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.WithEntity;
 
 /**
@@ -114,7 +115,7 @@ public final class DevOpsErrorResponse extends AbstractCommandResponse<DevOpsErr
                 .orElse(null);
         final String instance = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_INSTANCE)
                 .orElse(null);
-        final JsonObject exception = jsonObject.getValueOrThrow(DevOpsCommandResponse.JsonFields.PAYLOAD).asObject();
+        final JsonObject exception = jsonObject.getValueOrThrow(CommandResponse.JsonFields.PAYLOAD).asObject();
 
         return of(serviceName, instance, exception, dittoHeaders);
     }
@@ -148,7 +149,7 @@ public final class DevOpsErrorResponse extends AbstractCommandResponse<DevOpsErr
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(DevOpsCommandResponse.JsonFields.JSON_SERVICE_NAME, serviceName, predicate);
         jsonObjectBuilder.set(DevOpsCommandResponse.JsonFields.JSON_INSTANCE, instance, predicate);
-        jsonObjectBuilder.set(DevOpsCommandResponse.JsonFields.PAYLOAD, dittoRuntimeException, predicate);
+        jsonObjectBuilder.set(CommandResponse.JsonFields.PAYLOAD, dittoRuntimeException, predicate);
     }
 
     @Override

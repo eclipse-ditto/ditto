@@ -26,7 +26,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * Command for purging namespace data.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = PurgeNamespace.TYPE_PREFIX, name = PurgeNamespace.NAME)
+@JsonParsableCommand(typePrefix = AbstractNamespaceCommand.TYPE_PREFIX, name = PurgeNamespace.NAME)
 public final class PurgeNamespace extends AbstractNamespaceCommand<PurgeNamespace> {
 
     /**

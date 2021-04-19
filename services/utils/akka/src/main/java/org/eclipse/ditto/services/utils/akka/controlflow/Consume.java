@@ -65,9 +65,9 @@ public final class Consume {
      * @return sink.
      */
     @SuppressWarnings("unchecked")
-    public static Graph<SinkShape<WithSender>, NotUsed> untyped(final Consumer<WithSender> consumer) {
+    public static Graph<SinkShape<WithSender<?>>, NotUsed> untyped(final Consumer<WithSender<?>> consumer) {
 
         // Ignore complaints from Java type checker. The consumer can clearly handle all inputs.
-        return (Graph<SinkShape<WithSender>, NotUsed>) (Object) of(consumer::accept);
+        return (Graph<SinkShape<WithSender<?>>, NotUsed>) (Object) of(consumer::accept);
     }
 }

@@ -212,7 +212,7 @@ final class NullFeatureProperties implements FeatureProperties {
     }
 
     @Override
-    public JsonObject get(final JsonFieldDefinition fieldDefinition) {
+    public JsonObject get(final JsonFieldDefinition<?> fieldDefinition) {
         return this;
     }
 

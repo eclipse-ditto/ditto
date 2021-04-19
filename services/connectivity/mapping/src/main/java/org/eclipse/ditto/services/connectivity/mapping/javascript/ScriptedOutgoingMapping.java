@@ -116,7 +116,7 @@ public final class ScriptedOutgoingMapping implements MappingFunction<Adaptable,
         final Map<String, String> headers;
         if (mappingHeaders != null && !(mappingHeaders instanceof Undefined)) {
             headers = new HashMap<>();
-            final Map jsHeaders = (Map) mappingHeaders;
+            final Map<?,?> jsHeaders = (Map<?,?>) mappingHeaders;
             jsHeaders.forEach((key, value) -> headers.put(String.valueOf(key), String.valueOf(value)));
         } else {
             headers = Collections.emptyMap();
@@ -159,7 +159,7 @@ public final class ScriptedOutgoingMapping implements MappingFunction<Adaptable,
                         final Object vals = values.invoke(obj);
                         if (vals instanceof Collection) {
                             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                            final Iterable coll = (Iterable) vals;
+                            final Iterable<?> coll = (Iterable<?>) vals;
                             coll.forEach(e -> baos.write(((Number) e).intValue()));
                             return Optional.of(ByteBuffer.wrap(baos.toByteArray()));
                         }

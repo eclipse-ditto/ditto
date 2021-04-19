@@ -34,23 +34,22 @@ import io.jsonwebtoken.io.Deserializer;
  * JJWT library Deserializer implementation which translates JSON strings to Java Objects (e.g. Maps).
  */
 @Immutable
-public final class JjwtDeserializer implements Deserializer {
+public final class JjwtDeserializer implements Deserializer<Map<String, ?>> {
 
-    private static Deserializer instance;
+    private static Deserializer<Map<String, ?>> instance;
 
     /**
      * @return the instance of {@link JjwtDeserializer}.
      */
-    public static Deserializer getInstance() {
+    public static Deserializer<Map<String, ?>> getInstance() {
         if (instance == null) {
             instance = new JjwtDeserializer();
         }
         return instance;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public Object deserialize(final byte[] bytes) {
+    public Map<String, ?> deserialize(final byte[] bytes) {
 
         ConditionChecker.argumentNotNull(bytes, "JSON byte array cannot be null");
 
@@ -65,9 +64,10 @@ public final class JjwtDeserializer implements Deserializer {
         }
     }
 
-    private static Object parse(final String json) {
+    @SuppressWarnings("unchecked")
+    private static Map<String, ?> parse(final String json) {
 
-        return toJavaObject(JsonFactory.readFrom(json));
+        return (Map<String, ?>) toJavaObject(JsonFactory.readFrom(json));
     }
 
     private static Map<String, Object> toJavaMap(final JsonObject jsonObject) {

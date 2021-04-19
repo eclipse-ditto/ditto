@@ -56,6 +56,10 @@ public final class EnforcedThingMapper {
 
     private static final ResourceKey THING_ROOT_RESOURCE_KEY = ResourceKey.newInstance(ThingCommand.RESOURCE_TYPE, "/");
 
+    private EnforcedThingMapper() {
+        throw new AssertionError();
+    }
+
     /**
      * Map a Thing JSON into a search index entry with synthesized metadata.
      *

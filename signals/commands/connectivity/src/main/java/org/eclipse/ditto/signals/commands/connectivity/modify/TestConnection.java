@@ -34,13 +34,14 @@ import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 
 /**
  * Command which test whether a {@link Connection} can successfully be established (e.g. by connecting to the endpoint,
  * configuring the MessageMappers, etc.).
  */
 @Immutable
-@JsonParsableCommand(typePrefix = TestConnection.TYPE_PREFIX, name = TestConnection.NAME)
+@JsonParsableCommand(typePrefix = ConnectivityCommand.TYPE_PREFIX, name = TestConnection.NAME)
 public final class TestConnection extends AbstractCommand<TestConnection>
         implements ConnectivityModifyCommand<TestConnection> {
 

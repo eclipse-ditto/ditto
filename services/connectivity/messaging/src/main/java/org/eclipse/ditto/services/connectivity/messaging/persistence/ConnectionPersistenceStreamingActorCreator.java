@@ -53,7 +53,7 @@ public final class ConnectionPersistenceStreamingActorCreator {
         return ConnectionTag.of(ConnectionId.of(id), pidWithSeqNr.getSequenceNr());
     }
 
-    private static PidWithSeqNr createPidWithSeqNr(final EntityIdWithRevision connectionTag) {
+    private static PidWithSeqNr createPidWithSeqNr(final EntityIdWithRevision<?> connectionTag) {
         return new PidWithSeqNr(ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX + connectionTag.getEntityId(),
                 connectionTag.getRevision());
     }

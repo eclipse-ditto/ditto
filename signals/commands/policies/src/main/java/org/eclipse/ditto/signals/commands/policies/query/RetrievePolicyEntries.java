@@ -31,12 +31,13 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 
 /**
  * Command which retrieves the Policy entries of a {@code Policy} based on the passed in Policy ID.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = RetrievePolicyEntries.TYPE_PREFIX, name = RetrievePolicyEntries.NAME)
+@JsonParsableCommand(typePrefix = PolicyCommand.TYPE_PREFIX, name = RetrievePolicyEntries.NAME)
 public final class RetrievePolicyEntries extends AbstractCommand<RetrievePolicyEntries>
         implements PolicyQueryCommand<RetrievePolicyEntries> {
 
@@ -97,7 +98,7 @@ public final class RetrievePolicyEntries extends AbstractCommand<RetrievePolicyE
      */
     public static RetrievePolicyEntries fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrievePolicyEntries>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
+            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyCommand.JsonFields.JSON_POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
 
             return of(policyId, dittoHeaders);
@@ -124,7 +125,7 @@ public final class RetrievePolicyEntries extends AbstractCommand<RetrievePolicyE
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyQueryCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
+        jsonObjectBuilder.set(PolicyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
     }
 
     @Override

@@ -42,7 +42,7 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
  * Command that will enable logging in a {@link org.eclipse.ditto.model.connectivity.Connection}.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = CheckConnectionLogsActive.TYPE_PREFIX, name = CheckConnectionLogsActive.NAME)
+@JsonParsableCommand(typePrefix = ConnectivityCommand.TYPE_PREFIX, name = CheckConnectionLogsActive.NAME)
 public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnectionLogsActive>
         implements ConnectivityModifyCommand<CheckConnectionLogsActive> {
 

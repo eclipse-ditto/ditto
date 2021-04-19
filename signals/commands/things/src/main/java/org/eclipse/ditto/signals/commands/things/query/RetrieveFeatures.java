@@ -33,12 +33,13 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 /**
  * Command which retrieves the {@link org.eclipse.ditto.model.things.Features} of a Thing.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = RetrieveFeatures.TYPE_PREFIX, name = RetrieveFeatures.NAME)
+@JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = RetrieveFeatures.NAME)
 public final class RetrieveFeatures extends AbstractCommand<RetrieveFeatures>
         implements ThingQueryCommand<RetrieveFeatures> {
 
@@ -125,7 +126,7 @@ public final class RetrieveFeatures extends AbstractCommand<RetrieveFeatures>
      */
     public static RetrieveFeatures fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveFeatures>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
             final JsonFieldSelector extractedFieldSelector = jsonObject.getValue(JSON_SELECTED_FIELDS)
                     .map(str -> JsonFactory.newFieldSelector(str, JsonFactory.newParseOptionsBuilder()
@@ -157,7 +158,7 @@ public final class RetrieveFeatures extends AbstractCommand<RetrieveFeatures>
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         if (null != selectedFields) {
             jsonObjectBuilder.set(JSON_SELECTED_FIELDS, selectedFields.toString(), predicate);
         }

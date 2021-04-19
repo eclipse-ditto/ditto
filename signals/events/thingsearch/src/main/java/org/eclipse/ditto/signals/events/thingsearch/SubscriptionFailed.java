@@ -34,7 +34,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * @since 1.1.0
  */
 @Immutable
-@JsonParsableEvent(name = SubscriptionFailed.NAME, typePrefix = SubscriptionFailed.TYPE_PREFIX)
+@JsonParsableEvent(name = SubscriptionFailed.NAME, typePrefix = SubscriptionEvent.TYPE_PREFIX)
 public final class SubscriptionFailed extends AbstractSubscriptionEvent<SubscriptionFailed> {
 
     /**
@@ -84,7 +84,7 @@ public final class SubscriptionFailed extends AbstractSubscriptionEvent<Subscrip
         return new EventJsonDeserializer<SubscriptionFailed>(TYPE, jsonObject)
                 .deserialize((revision, timestamp, metadata) -> {
                     final String subscriptionId =
-                            jsonObject.getValueOrThrow(AbstractSubscriptionEvent.JsonFields.SUBSCRIPTION_ID);
+                            jsonObject.getValueOrThrow(SubscriptionEvent.JsonFields.SUBSCRIPTION_ID);
                     final JsonObject errorJson = jsonObject.getValueOrThrow(JsonFields.ERROR);
                     final DittoRuntimeException error =
                             GlobalErrorRegistry.getInstance().parse(errorJson, dittoHeaders);

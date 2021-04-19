@@ -44,9 +44,8 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
  */
 @Immutable
 @AllValuesAreNonnullByDefault
-@JsonParsableCommand(typePrefix = SudoStreamSnapshots.TYPE_PREFIX, name = SudoStreamSnapshots.NAME)
-public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapshots>
-        implements StartStreamRequest {
+@JsonParsableCommand(typePrefix = StreamingMessage.TYPE_PREFIX, name = SudoStreamSnapshots.NAME)
+public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapshots> implements StartStreamRequest {
 
     static final String NAME = "SudoStreamSnapshots";
 
@@ -109,7 +108,7 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
         final long timeoutMillis = jsonObject.getValueOrThrow(JsonFields.JSON_TIMEOUT_MILLIS);
         final EntityId lowerBound = jsonObject.getValue(JsonFields.JSON_LOWER_BOUND)
                 .<EntityId>map(DefaultEntityId::of)
-                .orElseGet(() -> LowerBound.emptyEntityId());
+                .orElseGet(LowerBound::emptyEntityId);
         final JsonArray snapshotFields =
                 jsonObject.getValue(JsonFields.JSON_SNAPSHOT_FIELDS).orElseGet(JsonArray::empty);
         return new SudoStreamSnapshots(burst, timeoutMillis, lowerBound, snapshotFields, dittoHeaders);
@@ -237,6 +236,10 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
     }
 
     static final class JsonFields {
+
+        private JsonFields() {
+            throw new AssertionError();
+        }
 
         static final JsonFieldDefinition<Integer> JSON_BURST =
                 JsonFactory.newIntFieldDefinition("payload/burst", REGULAR, V_2);

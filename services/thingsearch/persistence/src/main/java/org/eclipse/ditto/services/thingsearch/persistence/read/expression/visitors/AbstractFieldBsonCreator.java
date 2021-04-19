@@ -23,7 +23,6 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException;
 
 import com.mongodb.client.model.Filters;
 
@@ -67,9 +66,4 @@ public abstract class AbstractFieldBsonCreator {
                 : visitRootLevelField(fieldName);
     }
 
-    private static InvalidRqlExpressionException invalidRql(final String message) {
-        return InvalidRqlExpressionException.newBuilder()
-                .message(message)
-                .build();
-    }
 }

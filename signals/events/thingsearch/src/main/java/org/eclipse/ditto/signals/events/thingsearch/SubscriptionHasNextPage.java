@@ -33,7 +33,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * @since 1.1.0
  */
 @Immutable
-@JsonParsableEvent(name = SubscriptionHasNextPage.NAME, typePrefix = SubscriptionHasNextPage.TYPE_PREFIX)
+@JsonParsableEvent(name = SubscriptionHasNextPage.NAME, typePrefix = SubscriptionEvent.TYPE_PREFIX)
 public final class SubscriptionHasNextPage extends AbstractSubscriptionEvent<SubscriptionHasNextPage> {
 
     /**
@@ -83,7 +83,7 @@ public final class SubscriptionHasNextPage extends AbstractSubscriptionEvent<Sub
         return new EventJsonDeserializer<SubscriptionHasNextPage>(TYPE, jsonObject)
                 .deserialize((revision, timestamp, metadata) -> {
                     final String subscriptionId =
-                            jsonObject.getValueOrThrow(AbstractSubscriptionEvent.JsonFields.SUBSCRIPTION_ID);
+                            jsonObject.getValueOrThrow(SubscriptionEvent.JsonFields.SUBSCRIPTION_ID);
                     final JsonArray items = jsonObject.getValueOrThrow(JsonFields.ITEMS);
                     return new SubscriptionHasNextPage(subscriptionId, items, dittoHeaders);
                 });

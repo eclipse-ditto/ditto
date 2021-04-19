@@ -34,12 +34,13 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 /**
  * This command deletes a {@link org.eclipse.ditto.model.things.Feature}'s Definition.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = DeleteFeatureDefinition.TYPE_PREFIX, name = DeleteFeatureDefinition.NAME)
+@JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = DeleteFeatureDefinition.NAME)
 public final class DeleteFeatureDefinition extends AbstractCommand<DeleteFeatureDefinition>
         implements ThingModifyCommand<DeleteFeatureDefinition>, WithFeatureId {
 
@@ -112,7 +113,7 @@ public final class DeleteFeatureDefinition extends AbstractCommand<DeleteFeature
      */
     public static DeleteFeatureDefinition fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<DeleteFeatureDefinition>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
             final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
 
@@ -141,7 +142,7 @@ public final class DeleteFeatureDefinition extends AbstractCommand<DeleteFeature
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
     }
 
