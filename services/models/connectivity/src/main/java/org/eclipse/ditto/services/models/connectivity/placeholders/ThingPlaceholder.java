@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.models.connectivity.placeholders;
 
-import org.eclipse.ditto.services.models.placeholders.Placeholder;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.services.models.placeholders.Placeholder;
 
 /**
