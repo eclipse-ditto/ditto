@@ -273,10 +273,10 @@ Default: empty string
 
 ### Configure Last Will message
 
-To notify other clients when the connection is disconnected ungracefully the `Last Will` feature can be used. The 
-message which will be published, is specified in the connection and stored in the broker when it connects. The message 
-contains a topic, retained message flag, QoS, and the text payload to be published. These can be configured in the 
-[Specific Configuration](#specificconfiguration) of the connection. 
+To notify other clients when the connection is disconnected ungracefully the [Last Will feature](https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901033) 
+can be used. The message which will be published, is specified in the connection and stored in the broker when it 
+connects. The message contains a topic, retained message flag, QoS, and the text payload to be published. These can be 
+configured in the [Specific Configuration](#specificconfiguration) of the connection. 
 
 {% include note.html content="This feature is enabled if the _last will topic_ is set." %}
 
