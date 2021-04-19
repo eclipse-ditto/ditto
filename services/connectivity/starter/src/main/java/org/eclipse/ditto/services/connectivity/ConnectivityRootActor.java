@@ -19,13 +19,13 @@ import javax.jms.JMSRuntimeException;
 import javax.naming.NamingException;
 
 import org.eclipse.ditto.services.base.actors.DittoRootActor;
+import org.eclipse.ditto.services.connectivity.config.ConnectionIdsRetrievalConfig;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ConnectionIdsRetrievalActor;
 import org.eclipse.ditto.services.connectivity.messaging.ConnectivityProxyActor;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceOperationsActor;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceStreamingActorCreator;
-import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPriorityProvider;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPriorityProviderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionSupervisorActor;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.UsageBasedPriorityProvider;
@@ -105,14 +105,16 @@ public final class ConnectivityRootActor extends DittoRootActor {
         //  available!
         DittoProtocolSub.get(actorSystem);
 
+        final MongoReadJournal mongoReadJournal = MongoReadJournal.newInstance(actorSystem);
         startClusterSingletonActor(
                 PersistencePingActor.props(
                         startConnectionShardRegion(actorSystem, connectionSupervisorProps, clusterConfig),
-                        connectivityConfig.getPingConfig(), MongoReadJournal.newInstance(actorSystem)),
+                        connectivityConfig.getPingConfig(), mongoReadJournal),
                 PersistencePingActor.ACTOR_NAME);
 
-        startClusterSingletonActor(
-                ConnectionIdsRetrievalActor.props(MongoReadJournal.newInstance(actorSystem)),
+        final ConnectionIdsRetrievalConfig connectionIdsRetrievalConfig =
+                connectivityConfig.getConnectionIdsRetrievalConfig();
+        startClusterSingletonActor(ConnectionIdsRetrievalActor.props(mongoReadJournal, connectionIdsRetrievalConfig),
                 ConnectionIdsRetrievalActor.ACTOR_NAME);
 
         startChildActor(ConnectionPersistenceOperationsActor.ACTOR_NAME,
