@@ -84,7 +84,7 @@ public final class PlaceholderSubstitution
     }
 
     @Override
-    @SuppressWarnings({"rawtypes", "unchecked"})
+    @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
     public CompletionStage<DittoHeadersSettable<?>> apply(final DittoHeadersSettable<?> dittoHeadersSettable) {
         requireNonNull(dittoHeadersSettable);
 

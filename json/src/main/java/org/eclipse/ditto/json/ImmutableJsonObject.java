@@ -148,7 +148,7 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
                 getDefinitionForKey(leafKey).orElse(null)));
     }
 
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({"rawtypes", "java:S3740"})
     private Optional<JsonFieldDefinition> getDefinitionForKey(final CharSequence key) {
         return getField(key).flatMap(JsonField::getDefinition);
     }
@@ -370,7 +370,7 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         }
     }
 
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({"rawtypes", "java:S3740"})
     private static JsonObject filterByTrie(final JsonObject self, final JsonFieldSelectorTrie trie) {
         if (trie.isEmpty()) {
             return self;

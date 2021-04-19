@@ -16,6 +16,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
@@ -189,7 +190,11 @@ public final class StagedCommand implements ConnectivityCommand<StagedCommand>, 
     @Override
     public StagedCommand next() {
         final Queue<ConnectionAction> queue = getActionsAsQueue();
-        queue.remove();
+        try {
+            queue.remove();
+        } catch (final NoSuchElementException e) {
+            throw new NoSuchElementException("Action queue did not contain more elements");
+        }
         return new StagedCommand(command, event, response, sender, queue);
     }
 

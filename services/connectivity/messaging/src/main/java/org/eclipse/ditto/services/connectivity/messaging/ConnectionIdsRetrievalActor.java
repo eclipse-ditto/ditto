@@ -149,7 +149,7 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
                 .map(Optional::get);
     }
 
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({"rawtypes", "java:S3740"})
     private CommandResponse buildResponse(final WithDittoHeaders cmd, final Set<String> ids) {
         return RetrieveAllConnectionIdsResponse.of(ids, cmd.getDittoHeaders());
     }

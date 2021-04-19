@@ -75,7 +75,7 @@ public final class Resolvers {
     /**
      * @return Array of all placeholders for target address and source/target header mappings.
      */
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({"rawtypes", "java:S3740"})
     public static Placeholder[] getPlaceholders() {
         return PLACEHOLDERS.toArray(new Placeholder[0]);
     }

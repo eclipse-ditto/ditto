@@ -1068,7 +1068,7 @@ public final class ThingCommandEnforcement
         }
 
         @Override
-        @SuppressWarnings({"unchecked", "rawtypes"})
+        @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
         public Class<ThingCommand<?>> getCommandClass() {
             return (Class) ThingCommand.class;
         }

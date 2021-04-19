@@ -91,7 +91,7 @@ public interface JsonField {
      *
      * @return the definition of this field.
      */
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({"rawtypes", "java:S3740"})
     Optional<JsonFieldDefinition> getDefinition();
 
     /**

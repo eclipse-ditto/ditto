@@ -85,7 +85,7 @@ final class ImmutableJsonField implements JsonField {
     }
 
     @Override
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({"rawtypes", "java:S3740"})
     public Optional<JsonFieldDefinition> getDefinition() {
         return Optional.ofNullable(definition);
     }

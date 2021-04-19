@@ -389,7 +389,7 @@ public final class PolicyCommandEnforcement
         }
 
         @Override
-        @SuppressWarnings({"unchecked", "rawtypes"})
+        @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
         public Class<PolicyCommand<?>> getCommandClass() {
             return (Class) PolicyCommand.class;
         }

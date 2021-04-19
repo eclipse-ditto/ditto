@@ -66,7 +66,7 @@ abstract class AbstractMessageMappingStrategies<T extends Jsonifiable.WithPredic
      * @throws org.eclipse.ditto.model.messages.MessagePayloadSizeTooLargeException if the message's payload is too
      * large
      */
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({"rawtypes", "java:S3740"})
     protected static Message messageFrom(final Adaptable adaptable) {
         final MessageHeaders messageHeaders = messageHeadersFrom(adaptable);
 

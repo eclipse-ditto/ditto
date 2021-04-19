@@ -66,7 +66,7 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      *
      * @return the builder.
      */
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({"rawtypes", "java:S3740"})
     static DittoHeadersBuilder newBuilder() {
         return DefaultDittoHeadersBuilder.newInstance();
     }
@@ -79,7 +79,7 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * @throws NullPointerException if {@code headers} is {@code null}.
      * @throws IllegalArgumentException if {@code headers} contains an invalid key-value-pair.
      */
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({"rawtypes", "java:S3740"})
     static DittoHeadersBuilder newBuilder(final Map<String, String> headers) {
         return DefaultDittoHeadersBuilder.of(headers);
     }
@@ -93,7 +93,7 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws IllegalArgumentException if {@code jsonObject} contains an invalid header.
      */
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({"rawtypes", "java:S3740"})
     static DittoHeadersBuilder newBuilder(final JsonObject jsonObject) {
         return DefaultDittoHeadersBuilder.of(jsonObject);
     }
@@ -104,7 +104,7 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      *
      * @return the new builder.
      */
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({"rawtypes", "java:S3740"})
     default DittoHeadersBuilder toBuilder() {
         return DefaultDittoHeadersBuilder.of(this);
     }

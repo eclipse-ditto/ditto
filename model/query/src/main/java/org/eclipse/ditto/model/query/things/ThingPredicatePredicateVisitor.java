@@ -123,7 +123,7 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
                         .isPresent();
     }
 
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({"rawtypes", "java:S3740"})
     private static int compare(final Comparable value, final Comparable obj) {
         final Comparable comparableObj = asNumber(obj);
         final Comparable comparableValue = asNumber(value);
@@ -153,7 +153,7 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
         }
     }
 
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({"rawtypes", "java:S3740"})
     private static Comparable asNumber(final Comparable<?> comparable) {
         return comparable instanceof Number ? new BigDecimal(comparable.toString()) : comparable;
     }

@@ -47,4 +47,9 @@ final class DefaultJwtAuthenticationResult extends AbstractAuthenticationResult 
     public boolean equals(final Object that) {
         return super.equals(that) && Objects.equals(jwt, ((DefaultJwtAuthenticationResult) that).jwt);
     }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), jwt);
+    }
 }

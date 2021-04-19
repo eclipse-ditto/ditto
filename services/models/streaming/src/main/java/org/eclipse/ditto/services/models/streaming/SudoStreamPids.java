@@ -123,7 +123,7 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids> implem
      *
      * @return the lower-bound PID.
      */
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({"rawtypes", "java:S3740"})
     public EntityIdWithRevision getLowerBound() {
         return lowerBound;
     }
