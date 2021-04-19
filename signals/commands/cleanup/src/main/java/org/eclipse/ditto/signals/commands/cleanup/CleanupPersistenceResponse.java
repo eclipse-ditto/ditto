@@ -23,8 +23,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -90,6 +90,7 @@ public final class CleanupPersistenceResponse extends AbstractCommandResponse<Cl
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicate) {
 
+        jsonObjectBuilder.set(CleanupCommandResponse.JsonFields.ENTITY_TYPE, entityId.getEntityType().toString());
         jsonObjectBuilder.set(CleanupCommandResponse.JsonFields.ENTITY_ID, String.valueOf(entityId), predicate);
     }
 
@@ -108,8 +109,11 @@ public final class CleanupPersistenceResponse extends AbstractCommandResponse<Cl
     public static CleanupPersistenceResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<CleanupPersistenceResponse>(TYPE, jsonObject).deserialize(
                 httpStatus -> {
+                    final EntityType entityType =
+                            EntityType.of(jsonObject.getValueOrThrow(CleanupCommandResponse.JsonFields.ENTITY_TYPE));
                     final String readEntityId = jsonObject.getValueOrThrow(CleanupCommandResponse.JsonFields.ENTITY_ID);
-                    return new CleanupPersistenceResponse(DefaultEntityId.of(readEntityId), httpStatus, dittoHeaders);
+                    return new CleanupPersistenceResponse(EntityId.of(entityType, readEntityId), httpStatus,
+                            dittoHeaders);
                 }
         );
     }
@@ -142,7 +146,7 @@ public final class CleanupPersistenceResponse extends AbstractCommandResponse<Cl
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                 super.toString() +
+                super.toString() +
                 ", entityId=" + entityId +
                 "]";
     }

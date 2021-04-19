@@ -56,9 +56,14 @@ public interface EntityIdWithRevision<I extends EntityId> extends Jsonifiable<Js
     final class JsonFields {
 
         /**
+         * JSON field containing the message's entity type.
+         */
+        public static final JsonFieldDefinition<String> ENTITY_TYPE = JsonFactory.newStringFieldDefinition("type");
+
+        /**
          * JSON field containing the message's ID.
          */
-        public static final JsonFieldDefinition<String> ID = JsonFactory.newStringFieldDefinition("id");
+        public static final JsonFieldDefinition<String> ENTITY_ID = JsonFactory.newStringFieldDefinition("id");
 
         /**
          * JSON field containing the message's revision.

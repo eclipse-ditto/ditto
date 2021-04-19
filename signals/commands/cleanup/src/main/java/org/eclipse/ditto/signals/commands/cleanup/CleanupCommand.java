@@ -70,11 +70,17 @@ public interface CleanupCommand<T extends CleanupCommand<T>> extends Command<T>,
     class JsonFields extends Command.JsonFields {
 
         /**
+         * JSON field containing the CleanupCommand's entity type.
+         */
+        public static final JsonFieldDefinition<String> ENTITY_TYPE =
+                JsonFactory.newStringFieldDefinition("entityType", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+
+        /**
          * JSON field containing the CleanupCommand's entityId.
          */
         public static final JsonFieldDefinition<String> ENTITY_ID =
-                JsonFactory.newStringFieldDefinition("entityId", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newStringFieldDefinition("entityId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     }
 }

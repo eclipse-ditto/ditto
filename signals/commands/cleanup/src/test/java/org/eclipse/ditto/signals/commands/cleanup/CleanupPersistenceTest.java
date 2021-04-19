@@ -18,8 +18,8 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.junit.Test;
@@ -31,9 +31,10 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public class CleanupPersistenceTest {
 
-    private static final EntityId ID = DefaultEntityId.of("thing:eclipse:ditto");
+    private static final EntityId ID = EntityId.of(EntityType.of("thing"), "eclipse:ditto");
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(Command.JsonFields.TYPE, CleanupPersistence.TYPE)
+            .set(CleanupCommand.JsonFields.ENTITY_TYPE, ID.getEntityType().toString())
             .set(CleanupCommand.JsonFields.ENTITY_ID, ID.toString())
             .build();
     private static final DittoHeaders HEADERS = DittoHeaders.newBuilder().correlationId("123").build();

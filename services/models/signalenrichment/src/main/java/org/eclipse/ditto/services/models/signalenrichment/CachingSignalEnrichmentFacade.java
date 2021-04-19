@@ -33,10 +33,9 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CacheFactory;
-import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
+import org.eclipse.ditto.services.utils.cache.CacheKey;
 import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
@@ -50,7 +49,7 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
     private static final ThreadSafeDittoLogger LOGGER = DittoLoggerFactory
             .getThreadSafeLogger(CachingSignalEnrichmentFacade.class);
 
-    private final Cache<EntityIdWithResourceType, JsonObject> extraFieldsCache;
+    private final Cache<CacheKey, JsonObject> extraFieldsCache;
 
     private CachingSignalEnrichmentFacade(
             final SignalEnrichmentFacade cacheLoaderFacade,
@@ -108,9 +107,8 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
                 .addFieldDefinition(Thing.JsonFields.REVISION) // additionally always select the revision
                 .build();
 
-        final EntityIdWithResourceType idWithResourceType =
-                EntityIdWithResourceType.of(ThingCommand.RESOURCE_TYPE, thingId,
-                        CacheFactory.newCacheLookupContext(dittoHeaders, enhancedFieldSelector));
+        final CacheKey idWithResourceType =
+                CacheKey.of(thingId, CacheFactory.newCacheLookupContext(dittoHeaders, enhancedFieldSelector));
 
         if (concernedSignal instanceof ThingEvent && !(ProtocolAdapter.isLiveSignal(concernedSignal))) {
             final ThingEvent<?> thingEvent = (ThingEvent<?>) concernedSignal;
@@ -119,7 +117,7 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
         return doCacheLookup(idWithResourceType, dittoHeaders);
     }
 
-    private CompletableFuture<JsonObject> doCacheLookup(final EntityIdWithResourceType idWithResourceType,
+    private CompletableFuture<JsonObject> doCacheLookup(final CacheKey idWithResourceType,
             final DittoHeaders dittoHeaders) {
 
         LOGGER.withCorrelationId(dittoHeaders)
@@ -130,7 +128,7 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
 
     private CompletableFuture<JsonObject> smartUpdateCachedObject(
             final JsonFieldSelector enhancedFieldSelector,
-            final EntityIdWithResourceType idWithResourceType,
+            final CacheKey idWithResourceType,
             final ThingEvent<?> thingEvent) {
 
         final DittoHeaders dittoHeaders = thingEvent.getDittoHeaders();
@@ -155,7 +153,7 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
     }
 
     private CompletionStage<JsonObject> handleNextExpectedThingEvent(final JsonFieldSelector enhancedFieldSelector,
-            final EntityIdWithResourceType idWithResourceType, final ThingEvent<?> thingEvent,
+            final CacheKey idWithResourceType, final ThingEvent<?> thingEvent,
             final JsonObjectBuilder jsonObjectBuilder) {
 
         final JsonPointer resourcePath = thingEvent.getResourcePath();

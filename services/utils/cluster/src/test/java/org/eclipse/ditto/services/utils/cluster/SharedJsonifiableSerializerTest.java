@@ -21,7 +21,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -143,7 +142,7 @@ public final class SharedJsonifiableSerializerTest {
 
         @Test
         public void shardedMessageEnvelopeSerializationWorksAsExpected() {
-            final EntityId id = DefaultEntityId.generateRandom();
+            final ThingId thingId = ThingId.generateRandom();
             final DittoHeaders dittoHeaders = DittoHeaders.empty();
             final RetrieveThings retrieveThings = RetrieveThings.getBuilder(thingId)
                     .dittoHeaders(dittoHeaders)
@@ -151,7 +150,7 @@ public final class SharedJsonifiableSerializerTest {
             final JsonObject jsonObject = retrieveThings.toJson(JsonSchemaVersion.V_2, FieldType.regularOrSpecial());
 
             final ShardedMessageEnvelope shardedMessageEnvelope =
-                    ShardedMessageEnvelope.of(id, RetrieveThings.TYPE, jsonObject, dittoHeaders);
+                    ShardedMessageEnvelope.of(thingId, RetrieveThings.TYPE, jsonObject, dittoHeaders);
 
             final byte[] serialized = underTest.toBinary(shardedMessageEnvelope);
             final Object deserialized = underTest.fromBinary(serialized, underTest.manifest(shardedMessageEnvelope));

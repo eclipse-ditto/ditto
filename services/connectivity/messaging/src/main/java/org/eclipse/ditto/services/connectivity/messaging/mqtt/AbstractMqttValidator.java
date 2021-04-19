@@ -292,13 +292,13 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
     private static <T extends EntityId> String applyEntityPlaceholder(final String address, final T entityId,
             final Consumer<String> unresolvedPlaceholderListener) {
 
-        final List<Placeholder<CharSequence>> placeholders = Arrays.asList(
+        final List<Placeholder<EntityId>> placeholders = Arrays.asList(
                 newThingPlaceholder(),
                 newPolicyPlaceholder(),
                 newEntityPlaceholder()
         );
 
-        for (final Placeholder<CharSequence> placeholder : placeholders) {
+        for (final Placeholder<EntityId> placeholder : placeholders) {
             try {
                 final ExpressionResolver expressionResolver =
                         PlaceholderFactory.newExpressionResolver(placeholder, entityId);

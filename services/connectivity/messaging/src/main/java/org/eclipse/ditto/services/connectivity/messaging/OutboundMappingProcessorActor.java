@@ -40,7 +40,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.SignalEnrichmentFailedException;
@@ -183,9 +183,9 @@ public final class OutboundMappingProcessorActor
         final boolean customAckRequested = requestedAcks.stream()
                 .anyMatch(request -> !DittoAcknowledgementLabel.contains(request.getLabel()));
 
-        final Optional<EntityIdWithType> entityIdWithType = extractEntityId(signal)
-                .filter(EntityIdWithType.class::isInstance)
-                .map(EntityIdWithType.class::cast);
+        final Optional<EntityId> entityIdWithType = extractEntityId(signal)
+                .filter(EntityId.class::isInstance)
+                .map(EntityId.class::cast);
         if (customAckRequested && entityIdWithType.isPresent()) {
             final List<AcknowledgementLabel> weakAckLabels = requestedAcks.stream()
                     .map(AcknowledgementRequest::getLabel)
@@ -705,7 +705,7 @@ public final class OutboundMappingProcessorActor
     }
 
     private static Acknowledgement weakAck(final AcknowledgementLabel label,
-            final EntityIdWithType entityId,
+            final EntityId entityId,
             final DittoHeaders dittoHeaders) {
         final JsonValue payload = JsonValue.of("Acknowledgement was issued automatically as weak ack, " +
                 "because the signal is not relevant for the subscriber. Possible reasons are: " +

@@ -17,8 +17,8 @@ import java.util.Objects;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
@@ -52,7 +52,8 @@ public final class StreamedSnapshot implements StreamingMessage, Jsonifiable<Jso
      * @return the streamed snapshot object.
      */
     public static StreamedSnapshot fromJson(final JsonObject jsonObject) {
-        final EntityId entityId = DefaultEntityId.of(jsonObject.getValueOrThrow(JsonFields.ENTITY_ID));
+        final EntityType entityType = EntityType.of(jsonObject.getValueOrThrow(JsonFields.ENTITY_TYPE));
+        final EntityId entityId = EntityId.of(entityType, jsonObject.getValueOrThrow(JsonFields.ENTITY_ID));
         final JsonObject snapshot = jsonObject.getValueOrThrow(JsonFields.SNAPSHOT);
         return new StreamedSnapshot(entityId, snapshot);
     }
@@ -78,6 +79,7 @@ public final class StreamedSnapshot implements StreamingMessage, Jsonifiable<Jso
     @Override
     public JsonObject toJson() {
         return JsonObject.newBuilder()
+                .set(JsonFields.ENTITY_TYPE, entityId.getEntityType().toString())
                 .set(JsonFields.ENTITY_ID, entityId.toString())
                 .set(JsonFields.SNAPSHOT, snapshot)
                 .build();
@@ -108,6 +110,8 @@ public final class StreamedSnapshot implements StreamingMessage, Jsonifiable<Jso
     }
 
     private static final class JsonFields {
+
+        private static final JsonFieldDefinition<String> ENTITY_TYPE = JsonFactory.newStringFieldDefinition("type");
 
         private static final JsonFieldDefinition<String> ENTITY_ID = JsonFactory.newStringFieldDefinition("id");
 

@@ -19,14 +19,15 @@ import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.policies.PolicyId;
 
 /**
- * Placeholder implementation that replaces {@code policy:id}, {@code policy:namespace} and {@code policy:name}. The
- * input value is a String and must be a valid Policy ID.
+ * Placeholder implementation that replaces {@code policy:id}, {@code policy:namespace} and {@code policy:name}.
+ * The input value is a String and must be a valid Policy ID.
  */
 @Immutable
-final class ImmutablePolicyPlaceholder extends AbstractEntityPlaceholder<PolicyId> implements PolicyPlaceholder {
+final class ImmutablePolicyPlaceholder extends AbstractEntityIdPlaceholder<PolicyId> implements PolicyPlaceholder {
 
     /**
      * Singleton instance of the ImmutablePolicyPlaceholder.
@@ -39,7 +40,7 @@ final class ImmutablePolicyPlaceholder extends AbstractEntityPlaceholder<PolicyI
     }
 
     @Override
-    public Optional<String> resolve(final CharSequence policyId, final String placeholder) {
+    public Optional<String> resolve(final EntityId policyId, final String placeholder) {
         argumentNotEmpty(placeholder, "placeholder");
         checkNotNull(policyId, "Policy ID");
         if (policyId instanceof PolicyId) {

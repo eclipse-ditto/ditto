@@ -18,8 +18,8 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.services.utils.akka.PingCommand;
 import org.eclipse.ditto.services.utils.persistentactors.config.DefaultPingConfig;
 import org.eclipse.ditto.services.utils.persistentactors.config.PingConfig;
@@ -58,8 +58,8 @@ public final class PersistencePingActorTest {
 
     @Test
     public void conversionBetweenCorrelationIdAndPersistenceIdIsOneToOne() {
-        final EntityId id1 = DefaultEntityId.of("foo:random-ID-jbxlkeimx");
-        final EntityId id2 = DefaultEntityId.of("foo:differentId");
+        final PolicyId id1 = PolicyId.of("foo:random-ID-jbxlkeimx");
+        final PolicyId id2 = PolicyId.of("foo:differentId");
         final Optional<String> outputId1 = PersistencePingActor.toPersistenceId(
                 PersistencePingActor.toCorrelationId(id1));
         final Optional<String> outputId2 = PersistencePingActor.toPersistenceId(
@@ -76,14 +76,14 @@ public final class PersistencePingActorTest {
 
             final PingConfig pingConfig =
                     DefaultPingConfig.of(actorSystem.settings().config().getConfig("ditto.test"));
-            final EntityId persistenceId1 = DefaultEntityId.of("some:pid-1");
-            final EntityId persistenceId2 = DefaultEntityId.of("some:pid-2");
-            final EntityId persistenceId3 = DefaultEntityId.of("some:pid-3");
+            final PolicyId persistenceId1 = PolicyId.of("some:pid-1");
+            final PolicyId persistenceId2 = PolicyId.of("some:pid-2");
+            final PolicyId persistenceId3 = PolicyId.of("some:pid-3");
             final Props props = PersistencePingActor.propsForTests(probe.ref(), pingConfig,
                     () -> Source.from(Arrays.asList(
-                            "policy:" + persistenceId1.toString(),
-                            "policy:" + persistenceId2.toString(),
-                            "policy:" + persistenceId3.toString())));
+                            persistenceId1.getEntityType() + ":" + persistenceId1,
+                            persistenceId1.getEntityType() + ":" + persistenceId2,
+                            persistenceId1.getEntityType() + ":" + persistenceId3)));
 
             actorSystem.actorOf(props);
 

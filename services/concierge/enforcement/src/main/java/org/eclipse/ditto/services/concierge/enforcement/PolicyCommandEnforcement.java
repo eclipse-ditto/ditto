@@ -42,7 +42,7 @@ import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.utils.cache.Cache;
-import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
+import org.eclipse.ditto.services.utils.cache.CacheKey;
 import org.eclipse.ditto.services.utils.cache.InvalidateCacheEntry;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.utils.cacheloaders.IdentityCache;
@@ -80,10 +80,10 @@ public final class PolicyCommandEnforcement
 
     private final ActorRef policiesShardRegion;
     private final EnforcerRetriever<PolicyEnforcer> enforcerRetriever;
-    private final Cache<EntityIdWithResourceType, Entry<PolicyEnforcer>> enforcerCache;
+    private final Cache<CacheKey, Entry<PolicyEnforcer>> enforcerCache;
 
     private PolicyCommandEnforcement(final Contextual<PolicyCommand<?>> context, final ActorRef policiesShardRegion,
-            final Cache<EntityIdWithResourceType, Entry<PolicyEnforcer>> enforcerCache) {
+            final Cache<CacheKey, Entry<PolicyEnforcer>> enforcerCache) {
 
         super(context, PolicyQueryCommandResponse.class);
         this.policiesShardRegion = requireNonNull(policiesShardRegion);
@@ -327,7 +327,7 @@ public final class PolicyCommandEnforcement
      * @param policyId the ID of the Policy to invalidate caches for.
      */
     private void invalidateCaches(final PolicyId policyId) {
-        final EntityIdWithResourceType entityId = EntityIdWithResourceType.of(PolicyCommand.RESOURCE_TYPE, policyId);
+        final CacheKey entityId = CacheKey.of(policyId);
         enforcerCache.invalidate(entityId);
         pubSubMediator().tell(DistPubSubAccess.sendToAll(
                 ConciergeMessagingConstants.ENFORCER_ACTOR_PATH,
@@ -373,7 +373,7 @@ public final class PolicyCommandEnforcement
      */
     public static final class Provider implements EnforcementProvider<PolicyCommand<?>> {
 
-        private final Cache<EntityIdWithResourceType, Entry<PolicyEnforcer>> enforcerCache;
+        private final Cache<CacheKey, Entry<PolicyEnforcer>> enforcerCache;
         private final ActorRef policiesShardRegion;
 
         /**
@@ -383,7 +383,7 @@ public final class PolicyCommandEnforcement
          * @param enforcerCache the enforcer cache.
          */
         public Provider(final ActorRef policiesShardRegion,
-                final Cache<EntityIdWithResourceType, Entry<PolicyEnforcer>> enforcerCache) {
+                final Cache<CacheKey, Entry<PolicyEnforcer>> enforcerCache) {
             this.policiesShardRegion = requireNonNull(policiesShardRegion);
             this.enforcerCache = requireNonNull(enforcerCache);
         }

@@ -27,8 +27,8 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
-import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.id.AbstractNamespacedEntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
@@ -49,14 +49,14 @@ public final class AcknowledgementAggregator {
 
     private static final byte DEFAULT_INITIAL_CAPACITY = 4;
 
-    private final EntityIdWithType entityId;
+    private final EntityId entityId;
     private final String correlationId;
     private final HeaderTranslator headerTranslator;
     private final Map<AcknowledgementLabel, Acknowledgement> acknowledgementMap;
     private final Duration timeout;
     private final Set<AcknowledgementLabel> expectedLabels;
 
-    private AcknowledgementAggregator(final EntityIdWithType entityId,
+    private AcknowledgementAggregator(final EntityId entityId,
             final CharSequence correlationId,
             final Duration timeout,
             final HeaderTranslator headerTranslator) {
@@ -81,7 +81,7 @@ public final class AcknowledgementAggregator {
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code correlationId} is empty.
      */
-    public static AcknowledgementAggregator getInstance(final EntityIdWithType entityId,
+    public static AcknowledgementAggregator getInstance(final EntityId entityId,
             final CharSequence correlationId,
             final Duration timeout,
             final HeaderTranslator headerTranslator) {
@@ -101,7 +101,7 @@ public final class AcknowledgementAggregator {
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code correlationId} is empty.
      */
-    public static AcknowledgementAggregator getInstance(final NamespacedEntityIdWithType entityId,
+    public static AcknowledgementAggregator getInstance(final AbstractNamespacedEntityId entityId,
             final CharSequence correlationId,
             final Duration timeout,
             final HeaderTranslator headerTranslator) {

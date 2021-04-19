@@ -27,7 +27,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelInvalidException;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.HttpStatusCodeOutOfRangeException;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -39,7 +39,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
  * @since 1.1.0
  */
 @Immutable
-public abstract class AcknowledgementJsonParser<I extends EntityIdWithType>
+public abstract class AcknowledgementJsonParser<I extends EntityId>
         implements Function<JsonObject, Acknowledgement> {
 
     /**

@@ -20,9 +20,10 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 import java.util.UUID;
 
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingConstants;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.streaming.AbstractEntityIdWithRevision;
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
@@ -53,7 +54,7 @@ public final class DefaultPersistenceStreamingActorTest {
 
     private static ActorSystem actorSystem;
 
-    private static final EntityId ID = DefaultEntityId.of("ns:knownId");
+    private static final ThingId ID = ThingId.of("ns:knownId");
 
     @BeforeClass
     public static void initActorSystem() {
@@ -109,7 +110,7 @@ public final class DefaultPersistenceStreamingActorTest {
     }
 
     private static Command<?> createStreamingRequest() {
-        return SudoStreamPids.of(1, 10_000L, DittoHeaders.empty());
+        return SudoStreamPids.of(1, 10_000L, DittoHeaders.empty(), ThingConstants.ENTITY_TYPE);
     }
 
     private static ActorRef createPersistenceQueriesActor(final Source<String, NotUsed> mockedSource) {
@@ -127,7 +128,7 @@ public final class DefaultPersistenceStreamingActorTest {
     }
 
     private static SimpleEntityIdWithRevision mapEntity(final PidWithSeqNr pidWithSeqNr) {
-        return new SimpleEntityIdWithRevision(DefaultEntityId.of(pidWithSeqNr.getPersistenceId()),
+        return new SimpleEntityIdWithRevision(ThingId.of(pidWithSeqNr.getPersistenceId()),
                 pidWithSeqNr.getSequenceNr());
     }
 

@@ -27,10 +27,11 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.services.utils.cache.CacheKey;
 import org.eclipse.ditto.services.utils.cache.CacheLookupContext;
-import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.signals.commands.base.Command;
 
@@ -47,20 +48,20 @@ import akka.pattern.Patterns;
  * @param <T> type of messages sent when loading entries by entity id.
  */
 @Immutable
-public final class ActorAskCacheLoader<V, T> implements AsyncCacheLoader<EntityIdWithResourceType, Entry<V>> {
+public final class ActorAskCacheLoader<V, T> implements AsyncCacheLoader<CacheKey, Entry<V>> {
 
     private static final ThreadSafeDittoLogger LOGGER =
             DittoLoggerFactory.getThreadSafeLogger(ActorAskCacheLoader.class);
 
     private final Duration askTimeout;
-    private final Function<String, ActorRef> entityRegionProvider;
-    private final Map<String, BiFunction<EntityId, CacheLookupContext, T>> commandCreatorMap;
-    private final Map<String, BiFunction<Object, CacheLookupContext, Entry<V>>> responseTransformerMap;
+    private final Function<EntityType, ActorRef> entityRegionProvider;
+    private final Map<EntityType, BiFunction<EntityId, CacheLookupContext, T>> commandCreatorMap;
+    private final Map<EntityType, BiFunction<Object, CacheLookupContext, Entry<V>>> responseTransformerMap;
 
     private ActorAskCacheLoader(final Duration askTimeout,
-            final Function<String, ActorRef> entityRegionProvider,
-            final Map<String, BiFunction<EntityId, CacheLookupContext, T>> commandCreatorMap,
-            final Map<String, BiFunction<Object, CacheLookupContext, Entry<V>>> responseTransformerMap) {
+            final Function<EntityType, ActorRef> entityRegionProvider,
+            final Map<EntityType, BiFunction<EntityId, CacheLookupContext, T>> commandCreatorMap,
+            final Map<EntityType, BiFunction<Object, CacheLookupContext, Entry<V>>> responseTransformerMap) {
         this.askTimeout = requireNonNull(askTimeout);
         this.entityRegionProvider = requireNonNull(entityRegionProvider);
         this.commandCreatorMap = Map.copyOf(requireNonNull(commandCreatorMap));
@@ -77,9 +78,9 @@ public final class ActorAskCacheLoader<V, T> implements AsyncCacheLoader<EntityI
      * @param responseTransformerMap functions per resource type for mapping a load-response to an {@link Entry}.
      */
     public static <V> ActorAskCacheLoader<V, Command<?>> forShard(final Duration askTimeout,
-            final Function<String, ActorRef> entityRegionProvider,
-            final Map<String, BiFunction<EntityId, CacheLookupContext, Command<?>>> commandCreatorMap,
-            final Map<String, BiFunction<Object, CacheLookupContext, Entry<V>>> responseTransformerMap) {
+            final Function<EntityType, ActorRef> entityRegionProvider,
+            final Map<EntityType, BiFunction<EntityId, CacheLookupContext, Command<?>>> commandCreatorMap,
+            final Map<EntityType, BiFunction<Object, CacheLookupContext, Entry<V>>> responseTransformerMap) {
         return new ActorAskCacheLoader<>(askTimeout, entityRegionProvider, commandCreatorMap, responseTransformerMap);
     }
 
@@ -87,25 +88,25 @@ public final class ActorAskCacheLoader<V, T> implements AsyncCacheLoader<EntityI
      * Constructs an {@link ActorAskCacheLoader} with a sharded entity region which supports a single resource type.
      *
      * @param askTimeout the ask timeout.
-     * @param resourceType the resource type.
+     * @param entityType the entity type.
      * @param entityRegion the entity region.
      * @param commandCreator function for creating a load-command by an entity id (without resource type).
      * @param responseTransformer function for mapping a load-response to an {@link Entry}.
      */
     public static <V> ActorAskCacheLoader<V, Command<?>> forShard(final Duration askTimeout,
-            final String resourceType,
+            final EntityType entityType,
             final ActorRef entityRegion,
             final BiFunction<EntityId, CacheLookupContext, Command<?>> commandCreator,
             final BiFunction<Object, CacheLookupContext, Entry<V>> responseTransformer) {
         requireNonNull(askTimeout);
-        requireNonNull(resourceType);
+        requireNonNull(entityType);
         requireNonNull(entityRegion);
         requireNonNull(commandCreator);
         requireNonNull(responseTransformer);
         return forShard(askTimeout,
-                EntityRegionMap.singleton(resourceType, entityRegion),
-                Collections.singletonMap(resourceType, commandCreator),
-                Collections.singletonMap(resourceType, responseTransformer));
+                EntityRegionMap.singleton(entityType, entityRegion),
+                Collections.singletonMap(entityType, commandCreator),
+                Collections.singletonMap(entityType, responseTransformer));
     }
 
     /**
@@ -120,8 +121,8 @@ public final class ActorAskCacheLoader<V, T> implements AsyncCacheLoader<EntityI
     public static <V> ActorAskCacheLoader<V, DistributedPubSubMediator.Send> forPubSub(
             final Duration askTimeout,
             final ActorRef pubSubMediator,
-            final Map<String, BiFunction<EntityId, CacheLookupContext, DistributedPubSubMediator.Send>> commandCreatorMap,
-            final Map<String, BiFunction<Object, CacheLookupContext, Entry<V>>> responseTransformerMap) {
+            final Map<EntityType, BiFunction<EntityId, CacheLookupContext, DistributedPubSubMediator.Send>> commandCreatorMap,
+            final Map<EntityType, BiFunction<Object, CacheLookupContext, Entry<V>>> responseTransformerMap) {
         return new ActorAskCacheLoader<>(askTimeout, unused -> pubSubMediator, commandCreatorMap,
                 responseTransformerMap);
     }
@@ -130,70 +131,69 @@ public final class ActorAskCacheLoader<V, T> implements AsyncCacheLoader<EntityI
      * Constructs an {@link ActorAskCacheLoader} with PubSub which supports a single resource type.
      *
      * @param askTimeout the ask timeout.
-     * @param resourceType the resource type.
+     * @param entityType the resource type.
      * @param pubSubMediator the PubSub mediator.
      * @param commandCreator function for creating a load-command by an entity id (without resource type).
      * @param responseTransformer function for mapping a load-response to an {@link Entry}.
      */
     public static <V> ActorAskCacheLoader<V, DistributedPubSubMediator.Send> forPubSub(
             final Duration askTimeout,
-            final String resourceType,
+            final EntityType entityType,
             final ActorRef pubSubMediator,
             final BiFunction<EntityId, CacheLookupContext, DistributedPubSubMediator.Send> commandCreator,
             final BiFunction<Object, CacheLookupContext, Entry<V>> responseTransformer) {
         requireNonNull(askTimeout);
-        requireNonNull(resourceType);
+        requireNonNull(entityType);
         requireNonNull(pubSubMediator);
         requireNonNull(commandCreator);
         requireNonNull(responseTransformer);
         return forPubSub(askTimeout,
                 pubSubMediator,
-                Collections.singletonMap(resourceType, commandCreator),
-                Collections.singletonMap(resourceType, responseTransformer));
+                Collections.singletonMap(entityType, commandCreator),
+                Collections.singletonMap(entityType, responseTransformer));
     }
 
     @Override
-    public final CompletableFuture<Entry<V>> asyncLoad(final EntityIdWithResourceType key, final Executor executor) {
-        final String resourceType = key.getResourceType();
+    public final CompletableFuture<Entry<V>> asyncLoad(final CacheKey key, final Executor executor) {
+        final EntityType entityType = key.getId().getEntityType();
         return CompletableFuture.supplyAsync(() -> {
             final EntityId entityId = key.getId();
-            return getCommand(resourceType, entityId, key.getCacheLookupContext().orElse(null));
+            return getCommand(entityType, entityId, key.getCacheLookupContext().orElse(null));
         }, executor).thenCompose(command -> {
-            final ActorRef entityRegion = getEntityRegion(key.getResourceType());
+            final ActorRef entityRegion = getEntityRegion(entityType);
             LOGGER.debug("Going to retrieve cache entry for key <{}> with command <{}>: ", key, command);
             return Patterns.ask(entityRegion, command, askTimeout)
                     .thenApply(response -> transformResponse(
-                            resourceType, response, key.getCacheLookupContext().orElse(null)))
+                            entityType, response, key.getCacheLookupContext().orElse(null)))
                     .toCompletableFuture();
         });
     }
 
-    private ActorRef getEntityRegion(final String resourceType) {
-        final ActorRef entityRegion = entityRegionProvider.apply(resourceType);
+    private ActorRef getEntityRegion(final EntityType entityType) {
+        final ActorRef entityRegion = entityRegionProvider.apply(entityType);
         if (entityRegion == null) {
-            throw new IllegalStateException("null entity region returned for resource type " +
-                    resourceType);
+            throw new IllegalStateException("null entity region returned for resource type " + entityType);
         }
 
         return entityRegion;
     }
 
-    private T getCommand(final String resourceType, final EntityId id,
+    private T getCommand(final EntityType entityType, final EntityId id,
             @Nullable final CacheLookupContext cacheLookupContext) {
-        final BiFunction<EntityId, CacheLookupContext, T> commandCreator = commandCreatorMap.get(resourceType);
+        final BiFunction<EntityId, CacheLookupContext, T> commandCreator = commandCreatorMap.get(entityType);
         if (commandCreator == null) {
             final String message =
                     String.format("Don't know how to create retrieve command for resource type <%s> and id <%s>",
-                            resourceType, id);
+                            entityType, id);
             throw new NullPointerException(message);
         } else {
             return commandCreator.apply(id, cacheLookupContext);
         }
     }
 
-    private Entry<V> transformResponse(final String resourceType, final Object response,
+    private Entry<V> transformResponse(final EntityType entityType, final Object response,
             @Nullable final CacheLookupContext cacheLookupContext) {
-        return checkNotNull(responseTransformerMap.get(resourceType), resourceType).apply(response, cacheLookupContext);
+        return checkNotNull(responseTransformerMap.get(entityType), "entityType").apply(response, cacheLookupContext);
     }
 
 }

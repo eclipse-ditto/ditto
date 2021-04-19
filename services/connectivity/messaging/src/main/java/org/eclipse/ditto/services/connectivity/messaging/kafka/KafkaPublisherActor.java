@@ -35,7 +35,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -284,8 +284,8 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             boolean verbose = isDebugEnabled() && metadata != null;
             final JsonObject ackPayload = verbose ? toPayload(metadata) : null;
             final HttpStatus httpStatus = verbose ? HttpStatus.OK : HttpStatus.NO_CONTENT;
-            final Optional<EntityIdWithType> entityIdOptional =
-                    WithEntityId.getEntityIdOfType(EntityIdWithType.class, signal);
+            final Optional<EntityId> entityIdOptional =
+                    WithEntityId.getEntityIdOfType(EntityId.class, signal);
             final Acknowledgement issuedAck;
             if (entityIdOptional.isPresent() && null != autoAckLabel) {
                 issuedAck = Acknowledgement.of(autoAckLabel,

@@ -43,9 +43,10 @@ public class ImmutableLogEntryTest {
     private static final String ADDRESS = "an/address";
     private static final ThingId THING_ID = ThingId.of("org.eclipse.ditto.poke:138");
 
-    private static final LogEntry LOG_ENTRY = ImmutableLogEntry.getBuilder(CORRELATION_ID, TIMESTAMP, CATEGORY, TYPE, LEVEL,
-            MESSAGE, ADDRESS, THING_ID)
-            .build();
+    private static final LogEntry LOG_ENTRY =
+            ImmutableLogEntry.getBuilder(CORRELATION_ID, TIMESTAMP, CATEGORY, TYPE, LEVEL,
+                    MESSAGE, ADDRESS, THING_ID)
+                    .build();
     private static final JsonObject LOG_ENTRY_JSON = getLogEntryJson();
 
     @Test
@@ -73,8 +74,9 @@ public class ImmutableLogEntryTest {
     @Test
     public void createInstanceWithNullLogType() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ImmutableLogEntry.getBuilder(CORRELATION_ID, TIMESTAMP, CATEGORY, null, LEVEL, MESSAGE,
-                        ADDRESS, THING_ID));
+                .isThrownBy(
+                        () -> ImmutableLogEntry.getBuilder(CORRELATION_ID, TIMESTAMP, CATEGORY, null, LEVEL, MESSAGE,
+                                ADDRESS, THING_ID));
 
     }
 

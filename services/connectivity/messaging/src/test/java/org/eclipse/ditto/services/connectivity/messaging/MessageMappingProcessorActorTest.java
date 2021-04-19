@@ -526,7 +526,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                     ThingNotAccessibleException.newBuilder(KNOWN_THING_ID)
                             .dittoHeaders(HEADERS_WITH_REPLY_INFORMATION.toBuilder()
                                     .correlationId(correlationId)
-                                    .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), KNOWN_THING_ID)
+                                    .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), "thing:" + KNOWN_THING_ID)
                                     .build())
                             .build();
 

@@ -209,7 +209,7 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                 .map(ThingId::of)
                 .collect(Collectors.toSet());
 
-        final Collection<NamespacedEntityId> outOfSyncThingIds = queryThingsResponseThingIds.stream()
+        final Collection<ThingId> outOfSyncThingIds = queryThingsResponseThingIds.stream()
                 .filter(thingId -> !retrievedThingIds.contains(thingId))
                 .collect(Collectors.toList());
 
