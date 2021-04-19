@@ -51,7 +51,6 @@ import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
 import org.eclipse.ditto.model.connectivity.SourceBuilder;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.services.models.placeholders.Placeholder;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
@@ -62,6 +61,7 @@ import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor.Publish
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+import org.eclipse.ditto.services.models.placeholders.Placeholder;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
@@ -213,7 +213,10 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                         .isEqualTo(AUTHORIZATION_CONTEXT);
                 // thing ID is included in the header for error reporting
                 assertThat(modifyAttribute.getDittoHeaders())
-                        .extracting(headers -> headers.get(DittoHeaderDefinition.ENTITY_ID.getKey()))
+                        .extracting(headers -> {
+                            final String prefixedEntityId = headers.get(DittoHeaderDefinition.ENTITY_ID.getKey());
+                            return prefixedEntityId.substring(prefixedEntityId.indexOf(":") + 1);
+                        })
                         .isEqualTo(KNOWN_THING_ID.toString());
                 // internal headers added by consumer actors are appended
                 assertThat(modifyAttribute.getDittoHeaders()).containsEntry("ditto-reply-target", "0");

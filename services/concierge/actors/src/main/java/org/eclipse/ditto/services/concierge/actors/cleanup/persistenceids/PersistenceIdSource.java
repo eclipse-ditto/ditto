@@ -12,11 +12,15 @@
  */
 package org.eclipse.ditto.services.concierge.actors.cleanup.persistenceids;
 
-import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectivityConstants;
+import org.eclipse.ditto.model.policies.PolicyConstants;
+import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.services.concierge.common.PersistenceIdsConfig;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
@@ -42,10 +46,11 @@ import akka.stream.javadsl.Source;
  */
 public final class PersistenceIdSource {
 
-    private static final List<String> PERSISTENCE_STREAMING_ACTOR_PATHS =
-            Arrays.asList(ThingsMessagingConstants.THINGS_STREAM_PROVIDER_ACTOR_PATH,
-                    PoliciesMessagingConstants.POLICIES_STREAM_PROVIDER_ACTOR_PATH,
-                    ConnectivityMessagingConstants.STREAM_PROVIDER_ACTOR_PATH);
+    private static final Map<String, EntityType> PERSISTENCE_STREAMING_ACTOR_PATHS =
+            Map.of(ThingsMessagingConstants.THINGS_STREAM_PROVIDER_ACTOR_PATH, ThingConstants.ENTITY_TYPE,
+                    PoliciesMessagingConstants.POLICIES_STREAM_PROVIDER_ACTOR_PATH, PolicyConstants.ENTITY_TYPE,
+                    ConnectivityMessagingConstants.STREAM_PROVIDER_ACTOR_PATH,
+                    ConnectivityConstants.ENTITY_TYPE);
 
     private PersistenceIdSource() {
         throw new AssertionError();
@@ -61,21 +66,23 @@ public final class PersistenceIdSource {
      */
     public static Source<EntityIdWithRevision<?>, NotUsed> create(final PersistenceIdsConfig config,
             final ActorRef pubSubMediator) {
-        return Source.from(PERSISTENCE_STREAMING_ACTOR_PATHS)
+        return Source.from(PERSISTENCE_STREAMING_ACTOR_PATHS.entrySet())
                 .buffer(1, OverflowStrategy.backpressure())
-                .flatMapConcat(path -> buildResumeSource(config, pubSubMediator, path)
+                .flatMapConcat(entry -> buildResumeSource(config, pubSubMediator, entry)
                         // recover to empty source to cleanup other resource types even on long-term failure
                         .recoverWithRetries(1, Throwable.class, Source::empty));
     }
 
     private static Source<EntityIdWithRevision<?>, NotUsed> buildResumeSource(final PersistenceIdsConfig config,
             final ActorRef pubSubMediator,
-            final String path) {
+            final Map.Entry<String, EntityType> entry) {
 
-        final EntityIdWithRevision<?> emptyLowerBound = LowerBound.empty();
+        final String actorPath = entry.getKey();
+        final EntityType entityType = entry.getValue();
+        final EntityIdWithRevision<?> emptyLowerBound = LowerBound.empty(entityType);
 
         final Function<EntityIdWithRevision<?>, Source<EntityIdWithRevision<?>, ?>> resumptionFunction =
-                seed -> Source.single(requestStreamCommand(config, path, seed))
+                seed -> Source.single(requestStreamCommand(config, actorPath, seed, entityType))
                         .mapAsync(1, command ->
                                 Patterns.ask(pubSubMediator, command, config.getStreamRequestTimeout())
                                         .handle((result, error) -> Tuple3.create(command, result, error)))
@@ -106,14 +113,14 @@ public final class PersistenceIdSource {
     }
 
     private static DistributedPubSubMediator.Send requestStreamCommand(final PersistenceIdsConfig config,
-            final String path, final EntityIdWithRevision<?> seed) {
-        return DistPubSubAccess.send(path, sudoStreamPids(config, seed), false);
+            final String path, final EntityIdWithRevision<?> seed, final EntityType entityType) {
+        return DistPubSubAccess.send(path, sudoStreamPids(config, seed, entityType), false);
     }
 
     private static SudoStreamPids sudoStreamPids(final PersistenceIdsConfig config,
-            final EntityIdWithRevision<?> seed) {
-        return SudoStreamPids.of(config.getBurst(), config.getStreamIdleTimeout().toMillis(), DittoHeaders.empty())
-                .withLowerBound(seed);
+            final EntityIdWithRevision<?> seed, final EntityType entityType) {
+        return SudoStreamPids.of(config.getBurst(), config.getStreamIdleTimeout().toMillis(), DittoHeaders.empty(),
+                entityType).withLowerBound(seed);
     }
 
     private static Source<EntityIdWithRevision<?>, NotUsed> handleSourceRef(final Object reply) {
@@ -148,6 +155,7 @@ public final class PersistenceIdSource {
                     actualMessage);
             error = new IllegalStateException(message);
         }
+
         return Source.failed(error);
 
     }

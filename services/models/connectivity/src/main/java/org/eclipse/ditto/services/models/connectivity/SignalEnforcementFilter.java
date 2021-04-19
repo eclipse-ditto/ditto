@@ -45,11 +45,11 @@ import org.eclipse.ditto.signals.base.Signal;
 final class SignalEnforcementFilter implements EnforcementFilter<Signal<?>> {
 
     private final Enforcement enforcement;
-    private final List<Placeholder<CharSequence>> filterPlaceholders;
+    private final List<Placeholder<EntityId>> filterPlaceholders;
     private final String inputValue;
 
     SignalEnforcementFilter(final Enforcement enforcement,
-            final List<Placeholder<CharSequence>> filterPlaceholders,
+            final List<Placeholder<EntityId>> filterPlaceholders,
             final String inputValue) {
         this.enforcement = enforcement;
         this.filterPlaceholders = Collections.unmodifiableList(new ArrayList<>(filterPlaceholders));
@@ -73,7 +73,7 @@ final class SignalEnforcementFilter implements EnforcementFilter<Signal<?>> {
                         .orElseThrow(() -> getEnforcementFailedException(filterInput.getDittoHeaders()));
         final List<UnresolvedPlaceholderException> exceptions = new LinkedList<>();
 
-        for (final Placeholder<CharSequence> filterPlaceholder : filterPlaceholders) {
+        for (final Placeholder<EntityId> filterPlaceholder : filterPlaceholders) {
             for (final String filter : enforcement.getFilters()) {
                 try {
                     final String resolved = PlaceholderFilter.apply(filter, entityId, filterPlaceholder);

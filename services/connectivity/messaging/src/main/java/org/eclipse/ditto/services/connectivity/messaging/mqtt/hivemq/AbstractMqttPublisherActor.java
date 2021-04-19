@@ -22,7 +22,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -103,11 +103,11 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
 
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
         final Optional<AcknowledgementLabel> autoAckLabel = getAcknowledgementLabel(target);
-        final Optional<EntityIdWithType> entityIdOptional =
-                WithEntityId.getEntityIdOfType(EntityIdWithType.class, signal);
+        final Optional<EntityId> entityIdOptional =
+                WithEntityId.getEntityIdOfType(EntityId.class, signal);
         final Acknowledgement issuedAck;
         if (autoAckLabel.isPresent() && entityIdOptional.isPresent()) {
-            final EntityIdWithType entityId =entityIdOptional.get();
+            final EntityId entityId =entityIdOptional.get();
             issuedAck = Acknowledgement.of(autoAckLabel.get(), entityId, HttpStatus.OK, dittoHeaders);
         } else {
             issuedAck = null;

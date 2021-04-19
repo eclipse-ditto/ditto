@@ -28,15 +28,15 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.services.models.placeholders.ExpressionResolver;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.placeholders.ExpressionResolver;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
@@ -163,8 +163,8 @@ final class Sending implements SendingOrDropped {
                 .flatMap(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel));
 
         final Signal<?> source = sendingContext.getMappedOutboundSignal().getSource();
-        final Optional<EntityIdWithType> entityIdOptional =
-                WithEntityId.getEntityIdOfType(EntityIdWithType.class, source);
+        final Optional<EntityId> entityIdOptional =
+                WithEntityId.getEntityIdOfType(EntityId.class, source);
 
         if (autoAckLabel.isPresent() && entityIdOptional.isPresent()) {
 

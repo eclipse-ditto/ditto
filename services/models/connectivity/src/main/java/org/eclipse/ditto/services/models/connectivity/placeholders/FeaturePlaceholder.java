@@ -15,6 +15,8 @@ package org.eclipse.ditto.services.models.connectivity.placeholders;
 import org.eclipse.ditto.services.models.placeholders.Placeholder;
 
 /**
+ * A {@link org.eclipse.ditto.services.models.placeholders.Placeholder} that requires a {@code String}
+ * (a valid Feature ID) to resolve its placeholders.
  * A {@link org.eclipse.ditto.services.models.placeholders.Placeholder} that requires a {@code String} (a valid Feature ID) to resolve its placeholders.
  *
  * @since 1.5.0

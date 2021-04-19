@@ -20,6 +20,7 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -27,11 +28,8 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.cache.Cache;
-import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
+import org.eclipse.ditto.services.utils.cache.CacheKey;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
-import org.eclipse.ditto.signals.base.WithResource;
-import org.eclipse.ditto.signals.commands.messages.MessageCommand;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 import akka.actor.ActorRef;
 
@@ -56,7 +54,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
     private final ThreadSafeDittoLoggingAdapter log;
 
     @Nullable
-    private final EntityIdWithResourceType entityId;
+    private final CacheKey cacheKey;
 
     @Nullable
     private final StartedTimer startedTimer;
@@ -77,7 +75,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
     private Contextual(@Nullable final T message, final ActorRef self, @Nullable final ActorRef sender,
             final ActorRef pubSubMediator, final ActorRef conciergeForwarder,
             final Duration askTimeout, final ThreadSafeDittoLoggingAdapter log,
-            @Nullable final EntityIdWithResourceType entityId,
+            @Nullable final CacheKey cacheKey,
             @Nullable final StartedTimer startedTimer,
             @Nullable final ActorRef receiver,
             @Nullable final Function<Object, Object> receiverWrapperFunction,
@@ -90,7 +88,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
         this.conciergeForwarder = conciergeForwarder;
         this.askTimeout = askTimeout;
         this.log = log;
-        this.entityId = entityId;
+        this.cacheKey = cacheKey;
         this.startedTimer = startedTimer;
         this.receiver = receiver;
         this.receiverWrapperFunction = receiverWrapperFunction;
@@ -120,7 +118,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
      * @return a copy of this with an ask-future.
      */
     Contextual<T> withAskFuture(final Supplier<CompletionStage<Object>> askFuture) {
-        return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout, log, entityId,
+        return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout, log, cacheKey,
                 startedTimer, receiver, receiverWrapperFunction, responseReceivers, askFuture);
     }
 
@@ -188,11 +186,11 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
         return log;
     }
 
-    EntityIdWithResourceType getEntityIdWithResourceType() {
-        if (entityId == null) {
-            throw new IllegalStateException("Contextual: entityId was null where it should not have been");
+    CacheKey getCacheKey() {
+        if (cacheKey == null) {
+            throw new IllegalStateException("Contextual: cacheKey was null where it should not have been");
         }
-        return entityId;
+        return cacheKey;
     }
 
     Optional<StartedTimer> getStartedTimer() {
@@ -224,43 +222,35 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
 
     Contextual<T> withTimer(final StartedTimer startedTimer) {
         return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout,
-                log, entityId, startedTimer, receiver, receiverWrapperFunction, responseReceivers,
+                log, cacheKey, startedTimer, receiver, receiverWrapperFunction, responseReceivers,
                 askFuture);
     }
 
     Contextual<T> withReceiver(@Nullable final ActorRef receiver) {
         return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout,
-                log, entityId, startedTimer, receiver, receiverWrapperFunction, responseReceivers,
+                log, cacheKey, startedTimer, receiver, receiverWrapperFunction, responseReceivers,
                 askFuture);
     }
 
     Contextual<T> withReceiverWrapperFunction(final Function<Object, Object> receiverWrapperFunction) {
         return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout,
-                log, entityId, startedTimer, receiver, receiverWrapperFunction, responseReceivers,
+                log, cacheKey, startedTimer, receiver, receiverWrapperFunction, responseReceivers,
                 askFuture);
     }
 
     @Nullable
-    private static EntityIdWithResourceType entityIdFor(@Nullable final WithDittoHeaders signal) {
+    private static CacheKey entityIdFor(@Nullable final WithDittoHeaders signal) {
 
         if (signal == null) {
             return null;
         } else if (signal instanceof DittoRuntimeException) {
             return null;
-        } else if (signal instanceof WithResource && signal instanceof WithEntityId) {
-            final EntityIdWithResourceType entityId;
-            if (MessageCommand.RESOURCE_TYPE.equals(((WithResource) signal).getResourceType())) {
-                entityId =
-                        EntityIdWithResourceType.of(ThingCommand.RESOURCE_TYPE, ((WithEntityId) signal).getEntityId());
-            } else {
-                entityId = EntityIdWithResourceType.of(((WithResource) signal).getResourceType(),
-                        ((WithEntityId) signal).getEntityId());
-            }
-            return entityId;
-        } else {
-            throw new IllegalArgumentException("Contextual: processed WithDittoHeaders message did not implement " +
-                    "WithResource or WithEntityId: " + signal.getClass().getSimpleName());
-        }
+        } else
+            return WithEntityId.getEntityIdOfType(EntityId.class, signal)
+                    .map(CacheKey::of)
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Contextual: processed WithDittoHeaders message did not implement " +
+                                    "WithResource or WithEntityId: " + signal.getClass().getSimpleName()));
     }
 
     @Override
@@ -269,7 +259,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
                 "message=" + message +
                 ", self=" + self +
                 ", sender=" + sender +
-                ", entityId=" + entityId +
+                ", entityId=" + cacheKey +
                 ", receiver=" + receiver +
                 ", receiverWrapperFunction=" + receiverWrapperFunction +
                 ", responseReceivers=" + responseReceivers +

@@ -24,7 +24,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
- * Concierge-service internal command signaling that the cache for a specific {@link EntityIdWithResourceType} should be invalidated.
+ * Concierge-service internal command signaling that the cache for a specific {@link CacheKey} should be invalidated.
  * Is emitted via Pub/Sub when for example a Policy is modified.
  */
 @Immutable
@@ -33,9 +33,9 @@ public final class InvalidateCacheEntry implements Jsonifiable<JsonObject> {
     private static final JsonFieldDefinition<String> JSON_ENTITY_ID =
             JsonFactory.newStringFieldDefinition("entityId", V_2);
 
-    private final EntityIdWithResourceType entityId;
+    private final CacheKey entityId;
 
-    private InvalidateCacheEntry(final EntityIdWithResourceType entityId) {this.entityId = entityId;}
+    private InvalidateCacheEntry(final CacheKey entityId) {this.entityId = entityId;}
 
     /**
      * Creates a new {@link InvalidateCacheEntry} from the passed {@code entityId}.
@@ -43,7 +43,7 @@ public final class InvalidateCacheEntry implements Jsonifiable<JsonObject> {
      * @param entityId the EntityId to build the InvalidateCacheEntry for.
      * @return the created InvalidateCacheEntry instance.
      */
-    public static InvalidateCacheEntry of(final EntityIdWithResourceType entityId) {
+    public static InvalidateCacheEntry of(final CacheKey entityId) {
         return new InvalidateCacheEntry(entityId);
     }
 
@@ -55,13 +55,13 @@ public final class InvalidateCacheEntry implements Jsonifiable<JsonObject> {
      */
     public static InvalidateCacheEntry fromJson(final JsonObject jsonObject) {
         final String entityIdStr = jsonObject.getValueOrThrow(JSON_ENTITY_ID);
-        return new InvalidateCacheEntry(EntityIdWithResourceType.readFrom(entityIdStr));
+        return new InvalidateCacheEntry(CacheKey.readFrom(entityIdStr));
     }
 
     /**
      * @return the EntityId to invalidate caches for.
      */
-    public EntityIdWithResourceType getEntityId() {
+    public CacheKey getEntityId() {
         return entityId;
     }
 

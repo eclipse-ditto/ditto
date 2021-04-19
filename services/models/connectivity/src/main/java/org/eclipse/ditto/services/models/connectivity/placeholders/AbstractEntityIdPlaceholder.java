@@ -22,7 +22,7 @@ import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 /**
  * Abstract base class for entity id placeholders.
  */
-abstract class AbstractEntityPlaceholder<T extends NamespacedEntityId> implements EntityPlaceholder {
+abstract class AbstractEntityIdPlaceholder<T extends NamespacedEntityId> implements EntityIdPlaceholder {
 
     private static final String ID_PLACEHOLDER = "id";
     private static final String NAMESPACE_PLACEHOLDER = "namespace";
@@ -31,7 +31,7 @@ abstract class AbstractEntityPlaceholder<T extends NamespacedEntityId> implement
     private static final List<String> SUPPORTED = Collections.unmodifiableList(
             Arrays.asList(ID_PLACEHOLDER, NAMESPACE_PLACEHOLDER, NAME_PLACEHOLDER));
 
-    protected AbstractEntityPlaceholder() {
+    protected AbstractEntityIdPlaceholder() {
     }
 
     @Override

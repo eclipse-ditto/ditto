@@ -138,7 +138,8 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
         if (topicPath.getNamespace() != null && topicPath.getEntityName() != null) {
             // add entity ID for known topic-paths for error reporting.
             headersBuilder.putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(),
-                    (topicPath.getNamespace() + ":" + topicPath.getEntityName()));
+                    topicPath.getGroup().getEntityType() + ":" + topicPath.getNamespace() + ":" +
+                            topicPath.getEntityName());
         }
         if (topicPath.getChannel() == TopicPath.Channel.LIVE) {
             headersBuilder.channel(TopicPath.Channel.LIVE.getName());

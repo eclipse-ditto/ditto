@@ -22,7 +22,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
@@ -59,7 +59,7 @@ public abstract class ExceptionToAcknowledgementConverter {
      */
     public final Acknowledgement convertException(final Exception exception,
             final AcknowledgementLabel label,
-            final EntityIdWithType entityId,
+            final EntityId entityId,
             final DittoHeaders dittoHeaders) {
 
         checkNotNull(exception, "exception");
@@ -89,7 +89,7 @@ public abstract class ExceptionToAcknowledgementConverter {
      */
     private static Acknowledgement convertDittoRuntimeException(final DittoRuntimeException dittoRuntimeException,
             final AcknowledgementLabel label,
-            final EntityIdWithType entityId,
+            final EntityId entityId,
             final DittoHeaders dittoHeaders) {
 
         final HttpStatus status = dittoRuntimeException.getHttpStatus();
@@ -113,7 +113,7 @@ public abstract class ExceptionToAcknowledgementConverter {
      */
     private Acknowledgement convertGenericException(final Exception exception,
             final AcknowledgementLabel label,
-            final EntityIdWithType entityId,
+            final EntityId entityId,
             final DittoHeaders dittoHeaders) {
 
         final HttpStatus status = getHttpStatusForGenericException(exception);

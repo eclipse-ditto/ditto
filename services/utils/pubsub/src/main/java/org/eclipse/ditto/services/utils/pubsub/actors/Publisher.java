@@ -23,7 +23,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
@@ -113,7 +113,7 @@ public final class Publisher extends AbstractActor {
     public static Request publishWithAck(final Collection<String> topics,
             final SignalWithEntityId<?> message,
             final Set<AcknowledgementRequest> ackRequests,
-            final EntityIdWithType entityId,
+            final EntityId entityId,
             final DittoHeaders dittoHeaders) {
 
         return new PublishWithAck(topics, message, ackRequests, entityId, dittoHeaders);
@@ -228,13 +228,13 @@ public final class Publisher extends AbstractActor {
         private final Collection<String> topics;
         private final SignalWithEntityId<?> message;
         private final Set<AcknowledgementRequest> ackRequests;
-        private final EntityIdWithType entityId;
+        private final EntityId entityId;
         private final DittoHeaders dittoHeaders;
 
         private PublishWithAck(final Collection<String> topics,
                 final SignalWithEntityId<?> message,
                 final Set<AcknowledgementRequest> ackRequests,
-                final EntityIdWithType entityId,
+                final EntityId entityId,
                 final DittoHeaders dittoHeaders) {
             this.topics = topics;
             this.message = message;

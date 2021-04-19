@@ -20,8 +20,8 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -31,11 +31,11 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class PolicyReferenceTagTest {
 
-    private static final EntityId ENTITY_ID = DefaultEntityId.of("ns:entityId");
+    private static final ThingId THING_ID = ThingId.of("ns:entityId");
     private static final PolicyTag POLICY_TAG =
             PolicyTag.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.REVISION_NUMBER);
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(PolicyReferenceTag.JsonFields.ENTITY_ID, ENTITY_ID.toString())
+            .set(PolicyReferenceTag.JsonFields.ENTITY_ID, THING_ID.toString())
             .set(PolicyReferenceTag.JsonFields.POLICY_ID, POLICY_TAG.getEntityId().toString())
             .set(PolicyReferenceTag.JsonFields.POLICY_REV, POLICY_TAG.getRevision())
             .build();
@@ -54,7 +54,7 @@ public final class PolicyReferenceTagTest {
 
     @Test
     public void toJsonReturnsExpected() {
-        final PolicyReferenceTag underTest = PolicyReferenceTag.of(ENTITY_ID, POLICY_TAG);
+        final PolicyReferenceTag underTest = PolicyReferenceTag.of(THING_ID, POLICY_TAG);
         final JsonValue jsonValue = underTest.toJson();
 
         assertThat(jsonValue).isEqualTo(KNOWN_JSON);
@@ -65,7 +65,7 @@ public final class PolicyReferenceTagTest {
         final PolicyReferenceTag underTest = PolicyReferenceTag.fromJson(KNOWN_JSON);
 
         assertThat(underTest).isNotNull();
-        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(ENTITY_ID);
+        assertThat((CharSequence) underTest.getThingId()).isEqualTo(THING_ID);
         assertThat(underTest.getPolicyTag()).isEqualTo(POLICY_TAG);
     }
 

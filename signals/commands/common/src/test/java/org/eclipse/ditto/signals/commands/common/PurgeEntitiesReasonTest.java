@@ -26,9 +26,10 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
+import org.eclipse.ditto.model.base.entity.id.AbstractEntityId;
+import org.eclipse.ditto.model.base.entity.id.AbstractNamespacedEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -41,6 +42,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class PurgeEntitiesReasonTest {
 
+    private static final EntityType THING_TYPE = EntityType.of("thing");
     private static ShutdownReasonType purgeEntitiesType;
     private static List<EntityId> knownEntityIds;
     private static JsonObject knownJsonRepresentation;
@@ -51,9 +53,9 @@ public final class PurgeEntitiesReasonTest {
     public static void initTestConstants() {
         purgeEntitiesType = ShutdownReasonType.Known.PURGE_ENTITIES;
         knownEntityIds = Arrays.asList(
-                DefaultEntityId.of("x:y"),
-                DefaultEntityId.of("a:b"),
-                DefaultEntityId.of("f:oo"));
+                EntityId.of(THING_TYPE, "x:y"),
+                EntityId.of(THING_TYPE, "a:b"),
+                EntityId.of(THING_TYPE, "f:oo"));
         knownJsonRepresentation = JsonFactory.newObjectBuilder()
                 .set(ShutdownReason.JsonFields.TYPE, purgeEntitiesType.toString())
                 .set(ShutdownReason.JsonFields.DETAILS, JsonArray.of(knownEntityIds))
@@ -117,13 +119,13 @@ public final class PurgeEntitiesReasonTest {
     }
 
     @Test
-    public void isRelevantForIsTrueIfWrappedInDefaultEntityId() {
-        assertThat(underTest.isRelevantFor(DefaultEntityId.of("f:oo"))).isTrue();
+    public void isRelevantForIsTrueIfWrappedInAbstractEntityId() {
+        assertThat(underTest.isRelevantFor(new AbstractEntityId(THING_TYPE, "f:oo") {})).isTrue();
     }
 
     @Test
-    public void isRelevantForIsTrueIfWrappedInDefaultNamespacedEntityId() {
-        assertThat(underTest.isRelevantFor(DefaultNamespacedEntityId.of("f","oo"))).isTrue();
+    public void isRelevantForIsTrueIfWrappedInAbstractNamespacedEntityId() {
+        assertThat(underTest.isRelevantFor(new AbstractNamespacedEntityId(THING_TYPE, "f", "oo", true) {})).isTrue();
     }
 
     @Test

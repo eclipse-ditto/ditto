@@ -254,7 +254,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
     @Override
     public Source<Metadata, NotUsed> sudoStreamMetadata(final EntityId lowerBound) {
         final Bson notDeletedFilter = Filters.exists(FIELD_DELETE_AT, false);
-        final Bson filter = LowerBound.emptyEntityId().equals(lowerBound)
+        final Bson filter = LowerBound.emptyEntityId(lowerBound.getEntityType()).equals(lowerBound)
                 ? notDeletedFilter
                 : Filters.and(notDeletedFilter, Filters.gt(FIELD_ID, lowerBound.toString()));
         final Bson relevantFieldsProjection =

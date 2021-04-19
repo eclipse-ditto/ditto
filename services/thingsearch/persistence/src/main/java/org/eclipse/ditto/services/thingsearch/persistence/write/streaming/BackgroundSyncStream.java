@@ -19,7 +19,9 @@ import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.policies.PolicyConstants;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyRevision;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyRevisionResponse;
@@ -40,8 +42,8 @@ import akka.stream.javadsl.Source;
  */
 public final class BackgroundSyncStream {
 
-    private static final ThingId EMPTY_THING_ID = ThingId.of(LowerBound.emptyEntityId());
-    private static final PolicyId EMPTY_POLICY_ID = PolicyId.of(LowerBound.emptyEntityId());
+    private static final ThingId EMPTY_THING_ID = ThingId.of(LowerBound.emptyEntityId(ThingConstants.ENTITY_TYPE));
+    private static final PolicyId EMPTY_POLICY_ID = PolicyId.of(LowerBound.emptyEntityId(PolicyConstants.ENTITY_TYPE));
 
     private final ActorRef policiesShardRegion;
     private final Duration policiesAskTimeout;

@@ -41,7 +41,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.CharsetDeterminer;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -50,11 +50,11 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.services.models.placeholders.ExpressionResolver;
 import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.SendResult;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.placeholders.ExpressionResolver;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
@@ -310,8 +310,8 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
         final var autoAckLabel = Optional.ofNullable(autoAckTarget)
                 .flatMap(Target::getIssuedAcknowledgementLabel)
                 .flatMap(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel));
-        final Optional<EntityIdWithType> entityIdOptional =
-                WithEntityId.getEntityIdOfType(EntityIdWithType.class, signal);
+        final Optional<EntityId> entityIdOptional =
+                WithEntityId.getEntityIdOfType(EntityId.class, signal);
         final Acknowledgement issuedAck;
         if (autoAckLabel.isPresent() && entityIdOptional.isPresent()) {
             issuedAck = Acknowledgement.of(autoAckLabel.get(),

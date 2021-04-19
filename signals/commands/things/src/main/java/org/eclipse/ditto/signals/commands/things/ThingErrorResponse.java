@@ -15,6 +15,7 @@ package org.eclipse.ditto.signals.commands.things;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
@@ -73,7 +74,10 @@ public final class ThingErrorResponse extends AbstractErrorResponse<ThingErrorRe
     public static ThingErrorResponse of(final DittoRuntimeException dittoRuntimeException) {
         final DittoHeaders dittoHeaders = dittoRuntimeException.getDittoHeaders();
         final String nullableEntityId = dittoHeaders.get(DittoHeaderDefinition.ENTITY_ID.getKey());
-        final ThingId thingId = nullableEntityId == null ? FALLBACK_THING_ID : ThingId.of(nullableEntityId);
+        final ThingId thingId = Optional.ofNullable(nullableEntityId)
+                .map(entityId -> entityId.substring(entityId.indexOf(":")))
+                .map(ThingId::of)
+                .orElse(FALLBACK_THING_ID);
         return of(thingId, dittoRuntimeException, dittoHeaders);
     }
 

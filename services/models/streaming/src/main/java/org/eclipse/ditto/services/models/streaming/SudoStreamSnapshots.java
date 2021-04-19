@@ -31,8 +31,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -81,16 +81,18 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
      * @param timeoutMillis maximum time to wait for acknowledgement of each stream element.
      * @param fields selected fields of snapshots.
      * @param dittoHeaders the command headers of the request.
+     * @param entityType the entity type that should be streamed.
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static SudoStreamSnapshots of(final Integer burst, final Long timeoutMillis, final List<String> fields,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders, final EntityType entityType) {
 
         final JsonArray snapshotFields = fields.stream()
                 .map(JsonValue::of)
                 .collect(JsonCollectors.valuesToArray());
-        return new SudoStreamSnapshots(burst, timeoutMillis, LowerBound.emptyEntityId(), snapshotFields, dittoHeaders);
+        return new SudoStreamSnapshots(burst, timeoutMillis, LowerBound.emptyEntityId(entityType), snapshotFields,
+                dittoHeaders);
     }
 
     /**
@@ -107,9 +109,10 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
 
         final int burst = jsonObject.getValueOrThrow(JsonFields.JSON_BURST);
         final long timeoutMillis = jsonObject.getValueOrThrow(JsonFields.JSON_TIMEOUT_MILLIS);
-        final EntityId lowerBound = jsonObject.getValue(JsonFields.JSON_LOWER_BOUND)
-                .<EntityId>map(DefaultEntityId::of)
-                .orElseGet(() -> LowerBound.emptyEntityId());
+
+        final EntityType entityType = EntityType.of(jsonObject.getValueOrThrow(JsonFields.JSON_LOWER_BOUND_TYPE));
+        final EntityId lowerBound =
+                EntityId.of(entityType, jsonObject.getValueOrThrow(JsonFields.JSON_LOWER_BOUND));
         final JsonArray snapshotFields =
                 jsonObject.getValue(JsonFields.JSON_SNAPSHOT_FIELDS).orElseGet(JsonArray::empty);
         return new SudoStreamSnapshots(burst, timeoutMillis, lowerBound, snapshotFields, dittoHeaders);
@@ -141,7 +144,7 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
      * @return whether the command has a non-empty lower bound.
      */
     public boolean hasNonEmptyLowerBound() {
-        return !lowerBound.equals(LowerBound.emptyEntityId());
+        return !lowerBound.equals(LowerBound.emptyEntityId(lowerBound.getEntityType()));
     }
 
     /**
@@ -172,9 +175,8 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
         jsonObjectBuilder.set(JsonFields.JSON_BURST, burst, predicate);
         jsonObjectBuilder.set(JsonFields.JSON_TIMEOUT_MILLIS, timeoutMillis, predicate);
         jsonObjectBuilder.set(JsonFields.JSON_SNAPSHOT_FIELDS, snapshotFields, predicate);
-        if (!lowerBound.equals(LowerBound.emptyEntityId())) {
-            jsonObjectBuilder.set(JsonFields.JSON_LOWER_BOUND, lowerBound.toString(), predicate);
-        }
+        jsonObjectBuilder.set(JsonFields.JSON_LOWER_BOUND_TYPE, lowerBound.getEntityType().toString(), predicate);
+        jsonObjectBuilder.set(JsonFields.JSON_LOWER_BOUND, lowerBound.toString(), predicate);
     }
 
     @Override
@@ -246,6 +248,9 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
 
         static final JsonFieldDefinition<String> JSON_LOWER_BOUND =
                 JsonFactory.newStringFieldDefinition("payload/lowerBound", REGULAR, V_2);
+
+        static final JsonFieldDefinition<String> JSON_LOWER_BOUND_TYPE =
+                JsonFactory.newStringFieldDefinition("payload/lowerBoundType", REGULAR, V_2);
 
         static final JsonFieldDefinition<JsonArray> JSON_SNAPSHOT_FIELDS =
                 JsonFactory.newJsonArrayFieldDefinition("payload/fields", REGULAR, V_2);

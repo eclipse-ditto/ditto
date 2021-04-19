@@ -64,6 +64,13 @@ public interface CleanupCommandResponse<T extends CleanupCommandResponse<T>> ext
         /**
          * JSON field containing the CleanupCommand's entityId.
          */
+        public static final JsonFieldDefinition<String> ENTITY_TYPE =
+                JsonFactory.newStringFieldDefinition("entityType", FieldType.REGULAR,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the CleanupCommand's entityId.
+         */
         public static final JsonFieldDefinition<String> ENTITY_ID =
                 JsonFactory.newStringFieldDefinition("entityId", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);

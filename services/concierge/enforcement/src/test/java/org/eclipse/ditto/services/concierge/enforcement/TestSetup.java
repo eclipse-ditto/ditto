@@ -36,8 +36,8 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.concierge.common.CachesConfig;
 import org.eclipse.ditto.services.concierge.common.DefaultCachesConfig;
 import org.eclipse.ditto.services.utils.cache.Cache;
+import org.eclipse.ditto.services.utils.cache.CacheKey;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
-import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcerCacheLoader;
@@ -152,13 +152,13 @@ public final class TestSetup {
 
             final PolicyEnforcerCacheLoader policyEnforcerCacheLoader =
                     new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegion);
-            final Cache<EntityIdWithResourceType, Entry<PolicyEnforcer>> policyEnforcerCache =
+            final Cache<CacheKey, Entry<PolicyEnforcer>> policyEnforcerCache =
                     CaffeineCache.of(Caffeine.newBuilder(), policyEnforcerCacheLoader);
-            final Cache<EntityIdWithResourceType, Entry<Enforcer>> projectedEnforcerCache =
+            final Cache<CacheKey, Entry<Enforcer>> projectedEnforcerCache =
                     policyEnforcerCache.projectValues(PolicyEnforcer::project, PolicyEnforcer::embed);
             final ThingEnforcementIdCacheLoader thingEnforcementIdCacheLoader =
                     new ThingEnforcementIdCacheLoader(askTimeout, thingsShardRegion);
-            final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache =
+            final Cache<CacheKey, Entry<CacheKey>> thingIdCache =
                     CaffeineCache.of(Caffeine.newBuilder(), thingEnforcementIdCacheLoader);
 
             final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();

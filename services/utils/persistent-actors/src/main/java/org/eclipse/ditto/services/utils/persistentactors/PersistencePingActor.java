@@ -18,8 +18,8 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.utils.akka.PingCommand;
 import org.eclipse.ditto.services.utils.akka.PingCommandResponse;
@@ -206,7 +206,7 @@ public final class PersistencePingActor extends AbstractActor {
     }
 
     private void ping(final String persistenceId) {
-        final EntityId entityId = DefaultEntityId.of(extractEntityIdFromPersistenceId(persistenceId));
+        final EntityId entityId = extractEntityIdFromPersistenceId(persistenceId);
         final String correlationId = toCorrelationId(entityId);
         final PingCommand pingMessage = PingCommand.of(entityId,
                 correlationId,
@@ -215,8 +215,17 @@ public final class PersistencePingActor extends AbstractActor {
         persistenceActorShardRegion.tell(pingMessage, getSelf());
     }
 
-    private static String extractEntityIdFromPersistenceId(final String persistenceId) {
-        return persistenceId.substring(persistenceId.indexOf(':') + 1);
+    private EntityId extractEntityIdFromPersistenceId(final String persistenceId) {
+        final int indexOfSeparator = persistenceId.indexOf(':');
+        if (indexOfSeparator < 0) {
+            final String message =
+                    String.format("Persistence ID <%s> wasn't prefixed with an entity type.", persistenceId);
+            log.error(message);
+            throw new IllegalArgumentException(message);
+        }
+        final String id = persistenceId.substring(indexOfSeparator + 1);
+        final EntityType type = EntityType.of(persistenceId.substring(0, indexOfSeparator));
+        return EntityId.of(type, id);
     }
 
     static String toCorrelationId(final EntityId persistenceId) {

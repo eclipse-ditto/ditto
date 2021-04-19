@@ -16,6 +16,7 @@ import java.util.List;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.EnforcementFilter;
 import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
@@ -34,7 +35,7 @@ final class SignalEnforcementFilterFactory<I> implements EnforcementFilterFactor
 
     private final Enforcement enforcement;
     private final Placeholder<I> inputPlaceholder;
-    private final List<Placeholder<CharSequence>> filterPlaceholder;
+    private final List<Placeholder<EntityId>> filterPlaceholder;
 
     /**
      * Instantiates a new {@link SignalEnforcementFilterFactory}.
@@ -45,7 +46,7 @@ final class SignalEnforcementFilterFactory<I> implements EnforcementFilterFactor
      */
     SignalEnforcementFilterFactory(final Enforcement enforcement,
             final Placeholder<I> inputPlaceholder,
-            final List<Placeholder<CharSequence>> filterPlaceholder) {
+            final List<Placeholder<EntityId>> filterPlaceholder) {
         this.enforcement = enforcement;
         this.inputPlaceholder = inputPlaceholder;
         this.filterPlaceholder = filterPlaceholder;

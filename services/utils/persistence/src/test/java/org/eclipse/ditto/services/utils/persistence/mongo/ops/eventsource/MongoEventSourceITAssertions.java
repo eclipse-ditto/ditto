@@ -23,7 +23,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -209,8 +208,8 @@ public abstract class MongoEventSourceITAssertions<I extends EntityId> {
             final String purgedNamespace = "purgedNamespace.x" + RANDOM.nextInt(1_000_000);
             final String survivingNamespace = "survivingNamespace.x" + RANDOM.nextInt(1_000_000);
 
-            final I purgedId = toEntityId(DefaultEntityId.of(purgedNamespace + ":name"));
-            final I survivingId = toEntityId(DefaultEntityId.of(survivingNamespace + ":name"));
+            final I purgedId = toEntityId(purgedNamespace + ":name");
+            final I survivingId = toEntityId(survivingNamespace + ":name");
 
             final ActorRef pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
             final ActorRef actorToPurge = watch(startEntityActor(actorSystem, pubSubMediator, purgedId));
@@ -256,12 +255,9 @@ public abstract class MongoEventSourceITAssertions<I extends EntityId> {
 
             final String namespace = "purgedNamespace.x" + random.nextInt(1000000);
 
-            final I purgedId1 =
-                    toEntityId(DefaultEntityId.of(prependNamespace("purgedId1", namespace, prependNamespace)));
-            final I purgedId2 =
-                    toEntityId(DefaultEntityId.of(prependNamespace("purgedId2", namespace, prependNamespace)));
-            final I survivingId =
-                    toEntityId(DefaultEntityId.of(prependNamespace("survingId", namespace, prependNamespace)));
+            final I purgedId1 = toEntityId(prependNamespace("purgedId1", namespace, prependNamespace));
+            final I purgedId2 = toEntityId(prependNamespace("purgedId2", namespace, prependNamespace));
+            final I survivingId = toEntityId(prependNamespace("survingId", namespace, prependNamespace));
 
             final ActorRef pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
             final ActorRef actorToPurge1 = watch(startEntityActor(actorSystem, pubSubMediator, purgedId1));
@@ -312,7 +308,7 @@ public abstract class MongoEventSourceITAssertions<I extends EntityId> {
         }};
     }
 
-    protected abstract I toEntityId(final EntityId entityId);
+    protected abstract I toEntityId(final CharSequence entityId);
 
     private void expectCreateEntityResponse(final TestKit testKit) {
         testKit.expectMsgClass(EXPECT_MESSAGE_TIMEOUT, getCreateEntityResponseClass());

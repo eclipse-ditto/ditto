@@ -20,7 +20,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 /**
- * Additional context provided for cache lookups using {@link EntityIdWithResourceType} as caching key.
+ * Additional context provided for cache lookups using {@link CacheKey} as caching key.
  */
 @Immutable
 public interface CacheLookupContext {

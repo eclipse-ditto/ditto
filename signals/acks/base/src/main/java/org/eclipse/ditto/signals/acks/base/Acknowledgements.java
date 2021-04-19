@@ -29,7 +29,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.ResponseType;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.entity.type.WithEntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -107,7 +107,7 @@ public interface Acknowledgements
      * types of the given acknowledgements are not equal.
      * @since 2.0.0
      */
-    static Acknowledgements of(final EntityIdWithType entityId,
+    static Acknowledgements of(final EntityId entityId,
             final Collection<? extends Acknowledgement> acknowledgements,
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
@@ -123,7 +123,7 @@ public interface Acknowledgements
      * @return the Acknowledgements.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    static Acknowledgements empty(final EntityIdWithType entityId, final DittoHeaders dittoHeaders) {
+    static Acknowledgements empty(final EntityId entityId, final DittoHeaders dittoHeaders) {
         return AcknowledgementFactory.emptyAcknowledgements(entityId, dittoHeaders);
     }
 
@@ -254,7 +254,7 @@ public interface Acknowledgements
     }
 
     @Override
-    EntityIdWithType getEntityId();
+    EntityId getEntityId();
 
     /**
      * Definition of fields of the JSON representation of an {@link Acknowledgements}.

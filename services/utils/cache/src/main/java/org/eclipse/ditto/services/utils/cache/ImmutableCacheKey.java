@@ -21,66 +21,54 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 
 /**
  * Implementation of {@code EntityIdWithResourceType}.
  */
 @Immutable
-final class ImmutableEntityIdWithResourceType implements EntityIdWithResourceType {
+final class ImmutableCacheKey implements CacheKey {
 
     static final String DELIMITER = ":";
 
-    private final String resourceType;
     private final EntityId id;
     @Nullable private final CacheLookupContext cacheLookupContext;
 
     /**
      * Creates a new {@code ImmutableEntityIdWithResourceType}.
      *
-     * @param resourceType the resource type.
      * @param id the entity id.
      * @param cacheLookupContext additional context information to use for the cache lookup.
      * @throws IllegalArgumentException if resource type contains ':'.
      */
-    private ImmutableEntityIdWithResourceType(
-            final String resourceType,
+    private ImmutableCacheKey(
             final EntityId id,
             @Nullable final CacheLookupContext cacheLookupContext) {
-        this.resourceType = checkNotNull(resourceType, "resourceType");
         // build a default entity id, so that serializing and deserializing works properly
-        this.id = DefaultEntityId.of(checkNotNull(id, "id"));
+        this.id = EntityId.of(checkNotNull(id, "id").getEntityType(), id);
         this.cacheLookupContext = cacheLookupContext;
-        if (resourceType.contains(DELIMITER)) {
-            final String message =
-                    String.format("Resource type <%s> may not contain ':'. Id = <%s>", resourceType, id);
-            throw new IllegalArgumentException(message);
-        }
     }
 
     /**
      * Create a new entity ID from the given  {@code resourceType} and {@code id}.
      *
-     * @param resourceType the resource type.
      * @param id the entity ID.
      * @return the entity ID with resource type object.
      */
-    static EntityIdWithResourceType of(final String resourceType, final EntityId id) {
-        return new ImmutableEntityIdWithResourceType(resourceType, id, null);
+    static CacheKey of(final EntityId id) {
+        return new ImmutableCacheKey(id, null);
     }
 
     /**
      * Create a new entity ID from the given  {@code resourceType} and {@code id}.
      *
-     * @param resourceType the resource type.
      * @param id the entity ID.
      * @param cacheLookupContext additional context information to use for the cache lookup.
      * @return the entity ID with resource type object.
      */
-    static EntityIdWithResourceType of(final String resourceType, final EntityId id,
-            final CacheLookupContext cacheLookupContext) {
-        return new ImmutableEntityIdWithResourceType(resourceType, id, cacheLookupContext);
+    static CacheKey of(final EntityId id, final CacheLookupContext cacheLookupContext) {
+        return new ImmutableCacheKey(id, cacheLookupContext);
     }
 
     /**
@@ -90,7 +78,7 @@ final class ImmutableEntityIdWithResourceType implements EntityIdWithResourceTyp
      * @return the entity ID with resource type.
      * @throws IllegalArgumentException if the string does not have the expected format.
      */
-    static EntityIdWithResourceType readFrom(final String string) {
+    static CacheKey readFrom(final String string) {
         checkNotNull(string, "string");
 
         final int delimiterIndex = string.indexOf(DELIMITER);
@@ -98,15 +86,10 @@ final class ImmutableEntityIdWithResourceType implements EntityIdWithResourceTyp
             final String message = MessageFormat.format("Unexpected EntityId format: <{0}>", string);
             throw new IllegalArgumentException(message);
         } else {
-            final EntityId id = DefaultEntityId.of(string.substring(delimiterIndex + 1));
-            final String resourceType = string.substring(0, delimiterIndex);
-            return new ImmutableEntityIdWithResourceType(resourceType, id, null);
+            final EntityType entityType = EntityType.of(string.substring(0, delimiterIndex));
+            final EntityId id = EntityId.of(entityType, string.substring(delimiterIndex + 1));
+            return new ImmutableCacheKey(id, null);
         }
-    }
-
-    @Override
-    public String getResourceType() {
-        return resourceType;
     }
 
     @Override
@@ -121,10 +104,9 @@ final class ImmutableEntityIdWithResourceType implements EntityIdWithResourceTyp
 
     @Override
     public boolean equals(final Object o) {
-        if (o instanceof ImmutableEntityIdWithResourceType) {
-            final ImmutableEntityIdWithResourceType that = (ImmutableEntityIdWithResourceType) o;
-            return Objects.equals(resourceType, that.resourceType) &&
-                    Objects.equals(id, that.id) &&
+        if (o instanceof ImmutableCacheKey) {
+            final ImmutableCacheKey that = (ImmutableCacheKey) o;
+            return Objects.equals(id, that.id) &&
                     Objects.equals(cacheLookupContext, that.cacheLookupContext);
         } else {
             return false;
@@ -133,14 +115,14 @@ final class ImmutableEntityIdWithResourceType implements EntityIdWithResourceTyp
 
     @Override
     public int hashCode() {
-        return Objects.hash(resourceType, id, cacheLookupContext);
+        return Objects.hash(id, cacheLookupContext);
     }
 
     @Override
     public String toString() {
         // cache context is not in the string representation
         // because it is used for serialization and cache context is local
-        return String.format("%s%s%s", resourceType, DELIMITER, id);
+        return String.format("%s%s%s", id.getEntityType(), DELIMITER, id);
     }
 
 }

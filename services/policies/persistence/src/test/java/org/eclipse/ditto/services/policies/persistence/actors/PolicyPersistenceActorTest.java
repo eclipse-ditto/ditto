@@ -41,8 +41,6 @@ import org.assertj.core.api.Assertions;
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.model.base.common.DittoDuration;
 import org.eclipse.ditto.model.base.entity.Revision;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
@@ -1549,10 +1547,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
             DittoPolicyAssertions.assertThat(createPolicy1Response.getPolicyCreated().get())
                     .isEqualEqualToButModified(policy);
 
-            final EntityId entityId = DefaultEntityId.of(PolicyPersistenceActor.PERSISTENCE_ID_PREFIX +
-                    policy.getEntityId().orElseThrow(IllegalStateException::new));
-            policyPersistenceActor.tell(CleanupPersistence.of(entityId, DittoHeaders.empty()), getRef());
-            expectMsg(CleanupPersistenceResponse.success(entityId, DittoHeaders.empty()));
+            final PolicyId policyId = policy.getEntityId().orElseThrow(IllegalStateException::new);
+            policyPersistenceActor.tell(CleanupPersistence.of(policyId, DittoHeaders.empty()), getRef());
+            expectMsg(CleanupPersistenceResponse.success(policyId, DittoHeaders.empty()));
         }};
     }
 
@@ -1574,10 +1571,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
             policyPersistenceActor.tell(deletePolicyCommand, getRef());
             expectMsgClass(DeletePolicyResponse.class);
 
-            final EntityId entityId = DefaultEntityId.of(PolicyPersistenceActor.PERSISTENCE_ID_PREFIX +
-                    policy.getEntityId().orElseThrow(IllegalStateException::new));
-            policyPersistenceActor.tell(CleanupPersistence.of(entityId, DittoHeaders.empty()), getRef());
-            expectMsg(CleanupPersistenceResponse.success(entityId, DittoHeaders.empty()));
+            final PolicyId policyId = policy.getEntityId().orElseThrow(IllegalStateException::new);
+            policyPersistenceActor.tell(CleanupPersistence.of(policyId, DittoHeaders.empty()), getRef());
+            expectMsg(CleanupPersistenceResponse.success(policyId, DittoHeaders.empty()));
         }};
     }
 

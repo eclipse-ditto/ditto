@@ -35,8 +35,8 @@ import scala.concurrent.Future;
 final class MockJournalPlugin extends AsyncWriteJournal {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MockJournalPlugin.class);
-    static final String FAIL_DELETE_MESSAGE = "failDeleteMessage";
-    static final String SLOW_DELETE = "slowDelete";
+    static final String FAIL_DELETE_MESSAGE = "thing:namespace:failDeleteMessage";
+    static final String SLOW_DELETE = "thing:namespace:slowDelete";
 
     private static final AsyncWriteJournal journalMock = Mockito.mock(AsyncWriteJournal.class);
 
@@ -84,5 +84,9 @@ final class MockJournalPlugin extends AsyncWriteJournal {
 
     static void verify(final String persistenceId, final int toSequenceNr) {
         Mockito.verify(journalMock).doAsyncDeleteMessagesTo(persistenceId, toSequenceNr);
+    }
+
+    static void reset() {
+        Mockito.reset(journalMock);
     }
 }
