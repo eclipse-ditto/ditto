@@ -67,7 +67,9 @@ final class EntityIds {
                     try {
                         return (NamespacedEntityId) method.invoke(null, entityId);
                     } catch (IllegalAccessException | InvocationTargetException e) {
-                        Logger.getLogger(EntityIds.class.getName()).log(Level.WARNING, e.getMessage(), e);
+                        Logger.getLogger(EntityIds.class.getName()).log(Level.WARNING,
+                                String.format("Encountered Exception <%s>: <%s>", e.getClass().getSimpleName(),
+                                        e.getMessage()), e);
 
                         return null;
                     }
@@ -93,7 +95,9 @@ final class EntityIds {
                     try {
                         return (EntityId) method.invoke(null, entityId);
                     } catch (IllegalAccessException | InvocationTargetException e) {
-                        Logger.getLogger(EntityIds.class.getName()).log(Level.WARNING, e.getMessage(), e);
+                        Logger.getLogger(EntityIds.class.getName()).log(Level.WARNING,
+                                String.format("Encountered Exception <%s>: <%s>", e.getClass().getSimpleName(),
+                                        e.getMessage()), e);
 
                         return null;
                     }
