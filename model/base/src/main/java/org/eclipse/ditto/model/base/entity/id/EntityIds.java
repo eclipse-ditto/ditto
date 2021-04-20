@@ -66,11 +66,11 @@ final class EntityIds {
                     try {
                         return (NamespacedEntityId) method.invoke(null, entityId);
                     } catch (IllegalAccessException | InvocationTargetException e) {
-                        Logger.getLogger(EntityIds.class.getName()).warning(
-                                String.format("Exception in class <%s> - getNamespacedEntityId: %s",
-                                        e.getClass().getSimpleName(), e.getMessage()));
                         final StringWriter sw = new StringWriter();
                         e.printStackTrace(new PrintWriter(sw));
+                        Logger.getLogger(EntityIds.class.getName()).warning(
+                                String.format("Exception in class <%s> - getNamespacedEntityId: %s",
+                                        e.getClass().getSimpleName(), sw.toString()));
 
                         return null;
                     }
@@ -96,11 +96,11 @@ final class EntityIds {
                     try {
                         return (EntityId) method.invoke(null, entityId);
                     } catch (IllegalAccessException | InvocationTargetException e) {
-                        Logger.getLogger(EntityIds.class.getName()).warning(
-                                String.format("Exception in class <%s> - getEntityId: %s",
-                                        e.getClass().getSimpleName(), e.getMessage()));
                         final StringWriter sw = new StringWriter();
                         e.printStackTrace(new PrintWriter(sw));
+                        Logger.getLogger(EntityIds.class.getName()).warning(
+                                String.format("Exception in class <%s> - getEntityId: %s",
+                                        e.getClass().getSimpleName(), sw.toString()));
 
                         return null;
                     }
