@@ -17,6 +17,7 @@ import static org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel.TWIN_P
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.MODIFY_THING_WITH_ACK;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.header;
+import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -41,6 +42,7 @@ import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
+import org.eclipse.ditto.services.connectivity.config.MqttConfig;
 import org.eclipse.ditto.services.models.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
@@ -361,13 +363,13 @@ public abstract class AbstractConsumerActorTest<M> {
 
         final ConnectivityConfig connectivityConfig = TestConstants.CONNECTIVITY_CONFIG;
         final ThreadSafeDittoLoggingAdapter logger = Mockito.mock(ThreadSafeDittoLoggingAdapter.class);
-        Mockito.when(logger.withMdcEntry(Mockito.any(CharSequence.class), Mockito.nullable(CharSequence.class)))
+        when(logger.withMdcEntry(Mockito.any(CharSequence.class), Mockito.nullable(CharSequence.class)))
                 .thenReturn(logger);
-        Mockito.when(logger.withCorrelationId(Mockito.any(DittoHeaders.class)))
+        when(logger.withCorrelationId(Mockito.any(DittoHeaders.class)))
                 .thenReturn(logger);
-        Mockito.when(logger.withCorrelationId(Mockito.nullable(CharSequence.class)))
+        when(logger.withCorrelationId(Mockito.nullable(CharSequence.class)))
                 .thenReturn(logger);
-        Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
+        when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
                 .thenReturn(logger);
         final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
         final InboundMappingProcessor inboundMappingProcessor = InboundMappingProcessor.of(CONNECTION_ID,

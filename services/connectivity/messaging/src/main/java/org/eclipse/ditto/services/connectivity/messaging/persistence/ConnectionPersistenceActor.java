@@ -49,6 +49,7 @@ import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigProvider;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigProviderFactory;
 import org.eclipse.ditto.services.connectivity.config.MonitoringConfig;
+import org.eclipse.ditto.services.connectivity.config.MqttConfig;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorRefs;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
@@ -186,15 +187,15 @@ public final class ConnectionPersistenceActor
         final ConnectivityConfig connectivityConfig = configProvider.getConnectivityConfig(connectionId);
         config = connectivityConfig.getConnectionConfig();
         this.allClientActorsOnOneNode = allClientActorsOnOneNode.orElse(config.areAllClientActorsOnOneNode());
-
+        final MqttConfig mqttConfig = connectivityConfig.getConnectionConfig().getMqttConfig();
         final ConnectionValidator connectionValidator =
                 ConnectionValidator.of(
                         configProvider,
                         actorSystem.log(),
                         RabbitMQValidator.newInstance(),
                         AmqpValidator.newInstance(),
-                        Mqtt3Validator.newInstance(),
-                        Mqtt5Validator.newInstance(),
+                        Mqtt3Validator.newInstance(mqttConfig),
+                        Mqtt5Validator.newInstance(mqttConfig),
                         KafkaValidator.getInstance(),
                         HttpPushValidator.newInstance());
 
