@@ -28,7 +28,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.signals.base.Signal;
 
 import akka.actor.ActorRef;

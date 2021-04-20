@@ -26,7 +26,7 @@ import org.eclipse.ditto.model.policies.PolicyException;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingException;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;

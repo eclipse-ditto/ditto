@@ -38,7 +38,7 @@ import org.eclipse.ditto.model.policies.SubjectAnnouncement;
 import org.eclipse.ditto.model.policies.SubjectExpiry;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.Subjects;
-import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;

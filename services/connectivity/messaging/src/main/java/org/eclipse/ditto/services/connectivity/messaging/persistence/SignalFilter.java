@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.persistence;
 
-import static org.eclipse.ditto.protocoladapter.TopicPath.Criterion.COMMANDS;
-import static org.eclipse.ditto.protocoladapter.TopicPath.Criterion.EVENTS;
+import static org.eclipse.ditto.protocol.TopicPath.Criterion.COMMANDS;
+import static org.eclipse.ditto.protocol.TopicPath.Criterion.EVENTS;
 
 import java.util.Collections;
 import java.util.List;
@@ -38,7 +38,7 @@ import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.rqlparser.RqlPredicateParser;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;

@@ -16,7 +16,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
 import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
-import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.services.base.actors.DittoRootActor;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevopsAuthenticationDirective;

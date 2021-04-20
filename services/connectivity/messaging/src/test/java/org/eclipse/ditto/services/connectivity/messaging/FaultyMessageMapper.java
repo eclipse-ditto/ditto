@@ -19,7 +19,7 @@ import java.util.List;
 
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
-import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.services.connectivity.config.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.AbstractMessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;

@@ -26,8 +26,8 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
-import org.eclipse.ditto.protocoladapter.HeaderTranslator;
-import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.protocol.HeaderTranslator;
+import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayDuplicateHeaderException;
 
 import akka.http.javadsl.model.HttpHeader;

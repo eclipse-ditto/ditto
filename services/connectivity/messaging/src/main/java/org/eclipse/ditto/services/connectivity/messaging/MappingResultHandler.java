@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
-import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.protocol.TopicPath;
 
 /**
  * Interface providing methods for the different outcomes of a mapping - dropped, error and success.

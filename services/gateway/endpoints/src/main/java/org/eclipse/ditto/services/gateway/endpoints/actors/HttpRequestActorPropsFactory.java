@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.gateway.endpoints.actors;
 
 import java.util.concurrent.CompletableFuture;
 
-import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 

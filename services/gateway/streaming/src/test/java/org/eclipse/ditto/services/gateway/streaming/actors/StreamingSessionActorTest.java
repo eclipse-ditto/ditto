@@ -43,7 +43,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.model.jwt.JwtInvalidException;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationResult;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationResultProvider;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtValidator;

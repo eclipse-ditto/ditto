@@ -23,8 +23,8 @@ import org.eclipse.ditto.services.models.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.services.models.placeholders.PlaceholderResolver;
 import org.eclipse.ditto.services.models.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.protocoladapter.ProtocolFactory;
-import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.protocol.ProtocolFactory;
+import org.eclipse.ditto.protocol.TopicPath;
 import org.junit.Test;
 
 public final class TopicPlaceholderTest {

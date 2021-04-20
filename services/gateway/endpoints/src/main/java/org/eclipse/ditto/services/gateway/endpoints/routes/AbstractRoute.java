@@ -36,7 +36,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.services.base.config.ThrottlingConfig;
 import org.eclipse.ditto.services.gateway.endpoints.actors.AbstractHttpRequestActor;
 import org.eclipse.ditto.services.gateway.endpoints.actors.HttpRequestActorPropsFactory;

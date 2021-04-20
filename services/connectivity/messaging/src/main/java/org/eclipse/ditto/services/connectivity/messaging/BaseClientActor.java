@@ -67,7 +67,7 @@ import org.eclipse.ditto.model.connectivity.SshTunnel;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
 import org.eclipse.ditto.model.connectivity.Topic;
-import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
+import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.services.connectivity.config.ClientConfig;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigModifiedBehavior;

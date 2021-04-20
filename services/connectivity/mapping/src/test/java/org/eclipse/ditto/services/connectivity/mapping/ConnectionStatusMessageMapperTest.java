@@ -35,8 +35,8 @@ import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidExc
 import org.eclipse.ditto.model.things.DefinitionIdentifier;
 import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.protocoladapter.Adaptable;
-import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.services.connectivity.config.mapping.DefaultMappingConfig;
 import org.eclipse.ditto.services.connectivity.config.mapping.MappingConfig;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;

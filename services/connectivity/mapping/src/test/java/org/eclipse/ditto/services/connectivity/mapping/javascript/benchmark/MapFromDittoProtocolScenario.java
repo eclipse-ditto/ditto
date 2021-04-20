@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping.javascript.benchmark;
 
-import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 
 /**

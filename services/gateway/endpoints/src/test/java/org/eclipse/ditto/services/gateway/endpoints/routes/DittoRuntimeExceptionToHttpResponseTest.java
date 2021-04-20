@@ -25,7 +25,7 @@ import java.util.Map;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
-import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.junit.BeforeClass;
 import org.junit.Rule;

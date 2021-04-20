@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.utils.protocol;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.services.utils.protocol.config.DefaultProtocolConfig;
 import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
 import org.junit.BeforeClass;

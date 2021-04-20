@@ -20,7 +20,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.signals.base.Signal;
 
 /**

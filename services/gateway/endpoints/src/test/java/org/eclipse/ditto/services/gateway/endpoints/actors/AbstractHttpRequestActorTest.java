@@ -38,7 +38,7 @@ import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.routes.whoami.DefaultUserInformation;
 import org.eclipse.ditto.services.gateway.endpoints.routes.whoami.UserInformation;
 import org.eclipse.ditto.services.gateway.endpoints.routes.whoami.Whoami;

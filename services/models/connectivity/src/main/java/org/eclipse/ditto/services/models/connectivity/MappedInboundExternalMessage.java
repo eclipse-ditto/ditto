@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.models.connectivity;
 
 import java.util.Objects;
 
-import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.signals.base.Signal;
 
 /**

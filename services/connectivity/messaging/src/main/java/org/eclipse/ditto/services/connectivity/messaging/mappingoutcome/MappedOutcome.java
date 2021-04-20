@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.mappingoutcome;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 
 // private to MappingOutcome. Do NOT use directly.

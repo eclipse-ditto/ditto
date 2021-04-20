@@ -22,7 +22,7 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
-import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.services.connectivity.config.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperConfiguration;

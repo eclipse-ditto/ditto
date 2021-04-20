@@ -22,7 +22,7 @@ import org.eclipse.ditto.services.models.placeholders.PlaceholderFunctionSignatu
 import org.eclipse.ditto.model.policies.PolicyEntryInvalidException;
 import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
-import org.eclipse.ditto.protocoladapter.UnknownCommandException;
+import org.eclipse.ditto.protocol.UnknownCommandException;
 import org.eclipse.ditto.services.utils.test.GlobalErrorRegistryTestCases;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingException;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;

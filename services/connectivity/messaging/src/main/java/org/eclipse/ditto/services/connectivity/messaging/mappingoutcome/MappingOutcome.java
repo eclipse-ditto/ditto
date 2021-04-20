@@ -18,7 +18,7 @@ import java.util.function.BiFunction;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 
 /**

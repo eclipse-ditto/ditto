@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.junit.Test;
