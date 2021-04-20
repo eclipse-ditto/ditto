@@ -20,6 +20,7 @@ import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -66,11 +67,7 @@ final class EntityIds {
                     try {
                         return (NamespacedEntityId) method.invoke(null, entityId);
                     } catch (IllegalAccessException | InvocationTargetException e) {
-                        final StringWriter sw = new StringWriter();
-                        e.printStackTrace(new PrintWriter(sw));
-                        Logger.getLogger(EntityIds.class.getName()).warning(
-                                String.format("Exception in class <%s> - getNamespacedEntityId: %s",
-                                        e.getClass().getSimpleName(), sw.toString()));
+                        Logger.getLogger(EntityIds.class.getName()).log(Level.WARNING, e.getMessage(), e);
 
                         return null;
                     }
@@ -96,11 +93,7 @@ final class EntityIds {
                     try {
                         return (EntityId) method.invoke(null, entityId);
                     } catch (IllegalAccessException | InvocationTargetException e) {
-                        final StringWriter sw = new StringWriter();
-                        e.printStackTrace(new PrintWriter(sw));
-                        Logger.getLogger(EntityIds.class.getName()).warning(
-                                String.format("Exception in class <%s> - getEntityId: %s",
-                                        e.getClass().getSimpleName(), sw.toString()));
+                        Logger.getLogger(EntityIds.class.getName()).log(Level.WARNING, e.getMessage(), e);
 
                         return null;
                     }
