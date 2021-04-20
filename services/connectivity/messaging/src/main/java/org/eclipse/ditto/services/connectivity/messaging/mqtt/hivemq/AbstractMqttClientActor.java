@@ -409,8 +409,8 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
         final CompletableFuture<?> publisherConnFuture = connectPublisherClient(connectPublisher);
 
         return delayFuture
-                .thenCompose(_void -> publisherConnFuture)
-                .thenCompose(_void -> {
+                .thenCompose(unused -> publisherConnFuture)
+                .thenCompose(unused -> {
                     // if there is no reconnect-redelivery, do not use a persistent session, since redelivered messages
                     // will only arrive after
                     final boolean cleanSession = mqttSpecificConfig.cleanSession();

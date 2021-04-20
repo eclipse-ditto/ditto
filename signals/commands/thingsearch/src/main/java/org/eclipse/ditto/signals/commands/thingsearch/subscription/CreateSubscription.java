@@ -302,5 +302,9 @@ public final class CreateSubscription extends AbstractCommand<CreateSubscription
         static final JsonFieldDefinition<String> PREFIX =
                 JsonFactory.newStringFieldDefinition("prefix", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
+
+        JsonFields() {
+            throw new AssertionError();
+        }
     }
 }

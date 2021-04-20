@@ -158,9 +158,9 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 .maximumDuration(requestTimeout.plus(Duration.ofSeconds(5)))
                 .tag("id", connection.getId().toString());
 
-        final Sink<Duration, CompletionStage<Done>> logRequestTimes = Sink.<Duration>foreach(duration -> {
-            connectionLogger.success("HTTP request took <{0}> ms.", duration.toMillis());
-        });
+        final Sink<Duration, CompletionStage<Done>> logRequestTimes = Sink.<Duration>foreach(duration ->
+            connectionLogger.success("HTTP request took <{0}> ms.", duration.toMillis())
+        );
 
         final var httpPushFlow = factory.<HttpPushContext>createFlow(getContext().getSystem(), logger, requestTimeout);
 

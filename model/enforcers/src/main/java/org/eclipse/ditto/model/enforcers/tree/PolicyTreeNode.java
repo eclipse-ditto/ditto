@@ -98,6 +98,6 @@ interface PolicyTreeNode {
      * @param visitor the visitor which evaluates this node.
      * @throws NullPointerException if {@code visitor} is {@code null}.
      */
-    void accept(@Nonnull Visitor visitor);
+    void accept(@Nonnull Visitor<?> visitor);
 
 }

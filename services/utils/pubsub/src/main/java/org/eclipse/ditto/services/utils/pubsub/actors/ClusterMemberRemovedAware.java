@@ -71,7 +71,7 @@ interface ClusterMemberRemovedAware extends Actor {
         final Address address = memberRemoved.member().address();
         log().info("Removing declared acks on removed member <{}>", address);
         getDDataWriter().removeAddress(address, writeLocal())
-                .whenComplete((_void, error) -> {
+                .whenComplete((unused, error) -> {
                     if (error != null) {
                         log().error(error, "Failed to remove declared acks on removed cluster member <{}>", address);
                     }

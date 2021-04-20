@@ -77,7 +77,7 @@ public final class BlockedNamespacesUpdater extends AbstractActor {
         final ActorRef sender = getSender();
         final ActorRef self = getSelf();
         blockedNamespaces.add(namespace)
-                .thenAccept(_void -> {
+                .thenAccept(unused -> {
                     final BlockNamespaceResponse response =
                             BlockNamespaceResponse.getInstance(namespace, command.getResourceType(),
                                     command.getDittoHeaders());
@@ -91,7 +91,7 @@ public final class BlockedNamespacesUpdater extends AbstractActor {
         final ActorRef sender = getSender();
         final ActorRef self = getSelf();
         blockedNamespaces.remove(namespace)
-                .thenAccept(_void -> {
+                .thenAccept(unused -> {
                     final UnblockNamespaceResponse response =
                             UnblockNamespaceResponse.getInstance(namespace, command.getResourceType(),
                                     command.getDittoHeaders());

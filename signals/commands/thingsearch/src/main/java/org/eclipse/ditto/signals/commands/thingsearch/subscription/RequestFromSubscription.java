@@ -169,5 +169,8 @@ public final class RequestFromSubscription extends AbstractCommand<RequestFromSu
          */
         public static final JsonFieldDefinition<Long> DEMAND = JsonFactory.newLongFieldDefinition("demand");
 
+        JsonFields() {
+            throw new AssertionError();
+        }
     }
 }

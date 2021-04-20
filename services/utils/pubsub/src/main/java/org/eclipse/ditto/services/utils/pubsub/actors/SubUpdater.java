@@ -228,7 +228,7 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers {
             previousUpdate = nextUpdate;
             topicSizeMetric.set(subscriptions.estimateSize());
         }
-        return ddataOp.thenApply(_void -> snapshot);
+        return ddataOp.thenApply(unused -> snapshot);
     }
 
     /**

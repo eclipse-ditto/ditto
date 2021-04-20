@@ -149,6 +149,11 @@ public final class SubscriptionFailed extends AbstractSubscriptionEvent<Subscrip
         /**
          * Json fields for a JSON representation of the error.
          */
-        public static final JsonFieldDefinition<JsonObject> ERROR = JsonFactory.newJsonObjectFieldDefinition("error");
+        public static final JsonFieldDefinition<JsonObject> ERROR =
+                JsonFactory.newJsonObjectFieldDefinition("error");
+
+        JsonFields() {
+            throw new AssertionError();
+        }
     }
 }

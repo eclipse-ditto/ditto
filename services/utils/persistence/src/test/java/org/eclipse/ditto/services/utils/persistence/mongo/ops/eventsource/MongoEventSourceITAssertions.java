@@ -39,8 +39,6 @@ import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespaceResponse;
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.rules.TestName;
 import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
@@ -69,8 +67,6 @@ public abstract class MongoEventSourceITAssertions<I extends EntityId> {
     protected static PersistenceOperationsConfig persistenceOperationsConfig;
 
     private ActorSystem actorSystem;
-
-    @Rule public TestName name = new TestName();
 
     @BeforeClass
     public static void startMongoDb() {

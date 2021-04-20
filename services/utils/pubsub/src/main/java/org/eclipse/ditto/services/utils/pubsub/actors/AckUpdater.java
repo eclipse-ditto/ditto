@@ -282,7 +282,7 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
         final LiteralUpdate diff = createAndSetDDataUpdate();
         ackDData.getWriter()
                 .put(ownAddress, diff, (Replicator.WriteConsistency) Replicator.writeLocal())
-                .whenComplete((_void, error) -> {
+                .whenComplete((unused, error) -> {
                     if (error != null) {
                         log.error(error, "Failed to update local DData");
                     }

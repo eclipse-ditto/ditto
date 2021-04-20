@@ -142,7 +142,7 @@ final class ImmutableSearchResult implements SearchResult {
                 .set(JsonFields.ITEMS, items, predicate);
 
         getNextPageOffset().ifPresent(offset -> builder.set(JsonFields.NEXT_PAGE_OFFSET, offset, predicate));
-        getCursor().ifPresent(cursor -> builder.set(JsonFields.CURSOR, cursor, predicate));
+        getCursor().ifPresent(cur -> builder.set(JsonFields.CURSOR, cur, predicate));
         return builder.build();
     }
 

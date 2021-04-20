@@ -134,6 +134,8 @@ public final class FieldExpressionUtil {
         private static final Pattern FIELD_NAME_FEATURE_PATTERN2 =
                 Pattern.compile("^features/(?<featureId>[^/]++)");
 
+        private static final String FEATURE_ID = "featureId";
+        
         private final boolean matches;
         private final String featureId;
         private final String property;
@@ -145,7 +147,7 @@ public final class FieldExpressionUtil {
             Matcher matcher = FIELD_NAME_FEATURE_PATTERN1.matcher(fieldName);
             if (matcher.matches()) {
                 matches = true;
-                featureId = matcher.group("featureId");
+                featureId = matcher.group(FEATURE_ID);
                 isProperties = false;
                 property = matcher.group("property");
                 isDesiredProperties = false;
@@ -155,7 +157,7 @@ public final class FieldExpressionUtil {
                 matcher = FIELD_NAME_DESIRED_FEATURE_PATTERN.matcher(fieldName);
                 if (matcher.matches()) {
                     matches = true;
-                    featureId = matcher.group("featureId");
+                    featureId = matcher.group(FEATURE_ID);
                     isProperties = false;
                     property = null;
                     isDesiredProperties = false;
@@ -165,7 +167,7 @@ public final class FieldExpressionUtil {
                     matcher = FIELD_NAME_PROPERTIES_PATTERN.matcher(fieldName);
                     if (matcher.matches()) {
                         matches = true;
-                        featureId = matcher.group("featureId");
+                        featureId = matcher.group(FEATURE_ID);
                         isProperties = true;
                         property = null;
                         isDesiredProperties = false;
@@ -175,7 +177,7 @@ public final class FieldExpressionUtil {
                         matcher = FIELD_NAME_DESIRED_PROPERTIES_PATTERN.matcher(fieldName);
                         if (matcher.matches()) {
                             matches = true;
-                            featureId = matcher.group("featureId");
+                            featureId = matcher.group(FEATURE_ID);
                             isProperties = false;
                             property = null;
                             isDesiredProperties = true;
@@ -185,7 +187,7 @@ public final class FieldExpressionUtil {
                             matcher = FIELD_NAME_FEATURE_PATTERN2.matcher(fieldName);
                             if (matcher.matches()) {
                                 matches = true;
-                                featureId = matcher.group("featureId");
+                                featureId = matcher.group(FEATURE_ID);
                                 isProperties = false;
                                 property = null;
                                 isDesiredProperties = false;

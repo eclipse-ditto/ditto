@@ -319,10 +319,6 @@ public final class ThingCommandEnforcement
         return ask(thingsShardRegion, command, "retrieving thing before inlined policy");
     }
 
-    private ThingUnavailableException reportThingUnavailable() {
-        return ThingUnavailableException.newBuilder(signal().getEntityId()).dittoHeaders(dittoHeaders()).build();
-    }
-
     /**
      * Retrieve inlined policy after retrieving a thing. Do not report errors.
      *

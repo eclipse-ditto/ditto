@@ -41,9 +41,7 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestName;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -58,9 +56,6 @@ public abstract class AbstractPublisherActorTest {
 
     protected static final Config CONFIG = ConfigFactory.load("test");
     protected ActorSystem actorSystem;
-
-    @Rule
-    public TestName name = new TestName();
 
     @Before
     public void setUp() {
@@ -77,7 +72,6 @@ public abstract class AbstractPublisherActorTest {
 
     @Test
     public void testPublishMessage() throws Exception {
-
         new TestKit(actorSystem) {{
 
             final TestProbe probe = new TestProbe(actorSystem);
@@ -99,7 +93,6 @@ public abstract class AbstractPublisherActorTest {
 
     @Test
     public void testAutoAck() throws Exception {
-
         new TestKit(actorSystem) {{
 
             final TestProbe probe = new TestProbe(actorSystem);
@@ -124,7 +117,6 @@ public abstract class AbstractPublisherActorTest {
 
     @Test
     public void testPublishResponseToReplyTarget() throws Exception {
-
         new TestKit(actorSystem) {{
 
             final TestProbe probe = new TestProbe(actorSystem);

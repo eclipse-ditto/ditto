@@ -146,5 +146,9 @@ public final class CancelSubscription extends AbstractCommand<CancelSubscription
         public static final JsonFieldDefinition<String> SUBSCRIPTION_ID =
                 JsonFactory.newStringFieldDefinition("subscriptionId");
 
+        JsonFields() {
+            throw new AssertionError();
+        }
+
     }
 }

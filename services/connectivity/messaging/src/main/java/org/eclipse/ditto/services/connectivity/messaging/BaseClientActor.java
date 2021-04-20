@@ -1089,8 +1089,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final CompletionStage<Status.Status> consumersReady = startConsumerActors(clientConnected);
         final CompletionStage<Void> pubsubReady = subscribeAndDeclareAcknowledgementLabels();
 
-        return publisherReady.thenCompose(_void -> consumersReady)
-                .thenCompose(_void -> pubsubReady)
+        return publisherReady.thenCompose(unused -> consumersReady)
+                .thenCompose(unused -> pubsubReady)
                 .thenApply(unused -> InitializationResult.success())
                 .exceptionally(InitializationResult::failed);
     }
@@ -1765,7 +1765,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     dittoProtocolSub.subscribe(getUniqueStreamingTypes(), getTargetAuthSubjects(), getSelf(), group);
             final CompletionStage<Void> declare =
                     dittoProtocolSub.declareAcknowledgementLabels(getDeclaredAcks(), getSelf(), group);
-            return declare.thenCompose(_void -> subscribe);
+            return declare.thenCompose(unused -> subscribe);
         }
     }
 

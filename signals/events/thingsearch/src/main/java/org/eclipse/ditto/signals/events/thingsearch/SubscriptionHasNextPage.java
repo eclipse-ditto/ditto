@@ -147,6 +147,11 @@ public final class SubscriptionHasNextPage extends AbstractSubscriptionEvent<Sub
         /**
          * Json field for results in a page.
          */
-        public static final JsonFieldDefinition<JsonArray> ITEMS = JsonFactory.newJsonArrayFieldDefinition("items");
+        public static final JsonFieldDefinition<JsonArray> ITEMS =
+                JsonFactory.newJsonArrayFieldDefinition("items");
+
+        JsonFields() {
+            throw new AssertionError();
+        }
     }
 }

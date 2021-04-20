@@ -94,7 +94,7 @@ final class DittoRuntimeExceptionToErrorResponseFunction
                 .flatMap(DittoRuntimeExceptionToErrorResponseFunction::getEntityIdFromTopicPath)
                 .or(() -> Optional.ofNullable(e.getDittoHeaders().get(DittoHeaderDefinition.ENTITY_ID.getKey()))
                         .map(entityId -> {
-                            final int indexOfSeparator = entityId.indexOf(":");
+                            final int indexOfSeparator = entityId.indexOf(':');
                             final EntityType entityType = EntityType.of(entityId.substring(0, indexOfSeparator));
                             final String id = entityId.substring(indexOfSeparator + 1);
                             return EntityId.of(entityType, id);

@@ -465,6 +465,10 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
 
         static final JsonFieldDefinition<JsonValue> JSON_VALUE =
                 JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        JsonFields() {
+            throw new AssertionError();
+        }
     }
 
     @Override
