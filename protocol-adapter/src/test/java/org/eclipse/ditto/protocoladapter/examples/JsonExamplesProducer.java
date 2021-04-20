@@ -50,7 +50,6 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.messages.MessageTimeoutException;
 import org.eclipse.ditto.model.messages.SubjectInvalidException;
-import org.eclipse.ditto.model.messages.TimeoutInvalidException;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
@@ -899,7 +898,7 @@ class JsonExamplesProducer {
                         JsonExamplesProducer.NAMESPACE, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("retrieveThingsResponse.json")), retrieveThingsResponse);
 
-        final RetrieveThingResponse retrieveThingResponse = RetrieveThingResponse.of(THING_ID, THING, DITTO_HEADERS);
+        final RetrieveThingResponse retrieveThingResponse = RetrieveThingResponse.of(THING_ID, THING, null, null, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("retrieveThingResponse.json")), retrieveThingResponse);
 
         final RetrieveAttributesResponse retrieveAttributesResponse =
@@ -1928,9 +1927,6 @@ class JsonExamplesProducer {
         final SubjectInvalidException subjectInvalidException = SubjectInvalidException.newBuilder("invalid subject")
                 .build();
         writeJson(exceptionsDir.resolve(Paths.get("subjectInvalidException.json")), subjectInvalidException);
-
-        final TimeoutInvalidException timeoutInvalidException = TimeoutInvalidException.newBuilder(120L, 60L).build();
-        writeJson(exceptionsDir.resolve(Paths.get("timeoutInvalidException.json")), timeoutInvalidException);
     }
 
     private void produceGatewayExceptions(final Path rootPath) throws IOException {

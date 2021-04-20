@@ -30,7 +30,6 @@ import java.util.Set;
 
 import org.assertj.core.api.Assertions;
 import org.assertj.core.util.Lists;
-import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -49,6 +48,7 @@ import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingFieldSelector;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
@@ -113,19 +113,19 @@ public final class SignalFilterTest {
                 .build();
         final Target enrichedFiltered = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
                 .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
-                        .withExtraFields(JsonFieldSelector.newInstance("attributes/y"))
+                        .withExtraFields(ThingFieldSelector.fromString("attributes/y"))
                         .withFilter("not(or(ne(attributes/x,5),and(eq(attributes/x,5),ne(attributes/y,5))))")
                         .build())
                 .build();
         final Target enrichedNotFiltered1 = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
                 .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
-                        .withExtraFields(JsonFieldSelector.newInstance("attributes/y"))
+                        .withExtraFields(ThingFieldSelector.fromString("attributes/y"))
                         .withFilter("and(ne(attributes/x,5),or(eq(attributes/x,5),ne(attributes/y,5)))")
                         .build())
                 .build();
         final Target enrichedNotFiltered2 = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
                 .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
-                        .withExtraFields(JsonFieldSelector.newInstance("attributes/y"))
+                        .withExtraFields(ThingFieldSelector.fromString("attributes/y"))
                         .withFilter("not(or(eq(attributes/x,5),and(eq(attributes/x,5),ne(attributes/y,5))))")
                         .build())
                 .build();

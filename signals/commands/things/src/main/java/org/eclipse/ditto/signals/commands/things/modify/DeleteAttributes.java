@@ -64,22 +64,6 @@ public final class DeleteAttributes extends AbstractCommand<DeleteAttributes>
      * @param dittoHeaders the headers of the command.
      * @return a Command for deleting the Attributes of a Thing.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static DeleteAttributes of(final String thingId, final DittoHeaders dittoHeaders) {
-        return of(ThingId.of(thingId), dittoHeaders);
-    }
-
-    /**
-     * Returns a Command for deleting a Thing's Attributes.
-     *
-     * @param thingId the {@code Thing}'s ID whose Attributes to delete.
-     * @param dittoHeaders the headers of the command.
-     * @return a Command for deleting the Attributes of a Thing.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
     public static DeleteAttributes of(final ThingId thingId, final DittoHeaders dittoHeaders) {
         return new DeleteAttributes(thingId, dittoHeaders);

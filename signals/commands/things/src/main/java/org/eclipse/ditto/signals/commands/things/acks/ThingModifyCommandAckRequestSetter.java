@@ -21,7 +21,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.acks.AbstractCommandAckRequestSetter;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 
 /**
@@ -50,21 +49,6 @@ public final class ThingModifyCommandAckRequestSetter extends AbstractCommandAck
      */
     public static ThingModifyCommandAckRequestSetter getInstance() {
         return INSTANCE;
-    }
-
-    /**
-     * @param command the command that will be checked for adding an {@link AcknowledgementRequest}
-     * for {@link DittoAcknowledgementLabel#TWIN_PERSISTED}.
-     * @return the command with the correct headers.
-     * @deprecated as of 1.2.0: use {@link AbstractCommandAckRequestSetter#apply} instead.
-     */
-    @Deprecated
-    public Command<?> apply(final Command<?> command) {
-        Command<?> result = checkNotNull(command, "command");
-        if (command instanceof ThingModifyCommand) {
-            result = apply((ThingModifyCommand<?>) command);
-        }
-        return result;
     }
 
     @Override

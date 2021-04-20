@@ -52,7 +52,6 @@ import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
-import org.eclipse.ditto.services.models.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingFieldSelector;
 import org.eclipse.ditto.model.things.ThingId;
@@ -66,6 +65,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.InboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
+import org.eclipse.ditto.services.models.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
@@ -208,13 +208,14 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
             //  - 1 w/o enrichment with 2 payload mappings
             final JsonFieldSelector extraFields = JsonFactory.newFieldSelector("attributes/x,attributes/y",
                     JsonParseOptions.newBuilder().withoutUrlDecoding().build());
+            final ThingFieldSelector thingFieldSelector = ThingFieldSelector.fromJsonFieldSelector(extraFields);
             final AuthorizationSubject targetAuthSubject = AuthorizationSubject.newInstance("target:auth-subject");
             final Target targetWithEnrichment = ConnectivityModelFactory.newTargetBuilder()
                     .address("target/address")
                     .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
                             targetAuthSubject))
                     .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
-                            .withExtraFields(extraFields)
+                            .withExtraFields(thingFieldSelector)
                             .build())
                     .build();
             final Target targetWithEnrichmentAnd1PayloadMapper = ConnectivityModelFactory.newTargetBuilder()
@@ -222,7 +223,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                     .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
                             targetAuthSubject))
                     .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
-                            .withExtraFields(extraFields)
+                            .withExtraFields(thingFieldSelector)
                             .build())
                     .payloadMapping(ConnectivityModelFactory.newPayloadMapping(ADD_HEADER_MAPPER))
                     .build();
@@ -231,7 +232,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                     .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
                             targetAuthSubject))
                     .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
-                            .withExtraFields(extraFields)
+                            .withExtraFields(thingFieldSelector)
                             .build())
                     .payloadMapping(ConnectivityModelFactory.newPayloadMapping(DUPLICATING_MAPPER, ADD_HEADER_MAPPER))
                     .build();

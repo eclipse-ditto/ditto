@@ -112,30 +112,6 @@ public final class ModifyFeatureProperty extends AbstractCommand<ModifyFeaturePr
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code propertyJsonPointer} are not valid
      * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.json.JsonPointer,
-     * org.eclipse.ditto.json.JsonValue, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifyFeatureProperty of(final String thingId, final String featureId,
-            final JsonPointer propertyJsonPointer, final JsonValue propertyValue, final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), featureId, propertyJsonPointer, propertyValue, dittoHeaders);
-    }
-
-    /**
-     * Returns a Command for modifying a Feature's Property on a Thing.
-     *
-     * @param thingId the {@code Thing}'s ID whose {@code Feature}'s Property to modify.
-     * @param featureId the {@code Feature}'s ID whose Property to modify.
-     * @param propertyJsonPointer the JSON pointer of the Property key to modify.
-     * @param propertyValue the value of the Property to modify.
-     * @param dittoHeaders the headers of the command.
-     * @return a Command for modifying the provided Property.
-     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code propertyJsonPointer} are not valid
-     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static ModifyFeatureProperty of(final ThingId thingId, final String featureId,
             final JsonPointer propertyJsonPointer, final JsonValue propertyValue, final DittoHeaders dittoHeaders) {

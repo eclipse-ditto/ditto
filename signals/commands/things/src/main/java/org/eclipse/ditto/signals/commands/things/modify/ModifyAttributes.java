@@ -85,25 +85,6 @@ public final class ModifyAttributes extends AbstractCommand<ModifyAttributes>
      * @param dittoHeaders the headers of the command.
      * @return a command for modifying the provided new attributes.
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.Attributes, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifyAttributes of(final String thingId, final Attributes newAttributesObject,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), newAttributesObject, dittoHeaders);
-    }
-
-    /**
-     * Returns a command for modifying an attributes object which is passed as argument.
-     *
-     * @param thingId the ID of the thing on which to modify the attributes.
-     * @param newAttributesObject the value of the attributes to modify.
-     * @param dittoHeaders the headers of the command.
-     * @return a command for modifying the provided new attributes.
-     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
      */
     public static ModifyAttributes of(final ThingId thingId, final Attributes newAttributesObject,
             final DittoHeaders dittoHeaders) {

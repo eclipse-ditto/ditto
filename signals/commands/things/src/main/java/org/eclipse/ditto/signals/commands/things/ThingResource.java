@@ -28,8 +28,8 @@ import org.eclipse.ditto.signals.commands.base.ResourceMap;
 /**
  * Defines all valid thing resources and provides a {@link #from(org.eclipse.ditto.json.JsonPointer)} method to
  * resolve the thing resource from a given path.
- * <p>
- * TODO adapt @since annotaion @since 1.6.0
+ *
+ * @since 2.0.0
  */
 public enum ThingResource {
 

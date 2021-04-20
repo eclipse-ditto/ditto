@@ -49,19 +49,6 @@ public interface TopicPath {
      * @param thingId the identifier of the {@code Thing}.
      * @return the builder.
      * @throws NullPointerException if {@code thingId} is {@code null}.
-     * @deprecated Thing ID is now typed. Use {@link #newBuilder(org.eclipse.ditto.model.things.ThingId)} instead.
-     */
-    @Deprecated
-    static TopicPathBuilder newBuilder(final String thingId) {
-        return newBuilder(ThingId.of(thingId));
-    }
-
-    /**
-     * Returns a mutable builder to create immutable {@code TopicPath} instances for a given {@code thingId}.
-     *
-     * @param thingId the identifier of the {@code Thing}.
-     * @return the builder.
-     * @throws NullPointerException if {@code thingId} is {@code null}.
      */
     static TopicPathBuilder newBuilder(final ThingId thingId) {
         return ProtocolFactory.newTopicPathBuilder(thingId);
@@ -137,17 +124,6 @@ public interface TopicPath {
      * @return the subject.
      */
     Optional<String> getSubject();
-
-    /**
-     * Returns the id part of this {@code TopicPath}.
-     *
-     * @return the id.
-     * @deprecated Since 1.4.0. Use {@link #getEntityName()} instead.
-     */
-    @Deprecated
-    default String getId() {
-        return getEntityName();
-    }
 
     /**
      * Returns the entity name part of this {@code TopicPath}.

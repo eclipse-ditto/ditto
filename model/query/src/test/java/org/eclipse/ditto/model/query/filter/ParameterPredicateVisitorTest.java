@@ -56,7 +56,6 @@ public final class ParameterPredicateVisitorTest {
         new ParameterPredicateVisitor(cf, null);
     }
 
-    /** */
     @Test
     public void visitChildrenOfRootNode() {
         final RootNode rootNode = new RootNode();
@@ -76,7 +75,6 @@ public final class ParameterPredicateVisitorTest {
         Assertions.assertThat(visitorUnderTest.getCriteria()).isEqualTo(Arrays.asList(fieldCrit1, fieldCrit2));
     }
 
-    /** */
     @Test
     public void visitChildrenOfLogicalNode() {
         final LogicalNode logicalNode = new LogicalNode(LogicalNode.Type.AND);
@@ -94,12 +92,12 @@ public final class ParameterPredicateVisitorTest {
         final Criteria fieldCrit1 = cf.fieldCriteria(ef.filterBy(KNOWN_FIELD_NAME), cf.eq(KNOWN_FIELD_VALUE_1));
         final Criteria fieldCrit2 = cf.fieldCriteria(ef.filterBy(KNOWN_FIELD_NAME), cf.eq(KNOWN_FIELD_VALUE_2));
 
-        visitorUnderTest.getCriteria().get(0).equals(cf.and(Arrays.asList(fieldCrit1, fieldCrit2)));
+        Assertions.assertThat(visitorUnderTest.getCriteria().get(0)).isEqualTo(
+                cf.and(Arrays.asList(fieldCrit1, fieldCrit2)));
 
         Assertions.assertThat(visitorUnderTest.getCriteria()).containsExactly(cf.and(Arrays.asList(fieldCrit1, fieldCrit2)));
     }
 
-    /** */
     @Test
     public void logicalNodeAnd() {
         final LogicalNode logicalNode = new LogicalNode(LogicalNode.Type.AND);
@@ -109,7 +107,6 @@ public final class ParameterPredicateVisitorTest {
         Assertions.assertThat(visitorUnderTest.getCriteria()).containsExactly(cf.and(Collections.emptyList()));
     }
 
-    /** */
     @Test
     public void logicalNodeOr() {
         final LogicalNode logicalNode = new LogicalNode(LogicalNode.Type.OR);
@@ -119,7 +116,6 @@ public final class ParameterPredicateVisitorTest {
         Assertions.assertThat(visitorUnderTest.getCriteria()).containsExactly(cf.or(Collections.emptyList()));
     }
 
-    /** */
     @Test
     public void logicalNodeNot() {
         final LogicalNode logicalNode = new LogicalNode(LogicalNode.Type.NOT);
@@ -128,7 +124,6 @@ public final class ParameterPredicateVisitorTest {
         Assertions.assertThat(visitorUnderTest.getCriteria()).containsExactly(cf.nor(Collections.emptyList()));
     }
 
-    /** */
     @Test
     public void filterNodeEq() {
         final SingleComparisonNode filterNode =
@@ -140,7 +135,6 @@ public final class ParameterPredicateVisitorTest {
         Assertions.assertThat(visitorUnderTest.getCriteria()).containsExactly(expectedCrit);
     }
 
-    /** */
     @Test
     public void filterNodeNe() {
         final SingleComparisonNode filterNode =
@@ -152,7 +146,6 @@ public final class ParameterPredicateVisitorTest {
         Assertions.assertThat(visitorUnderTest.getCriteria()).containsExactly(expectedCrit);
     }
 
-    /** */
     @Test
     public void filterNodeGt() {
         final SingleComparisonNode filterNode =
@@ -164,7 +157,6 @@ public final class ParameterPredicateVisitorTest {
         Assertions.assertThat(visitorUnderTest.getCriteria()).containsExactly(expectedCrit);
     }
 
-    /** */
     @Test
     public void filterNodeGe() {
         final SingleComparisonNode filterNode =
@@ -176,7 +168,6 @@ public final class ParameterPredicateVisitorTest {
         Assertions.assertThat(visitorUnderTest.getCriteria()).containsExactly(expectedCrit);
     }
 
-    /** */
     @Test
     public void filterNodeLt() {
         final SingleComparisonNode filterNode =
@@ -188,7 +179,6 @@ public final class ParameterPredicateVisitorTest {
         Assertions.assertThat(visitorUnderTest.getCriteria()).containsExactly(expectedCrit);
     }
 
-    /** */
     @Test
     public void filterNodeLe() {
         final SingleComparisonNode filterNode =

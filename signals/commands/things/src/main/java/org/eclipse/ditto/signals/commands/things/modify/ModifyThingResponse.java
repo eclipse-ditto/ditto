@@ -92,23 +92,6 @@ public final class ModifyThingResponse extends AbstractCommandResponse<ModifyThi
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a modified Thing.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #modified(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifyThingResponse modified(final String thingId, final DittoHeaders dittoHeaders) {
-        return modified(ThingId.of(thingId), dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code ModifyThingResponse} for a modified Thing. This corresponds to the HTTP status
-     * {@link HttpStatus#NO_CONTENT}.
-     *
-     * @param thingId the Thing ID of the modified Thing.
-     * @param dittoHeaders the headers of the ThingCommand which caused the new response.
-     * @return a command response for a modified Thing.
-     * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyThingResponse modified(final ThingId thingId, final DittoHeaders dittoHeaders) {
         return new ModifyThingResponse(thingId, HttpStatus.NO_CONTENT, null, dittoHeaders);

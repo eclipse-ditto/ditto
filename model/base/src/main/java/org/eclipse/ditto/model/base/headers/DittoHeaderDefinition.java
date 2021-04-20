@@ -383,12 +383,12 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
     }
 
     @Override
-    public Class getJavaType() {
+    public Class<?> getJavaType() {
         return type;
     }
 
     @Override
-    public Class getSerializationType() {
+    public Class<?> getSerializationType() {
         return serializationType;
     }
 

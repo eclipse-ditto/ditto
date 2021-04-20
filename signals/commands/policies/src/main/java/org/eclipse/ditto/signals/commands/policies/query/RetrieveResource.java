@@ -84,29 +84,6 @@ public final class RetrieveResource extends AbstractCommand<RetrieveResource>
      * @return a Command for retrieving the Resource with the {@code policyId}, {@code label} and {@code resourcePath}
      * which is readable from the passed authorization context.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.ResourceKey, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrieveResource of(final String policyId,
-            final Label label,
-            final ResourceKey resourceKey,
-            final DittoHeaders dittoHeaders) {
-
-        return of(PolicyId.of(policyId), label, resourceKey, dittoHeaders);
-    }
-
-    /**
-     * Returns a command for retrieving the Resource with the given Policy ID, Label and Resource resourceKey.
-     *
-     * @param policyId the ID of the Policy for which to retrieve the Resource for.
-     * @param label the specified label of the Policy entry for which to retrieve the Resource for.
-     * @param resourceKey the ResourceKey of the Resource to retrieve.
-     * @param dittoHeaders the optional command headers of the request.
-     * @return a Command for retrieving the Resource with the {@code policyId}, {@code label} and {@code resourcePath}
-     * which is readable from the passed authorization context.
-     * @throws NullPointerException if any argument is {@code null}.
      */
     public static RetrieveResource of(final PolicyId policyId,
             final Label label,

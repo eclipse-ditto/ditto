@@ -35,11 +35,6 @@ public interface ThingBuilder {
      *
      * @return the ID
      */
-    @Deprecated
-    static String generateRandomThingId() {
-        return generateRandomTypedThingId().toString();
-    }
-
     static ThingId generateRandomTypedThingId() {
         return ThingId.generateRandom();
     }
@@ -441,19 +436,6 @@ public interface ThingBuilder {
          * @since 1.2.0
          */
         FromScratch setMetadata(@Nullable Metadata metadata);
-
-        /**
-         * Sets the given Thing ID to this builder. The ID is required to include the Thing's namespace.
-         *
-         * @param thingId the Thing ID to be set.
-         * @return this builder to allow method chaining.
-         * @throws ThingIdInvalidException if {@code thingId} does not comply to the required pattern.
-         * @deprecated thing ID is now typed. Use {@link #setId(ThingId)} instead.
-         */
-        @Deprecated
-        default FromScratch setId(@Nullable String thingId) {
-            return setId(ThingId.of(thingId));
-        }
 
         /**
          * Sets the given Thing ID to this builder. The ID is required to include the Thing's namespace.
@@ -1328,43 +1310,9 @@ public interface ThingBuilder {
          * @return this builder to allow method chaining.
          * @throws ThingIdInvalidException if {@code thingId} does not comply to
          * the required pattern.
-         * @deprecated Thing ID is now typed. Use {@link #setId(ThingId)} instead.
-         */
-        @Deprecated
-        default FromCopy setId(@Nullable final String thingId) {
-            return setId(existingId -> true, thingId);
-        }
-
-        /**
-         * Sets the given Thing ID to this builder. The ID is required to include the Thing's namespace.
-         *
-         * @param thingId the Thing ID to be set.
-         * @return this builder to allow method chaining.
-         * @throws ThingIdInvalidException if {@code thingId} does not comply to
-         * the required pattern.
          */
         default FromCopy setId(@Nullable final ThingId thingId) {
             return setId(existingId -> true, thingId);
-        }
-
-        /**
-         * Sets the given Thing ID to this builder. The ID is required to include the Thing's namespace.
-         *
-         * @param existingIdPredicate a predicate to decide whether the given ID is set. The predicate receives
-         * the currently set Thing ID.
-         * @param thingId the Thing ID to be set.
-         * @return this builder to allow method chaining.
-         * @throws NullPointerException if {@code existingIdPredicate} is {@code null}.
-         * @throws ThingIdInvalidException if {@code thingId} does not comply to
-         * the required pattern.
-         * @deprecated Thing ID is now typed. Use
-         * {@link #setId(java.util.function.Predicate, ThingId)}
-         * instead.
-         */
-        @Deprecated
-        default FromCopy setId(Predicate<String> existingIdPredicate, @Nullable String thingId) {
-            final Predicate<ThingId> thingIdPredicate = thingId1 -> existingIdPredicate.test(thingId1.toString());
-            return setId(thingIdPredicate, ThingId.of(thingId));
         }
 
         /**

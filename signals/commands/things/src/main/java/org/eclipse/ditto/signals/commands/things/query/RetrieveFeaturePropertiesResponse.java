@@ -84,28 +84,6 @@ public final class RetrieveFeaturePropertiesResponse extends AbstractCommandResp
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.things.FeatureProperties, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrieveFeaturePropertiesResponse of(final String thingId,
-            final String featureId,
-            final FeatureProperties featureProperties,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), featureId, featureProperties, dittoHeaders);
-    }
-
-    /**
-     * Creates a response to a {@link RetrieveFeatureProperties} command.
-     *
-     * @param thingId the Thing ID of the retrieved feature properties.
-     * @param featureId the identifier of the Feature whose Properties were retrieved.
-     * @param featureProperties the retrieved FeatureProperties.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
      */
     public static RetrieveFeaturePropertiesResponse of(final ThingId thingId,
             final String featureId,
@@ -113,28 +91,6 @@ public final class RetrieveFeaturePropertiesResponse extends AbstractCommandResp
             final DittoHeaders dittoHeaders) {
 
         return new RetrieveFeaturePropertiesResponse(thingId, featureId, featureProperties, dittoHeaders);
-    }
-
-    /**
-     * Creates a response to a {@link RetrieveFeatureProperties} command.
-     *
-     * @param thingId the Thing ID of the retrieved feature properties.
-     * @param featureId the identifier of the Feature whose Properties were retrieved.
-     * @param jsonObject the retrieved FeatureProperties JSON.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.json.JsonObject, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrieveFeaturePropertiesResponse of(final String thingId,
-            final String featureId,
-            @Nullable final JsonObject jsonObject,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), featureId, jsonObject, dittoHeaders);
     }
 
     /**

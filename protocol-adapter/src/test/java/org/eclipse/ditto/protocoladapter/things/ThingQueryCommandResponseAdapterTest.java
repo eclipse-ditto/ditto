@@ -72,7 +72,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
     @Test
     public void retrieveThingResponseFromAdaptable() {
         final RetrieveThingResponse expected =
-                RetrieveThingResponse.of(THING_ID, TestConstants.THING, TestConstants.DITTO_HEADERS_V_2);
+                RetrieveThingResponse.of(THING_ID, TestConstants.THING, null, null, TestConstants.DITTO_HEADERS_V_2);
 
         final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
         final JsonPointer path = JsonPointer.empty();
@@ -104,7 +104,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
                 .build();
 
         final RetrieveThingResponse retrieveThing =
-                RetrieveThingResponse.of(THING_ID, TestConstants.THING, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
+                RetrieveThingResponse.of(THING_ID, TestConstants.THING, null, null, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveThing, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);

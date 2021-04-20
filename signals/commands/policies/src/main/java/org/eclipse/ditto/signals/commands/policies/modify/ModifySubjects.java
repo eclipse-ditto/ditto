@@ -92,28 +92,6 @@ public final class ModifySubjects extends AbstractCommand<ModifySubjects>
      * @param dittoHeaders the headers of the command.
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.Subjects, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifySubjects of(final String policyId,
-            final Label label,
-            final Subjects subjects,
-            final DittoHeaders dittoHeaders) {
-
-        return of(PolicyId.of(policyId), label, subjects, dittoHeaders);
-    }
-
-    /**
-     * Creates a command for modifying {@code Subjects} of a {@code Policy}'s {@code PolicyEntry}.
-     *
-     * @param policyId the identifier of the Policy.
-     * @param label the Label of the PolicyEntry.
-     * @param subjects the Subjects to modify.
-     * @param dittoHeaders the headers of the command.
-     * @return the command.
-     * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifySubjects of(final PolicyId policyId,
             final Label label,

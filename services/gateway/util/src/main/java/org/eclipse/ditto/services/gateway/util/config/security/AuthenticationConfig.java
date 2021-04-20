@@ -45,17 +45,6 @@ public interface AuthenticationConfig {
     boolean isPreAuthenticationEnabled();
 
     /**
-     * Indicates whether dummy authentication should be enabled.
-     *
-     * @return {@code true} if dummy authentication is enabled, {@code false} else.
-     * @deprecated as of 1.1.0, please use {@link #isPreAuthenticationEnabled()} instead
-     */
-    @Deprecated
-    default boolean isDummyAuthenticationEnabled() {
-        return isPreAuthenticationEnabled();
-    }
-
-    /**
      * Returns the configuration settings of the DevOps resources.
      *
      * @return the config.

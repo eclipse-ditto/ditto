@@ -25,31 +25,26 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public class LogicalNodeTest {
 
-    /** */
     @Test
     public void hashcodeAndEquals() {
         EqualsVerifier.forClass(LogicalNode.class).usingGetClass().verify();
     }
 
-    /** */
     @Test
     public void validToString() {
         assertThat(new LogicalNode("and").toString()).startsWith("LogicalNode ");
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void constructorWithNullAsName() {
         new LogicalNode((String) null);
     }
 
-    /** */
     @Test(expected = IllegalArgumentException.class)
     public void constructorWithUnknownName() {
         new LogicalNode("unknownName");
     }
 
-    /** */
     @Test
     public void nameConstructorSuccess() {
         final LogicalNode logicalNode = new LogicalNode("and");
@@ -57,7 +52,6 @@ public class LogicalNodeTest {
         assertThat(logicalNode.getType()).isEqualTo(LogicalNode.Type.AND);
     }
 
-    /** */
     @Test
     public void typeConstructorSuccess() {
         final LogicalNode logicalNode = new LogicalNode(LogicalNode.Type.AND);

@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.services.models.connectivity.placeholders;
 
-import org.eclipse.ditto.services.models.placeholders.Placeholder;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.services.models.placeholders.Placeholder;
 
 /**
  * A {@link org.eclipse.ditto.services.models.placeholders.Placeholder} that requires the {@link TopicPath}

@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.utils.persistentactors;
 
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.same;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;

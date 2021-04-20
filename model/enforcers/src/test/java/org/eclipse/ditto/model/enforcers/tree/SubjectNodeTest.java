@@ -21,7 +21,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public class SubjectNodeTest {
 
-    /** */
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(SubjectNode.class) //
@@ -29,7 +28,6 @@ public class SubjectNodeTest {
                 .verify();
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullName() {
         SubjectNode.of(null);

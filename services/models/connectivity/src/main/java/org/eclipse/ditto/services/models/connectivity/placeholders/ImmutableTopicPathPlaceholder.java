@@ -47,7 +47,6 @@ final class ImmutableTopicPathPlaceholder implements TopicPathPlaceholder {
 
     private static final String FULL_PLACEHOLDER = "full";
     private static final String NAMESPACE_PLACEHOLDER = "namespace";
-    @Deprecated private static final String ENTITYID_PLACEHOLDER = "entityId";
     private static final String ENTITY_NAME_PLACEHOLDER = "entityName";
     private static final String GROUP_PLACEHOLDER = "group";
     private static final String CHANNEL_PLACEHOLDER = "channel";
@@ -57,7 +56,7 @@ final class ImmutableTopicPathPlaceholder implements TopicPathPlaceholder {
     private static final String ACTION_OR_SUBJECT_PLACEHOLDER = "action-subject";
 
     private static final List<String> SUPPORTED = Collections.unmodifiableList(
-            Arrays.asList(FULL_PLACEHOLDER, NAMESPACE_PLACEHOLDER, ENTITY_NAME_PLACEHOLDER, ENTITYID_PLACEHOLDER,
+            Arrays.asList(FULL_PLACEHOLDER, NAMESPACE_PLACEHOLDER, ENTITY_NAME_PLACEHOLDER,
                     GROUP_PLACEHOLDER, CHANNEL_PLACEHOLDER, CRITERION_PLACEHOLDER, ACTION_PLACEHOLDER,
                     SUBJECT_PLACEHOLDER, ACTION_OR_SUBJECT_PLACEHOLDER));
 
@@ -86,8 +85,6 @@ final class ImmutableTopicPathPlaceholder implements TopicPathPlaceholder {
             case NAMESPACE_PLACEHOLDER:
                 return Optional.of(topicPath.getNamespace());
             case ENTITY_NAME_PLACEHOLDER:
-                return Optional.of(topicPath.getEntityName());
-            case ENTITYID_PLACEHOLDER:
                 return Optional.of(topicPath.getEntityName());
             case GROUP_PLACEHOLDER:
                 return Optional.of(topicPath.getGroup().getName());

@@ -34,14 +34,12 @@ public class EffectedResourcesTest {
             Collections.singleton(new TreeBasedPolicyEnforcer.PointerAndPermission(
                     JsonFactory.newPointer("/"), "WRITE"));
 
-    /** */
     @Test
     public void assertImmutability() {
         assertInstancesOf(EffectedResources.class, areImmutable(), provided(JsonPointer.class).isAlsoImmutable(),
                 provided(TreeBasedPolicyEnforcer.PointerAndPermission.class).isAlsoImmutable());
     }
 
-    /** */
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(EffectedResources.class) //
@@ -49,13 +47,11 @@ public class EffectedResourcesTest {
                 .verify();
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullGrantedResources() {
         EffectedResources.of(null, KNOWN_RESOURCES);
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullRevokedResources() {
         EffectedResources.of(KNOWN_RESOURCES, null);

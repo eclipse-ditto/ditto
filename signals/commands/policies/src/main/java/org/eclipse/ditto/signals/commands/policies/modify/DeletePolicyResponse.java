@@ -69,22 +69,6 @@ public final class DeletePolicyResponse extends AbstractCommandResponse<DeletePo
     }
 
     /**
-     * Creates a response to a {@code DeletePolicy} command.
-     *
-     * @param policyId the Policy ID of the deleted Policy.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static DeletePolicyResponse of(final String policyId, final DittoHeaders dittoHeaders) {
-        return new DeletePolicyResponse(PolicyId.of(policyId), HttpStatus.NO_CONTENT, dittoHeaders);
-    }
-
-    /**
      * Creates a response to a {@code DeletePolicy} command from a JSON string.
      *
      * @param jsonString the JSON string of which the response is to be created.

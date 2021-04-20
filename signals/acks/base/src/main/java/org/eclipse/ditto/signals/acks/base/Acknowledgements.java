@@ -14,7 +14,6 @@ package org.eclipse.ditto.signals.acks.base;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
@@ -29,7 +28,6 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
@@ -94,33 +92,6 @@ public interface Acknowledgements
     /**
      * Returns a new {@code Acknowledgements} based on the passed params, including the contained
      * {@link Acknowledgement}s.
-     * <p>
-     * <em>Should only be used for deserializing from a JSON representation, as {@link #of(Collection, DittoHeaders)}
-     * does e.g. the calculation of the correct {@code statusCode}.</em>
-     * </p>
-     *
-     * @param entityId the ID of the affected entity being acknowledged.
-     * @param acknowledgements the map of acknowledgements to be included in the result.
-     * @param statusCode the status code (HTTP semantics) of the combined Acknowledgements.
-     * @param dittoHeaders the headers of the returned Acknowledgements instance.
-     * @return the Acknowledgements.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @throws IllegalArgumentException if the given {@code acknowledgements} are empty or if the entity IDs or entity
-     * types of the given acknowledgements are not equal.
-     * @deprecated as of 2.0.0 please use {@link #of(EntityId, Collection, HttpStatus, DittoHeaders)} instead.
-     */
-    @Deprecated
-    static Acknowledgements of(final EntityId entityId,
-            final Collection<? extends Acknowledgement> acknowledgements,
-            final HttpStatusCode statusCode,
-            final DittoHeaders dittoHeaders) {
-
-        return of(entityId, acknowledgements, statusCode.getAsHttpStatus(), dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code Acknowledgements} based on the passed params, including the contained
-     * {@link Acknowledgement}s.
      * <p><em>
      * Should only be used for deserializing from a JSON representation, as {@link #of(Collection, DittoHeaders)}
      * does e.g. the calculation of the correct {@code httpStatus}.
@@ -154,40 +125,6 @@ public interface Acknowledgements
      */
     static Acknowledgements empty(final EntityId entityId, final DittoHeaders dittoHeaders) {
         return AcknowledgementFactory.emptyAcknowledgements(entityId, dittoHeaders);
-    }
-
-    /**
-     * Returns the status code of the Acknowledgements:
-     * <ul>
-     *     <li>If only one acknowledgement is included, its status code is returned.</li>
-     *     <li>
-     *         If several acknowledgements are included:
-     *         <ul>
-     *             <li>
-     *                 If all contained acknowledgements are successful, the overall status code is
-     *                 {@link HttpStatusCode#OK}.
-     *             </li>
-     *             <li>
-     *                 If at least one acknowledgement failed, the overall status code is
-     *                 {@link HttpStatusCode#FAILED_DEPENDENCY}.
-     *             </li>
-     *         </ul>
-     *     </li>
-     * </ul>
-     *
-     * @return the status code.
-     * @deprecated as of 2.0.0 please use {@link #getHttpStatus()} instead.
-     */
-    @Deprecated
-    default HttpStatusCode getStatusCode() {
-        final HttpStatus httpStatus = getHttpStatus();
-        return HttpStatusCode.forInt(httpStatus.getCode()).orElseThrow(() -> {
-
-            // This might happen at runtime when httpStatus has a code which is
-            // not reflected as constant in HttpStatusCode.
-            final String msgPattern = "Found no HttpStatusCode for int <{0}>!";
-            return new IllegalStateException(MessageFormat.format(msgPattern, httpStatus.getCode()));
-        });
     }
 
     /**

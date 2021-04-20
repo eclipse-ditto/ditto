@@ -20,17 +20,6 @@ import org.eclipse.ditto.model.base.entity.id.WithEntityId;
  */
 public interface WithConnectionId extends WithEntityId {
 
-    /**
-     * Returns the identifier of the Connection.
-     *
-     * @return the identifier of the Connection.
-     * @deprecated since 2.0.0. Use {@link #getEntityId()} instead.
-     */
-    @Deprecated
-    default ConnectionId getConnectionEntityId() {
-        return getEntityId();
-    }
-
     @Override
     ConnectionId getEntityId();
 

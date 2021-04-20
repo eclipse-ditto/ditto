@@ -96,14 +96,9 @@ public final class SendFeatureMessageTest {
                 .verify();
     }
 
-    @Test(expected = org.eclipse.ditto.model.things.ThingIdInvalidException.class)
-    public void tryCreateWithNullThingIdString() {
-        SendFeatureMessage.of((String) null, FEATURE_ID, MESSAGE, DITTO_HEADERS);
-    }
-
     @Test(expected = NullPointerException.class)
     public void tryCreateWithNullThingId() {
-        SendFeatureMessage.of((ThingId) null, FEATURE_ID, MESSAGE, DITTO_HEADERS);
+        SendFeatureMessage.of(null, FEATURE_ID, MESSAGE, DITTO_HEADERS);
     }
 
     @Test(expected = NullPointerException.class)

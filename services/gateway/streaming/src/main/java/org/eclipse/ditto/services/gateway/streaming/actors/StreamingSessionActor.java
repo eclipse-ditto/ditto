@@ -593,11 +593,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                     final AuthenticationResult authorizationResult =
                             jwtAuthenticationResultProvider.getAuthenticationResult(jsonWebToken, DittoHeaders.empty());
 
-                    // Duplicating authorization subjects for equality check.
-                    // TODO Ditto 2.0: use authorizationResult.getAuthorizationContext() directly.
-                    final AuthorizationContext jwtAuthorizationContext =
-                            authorizationResult.getDittoHeaders().getAuthorizationContext();
-
+                    final AuthorizationContext jwtAuthorizationContext = authorizationResult.getAuthorizationContext();
                     getSelf().tell(new RefreshSession(jwtConnectionCorrelationId, jsonWebToken.getExpirationTime(),
                             jwtAuthorizationContext), ActorRef.noSender());
                 } catch (final Exception exception) {

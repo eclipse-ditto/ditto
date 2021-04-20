@@ -87,23 +87,6 @@ public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
      * @param dittoHeaders the headers of the command.
      * @return a command for modifying the provided new Policy ID.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(ThingId, PolicyId, DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifyPolicyId of(final String thingId, final String policyId, final DittoHeaders dittoHeaders) {
-        return of(ThingId.of(thingId), PolicyId.of(policyId), dittoHeaders);
-    }
-
-    /**
-     * Returns a command for modifying a Policy ID which is passed as argument.
-     *
-     * @param thingId the ID of the thing on which to modify the Policy ID.
-     * @param policyId the Policy ID to set.
-     * @param dittoHeaders the headers of the command.
-     * @return a command for modifying the provided new Policy ID.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
     public static ModifyPolicyId of(final ThingId thingId, final PolicyId policyId,
             final DittoHeaders dittoHeaders) {
@@ -148,17 +131,6 @@ public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
 
             return of(thingId, policyId, dittoHeaders);
         });
-    }
-
-    /**
-     * Returns the new Policy ID.
-     *
-     * @return the new Policy ID.
-     * @deprecated Policy ID of the Thing is now typed. Use {@link #getPolicyEntityId()} instead.
-     */
-    @Deprecated
-    public String getPolicyId() {
-        return String.valueOf(getPolicyEntityId());
     }
 
     /**

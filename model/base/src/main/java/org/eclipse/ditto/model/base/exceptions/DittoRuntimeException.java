@@ -16,7 +16,6 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.text.MessageFormat;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
@@ -31,12 +30,9 @@ import org.atteo.classindex.IndexSubclasses;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.model.base.headers.WithManifest;
@@ -59,34 +55,6 @@ public abstract class DittoRuntimeException extends RuntimeException
     private final String description;
     private final URI href;
     private final transient DittoHeaders dittoHeaders; // not serializable!
-
-    /**
-     * Constructs a new {@code DittoRuntimeException} object.
-     *
-     * @param errorCode a code which uniquely identifies the exception.
-     * @param statusCode the HTTP status code.
-     * @param dittoHeaders the headers with which this Exception should be reported back to the user.
-     * @param message the detail message for later retrieval with {@link #getMessage()}.
-     * @param description a description with further information about the exception.
-     * @param cause the cause of the exception for later retrieval with {@link #getCause()}.
-     * @param href a link to a resource which provides further information about the exception.
-     * @throws NullPointerException if {@code errorCode}, {@code statusCode} or {@code dittoHeaders} is {@code null}.
-     * @deprecated as of 2.0.0 please use
-     * {@link DittoRuntimeException#DittoRuntimeException(String, HttpStatus, DittoHeaders, String, String, Throwable, URI)}
-     * instead.
-     */
-    @Deprecated
-    protected DittoRuntimeException(final String errorCode,
-            final HttpStatusCode statusCode,
-            final DittoHeaders dittoHeaders,
-            @Nullable final String message,
-            @Nullable final String description,
-            @Nullable final Throwable cause,
-            @Nullable final URI href) {
-
-        this(errorCode, checkNotNull(statusCode, "HTTP status").getAsHttpStatus(), dittoHeaders, message,
-                description, cause, href);
-    }
 
     /**
      * Constructs a new {@code DittoRuntimeException} object.
@@ -152,74 +120,12 @@ public abstract class DittoRuntimeException extends RuntimeException
     }
 
     /**
-     * Read the href field from the json object.
-     *
-     * @param jsonObject the object.
-     * @return Optional containing the href if it was part of the json object.
-     * @throws NullPointerException if {@code jsonObject} was null.
-     * @deprecated since 1.3.0; might be removed from public API in future releases.
-     */
-    @Deprecated
-    protected static Optional<URI> readHRef(final JsonObject jsonObject) {
-        checkNotNull(jsonObject, "jsonObject");
-        return jsonObject.getValue(JsonFields.HREF).map(URI::create);
-    }
-
-    /**
-     * Read the message field from the json object.
-     *
-     * @param jsonObject the object.
-     * @return the message.
-     * @throws NullPointerException if {@code jsonObject} was null.
-     * @throws JsonMissingFieldException if this JsonObject did not contain a value at all at the defined location.
-     * @throws JsonParseException if this JsonObject contained a value at the defined location with a type which is
-     * different from {@code T}.
-     * @deprecated since 1.3.0; might be removed from public API in future releases.
-     */
-    @Deprecated
-    protected static String readMessage(final JsonObject jsonObject) {
-        checkNotNull(jsonObject, "jsonObject");
-        return jsonObject.getValueOrThrow(JsonFields.MESSAGE);
-    }
-
-    /**
-     * Read the description field from the json object.
-     *
-     * @param jsonObject the object.
-     * @return Optional containing the description if it was part of the json object.
-     * @throws NullPointerException if {@code jsonObject} was null.
-     * @deprecated since 1.3.0; might be removed from public API in future releases.
-     */
-    @Deprecated
-    protected static Optional<String> readDescription(final JsonObject jsonObject) {
-        checkNotNull(jsonObject, "jsonObject");
-        return jsonObject.getValue(JsonFields.DESCRIPTION);
-    }
-
-    /**
      * Returns the error code to uniquely identify this exception.
      *
      * @return the error code.
      */
     public String getErrorCode() {
         return errorCode;
-    }
-
-    /**
-     * Retrieves the required HttpStatusCode with which this Exception should be reported back to the user.
-     *
-     * @return the HttpStatusCode.
-     * @deprecated as of 2.0.0 please use {@link #getHttpStatus()} instead.
-     */
-    @Deprecated
-    public HttpStatusCode getStatusCode() {
-        return HttpStatusCode.forInt(httpStatus.getCode()).orElseThrow(() -> {
-
-            // This might happen at runtime when httpStatus has a code which is
-            // not reflected as constant in HttpStatusCode.
-            final String msgPattern = "Found no HttpStatusCode for int <{0}>!";
-            return new IllegalStateException(MessageFormat.format(msgPattern, httpStatus.getCode()));
-        });
     }
 
     /**
@@ -324,18 +230,20 @@ public abstract class DittoRuntimeException extends RuntimeException
      * @return the exception.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
-     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected.
-     * format.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the
+     * expected format.
      * @since 1.3.0
      */
     public static <T extends DittoRuntimeException> T fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders, final DittoRuntimeExceptionBuilder<T> builder) {
+        checkNotNull(jsonObject, "jsonObject");
         checkNotNull(builder, "builder");
-        readDescription(jsonObject).ifPresent(builder::description);
-        readHRef(jsonObject).ifPresent(builder::href);
+
+        jsonObject.getValue(JsonFields.DESCRIPTION).ifPresent(builder::description);
+        jsonObject.getValue(JsonFields.HREF).map(URI::create).ifPresent(builder::href);
 
         return builder.dittoHeaders(dittoHeaders)
-                .message(readMessage(jsonObject))
+                .message(jsonObject.getValueOrThrow(JsonFields.MESSAGE))
                 .build();
     }
 

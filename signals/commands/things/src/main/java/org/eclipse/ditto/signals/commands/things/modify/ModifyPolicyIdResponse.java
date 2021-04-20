@@ -89,48 +89,11 @@ public final class ModifyPolicyIdResponse extends AbstractCommandResponse<Modify
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a created Policy ID.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #created(ThingId, PolicyId, DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifyPolicyIdResponse created(final String thingId, final String policyId,
-            final DittoHeaders dittoHeaders) {
-
-        return created(ThingId.of(thingId), PolicyId.of(policyId), dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code ModifyPolicyIdResponse} for a created Policy ID. This corresponds to the HTTP status
-     * {@link HttpStatus#CREATED}.
-     *
-     * @param thingId the Thing ID of the created policy ID.
-     * @param policyId the created Policy ID.
-     * @param dittoHeaders the headers of the ThingCommand which caused the new response.
-     * @return a command response for a created Policy ID.
-     * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyPolicyIdResponse created(final ThingId thingId, final PolicyId policyId,
             final DittoHeaders dittoHeaders) {
 
         return new ModifyPolicyIdResponse(thingId, HttpStatus.CREATED, policyId, dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code ModifyPolicyIdResponse} for a modified Policy ID. This corresponds to the HTTP status
-     * {@link HttpStatus#NO_CONTENT}.
-     *
-     * @param thingId the Thing ID of the modified policy ID.
-     * @param dittoHeaders the headers of the ThingCommand which caused the new response.
-     * @return a command response for a modified Policy ID.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #modified(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifyPolicyIdResponse modified(final String thingId, final DittoHeaders dittoHeaders) {
-        return modified(ThingId.of(thingId), dittoHeaders);
     }
 
     /**
@@ -185,17 +148,6 @@ public final class ModifyPolicyIdResponse extends AbstractCommandResponse<Modify
     @Override
     public ThingId getEntityId() {
         return thingId;
-    }
-
-    /**
-     * Returns the created Policy ID.
-     *
-     * @return the created Policy ID.
-     * @deprecated Policy ID of Thing is now typed. Use {@link #getPolicyEntityId()} instead.
-     */
-    @Deprecated
-    public Optional<String> getPolicyId() {
-        return getPolicyEntityId().map(String::valueOf);
     }
 
     /**

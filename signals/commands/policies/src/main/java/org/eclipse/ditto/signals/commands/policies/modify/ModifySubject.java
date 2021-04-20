@@ -87,28 +87,6 @@ public final class ModifySubject extends AbstractCommand<ModifySubject> implemen
      * @param dittoHeaders the headers of the command.
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.Subject, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifySubject of(final String policyId,
-            final Label label,
-            final Subject subject,
-            final DittoHeaders dittoHeaders) {
-
-        return of(PolicyId.of(policyId), label, subject, dittoHeaders);
-    }
-
-    /**
-     * Creates a command for modifying {@code Subject} of a {@code Policy}'s {@code PolicyEntry}.
-     *
-     * @param policyId the identifier of the Policy.
-     * @param label the Label of the PolicyEntry.
-     * @param subject the Subject to modify.
-     * @param dittoHeaders the headers of the command.
-     * @return the command.
-     * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifySubject of(final PolicyId policyId,
             final Label label,
@@ -189,7 +167,7 @@ public final class ModifySubject extends AbstractCommand<ModifySubject> implemen
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(subject.toJson(schemaVersion, FieldType.regularOrSpecial()));
+        return Optional.of(subject.toJson(schemaVersion, FieldType.regularOrSpecial()));
     }
 
     @Override

@@ -12,13 +12,13 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
-import static org.eclipse.ditto.services.models.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 import static org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders.newEntityPlaceholder;
 import static org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders.newFeaturePlaceholder;
 import static org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders.newPolicyPlaceholder;
 import static org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders.newSourceAddressPlaceholder;
 import static org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders.newThingPlaceholder;
 import static org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders.newTopicPathPlaceholder;
+import static org.eclipse.ditto.services.models.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 
 import java.text.MessageFormat;
 import java.util.AbstractMap;
@@ -46,16 +46,16 @@ import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidExcept
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.services.models.placeholders.ExpressionResolver;
-import org.eclipse.ditto.services.models.placeholders.Placeholder;
-import org.eclipse.ditto.services.models.placeholders.PlaceholderFactory;
-import org.eclipse.ditto.services.models.placeholders.PlaceholderFilter;
-import org.eclipse.ditto.services.models.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
 import org.eclipse.ditto.services.models.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.services.models.connectivity.placeholders.SourceAddressPlaceholder;
 import org.eclipse.ditto.services.models.connectivity.placeholders.ThingPlaceholder;
+import org.eclipse.ditto.services.models.placeholders.ExpressionResolver;
+import org.eclipse.ditto.services.models.placeholders.Placeholder;
+import org.eclipse.ditto.services.models.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.services.models.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.services.models.placeholders.UnresolvedPlaceholderException;
 
 import com.hivemq.client.internal.util.UnsignedDataTypes;
 import com.hivemq.client.mqtt.datatypes.MqttQos;

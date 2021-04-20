@@ -349,7 +349,6 @@ public final class JavaScriptMessageMapperRhinoTest {
             "  }\n" +
             "  if (headers) {\n" +
             "    return null; // returning 'null' means that the message will be dropped\n" +
-            "    // TODO replace with something useful\n" +
             "  }\n" +
             "  // ###\n" +
             "\n" +
@@ -386,7 +385,6 @@ public final class JavaScriptMessageMapperRhinoTest {
             "  // Insert your mapping logic here:\n" +
             "  let headers = dittoHeaders;\n" +
             "  let textPayload = JSON.stringify(Ditto.buildDittoProtocolMsg(namespace, id, group, channel, criterion, action, path, dittoHeaders, value, status));\n" +
-            "  // TODO replace with something useful, this will publish the message in Ditto Protocol JSON\n" +
             "  let bytePayload = null;\n" +
             "  let contentType = 'application/vnd.eclipse.ditto+json';\n" +
             "  // ###\n" +

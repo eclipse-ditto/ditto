@@ -431,19 +431,6 @@ public final class ConnectivityModelFactory {
     /**
      * Returns a new {@code MappingContext}.
      *
-     * @param mappingEngine fully qualified classname of a mapping engine
-     * @param options the mapping options required to instantiate a mapper
-     * @return the created MappingContext.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @since 1.3.0
-     */
-    public static MappingContext newMappingContext(final String mappingEngine, final JsonObject options) {
-        return ImmutableMappingContext.of(mappingEngine, options);
-    }
-
-    /**
-     * Returns a new {@code MappingContext}.
-     *
      * @param mappingEngine fully qualified classname of a mapping engine.
      * @param options the mapping options required to instantiate a mapper.
      * @param incomingConditions the conditions to be checked before mapping incoming messages.
@@ -631,7 +618,7 @@ public final class ConnectivityModelFactory {
                 .address(address)
                 .originalAddress(target.getOriginalAddress())
                 .authorizationContext(target.getAuthorizationContext())
-                .headerMapping(target.getHeaderMapping().orElse(null))
+                .headerMapping(target.getHeaderMapping())
                 .qos(qos)
                 .topics(target.getTopics())
                 .build();
@@ -653,126 +640,10 @@ public final class ConnectivityModelFactory {
                 .address(address)
                 .originalAddress(target.getOriginalAddress())
                 .authorizationContext(target.getAuthorizationContext())
-                .headerMapping(target.getHeaderMapping().orElse(null))
+                .headerMapping(target.getHeaderMapping())
                 .qos(qos)
                 .issuedAcknowledgementLabel(label)
                 .topics(target.getTopics())
-                .build();
-    }
-
-    /**
-     * Creates a new {@link Target}.
-     *
-     * @param address the address where the signals will be published
-     * @param authorizationContext the authorization context of the new {@link Target}
-     * @param headerMapping the {@link HeaderMapping} of the new Target
-     * @param topics the FilteredTopics for which this target will receive signals
-     * @param qos the qos of the new Target (e.g. for MQTT targets)
-     * @return the created {@link Target}
-     * @deprecated please use {@link #newTargetBuilder()} instead.
-     */
-    @Deprecated
-    public static Target newTarget(final String address,
-            final AuthorizationContext authorizationContext,
-            @Nullable final HeaderMapping headerMapping,
-            @Nullable final Integer qos,
-            final Set<FilteredTopic> topics) {
-
-        return newTargetBuilder()
-                .address(address)
-                .originalAddress(address) // addresses are the same before placeholders are resolved
-                .qos(qos)
-                .authorizationContext(authorizationContext)
-                .topics(topics)
-                .headerMapping(headerMapping)
-                .build();
-    }
-
-    /**
-     * Creates a new {@link Target}.
-     *
-     * @param address the address where the signals will be published
-     * @param originalAddress address the address before placeholders were resolved
-     * @param authorizationContext the authorization context of the new {@link Target}
-     * @param headerMapping the {@link HeaderMapping} of the new Target
-     * @param qos the qos of the new Target (e.g. for MQTT targets)
-     * @param topics the FilteredTopics for which this target will receive signals
-     * @return the created {@link Target}
-     * @deprecated please use {@link #newTargetBuilder()} instead.
-     */
-    @Deprecated
-    public static Target newTarget(final String address,
-            final String originalAddress,
-            final AuthorizationContext authorizationContext,
-            @Nullable final HeaderMapping headerMapping,
-            @Nullable final Integer qos,
-            final Set<FilteredTopic> topics) {
-
-        return newTargetBuilder()
-                .address(address)
-                .originalAddress(originalAddress) // addresses are the same before placeholders are resolved
-                .headerMapping(headerMapping)
-                .qos(qos)
-                .authorizationContext(authorizationContext)
-                .topics(topics)
-                .build();
-    }
-
-    /**
-     * Creates a new {@link Target}.
-     *
-     * @param address the address where the signals will be published
-     * @param authorizationContext the authorization context of the new {@link Target}
-     * @param headerMapping the {@link HeaderMapping} of the new Target
-     * @param qos the qos of the new Target (e.g. for MQTT targets)
-     * @param requiredTopic the required FilteredTopic that should be published via this target
-     * @param additionalTopics additional set of FilteredTopics that should be published via this target
-     * @return the created {@link Target}
-     * @deprecated please use ]{@link #newTargetBuilder()} instead.
-     */
-    @Deprecated
-    public static Target newTarget(final String address,
-            final AuthorizationContext authorizationContext,
-            @Nullable final HeaderMapping headerMapping,
-            @Nullable final Integer qos,
-            final FilteredTopic requiredTopic,
-            final FilteredTopic... additionalTopics) {
-
-        return newTargetBuilder()
-                .address(address)
-                .authorizationContext(authorizationContext)
-                .headerMapping(headerMapping)
-                .qos(qos)
-                .topics(requiredTopic, additionalTopics)
-                .build();
-    }
-
-    /**
-     * Creates a new {@link Target}.
-     *
-     * @param address the address where the signals will be published
-     * @param authorizationContext the authorization context of the new {@link Target}
-     * @param headerMapping the {@link HeaderMapping} of the new Target
-     * @param qos the qos of the new Target (e.g. for MQTT targets)
-     * @param requiredTopic the required topic that should be published via this target
-     * @param additionalTopics additional set of topics that should be published via this target
-     * @return the created {@link Target}
-     * @deprecated please use {@link #newTargetBuilder()} instead.
-     */
-    @Deprecated
-    public static Target newTarget(final String address,
-            final AuthorizationContext authorizationContext,
-            @Nullable final HeaderMapping headerMapping,
-            @Nullable final Integer qos,
-            final Topic requiredTopic,
-            final Topic... additionalTopics) {
-
-        return newTargetBuilder()
-                .address(address)
-                .authorizationContext(authorizationContext)
-                .headerMapping(headerMapping)
-                .qos(qos)
-                .topics(requiredTopic, additionalTopics)
                 .build();
     }
 
@@ -867,69 +738,6 @@ public final class ConnectivityModelFactory {
      */
     public static Target targetFromJson(final JsonObject jsonObject) {
         return ImmutableTarget.fromJson(jsonObject);
-    }
-
-    /**
-     * Creates a new {@code FilteredTopic} without the optional {@code filter} String.
-     *
-     * @param topic the {@code Topic} of the FilteredTopic
-     * @return the created FilteredTopic
-     * @deprecated please use {@link #newFilteredTopicBuilder(Topic)} instead.
-     */
-    @Deprecated
-    public static FilteredTopic newFilteredTopic(final Topic topic) {
-        return newFilteredTopicBuilder(topic).build();
-    }
-
-    /**
-     * Creates a new {@code FilteredTopic} with the optional {@code filter} String.
-     *
-     * @param topic the {@code Topic} of the FilteredTopic
-     * @param filter the filter String to apply for the FilteredTopic
-     * @return the created FilteredTopic
-     * @deprecated please use {@link #newFilteredTopicBuilder(Topic)} instead.
-     */
-    @Deprecated
-    public static FilteredTopic newFilteredTopic(final Topic topic, @Nullable final String filter) {
-        return newFilteredTopicBuilder(topic)
-                .withFilter(filter)
-                .build();
-    }
-
-    /**
-     * Creates a new {@code FilteredTopic} with the passed {@code namespaces}.
-     *
-     * @param topic the {@code Topic} of the FilteredTopic
-     * @param namespaces the namespaces for which the filter should be applied - if empty, all namespaces are
-     * considered
-     * @return the created FilteredTopic
-     * @deprecated please use {@link #newFilteredTopicBuilder(Topic)} instead.
-     */
-    @Deprecated
-    public static FilteredTopic newFilteredTopic(final Topic topic, final List<String> namespaces) {
-        return newFilteredTopicBuilder(topic)
-                .withNamespaces(namespaces)
-                .build();
-    }
-
-    /**
-     * Creates a new {@code FilteredTopic} with the passed {@code namespaces} and the optional {@code filter} String.
-     *
-     * @param topic the {@code Topic} of the FilteredTopic
-     * @param namespaces the namespaces for which the filter should be applied - if empty, all namespaces are
-     * considered
-     * @param filter the filter String to apply for the FilteredTopic
-     * @return the created FilteredTopic
-     * @deprecated please use {@link #newFilteredTopicBuilder(Topic)} instead.
-     */
-    @Deprecated
-    public static FilteredTopic newFilteredTopic(final Topic topic, final List<String> namespaces,
-            @Nullable final String filter) {
-
-        return newFilteredTopicBuilder(topic)
-                .withNamespaces(namespaces)
-                .withFilter(filter)
-                .build();
     }
 
     /**

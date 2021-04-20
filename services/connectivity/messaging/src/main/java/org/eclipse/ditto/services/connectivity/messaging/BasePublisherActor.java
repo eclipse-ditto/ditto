@@ -412,7 +412,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     address, sendingContext.getExternalMessage());
             final T publishTarget = publishTargetOptional.get();
             @Nullable final Target autoAckTarget = sendingContext.getAutoAckTarget().orElse(null);
-            final HeaderMapping headerMapping = genericTarget.getHeaderMapping().orElse(null);
+            final HeaderMapping headerMapping = genericTarget.getHeaderMapping();
             final ExternalMessage mappedMessage = applyHeaderMapping(resolver, outbound, headerMapping);
             final CompletionStage<SendResult> responsesFuture = publishMessage(outboundSource,
                     autoAckTarget,

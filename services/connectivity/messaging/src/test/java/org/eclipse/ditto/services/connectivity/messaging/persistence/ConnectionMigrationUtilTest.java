@@ -222,8 +222,8 @@ public class ConnectionMigrationUtilTest {
         final Connection migratedConnection =
                 ConnectionMigrationUtil.connectionFromJsonWithMigration(KNOWN_CONNECTION_JSON);
 
-        assertThat(migratedConnection.getSources().get(1).getHeaderMapping()).isPresent();
-        final HeaderMapping sourceHeaderMapping = migratedConnection.getSources().get(1).getHeaderMapping().get();
+        assertThat(migratedConnection.getSources().get(1).getHeaderMapping().getMapping()).isNotEmpty();
+        final HeaderMapping sourceHeaderMapping = migratedConnection.getSources().get(1).getHeaderMapping();
         assertThat(sourceHeaderMapping.getMapping().get("source-action"))
                 .isEqualTo("source/{{ topic:action }}");
         assertThat(sourceHeaderMapping.getMapping().get("source-subject"))
@@ -233,8 +233,8 @@ public class ConnectionMigrationUtilTest {
         assertThat(sourceHeaderMapping.getMapping().get("source-some-header"))
                 .isEqualTo("source/{{ topic:full | fn:substring-before('/') }}");
 
-        assertThat(migratedConnection.getTargets().get(1).getHeaderMapping()).isPresent();
-        final HeaderMapping targetHeaderMapping = migratedConnection.getTargets().get(1).getHeaderMapping().get();
+        assertThat(migratedConnection.getTargets().get(1).getHeaderMapping().getMapping()).isNotEmpty();
+        final HeaderMapping targetHeaderMapping = migratedConnection.getTargets().get(1).getHeaderMapping();
         assertThat(targetHeaderMapping.getMapping().get("target-action"))
                 .isEqualTo("target/{{ topic:action }}");
         assertThat(targetHeaderMapping.getMapping().get("target-subject"))
@@ -259,7 +259,7 @@ public class ConnectionMigrationUtilTest {
                 ConnectionMigrationUtil.connectionFromJsonWithMigration(connectionJsonWithoutHeaderMapping);
 
         migratedConnection.getTargets()
-                .forEach(target -> assertThat(target.getHeaderMapping()).contains(LEGACY_TARGET_HEADER_MAPPING));
+                .forEach(target -> assertThat(target.getHeaderMapping()).isEqualTo(LEGACY_TARGET_HEADER_MAPPING));
 
     }
 

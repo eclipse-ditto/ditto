@@ -14,7 +14,6 @@ package org.eclipse.ditto.signals.acks.base;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.text.MessageFormat;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -26,7 +25,6 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
@@ -61,29 +59,6 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
      */
     static String getType(final EntityType entityType) {
         return "acknowledgement." + checkNotNull(entityType, "entityType");
-    }
-
-    /**
-     * Returns a new {@code Acknowledgement} for the specified parameters.
-     *
-     * @param label the label of the new Acknowledgement.
-     * @param entityId the ID of the affected entity being acknowledged.
-     * @param statusCode the status code (HTTP semantics) of the Acknowledgement.
-     * @param dittoHeaders the DittoHeaders.
-     * @param payload the optional payload of the Acknowledgement.
-     * @return the ImmutableAcknowledgement.
-     * @throws NullPointerException if one of the required parameters was {@code null}.
-     * @deprecated as of 2.0.0 please use
-     * {@link #of(AcknowledgementLabel, EntityId, HttpStatus, DittoHeaders, JsonValue)} instead.
-     */
-    @Deprecated
-    static Acknowledgement of(final AcknowledgementLabel label,
-            final EntityId entityId,
-            final HttpStatusCode statusCode,
-            final DittoHeaders dittoHeaders,
-            @Nullable final JsonValue payload) {
-
-        return of(label, entityId, statusCode.getAsHttpStatus(), dittoHeaders, payload);
     }
 
     /**
@@ -127,27 +102,6 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
                 .putHeader(DittoHeaderDefinition.WEAK_ACK.getKey(), Boolean.TRUE.toString())
                 .build();
         return AcknowledgementFactory.newAcknowledgement(label, entityId, HttpStatus.OK, weakAckHeaders, payload);
-    }
-
-    /**
-     * Returns a new {@code Acknowledgement} for the specified parameters.
-     *
-     * @param label the label of the new Acknowledgement.
-     * @param entityId the ID of the affected entity being acknowledged.
-     * @param statusCode the status code (HTTP semantics) of the Acknowledgement.
-     * @param dittoHeaders the DittoHeaders.
-     * @return the ImmutableAcknowledgement.
-     * @throws NullPointerException if one of the required parameters was {@code null}.
-     * @deprecated as of 2.0.0 please use {@link #of(AcknowledgementLabel, EntityId, HttpStatus, DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    static Acknowledgement of(final AcknowledgementLabel label,
-            final EntityId entityId,
-            final HttpStatusCode statusCode,
-            final DittoHeaders dittoHeaders) {
-
-        return of(label, entityId, statusCode.getAsHttpStatus(), dittoHeaders);
     }
 
     /**
@@ -208,26 +162,6 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
         } else {
             return ResponseType.NACK;
         }
-    }
-
-    /**
-     * Returns the status code of the Acknowledgement specifying whether it was a successful {@code ACK} or a
-     * {@code NACK} where the status code is something else than {@code 2xx}.
-     *
-     * @return the status code of the Acknowledgement.
-     * @deprecated as of 2.0.0 please use {@link #getHttpStatus()} instead.
-     */
-    @Override
-    @Deprecated
-    default HttpStatusCode getStatusCode() {
-        final HttpStatus httpStatus = getHttpStatus();
-        return HttpStatusCode.forInt(httpStatus.getCode()).orElseThrow(() -> {
-
-            // This might happen at runtime when httpStatus has a code which is
-            // not reflected as constant in HttpStatusCode.
-            final String msgPattern = "Found no HttpStatusCode for int <{0}>!";
-            return new IllegalStateException(MessageFormat.format(msgPattern, httpStatus.getCode()));
-        });
     }
 
     /**

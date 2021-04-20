@@ -46,7 +46,7 @@ final class ThingMergeResponseSignalMapper extends AbstractModifySignalMapper<Me
 
     @Override
     void enhancePayloadBuilder(final MergeThingResponse commandResponse, final PayloadBuilder payloadBuilder) {
-        payloadBuilder.withStatus(commandResponse.getStatusCode());
+        payloadBuilder.withStatus(commandResponse.getHttpStatus());
     }
 
     @Override

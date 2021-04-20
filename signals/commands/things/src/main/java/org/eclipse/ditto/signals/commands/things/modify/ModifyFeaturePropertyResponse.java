@@ -99,31 +99,6 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a created FeatureProperty.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #created(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.json.JsonValue, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifyFeaturePropertyResponse created(final String thingId,
-            final String featureId,
-            final JsonPointer featurePropertyPointer,
-            final JsonValue featureValue,
-            final DittoHeaders dittoHeaders) {
-
-        return created(ThingId.of(thingId), featureId, featurePropertyPointer, featureValue, dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code ModifyFeaturePropertyResponse} for a created FeatureProperty. This corresponds to the HTTP
-     * status {@link HttpStatus#CREATED}.
-     *
-     * @param thingId the Thing ID of the created feature property.
-     * @param featureId the {@code Feature}'s ID whose Property was created.
-     * @param featurePropertyPointer the pointer of the created FeatureProperty.
-     * @param featureValue the created FeatureProperty value.
-     * @param dittoHeaders the headers of the ThingCommand which caused the new response.
-     * @return a command response for a created FeatureProperty.
-     * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyFeaturePropertyResponse created(final ThingId thingId,
             final String featureId,
@@ -133,29 +108,6 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
 
         return new ModifyFeaturePropertyResponse(thingId, featureId, featurePropertyPointer, featureValue,
                 HttpStatus.CREATED, dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code ModifyFeaturePropertyResponse} for a modified FeatureProperty. This corresponds to the HTTP
-     * status {@link HttpStatus#NO_CONTENT}.
-     *
-     * @param thingId the Thing ID of the modified feature property.
-     * @param featureId the {@code Feature}'s ID whose Property was modified.
-     * @param featurePropertyPointer the pointer of the modified FeatureProperty.
-     * @param dittoHeaders the headers of the ThingCommand which caused the new response.
-     * @return a command response for a modified FeatureProperty.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #modified(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifyFeaturePropertyResponse modified(final String thingId,
-            final String featureId,
-            final JsonPointer featurePropertyPointer,
-            final DittoHeaders dittoHeaders) {
-
-        return modified(ThingId.of(thingId), featureId, featurePropertyPointer, dittoHeaders);
     }
 
     /**

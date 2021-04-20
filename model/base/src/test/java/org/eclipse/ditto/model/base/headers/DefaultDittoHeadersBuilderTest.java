@@ -54,7 +54,8 @@ public final class DefaultDittoHeadersBuilderTest {
     private static final String CORRELATION_ID = "correlationId";
     private static final JsonSchemaVersion JSON_SCHEMA_VERSION = JsonSchemaVersion.V_2;
     private static final String CHANNEL = "twin";
-    private static final Collection<String> READ_SUBJECTS = Arrays.asList("read", "subjects");
+    private static final Collection<AuthorizationSubject> READ_SUBJECTS = Arrays.asList(
+            AuthorizationSubject.newInstance("read"), AuthorizationSubject.newInstance("subjects"));
 
     private DefaultDittoHeadersBuilder underTest = null;
 
@@ -97,30 +98,10 @@ public final class DefaultDittoHeadersBuilderTest {
         assertThat(dittoHeaders.getSchemaVersion()).isEmpty();
     }
 
-    @Test(expected = NullPointerException.class)
-    public void tryToSetNullAuthSubjects() {
-        underTest.authorizationSubjects(null);
-    }
-
-    @Test(expected = NullPointerException.class)
-    public void tryToSetNullReadSubjects() {
-        underTest.readSubjects(null);
-    }
-
-    @Test(expected = NullPointerException.class)
-    public void tryToSetNullAuthSubjectsMulti() {
-        underTest.authorizationSubjects(null, "foo");
-    }
-
-    @Test(expected = NullPointerException.class)
-    public void tryToSetNullAuthSubjectsMulti2() {
-        underTest.authorizationSubjects("foo", (String[]) null);
-    }
-
     @Test
     public void buildReturnsExpected() {
         final DittoHeaders dittoHeaders = underTest.correlationId(CORRELATION_ID)
-                .readSubjects(READ_SUBJECTS)
+                .readGrantedSubjects(READ_SUBJECTS)
                 .schemaVersion(JSON_SCHEMA_VERSION)
                 .build();
 
@@ -134,7 +115,7 @@ public final class DefaultDittoHeadersBuilderTest {
     @Test
     public void constructBuilderFromHeadersWorksExpected() {
         final DittoHeaders dittoHeaders = underTest.correlationId(CORRELATION_ID)
-                .readSubjects(READ_SUBJECTS)
+                .readGrantedSubjects(READ_SUBJECTS)
                 .schemaVersion(JSON_SCHEMA_VERSION)
                 .build();
 
@@ -208,9 +189,10 @@ public final class DefaultDittoHeadersBuilderTest {
 
     @Test
     public void jsonRepresentationOfDittoHeadersWithReadSubjectsOnlyIsExpected() {
-        final DittoHeaders dittoHeaders = underTest.readSubjects(READ_SUBJECTS).build();
+        final DittoHeaders dittoHeaders = underTest.readGrantedSubjects(READ_SUBJECTS).build();
         final JsonObject jsonObject = dittoHeaders.toJson();
         final JsonArray expectedReadSubjects = READ_SUBJECTS.stream()
+                .map(AuthorizationSubject::getId)
                 .map(JsonFactory::newValue)
                 .collect(JsonCollectors.valuesToArray());
 
@@ -279,7 +261,7 @@ public final class DefaultDittoHeadersBuilderTest {
     public void removeValueWorksAsExpected() {
         final String rsKey = DittoHeaderDefinition.READ_SUBJECTS.getKey();
 
-        final DittoHeaders dittoHeaders = underTest.readSubjects(READ_SUBJECTS)
+        final DittoHeaders dittoHeaders = underTest.readGrantedSubjects(READ_SUBJECTS)
                 .dryRun(true)
                 .correlationId(CORRELATION_ID)
                 .removeHeader(rsKey)

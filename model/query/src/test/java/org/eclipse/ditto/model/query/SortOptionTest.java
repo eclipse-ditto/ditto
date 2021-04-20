@@ -27,32 +27,27 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class SortOptionTest {
 
-    /** */
     @Test
     public void hashcodeAndEquals() {
         EqualsVerifier.forClass(SortOption.class).usingGetClass().verify();
     }
 
-    /** */
     @Test
     public void immutability() {
         MutabilityAssert.assertInstancesOf(SortOption.class, MutabilityMatchers.areImmutable(),
                 AllowedReason.provided(SortFieldExpression.class).isAlsoImmutable());
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void constructorWithNullExpression() {
         new SortOption(null, SortDirection.ASC);
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void constructorWithNullDirection() {
         new SortOption(Mockito.mock(SortFieldExpression.class), null);
     }
 
-    /** */
     @Test
     public void basicUsage() {
         final SortFieldExpression sortExpression = Mockito.mock(SortFieldExpression.class);

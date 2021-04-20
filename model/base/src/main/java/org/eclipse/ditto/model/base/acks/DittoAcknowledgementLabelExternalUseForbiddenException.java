@@ -90,12 +90,7 @@ public final class DittoAcknowledgementLabelExternalUseForbiddenException extend
      */
     public static DittoAcknowledgementLabelExternalUseForbiddenException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-
-        return new DittoAcknowledgementLabelExternalUseForbiddenException(dittoHeaders,
-                readMessage(jsonObject),
-                readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION),
-                null,
-                null);
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
     @Override

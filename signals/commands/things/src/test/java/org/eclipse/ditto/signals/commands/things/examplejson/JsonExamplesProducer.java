@@ -283,7 +283,7 @@ public class JsonExamplesProducer {
                         DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("retrieveThingsResponse.json")), retrieveThingsResponse);
 
-        final RetrieveThingResponse retrieveThingResponse = RetrieveThingResponse.of(THING_ID, THING, DITTO_HEADERS);
+        final RetrieveThingResponse retrieveThingResponse = RetrieveThingResponse.of(THING_ID, THING, null, null, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("retrieveThingResponse.json")), retrieveThingResponse);
 
         final RetrieveAttributesResponse retrieveAttributesResponse =

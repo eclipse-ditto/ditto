@@ -13,7 +13,6 @@
 package org.eclipse.ditto.model.connectivity;
 
 import java.util.Collection;
-import java.util.Optional;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -49,7 +48,7 @@ public interface ReplyTarget extends Jsonifiable.WithFieldSelectorAndPredicate<J
      * @return the optional header mapping
      */
     @Override
-    Optional<HeaderMapping> getHeaderMapping();
+    HeaderMapping getHeaderMapping();
 
     /**
      * @return the list of response types that should be published to the reply target.

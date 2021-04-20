@@ -112,33 +112,6 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
      * {@code attributeJsonPointer} is empty.
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributeJsonPointer} are not valid
      * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer,
-     * org.eclipse.ditto.json.JsonValue, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifyAttribute of(final String thingId,
-            final JsonPointer attributeJsonPointer,
-            final JsonValue newAttributeValue,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), attributeJsonPointer, newAttributeValue, dittoHeaders);
-    }
-
-    /**
-     * Returns a command for modifying an attribute which is passed as argument.
-     *
-     * @param thingId the ID of the thing on which to modify the attribute.
-     * @param attributeJsonPointer the JSON pointer of the attribute key to modify.
-     * @param newAttributeValue the value of the attribute to modify.
-     * @param dittoHeaders the headers of the command.
-     * @return a command for modifying the provided new attribute.
-     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
-     * @throws org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException if
-     * {@code attributeJsonPointer} is empty.
-     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributeJsonPointer} are not valid
-     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static ModifyAttribute of(final ThingId thingId,
             final JsonPointer attributeJsonPointer,

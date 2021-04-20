@@ -246,27 +246,6 @@ public final class ImmutableThingTest {
     }
 
     @Test
-    public void setInvalidPolicyId() {
-        final String validPolicyId = "namespace:name";
-        final String invalidPolicyId = "namespace:";
-
-        final Thing thing = ImmutableThing.of(
-                THING_ID,
-                PolicyId.of(validPolicyId),
-                DEFINITION,
-                ATTRIBUTES,
-                FEATURES,
-                LIFECYCLE,
-                REVISION,
-                MODIFIED,
-                CREATED,
-                METADATA);
-
-        assertThatExceptionOfType(PolicyIdInvalidException.class).isThrownBy(
-                () -> thing.setPolicyId(invalidPolicyId));
-    }
-
-    @Test
     public void setInvalidThingDefinition() {
         final String validDefinition = "namespace:name:version";
         final String invalidDefinition = "namespace:";

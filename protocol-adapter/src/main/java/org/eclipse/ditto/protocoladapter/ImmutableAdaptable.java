@@ -15,7 +15,6 @@ package org.eclipse.ditto.protocoladapter;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -65,12 +64,6 @@ final class ImmutableAdaptable implements Adaptable {
     @Override
     public Payload getPayload() {
         return payload;
-    }
-
-    @Override
-    @Deprecated
-    public Optional<DittoHeaders> getHeaders() {
-        return Optional.ofNullable(headers);
     }
 
     @Override

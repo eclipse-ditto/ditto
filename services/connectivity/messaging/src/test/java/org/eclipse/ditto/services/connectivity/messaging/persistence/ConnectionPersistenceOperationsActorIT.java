@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.connectivity.messaging.persistence;
 
 import java.util.Collections;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;

@@ -701,7 +701,7 @@ final class ImmutableConnection implements Connection {
                     builder.payloadMapping(addMigratedPayloadMappings(target.getPayloadMapping()));
                 }
                 if (shouldAddHeaderMapping) {
-                    builder.headerMapping(target.getHeaderMapping().orElse(ImmutableTarget.DEFAULT_HEADER_MAPPING));
+                    builder.headerMapping(target.getHeaderMapping());
                 }
                 return builder.build();
             } else {

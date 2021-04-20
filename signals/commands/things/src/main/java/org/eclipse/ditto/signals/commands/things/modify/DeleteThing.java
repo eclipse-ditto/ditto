@@ -65,22 +65,6 @@ public final class DeleteThing extends AbstractCommand<DeleteThing> implements T
      * @param dittoHeaders the headers of the command.
      * @return a command for deleting the Thing.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static DeleteThing of(final String thingId, final DittoHeaders dittoHeaders) {
-        return of(ThingId.of(thingId), dittoHeaders);
-    }
-
-    /**
-     * Returns a command for deleting a Thing. Its ID is passed as argument.
-     *
-     * @param thingId the ID of a Thing to be deleted by this command.
-     * @param dittoHeaders the headers of the command.
-     * @return a command for deleting the Thing.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}
      */
     public static DeleteThing of(final ThingId thingId, final DittoHeaders dittoHeaders) {
         return new DeleteThing(thingId, dittoHeaders);

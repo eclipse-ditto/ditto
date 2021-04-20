@@ -77,20 +77,6 @@ public final class EventSendNotAllowedException extends DittoRuntimeException im
     }
 
     /**
-     * Constructs a new {@code MessageNotSendableException} object with the given exception message.
-     *
-     * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
-     * @return the new SubjectInvalidException.
-     * @deprecated since DittoHeaders are required for the builder. Use {@code #fromMessage(String, DittoHeaders)} instead.
-     */
-    @Deprecated
-    public static EventSendNotAllowedException fromMessage(@Nullable final String message) {
-        return new Builder()
-                .message(message)
-                .build();
-    }
-
-    /**
      * Constructs a new {@code EventSendNotAllowedException} object with given message.
      *
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.

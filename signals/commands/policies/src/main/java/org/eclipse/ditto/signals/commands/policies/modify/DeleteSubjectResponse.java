@@ -83,28 +83,6 @@ public final class DeleteSubjectResponse extends AbstractCommandResponse<DeleteS
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy Id is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.SubjectId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static DeleteSubjectResponse of(final String policyId,
-            final Label label,
-            final SubjectId subjectId,
-            final DittoHeaders dittoHeaders) {
-
-        return of(PolicyId.of(policyId), label, subjectId, dittoHeaders);
-    }
-
-    /**
-     * Creates a response to a {@code DeleteSubject} command.
-     *
-     * @param policyId the Policy ID of the deleted subject.
-     * @param label the Label of the PolicyEntry.
-     * @param subjectId the identifier of the deleted Subject.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
      */
     public static DeleteSubjectResponse of(final PolicyId policyId,
             final Label label,

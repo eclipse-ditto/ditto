@@ -115,8 +115,8 @@ final class ImmutableTarget implements Target {
     }
 
     @Override
-    public Optional<HeaderMapping> getHeaderMapping() {
-        return Optional.of(headerMapping);
+    public HeaderMapping getHeaderMapping() {
+        return headerMapping;
     }
 
     @Override
@@ -272,7 +272,7 @@ final class ImmutableTarget implements Target {
             address(target.getAddress())
                     .authorizationContext(target.getAuthorizationContext())
                     .topics(target.getTopics())
-                    .headerMapping(target.getHeaderMapping().orElse(null))
+                    .headerMapping(target.getHeaderMapping())
                     .qos(target.getQos().orElse(null))
                     .issuedAcknowledgementLabel(target.getIssuedAcknowledgementLabel().orElse(null))
                     .payloadMapping(target.getPayloadMapping());

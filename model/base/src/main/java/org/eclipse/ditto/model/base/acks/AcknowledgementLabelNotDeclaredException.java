@@ -89,12 +89,7 @@ public final class AcknowledgementLabelNotDeclaredException extends DittoRuntime
      */
     public static AcknowledgementLabelNotDeclaredException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-
-        return new AcknowledgementLabelNotDeclaredException(dittoHeaders,
-                readMessage(jsonObject),
-                readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION),
-                null,
-                readHRef(jsonObject).orElse(null));
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
     @Override

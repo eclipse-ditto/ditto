@@ -82,28 +82,6 @@ public final class DeleteSubject extends AbstractCommand<DeleteSubject> implemen
      * @param dittoHeaders the headers of the command.
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.SubjectId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static DeleteSubject of(final String policyId,
-            final Label label,
-            final SubjectId subjectId,
-            final DittoHeaders dittoHeaders) {
-
-        return of(PolicyId.of(policyId), label, subjectId, dittoHeaders);
-    }
-
-    /**
-     * Creates a command for deleting a {@code Subject} of a {@code Policy}'s {@code PolicyEntry}.
-     *
-     * @param policyId the identifier of the Policy.
-     * @param label the Label of the PolicyEntry.
-     * @param subjectId the identifier of the Subject to delete.
-     * @param dittoHeaders the headers of the command.
-     * @return the command.
-     * @throws NullPointerException if any argument is {@code null}.
      */
     public static DeleteSubject of(final PolicyId policyId,
             final Label label,

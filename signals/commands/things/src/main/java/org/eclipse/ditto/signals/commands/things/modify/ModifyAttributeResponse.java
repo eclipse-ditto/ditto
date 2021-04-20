@@ -103,34 +103,6 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
      * {@code attributePointer} is empty.
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributePointer} are not valid
      * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #created(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer,
-     * org.eclipse.ditto.json.JsonValue, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifyAttributeResponse created(final String thingId,
-            final JsonPointer attributePointer,
-            final JsonValue attributeValue,
-            final DittoHeaders dittoHeaders) {
-
-        return created(ThingId.of(thingId), attributePointer, attributeValue, dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code ModifyAttributeResponse} for a created Attribute. This corresponds to the HTTP status
-     * {@link HttpStatus#CREATED}.
-     *
-     * @param thingId the Thing ID of the created attribute.
-     * @param attributePointer the pointer of the created Attribute.
-     * @param attributeValue the created Attribute value.
-     * @param dittoHeaders the headers of the ThingCommand which caused the new response.
-     * @return a command response for a created FeatureProperties.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @throws org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException if
-     * {@code attributePointer} is empty.
-     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributePointer} are not valid
-     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static ModifyAttributeResponse created(final ThingId thingId,
             final JsonPointer attributePointer,
@@ -139,31 +111,6 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
 
         return new ModifyAttributeResponse(thingId, HttpStatus.CREATED, attributePointer, attributeValue,
                 dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code ModifyAttributeResponse} for a modified Attribute. This corresponds to the HTTP status
-     * {@link HttpStatus#NO_CONTENT}.
-     *
-     * @param thingId the Thing ID of the modified attribute.
-     * @param attributePointer the pointer of the modified Attribute.
-     * @param dittoHeaders the headers of the ThingCommand which caused the new response.
-     * @return a command response for a modified FeatureProperties.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @throws org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException if
-     * {@code attributePointer} is empty.
-     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributePointer} are not valid
-     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #modified(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer,
-     * org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifyAttributeResponse modified(final String thingId, final JsonPointer attributePointer,
-            final DittoHeaders dittoHeaders) {
-
-        return modified(ThingId.of(thingId), attributePointer, dittoHeaders);
     }
 
     /**

@@ -93,31 +93,6 @@ public final class RetrieveFeatureProperty extends AbstractCommand<RetrieveFeatu
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code propertyJsonPointer} are not valid
      * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.json.JsonPointer,
-     * org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrieveFeatureProperty of(final String thingId,
-            final String featureId,
-            final JsonPointer propertyJsonPointer,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), featureId, propertyJsonPointer, dittoHeaders);
-    }
-
-    /**
-     * Returns a Command for retrieving a Feature's Property on a Thing.
-     *
-     * @param thingId the {@code Thing}'s ID whose {@code Feature}'s Property to retrieve.
-     * @param featureId the {@code Feature}'s ID whose Property to retrieve.
-     * @param propertyJsonPointer the JSON pointer of the Property key to retrieve.
-     * @param dittoHeaders the headers of the command.
-     * @return a Command for retrieving the Property at the specified Pointer.
-     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code propertyJsonPointer} are not valid
-     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static RetrieveFeatureProperty of(final ThingId thingId,
             final String featureId,

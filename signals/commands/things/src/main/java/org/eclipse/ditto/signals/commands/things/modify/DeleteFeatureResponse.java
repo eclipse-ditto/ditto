@@ -70,25 +70,6 @@ public final class DeleteFeatureResponse extends AbstractCommandResponse<DeleteF
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static DeleteFeatureResponse of(final String thingId, final String featureId,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), featureId, dittoHeaders);
-    }
-
-    /**
-     * Creates a response to a {@link DeleteFeature} command.
-     *
-     * @param thingId the Thing ID of the deleted Feature.
-     * @param featureId the ID of the deleted {@code Feature}.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
      */
     public static DeleteFeatureResponse of(final ThingId thingId, final String featureId,
             final DittoHeaders dittoHeaders) {

@@ -29,8 +29,10 @@ import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
  * This class helps to deserialize JSON to a sub-class of {@link Command}. Hereby this class extracts the values
  * which are common for all commands. All remaining required values have to be extracted in a user provided Supplier.
  * There the actual command object is created, too.
+ *
+ * This is not replaced by a simple type check in order to be equal to {@code CommandResponseJsonDeserializer} and
+ * {@code EventJsonDeserializer}.
  */
-// TODO Replace with simple type check.
 @Immutable
 public final class CommandJsonDeserializer<T extends Command> {
 

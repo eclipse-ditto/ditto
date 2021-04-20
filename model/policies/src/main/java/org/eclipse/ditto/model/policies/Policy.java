@@ -46,19 +46,6 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
     /**
      * Returns a mutable builder with a fluent API for an immutable {@code Policy}.
      *
-     * @param id the ID of the new Policy.
-     * @return the new builder.
-     * @throws PolicyIdInvalidException if {@code id} is invalid.
-     * @deprecated policy ID is now typed. Use {@link #newBuilder(PolicyId)} instead.
-     */
-    @Deprecated
-    static PolicyBuilder newBuilder(final CharSequence id) {
-        return newBuilder(PolicyId.of(id));
-    }
-
-    /**
-     * Returns a mutable builder with a fluent API for an immutable {@code Policy}.
-     *
      * @param policyId the ID of the new Policy.
      * @return the new builder.
      * @throws PolicyIdInvalidException if {@code id} is invalid.
@@ -88,15 +75,6 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
 
     @Override
     Optional<PolicyId> getEntityId();
-
-    /**
-     * @deprecated
-     */
-    @Deprecated
-    @Override
-    default Optional<String> getId() {
-        return getEntityId().map(String::valueOf);
-    }
 
     /**
      * Policy is only available in JsonSchemaVersion V_2.
@@ -476,6 +454,15 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
          */
         public static final JsonFieldDefinition<JsonObject> ENTRIES =
                 JsonFactory.newJsonObjectFieldDefinition("entries", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the Policy's metadata.
+         *
+         * @since 2.0.0
+         */
+        public static final JsonFieldDefinition<JsonObject> METADATA =
+                JsonFactory.newJsonObjectFieldDefinition("_metadata", FieldType.SPECIAL, FieldType.HIDDEN,
+                        JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

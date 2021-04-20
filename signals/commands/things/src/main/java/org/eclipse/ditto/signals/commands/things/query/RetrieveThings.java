@@ -145,23 +145,6 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
      * @param thingIds one or more Thing IDs to be retrieved.
      * @return a builder for a Thing retrieving command.
      * @throws NullPointerException if {@code thingIds} is {@code null}.
-     * @deprecated Thing IDs are now typed. Use {@link #getBuilder(org.eclipse.ditto.model.things.ThingId...)}
-     * instead.
-     */
-    @Deprecated
-    public static Builder getBuilder(final String... thingIds) {
-        final List<ThingId> thingIdList = Arrays.stream(checkNotNull(thingIds, "thing ids"))
-                .map(ThingId::of)
-                .collect(Collectors.toList());
-        return new Builder(thingIdList);
-    }
-
-    /**
-     * Returns a builder for a command for retrieving the Things.
-     *
-     * @param thingIds one or more Thing IDs to be retrieved.
-     * @return a builder for a Thing retrieving command.
-     * @throws NullPointerException if {@code thingIds} is {@code null}.
      */
     public static Builder getBuilder(final ThingId... thingIds) {
         return new Builder(Arrays.asList(checkNotNull(thingIds, "thing ids")));
@@ -232,17 +215,6 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
                 .orElse(null);
 
         return new RetrieveThings(extractedThingIds, extractedFieldSelector, namespace, dittoHeaders);
-    }
-
-    /**
-     * Returns an unmodifiable unsorted List of the identifiers of the {@code Thing}s to be retrieved.
-     *
-     * @return the identifiers of the Things.
-     * @deprecated the thing ID is now typed. Use {@link #getEntityIds()} instead.
-     */
-    @Deprecated
-    public List<String> getThingIds() {
-        return getEntityIds().stream().map(String::valueOf).collect(Collectors.toList());
     }
 
     /**

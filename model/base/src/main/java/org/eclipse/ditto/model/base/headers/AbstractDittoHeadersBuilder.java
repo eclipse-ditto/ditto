@@ -39,7 +39,6 @@ import org.eclipse.ditto.json.JsonValueContainer;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.common.DittoDuration;
 import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
@@ -280,49 +279,6 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
 
     private void putJsonValue(final HeaderDefinition definition, final JsonValue jsonValue) {
         putCharSequence(definition, jsonValue.isString() ? jsonValue.asString() : jsonValue.toString());
-    }
-
-    @Override
-    @Deprecated
-    public S authorizationSubjects(final Collection<String> authorizationSubjectIds) {
-        authorizationContext(keepSubjectsWithIssuerPrefix(authorizationSubjectIds));
-        return myself;
-    }
-
-    private static AuthorizationContext keepSubjectsWithIssuerPrefix(
-            final Collection<String> subjectsWithAndWithoutPrefix) {
-
-        final List<AuthorizationSubject> authSubjects = subjectsWithAndWithoutPrefix.stream()
-                .map(AuthorizationSubject::newInstance)
-                .collect(Collectors.toList());
-        final AuthorizationContext authorizationContext =
-                AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED, authSubjects);
-
-        return AbstractDittoHeaders.keepAuthContextSubjectsWithIssuer(authorizationContext);
-    }
-
-    @Override
-    @Deprecated
-    public S authorizationSubjects(final CharSequence authorizationSubject,
-            final CharSequence... furtherAuthorizationSubjects) {
-
-        checkNotNull(authorizationSubject, "Authorization Subject ID");
-        checkNotNull(furtherAuthorizationSubjects, "further Authorization Subject IDs");
-
-        final Collection<String> allAuthorizationSubjects = new ArrayList<>(1 + furtherAuthorizationSubjects.length);
-        allAuthorizationSubjects.add(authorizationSubject.toString());
-        for (final CharSequence furtherAuthorizationSubject : furtherAuthorizationSubjects) {
-            checkNotNull(furtherAuthorizationSubject, "further Authorization Subject ID");
-            allAuthorizationSubjects.add(furtherAuthorizationSubject.toString());
-        }
-
-        return authorizationSubjects(allAuthorizationSubjects);
-    }
-
-    @Override
-    public S readSubjects(final Collection<String> readSubjects) {
-        putStringCollection(DittoHeaderDefinition.READ_SUBJECTS, readSubjects);
-        return myself;
     }
 
     @Override

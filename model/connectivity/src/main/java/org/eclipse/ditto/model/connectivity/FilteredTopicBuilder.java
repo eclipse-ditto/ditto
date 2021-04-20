@@ -17,7 +17,6 @@ import java.util.Collection;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.things.ThingFieldSelector;
 
 /**
@@ -42,20 +41,6 @@ public interface FilteredTopicBuilder {
      * @return this builder instance to allow method chaining.
      */
     FilteredTopicBuilder withFilter(@Nullable CharSequence filter);
-
-    /**
-     * Sets the selector for the extra fields and their values to enrich outgoing signals of the topic to be built with.
-     *
-     * @param extraFields the extra fields.
-     * @return this builder instance to allow method chaining.
-     * @deprecated Use {@link #withExtraFields(ThingFieldSelector)} instead.
-     */
-    @Deprecated
-    default FilteredTopicBuilder withExtraFields(@Nullable JsonFieldSelector extraFields) {
-        return extraFields == null ?
-                withExtraFields(null) :
-                withExtraFields(ThingFieldSelector.fromJsonFieldSelector(extraFields));
-    }
 
     /**
      * Sets the selector for the extra fields and their values to enrich outgoing signals of the topic to be built with.

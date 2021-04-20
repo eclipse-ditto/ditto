@@ -25,12 +25,9 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.WithEntityId;
@@ -268,27 +265,9 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     // intentionally protected to allow overwriting this in extensions
     protected WhoamiResponse createWhoamiResponse(final Whoami request) {
         final DittoHeaders dittoHeaders = request.getDittoHeaders();
-        final AuthorizationContext authContext = getAuthContextWithPrefixedSubjectsFromHeaders(dittoHeaders);
-        final UserInformation userInformation = DefaultUserInformation.fromAuthorizationContext(authContext);
+        final UserInformation userInformation = DefaultUserInformation.fromAuthorizationContext(
+                dittoHeaders.getAuthorizationContext());
         return WhoamiResponse.of(userInformation, dittoHeaders);
-    }
-
-    /**
-     * Gets the authorization context from ditto headers with out all non prefixed subjects.
-     * This is temporarily required because {@link DittoHeaders#getAuthorizationContext} returns and auth context
-     * with duplicated subjects without prefix. We can replace this method with
-     * {@link DittoHeaders#getAuthorizationContext} when API 1 is removed.
-     *
-     * @param headers the headers to extract the auth context from.
-     * @return the auth context.
-     */
-    @Deprecated
-    private static AuthorizationContext getAuthContextWithPrefixedSubjectsFromHeaders(final DittoHeaders headers) {
-        final String authContextString = headers.get(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey());
-        final JsonObject authContextJson = authContextString == null ?
-                JsonObject.empty() :
-                JsonObject.of(authContextString);
-        return AuthorizationModelFactory.newAuthContext(authContextJson);
     }
 
     private void handleCommandWithResponse(final Signal<?> command, final Receive awaitCommandResponseBehavior) {

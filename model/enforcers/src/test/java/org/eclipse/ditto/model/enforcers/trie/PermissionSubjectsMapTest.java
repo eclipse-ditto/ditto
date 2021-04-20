@@ -44,7 +44,6 @@ public final class PermissionSubjectsMapTest {
 
     private PermissionSubjectsMap underTest = null;
 
-    /** */
     @BeforeClass
     public static void initConstants() {
         subjectId = TestConstants.Policy.SUBJECT_ID.toString();
@@ -59,13 +58,11 @@ public final class PermissionSubjectsMapTest {
         Collections.addAll(permissions, "READ", "WRITE");
     }
 
-    /** */
     @Before
     public void setUp() {
         underTest = new PermissionSubjectsMap();
     }
 
-    /** */
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(PermissionSubjectsMap.class)
@@ -74,7 +71,6 @@ public final class PermissionSubjectsMapTest {
                 .verify();
     }
 
-    /** */
     @SuppressWarnings("ConstantConditions")
     @Test
     public void tryToAddAllEntriesFromNull() {
@@ -84,7 +80,6 @@ public final class PermissionSubjectsMapTest {
                 .withNoCause();
     }
 
-    /** */
     @Test
     public void addAllEntriesFromEmptyMapReturnsSame() {
         final PermissionSubjectsMap permissionSubjectsMap = underTest.addAllEntriesFrom(new PermissionSubjectsMap());
@@ -94,7 +89,6 @@ public final class PermissionSubjectsMapTest {
                 .isEmpty();
     }
 
-    /** */
     @Test
     public void putReturnsNullForNewAssociation() {
         final Map<String, Integer> oldValue =
@@ -103,7 +97,6 @@ public final class PermissionSubjectsMapTest {
         assertThat(oldValue).isNull();
     }
 
-    /** */
     @Test
     public void putReturnsOldValueForNewAssociation() {
         final String permission = "READ";
@@ -115,7 +108,6 @@ public final class PermissionSubjectsMapTest {
         assertThat(oldValue).isEqualTo(weightedSubjectId);
     }
 
-    /** */
     @Test
     public void addTotalRelationOfWeightZeroWorksAsExpected() {
         final Map<String, Integer> weightedSubjectIds = weighSubjectIds(0);
@@ -134,7 +126,6 @@ public final class PermissionSubjectsMapTest {
         return result;
     }
 
-    /** */
     @Test
     public void getMaxWeightForAllPermissionsReturnsEmptyOptionalForEmptySubjectsMap() {
         final Optional<Integer> maxWeightForAllPermissions =
@@ -143,7 +134,6 @@ public final class PermissionSubjectsMapTest {
         assertThat(maxWeightForAllPermissions).isEmpty();
     }
 
-    /** */
     @Test
     public void getMaxWeightForAllPermissionsReturnsExpected() {
         final int maxWeight = 42;
@@ -156,7 +146,6 @@ public final class PermissionSubjectsMapTest {
         assertThat(maxWeightForAllPermissions).contains(maxWeight);
     }
 
-    /** */
     @Test
     public void getMaxNonemptyWeightForAllPermissionsReturnsEmptyOptionalIfNotAllPermissionsAreRelated() {
         final int maxWeight = 42;
@@ -169,7 +158,6 @@ public final class PermissionSubjectsMapTest {
         assertThat(maxNonemptyWeightForAllPermissions).isEmpty();
     }
 
-    /** */
     @Test
     public void getMaxNonemptyWeightForAllPermissionsReturnsExpectedIfAllPermissionsAreRelated() {
         final int maxWeight = 42;
@@ -182,7 +170,6 @@ public final class PermissionSubjectsMapTest {
         assertThat(maxNonemptyWeightForAllPermissions).contains(maxWeight);
     }
 
-    /** */
     @Test
     public void getSubjectUnionReturnsEmptyMapForEmptyPermissions() {
         underTest.addTotalRelationOfWeightZero(permissions, subjectIds);
@@ -192,7 +179,6 @@ public final class PermissionSubjectsMapTest {
         assertThat(subjectUnion).isEmpty();
     }
 
-    /** */
     @Test
     public void getSubjectUnionReturnsExpected() {
         underTest.addTotalRelationOfWeightZero(permissions, subjectIds);
@@ -205,7 +191,6 @@ public final class PermissionSubjectsMapTest {
                 .containsEntry(anotherSubjectId, 0);
     }
 
-    /** */
     @Test
     public void getSubjectIntersectReturnsEmptyMapIfSubjectIdsAreNotRelatedToAllPermissions() {
         underTest.addTotalRelationOfWeightZero(Collections.singleton("READ"), subjectIds);
@@ -216,7 +201,6 @@ public final class PermissionSubjectsMapTest {
         assertThat(subjectIntersect).isEmpty();
     }
 
-    /** */
     @Test
     public void getSubjectIntersectReturnsExpected() {
         final int maxWeight = 23;
@@ -230,7 +214,6 @@ public final class PermissionSubjectsMapTest {
                 .containsEntry(anotherSubjectId, maxWeight);
     }
 
-    /** */
     @Test
     public void copyOfEmptyRelationReturnsDifferentEmptyRelation() {
         final PermissionSubjectsMap copy = underTest.copy();
@@ -240,7 +223,6 @@ public final class PermissionSubjectsMapTest {
                 .isEmpty();
     }
 
-    /** */
     @Test
     public void copyReturnsExpected() {
         underTest.addTotalRelationOfWeightZero(permissions, subjectIds);
@@ -252,7 +234,6 @@ public final class PermissionSubjectsMapTest {
                 .isEqualTo(copy);
     }
 
-    /** */
     @Test
     public void copyWithIncrementedWeightReturnsExpected() {
         underTest.addTotalRelationOfWeightZero(permissions, subjectIds);
@@ -266,7 +247,6 @@ public final class PermissionSubjectsMapTest {
                 .containsEntry("WRITE", weighSubjectIds(1));
     }
 
-    /** */
     @Test
     public void copyWithDecrementedWeightReturnsExpected() {
         underTest.addTotalRelationOfWeightZero(permissions, subjectIds);
@@ -280,7 +260,6 @@ public final class PermissionSubjectsMapTest {
                 .containsEntry("WRITE", weighSubjectIds(-1));
     }
 
-    /** */
     @Test
     public void removeAllEntriesFromUpdateReturnsExpected() {
         underTest.addTotalRelationOfWeightZero(permissions, subjectIds);
@@ -296,7 +275,6 @@ public final class PermissionSubjectsMapTest {
                 .containsEntry("WRITE", Collections.singletonMap(subjectId, 0));
     }
 
-    /** */
     @Test
     public void addAllEntriesReturnsExpected() {
         underTest.addTotalRelationOfWeightZero(permissions, subjectIds);

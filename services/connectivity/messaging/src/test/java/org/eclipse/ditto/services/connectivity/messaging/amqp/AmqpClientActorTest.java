@@ -975,7 +975,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                         .authorizationContext(defaultSource.getAuthorizationContext())
                         .consumerCount(1)
                         .enforcement(defaultSource.getEnforcement().orElse(null))
-                        .headerMapping(defaultSource.getHeaderMapping().orElse(null))
+                        .headerMapping(defaultSource.getHeaderMapping())
                         .index(0)
                         .build()))
                 .build();

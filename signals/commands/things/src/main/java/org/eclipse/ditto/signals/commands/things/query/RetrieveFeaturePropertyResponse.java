@@ -99,33 +99,6 @@ public final class RetrieveFeaturePropertyResponse extends AbstractCommandRespon
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code featurePropertyPointer} are not valid
      * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.json.JsonPointer,
-     * org.eclipse.ditto.json.JsonValue, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrieveFeaturePropertyResponse of(final String thingId,
-            final String featureId,
-            final JsonPointer featurePropertyPointer,
-            final JsonValue featurePropertyValue,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), featureId, featurePropertyPointer, featurePropertyValue, dittoHeaders);
-    }
-
-    /**
-     * Creates a response to a {@link RetrieveFeatureProperty} command.
-     *
-     * @param thingId the Thing ID of the retrieved feature property.
-     * @param featureId the identifier of the Feature whose Property was retrieved.
-     * @param featurePropertyPointer the retrieved FeatureProperty JSON pointer.
-     * @param featurePropertyValue the retrieved FeatureProperty value.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code featurePropertyPointer} are not valid
-     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static RetrieveFeaturePropertyResponse of(final ThingId thingId,
             final String featureId,

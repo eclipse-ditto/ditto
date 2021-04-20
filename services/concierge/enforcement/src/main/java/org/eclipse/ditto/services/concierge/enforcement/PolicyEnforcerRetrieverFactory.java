@@ -23,7 +23,6 @@ import org.eclipse.ditto.model.policies.PolicyConstants;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CacheKey;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
-import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 
 /**
  * Creates an {@link EnforcerRetriever} which retrieves an enforcer by using an policy-enforcer-cache.

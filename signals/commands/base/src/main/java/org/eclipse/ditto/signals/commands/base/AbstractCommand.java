@@ -135,7 +135,7 @@ public abstract class AbstractCommand<T extends AbstractCommand<T>> implements C
         if (obj == null || getClass() != obj.getClass()) {
             return false;
         }
-        final AbstractCommand other = (AbstractCommand) obj;
+        final AbstractCommand<?> other = (AbstractCommand<?>) obj;
         return other.canEqual(this) && Objects.equals(dittoHeaders, other.dittoHeaders)
                 && Objects.equals(type, other.type);
     }

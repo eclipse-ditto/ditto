@@ -22,7 +22,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 
@@ -119,18 +118,6 @@ public final class CommandResponseJsonDeserializer<T extends CommandResponse> {
      */
     @FunctionalInterface
     public interface FactoryMethodFunction<T extends CommandResponse> {
-
-        /**
-         * Creates a {@code CommandResponse} with the help of the given arguments.
-         *
-         * @param statusCode the status of the response.
-         * @return the command response.
-         * @deprecated as of 2.0.0 please use {@link #create(HttpStatus)} instead.
-         */
-        @Deprecated
-        default T create(final HttpStatusCode statusCode) {
-            return create(statusCode.getAsHttpStatus());
-        }
 
         /**
          * Creates a {@code CommandResponse} with the help of the given arguments.

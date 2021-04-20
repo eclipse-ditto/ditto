@@ -244,20 +244,6 @@ public final class SearchModelFactory {
     /**
      * Creates a new {@link SortOptionEntry} for the provided {@code order} and {@code propertyPath}.
      *
-     * @param sortOrder the {@code order} of the SortOptionEntry to create
-     * @param propertyPath the {@code propertyPath} of the SortOptionEntry to create
-     * @return the created SortOption.
-     * @deprecated Please use {@link #newSortOptionEntry(CharSequence, SortOptionEntry.SortOrder)} instead.
-     */
-    @Deprecated
-    public static SortOptionEntry newSortOptionEntry(final SortOptionEntry.SortOrder sortOrder,
-            final CharSequence propertyPath) {
-        return newSortOptionEntry(propertyPath, sortOrder);
-    }
-
-    /**
-     * Creates a new {@link SortOptionEntry} for the provided {@code order} and {@code propertyPath}.
-     *
      * @param propertyPath the {@code propertyPath} of the SortOptionEntry to create
      * @param sortOrder the {@code order} of the SortOptionEntry to create
      * @return the created SortOption.

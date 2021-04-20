@@ -23,7 +23,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.Message;
@@ -41,19 +40,6 @@ abstract class AbstractMessageCommandResponse<T, C extends AbstractMessageComman
 
     private final ThingId thingId;
     private final Message<T> message;
-
-    /**
-     * @deprecated as of 2.0.0 please use {@link AbstractCommandResponse(String, HttpStatus, DittoHeaders)} instead.
-     */
-    @Deprecated
-    AbstractMessageCommandResponse(final String type,
-            final ThingId thingId,
-            final Message<T> message,
-            final HttpStatusCode httpStatusCode,
-            final DittoHeaders dittoHeaders) {
-
-        this(type, thingId, message, httpStatusCode.getAsHttpStatus(), dittoHeaders);
-    }
 
     /**
      * @since 2.0.0
