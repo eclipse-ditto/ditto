@@ -22,9 +22,9 @@
         <relativePath>../bom</relativePath>
     </parent>
 
-    <artifactId>ditto-protocol-adapter</artifactId>
+    <artifactId>ditto-protocol</artifactId>
     <packaging>bundle</packaging>
-    <name>Eclipse Ditto :: Protocol Adapter</name>
+    <name>Eclipse Ditto :: Protocol</name>
 
     <properties>
         <javac.source>1.8</javac.source>

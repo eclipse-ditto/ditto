@@ -45,7 +45,7 @@
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-protocol-adapter</artifactId>
+            <artifactId>ditto-protocol</artifactId>
         </dependency>
 
         <dependency>

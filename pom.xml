@@ -194,7 +194,7 @@
         <module>json-cbor</module>
         <module>model</module>
         <module>signals</module>
-        <module>protocol-adapter</module>
+        <module>protocol</module>
         <module>utils</module>
         <module>services</module>
     </modules>
