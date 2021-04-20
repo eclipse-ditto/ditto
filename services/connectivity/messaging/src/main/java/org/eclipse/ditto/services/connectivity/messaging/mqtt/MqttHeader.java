@@ -14,33 +14,25 @@ package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Defines well-known MQTT properties.
+ * Defines well-known MQTT properties that should be extracted from consumed mqtt messages and made available for
+ * source header mappings. E.g. the mqtt topic on which the message was received is available in the header
+ * {@code mqtt.topic}.
  */
-public enum Mqtt3Header {
+public enum MqttHeader {
 
     MQTT_TOPIC("mqtt.topic"),
     MQTT_QOS("mqtt.qos"),
     MQTT_RETAIN("mqtt.retain");
 
-    /**
-     * Defines the default header mapping for mqtt3 sources.
-     */
-    public static final Map<String, String> DEFAULT_MQTT_HEADER_MAPPING = Map.of(
-            MQTT_TOPIC.getName(), getHeaderPlaceholder(MQTT_TOPIC.getName()),
-            MQTT_QOS.getName(), getHeaderPlaceholder(MQTT_QOS.getName()),
-            MQTT_RETAIN.getName(), getHeaderPlaceholder(MQTT_RETAIN.getName())
-    );
-
     private final String name;
 
     /**
-     * @param name the actual header name as it is used in then (internal) message headers
+     * @param name the header name to be used in source header mappings
      */
-    Mqtt3Header(final String name) {
+    MqttHeader(final String name) {
         this.name = name;
     }
 
@@ -51,15 +43,11 @@ public enum Mqtt3Header {
         return name;
     }
 
-    private static String getHeaderPlaceholder(final String headerName) {
-        return "{{ header:" + headerName + "}}";
-    }
-
     /**
      * @return list of default header names used for mqtt sources
      */
     public static List<String> getHeaderNames() {
-        return Arrays.stream(values()).map(Mqtt3Header::getName).collect(Collectors.toList());
+        return Arrays.stream(values()).map(MqttHeader::getName).collect(Collectors.toList());
     }
 
 }

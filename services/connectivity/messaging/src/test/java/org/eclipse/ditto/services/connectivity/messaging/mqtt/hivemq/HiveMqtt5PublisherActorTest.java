@@ -31,7 +31,7 @@ import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
-import org.eclipse.ditto.services.connectivity.messaging.mqtt.Mqtt3Header;
+import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttHeader;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 
@@ -80,19 +80,19 @@ public class HiveMqtt5PublisherActorTest extends AbstractMqttPublisherActorTest 
     @Override
     protected void verifyPublishedMessageIsRetained() {
         verifyPublishedMessage(getOutboundAddress(), true, DEFAULT_QOS,
-                Collections.singleton(Mqtt3Header.MQTT_RETAIN.getName()));
+                Collections.singleton(MqttHeader.MQTT_RETAIN.getName()));
     }
 
     @Override
     protected void verifyPublishedMessageHasQos(final MqttQos expectedQos) {
         verifyPublishedMessage(getOutboundAddress(), DEFAULT_RETAIN, expectedQos,
-                Collections.singleton(Mqtt3Header.MQTT_QOS.getName()));
+                Collections.singleton(MqttHeader.MQTT_QOS.getName()));
     }
 
     @Override
     protected void verifyPublishedMessageHasTopic(final String expectedTopic) {
         verifyPublishedMessage(expectedTopic, DEFAULT_RETAIN, DEFAULT_QOS,
-                Collections.singleton(Mqtt3Header.MQTT_TOPIC.getName()));
+                Collections.singleton(MqttHeader.MQTT_TOPIC.getName()));
     }
 
     private void verifyPublishedMessage(final String topic, final boolean expectedRetain, final MqttQos expectedQos,

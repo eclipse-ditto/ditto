@@ -242,7 +242,7 @@ public final class Mqtt3ValidatorTest extends AbstractMqttValidatorTest {
 
     @Test
     public void testProtectedSourceMappingKeys() {
-        Stream.of(Mqtt3Header.values()).map(Mqtt3Header::getName).forEach(key -> {
+        Stream.of(MqttHeader.values()).map(MqttHeader::getName).forEach(key -> {
             final HeaderMapping validHeaderMapping =
                     ConnectivityModelFactory.newHeaderMapping(Map.of(key, "{{ header:mqtt.topic }}"));
             testSourceMapping(validHeaderMapping, key);

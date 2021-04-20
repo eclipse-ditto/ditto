@@ -19,7 +19,7 @@ import java.util.Map;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
-import org.eclipse.ditto.services.connectivity.messaging.mqtt.Mqtt3Header;
+import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttHeader;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.junit.Test;
@@ -126,9 +126,9 @@ abstract class AbstractMqttPublisherActorTest extends AbstractPublisherActorTest
         final HeaderMapping headerMapping = super.getHeaderMapping();
         final Map<String, String> mappingMap = new HashMap<>(headerMapping.getMapping());
 
-        mappingMap.put(Mqtt3Header.MQTT_RETAIN.getName(), "{{ header:" + CUSTOM_RETAIN_HEADER + " }}");
-        mappingMap.put(Mqtt3Header.MQTT_TOPIC.getName(), "{{ header:" + CUSTOM_TOPIC_HEADER + " }}");
-        mappingMap.put(Mqtt3Header.MQTT_QOS.getName(), "{{ header:" + CUSTOM_QOS_HEADER + " }}");
+        mappingMap.put(MqttHeader.MQTT_RETAIN.getName(), "{{ header:" + CUSTOM_RETAIN_HEADER + " }}");
+        mappingMap.put(MqttHeader.MQTT_TOPIC.getName(), "{{ header:" + CUSTOM_TOPIC_HEADER + " }}");
+        mappingMap.put(MqttHeader.MQTT_QOS.getName(), "{{ header:" + CUSTOM_QOS_HEADER + " }}");
 
         return ConnectivityModelFactory.newHeaderMapping(mappingMap);
     }

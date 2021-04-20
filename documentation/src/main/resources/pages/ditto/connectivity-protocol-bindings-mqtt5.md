@@ -70,7 +70,7 @@ In addition, Ditto extracts the following headers from each consumed message:
 * `content-type`: contains the MQTT 5 "content type" value
 
 The [header mapping](connectivity-header-mapping.html) applies to the supported MQTT 5 specific headers as well
-as to the user defined properties, e. g.:
+as to the user defined properties, e.g.:
 ```json
 {
   "headerMapping": {

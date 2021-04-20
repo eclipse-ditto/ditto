@@ -117,13 +117,13 @@ public final class Mqtt3Validator extends AbstractMqttValidator {
     }
 
     private static void checkIfKeyIsProtected(final String key, final DittoHeaders dittoHeaders) {
-        if (Mqtt3Header.getHeaderNames().contains(key)) {
+        if (MqttHeader.getHeaderNames().contains(key)) {
             final String message =
                     String.format("The header '%s' is protected and cannot be used in MQTT 3.1.1 source header " +
                             "mapping.", key);
             final String description = String.format(
                     "The following header keys are protected and are set with the corresponding value by default: %s",
-                    Mqtt3Header.getHeaderNames());
+                    MqttHeader.getHeaderNames());
             throw ConnectionConfigurationInvalidException
                     .newBuilder(message)
                     .description(description)
@@ -133,12 +133,12 @@ public final class Mqtt3Validator extends AbstractMqttValidator {
     }
 
     private static void checkIfKeyIsAllowed(final String key, final DittoHeaders dittoHeaders) {
-        if (!Mqtt3Header.getHeaderNames().contains(key)) {
+        if (!MqttHeader.getHeaderNames().contains(key)) {
             final String message = String.format("The header '%s' is not allowed in MQTT 3.1.1 target header mapping.",
                     key);
             final String description = String.format(
                     "The following headers are allowed and are directly applied to the published MQTT message: %s",
-                    Mqtt3Header.getHeaderNames());
+                    MqttHeader.getHeaderNames());
             throw ConnectionConfigurationInvalidException
                     .newBuilder(message)
                     .description(description)
@@ -213,12 +213,12 @@ public final class Mqtt3Validator extends AbstractMqttValidator {
 
         @Override
         public List<String> getSupportedNames() {
-            return Mqtt3Header.getHeaderNames();
+            return MqttHeader.getHeaderNames();
         }
 
         @Override
         public boolean supports(final String name) {
-            return Mqtt3Header.getHeaderNames().contains(name);
+            return MqttHeader.getHeaderNames().contains(name);
         }
     }
 }

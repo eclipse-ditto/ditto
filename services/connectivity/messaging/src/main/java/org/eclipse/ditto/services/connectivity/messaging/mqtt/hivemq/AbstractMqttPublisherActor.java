@@ -12,9 +12,9 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 
-import static org.eclipse.ditto.services.connectivity.messaging.mqtt.Mqtt3Header.MQTT_QOS;
-import static org.eclipse.ditto.services.connectivity.messaging.mqtt.Mqtt3Header.MQTT_RETAIN;
-import static org.eclipse.ditto.services.connectivity.messaging.mqtt.Mqtt3Header.MQTT_TOPIC;
+import static org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttHeader.MQTT_QOS;
+import static org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttHeader.MQTT_RETAIN;
+import static org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttHeader.MQTT_TOPIC;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
