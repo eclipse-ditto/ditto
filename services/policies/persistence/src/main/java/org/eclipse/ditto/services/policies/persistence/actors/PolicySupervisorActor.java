@@ -17,7 +17,6 @@ import java.nio.charset.StandardCharsets;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
@@ -99,7 +98,7 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
 
     @Override
     protected DittoRuntimeExceptionBuilder<?> getUnavailableExceptionBuilder(@Nullable final PolicyId entityId) {
-        final PolicyId policyId = entityId != null ? entityId : PolicyId.of(DefaultNamespacedEntityId.of("UNKNOWN:ID"));
+        final PolicyId policyId = entityId != null ? entityId : PolicyId.of("UNKNOWN:ID");
         return PolicyUnavailableException.newBuilder(policyId);
     }
 

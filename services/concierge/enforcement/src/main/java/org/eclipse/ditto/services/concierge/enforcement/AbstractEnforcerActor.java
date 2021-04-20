@@ -24,8 +24,8 @@ import org.eclipse.ditto.services.concierge.common.EnforcementConfig;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.services.utils.cache.Cache;
+import org.eclipse.ditto.services.utils.cache.CacheKey;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
-import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.InvalidateCacheEntry;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
@@ -35,7 +35,6 @@ import org.eclipse.ditto.services.utils.metrics.instruments.timer.PreparedTimer;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 
@@ -59,9 +58,9 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
     private final EnforcementConfig enforcementConfig;
 
     @Nullable
-    private final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache;
+    private final Cache<CacheKey, Entry<CacheKey>> thingIdCache;
     @Nullable
-    private final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache;
+    private final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache;
 
 
     /**
@@ -74,8 +73,8 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
      */
     protected AbstractEnforcerActor(final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
-            @Nullable final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
-            @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache) {
+            @Nullable final Cache<CacheKey, Entry<CacheKey>> thingIdCache,
+            @Nullable final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache) {
 
         super(WithDittoHeaders.class);
 
@@ -105,18 +104,17 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
         receiveBuilder
                 .match(PolicyTag.class, policyTag -> {
                     logger.debug("Received <{}> -> Invalidating caches...", policyTag);
-                    final EntityIdWithResourceType entityId = EntityIdWithResourceType.of(PolicyCommand.RESOURCE_TYPE,
-                            policyTag.getEntityId());
+                    final CacheKey entityId = CacheKey.of(policyTag.getEntityId());
                     invalidateCaches(entityId);
                 })
                 .match(InvalidateCacheEntry.class, invalidateCacheEntry -> {
                     logger.debug("Received <{}> -> Invalidating caches...", invalidateCacheEntry);
-                    final EntityIdWithResourceType entityId = invalidateCacheEntry.getEntityId();
+                    final CacheKey entityId = invalidateCacheEntry.getEntityId();
                     invalidateCaches(entityId);
                 });
     }
 
-    private void invalidateCaches(final EntityIdWithResourceType entityId) {
+    private void invalidateCaches(final CacheKey entityId) {
         if (thingIdCache != null) {
             final boolean invalidated = thingIdCache.invalidate(entityId);
             logger.debug("Thing ID cache for entity ID <{}> was invalidated: {}", entityId, invalidated);

@@ -21,64 +21,61 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Tests {@link ImmutableEntityIdWithResourceType}.
+ * Tests {@link ImmutableCacheKey}.
  */
-public class ImmutableEntityIdWithResourceTypeTest {
+public class ImmutableCacheKeyTest {
 
-    private static final String RESOURCE_TYPE = "resource-type";
-    private static final EntityId ENTITY_ID_WITHOUT_TYPE = DefaultEntityId.of("entity:id");
-    private static final EntityIdWithResourceType ENTITY_ID =
-            ImmutableEntityIdWithResourceType.of(RESOURCE_TYPE, ENTITY_ID_WITHOUT_TYPE);
+    private static final EntityType THING_TYPE = EntityType.of("thing");
+    private static final EntityId ENTITY_ID = EntityId.of(THING_TYPE, "entity:id");
+    private static final CacheKey CACHE_KEY = ImmutableCacheKey.of(ENTITY_ID);
     private static final String EXPECTED_SERIALIZED_ENTITY_ID =
-            String.join(ImmutableEntityIdWithResourceType.DELIMITER, RESOURCE_TYPE, ENTITY_ID_WITHOUT_TYPE);
+            String.join(ImmutableCacheKey.DELIMITER, THING_TYPE, ENTITY_ID);
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ImmutableEntityIdWithResourceType.class,
+        assertInstancesOf(ImmutableCacheKey.class,
                 areImmutable(),
                 provided(EntityId.class, CacheLookupContext.class).isAlsoImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ImmutableEntityIdWithResourceType.class)
+        EqualsVerifier.forClass(ImmutableCacheKey.class)
                 .verify();
     }
 
     @Test
     public void testSerialization() {
         // check preconditions
-        assertThat(ENTITY_ID).isNotNull();
-        assertThat(ENTITY_ID.getResourceType()).isEqualTo(RESOURCE_TYPE);
-        assertThat((CharSequence) ENTITY_ID.getId()).isEqualTo(ENTITY_ID_WITHOUT_TYPE);
+        assertThat(CACHE_KEY).isNotNull();
+        assertThat((CharSequence) CACHE_KEY.getId()).isEqualTo(ENTITY_ID);
 
         // assert serialization
-        assertThat(ENTITY_ID.toString()).isEqualTo(EXPECTED_SERIALIZED_ENTITY_ID);
+        assertThat(CACHE_KEY.toString()).isEqualTo(EXPECTED_SERIALIZED_ENTITY_ID);
     }
 
     @Test
     public void testDeserialization() {
-        assertThat(ImmutableEntityIdWithResourceType.readFrom(EXPECTED_SERIALIZED_ENTITY_ID)).isEqualTo(ENTITY_ID);
+        assertThat(ImmutableCacheKey.readFrom(EXPECTED_SERIALIZED_ENTITY_ID)).isEqualTo(CACHE_KEY);
     }
 
     @Test
     public void testSerializationWithDifferentType() {
         final OtherEntityIdImplementation otherImplementation = new OtherEntityIdImplementation("entity:id");
-        final EntityIdWithResourceType original =
-                ImmutableEntityIdWithResourceType.of(RESOURCE_TYPE, otherImplementation);
+        final CacheKey original = ImmutableCacheKey.of(otherImplementation);
         // as the entity id inside ImmutableEntityIdWithResourceType is updated to type default entity id, we have this
         // side-effect:
         assertThat((CharSequence) original.getId()).isNotEqualTo(otherImplementation);
 
         final String serialized = original.toString();
-        final EntityIdWithResourceType deserialized = ImmutableEntityIdWithResourceType.readFrom(serialized);
+        final CacheKey deserialized = ImmutableCacheKey.readFrom(serialized);
 
         assertThat(deserialized).isEqualTo(original);
     }
@@ -114,6 +111,10 @@ public class ImmutableEntityIdWithResourceTypeTest {
             return Objects.hash(id);
         }
 
+        @Override
+        public EntityType getEntityType() {
+            return THING_TYPE;
+        }
     }
 
 }

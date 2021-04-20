@@ -25,13 +25,13 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyConstants;
 import org.eclipse.ditto.model.policies.PolicyRevision;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
+import org.eclipse.ditto.services.utils.cache.CacheKey;
 import org.eclipse.ditto.services.utils.cache.CacheLookupContext;
-import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
@@ -42,8 +42,7 @@ import akka.actor.ActorRef;
  * Loads a policy-enforcer by asking the policies shard-region-proxy.
  */
 @Immutable
-public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<EntityIdWithResourceType,
-        Entry<PolicyEnforcer>> {
+public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<CacheKey, Entry<PolicyEnforcer>> {
 
     private final ActorAskCacheLoader<PolicyEnforcer, Command<?>> delegate;
 
@@ -62,12 +61,12 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<EntityI
         final BiFunction<Object, CacheLookupContext, Entry<PolicyEnforcer>> responseTransformer =
                 PolicyEnforcerCacheLoader::handleSudoRetrievePolicyResponse;
 
-        delegate = ActorAskCacheLoader.forShard(askTimeout, PolicyCommand.RESOURCE_TYPE, policiesShardRegionProxy,
+        delegate = ActorAskCacheLoader.forShard(askTimeout, PolicyConstants.ENTITY_TYPE, policiesShardRegionProxy,
                 commandCreator, responseTransformer);
     }
 
     @Override
-    public CompletableFuture<Entry<PolicyEnforcer>> asyncLoad(final EntityIdWithResourceType key,
+    public CompletableFuture<Entry<PolicyEnforcer>> asyncLoad(final CacheKey key,
             final Executor executor) {
         return delegate.asyncLoad(key, executor);
     }

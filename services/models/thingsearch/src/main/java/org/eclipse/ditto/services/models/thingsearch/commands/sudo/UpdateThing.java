@@ -22,12 +22,12 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
@@ -41,7 +41,8 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 @AllValuesAreNonnullByDefault
 @JsonParsableCommand(typePrefix = UpdateThing.TYPE_PREFIX, name = UpdateThing.NAME)
 // When making this a ThingSearchCommand, beware that it is WithId but actually yes.
-public final class UpdateThing extends AbstractCommand<UpdateThing> implements SignalWithEntityId<UpdateThing> {
+public final class UpdateThing extends AbstractCommand<UpdateThing> implements SignalWithEntityId<UpdateThing>,
+        WithThingId {
 
     /**
      * Prefix for the type of this command.
@@ -114,7 +115,7 @@ public final class UpdateThing extends AbstractCommand<UpdateThing> implements S
     }
 
     @Override
-    public EntityId getEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

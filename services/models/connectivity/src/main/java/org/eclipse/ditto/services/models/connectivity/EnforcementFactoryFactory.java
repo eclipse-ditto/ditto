@@ -15,10 +15,11 @@ package org.eclipse.ditto.services.models.connectivity;
 import java.util.Arrays;
 import java.util.List;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
-import org.eclipse.ditto.services.models.placeholders.Placeholder;
 import org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders;
+import org.eclipse.ditto.services.models.placeholders.Placeholder;
 import org.eclipse.ditto.signals.base.Signal;
 
 /**
@@ -38,7 +39,7 @@ public final class EnforcementFactoryFactory {
      */
     private static <I> EnforcementFilterFactory<I, Signal<?>> newEnforcementFilterFactory(
             final Enforcement enforcement,
-            final Placeholder<I> inputFilter, final List<Placeholder<CharSequence>> filterPlaceholderResolver) {
+            final Placeholder<I> inputFilter, final List<Placeholder<EntityId>> filterPlaceholderResolver) {
         return new SignalEnforcementFilterFactory<>(enforcement, inputFilter, filterPlaceholderResolver);
     }
 
@@ -48,7 +49,7 @@ public final class EnforcementFactoryFactory {
      * <ul>
      * <li>{@link org.eclipse.ditto.services.models.connectivity.placeholders.ThingPlaceholder}</li>
      * <li>{@link org.eclipse.ditto.services.models.connectivity.placeholders.PolicyPlaceholder}</li>
-     * <li>{@link org.eclipse.ditto.services.models.connectivity.placeholders.EntityPlaceholder}</li>
+     * <li>{@link org.eclipse.ditto.services.models.connectivity.placeholders.EntityIdPlaceholder}</li>
      * </ul>
      *
      * @param <I> the type from which the input values are resolved

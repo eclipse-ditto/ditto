@@ -86,6 +86,7 @@ public final class TestConstants {
     public static final Instant CREATED = Instant.now().minus(Duration.ofDays(100));
     public static final Instant MODIFIED = Instant.now().minus(Duration.ofDays(50));
 
+    public static final String THING_PREFIX = "thing:";
     public static final ThingId THING_ID = ThingId.of(NAMESPACE, NAME);
     public static final ThingId THING_ID2 = ThingId.of(NAMESPACE, NAME2);
 

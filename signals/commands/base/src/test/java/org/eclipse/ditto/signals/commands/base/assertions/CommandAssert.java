@@ -20,7 +20,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
 /**
  * An Assert for {@link Command}s.
  */
-public class CommandAssert extends AbstractCommandAssert<CommandAssert, Command> {
+public class CommandAssert extends AbstractCommandAssert<CommandAssert, Command<?>> {
 
     /**
      * Constructs a new {@code AbstractThingCommandAssert} object.

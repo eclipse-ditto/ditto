@@ -19,6 +19,7 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.streaming.LowerBound;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThing;
@@ -48,7 +49,7 @@ import akka.stream.javadsl.Source;
 public final class BackgroundSyncActor
         extends AbstractBackgroundStreamingActorWithConfigWithStatusReport<BackgroundSyncConfig> {
 
-    private static final ThingId EMPTY_THING_ID = ThingId.of(LowerBound.emptyEntityId());
+    private static final ThingId EMPTY_THING_ID = ThingId.of(LowerBound.emptyEntityId(ThingConstants.ENTITY_TYPE));
     /**
      * Name of the singleton coordinator.
      */

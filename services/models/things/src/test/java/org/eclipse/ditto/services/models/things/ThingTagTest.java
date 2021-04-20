@@ -20,6 +20,7 @@ import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -30,7 +31,8 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ThingTagTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(ThingTag.JsonFields.ID, TestConstants.Thing.THING_ID.toString())
+            .set(EntityIdWithRevision.JsonFields.ENTITY_TYPE, TestConstants.Thing.THING_ID.getEntityType().toString())
+            .set(ThingTag.JsonFields.ENTITY_ID, TestConstants.Thing.THING_ID.toString())
             .set(ThingTag.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
             .build();
 

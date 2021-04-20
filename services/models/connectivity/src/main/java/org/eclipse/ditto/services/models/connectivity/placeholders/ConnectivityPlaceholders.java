@@ -43,10 +43,10 @@ public final class ConnectivityPlaceholders {
     }
 
     /**
-     * @return the singleton instance of {@link EntityPlaceholder}
+     * @return the singleton instance of {@link EntityIdPlaceholder}
      */
-    public static EntityPlaceholder newEntityPlaceholder() {
-        return ImmutableEntityPlaceholder.INSTANCE;
+    public static EntityIdPlaceholder newEntityPlaceholder() {
+        return ImmutableEntityIdPlaceholder.INSTANCE;
     }
 
     /**

@@ -52,12 +52,11 @@ import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.utils.cache.Cache;
+import org.eclipse.ditto.services.utils.cache.CacheKey;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
-import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcerCacheLoader;
-import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.DeactivateTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.TopLevelPolicyActionCommand;
@@ -107,8 +106,7 @@ public final class PolicyCommandEnforcementTest {
     private static final String NAMESPACE = "my.namespace";
     private static final PolicyId POLICY_ID = PolicyId.of(NAMESPACE, "policyId");
     private static final String CORRELATION_ID = "test-correlation-id";
-    private static final String RESOURCE_TYPE = PolicyCommand.RESOURCE_TYPE;
-    private static final EntityIdWithResourceType ENTITY_ID = EntityIdWithResourceType.of(RESOURCE_TYPE, POLICY_ID);
+    private static final CacheKey ENTITY_ID = CacheKey.of(POLICY_ID);
 
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder()
             .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
@@ -143,7 +141,7 @@ public final class PolicyCommandEnforcementTest {
 
     private ActorSystem system;
     private TestProbe policiesShardRegionProbe;
-    private Cache<EntityIdWithResourceType, Entry<PolicyEnforcer>> enforcerCache;
+    private Cache<CacheKey, Entry<PolicyEnforcer>> enforcerCache;
     private ActorRef enforcer;
 
     @Before

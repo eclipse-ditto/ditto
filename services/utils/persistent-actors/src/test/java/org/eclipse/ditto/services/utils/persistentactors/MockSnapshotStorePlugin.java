@@ -13,7 +13,7 @@
 package org.eclipse.ditto.services.utils.persistentactors;
 
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.ArgumentMatchers.eq;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -37,7 +37,7 @@ import scala.concurrent.Future;
 public class MockSnapshotStorePlugin extends SnapshotStore {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MockSnapshotStorePlugin.class);
-    static final String FAIL_DELETE_SNAPSHOT = "failDeleteSnapshot";
+    static final String FAIL_DELETE_SNAPSHOT = "thing:namespace:failDeleteSnapshot";
 
     private static SnapshotStore snapshotStore = Mockito.mock(SnapshotStore.class);
 
@@ -83,7 +83,11 @@ public class MockSnapshotStorePlugin extends SnapshotStore {
     }
 
     static void verify(final String persistenceId, final int toSequenceNr) {
-        Mockito.verify(snapshotStore).doDeleteAsync(same(persistenceId), argThat(matchesCriteria(toSequenceNr)));
+        Mockito.verify(snapshotStore).doDeleteAsync(eq(persistenceId), argThat(matchesCriteria(toSequenceNr)));
+    }
+
+    static void reset() {
+        Mockito.reset(snapshotStore);
     }
 
     private static ArgumentMatcher<SnapshotSelectionCriteria> matchesCriteria(final long maxSequenceNumber) {

@@ -22,7 +22,7 @@ import org.eclipse.ditto.signals.commands.base.ErrorResponse;
  */
 public class CommandAssertions extends DittoBaseAssertions {
 
-    public static ErrorResponseAssert assertThat(final ErrorResponse errorResponse) {
+    public static ErrorResponseAssert assertThat(final ErrorResponse<?> errorResponse) {
         return new ErrorResponseAssert(errorResponse);
     }
 
@@ -32,7 +32,7 @@ public class CommandAssertions extends DittoBaseAssertions {
      * @param command the command response to be checked.
      * @return the Assert.
      */
-    public static CommandAssert assertThat(final Command command) {
+    public static CommandAssert assertThat(final Command<?> command) {
         return new CommandAssert(command);
     }
 
@@ -42,7 +42,7 @@ public class CommandAssertions extends DittoBaseAssertions {
      * @param commandResponse the command response to be checked.
      * @return the Assert.
      */
-    public static CommandResponseAssert assertThat(final CommandResponse commandResponse) {
+    public static CommandResponseAssert assertThat(final CommandResponse<?> commandResponse) {
         return new CommandResponseAssert(commandResponse);
     }
 

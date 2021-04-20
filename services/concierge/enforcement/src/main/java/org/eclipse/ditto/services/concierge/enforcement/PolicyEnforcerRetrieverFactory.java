@@ -17,11 +17,12 @@ import static java.util.Objects.requireNonNull;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.enforcers.Enforcer;
+import org.eclipse.ditto.model.policies.PolicyConstants;
 import org.eclipse.ditto.services.utils.cache.Cache;
-import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
+import org.eclipse.ditto.services.utils.cache.CacheKey;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
-import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 
 /**
  * Creates an {@link EnforcerRetriever} which retrieves an enforcer by using an policy-enforcer-cache.
@@ -40,13 +41,13 @@ final class PolicyEnforcerRetrieverFactory {
      * @return the instance.
      */
     public static EnforcerRetriever<Enforcer> create(
-            final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> idCache,
-            final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache) {
+            final Cache<CacheKey, Entry<CacheKey>> idCache,
+            final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache) {
         requireNonNull(idCache);
         requireNonNull(policyEnforcerCache);
 
-        final Map<String, Cache<EntityIdWithResourceType, Entry<Enforcer>>> mapping = new HashMap<>();
-        mapping.put(PolicyCommand.RESOURCE_TYPE, policyEnforcerCache);
+        final Map<EntityType, Cache<CacheKey, Entry<Enforcer>>> mapping = new HashMap<>();
+        mapping.put(PolicyConstants.ENTITY_TYPE, policyEnforcerCache);
 
         return new EnforcerRetriever<>(idCache, mapping);
     }

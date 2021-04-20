@@ -15,6 +15,7 @@ package org.eclipse.ditto.signals.acks.base;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -42,7 +43,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -57,12 +58,12 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 @Immutable
 final class ImmutableAcknowledgements implements Acknowledgements {
 
-    private final EntityIdWithType entityId;
+    private final EntityId entityId;
     private final List<Acknowledgement> acknowledgements;
     private final HttpStatus httpStatus;
     private final DittoHeaders dittoHeaders;
 
-    private ImmutableAcknowledgements(final EntityIdWithType entityId,
+    private ImmutableAcknowledgements(final EntityId entityId,
             final Collection<? extends Acknowledgement> acknowledgements,
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
@@ -111,7 +112,7 @@ final class ImmutableAcknowledgements implements Acknowledgements {
      * types of the given acknowledgements are not equal.
      * @since 2.0.0
      */
-    static ImmutableAcknowledgements of(final EntityIdWithType entityId,
+    static ImmutableAcknowledgements of(final EntityId entityId,
             final Collection<? extends Acknowledgement> acknowledgements,
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
@@ -124,14 +125,17 @@ final class ImmutableAcknowledgements implements Acknowledgements {
         return new ImmutableAcknowledgements(entityId, acknowledgements, httpStatus, dittoHeaders);
     }
 
-    private static EntityIdWithType getEntityId(final Iterable<? extends Acknowledgement> acknowledgements) {
+    private static EntityId getEntityId(final Iterable<? extends Acknowledgement> acknowledgements) {
         final Iterator<? extends Acknowledgement> acknowledgementIterator = acknowledgements.iterator();
         Acknowledgement acknowledgement = acknowledgementIterator.next();
-        final EntityIdWithType entityId = acknowledgement.getEntityId();
+        final EntityId entityId = acknowledgement.getEntityId();
         while (acknowledgementIterator.hasNext()) {
             acknowledgement = acknowledgementIterator.next();
-            // will throw an IllegalArgumentException if they are not equal
-            entityId.isCompatibleOrThrow(acknowledgement.getEntityId());
+            final EntityId acknowledgementEntityId = acknowledgement.getEntityId();
+            if (!entityId.equals(acknowledgement.getEntityId())) {
+                final String pattern = "The entity ID <{0}> is not compatible with <{1}>!";
+                throw new IllegalArgumentException(MessageFormat.format(pattern, acknowledgementEntityId, entityId));
+            }
         }
         return entityId;
     }
@@ -163,7 +167,7 @@ final class ImmutableAcknowledgements implements Acknowledgements {
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    static ImmutableAcknowledgements empty(final EntityIdWithType entityId, final DittoHeaders dittoHeaders) {
+    static ImmutableAcknowledgements empty(final EntityId entityId, final DittoHeaders dittoHeaders) {
         final List<Acknowledgement> acknowledgements = Collections.emptyList();
 
         return new ImmutableAcknowledgements(checkNotNull(entityId, "entityId"),
@@ -240,7 +244,7 @@ final class ImmutableAcknowledgements implements Acknowledgements {
     }
 
     @Override
-    public EntityIdWithType getEntityId() {
+    public EntityId getEntityId() {
         return entityId;
     }
 

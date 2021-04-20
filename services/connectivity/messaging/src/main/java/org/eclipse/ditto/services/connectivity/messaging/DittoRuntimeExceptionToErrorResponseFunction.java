@@ -17,8 +17,8 @@ import java.util.function.BiFunction;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -93,7 +93,12 @@ final class DittoRuntimeExceptionToErrorResponseFunction
         return Optional.ofNullable(topicPath)
                 .flatMap(DittoRuntimeExceptionToErrorResponseFunction::getEntityIdFromTopicPath)
                 .or(() -> Optional.ofNullable(e.getDittoHeaders().get(DittoHeaderDefinition.ENTITY_ID.getKey()))
-                        .map(DefaultNamespacedEntityId::of)
+                        .map(entityId -> {
+                            final int indexOfSeparator = entityId.indexOf(":");
+                            final EntityType entityType = EntityType.of(entityId.substring(0, indexOfSeparator));
+                            final String id = entityId.substring(indexOfSeparator + 1);
+                            return EntityId.of(entityType, id);
+                        })
                 );
     }
 

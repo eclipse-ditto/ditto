@@ -108,7 +108,7 @@ public final class MessageCommandResponseAdapterTest implements ProtocolAdapterT
                         .httpStatus(httpStatus)
                         .channel(TopicPath.Channel.LIVE.getName())
                         .schemaVersion(JsonSchemaVersion.V_2)
-                        .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), TestConstants.THING_ID);
+                        .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), TestConstants.THING_PREFIX + TestConstants.THING_ID);
         final DittoHeadersBuilder<?, ?> expectedHeadersBuilder = TestConstants.DITTO_HEADERS_V_2.toBuilder()
                 .contentType(contentType)
                 .channel(TopicPath.Channel.LIVE.getName());

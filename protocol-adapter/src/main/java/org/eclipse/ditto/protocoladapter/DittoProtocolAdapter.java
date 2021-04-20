@@ -147,11 +147,6 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         return adapterResolver.getAdapter(adaptable).fromAdaptable(adaptable);
     }
 
-    private Adaptable toAdaptable(final Command<?> command) {
-        final TopicPath.Channel channel = ProtocolAdapter.determineChannel(command);
-        return toAdaptable(command, channel);
-    }
-
     @Override
     public Adaptable toAdaptable(final Signal<?> signal) {
         final TopicPath.Channel channel = ProtocolAdapter.determineChannel(signal);

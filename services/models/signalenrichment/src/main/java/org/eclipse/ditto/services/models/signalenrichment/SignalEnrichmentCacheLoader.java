@@ -20,8 +20,8 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.cache.CacheKey;
 import org.eclipse.ditto.services.utils.cache.CacheLookupContext;
-import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
@@ -30,7 +30,7 @@ import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
  * Loads partial things by using the passed in {@code SignalEnrichmentFacade}.
  */
 @AllValuesAreNonnullByDefault
-final class SignalEnrichmentCacheLoader implements AsyncCacheLoader<EntityIdWithResourceType, JsonObject> {
+final class SignalEnrichmentCacheLoader implements AsyncCacheLoader<CacheKey, JsonObject> {
 
     private final SignalEnrichmentFacade facade;
 
@@ -49,7 +49,7 @@ final class SignalEnrichmentCacheLoader implements AsyncCacheLoader<EntityIdWith
     }
 
     @Override
-    public CompletableFuture<JsonObject> asyncLoad(final EntityIdWithResourceType key, final Executor executor) {
+    public CompletableFuture<JsonObject> asyncLoad(final CacheKey key, final Executor executor) {
         final Optional<CacheLookupContext> contextOptional = key.getCacheLookupContext();
         final Optional<JsonFieldSelector> selectorOptional =
                 contextOptional.flatMap(CacheLookupContext::getJsonFieldSelector);

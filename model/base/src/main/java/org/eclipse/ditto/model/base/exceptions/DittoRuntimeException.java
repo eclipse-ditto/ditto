@@ -230,8 +230,8 @@ public abstract class DittoRuntimeException extends RuntimeException
      * @return the exception.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
-     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected.
-     * format.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the
+     * expected format.
      * @since 1.3.0
      */
     public static <T extends DittoRuntimeException> T fromJson(final JsonObject jsonObject,

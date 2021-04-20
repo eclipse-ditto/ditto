@@ -23,12 +23,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.services.utils.cache.Cache;
-import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
+import org.eclipse.ditto.services.utils.cache.CacheKey;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.junit.Before;
@@ -41,9 +42,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class EnforcerRetrieverTest {
 
     @Mock
-    private Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> idCache;
+    private Cache<CacheKey, Entry<CacheKey>> idCache;
     @Mock
-    private Cache<EntityIdWithResourceType, Entry<Enforcer>> enforcerCache;
+    private Cache<CacheKey, Entry<Enforcer>> enforcerCache;
 
     private EnforcerRetriever<Enforcer> retriever;
 
@@ -55,8 +56,8 @@ public class EnforcerRetrieverTest {
     @Test
     public void verifyLookupRevealsInnerException() throws ExecutionException, InterruptedException {
         final DittoRuntimeException expectedException = GatewayInternalErrorException.newBuilder().build();
-        final EntityIdWithResourceType entityId = EntityIdWithResourceType.of("any", DefaultEntityId.of("id"));
-        when(idCache.get(any(EntityIdWithResourceType.class))).thenReturn(
+        final CacheKey entityId = CacheKey.of(EntityId.of(EntityType.of("any"), "id"));
+        when(idCache.get(any(CacheKey.class))).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(Entry.nonexistent())));
 
         final CompletionStage<Contextual<WithDittoHeaders>> result =
@@ -72,12 +73,11 @@ public class EnforcerRetrieverTest {
     @Test
     public void verifyLookupRevealsInnermostException() throws ExecutionException, InterruptedException {
         final DittoRuntimeException expectedException = GatewayInternalErrorException.newBuilder().build();
-        final EntityIdWithResourceType entityId = EntityIdWithResourceType.of("any", DefaultEntityId.of("id"));
-        final EntityIdWithResourceType innerEntityId =
-                EntityIdWithResourceType.of("other", DefaultEntityId.of("randomId"));
-        when(idCache.get(any(EntityIdWithResourceType.class))).thenReturn(
+        final CacheKey entityId = CacheKey.of(EntityId.of(EntityType.of("any"), "id"));
+        final CacheKey innerEntityId = CacheKey.of(EntityId.of(EntityType.of("other"), "randomId"));
+        when(idCache.get(any(CacheKey.class))).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(Entry.permanent(innerEntityId))));
-        when(enforcerCache.get(any(EntityIdWithResourceType.class))).thenReturn(
+        when(enforcerCache.get(any(CacheKey.class))).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(Entry.nonexistent())));
         final CompletionStage<Contextual<WithDittoHeaders>> result =
                 retriever.retrieve(entityId, (entityIdEntry, enforcerEntry) -> {
@@ -92,8 +92,8 @@ public class EnforcerRetrieverTest {
     @Test
     public void verifyLookupEnforcerRevealsException() throws ExecutionException, InterruptedException {
         final DittoRuntimeException expectedException = GatewayInternalErrorException.newBuilder().build();
-        final EntityIdWithResourceType entityId = EntityIdWithResourceType.of("any", DefaultEntityId.of("id"));
-        when(enforcerCache.get(any(EntityIdWithResourceType.class))).thenReturn(
+        final CacheKey entityId = CacheKey.of(EntityId.of(EntityType.of("any"), "id"));
+        when(enforcerCache.get(any(CacheKey.class))).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(Entry.nonexistent())));
 
         final CompletionStage<Contextual<WithDittoHeaders>> result =

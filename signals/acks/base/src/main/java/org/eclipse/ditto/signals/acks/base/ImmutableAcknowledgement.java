@@ -28,7 +28,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -43,7 +43,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  * @since 1.1.0
  */
 @Immutable
-final class ImmutableAcknowledgement<T extends EntityIdWithType> implements Acknowledgement {
+final class ImmutableAcknowledgement<T extends EntityId> implements Acknowledgement {
 
     private static final String TRUE_STRING = Boolean.TRUE.toString();
 
@@ -84,7 +84,7 @@ final class ImmutableAcknowledgement<T extends EntityIdWithType> implements Ackn
      * @param payload the optional payload.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static <T extends EntityIdWithType> ImmutableAcknowledgement<T> of(final AcknowledgementLabel label,
+    public static <T extends EntityId> ImmutableAcknowledgement<T> of(final AcknowledgementLabel label,
             final T entityId,
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders,

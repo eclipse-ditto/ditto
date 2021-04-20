@@ -31,7 +31,6 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 
 import org.awaitility.Awaitility;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -889,14 +888,9 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             expectMsg(createConnectionResponse);
 
             // send cleanup command
-            underTest.tell(
-                    CleanupPersistence.of(DefaultEntityId.of(
-                            ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX + connectionId),
-                            DittoHeaders.empty()),
-                    getRef());
-            expectMsg(CleanupPersistenceResponse.success(
-                    DefaultEntityId.of(ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX + connectionId),
-                    DittoHeaders.empty()));
+            underTest.tell(CleanupPersistence.of(connectionId, DittoHeaders.empty()), getRef());
+            expectMsg(CleanupPersistenceResponse.success(connectionId, DittoHeaders.empty()
+            ));
         }};
     }
 

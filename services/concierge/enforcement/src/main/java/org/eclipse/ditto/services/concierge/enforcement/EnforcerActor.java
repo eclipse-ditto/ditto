@@ -22,7 +22,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.services.utils.cache.Cache;
-import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
+import org.eclipse.ditto.services.utils.cache.CacheKey;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcer;
 
@@ -56,8 +56,8 @@ public final class EnforcerActor extends AbstractEnforcerActor {
             final Set<EnforcementProvider<?>> enforcementProviders,
             final ActorRef conciergeForwarder,
             @Nullable final PreEnforcer preEnforcer,
-            @Nullable final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
-            @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache) {
+            @Nullable final Cache<CacheKey, Entry<CacheKey>> thingIdCache,
+            @Nullable final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache) {
 
         super(pubSubMediator, conciergeForwarder, thingIdCache, policyEnforcerCache);
         final ActorRef enforcementScheduler =
@@ -80,8 +80,8 @@ public final class EnforcerActor extends AbstractEnforcerActor {
             final Set<EnforcementProvider<?>> enforcementProviders,
             final ActorRef conciergeForwarder,
             @Nullable final PreEnforcer preEnforcer,
-            @Nullable final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
-            @Nullable final Cache<EntityIdWithResourceType, Entry<PolicyEnforcer>> policyEnforcerCache) {
+            @Nullable final Cache<CacheKey, Entry<CacheKey>> thingIdCache,
+            @Nullable final Cache<CacheKey, Entry<PolicyEnforcer>> policyEnforcerCache) {
 
         return Props.create(EnforcerActor.class, pubSubMediator, enforcementProviders, conciergeForwarder, preEnforcer,
                 thingIdCache, policyEnforcerCache);
@@ -101,8 +101,8 @@ public final class EnforcerActor extends AbstractEnforcerActor {
     public static Props props(final ActorRef pubSubMediator,
             final Set<EnforcementProvider<?>> enforcementProviders,
             final ActorRef conciergeForwarder,
-            @Nullable final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
-            @Nullable final Cache<EntityIdWithResourceType, Entry<PolicyEnforcer>> policyEnforcerCache) {
+            @Nullable final Cache<CacheKey, Entry<CacheKey>> thingIdCache,
+            @Nullable final Cache<CacheKey, Entry<PolicyEnforcer>> policyEnforcerCache) {
 
         return props(pubSubMediator, enforcementProviders, conciergeForwarder, null, thingIdCache, policyEnforcerCache);
     }

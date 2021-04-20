@@ -54,7 +54,7 @@ final class ImmutableMessage<T> implements Message<T> {
     }
 
     /**
-     * Creates a new Message defining a {@code responseConsumer} which is invoked with a potential response message.
+     * Creates a new Message.
      *
      * @param <T> the type of the payload.
      * @param headers the headers of this message containing defined headers as well as custom headers.

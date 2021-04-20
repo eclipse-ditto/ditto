@@ -20,7 +20,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 /**
@@ -49,7 +49,7 @@ final class AcknowledgementFactory {
      */
     @SuppressWarnings("squid:S3252")
     public static Acknowledgement newAcknowledgement(final AcknowledgementLabel label,
-            final EntityIdWithType entityId,
+            final EntityId entityId,
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders,
             @Nullable final JsonValue payload) {
@@ -92,7 +92,7 @@ final class AcknowledgementFactory {
      * types of the given acknowledgements are not equal.
      * @since 2.0.0
      */
-    public static Acknowledgements newAcknowledgements(final EntityIdWithType entityId,
+    public static Acknowledgements newAcknowledgements(final EntityId entityId,
             final Collection<? extends Acknowledgement> acknowledgements,
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
@@ -108,7 +108,7 @@ final class AcknowledgementFactory {
      * @return the Acknowledgements.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static Acknowledgements emptyAcknowledgements(final EntityIdWithType entityId,
+    public static Acknowledgements emptyAcknowledgements(final EntityId entityId,
             final DittoHeaders dittoHeaders) {
 
         return ImmutableAcknowledgements.empty(entityId, dittoHeaders);

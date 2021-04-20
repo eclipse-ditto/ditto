@@ -31,7 +31,15 @@ public class ConnectionIdTest {
 
     @Test
     public void testEqualsAndHashcode() {
-        EqualsVerifier.forClass(ConnectionId.class).verify();
+        EqualsVerifier.forClass(ConnectionId.class)
+                .withRedefinedSuperclass()
+                .verify();
+    }
+
+    @Test
+    public void instantiationFromEntityTypeCreatesConnectionId() {
+        final EntityId entityId = EntityId.of(ConnectivityConstants.ENTITY_TYPE, "connection");
+        assertThat((CharSequence) entityId).isInstanceOf(ConnectionId.class);
     }
 
     @Test

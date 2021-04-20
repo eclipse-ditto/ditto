@@ -34,7 +34,7 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.UnknownCommandException;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.utils.cache.Cache;
-import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
+import org.eclipse.ditto.services.utils.cache.CacheKey;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.services.utils.pubsub.LiveSignalPub;
@@ -71,8 +71,8 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<SignalWithE
     private final LiveSignalPub liveSignalPub;
 
     private LiveSignalEnforcement(final Contextual<SignalWithEntityId<?>> context,
-            final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
-            final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache,
+            final Cache<CacheKey, Entry<CacheKey>> thingIdCache,
+            final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache,
             final LiveSignalPub liveSignalPub) {
 
         super(context);
@@ -87,8 +87,8 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<SignalWithE
      */
     public static final class Provider implements EnforcementProvider<SignalWithEntityId<?>> {
 
-        private final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache;
-        private final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache;
+        private final Cache<CacheKey, Entry<CacheKey>> thingIdCache;
+        private final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache;
         private final LiveSignalPub liveSignalPub;
 
         /**
@@ -98,8 +98,8 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<SignalWithE
          * @param policyEnforcerCache the policy-enforcer cache.
          * @param liveSignalPub distributed-pub access for live signal publication
          */
-        public Provider(final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
-                final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache,
+        public Provider(final Cache<CacheKey, Entry<CacheKey>> thingIdCache,
+                final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache,
                 final LiveSignalPub liveSignalPub) {
 
             this.thingIdCache = requireNonNull(thingIdCache);

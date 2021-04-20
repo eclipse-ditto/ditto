@@ -17,7 +17,8 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 /**
- * Implementations of this interface are associated to an entity identified by the value returned from {@link #getEntityId()}.
+ * Implementations of this interface are associated to an entity identified by the value
+ * returned from {@link #getEntityId()}.
  */
 public interface WithEntityId {
 

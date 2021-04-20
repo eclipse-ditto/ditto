@@ -16,7 +16,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import org.eclipse.ditto.model.base.entity.type.EntityType;
+import org.eclipse.ditto.model.policies.PolicyConstants;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
@@ -145,14 +148,16 @@ public interface TopicPath {
      */
     enum Group {
 
-        POLICIES("policies"),
+        POLICIES("policies", PolicyConstants.ENTITY_TYPE),
 
-        THINGS("things");
+        THINGS("things", ThingConstants.ENTITY_TYPE);
 
         private final String name;
+        private final EntityType entityType;
 
-        Group(final String name) {
+        Group(final String name, final EntityType entityType) {
             this.name = name;
+            this.entityType = entityType;
         }
 
         /**
@@ -174,6 +179,10 @@ public interface TopicPath {
          */
         public String getName() {
             return name;
+        }
+
+        EntityType getEntityType() {
+            return entityType;
         }
 
         @Override

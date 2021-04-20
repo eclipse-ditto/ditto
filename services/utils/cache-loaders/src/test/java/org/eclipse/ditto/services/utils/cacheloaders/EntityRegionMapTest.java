@@ -20,6 +20,9 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.util.UUID;
 
+import org.eclipse.ditto.model.base.entity.type.EntityType;
+import org.eclipse.ditto.model.policies.PolicyConstants;
+import org.eclipse.ditto.model.things.ThingConstants;
 import org.junit.AfterClass;
 import org.junit.Test;
 
@@ -61,34 +64,32 @@ public final class EntityRegionMapTest {
     @Test
     public void buildAndLookup() {
         // GIVEN
-        final String resourceType1 = "resourceType1";
+        final EntityType thingType = ThingConstants.ENTITY_TYPE;
         final ActorRef actorRef1 = createTestActorRef("ref1");
-        final String resourceType2 = "resourceType2";
+        final EntityType policyType = PolicyConstants.ENTITY_TYPE;
         final ActorRef actorRef2 = createTestActorRef("ref2");
 
         // WHEN
         final EntityRegionMap entityRegionMap = EntityRegionMap.newBuilder()
-                .put(resourceType1, actorRef1)
-                .put(resourceType2, actorRef2)
+                .put(thingType, actorRef1)
+                .put(policyType, actorRef2)
                 .build();
 
         // WHEN
         assertThat(entityRegionMap).isNotNull();
-        assertThat(entityRegionMap.lookup(resourceType1)).contains(actorRef1);
-        assertThat(entityRegionMap.lookup(resourceType2)).contains(actorRef2);
-        assertThat(entityRegionMap.lookup("doesNotExist")).isEmpty();
+        assertThat(entityRegionMap.lookup(thingType)).contains(actorRef1);
+        assertThat(entityRegionMap.lookup(policyType)).contains(actorRef2);
+        assertThat(entityRegionMap.lookup(EntityType.of("doesNotExist"))).isEmpty();
     }
 
     @Test(expected = NullPointerException.class)
     public void buildWithNullResourceTypeThrowsException() {
-        EntityRegionMap.newBuilder()
-                .put(null, createTestActorRef("ref"));
+        EntityRegionMap.newBuilder().put(null, createTestActorRef("ref"));
     }
 
     @Test(expected = NullPointerException.class)
     public void buildWithNullActorRefThrowsException() {
-        EntityRegionMap.newBuilder()
-                .put("resourceType", null);
+        EntityRegionMap.newBuilder().put(ThingConstants.ENTITY_TYPE, null);
     }
 
     private static ActorRef createTestActorRef(final String actorNamePrefix) {

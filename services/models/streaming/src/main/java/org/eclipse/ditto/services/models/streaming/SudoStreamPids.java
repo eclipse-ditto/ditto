@@ -27,6 +27,8 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -79,13 +81,14 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids> implem
      * @param burst the amount of elements to be collected per message
      * @param timeoutMillis maximum time to wait for acknowledgement of each stream element.
      * @param dittoHeaders the command headers of the request.
+     * @param entityType the type of the entity which should be streamed
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static SudoStreamPids of(final Integer burst, final Long timeoutMillis,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders, final EntityType entityType) {
 
-        return new SudoStreamPids(burst, timeoutMillis, LowerBound.empty(), dittoHeaders);
+        return new SudoStreamPids(burst, timeoutMillis, LowerBound.empty(entityType), dittoHeaders);
     }
 
     /**
@@ -102,8 +105,8 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids> implem
 
         final int burst = jsonObject.getValueOrThrow(JSON_BURST);
         final long timeoutMillis = jsonObject.getValueOrThrow(JSON_TIMEOUT_MILLIS);
-        final EntityIdWithRevision<?> lowerBound =
-                jsonObject.getValue(JSON_LOWER_BOUND).map(LowerBound::fromJson).orElseGet(LowerBound::empty);
+        final EntityIdWithRevision<EntityId> lowerBound =
+                LowerBound.fromJson(jsonObject.getValueOrThrow(JSON_LOWER_BOUND));
         return new SudoStreamPids(burst, timeoutMillis, lowerBound, dittoHeaders);
     }
 
@@ -134,7 +137,7 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids> implem
      * @return whether the command has a non-empty lower bound.
      */
     public boolean hasNonEmptyLowerBound() {
-        return !lowerBound.getEntityId().equals(LowerBound.emptyEntityId());
+        return !lowerBound.getEntityId().equals(LowerBound.emptyEntityId(lowerBound.getEntityId().getEntityType()));
     }
 
     @Override

@@ -22,7 +22,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -198,7 +197,7 @@ final class ThingsUpdater extends AbstractActorWithTimers {
         final String elementIdentifier = policyReferenceTag.asIdentifierString();
         log.withCorrelationId("policies-tags-sync-" + elementIdentifier)
                 .debug("Forwarding PolicyReferenceTag '{}'", elementIdentifier);
-        forwardJsonifiableToShardRegion(policyReferenceTag, unused -> policyReferenceTag.getEntityId());
+        forwardJsonifiableToShardRegion(policyReferenceTag, unused -> policyReferenceTag.getThingId());
     }
 
 
@@ -210,7 +209,7 @@ final class ThingsUpdater extends AbstractActorWithTimers {
     }
 
     private <J extends Jsonifiable<?>> void forwardJsonifiableToShardRegion(final J message,
-            final Function<J, EntityId> getId) {
+            final Function<J, ThingId> getId) {
         forwardToShardRegion(
                 message,
                 getId,
@@ -219,7 +218,7 @@ final class ThingsUpdater extends AbstractActorWithTimers {
                 jsonifiable -> DittoHeaders.empty());
     }
 
-    private <E extends Event<?>> void forwardEventToShardRegion(final E message, final Function<E, EntityId> getId) {
+    private <E extends Event<?>> void forwardEventToShardRegion(final E message, final Function<E, ThingId> getId) {
         forwardToShardRegion(
                 message,
                 getId,
@@ -229,12 +228,12 @@ final class ThingsUpdater extends AbstractActorWithTimers {
     }
 
     private <M> void forwardToShardRegion(final M message,
-            final Function<M, EntityId> getId,
+            final Function<M, ThingId> getId,
             final Function<M, String> getType,
             final Function<M, JsonObject> toJson,
             final Function<M, DittoHeaders> getDittoHeaders) {
 
-        final EntityId id = getId.apply(message);
+        final ThingId id = getId.apply(message);
         log.debug("Forwarding incoming {} to shard region of {}", message.getClass().getSimpleName(), id);
         final String type = getType.apply(message);
         final JsonObject jsonObject = toJson.apply(message);
