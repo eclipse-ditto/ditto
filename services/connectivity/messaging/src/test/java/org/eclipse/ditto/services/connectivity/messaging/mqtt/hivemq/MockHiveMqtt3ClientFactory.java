@@ -101,6 +101,7 @@ class MockHiveMqtt3ClientFactory implements HiveMqtt3ClientFactory {
 
     @Override
     public Mqtt3AsyncClient newClient(final Connection connection, final String identifier, final boolean reconnect,
+            final boolean applyLastWillConfig,
             @Nullable final MqttClientConnectedListener connectedListener,
             @Nullable final MqttClientDisconnectedListener disconnectedListener,
             final ConnectionLogger connectionLogger) {
@@ -169,11 +170,13 @@ class MockHiveMqtt3ClientFactory implements HiveMqtt3ClientFactory {
     @Override
     public Mqtt3ClientBuilder newClientBuilder(final Connection connection, final String identifier,
             final boolean allowReconnect,
+            final boolean applyLastWillConfig,
             @Nullable final MqttClientConnectedListener connectedListener,
             @Nullable final MqttClientDisconnectedListener disconnectedListener,
             final ConnectionLogger connectionLogger) {
-        final Mqtt3Client client = newClient(connection, identifier, allowReconnect, connectedListener,
-                disconnectedListener, connectionLogger);
+        final Mqtt3Client client =
+                newClient(connection, identifier, allowReconnect, applyLastWillConfig, connectedListener,
+                        disconnectedListener, connectionLogger);
         final Mqtt3ClientBuilder builder = Mockito.mock(Mqtt3ClientBuilder.class);
         Mockito.doReturn(client).when(builder).build();
         return builder;

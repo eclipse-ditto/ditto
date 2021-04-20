@@ -168,7 +168,11 @@ Overall example JSON of the MQTT `"specificConfig"`:
     "cleanSession": false,
     "separatePublisherClient": true,
     "publisherId": "my-awesome-mqtt-publisher-client-id",
-    "reconnectForRedeliveryDelay": "5s"
+    "reconnectForRedeliveryDelay": "5s",
+    "lastWillTopic": "my/last/will/topic",
+    "lastWillQos": 1,
+    "lastWillRetain": false,
+    "lastWillMessage": "my last will message"
   },
   "sources": ["..."],
   "targets": ["..."]
@@ -239,6 +243,42 @@ Configures the keep alive time interval (in seconds) in which the client sends a
 if no other MQTT packets are sent during this period of time. It is used to determine if the connection is still up.
 
 Default: `60s` [see here](https://hivemq.github.io/hivemq-mqtt-client/docs/mqtt-operations/connect/#keep-alive)
+
+#### lastWillTopic
+
+Configures the topic which should be used on Last Will. This field is mandatory when Last Will should be enabled.
+
+#### lastWillQos
+
+Configures the QoS which should be used on Last Will:
+- `0` = QoS 0 (“at most once”)
+- `1` = QoS 1 (“at least once”)
+- `2` = QoS 2 (“exactly once”)
+
+Default: `0`
+
+#### lastWillRetain
+
+Configures if clients which are newly subscribed to the topic chosen in [Last Will topic](#lastwilltopic) will
+receive this message immediately after they subscribe.
+
+Default: `false`
+
+#### lastWillMessage
+
+Configures the message which should be published when the connection is disconnected ungracefully from the broker.
+The message will be published as UTF8-encoded text on the topic chosen in [Last Will topic](#lastwilltopic).
+
+Default: empty string
+
+### Configure Last Will message
+
+To notify other clients when the connection is disconnected ungracefully the [Last Will feature](https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901033) 
+can be used. The message which will be published, is specified in the connection and stored in the broker when it 
+connects. The message contains a topic, retained message flag, QoS, and the text payload to be published. These can be 
+configured in the [Specific Configuration](#specificconfiguration) of the connection. 
+
+{% include note.html content="This feature is enabled if the _last will topic_ is set." %}
 
 ## Establishing a connection to an MQTT 5 endpoint
 

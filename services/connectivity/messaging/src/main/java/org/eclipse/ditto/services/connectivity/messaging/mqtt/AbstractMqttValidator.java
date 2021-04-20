@@ -216,11 +216,18 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
             final long seconds = keepAlive.toSeconds();
             if (!UnsignedDataTypes.isUnsignedShort(seconds)) {
                 throw ConnectionConfigurationInvalidException
-                        .newBuilder("Keep alive interval '"+seconds+"' is not within the allowed range of [0, 65535] seconds.")
+                        .newBuilder("Keep alive interval '" + seconds +
+                                "' is not within the allowed range of [0, 65535] seconds.")
                         .description("Please adjust the interval to be within the allowed range.")
                         .dittoHeaders(dittoHeaders)
                         .build();
             }
+        });
+
+        mqttSpecificConfig.getMqttWillTopic().ifPresent(lastWillTopic -> {
+            validateAddress(lastWillTopic, false, dittoHeaders);
+            validateTargetQoS(mqttSpecificConfig.getMqttWillQos(), dittoHeaders,
+                    () -> MqttSpecificConfig.LAST_WILL_QOS);
         });
     }
 

@@ -44,6 +44,14 @@ public final class MqttSpecificConfig {
     private static final boolean DEFAULT_RECONNECT_FOR_REDELIVERY = true;
     private static final Duration DEFAULT_RECONNECT_DURATION = Duration.ofSeconds(2L);
 
+    static final String LAST_WILL_TOPIC = "lastWillTopic";
+    static final String LAST_WILL_QOS = "lastWillQos";
+    static final String LAST_WILL_RETAIN = "lastWillRetain";
+    static final String LAST_WILL_MESSAGE = "lastWillMessage";
+
+    private static final boolean DEFAULT_LAST_WILL_RETAIN = false;
+    private static final int DEFAULT_LAST_WILL_QOS = 0;
+
     private final Config specificConfig;
 
     MqttSpecificConfig(final Map<String, String> specificConfig) {
@@ -113,6 +121,35 @@ public final class MqttSpecificConfig {
      */
     public Optional<String> getMqttPublisherId() {
         return getStringOptional(PUBLISHER_ID);
+    }
+
+
+    /**
+     * @return the optional topic which should be used on Last Will message.
+     */
+    public Optional<String> getMqttWillTopic() {
+        return getStringOptional(LAST_WILL_TOPIC);
+    }
+
+    /**
+     * @return the Qos which should be used on Last Will message.
+     */
+    public int getMqttWillQos() {
+        return getSafely(() -> specificConfig.getInt(LAST_WILL_QOS), DEFAULT_LAST_WILL_QOS);
+    }
+
+    /**
+     * @return the optional message which should be used on Last Will message.
+     */
+    public Optional<String> getMqttWillMessage() {
+        return getStringOptional(LAST_WILL_MESSAGE);
+    }
+
+    /**
+     * @return the retain flag which should be used on Last Will message.
+     */
+    public boolean getMqttWillRetain() {
+        return getSafely(() -> specificConfig.getBoolean(LAST_WILL_RETAIN), DEFAULT_LAST_WILL_RETAIN);
     }
 
     /**

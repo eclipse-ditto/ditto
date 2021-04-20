@@ -282,7 +282,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         final List<Target> outboundTargets = outbound.getTargets();
 
         final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(correlationId);
-        l.info("Publishing mapped message of type <{}> to targets <{}>", outboundSource.getType(), outboundTargets);
+        l.debug("Publishing mapped message of type <{}> to targets <{}>", outboundSource.getType(), outboundTargets);
 
         final Optional<SendingContext> replyTargetSendingContext = getSendingContext(outbound);
 
@@ -409,11 +409,12 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
         final SendingOrDropped result;
         if (publishTargetOptional.isPresent()) {
-            final Signal<?> outboundSource = outbound.getSource();
-            logger.info("Publishing mapped message of type <{}> to address <{}>", outboundSource.getType(), address);
-            logger.debug("Publishing mapped message of type <{}> to address <{}>: {}", outboundSource.getType(),
-                    address, sendingContext.getExternalMessage());
             final T publishTarget = publishTargetOptional.get();
+            final Signal<?> outboundSource = outbound.getSource();
+            logger.info("Publishing mapped message of type <{}> to PublishTarget <{}>", outboundSource.getType(),
+                    publishTarget);
+            logger.debug("Publishing mapped message of type <{}> to PublishTarget <{}>: {}", outboundSource.getType(),
+                    publishTarget, sendingContext.getExternalMessage());
             @Nullable final Target autoAckTarget = sendingContext.getAutoAckTarget().orElse(null);
             final HeaderMapping headerMapping = genericTarget.getHeaderMapping().orElse(null);
             final ExternalMessage mappedMessage = applyHeaderMapping(resolver, outbound, headerMapping);

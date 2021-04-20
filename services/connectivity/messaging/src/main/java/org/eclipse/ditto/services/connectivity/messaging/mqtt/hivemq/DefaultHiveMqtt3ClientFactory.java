@@ -17,8 +17,8 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.services.connectivity.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.services.connectivity.messaging.tunnel.SshTunnelState;
 
 import com.hivemq.client.mqtt.MqttClient;
 import com.hivemq.client.mqtt.lifecycle.MqttClientConnectedListener;
@@ -48,17 +48,18 @@ public final class DefaultHiveMqtt3ClientFactory extends AbstractHiveMqttClientF
     @Override
     public Mqtt3AsyncClient newClient(final Connection connection, final String identifier,
             final boolean allowReconnect,
+            final boolean applyLastWillConfig,
             @Nullable final MqttClientConnectedListener connectedListener,
             @Nullable final MqttClientDisconnectedListener disconnectedListener,
             final ConnectionLogger connectionLogger) {
 
-        return newClientBuilder(connection, identifier, allowReconnect, connectedListener, disconnectedListener,
-                connectionLogger).buildAsync();
+        return newClientBuilder(connection, identifier, allowReconnect, applyLastWillConfig, connectedListener,
+                disconnectedListener, connectionLogger).buildAsync();
     }
 
     @Override
     public Mqtt3ClientBuilder newClientBuilder(final Connection connection, final String identifier,
-            final boolean allowReconnect,
+            final boolean allowReconnect, final boolean applyLastWillConfig,
             @Nullable final MqttClientConnectedListener connectedListener,
             @Nullable final MqttClientDisconnectedListener disconnectedListener,
             final ConnectionLogger connectionLogger) {
@@ -66,6 +67,9 @@ public final class DefaultHiveMqtt3ClientFactory extends AbstractHiveMqttClientF
                 configureClientBuilder(MqttClient.builder().useMqttVersion3(), connection, identifier, allowReconnect,
                         connectedListener, disconnectedListener, connectionLogger);
         configureSimpleAuth(mqtt3ClientBuilder.simpleAuth(), connection);
+        if (applyLastWillConfig) {
+            configureWillPublish(mqtt3ClientBuilder, connection);
+        }
         return mqtt3ClientBuilder;
     }
 

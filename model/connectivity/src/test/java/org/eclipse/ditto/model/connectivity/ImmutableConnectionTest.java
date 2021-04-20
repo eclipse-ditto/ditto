@@ -285,6 +285,16 @@ public final class ImmutableConnectionTest {
     }
 
     @Test
+    public void builderManagesSpecialConfig() {
+        final HashMap<String, String> specialFields = new HashMap<>();
+        specialFields.put("reconnectForRedelivery", String.valueOf(true));
+        final Connection connectionWithSpecialFields =
+                ImmutableConnection.fromJson(KNOWN_JSON).toBuilder().specificConfig(specialFields).build();
+
+        assertThat(connectionWithSpecialFields.getSpecificConfig()).containsOnlyKeys(specialFields.keySet());
+    }
+
+    @Test
     public void createInstanceWithNullSources() {
         final ConnectionBuilder builder = ImmutableConnection.getBuilder(ID, TYPE, STATUS, URI);
 

@@ -93,7 +93,13 @@ final class EvictingConnectionLogger implements ConnectionLogger {
 
     private static String formatMessage(final String message, final Object... messageArguments) {
         if (messageArguments.length > 0) {
-            return MessageFormat.format(message, messageArguments);
+            try {
+                return MessageFormat.format(message, messageArguments);
+            } catch (final IllegalArgumentException e) {
+                LOGGER.info("The log message contains an invalid pattern: {} ", message);
+                // log the message anyway without substituting any placeholders
+                return message;
+            }
         }
         return message;
     }
