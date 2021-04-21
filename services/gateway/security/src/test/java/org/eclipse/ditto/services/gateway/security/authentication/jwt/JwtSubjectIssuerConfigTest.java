@@ -16,7 +16,7 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.model.policies.SubjectIssuer;
+import org.eclipse.ditto.policies.model.SubjectIssuer;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

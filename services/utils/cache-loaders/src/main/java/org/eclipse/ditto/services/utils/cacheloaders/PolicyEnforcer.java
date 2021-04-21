@@ -18,7 +18,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.enforcers.Enforcer;
-import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 
 /**

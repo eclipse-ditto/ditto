@@ -16,7 +16,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.enforcers.tree.TreeBasedPolicyEnforcer;
 import org.eclipse.ditto.model.enforcers.trie.TrieBasedPolicyEnforcer;
-import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.policies.model.Policy;
 
 /**
  * Contains multiple implementations of {@link Enforcer}s suited for different use cases.

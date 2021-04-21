@@ -30,7 +30,7 @@
     <dependencies>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-policies-starter</artifactId>
+            <artifactId>ditto-policies-service</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>

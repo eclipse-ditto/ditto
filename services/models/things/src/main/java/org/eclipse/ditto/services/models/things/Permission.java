@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.models.things;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.policies.Permissions;
+import org.eclipse.ditto.policies.model.Permissions;
 
 /**
  * An enumeration of known permissions of the Thing store.

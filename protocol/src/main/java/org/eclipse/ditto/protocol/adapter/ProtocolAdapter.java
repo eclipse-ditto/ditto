@@ -22,8 +22,8 @@ import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
-import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
-import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
 
 /**
  * A protocol adapter provides methods for mapping {@link Signal} instances to an {@link org.eclipse.ditto.protocol.Adaptable}.

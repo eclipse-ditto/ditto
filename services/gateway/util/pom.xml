@@ -36,7 +36,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-model-policies</artifactId>
+            <artifactId>ditto-policies-model</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -47,10 +47,6 @@
             <artifactId>ditto-model-thingsearch</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-commands-policies</artifactId>
-        </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-things</artifactId>
@@ -67,18 +63,9 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-devops</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-events-policies</artifactId>
-        </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-events-things</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-announcements-policies</artifactId>
         </dependency>
 
         <dependency>
@@ -91,7 +78,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-models-policies</artifactId>
+            <artifactId>ditto-policies-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>

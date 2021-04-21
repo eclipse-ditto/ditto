@@ -20,14 +20,14 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapterTest;
 import org.eclipse.ditto.protocol.TestConstants;
 import org.eclipse.ditto.protocol.TestConstants.Policies;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.UnknownCommandException;
-import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommand;
+import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommand;
 import org.junit.Before;
 import org.junit.Test;
 

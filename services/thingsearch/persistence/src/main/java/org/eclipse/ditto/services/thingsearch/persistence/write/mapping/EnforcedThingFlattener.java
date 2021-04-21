@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.write.mapping;
 
-import static org.eclipse.ditto.model.policies.PoliciesResourceType.THING;
-import static org.eclipse.ditto.services.models.policies.Permission.READ;
+import static org.eclipse.ditto.policies.api.Permission.READ;
+import static org.eclipse.ditto.policies.model.PoliciesResourceType.THING;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_GRANTED;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL_KEY;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL_VALUE;
@@ -35,7 +35,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.model.enforcers.Enforcer;
-import org.eclipse.ditto.model.policies.ResourceKey;
+import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil;

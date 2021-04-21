@@ -18,10 +18,10 @@ import java.util.Set;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.Scenario;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.ScenarioSetup;
-import org.eclipse.ditto.model.policies.Permissions;
-import org.eclipse.ditto.model.policies.PoliciesResourceType;
-import org.eclipse.ditto.model.policies.SubjectId;
-import org.eclipse.ditto.model.policies.SubjectIssuer;
+import org.eclipse.ditto.policies.model.Permissions;
+import org.eclipse.ditto.policies.model.PoliciesResourceType;
+import org.eclipse.ditto.policies.model.SubjectId;
+import org.eclipse.ditto.policies.model.SubjectIssuer;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 

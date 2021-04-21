@@ -19,8 +19,8 @@ import java.util.Objects;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
-import org.eclipse.ditto.model.policies.PoliciesModelFactory;
-import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.policies.model.PoliciesModelFactory;
+import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.HeaderBasedPlaceholderSubstitutionAlgorithm;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.slf4j.Logger;
@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- * Handles substitution for Policy {@link org.eclipse.ditto.model.policies.SubjectId}s
+ * Handles substitution for Policy {@link org.eclipse.ditto.policies.model.SubjectId}s
  * inside a {@link ModifyThing} command.
  */
 final class ModifyThingSubstitutionStrategy extends AbstractTypedSubstitutionStrategy<ModifyThing> {

@@ -13,17 +13,17 @@
 package org.eclipse.ditto.services.thingsearch.persistence.write.mapping;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.model.policies.PoliciesResourceType.THING;
+import static org.eclipse.ditto.policies.model.PoliciesResourceType.THING;
 
 import org.bson.Document;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
-import org.eclipse.ditto.model.policies.PoliciesModelFactory;
-import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.policies.SubjectType;
-import org.eclipse.ditto.services.models.policies.Permission;
+import org.eclipse.ditto.policies.model.PoliciesModelFactory;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.SubjectType;
+import org.eclipse.ditto.policies.api.Permission;
 import org.junit.Test;
 
 public final class EnforcedThingMapperTest {

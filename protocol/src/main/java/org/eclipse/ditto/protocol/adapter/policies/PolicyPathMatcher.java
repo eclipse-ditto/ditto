@@ -19,7 +19,7 @@ import java.util.Optional;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.protocol.PayloadPathMatcher;
 import org.eclipse.ditto.protocol.UnknownPathException;
-import org.eclipse.ditto.signals.commands.policies.PolicyResource;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyResource;
 
 /**
  * PayloadPathMatcher implementation that handles policy resources.
@@ -30,7 +30,7 @@ final class PolicyPathMatcher implements PayloadPathMatcher {
 
     /**
      * This mapping is used in the method {@code AbstractAdapter#getType} to determine the second part of the command
-     * name (e.g. {@code policy} of {@value org.eclipse.ditto.signals.commands.policies.modify.CreatePolicy#NAME}),
+     * name (e.g. {@code policy} of {@value org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy#NAME}),
      * i.e. the name of the resource that is affected by the command, from a given path.
      */
     private static final Map<PolicyResource, String> resourceNames = new EnumMap<>(PolicyResource.class);

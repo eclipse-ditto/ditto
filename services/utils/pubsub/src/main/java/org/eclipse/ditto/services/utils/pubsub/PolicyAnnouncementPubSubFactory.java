@@ -13,7 +13,7 @@
 package org.eclipse.ditto.services.utils.pubsub;
 
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
-import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
+import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 
 import akka.actor.ActorRefFactory;
 import akka.actor.ActorSystem;

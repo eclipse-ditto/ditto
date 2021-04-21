@@ -25,8 +25,8 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.enforcers.DefaultEffectedSubjects;
 import org.eclipse.ditto.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.model.enforcers.Enforcer;
-import org.eclipse.ditto.model.policies.Permissions;
-import org.eclipse.ditto.model.policies.ResourceKey;
+import org.eclipse.ditto.policies.model.Permissions;
+import org.eclipse.ditto.policies.model.ResourceKey;
 
 /**
  * An enforcer that grants access to a set of subjects and no access to everything else.

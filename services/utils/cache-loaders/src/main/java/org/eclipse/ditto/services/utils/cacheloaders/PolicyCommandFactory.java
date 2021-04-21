@@ -19,8 +19,8 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.utils.cache.CacheLookupContext;
 
 /**

@@ -26,10 +26,10 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.enforcers.testbench.algorithms.PolicyAlgorithm;
-import org.eclipse.ditto.model.policies.Permissions;
-import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.model.policies.SubjectId;
-import org.eclipse.ditto.model.policies.SubjectIssuer;
+import org.eclipse.ditto.policies.model.Permissions;
+import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.SubjectId;
+import org.eclipse.ditto.policies.model.SubjectIssuer;
 
 
 public interface Scenario {

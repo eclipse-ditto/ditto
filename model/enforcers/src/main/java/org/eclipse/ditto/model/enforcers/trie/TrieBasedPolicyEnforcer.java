@@ -24,10 +24,10 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.model.enforcers.Enforcer;
-import org.eclipse.ditto.model.policies.Permissions;
-import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.model.policies.PolicyEntry;
-import org.eclipse.ditto.model.policies.ResourceKey;
+import org.eclipse.ditto.policies.model.Permissions;
+import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyEntry;
+import org.eclipse.ditto.policies.model.ResourceKey;
 
 /**
  * Holds Algorithms to build trie-based indices for a policy and to perform policy checks based on those indices.

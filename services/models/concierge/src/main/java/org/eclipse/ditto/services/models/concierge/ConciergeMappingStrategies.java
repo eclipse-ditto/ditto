@@ -19,7 +19,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMappingStrategies;
-import org.eclipse.ditto.services.models.policies.PoliciesMappingStrategies;
+import org.eclipse.ditto.policies.api.PoliciesMappingStrategies;
 import org.eclipse.ditto.services.models.things.ThingsMappingStrategies;
 import org.eclipse.ditto.services.models.thingsearch.ThingSearchMappingStrategies;
 import org.eclipse.ditto.services.utils.cache.InvalidateCacheEntry;

@@ -29,7 +29,7 @@ import org.eclipse.ditto.model.base.assertions.JsonifiableAssertions;
 import org.eclipse.ditto.model.base.assertions.JsonifiableWithPredicateAssert;
 import org.eclipse.ditto.model.base.assertions.JsonifiableWithSelectorAndPredicateAssert;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
-import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureProperties;

@@ -20,7 +20,7 @@ import org.eclipse.ditto.protocol.adapter.QueryCommandAdapter;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
 import org.eclipse.ditto.protocol.mapper.SignalMapperFactory;
-import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommand;
+import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommand;
 
 /**
  * Adapter for mapping a {@link PolicyQueryCommand} to and from an {@link Adaptable}.

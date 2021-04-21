@@ -23,8 +23,8 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.policies.EffectedPermissions;
-import org.eclipse.ditto.model.policies.Permissions;
+import org.eclipse.ditto.policies.model.EffectedPermissions;
+import org.eclipse.ditto.policies.model.Permissions;
 
 /**
  * This visitor collects all subject IDs each of which has all the specified permissions granted on the specified

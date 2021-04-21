@@ -16,12 +16,12 @@ import java.time.Instant;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
-import org.eclipse.ditto.services.models.policies.PolicyTag;
+import org.eclipse.ditto.policies.api.PolicyReferenceTag;
+import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;

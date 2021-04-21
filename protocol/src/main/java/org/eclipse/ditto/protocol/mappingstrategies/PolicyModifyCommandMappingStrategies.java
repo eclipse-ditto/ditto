@@ -16,19 +16,19 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.protocol.JsonifiableMapper;
-import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicy;
-import org.eclipse.ditto.signals.commands.policies.modify.DeletePolicy;
-import org.eclipse.ditto.signals.commands.policies.modify.DeletePolicyEntry;
-import org.eclipse.ditto.signals.commands.policies.modify.DeleteResource;
-import org.eclipse.ditto.signals.commands.policies.modify.DeleteSubject;
-import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicy;
-import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicyEntries;
-import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicyEntry;
-import org.eclipse.ditto.signals.commands.policies.modify.ModifyResource;
-import org.eclipse.ditto.signals.commands.policies.modify.ModifyResources;
-import org.eclipse.ditto.signals.commands.policies.modify.ModifySubject;
-import org.eclipse.ditto.signals.commands.policies.modify.ModifySubjects;
-import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommand;
+import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicy;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntry;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteResource;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubject;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntries;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntry;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResource;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResources;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubject;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjects;
+import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommand;
 
 /**
  * Defines mapping strategies (map from signal type to JsonifiableMapper) for policy modify commands.

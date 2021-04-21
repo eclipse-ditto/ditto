@@ -35,7 +35,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 public interface UserInformation extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
-     * Get the default {@link org.eclipse.ditto.model.policies.SubjectId} of the user (the first subject of
+     * Get the default {@link org.eclipse.ditto.policies.model.SubjectId} of the user (the first subject of
      * {@link #getSubjects()}. This authorization subject is also used as default subject when a policy is created.
      *
      * @return the default subject, or an empty {@link Optional} if none could be found.
@@ -43,7 +43,7 @@ public interface UserInformation extends Jsonifiable.WithFieldSelectorAndPredica
     Optional<String> getDefaultSubject();
 
     /**
-     * Get all {@link org.eclipse.ditto.model.policies.SubjectId}s to which the user has access.
+     * Get all {@link org.eclipse.ditto.policies.model.SubjectId}s to which the user has access.
      *
      * @return the authorization subjects of the user.
      */

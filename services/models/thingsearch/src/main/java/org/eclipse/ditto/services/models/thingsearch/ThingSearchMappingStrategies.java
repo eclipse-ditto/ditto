@@ -18,7 +18,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.services.models.policies.PoliciesMappingStrategies;
+import org.eclipse.ditto.policies.api.PoliciesMappingStrategies;
 import org.eclipse.ditto.services.models.streaming.StreamedSnapshot;
 import org.eclipse.ditto.services.models.things.ThingsMappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.GlobalMappingStrategies;

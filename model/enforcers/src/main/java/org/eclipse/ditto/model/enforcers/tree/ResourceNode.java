@@ -27,8 +27,8 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.policies.EffectedPermissions;
-import org.eclipse.ditto.model.policies.Permissions;
+import org.eclipse.ditto.policies.model.EffectedPermissions;
+import org.eclipse.ditto.policies.model.Permissions;
 
 /**
  * Implementation of {@link PolicyTreeNode} for resource nodes.

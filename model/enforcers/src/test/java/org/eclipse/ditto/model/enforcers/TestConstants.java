@@ -17,19 +17,19 @@ import java.util.Arrays;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.policies.EffectedPermissions;
-import org.eclipse.ditto.model.policies.Label;
-import org.eclipse.ditto.model.policies.PoliciesModelFactory;
-import org.eclipse.ditto.model.policies.PolicyEntry;
-import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.policies.PolicyRevision;
-import org.eclipse.ditto.model.policies.Resource;
-import org.eclipse.ditto.model.policies.Resources;
-import org.eclipse.ditto.model.policies.Subject;
-import org.eclipse.ditto.model.policies.SubjectId;
-import org.eclipse.ditto.model.policies.SubjectIssuer;
-import org.eclipse.ditto.model.policies.SubjectType;
-import org.eclipse.ditto.model.policies.Subjects;
+import org.eclipse.ditto.policies.model.EffectedPermissions;
+import org.eclipse.ditto.policies.model.Label;
+import org.eclipse.ditto.policies.model.PoliciesModelFactory;
+import org.eclipse.ditto.policies.model.PolicyEntry;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyRevision;
+import org.eclipse.ditto.policies.model.Resource;
+import org.eclipse.ditto.policies.model.Resources;
+import org.eclipse.ditto.policies.model.Subject;
+import org.eclipse.ditto.policies.model.SubjectId;
+import org.eclipse.ditto.policies.model.SubjectIssuer;
+import org.eclipse.ditto.policies.model.SubjectType;
+import org.eclipse.ditto.policies.model.Subjects;
 
 /**
  * Defines constants for testing.
@@ -142,7 +142,7 @@ public final class TestConstants {
         /**
          * A known {@code Policy}.
          */
-        public static final org.eclipse.ditto.model.policies.Policy POLICY =
+        public static final org.eclipse.ditto.policies.model.Policy POLICY =
                 PoliciesModelFactory.newPolicyBuilder(POLICY_ID) //
                         .set(POLICY_ENTRY) //
                         .setRevision(REVISION) //

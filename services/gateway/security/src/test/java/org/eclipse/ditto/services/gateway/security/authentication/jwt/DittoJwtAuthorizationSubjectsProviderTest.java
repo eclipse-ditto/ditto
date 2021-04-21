@@ -20,7 +20,7 @@ import java.util.List;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
-import org.eclipse.ditto.model.policies.SubjectIssuer;
+import org.eclipse.ditto.policies.model.SubjectIssuer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;

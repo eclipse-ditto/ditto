@@ -14,7 +14,7 @@ package org.eclipse.ditto.model.enforcers.testbench;
 
 import org.eclipse.ditto.model.enforcers.testbench.algorithms.PolicyAlgorithm;
 import org.eclipse.ditto.model.enforcers.testbench.algorithms.TreeBasedPolicyAlgorithm;
-import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.policies.model.Policy;
 
 
 public class TreeBasedPolicyAlgorithmTest extends AbstractPolicyAlgorithmTest {

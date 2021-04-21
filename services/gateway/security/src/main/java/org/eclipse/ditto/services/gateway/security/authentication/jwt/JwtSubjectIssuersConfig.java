@@ -27,7 +27,7 @@ import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.policies.SubjectIssuer;
+import org.eclipse.ditto.policies.model.SubjectIssuer;
 import org.eclipse.ditto.services.gateway.util.config.security.OAuthConfig;
 
 /**

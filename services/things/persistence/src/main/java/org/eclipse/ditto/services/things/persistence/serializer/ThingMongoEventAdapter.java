@@ -22,7 +22,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.services.utils.persistence.mongo.AbstractMongoEventAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.signals.events.base.Event;

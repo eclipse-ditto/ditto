@@ -13,7 +13,7 @@
 package org.eclipse.ditto.services.concierge.enforcement;
 
 import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_2;
-import static org.eclipse.ditto.model.policies.SubjectIssuer.GOOGLE;
+import static org.eclipse.ditto.policies.model.SubjectIssuer.GOOGLE;
 
 import java.time.Duration;
 import java.util.HashSet;

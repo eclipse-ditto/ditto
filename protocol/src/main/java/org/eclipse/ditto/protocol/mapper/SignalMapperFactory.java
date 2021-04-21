@@ -12,13 +12,13 @@
  */
 package org.eclipse.ditto.protocol.mapper;
 
-import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
+import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
+import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommand;
+import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommandResponse;
+import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommand;
+import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
-import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommand;
-import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommandResponse;
-import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommand;
-import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandResponse;
 import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
 import org.eclipse.ditto.signals.commands.things.modify.MergeThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;

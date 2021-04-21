@@ -19,12 +19,12 @@ import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.policies.PolicyConstants;
-import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyConstants;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyRevision;
-import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyRevisionResponse;
+import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyRevision;
+import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyRevisionResponse;
 import org.eclipse.ditto.services.models.streaming.LowerBound;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
 import org.eclipse.ditto.services.utils.akka.controlflow.MergeSortedAsPair;

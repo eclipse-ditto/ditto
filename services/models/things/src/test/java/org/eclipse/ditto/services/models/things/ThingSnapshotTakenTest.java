@@ -28,7 +28,7 @@ import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.services.base.persistence.PersistenceLifecycle;
 import org.eclipse.ditto.services.base.persistence.SnapshotTaken;
 import org.eclipse.ditto.signals.events.base.Event;

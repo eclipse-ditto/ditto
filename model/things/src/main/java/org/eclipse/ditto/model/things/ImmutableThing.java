@@ -30,7 +30,7 @@ import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyId;
 
 /**
  * Representation of one Thing within Ditto.

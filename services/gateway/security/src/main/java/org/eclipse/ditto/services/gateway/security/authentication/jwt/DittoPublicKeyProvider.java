@@ -39,7 +39,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.jwt.ImmutableJsonWebKey;
 import org.eclipse.ditto.model.jwt.JsonWebKey;
-import org.eclipse.ditto.model.policies.SubjectIssuer;
+import org.eclipse.ditto.policies.model.SubjectIssuer;
 import org.eclipse.ditto.services.gateway.security.cache.PublicKeyIdWithIssuer;
 import org.eclipse.ditto.services.gateway.security.utils.HttpClientFacade;
 import org.eclipse.ditto.services.utils.cache.Cache;

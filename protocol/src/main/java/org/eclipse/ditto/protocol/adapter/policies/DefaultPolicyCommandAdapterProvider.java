@@ -20,12 +20,12 @@ import org.eclipse.ditto.protocol.adapter.Adapter;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.adapter.provider.PolicyCommandAdapterProvider;
 import org.eclipse.ditto.signals.base.ErrorRegistry;
-import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
-import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommand;
-import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommandResponse;
-import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommand;
-import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandResponse;
-import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommand;
+import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommandResponse;
+import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommand;
+import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommandResponse;
+import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 
 /**
  * Instantiates and provides {@link Adapter}s used to process Policy commands, responses and errors and announcements.

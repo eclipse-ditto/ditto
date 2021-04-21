@@ -16,10 +16,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.model.policies.SubjectId;
+import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
-import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
-import org.eclipse.ditto.signals.announcements.policies.SubjectDeletionAnnouncement;
+import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
+import org.eclipse.ditto.policies.model.signals.announcements.SubjectDeletionAnnouncement;
 
 /**
  * Package-private extractor of policy announcement topics.

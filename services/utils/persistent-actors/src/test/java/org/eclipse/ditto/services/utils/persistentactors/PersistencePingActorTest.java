@@ -18,7 +18,7 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.services.utils.akka.PingCommand;
 import org.eclipse.ditto.services.utils.persistentactors.config.DefaultPingConfig;
 import org.eclipse.ditto.services.utils.persistentactors.config.PingConfig;

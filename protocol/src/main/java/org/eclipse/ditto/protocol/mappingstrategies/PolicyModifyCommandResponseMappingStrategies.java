@@ -17,24 +17,24 @@ import java.util.Map;
 
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.policies.Resource;
-import org.eclipse.ditto.model.policies.ResourceKey;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.Resource;
+import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableMapper;
-import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicyResponse;
-import org.eclipse.ditto.signals.commands.policies.modify.DeletePolicyEntryResponse;
-import org.eclipse.ditto.signals.commands.policies.modify.DeletePolicyResponse;
-import org.eclipse.ditto.signals.commands.policies.modify.DeleteResourceResponse;
-import org.eclipse.ditto.signals.commands.policies.modify.DeleteSubjectResponse;
-import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicyEntriesResponse;
-import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicyEntryResponse;
-import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicyResponse;
-import org.eclipse.ditto.signals.commands.policies.modify.ModifyResourceResponse;
-import org.eclipse.ditto.signals.commands.policies.modify.ModifyResourcesResponse;
-import org.eclipse.ditto.signals.commands.policies.modify.ModifySubjectResponse;
-import org.eclipse.ditto.signals.commands.policies.modify.ModifySubjectsResponse;
-import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommandResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntryResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteResourceResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubjectResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntriesResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResourceResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResourcesResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjectResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjectsResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommandResponse;
 
 /**
  * Defines mapping strategies (map from signal type to JsonifiableMapper) for policy modify command responses.

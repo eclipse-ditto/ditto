@@ -22,10 +22,10 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.policies.SubjectIssuer;
+import org.eclipse.ditto.policies.model.SubjectIssuer;
 
 /**
- * Configuration for a {@link org.eclipse.ditto.model.policies.SubjectIssuer}.
+ * Configuration for a {@link org.eclipse.ditto.policies.model.SubjectIssuer}.
  */
 @Immutable
 public final class JwtSubjectIssuerConfig {

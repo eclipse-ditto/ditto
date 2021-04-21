@@ -40,7 +40,7 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.model.query.SortOption;
 import org.eclipse.ditto.model.things.ThingId;

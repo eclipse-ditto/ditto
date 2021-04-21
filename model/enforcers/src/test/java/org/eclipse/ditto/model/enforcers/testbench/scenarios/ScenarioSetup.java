@@ -23,8 +23,8 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.enforcers.testbench.algorithms.PolicyAlgorithm;
-import org.eclipse.ditto.model.policies.Permissions;
-import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.policies.model.Permissions;
+import org.eclipse.ditto.policies.model.Policy;
 
 
 public final class ScenarioSetup {

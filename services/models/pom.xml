@@ -30,7 +30,6 @@
         <module>base</module>
         <module>concierge</module>
         <module>connectivity</module>
-        <module>policies</module>
         <module>signalenrichment</module>
         <module>streaming</module>
         <module>things</module>

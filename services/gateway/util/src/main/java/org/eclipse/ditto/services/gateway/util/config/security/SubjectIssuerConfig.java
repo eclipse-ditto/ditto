@@ -17,7 +17,7 @@ import java.util.List;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
- * Represents configuration for a {@link org.eclipse.ditto.model.policies.SubjectIssuer}, containing
+ * Represents configuration for a {@link org.eclipse.ditto.policies.model.SubjectIssuer}, containing
  * issuer endpoint and a list of templates for substituting authorization
  * subjects.
  *

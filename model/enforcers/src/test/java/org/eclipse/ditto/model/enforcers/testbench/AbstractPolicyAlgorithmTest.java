@@ -104,14 +104,14 @@ import org.eclipse.ditto.model.enforcers.testbench.scenarios.scenario4.Scenario4
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.scenario4.Scenario4MultipleSubjects9;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.scenario5.Scenario5Simple1;
 import org.eclipse.ditto.model.enforcers.tree.TreeBasedPolicyEnforcer;
-import org.eclipse.ditto.model.policies.Permissions;
-import org.eclipse.ditto.model.policies.PoliciesResourceType;
-import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.policies.ResourceKey;
-import org.eclipse.ditto.model.policies.Subject;
-import org.eclipse.ditto.model.policies.SubjectId;
-import org.eclipse.ditto.model.policies.SubjectIssuer;
+import org.eclipse.ditto.policies.model.Permissions;
+import org.eclipse.ditto.policies.model.PoliciesResourceType;
+import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.ResourceKey;
+import org.eclipse.ditto.policies.model.Subject;
+import org.eclipse.ditto.policies.model.SubjectId;
+import org.eclipse.ditto.policies.model.SubjectIssuer;
 import org.junit.Assert;
 import org.junit.Test;
 

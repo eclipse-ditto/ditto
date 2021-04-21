@@ -16,7 +16,7 @@ import org.eclipse.ditto.services.models.things.ThingSnapshotTaken;
 import org.eclipse.ditto.services.utils.persistentactors.EmptyEvent;
 import org.eclipse.ditto.services.utils.test.GlobalEventRegistryTestCases;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionCreated;
-import org.eclipse.ditto.signals.events.policies.ResourceDeleted;
+import org.eclipse.ditto.policies.model.signals.events.ResourceDeleted;
 import org.eclipse.ditto.signals.events.things.FeatureDeleted;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
 

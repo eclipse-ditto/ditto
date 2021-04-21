@@ -15,7 +15,7 @@ package org.eclipse.ditto.protocol.mapper;
 import org.eclipse.ditto.protocol.PayloadBuilder;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPathBuilder;
-import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommand;
+import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommand;
 
 final class PolicyModifySignalMapper extends AbstractModifySignalMapper<PolicyModifyCommand<?>> {
 

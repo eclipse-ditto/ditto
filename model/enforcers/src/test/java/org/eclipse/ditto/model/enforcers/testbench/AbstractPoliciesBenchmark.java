@@ -96,7 +96,7 @@ import org.eclipse.ditto.model.enforcers.testbench.scenarios.scenario4.Scenario4
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.scenario4.Scenario4MultipleSubjects7;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.scenario4.Scenario4MultipleSubjects8;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.scenario4.Scenario4MultipleSubjects9;
-import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.policies.model.Policy;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Scope;

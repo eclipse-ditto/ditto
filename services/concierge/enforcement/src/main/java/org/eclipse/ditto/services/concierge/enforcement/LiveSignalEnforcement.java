@@ -13,7 +13,7 @@
 package org.eclipse.ditto.services.concierge.enforcement;
 
 import static java.util.Objects.requireNonNull;
-import static org.eclipse.ditto.services.models.policies.Permission.WRITE;
+import static org.eclipse.ditto.policies.api.Permission.WRITE;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -28,11 +28,11 @@ import org.eclipse.ditto.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.messages.MessageFormatInvalidException;
 import org.eclipse.ditto.model.messages.MessageSendNotAllowedException;
-import org.eclipse.ditto.model.policies.PoliciesResourceType;
-import org.eclipse.ditto.model.policies.ResourceKey;
+import org.eclipse.ditto.policies.model.PoliciesResourceType;
+import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocol.UnknownCommandException;
-import org.eclipse.ditto.services.models.policies.Permission;
+import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CacheKey;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
@@ -119,7 +119,8 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<SignalWithE
         }
 
         @Override
-        public AbstractEnforcement<SignalWithEntityId<?>> createEnforcement(final Contextual<SignalWithEntityId<?>> context) {
+        public AbstractEnforcement<SignalWithEntityId<?>> createEnforcement(
+                final Contextual<SignalWithEntityId<?>> context) {
             return new LiveSignalEnforcement(context, thingIdCache, policyEnforcerCache, liveSignalPub);
         }
 

@@ -18,8 +18,8 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.protocol.PayloadBuilder;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
-import org.eclipse.ditto.signals.announcements.policies.SubjectDeletionAnnouncement;
+import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
+import org.eclipse.ditto.policies.model.signals.announcements.SubjectDeletionAnnouncement;
 
 final class PolicyAnnouncementSignalMapper extends AbstractSignalMapper<PolicyAnnouncement<?>> {
 

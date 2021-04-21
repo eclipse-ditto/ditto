@@ -14,7 +14,7 @@ package org.eclipse.ditto.model.enforcers.tree;
 
 import java.util.Collections;
 
-import org.eclipse.ditto.model.policies.EffectedPermissions;
+import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;

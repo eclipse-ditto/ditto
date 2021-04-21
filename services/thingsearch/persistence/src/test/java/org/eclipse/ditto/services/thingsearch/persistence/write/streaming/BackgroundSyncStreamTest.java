@@ -20,12 +20,12 @@ import java.util.List;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyRevision;
-import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyRevisionResponse;
+import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyRevision;
+import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyRevisionResponse;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
-import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;

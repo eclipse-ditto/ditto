@@ -20,7 +20,7 @@ import org.eclipse.ditto.protocol.adapter.ModifyCommandAdapter;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
 import org.eclipse.ditto.protocol.mapper.SignalMapperFactory;
-import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommand;
+import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommand;
 
 /**
  * Adapter for mapping a {@link PolicyModifyCommand} to and from an {@link Adaptable}.

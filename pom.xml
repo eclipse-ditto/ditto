@@ -197,6 +197,7 @@
         <module>protocol</module>
         <module>utils</module>
         <module>services</module>
+        <module>policies</module>
     </modules>
 
     <properties>

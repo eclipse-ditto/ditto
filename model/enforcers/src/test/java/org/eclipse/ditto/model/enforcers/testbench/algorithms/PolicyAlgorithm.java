@@ -16,7 +16,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.ScenarioSetup;
-import org.eclipse.ditto.model.policies.ResourceKey;
+import org.eclipse.ditto.policies.model.ResourceKey;
 
 /**
  * Interface for policy enforcing algorithms providing default implementation of the {@link Enforcer} interface.

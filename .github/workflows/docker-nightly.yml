@@ -33,7 +33,7 @@ jobs:
           echo $IMAGE_TAG
       - name: Build the Docker images
         run: |
-          docker build -f services/dockerfile-release --build-arg SERVICE_STARTER=ditto-services-policies-starter     --build-arg SERVICE_VERSION=0-SNAPSHOT   -t eclipse/ditto-policies:$IMAGE_TAG .;
+          docker build -f services/dockerfile-release --build-arg SERVICE_STARTER=ditto-policies-service              --build-arg SERVICE_VERSION=0-SNAPSHOT   -t eclipse/ditto-policies:$IMAGE_TAG .;
           docker build -f services/dockerfile-release --build-arg SERVICE_STARTER=ditto-services-things-starter       --build-arg SERVICE_VERSION=0-SNAPSHOT   -t eclipse/ditto-things:$IMAGE_TAG .;
           docker build -f services/dockerfile-release --build-arg SERVICE_STARTER=ditto-services-thingsearch-starter  --build-arg SERVICE_VERSION=0-SNAPSHOT   -t eclipse/ditto-things-search:$IMAGE_TAG .;
           docker build -f services/dockerfile-release --build-arg SERVICE_STARTER=ditto-services-concierge-starter    --build-arg SERVICE_VERSION=0-SNAPSHOT   -t eclipse/ditto-concierge:$IMAGE_TAG .;

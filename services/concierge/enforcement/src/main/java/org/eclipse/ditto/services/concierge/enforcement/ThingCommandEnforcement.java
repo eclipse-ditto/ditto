@@ -13,7 +13,7 @@
 package org.eclipse.ditto.services.concierge.enforcement;
 
 import static java.util.Objects.requireNonNull;
-import static org.eclipse.ditto.services.models.policies.Permission.MIN_REQUIRED_POLICY_PERMISSIONS;
+import static org.eclipse.ditto.policies.api.Permission.MIN_REQUIRED_POLICY_PERMISSIONS;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -44,23 +44,31 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.namespaces.NamespaceBlockedException;
-import org.eclipse.ditto.model.policies.Permissions;
-import org.eclipse.ditto.model.policies.PoliciesModelFactory;
-import org.eclipse.ditto.model.policies.PoliciesResourceType;
-import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.model.policies.PolicyException;
-import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.policies.ResourceKey;
-import org.eclipse.ditto.model.policies.Subject;
-import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.policies.api.Permission;
+import org.eclipse.ditto.policies.api.PoliciesValidator;
+import org.eclipse.ditto.policies.model.Permissions;
+import org.eclipse.ditto.policies.model.PoliciesModelFactory;
+import org.eclipse.ditto.policies.model.PoliciesResourceType;
+import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyException;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.ResourceKey;
+import org.eclipse.ditto.policies.model.Subject;
+import org.eclipse.ditto.policies.model.SubjectId;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyConflictException;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyUnavailableException;
+import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
+import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyResponse;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.references.PolicyIdReferencePlaceholderResolver;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.references.ReferencePlaceholder;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
-import org.eclipse.ditto.services.models.policies.Permission;
-import org.eclipse.ditto.services.models.policies.PoliciesValidator;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.services.utils.cache.Cache;
@@ -72,14 +80,6 @@ import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.commands.base.CommandToExceptionRegistry;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
-import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
-import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyConflictException;
-import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
-import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyUnavailableException;
-import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicy;
-import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicyResponse;
-import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicy;
-import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotAllowedException;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyInvalidException;
@@ -1007,9 +1007,9 @@ public final class ThingCommandEnforcement
                         .setGrantedPermissions(PoliciesResourceType.thingResource("/"),
                                 org.eclipse.ditto.services.models.things.Permission.DEFAULT_THING_PERMISSIONS)
                         .setGrantedPermissions(PoliciesResourceType.policyResource("/"),
-                                org.eclipse.ditto.services.models.policies.Permission.DEFAULT_POLICY_PERMISSIONS)
+                                org.eclipse.ditto.policies.api.Permission.DEFAULT_POLICY_PERMISSIONS)
                         .setGrantedPermissions(PoliciesResourceType.messageResource("/"),
-                                org.eclipse.ditto.services.models.policies.Permission.DEFAULT_POLICY_PERMISSIONS)
+                                org.eclipse.ditto.policies.api.Permission.DEFAULT_POLICY_PERMISSIONS)
                         .build());
     }
 

@@ -18,9 +18,10 @@ import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.messages.AuthorizationSubjectBlockedException;
 import org.eclipse.ditto.model.namespaces.NamespaceBlockedException;
+import org.eclipse.ditto.protocol.adapter.UnknownTopicPathException;
 import org.eclipse.ditto.services.models.placeholders.PlaceholderFunctionSignatureInvalidException;
-import org.eclipse.ditto.model.policies.PolicyEntryInvalidException;
-import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
+import org.eclipse.ditto.policies.model.PolicyEntryInvalidException;
+import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.protocol.UnknownCommandException;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigUnavailableException;
@@ -34,7 +35,7 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationF
 import org.eclipse.ditto.signals.commands.base.exceptions.PathUnknownException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionConflictException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionTimeoutException;
-import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyConflictException;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyConflictException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidNamespacesException;
 
@@ -64,7 +65,8 @@ public final class ConnectivityServiceGlobalErrorRegistryTest extends GlobalErro
                 AcknowledgementLabelInvalidException.class,
                 AcknowledgementCorrelationIdMissingException.class,
                 ConnectivityConfigUnavailableException.class,
-                PathUnknownException.class);
+                PathUnknownException.class,
+                UnknownTopicPathException.class);
     }
 
 }

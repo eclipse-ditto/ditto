@@ -30,7 +30,7 @@ import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
-import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocol.adapter.UnknownTopicPathException;
 
@@ -196,7 +196,7 @@ public final class ProtocolFactory {
      * @param policyId the id.
      * @return the builder.
      * @throws NullPointerException if {@code policyId} is {@code null}.
-     * @throws org.eclipse.ditto.model.policies.PolicyIdInvalidException if {@code policyId} is not in the expected
+     * @throws org.eclipse.ditto.policies.model.PolicyIdInvalidException if {@code policyId} is not in the expected
      * format.
      */
     public static TopicPathBuilder newTopicPathBuilder(final PolicyId policyId) {

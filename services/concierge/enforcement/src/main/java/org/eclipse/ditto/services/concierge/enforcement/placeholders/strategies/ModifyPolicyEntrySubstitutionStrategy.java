@@ -16,12 +16,12 @@ import static java.util.Objects.requireNonNull;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
-import org.eclipse.ditto.model.policies.PolicyEntry;
+import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.HeaderBasedPlaceholderSubstitutionAlgorithm;
-import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicyEntry;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntry;
 
 /**
- * Handles substitution for {@link org.eclipse.ditto.model.policies.SubjectId}
+ * Handles substitution for {@link org.eclipse.ditto.policies.model.SubjectId}
  * inside a {@link ModifyPolicyEntry} command.
  */
 final class ModifyPolicyEntrySubstitutionStrategy extends AbstractTypedSubstitutionStrategy<ModifyPolicyEntry> {

@@ -26,7 +26,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
+import org.eclipse.ditto.policies.api.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.streaming.IdentifiableStreamingMessage;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThing;

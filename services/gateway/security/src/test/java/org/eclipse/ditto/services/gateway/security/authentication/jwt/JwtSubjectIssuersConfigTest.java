@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import org.eclipse.ditto.model.policies.SubjectIssuer;
+import org.eclipse.ditto.policies.model.SubjectIssuer;
 import org.eclipse.ditto.services.gateway.util.config.security.DefaultOAuthConfig;
 import org.eclipse.ditto.services.gateway.util.config.security.OAuthConfig;
 import org.junit.Test;

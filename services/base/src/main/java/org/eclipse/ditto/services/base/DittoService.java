@@ -44,7 +44,7 @@ import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.WithMongoDbConfig;
 import org.eclipse.ditto.signals.base.FeatureToggle;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandSizeValidator;
-import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.slf4j.Logger;
 

@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.concierge.starter;
 
-import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
+import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoRetrieveNamespaceReportResponse;
 import org.eclipse.ditto.services.utils.health.RetrieveHealthResponse;
@@ -26,10 +26,10 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionR
 import org.eclipse.ditto.signals.commands.devops.RetrieveLoggerConfigResponse;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessageResponse;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespaceResponse;
-import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
-import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegrationResponse;
-import org.eclipse.ditto.signals.commands.policies.modify.DeleteSubjectResponse;
-import org.eclipse.ditto.signals.commands.policies.query.RetrieveResourceResponse;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;
+import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegrationResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubjectResponse;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResourceResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertyResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;

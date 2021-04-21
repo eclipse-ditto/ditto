@@ -14,7 +14,7 @@ package org.eclipse.ditto.protocol;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
 import org.junit.Test;
 

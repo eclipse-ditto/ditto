@@ -16,14 +16,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.protocol.JsonifiableMapper;
-import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandResponse;
-import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyEntriesResponse;
-import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyEntryResponse;
-import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyResponse;
-import org.eclipse.ditto.signals.commands.policies.query.RetrieveResourceResponse;
-import org.eclipse.ditto.signals.commands.policies.query.RetrieveResourcesResponse;
-import org.eclipse.ditto.signals.commands.policies.query.RetrieveSubjectResponse;
-import org.eclipse.ditto.signals.commands.policies.query.RetrieveSubjectsResponse;
+import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommandResponse;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntriesResponse;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryResponse;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyResponse;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResourceResponse;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResourcesResponse;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubjectResponse;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubjectsResponse;
 
 /**
  * Defines mapping strategies (map from signal type to JsonifiableMapper) for policy query command responses.

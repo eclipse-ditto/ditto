@@ -22,7 +22,7 @@ import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.policies.Permissions;
+import org.eclipse.ditto.policies.model.Permissions;
 
 /**
  * Abstract base implementation for visitors which check permissions on {@link ResourceNode}s.

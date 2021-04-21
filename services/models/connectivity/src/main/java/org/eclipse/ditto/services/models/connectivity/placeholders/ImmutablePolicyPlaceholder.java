@@ -20,7 +20,7 @@ import java.util.Optional;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyId;
 
 /**
  * Placeholder implementation that replaces {@code policy:id}, {@code policy:namespace} and {@code policy:name}.

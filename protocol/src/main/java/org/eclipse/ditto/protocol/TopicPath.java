@@ -17,8 +17,8 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import org.eclipse.ditto.model.base.entity.type.EntityType;
-import org.eclipse.ditto.model.policies.PolicyConstants;
-import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyConstants;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;

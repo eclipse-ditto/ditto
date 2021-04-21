@@ -21,7 +21,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.assertj.core.api.JUnitSoftAssertions;
-import org.eclipse.ditto.model.policies.SubjectIssuer;
+import org.eclipse.ditto.policies.model.SubjectIssuer;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;

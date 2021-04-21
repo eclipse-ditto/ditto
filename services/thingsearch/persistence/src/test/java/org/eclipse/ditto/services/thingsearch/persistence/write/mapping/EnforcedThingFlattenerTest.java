@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.json.JsonFactory.newObjectBuilder;
 import static org.eclipse.ditto.json.JsonObject.empty;
 import static org.eclipse.ditto.json.JsonValue.nullLiteral;
-import static org.eclipse.ditto.model.policies.PoliciesResourceType.THING;
+import static org.eclipse.ditto.policies.model.PoliciesResourceType.THING;
 
 import java.util.stream.Collectors;
 
@@ -29,11 +29,10 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
-import org.eclipse.ditto.model.policies.PoliciesModelFactory;
-import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.policies.SubjectType;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.services.models.policies.Permission;
+import org.eclipse.ditto.policies.model.PoliciesModelFactory;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.SubjectType;
+import org.eclipse.ditto.policies.api.Permission;
 import org.junit.Test;
 
 /**

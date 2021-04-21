@@ -429,7 +429,7 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-model-policies</artifactId>
+                <artifactId>ditto-policies-model</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -535,11 +535,6 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-signals-commands-policies</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-commands-things</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -571,11 +566,6 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-signals-events-policies</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-events-things</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -588,11 +578,6 @@
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-announcements-base</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-signals-announcements-policies</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -732,7 +717,7 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-models-policies</artifactId>
+                <artifactId>ditto-policies-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -851,22 +836,7 @@
 
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-policies-config</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-policies-common</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-policies-persistence</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-policies-starter</artifactId>
+                <artifactId>ditto-policies-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -1106,7 +1076,7 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-model-policies</artifactId>
+                <artifactId>ditto-policies-model</artifactId>
                 <type>test-jar</type>
                 <version>${project.version}</version>
                 <scope>test</scope>

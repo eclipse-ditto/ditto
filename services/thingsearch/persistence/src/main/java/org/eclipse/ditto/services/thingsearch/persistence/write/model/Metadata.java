@@ -25,7 +25,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThingResponse;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;

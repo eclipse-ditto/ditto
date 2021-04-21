@@ -14,7 +14,7 @@ package org.eclipse.ditto.model.enforcers.testbench;
 
 import org.eclipse.ditto.model.enforcers.testbench.algorithms.PolicyAlgorithm;
 import org.eclipse.ditto.model.enforcers.testbench.algorithms.TrieBasedPolicyAlgorithm;
-import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.policies.model.Policy;
 
 
 public class TrieBasedPolicyAlgorithmBenchmark extends AbstractPoliciesBenchmark {

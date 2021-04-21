@@ -18,7 +18,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 
 /**
  * Contains "granted" and "revoked" AuthorizationSubjects in the scope of a specific
- * {@link org.eclipse.ditto.model.policies.ResourceKey} and {@code Permissions} on that resource.
+ * {@link org.eclipse.ditto.policies.model.ResourceKey} and {@code Permissions} on that resource.
  * <p>
  * Implementations of this interface are required to be immutable!
  * </p>

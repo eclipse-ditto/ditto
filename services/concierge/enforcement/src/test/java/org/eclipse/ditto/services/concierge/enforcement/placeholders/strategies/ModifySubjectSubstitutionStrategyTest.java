@@ -17,10 +17,10 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.model.policies.Label;
-import org.eclipse.ditto.model.policies.Subject;
-import org.eclipse.ditto.model.policies.SubjectType;
-import org.eclipse.ditto.signals.commands.policies.modify.ModifySubject;
+import org.eclipse.ditto.policies.model.Label;
+import org.eclipse.ditto.policies.model.Subject;
+import org.eclipse.ditto.policies.model.SubjectType;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubject;
 import org.junit.Test;
 
 /**

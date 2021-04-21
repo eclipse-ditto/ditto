@@ -27,7 +27,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.entity.Entity;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyId;
 
 /**
  * A generic entity which can be used as a "handle" for multiple {@link Feature}s belonging to this Thing. A Thing can

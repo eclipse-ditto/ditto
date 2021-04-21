@@ -23,9 +23,9 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.eclipse.ditto.model.enforcers.TestConstants;
-import org.eclipse.ditto.model.policies.PoliciesModelFactory;
-import org.eclipse.ditto.model.policies.SubjectId;
-import org.eclipse.ditto.model.policies.SubjectIssuer;
+import org.eclipse.ditto.policies.model.PoliciesModelFactory;
+import org.eclipse.ditto.policies.model.SubjectId;
+import org.eclipse.ditto.policies.model.SubjectIssuer;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;

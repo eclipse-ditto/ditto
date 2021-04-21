@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.concierge.starter;
 
-import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
+import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.streaming.SudoStreamPids;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
@@ -27,9 +27,9 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnection;
 import org.eclipse.ditto.signals.commands.devops.ExecutePiggybackCommand;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespace;
-import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegration;
-import org.eclipse.ditto.signals.commands.policies.modify.DeleteSubject;
-import org.eclipse.ditto.signals.commands.policies.query.RetrieveResource;
+import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegration;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubject;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResource;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;

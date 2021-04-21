@@ -32,7 +32,7 @@
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-model-policies</artifactId>
+            <artifactId>ditto-policies-model</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -47,10 +47,6 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-things</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-commands-policies</artifactId>
-        </dependency>
 
         <!-- for Sudo commands: -->
         <dependency>
@@ -59,7 +55,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-models-policies</artifactId>
+            <artifactId>ditto-policies-api</artifactId>
         </dependency>
 
         <dependency>

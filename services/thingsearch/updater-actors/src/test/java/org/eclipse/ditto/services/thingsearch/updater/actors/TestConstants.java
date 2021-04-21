@@ -15,9 +15,9 @@ package org.eclipse.ditto.services.thingsearch.updater.actors;
 import java.util.Arrays;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.policies.ResourceKey;
-import org.eclipse.ditto.model.policies.SubjectId;
-import org.eclipse.ditto.model.policies.SubjectIssuer;
+import org.eclipse.ditto.policies.model.ResourceKey;
+import org.eclipse.ditto.policies.model.SubjectId;
+import org.eclipse.ditto.policies.model.SubjectIssuer;
 
 /**
  * Defines constants for testing.

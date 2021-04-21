@@ -36,7 +36,7 @@ import org.eclipse.ditto.services.concierge.actors.cleanup.messages.CreditDecisi
 import org.eclipse.ditto.services.concierge.actors.cleanup.persistenceids.PersistenceIdSource;
 import org.eclipse.ditto.services.concierge.common.PersistenceCleanupConfig;
 import org.eclipse.ditto.services.models.connectivity.ConnectionTag;
-import org.eclipse.ditto.services.models.policies.PolicyTag;
+import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.models.things.ThingSnapshotTaken;
 import org.eclipse.ditto.services.models.things.ThingTag;
@@ -46,7 +46,7 @@ import org.eclipse.ditto.services.utils.health.AbstractBackgroundStreamingActorW
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistenceResponse;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
-import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 import com.typesafe.config.Config;

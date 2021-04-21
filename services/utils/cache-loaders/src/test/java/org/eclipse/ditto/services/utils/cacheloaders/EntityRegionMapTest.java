@@ -21,7 +21,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.util.UUID;
 
 import org.eclipse.ditto.model.base.entity.type.EntityType;
-import org.eclipse.ditto.model.policies.PolicyConstants;
+import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.model.things.ThingConstants;
 import org.junit.AfterClass;
 import org.junit.Test;
