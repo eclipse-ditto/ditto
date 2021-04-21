@@ -109,7 +109,7 @@ public class ErrorHandlingActorTest extends WithMockServers {
             // delete connection
             final ConnectivityModifyCommand<?> command = DeleteConnection.of(connectionId, DittoHeaders.empty());
             underTest.tell(command, getRef());
-            expectMsg(dilated(Duration.ofSeconds(5)),DeleteConnectionResponse.of(connectionId, DittoHeaders.empty()));
+            expectMsg(dilated(Duration.ofSeconds(5)), DeleteConnectionResponse.of(connectionId, DittoHeaders.empty()));
         }};
     }
 

@@ -232,6 +232,12 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
                         .build();
             }
         });
+
+        mqttSpecificConfig.getMqttWillTopic().ifPresent(lastWillTopic -> {
+            validateAddress(lastWillTopic, false, dittoHeaders);
+            validateTargetQoS(mqttSpecificConfig.getMqttWillQos(), dittoHeaders,
+                    () -> MqttSpecificConfig.LAST_WILL_QOS);
+        });
     }
 
     private static void validateAddress(final String address, final boolean wildcardAllowed,

@@ -19,6 +19,7 @@ import javax.jms.JMSRuntimeException;
 import javax.naming.NamingException;
 
 import org.eclipse.ditto.services.base.actors.DittoRootActor;
+import org.eclipse.ditto.services.connectivity.config.ConnectionIdsRetrievalConfig;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ConnectionIdsRetrievalActor;
@@ -104,14 +105,16 @@ public final class ConnectivityRootActor extends DittoRootActor {
         //  available!
         DittoProtocolSub.get(actorSystem);
 
+        final MongoReadJournal mongoReadJournal = MongoReadJournal.newInstance(actorSystem);
         startClusterSingletonActor(
                 PersistencePingActor.props(
                         startConnectionShardRegion(actorSystem, connectionSupervisorProps, clusterConfig),
-                        connectivityConfig.getPingConfig(), MongoReadJournal.newInstance(actorSystem)),
+                        connectivityConfig.getPingConfig(), mongoReadJournal),
                 PersistencePingActor.ACTOR_NAME);
 
-        startClusterSingletonActor(
-                ConnectionIdsRetrievalActor.props(MongoReadJournal.newInstance(actorSystem)),
+        final ConnectionIdsRetrievalConfig connectionIdsRetrievalConfig =
+                connectivityConfig.getConnectionIdsRetrievalConfig();
+        startClusterSingletonActor(ConnectionIdsRetrievalActor.props(mongoReadJournal, connectionIdsRetrievalConfig),
                 ConnectionIdsRetrievalActor.ACTOR_NAME);
 
         startChildActor(ConnectionPersistenceOperationsActor.ACTOR_NAME,

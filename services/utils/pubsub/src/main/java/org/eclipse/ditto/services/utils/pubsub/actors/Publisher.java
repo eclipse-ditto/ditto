@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.utils.pubsub.actors;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,7 +40,6 @@ import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.cluster.ddata.Key;
 import akka.cluster.ddata.ORMultiMap;
 import akka.cluster.ddata.Replicator;
 import akka.japi.Pair;
@@ -65,7 +63,7 @@ public final class Publisher extends AbstractActor {
     private final Counter messageCounter = DittoMetrics.counter("pubsub-published-messages");
     private final Counter topicCounter = DittoMetrics.counter("pubsub-published-topics");
 
-    private final Map<Key<?>, PublisherIndex<Long>> publisherIndex = new HashMap<>();
+    private PublisherIndex<Long> publisherIndex = PublisherIndex.empty();
 
     private RemoteAcksChanged remoteAcks = RemoteAcksChanged.of(Map.of());
 
@@ -165,10 +163,8 @@ public final class Publisher extends AbstractActor {
         final List<Long> hashes = topics.stream().map(ddataReader::approximate).collect(Collectors.toList());
         final ActorRef sender = getSender();
 
-        final List<Pair<ActorRef, PublishSignal>> subscribers = publisherIndex.values().stream()
-                .map(index -> index.assignGroupsToSubscribers(signal, hashes))
-                .flatMap(List::stream)
-                .collect(Collectors.toList());
+        final List<Pair<ActorRef, PublishSignal>> subscribers =
+                publisherIndex.assignGroupsToSubscribers(signal, hashes);
         subscribers.forEach(pair -> pair.first().tell(pair.second(), sender));
         return subscribers;
     }
@@ -184,7 +180,7 @@ public final class Publisher extends AbstractActor {
                 .stream()
                 .map(entry -> Pair.create(entry.getKey(), deserializeGroupedHashes(entry.getValue())))
                 .collect(Collectors.toMap(Pair::first, Pair::second));
-        publisherIndex.put(event.key(), PublisherIndex.fromDeserializedMMap(deserializedMMap));
+        publisherIndex = PublisherIndex.mergeExistingWithDeserializedMMap(publisherIndex, deserializedMMap);
     }
 
     private void logUnhandled(final Object message) {

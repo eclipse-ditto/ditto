@@ -248,10 +248,10 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
             if (mqttSpecificConfig.separatePublisherClient()) {
                 final String publisherClientId = resolvePublisherClientId(connection, mqttSpecificConfig);
                 final AtomicBoolean cancelReconnect = new AtomicBoolean(false);
-                final Q createdClient = getClientFactory().newClient(connection, publisherClientId, true,
-                        null,
-                        getMqttClientDisconnectedListener(cancelReconnect),
-                        connectionLogger);
+                final Q createdClient = getClientFactory().newClient(connection, publisherClientId, mqttSpecificConfig,
+                        true,
+                        true, // this is the publisher client, always respect last will config
+                        null, getMqttClientDisconnectedListener(cancelReconnect), connectionLogger);
                 publisherClient = new ClientWithCancelSwitch(createdClient, cancelReconnect);
             } else {
                 // use the same client for subscribers and publisher
@@ -286,10 +286,13 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
     private void createSubscriberClientAndSubscriptionHandler() {
         final String mqttClientId = resolveMqttClientId(connection, mqttSpecificConfig);
         final AtomicBoolean cancelReconnect = new AtomicBoolean(false);
-        final Q createdClient = getClientFactory().newClient(connection, mqttClientId, true,
+        // apply last will config only if *no* separate publisher client is used
+        final boolean applyLastWillConfig = !mqttSpecificConfig.separatePublisherClient();
+        final Q createdClient = getClientFactory().newClient(connection, mqttClientId, mqttSpecificConfig,
+                true,
+                applyLastWillConfig,
                 null,
-                getMqttClientDisconnectedListener(cancelReconnect),
-                connectionLogger);
+                getMqttClientDisconnectedListener(cancelReconnect), connectionLogger);
         client = new ClientWithCancelSwitch(createdClient, cancelReconnect);
         subscriptionHandler = createSubscriptionHandler(connection, createdClient, logger);
     }
@@ -303,13 +306,15 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
     @Override
     protected CompletionStage<Status.Status> doTestConnection(final TestConnection testConnectionCommand) {
         final Connection connectionToBeTested = testConnectionCommand.getConnection();
-        final MqttSpecificConfig mqttSpecificConfig =
+        final MqttSpecificConfig testMqttSpecificConfig =
                 MqttSpecificConfig.fromConnection(connectionToBeTested, mqttConfig);
-        final String mqttClientId = resolveMqttClientId(connectionToBeTested, mqttSpecificConfig);
+        final String mqttClientId = resolveMqttClientId(connectionToBeTested, testMqttSpecificConfig);
         // attention: do not use reconnect, otherwise the future never returns
         final Q testClient;
         try {
-            testClient = getClientFactory().newClient(connectionToBeTested, mqttClientId, false, connectionLogger);
+            testClient =
+                    getClientFactory().newClient(connectionToBeTested, mqttClientId, testMqttSpecificConfig,
+                            false, false, connectionLogger);
         } catch (final Exception e) {
             return CompletableFuture.completedFuture(new Status.Failure(e.getCause()));
         }

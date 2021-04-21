@@ -50,8 +50,6 @@ import org.eclipse.ditto.model.connectivity.ReplyTarget;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.services.models.placeholders.ExpressionResolver;
-import org.eclipse.ditto.services.models.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.connectivity.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
@@ -69,6 +67,8 @@ import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders;
+import org.eclipse.ditto.services.models.placeholders.ExpressionResolver;
+import org.eclipse.ditto.services.models.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
@@ -279,7 +279,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         final List<Target> outboundTargets = outbound.getTargets();
 
         final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(correlationId);
-        l.info("Publishing mapped message of type <{}> to targets <{}>", outboundSource.getType(), outboundTargets);
+        l.debug("Publishing mapped message of type <{}> to targets <{}>", outboundSource.getType(), outboundTargets);
 
         final Optional<SendingContext> replyTargetSendingContext = getSendingContext(outbound);
 
@@ -406,11 +406,12 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
         final SendingOrDropped result;
         if (publishTargetOptional.isPresent()) {
-            final Signal<?> outboundSource = outbound.getSource();
-            logger.info("Publishing mapped message of type <{}> to address <{}>", outboundSource.getType(), address);
-            logger.debug("Publishing mapped message of type <{}> to address <{}>: {}", outboundSource.getType(),
-                    address, sendingContext.getExternalMessage());
             final T publishTarget = publishTargetOptional.get();
+            final Signal<?> outboundSource = outbound.getSource();
+            logger.info("Publishing mapped message of type <{}> to PublishTarget <{}>", outboundSource.getType(),
+                    publishTarget);
+            logger.debug("Publishing mapped message of type <{}> to PublishTarget <{}>: {}", outboundSource.getType(),
+                    publishTarget, sendingContext.getExternalMessage());
             @Nullable final Target autoAckTarget = sendingContext.getAutoAckTarget().orElse(null);
             final HeaderMapping headerMapping = genericTarget.getHeaderMapping();
             final ExternalMessage mappedMessage = applyHeaderMapping(resolver, outbound, headerMapping);

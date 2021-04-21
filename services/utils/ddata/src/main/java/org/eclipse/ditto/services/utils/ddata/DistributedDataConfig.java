@@ -97,7 +97,7 @@ public interface DistributedDataConfig {
         /**
          * The number of shards Ditto's ddata extension applies for Map keys.
          */
-        NUMBER_OF_SHARDS("number-of-shards", 1);
+        NUMBER_OF_SHARDS("number-of-shards", 5);
 
         private final String path;
         private final Object defaultValue;

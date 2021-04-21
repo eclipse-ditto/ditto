@@ -24,15 +24,14 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectivityInternalErrorException;
 import org.eclipse.ditto.services.connectivity.config.ConnectionIdsRetrievalConfig;
-import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceActor;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveAllConnectionIds;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveAllConnectionIdsResponse;
+import org.eclipse.ditto.signals.events.connectivity.ConnectionDeleted;
 
 import akka.NotUsed;
 import akka.actor.AbstractActor;
@@ -58,31 +57,16 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
-    private final Supplier<Source<String, NotUsed>> persistenceIdsFromJournalSourceSupplier;
+    private final Supplier<Source<Document, NotUsed>> persistenceIdsFromJournalSourceSupplier;
     private final Supplier<Source<Document, NotUsed>> persistenceIdsFromSnapshotSourceSupplier;
     private final Materializer materializer;
-    private final ConnectionIdsRetrievalConfig connectionIdsRetrievalConfig;
 
     @SuppressWarnings("unused")
-    private ConnectionIdsRetrievalActor(
-            final Supplier<Source<String, NotUsed>> persistenceIdsFromJournalSourceSupplier,
-            final Supplier<Source<Document, NotUsed>> persistenceIdsFromSnapshotSourceSupplier) {
-        this.persistenceIdsFromJournalSourceSupplier = persistenceIdsFromJournalSourceSupplier;
-        this.persistenceIdsFromSnapshotSourceSupplier = persistenceIdsFromSnapshotSourceSupplier;
+    private ConnectionIdsRetrievalActor(final MongoReadJournal readJournal,
+            final ConnectionIdsRetrievalConfig connectionIdsRetrievalConfig) {
         materializer = Materializer.createMaterializer(this::getContext);
-        connectionIdsRetrievalConfig =
-                DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(getContext().system().settings().config()))
-                        .getConnectionIdsRetrievalConfig();
-    }
-
-    @SuppressWarnings("unused")
-    private ConnectionIdsRetrievalActor(final MongoReadJournal readJournal) {
-        materializer = Materializer.createMaterializer(this::getContext);
-        connectionIdsRetrievalConfig =
-                DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(getContext().system().settings().config()))
-                        .getConnectionIdsRetrievalConfig();
         persistenceIdsFromJournalSourceSupplier =
-                () -> readJournal.getJournalPids(connectionIdsRetrievalConfig.getReadJournalBatchSize(),
+                () -> readJournal.getLatestJournalEntries(connectionIdsRetrievalConfig.getReadJournalBatchSize(),
                         Duration.ofSeconds(1), materializer);
         persistenceIdsFromSnapshotSourceSupplier =
                 () -> readJournal.getNewestSnapshotsAbove("", connectionIdsRetrievalConfig.getReadSnapshotBatchSize(),
@@ -93,24 +77,24 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
      * Creates Akka configuration object Props for this Actor.
      *
      * @param readJournal readJournal to extract current PIDs from.
+     * @param connectionIdsRetrievalConfig the config to build the pid suppliers from.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final MongoReadJournal readJournal) {
-        return Props.create(ConnectionIdsRetrievalActor.class, readJournal);
+    public static Props props(final MongoReadJournal readJournal,
+            final ConnectionIdsRetrievalConfig connectionIdsRetrievalConfig) {
+        return Props.create(ConnectionIdsRetrievalActor.class, readJournal, connectionIdsRetrievalConfig);
     }
 
-    /**
-     * Creates Akka configuration object Props for this Actor.
-     *
-     * @param persistenceIdsFromJournalSourceSupplier supplier of persistence ids source from journal
-     * @param persistenceIdsFromSnapshotSourceSupplier supplier of persistence ids source from snapshot
-     * @return the Akka configuration Props object.
-     */
-    static Props props(
-            final Supplier<Source<String, NotUsed>> persistenceIdsFromJournalSourceSupplier,
-            final Supplier<Source<Document, NotUsed>> persistenceIdsFromSnapshotSourceSupplier) {
-        return Props.create(ConnectionIdsRetrievalActor.class, persistenceIdsFromJournalSourceSupplier,
-                persistenceIdsFromSnapshotSourceSupplier);
+    private static boolean isDeleted(final Document document) {
+        return Optional.ofNullable(document.getString(MongoReadJournal.J_EVENT_MANIFEST))
+                .map(ConnectionDeleted.TYPE::equals)
+                .orElse(true);
+    }
+
+    private static boolean isNotDeleted(final Document document) {
+        return Optional.ofNullable(document.getString(MongoReadJournal.J_EVENT_MANIFEST))
+                .map(manifest -> !ConnectionDeleted.TYPE.equals(manifest))
+                .orElse(false);
     }
 
     @Override
@@ -126,12 +110,21 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
     private void getAllConnectionIDs(final WithDittoHeaders cmd) {
         try {
             final Source<String, NotUsed> idsFromSnapshots = getIdsFromSnapshotsSource();
-            final Source<String, NotUsed> idsFromJournal = persistenceIdsFromJournalSourceSupplier.get();
+            final Source<String, NotUsed> idsFromJournal = persistenceIdsFromJournalSourceSupplier.get()
+                    .filter(ConnectionIdsRetrievalActor::isNotDeleted)
+                    .map(document -> document.getString(MongoReadJournal.J_EVENT_PID));
+
             final CompletionStage<CommandResponse> retrieveAllConnectionIdsResponse =
-                    idsFromSnapshots.concat(idsFromJournal)
-                            .filter(pid -> pid.startsWith(ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX))
-                            .map(pid -> pid.substring(ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX.length()))
+                    persistenceIdsFromJournalSourceSupplier.get()
+                            .filter(ConnectionIdsRetrievalActor::isDeleted)
+                            .map(document -> document.getString(MongoReadJournal.J_EVENT_PID))
                             .runWith(Sink.seq(), materializer)
+                            .thenCompose(deletedIdsFromJournal -> idsFromSnapshots.concat(idsFromJournal)
+                                    .filter(pid -> !deletedIdsFromJournal.contains(pid))
+                                    .filter(pid -> pid.startsWith(ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX))
+                                    .map(pid -> pid.substring(
+                                            ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX.length()))
+                                    .runWith(Sink.seq(), materializer))
                             .thenApply(HashSet::new)
                             .thenApply(ids -> buildResponse(cmd, ids))
                             .exceptionally(throwable -> buildErrorResponse(throwable, cmd.getDittoHeaders()));

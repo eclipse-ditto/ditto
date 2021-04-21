@@ -13,6 +13,10 @@
 package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Set;
@@ -22,11 +26,16 @@ import java.util.concurrent.TimeUnit;
 import org.bson.Document;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectivityInternalErrorException;
+import org.eclipse.ditto.services.connectivity.config.ConnectionIdsRetrievalConfig;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceActor;
+import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveAllConnectionIds;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveAllConnectionIdsResponse;
+import org.eclipse.ditto.signals.events.connectivity.ConnectionCreated;
+import org.eclipse.ditto.signals.events.connectivity.ConnectionDeleted;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -41,17 +50,23 @@ import akka.testkit.javadsl.TestKit;
  */
 public final class ConnectionIdsRetrievalActorTest {
 
-    private static final List<String> JOURNAL_IDS =
-            List.of(pid("connection-1"), pid("connection-2"), pid("connection-3"));
+    private static final List<Document> JOURNAL_ENTRIES =
+            List.of(document(pid("connection-1"), ConnectionCreated.TYPE),
+                    document(pid("connection-2"), ConnectionCreated.TYPE),
+                    document(pid("connection-3"), ConnectionDeleted.TYPE),
+                    document(pid("connection-4"), ConnectionCreated.TYPE));
 
     private static final List<Document> SNAPSHOT_IDS =
-            // connection-3 is a duplicate by intention
+            // connection-3 and connection-4 is a duplicate by intention
             List.of(doc("connection-3"), doc("connection-4"), doc("connection-5"));
 
     private static final DittoHeaders DITTO_HEADERS =
             DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
 
     private static ActorSystem actorSystem;
+    private static final int BATCH_SIZE = 10;
+    private MongoReadJournal mongoReadJournal;
+    private ConnectionIdsRetrievalConfig connectionIdsRetrievalConfig;
 
     @BeforeClass
     public static void setUp() {
@@ -63,26 +78,42 @@ public final class ConnectionIdsRetrievalActorTest {
         TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS), false);
     }
 
+    @Before
+    public void setup() {
+        mongoReadJournal = mock(MongoReadJournal.class);
+        connectionIdsRetrievalConfig = mock(ConnectionIdsRetrievalConfig.class);
+        when(connectionIdsRetrievalConfig.getReadJournalBatchSize()).thenReturn(BATCH_SIZE);
+        when(connectionIdsRetrievalConfig.getReadSnapshotBatchSize()).thenReturn(BATCH_SIZE);
+    }
+
     @Test
     public void testRetrieveAllConnectionIds() {
         new TestKit(actorSystem) {{
+            when(mongoReadJournal.getLatestJournalEntries(eq(BATCH_SIZE), any(), any()))
+                    .thenReturn(Source.from(JOURNAL_ENTRIES));
+            when(mongoReadJournal.getNewestSnapshotsAbove(any(), eq(BATCH_SIZE), any()))
+                    .thenReturn(Source.from(SNAPSHOT_IDS));
             final Props props =
-                    ConnectionIdsRetrievalActor.props(() -> Source.from(JOURNAL_IDS), () -> Source.from(SNAPSHOT_IDS));
+                    ConnectionIdsRetrievalActor.props(mongoReadJournal, connectionIdsRetrievalConfig);
 
             final ActorRef reconnectActor = actorSystem.actorOf(props);
             reconnectActor.tell(RetrieveAllConnectionIds.of(DITTO_HEADERS), getRef());
 
             final RetrieveAllConnectionIdsResponse response = expectMsgClass(RetrieveAllConnectionIdsResponse.class);
             assertThat(response.getAllConnectionIds()).isEqualTo(
-                    Set.of("connection-1", "connection-2", "connection-3", "connection-4", "connection-5"));
+                    Set.of("connection-1", "connection-2", "connection-4", "connection-5"));
         }};
     }
 
     @Test
-    public void testNullExpectErrorResponse() {
+    public void internalErrorShouldResultInErrorResponse() {
         new TestKit(actorSystem) {{
+            when(mongoReadJournal.getLatestJournalEntries(eq(BATCH_SIZE), any(), any()))
+                    .thenThrow(new NullPointerException("expected"));
+            when(mongoReadJournal.getNewestSnapshotsAbove(any(), eq(BATCH_SIZE), any()))
+                    .thenThrow(new NullPointerException("expected"));
             final Props props =
-                    ConnectionIdsRetrievalActor.props(() -> Source.single(null), () -> Source.single(null));
+                    ConnectionIdsRetrievalActor.props(mongoReadJournal, connectionIdsRetrievalConfig);
 
             final ActorRef reconnectActor = actorSystem.actorOf(props);
             reconnectActor.tell(RetrieveAllConnectionIds.of(DITTO_HEADERS), getRef());
@@ -99,4 +130,11 @@ public final class ConnectionIdsRetrievalActorTest {
     private static String pid(final String id) {
         return ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX + id;
     }
+
+    private static Document document(final String pid, final String manifest) {
+        return new Document()
+                .append("pid", pid)
+                .append("manifest", manifest);
+    }
+
 }

@@ -56,13 +56,14 @@ final class PublisherIndex<T> {
         return new PublisherIndex<>(Map.of(), Map.of());
     }
 
-    static PublisherIndex<Long> fromDeserializedMMap(final Map<ActorRef, List<Grouped<Long>>> mmap) {
-        final Map<Long, Map<ActorRef, Set<String>>> index = new HashMap<>();
+    static PublisherIndex<Long> mergeExistingWithDeserializedMMap(final PublisherIndex<Long> publisherIndex,
+            final Map<ActorRef, List<Grouped<Long>>> mmap) {
+        final Map<Long, Map<ActorRef, Set<String>>> index = new HashMap<>(publisherIndex.index);
         mmap.forEach((subscriber, groupedList) ->
                 groupedList.forEach(grouped -> grouped.getValues()
                         .forEach(computeIndex(index, subscriber, grouped.getGroup().orElse("")))
                 ));
-        return new PublisherIndex<>(index, Map.of());
+        return new PublisherIndex<>(index, publisherIndex.filterMap);
     }
 
     static PublisherIndex<String> fromSubscriptionsReader(final SubscriptionsReader reader) {

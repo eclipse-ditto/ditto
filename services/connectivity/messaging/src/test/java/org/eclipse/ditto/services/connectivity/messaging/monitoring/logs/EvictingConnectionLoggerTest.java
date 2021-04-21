@@ -356,6 +356,29 @@ public final class EvictingConnectionLoggerTest {
                 .verify();
     }
 
+    @Test
+    public void logWithInvalidPattern() {
+        final EvictingConnectionLogger logger = builder().logHeadersAndPayload().build();
+
+        // {} throws NumberFormatException
+        logger.success("success {}", true);
+
+        final LogEntry entry = getFirstAndOnlyEntry(logger);
+        LogEntryAssertions.assertThat(entry)
+                .hasMessage("success {}");
+    }
+
+    @Test
+    public void logWithMissingArgument() {
+        final EvictingConnectionLogger logger = builder().logHeadersAndPayload().build();
+
+        logger.success("success {0}");
+
+        final LogEntry entry = getFirstAndOnlyEntry(logger);
+        LogEntryAssertions.assertThat(entry)
+                .hasMessage("success {0}");
+    }
+
     private void logNtimes(final int n, final Consumer<ConnectionMonitor.InfoProvider> logger) {
         Stream.iterate(0, UnaryOperator.identity())
                 .limit(n)
