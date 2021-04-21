@@ -23,7 +23,7 @@ import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
  * An abstract Assert for {@link ThingQueryCommand}s.
  */
 public abstract class AbstractThingQueryCommandAssert<S extends AbstractThingQueryCommandAssert<S, C>, C extends
-        ThingQueryCommand> extends AbstractThingCommandAssert<S, C> {
+        ThingQueryCommand<?>> extends AbstractThingCommandAssert<S, C> {
 
     /**
      * Constructs a new {@code AbstractThingQueryCommandAssert} object.

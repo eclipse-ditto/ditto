@@ -34,13 +34,14 @@ import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 
 /**
  * This command deletes a {@link org.eclipse.ditto.model.policies.Subject} of a {@link
  * org.eclipse.ditto.model.policies.PolicyEntry}'s {@link org.eclipse.ditto.model.policies.Subjects}.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = DeleteSubject.TYPE_PREFIX, name = DeleteSubject.NAME)
+@JsonParsableCommand(typePrefix = PolicyCommand.TYPE_PREFIX, name = DeleteSubject.NAME)
 public final class DeleteSubject extends AbstractCommand<DeleteSubject> implements PolicyModifyCommand<DeleteSubject> {
 
     /**
@@ -121,7 +122,7 @@ public final class DeleteSubject extends AbstractCommand<DeleteSubject> implemen
      */
     public static DeleteSubject fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<DeleteSubject>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyCommand.JsonFields.JSON_POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
             final String stringSubjectId = jsonObject.getValueOrThrow(JSON_SUBJECT_ID);
@@ -170,7 +171,7 @@ public final class DeleteSubject extends AbstractCommand<DeleteSubject> implemen
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
+        jsonObjectBuilder.set(PolicyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
         jsonObjectBuilder.set(JSON_SUBJECT_ID, subjectId.toString(), predicate);
     }

@@ -18,6 +18,8 @@ import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -63,10 +65,19 @@ final class EntityIds {
                     try {
                         return (NamespacedEntityId) method.invoke(null, entityId);
                     } catch (IllegalAccessException | InvocationTargetException e) {
-                        e.printStackTrace();
+                        Logger.getLogger(EntityIds.class.getName()).log(Level.WARNING,
+                                String.format("Encountered exception <%s>: <%s>", e.getClass().getSimpleName(),
+                                        e.getMessage()), e);
+
                         return null;
                     }
-                }).orElseGet(() -> FallbackNamespacedEntityId.of(entityType, entityId));
+                }).orElseGet(() -> {
+                    Logger.getLogger(EntityIds.class.getName()).warning(
+                            String.format("Could not find implementation for entity ID with type <%s>. " +
+                                    "This indicates an architectural flaw, because the ID seems not to be on the classpath",
+                            entityType));
+                    return FallbackNamespacedEntityId.of(entityType, entityId);
+                });
     }
 
     /**
@@ -82,10 +93,19 @@ final class EntityIds {
                     try {
                         return (EntityId) method.invoke(null, entityId);
                     } catch (IllegalAccessException | InvocationTargetException e) {
-                        e.printStackTrace();
+                        Logger.getLogger(EntityIds.class.getName()).log(Level.WARNING,
+                                String.format("Encountered exception <%s>: <%s>", e.getClass().getSimpleName(),
+                                        e.getMessage()), e);
+
                         return null;
                     }
-                }).orElseGet(() -> FallbackEntityId.of(entityType, entityId));
+                }).orElseGet(() -> {
+                    Logger.getLogger(EntityIds.class.getName()).warning(
+                            String.format("Could not find implementation for entity ID with type <%s>. " +
+                                    "This indicates an architectural flaw, because the ID seems not to be on the classpath",
+                                    entityType));
+                    return FallbackEntityId.of(entityType, entityId);
+                });
     }
 
     private static Map<String, Method> getFactoriesFor(final Class<?> baseClass) {

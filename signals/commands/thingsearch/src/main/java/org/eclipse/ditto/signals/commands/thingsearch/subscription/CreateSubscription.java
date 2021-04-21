@@ -40,6 +40,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.commands.thingsearch.query.ThingSearchQueryCommand;
 
 /**
@@ -49,7 +50,7 @@ import org.eclipse.ditto.signals.commands.thingsearch.query.ThingSearchQueryComm
  * @since 1.1.0
  */
 @Immutable
-@JsonParsableCommand(typePrefix = CreateSubscription.TYPE_PREFIX, name = CreateSubscription.NAME)
+@JsonParsableCommand(typePrefix = ThingSearchCommand.TYPE_PREFIX, name = CreateSubscription.NAME)
 public final class CreateSubscription extends AbstractCommand<CreateSubscription>
         implements ThingSearchQueryCommand<CreateSubscription> {
 
@@ -301,5 +302,9 @@ public final class CreateSubscription extends AbstractCommand<CreateSubscription
         static final JsonFieldDefinition<String> PREFIX =
                 JsonFactory.newStringFieldDefinition("prefix", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
+
+        JsonFields() {
+            throw new AssertionError();
+        }
     }
 }

@@ -44,7 +44,7 @@ import com.typesafe.config.ConfigFactory;
 /**
  * Tests {@link org.eclipse.ditto.services.policies.persistence.actors.strategies.commands.PolicyConflictStrategy}.
  */
-@SuppressWarnings("rawtypes")
+@SuppressWarnings({"rawtypes", "java:S3740"})
 public final class PolicyConflictStrategyTest {
 
     @Test

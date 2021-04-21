@@ -107,7 +107,7 @@ public final class PolicyCreatedTest {
                 PolicyCreated.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat((Jsonifiable) underTest.getPolicy()).isEqualTo(TestConstants.Policy.POLICY);
+        assertThat((Jsonifiable<?>) underTest.getPolicy()).isEqualTo(TestConstants.Policy.POLICY);
     }
 
     @Test

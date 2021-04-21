@@ -188,7 +188,7 @@ public final class HttpPublisherErrorTest {
                         })
                         .mapMaterializedValue(killSwitch -> {
                             Objects.requireNonNull(killSwitchTrigger.peek())
-                                    .thenAccept(_void -> killSwitch.shutdown());
+                                    .thenAccept(unused -> killSwitch.shutdown());
                             return NotUsed.getInstance();
                         });
         binding = Http.get(actorSystem).bindAndHandle(handler, ConnectHttp.toHost("127.0.0.1", port), mat)

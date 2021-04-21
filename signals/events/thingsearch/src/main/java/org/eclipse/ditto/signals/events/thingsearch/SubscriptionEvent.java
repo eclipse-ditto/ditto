@@ -60,6 +60,10 @@ public interface SubscriptionEvent<T extends SubscriptionEvent<T>> extends Event
          */
         public static final JsonFieldDefinition<String> SUBSCRIPTION_ID =
                 JsonFactory.newStringFieldDefinition("subscriptionId");
+
+        JsonFields() {
+            throw new AssertionError();
+        }
     }
 
 }

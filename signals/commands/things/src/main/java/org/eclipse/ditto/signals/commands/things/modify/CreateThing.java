@@ -40,6 +40,7 @@ import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.exceptions.PoliciesConflictingException;
 
@@ -49,7 +50,7 @@ import org.eclipse.ditto.signals.commands.things.exceptions.PoliciesConflictingE
  * generated.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = CreateThing.TYPE_PREFIX, name = CreateThing.NAME)
+@JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = CreateThing.NAME)
 public final class CreateThing extends AbstractCommand<CreateThing> implements ThingModifyCommand<CreateThing> {
 
     /**

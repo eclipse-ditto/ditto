@@ -89,7 +89,7 @@ final class ThingsMetadataSource {
 
     private Source<SourceRef<?>, NotUsed> requestStream(final ThingId lowerBound) {
         final Object startStreamCommand = getStartStreamCommand(lowerBound);
-        return Source.fromCompletionStage(Patterns.ask(pubSubMediator, startStreamCommand, idleTimeout))
+        return Source.completionStage(Patterns.ask(pubSubMediator, startStreamCommand, idleTimeout))
                 .flatMapConcat(response -> {
                     if (response instanceof SourceRef<?>) {
                         return Source.single((SourceRef<?>) response);

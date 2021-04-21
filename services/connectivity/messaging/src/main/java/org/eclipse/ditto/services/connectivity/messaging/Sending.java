@@ -73,7 +73,7 @@ final class Sending implements SendingOrDropped {
         this.logger = checkNotNull(logger, "logger");
     }
 
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({"rawtypes", "java:S3740"})
     @Override
     public Optional<CompletionStage<CommandResponse>> monitorAndAcknowledge(
             final ExceptionToAcknowledgementConverter exceptionConverter) {

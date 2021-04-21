@@ -45,7 +45,7 @@ public final class ImmutableJsonFieldTest {
     private JsonKey jsonKeyMock;
 
     @Mock
-    private JsonFieldDefinition fieldDefinitionMock;
+    private JsonFieldDefinition<?> fieldDefinitionMock;
 
     @Mock
     private JsonFieldMarker schemaVersionMarkerMock;

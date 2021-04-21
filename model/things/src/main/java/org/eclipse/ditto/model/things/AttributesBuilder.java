@@ -251,7 +251,7 @@ public interface AttributesBuilder extends JsonObjectBuilder {
      * @throws IllegalArgumentException if the JSON pointer of {@code fieldDefinition} is empty.
      */
     @Override
-    AttributesBuilder remove(JsonFieldDefinition fieldDefinition);
+    AttributesBuilder remove(JsonFieldDefinition<?> fieldDefinition);
 
     /**
      * Sets the given {@link JsonField}s to the {@code Attributes} to be built. This method prevents duplicates, i. e.

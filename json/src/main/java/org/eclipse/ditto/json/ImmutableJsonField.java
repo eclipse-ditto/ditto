@@ -30,11 +30,11 @@ final class ImmutableJsonField implements JsonField {
 
     private final JsonKey key;
     private final JsonValue value;
-    @Nullable private final JsonFieldDefinition definition;
+    @Nullable private final JsonFieldDefinition<?> definition;
     @Nullable private String stringRepresentation;
 
     private ImmutableJsonField(final JsonKey theKey, final JsonValue theValue,
-            @Nullable final JsonFieldDefinition theDefinition) {
+            @Nullable final JsonFieldDefinition<?> theDefinition) {
 
         key = requireNonNull(theKey, "The JSON key must not be null!");
         value = requireNonNull(theValue, "The JSON value must not be null!");
@@ -64,7 +64,7 @@ final class ImmutableJsonField implements JsonField {
      * @throws NullPointerException if any argument but {@code definition} is {@code null}.
      */
     public static ImmutableJsonField newInstance(final JsonKey key, final JsonValue value,
-            @Nullable final JsonFieldDefinition definition) {
+            @Nullable final JsonFieldDefinition<?> definition) {
 
         return new ImmutableJsonField(key, value, definition);
     }
@@ -85,6 +85,7 @@ final class ImmutableJsonField implements JsonField {
     }
 
     @Override
+    @SuppressWarnings({"rawtypes", "java:S3740"})
     public Optional<JsonFieldDefinition> getDefinition() {
         return Optional.ofNullable(definition);
     }

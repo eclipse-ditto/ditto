@@ -38,12 +38,13 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 /**
  * This command modifies the Policy ID of a Thing.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = ModifyPolicyId.TYPE_PREFIX, name = ModifyPolicyId.NAME)
+@JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = ModifyPolicyId.NAME)
 public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
         implements ThingModifyCommand<ModifyPolicyId> {
 
@@ -124,7 +125,7 @@ public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
      */
     public static ModifyPolicyId fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifyPolicyId>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
             final String readPolicyId = jsonObject.getValueOrThrow(JSON_POLICY_ID);
             final PolicyId policyId = PolicyId.of(readPolicyId);
@@ -162,7 +163,7 @@ public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_POLICY_ID, String.valueOf(policyId), predicate);
     }
 

@@ -68,7 +68,7 @@ final class Keys {
      */
     static PrivateKey getPrivateKey(final String privateKeyPem, final ExceptionMapper exceptionMapper) {
         final Matcher matcher = PRIVATE_KEY_REGEX.matcher(privateKeyPem);
-        final Supplier<DittoRuntimeExceptionBuilder> errorSupplier =
+        final Supplier<DittoRuntimeExceptionBuilder<?>> errorSupplier =
                 () -> exceptionMapper.badPrivateKeyFormat(PRIVATE_KEY_LABEL, "PKCS #8")
                         .description("Please format your client key as PEM-encoded unencrypted PKCS #8.");
         try {
@@ -87,7 +87,7 @@ final class Keys {
      */
     static PublicKey getPublicKey(final String publicKeyPem, final ExceptionMapper exceptionMapper) {
         final Matcher matcher = PUBLIC_KEY_REGEX.matcher(publicKeyPem);
-        final Supplier<DittoRuntimeExceptionBuilder> errorSupplier =
+        final Supplier<DittoRuntimeExceptionBuilder<?>> errorSupplier =
                 () -> exceptionMapper.badPublicKeyFormat(PUBLIC_KEY_LABEL, "PKCS #8")
                         .description("Please format your public key as PEM-encoded unencrypted PKCS #8.");
         try {
@@ -98,7 +98,7 @@ final class Keys {
     }
 
     private static <T extends KeySpec> T matchKey(final Matcher matcher, final Function<byte[], T> toKeySpec,
-            final Supplier<DittoRuntimeExceptionBuilder> errorSupplier) {
+            final Supplier<DittoRuntimeExceptionBuilder<?>> errorSupplier) {
         if (!matcher.matches()) {
             throw errorSupplier.get().build();
         } else {

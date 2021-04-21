@@ -145,12 +145,12 @@ public final class GlobalErrorRegistry
 
         @Nullable
         private static String getMessage(final JsonObject jsonObject) {
-            return jsonObject.getValue(DittoJsonException.JsonFields.MESSAGE).orElse(null);
+            return jsonObject.getValue(DittoRuntimeException.JsonFields.MESSAGE).orElse(null);
         }
 
         @Nullable
         private static String getDescription(final JsonObject jsonObject) {
-            return jsonObject.getValue(DittoJsonException.JsonFields.DESCRIPTION).orElse(null);
+            return jsonObject.getValue(DittoRuntimeException.JsonFields.DESCRIPTION).orElse(null);
         }
 
         private Map<String, JsonParsable<DittoRuntimeException>> getDittoJsonParseRegistries() {

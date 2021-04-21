@@ -29,7 +29,6 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.model.base.headers.AbstractDittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
@@ -227,14 +226,6 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
             removeHeader(definition.getKey());
         }
         return myself;
-    }
-
-    private static HttpStatus getHttpStatus(final int statusCode) {
-        try {
-            return HttpStatus.getInstance(statusCode);
-        } catch (final HttpStatusCodeOutOfRangeException e) {
-            throw new IllegalArgumentException(e.getMessage(), e);
-        }
     }
 
     @Override

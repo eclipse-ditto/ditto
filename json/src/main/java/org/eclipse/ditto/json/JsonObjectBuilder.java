@@ -265,7 +265,7 @@ public interface JsonObjectBuilder extends JsonValueContainer<JsonField> {
      * @throws NullPointerException if {@code fieldDefinition} is {@code null}.
      * @throws IllegalArgumentException if the JSON pointer of {@code fieldDefinition} is empty.
      */
-    JsonObjectBuilder remove(JsonFieldDefinition fieldDefinition);
+    JsonObjectBuilder remove(JsonFieldDefinition<?> fieldDefinition);
 
     /**
      * Sets the given {@link JsonField}s to the JSON object to be built. This method prevents duplicates, i. e. if two

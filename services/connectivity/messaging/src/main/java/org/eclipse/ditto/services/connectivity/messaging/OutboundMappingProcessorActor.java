@@ -119,7 +119,7 @@ public final class OutboundMappingProcessorActor
      */
     private static final String MESSAGE_MAPPING_PROCESSOR_DISPATCHER = "message-mapping-processor-dispatcher";
 
-    private final ThreadSafeDittoLoggingAdapter logger;
+    private final ThreadSafeDittoLoggingAdapter dittoLoggingAdapter;
 
     private final ActorRef clientActor;
     private final Connection connection;
@@ -147,7 +147,7 @@ public final class OutboundMappingProcessorActor
         this.outboundMappingProcessor = outboundMappingProcessor;
         this.connection = connection;
 
-        logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
+        dittoLoggingAdapter = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, this.connection.getId());
 
         final DefaultScopedConfig dittoScoped =
@@ -203,7 +203,7 @@ public final class OutboundMappingProcessorActor
 
     private int determinePoolSize(final int connectionPoolSize, final int maxPoolSize) {
         if (connectionPoolSize > maxPoolSize) {
-            logger.info("Configured pool size <{}> is greater than the configured max pool size <{}>." +
+            dittoLoggingAdapter.info("Configured pool size <{}> is greater than the configured max pool size <{}>." +
                     " Will use max pool size <{}>.", connectionPoolSize, maxPoolSize, maxPoolSize);
             return maxPoolSize;
         }
@@ -240,7 +240,7 @@ public final class OutboundMappingProcessorActor
                 .match(Signal.class, signal -> handleSignal(signal, getSender()))
                 .match(DittoRuntimeException.class, this::mapDittoRuntimeException)
                 .match(Status.Failure.class, f -> {
-                    logger.warning("Got failure with cause {}: {}",
+                    dittoLoggingAdapter.warning("Got failure with cause {}: {}",
                             f.cause().getClass().getSimpleName(), f.cause().getMessage());
                     return Done.getInstance();
                 })
@@ -265,14 +265,14 @@ public final class OutboundMappingProcessorActor
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
         receiveBuilder
                 .match(BaseClientActor.ReplaceOutboundMappingProcessor.class, replaceProcessor -> {
-                    logger.info("Replacing the OutboundMappingProcessor with a modified one.");
+                    dittoLoggingAdapter.info("Replacing the OutboundMappingProcessor with a modified one.");
                     this.outboundMappingProcessor = replaceProcessor.getOutboundMappingProcessor();
                 });
     }
 
     private Object handleNotExpectedAcknowledgement(final Acknowledgement acknowledgement) {
         // acknowledgements are not published to targets or reply-targets. this one is mis-routed.
-        logger.withCorrelationId(acknowledgement)
+        dittoLoggingAdapter.withCorrelationId(acknowledgement)
                 .warning("Received Acknowledgement where non was expected, discarding it: {}", acknowledgement);
         return Done.getInstance();
     }
@@ -380,18 +380,18 @@ public final class OutboundMappingProcessorActor
         return extractEntityId(outboundSignal.delegate.getSource())
                 .filter(ThingId.class::isInstance)
                 .map(ThingId.class::cast)
-                .map(thingId -> {
-                    return signalEnrichmentFacade.retrievePartialThing(
+                .map(thingId ->
+                     signalEnrichmentFacade.retrievePartialThing(
                             thingId,
                             extraFields,
                             headers,
-                            outboundSignal.getSource());
-                })
+                            outboundSignal.getSource())
+                )
                 .map(partialThingCompletionStage -> partialThingCompletionStage.thenApply(outboundSignal::setExtra))
                 .orElse(CompletableFuture.completedStage(outboundSignal))
                 .thenApply(outboundSignalWithExtra -> applyFilter(outboundSignalWithExtra, filteredTopic))
                 .exceptionally(error -> {
-                    logger.withCorrelationId(outboundSignal.getSource())
+                    dittoLoggingAdapter.withCorrelationId(outboundSignal.getSource())
                             .warning("Could not retrieve extra data due to: {} {}", error.getClass().getSimpleName(),
                                     error.getMessage());
                     // recover from all errors to keep message-mapping-stream running despite enrichment failures
@@ -415,12 +415,12 @@ public final class OutboundMappingProcessorActor
         // show enrichment failure in service logs according to severity
         if (error instanceof ThingNotAccessibleException) {
             // This error should be rare but possible due to user action; log on INFO level
-            logger.withCorrelationId(outboundSignal.getSource()).info("Enrichment of <{}> failed due to <{}>.",
+            dittoLoggingAdapter.withCorrelationId(outboundSignal.getSource()).info("Enrichment of <{}> failed due to <{}>.",
                     outboundSignal.getSource().getClass(), error);
         } else {
             // This error should not have happened during normal operation.
             // There is a (possibly transient) problem with the Ditto cluster. Request parent to restart.
-            logger.withCorrelationId(outboundSignal.getSource())
+            dittoLoggingAdapter.withCorrelationId(outboundSignal.getSource())
                     .error("Enrichment of <{}> failed due to <{}>.", outboundSignal, error);
             final ConnectionFailure connectionFailure =
                     new ImmutableConnectionFailure(getSelf(), error, "Signal enrichment failed");
@@ -446,7 +446,7 @@ public final class OutboundMappingProcessorActor
     private Object handleErrorResponse(final DittoRuntimeException exception, final ErrorResponse<?> errorResponse,
             final ActorRef sender) {
 
-        final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(exception);
+        final ThreadSafeDittoLoggingAdapter l = dittoLoggingAdapter.withCorrelationId(exception);
 
         if (l.isInfoEnabled()) {
             l.info("Got DittoRuntimeException '{}' when ExternalMessage was processed: {} - {}",
@@ -465,7 +465,8 @@ public final class OutboundMappingProcessorActor
     private Object handleCommandResponse(final CommandResponse<?> response,
             @Nullable final DittoRuntimeException exception, final ActorRef sender) {
 
-        final ThreadSafeDittoLoggingAdapter l = logger.isDebugEnabled() ? logger.withCorrelationId(response) : logger;
+        final ThreadSafeDittoLoggingAdapter l = dittoLoggingAdapter.isDebugEnabled() ? dittoLoggingAdapter.withCorrelationId(response) :
+                dittoLoggingAdapter;
         recordResponse(response, exception);
         if (!response.isOfExpectedResponseType()) {
             l.debug("Requester did not require response (via DittoHeader '{}') - not mapping back to ExternalMessage.",
@@ -495,8 +496,8 @@ public final class OutboundMappingProcessorActor
 
     private Source<OutboundSignalWithSender, ?> handleOutboundSignal(final OutboundSignalWithSender outbound) {
         final Signal<?> source = outbound.getSource();
-        if (logger.isDebugEnabled()) {
-            logger.withCorrelationId(source).debug("Handling outbound signal <{}>.", source);
+        if (dittoLoggingAdapter.isDebugEnabled()) {
+            dittoLoggingAdapter.withCorrelationId(source).debug("Handling outbound signal <{}>.", source);
         }
         return mapToExternalMessage(outbound);
     }
@@ -512,7 +513,7 @@ public final class OutboundMappingProcessorActor
      */
     private Object handleSignal(final Signal<?> signal, final ActorRef sender) {
         // map to outbound signal without authorized target (responses and errors are only sent to its origin)
-        logger.withCorrelationId(signal).debug("Handling raw signal <{}>.", signal);
+        dittoLoggingAdapter.withCorrelationId(signal).debug("Handling raw signal <{}>.", signal);
         return OutboundSignalWithSender.of(signal, sender);
     }
 
@@ -529,25 +530,25 @@ public final class OutboundMappingProcessorActor
                                     "Mapped outgoing signal with mapper <{0}>.", mapperId));
                             return Source.single(outbound.mapped(mapped));
                         })
-                        .onDropped((mapperId, _null) -> {
+                        .onDropped((mapperId, unused) -> {
                             outboundDropped.forEach(monitor -> monitor.success(infoProvider,
                                     "Payload mapping of mapper <{0}> returned null, outgoing message is dropped.",
                                     mapperId));
                             return Source.empty();
                         })
-                        .onError((mapperId, exception, topicPath, _null) -> {
+                        .onError((mapperId, exception, topicPath, unused) -> {
                             if (exception instanceof DittoRuntimeException) {
                                 final DittoRuntimeException e = (DittoRuntimeException) exception;
                                 monitorsForOther.forEach(monitor ->
                                         monitor.getLogger().failure(infoProvider, e));
-                                logger.withCorrelationId(e)
+                                dittoLoggingAdapter.withCorrelationId(e)
                                         .info("Got DittoRuntimeException during processing Signal: {} - {}",
                                                 e.getMessage(),
                                                 e.getDescription().orElse(""));
                             } else {
                                 monitorsForOther.forEach(monitor ->
                                         monitor.getLogger().exception(infoProvider, exception));
-                                logger.withCorrelationId(outbound.getSource())
+                                dittoLoggingAdapter.withCorrelationId(outbound.getSource())
                                         .warning("Got unexpected exception during processing Signal <{}>.",
                                                 exception.getMessage());
                             }

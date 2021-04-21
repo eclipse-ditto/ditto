@@ -34,13 +34,14 @@ import org.eclipse.ditto.model.things.AttributesModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 
 /**
  * Command which retrieves a single attribute of a {@code Thing} based on the passed in ID and a JSON pointer.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = RetrieveAttribute.TYPE_PREFIX, name = RetrieveAttribute.NAME)
+@JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = RetrieveAttribute.NAME)
 public final class RetrieveAttribute extends AbstractCommand<RetrieveAttribute>
         implements ThingQueryCommand<RetrieveAttribute> {
 
@@ -126,7 +127,7 @@ public final class RetrieveAttribute extends AbstractCommand<RetrieveAttribute>
      */
     public static RetrieveAttribute fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveAttribute>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
             final String extractedPointerString = jsonObject.getValueOrThrow(JSON_ATTRIBUTE);
             final JsonPointer extractedPointer = JsonFactory.newPointer(extractedPointerString);
@@ -160,7 +161,7 @@ public final class RetrieveAttribute extends AbstractCommand<RetrieveAttribute>
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_ATTRIBUTE, attributePointer.toString(), predicate);
     }
 

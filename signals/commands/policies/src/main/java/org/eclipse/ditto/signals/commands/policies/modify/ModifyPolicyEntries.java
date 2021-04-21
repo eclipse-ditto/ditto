@@ -40,13 +40,14 @@ import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
 
 /**
  * This command modifies {@link PolicyEntry}s.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = ModifyPolicyEntries.TYPE_PREFIX, name = ModifyPolicyEntries.NAME)
+@JsonParsableCommand(typePrefix = PolicyCommand.TYPE_PREFIX, name = ModifyPolicyEntries.NAME)
 public final class ModifyPolicyEntries extends AbstractCommand<ModifyPolicyEntries>
         implements PolicyModifyCommand<ModifyPolicyEntries> {
 
@@ -127,7 +128,7 @@ public final class ModifyPolicyEntries extends AbstractCommand<ModifyPolicyEntri
      */
     public static ModifyPolicyEntries fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifyPolicyEntries>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyCommand.JsonFields.JSON_POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final JsonObject policyEntriesJsonObject = jsonObject.getValueOrThrow(JSON_POLICY_ENTRIES);
             final Iterable<PolicyEntry> policyEntries = PoliciesModelFactory.newPolicyEntries(policyEntriesJsonObject);
@@ -176,7 +177,7 @@ public final class ModifyPolicyEntries extends AbstractCommand<ModifyPolicyEntri
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
+        jsonObjectBuilder.set(PolicyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_POLICY_ENTRIES, StreamSupport.stream(policyEntries.spliterator(), false)
                         .map(entry -> JsonFactory.newObjectBuilder()
                                 .set(entry.getLabel().getJsonFieldDefinition(),

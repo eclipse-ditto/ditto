@@ -193,7 +193,7 @@ public abstract class AbstractPolicyCommandStrategyTest {
         return box.get(0);
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
     private static <T extends Event<?>> Dummy<T> cast(final Dummy<?> dummy) {
         return (Dummy) dummy;
     }

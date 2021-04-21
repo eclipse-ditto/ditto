@@ -64,6 +64,7 @@ public final class BackgroundSyncActor
     private ThingId progressPersisted = EMPTY_THING_ID;
     private ThingId progressIndexed = EMPTY_THING_ID;
 
+    @SuppressWarnings("unused")
     private BackgroundSyncActor(final BackgroundSyncConfig backgroundSyncConfig,
             final ThingsMetadataSource thingsMetadataSource,
             final ThingsSearchPersistence thingsSearchPersistence,

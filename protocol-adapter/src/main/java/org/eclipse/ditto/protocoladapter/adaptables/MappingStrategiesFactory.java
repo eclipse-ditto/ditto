@@ -19,6 +19,10 @@ import org.eclipse.ditto.signals.base.ErrorRegistry;
  */
 public final class MappingStrategiesFactory {
 
+    private MappingStrategiesFactory() {
+        throw new AssertionError();
+    }
+
     public static PolicyModifyCommandMappingStrategies getPolicyModifyCommandMappingStrategies() {
         return PolicyModifyCommandMappingStrategies.getInstance();
     }

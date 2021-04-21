@@ -56,7 +56,7 @@ public final class PoliciesPersistenceStreamingActorCreator {
         return PolicyTag.of(policyId, pidWithSeqNr.getSequenceNr());
     }
 
-    private static PidWithSeqNr createPidWithSeqNr(final EntityIdWithRevision connectionTag) {
+    private static PidWithSeqNr createPidWithSeqNr(final EntityIdWithRevision<?> connectionTag) {
         return new PidWithSeqNr(PolicyPersistenceActor.PERSISTENCE_ID_PREFIX + connectionTag.getEntityId(),
                 connectionTag.getRevision());
     }

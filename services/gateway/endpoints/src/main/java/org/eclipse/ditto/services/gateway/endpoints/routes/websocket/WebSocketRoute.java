@@ -679,7 +679,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 if (entityId instanceof EntityId) {
                     dittoHeaders.getAcknowledgementRequests()
                             .stream()
-                            .map(request -> weakAck(request.getLabel(), (EntityId) entityId, dittoHeaders))
+                            .map(request -> weakAck(request.getLabel(), entityId, dittoHeaders))
                             .map(IncomingSignal::of)
                             .forEach(weakAck -> streamingSessionActor.tell(weakAck, ActorRef.noSender()));
                 }
@@ -807,7 +807,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         final DittoHeaders dittoHeaders = dittoRuntimeException.getDittoHeaders();
         final String nullableEntityId = dittoHeaders.get(DittoHeaderDefinition.ENTITY_ID.getKey());
         return Optional.ofNullable(nullableEntityId)
-                .map(entityId -> entityId.substring(entityId.indexOf(":")))
+                .map(entityId -> entityId.substring(entityId.indexOf(':')))
                 .map(entityId -> PolicyErrorResponse.of(PolicyId.of(entityId), dittoRuntimeException, dittoHeaders))
                 .orElseGet(() -> PolicyErrorResponse.of(dittoRuntimeException, dittoHeaders));
     }

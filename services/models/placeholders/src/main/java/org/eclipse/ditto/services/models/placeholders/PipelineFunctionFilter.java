@@ -112,7 +112,7 @@ final class PipelineFunctionFilter implements PipelineFunction {
         }
 
         @Override
-        public List<ParameterDefinition> getParameterDefinitions() {
+        public List<ParameterDefinition<?>> getParameterDefinitions() {
             return Arrays.asList(filterValueParam, rqlFunctionParam, comparedValueParam);
         }
 

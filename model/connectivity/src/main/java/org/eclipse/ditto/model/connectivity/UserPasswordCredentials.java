@@ -87,7 +87,7 @@ public final class UserPasswordCredentials implements Credentials {
     @Override
     public JsonObject toJson() {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
-        jsonObjectBuilder.set(JsonFields.TYPE, TYPE);
+        jsonObjectBuilder.set(Credentials.JsonFields.TYPE, TYPE);
         jsonObjectBuilder.set(JsonFields.USERNAME, username);
         jsonObjectBuilder.set(JsonFields.PASSWORD, password);
         return jsonObjectBuilder.build();

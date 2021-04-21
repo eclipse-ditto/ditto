@@ -307,7 +307,7 @@ public final class HttpPushFactoryTest {
                         })
                         .mapMaterializedValue(killSwitch -> {
                             Objects.requireNonNull(killSwitchTrigger.peek())
-                                    .thenAccept(_void -> killSwitch.shutdown());
+                                    .thenAccept(unused -> killSwitch.shutdown());
                             return NotUsed.getInstance();
                         });
         binding = Http.get(actorSystem)

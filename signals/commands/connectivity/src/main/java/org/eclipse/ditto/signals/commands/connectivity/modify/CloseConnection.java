@@ -38,7 +38,7 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
  * Command which closes a {@link Connection}.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = CloseConnection.TYPE_PREFIX, name = CloseConnection.NAME)
+@JsonParsableCommand(typePrefix = ConnectivityCommand.TYPE_PREFIX, name = CloseConnection.NAME)
 public final class CloseConnection extends AbstractCommand<CloseConnection>
         implements ConnectivityModifyCommand<CloseConnection> {
 

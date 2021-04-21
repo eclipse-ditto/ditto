@@ -228,7 +228,7 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers {
             previousUpdate = nextUpdate;
             topicSizeMetric.set(subscriptions.estimateSize());
         }
-        return ddataOp.thenApply(_void -> snapshot);
+        return ddataOp.thenApply(unused -> snapshot);
     }
 
     /**
@@ -345,9 +345,9 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers {
         final Stream<ActorRef> awaitingAck =
                 Stream.concat(awaitUpdate.stream(), awaitSubAck.stream()).map(SubAck::getSender);
         Stream.concat(awaitingAck, subscriptions.getSubscribers().stream())
-                .forEach(subscriber -> {
-                    if (informedSubscribers.add(subscriber)) {
-                        subscriber.tell(PubSubTerminatedException.getInstance(), getSelf());
+                .forEach(theSubscriber -> {
+                    if (informedSubscribers.add(theSubscriber)) {
+                        theSubscriber.tell(PubSubTerminatedException.getInstance(), getSelf());
                     }
                 });
 

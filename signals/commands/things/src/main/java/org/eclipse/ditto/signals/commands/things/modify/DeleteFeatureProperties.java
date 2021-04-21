@@ -34,12 +34,13 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 /**
  * This command deletes a {@link org.eclipse.ditto.model.things.Feature}'s properties.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = DeleteFeatureProperties.TYPE_PREFIX, name = DeleteFeatureProperties.NAME)
+@JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = DeleteFeatureProperties.NAME)
 public final class DeleteFeatureProperties extends AbstractCommand<DeleteFeatureProperties> implements
         ThingModifyCommand<DeleteFeatureProperties>, WithFeatureId {
 
@@ -112,7 +113,7 @@ public final class DeleteFeatureProperties extends AbstractCommand<DeleteFeature
      */
     public static DeleteFeatureProperties fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<DeleteFeatureProperties>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
             final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
 
@@ -140,7 +141,7 @@ public final class DeleteFeatureProperties extends AbstractCommand<DeleteFeature
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
     }
 

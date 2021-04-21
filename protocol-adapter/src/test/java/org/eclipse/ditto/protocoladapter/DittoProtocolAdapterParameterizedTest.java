@@ -64,7 +64,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Unit test for {@link DittoProtocolAdapter}.
  */
-@SuppressWarnings({"unchecked", "rawtypes"})
+@SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
 @RunWith(Parameterized.class)
 public final class DittoProtocolAdapterParameterizedTest {
 

@@ -36,13 +36,14 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
 
 /**
  * This command modifies a {@link Policy}.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = ModifyPolicy.TYPE_PREFIX, name = ModifyPolicy.NAME)
+@JsonParsableCommand(typePrefix = PolicyCommand.TYPE_PREFIX, name = ModifyPolicy.NAME)
 public final class ModifyPolicy extends AbstractCommand<ModifyPolicy> implements PolicyModifyCommand<ModifyPolicy> {
 
     /**
@@ -122,10 +123,10 @@ public final class ModifyPolicy extends AbstractCommand<ModifyPolicy> implements
             final Policy policy = PoliciesModelFactory.newPolicy(policyJsonObject);
 
             final Optional<String> optionalPolicyId =
-                    jsonObject.getValue(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+                    jsonObject.getValue(PolicyCommand.JsonFields.JSON_POLICY_ID);
             final PolicyId policyId = optionalPolicyId.map(PolicyId::of)
                     .orElseGet(() -> policy.getEntityId().orElseThrow(() ->
-                            new JsonMissingFieldException(PolicyModifyCommand.JsonFields.JSON_POLICY_ID)
+                            new JsonMissingFieldException(PolicyCommand.JsonFields.JSON_POLICY_ID)
                     ));
 
             return of(policyId, policy, dittoHeaders);
@@ -160,7 +161,7 @@ public final class ModifyPolicy extends AbstractCommand<ModifyPolicy> implements
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
+        jsonObjectBuilder.set(PolicyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_POLICY, policy.toJson(schemaVersion, thePredicate), predicate);
     }
 

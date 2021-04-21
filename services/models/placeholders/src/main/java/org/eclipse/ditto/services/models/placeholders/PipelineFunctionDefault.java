@@ -66,7 +66,7 @@ final class PipelineFunctionDefault implements PipelineFunction {
         }
 
         @Override
-        public List<ParameterDefinition> getParameterDefinitions() {
+        public List<ParameterDefinition<?>> getParameterDefinitions() {
             return Collections.singletonList(defaultValueDescription);
         }
 

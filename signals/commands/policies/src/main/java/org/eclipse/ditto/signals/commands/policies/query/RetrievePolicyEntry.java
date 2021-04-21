@@ -34,12 +34,13 @@ import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 
 /**
  * Command which retrieves the Policy entry of a {@code Policy} based on the passed in Policy ID and Label.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = RetrievePolicyEntry.TYPE_PREFIX, name = RetrievePolicyEntry.NAME)
+@JsonParsableCommand(typePrefix = PolicyCommand.TYPE_PREFIX, name = RetrievePolicyEntry.NAME)
 public final class RetrievePolicyEntry extends AbstractCommand<RetrievePolicyEntry>
         implements PolicyQueryCommand<RetrievePolicyEntry> {
 
@@ -106,7 +107,7 @@ public final class RetrievePolicyEntry extends AbstractCommand<RetrievePolicyEnt
      */
     public static RetrievePolicyEntry fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrievePolicyEntry>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
+            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyCommand.JsonFields.JSON_POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final Label extractedLabel = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
 
@@ -144,7 +145,7 @@ public final class RetrievePolicyEntry extends AbstractCommand<RetrievePolicyEnt
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyQueryCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
+        jsonObjectBuilder.set(PolicyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
     }
 

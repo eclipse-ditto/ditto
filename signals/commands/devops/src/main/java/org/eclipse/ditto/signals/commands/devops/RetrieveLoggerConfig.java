@@ -41,7 +41,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * Command to retrieve the {@link org.eclipse.ditto.model.devops.LoggerConfig} for each configured Logger.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = RetrieveLoggerConfig.TYPE_PREFIX, name = RetrieveLoggerConfig.NAME)
+@JsonParsableCommand(typePrefix = DevOpsCommand.TYPE_PREFIX, name = RetrieveLoggerConfig.NAME)
 public final class RetrieveLoggerConfig extends AbstractDevOpsCommand<RetrieveLoggerConfig> {
 
     /**

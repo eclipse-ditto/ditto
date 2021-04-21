@@ -107,7 +107,7 @@ public class EnforcerRetrieverTest {
 
     private static void verifyException(final CompletionStage<Contextual<WithDittoHeaders>> completionStage,
             final Throwable expectedException) throws ExecutionException, InterruptedException {
-        assertThat(completionStage.thenApply(_void -> new RuntimeException("this should not be happening"))
+        assertThat(completionStage.thenApply(unused -> new RuntimeException("this should not be happening"))
                 .exceptionally(executionException -> (RuntimeException) executionException.getCause())
                 .toCompletableFuture()
                 .get())

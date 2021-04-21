@@ -57,7 +57,7 @@ public interface PreEnforcer {
      * @param <T> future value type returned by {@code andThen}.
      * @return result of the pre-enforcement.
      */
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
     default <S extends WithSender<? extends DittoHeadersSettable<?>>, T> CompletionStage<T> withErrorHandlingAsync(
             final S withSender,
             final T onError, final Function<S, CompletionStage<T>> andThen) {

@@ -93,11 +93,12 @@ abstract class AbstractDevOpsCommandResponse<T extends AbstractDevOpsCommandResp
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final AbstractDevOpsCommandResponse that = (AbstractDevOpsCommandResponse) o;
+        final AbstractDevOpsCommandResponse<?> that = (AbstractDevOpsCommandResponse<?>) o;
         return that.canEqual(this) && Objects.equals(serviceName, that.serviceName) &&
                 Objects.equals(instance, that.instance) && super.equals(that);
     }
 
+    @Override
     protected boolean canEqual(@Nullable final Object other) {
         return other instanceof AbstractDevOpsCommandResponse;
     }

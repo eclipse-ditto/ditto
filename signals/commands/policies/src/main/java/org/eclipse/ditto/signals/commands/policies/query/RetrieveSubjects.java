@@ -34,12 +34,13 @@ import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 
 /**
  * Command which retrieves the {@code Subjects} based on the passed in Policy ID and the Label.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = RetrieveSubjects.TYPE_PREFIX, name = RetrieveSubjects.NAME)
+@JsonParsableCommand(typePrefix = PolicyCommand.TYPE_PREFIX, name = RetrieveSubjects.NAME)
 public final class RetrieveSubjects extends AbstractCommand<RetrieveSubjects>
         implements PolicyQueryCommand<RetrieveSubjects> {
 
@@ -108,7 +109,7 @@ public final class RetrieveSubjects extends AbstractCommand<RetrieveSubjects>
      */
     public static RetrieveSubjects fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveSubjects>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
+            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyCommand.JsonFields.JSON_POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final Label extractedLabel = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
 
@@ -146,7 +147,7 @@ public final class RetrieveSubjects extends AbstractCommand<RetrieveSubjects>
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyQueryCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
+        jsonObjectBuilder.set(PolicyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
     }
 

@@ -27,7 +27,6 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingException;
 import org.eclipse.ditto.model.things.ThingId;
 
@@ -116,7 +115,7 @@ public final class ThingNotDeletableException extends DittoRuntimeException impl
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<ThingNotDeletableException> {
 
-        private ThingId thingId;
+        @Nullable private ThingId thingId;
 
         private Builder() {
             description(DEFAULT_DESCRIPTION);
@@ -133,8 +132,6 @@ public final class ThingNotDeletableException extends DittoRuntimeException impl
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-            final JsonSchemaVersion schemaVersion =
-                    checkNotNull(dittoHeaders, "command headers").getSchemaVersion().orElse(JsonSchemaVersion.LATEST);
 
             if (message == null) {
                 return new ThingNotDeletableException(dittoHeaders,

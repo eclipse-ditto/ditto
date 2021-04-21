@@ -48,6 +48,7 @@ final class ThingQueryCommandResponseAdapter extends AbstractThingAdapter<ThingQ
         return new ThingQueryCommandResponseAdapter(requireNonNull(headerTranslator));
     }
 
+    @Override
     protected String getTypeCriterionAsString(final TopicPath topicPath) {
         return RESPONSES_CRITERION;
     }

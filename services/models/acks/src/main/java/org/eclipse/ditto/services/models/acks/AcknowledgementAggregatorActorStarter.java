@@ -171,7 +171,7 @@ public final class AcknowledgementAggregatorActorStarter {
         return String.format("ackr%x-%s", childCounter++, correlationId);
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
     private static PartialFunction<Signal<?>, Signal<?>> buildAckRequestSetter(
             final AbstractCommandAckRequestSetter<?>... ackRequestSetters) {
         PFBuilder<Signal<?>, Signal<?>> pfBuilder = new PFBuilder<>();

@@ -140,7 +140,7 @@ public final class MessageCommandResponseAdapterTest implements ProtocolAdapterT
                         .build())
                 .withHeaders(theHeaders)
                 .build();
-        final MessageCommandResponse actual = underTest.fromAdaptable(adaptable);
+        final MessageCommandResponse<?, ?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -187,13 +187,13 @@ public final class MessageCommandResponseAdapterTest implements ProtocolAdapterT
                         .build())
                 .payload(payload)
                 .build();
-        final MessageCommandResponse messageCommandResponse = messageCommandResponse(theMessage, expectedHeaders);
+        final MessageCommandResponse<?, ?> messageCommandResponse = messageCommandResponse(theMessage, expectedHeaders);
         final Adaptable actual = underTest.toAdaptable(messageCommandResponse);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
-    private MessageCommandResponse messageCommandResponse(final Message<Object> message, final DittoHeaders headers) {
+    private MessageCommandResponse<?, ?> messageCommandResponse(final Message<Object> message, final DittoHeaders headers) {
         switch (type) {
             case SendThingMessageResponse.TYPE:
                 return SendThingMessageResponse.of(TestConstants.THING_ID, message, HttpStatus.OK, headers);
@@ -207,7 +207,7 @@ public final class MessageCommandResponseAdapterTest implements ProtocolAdapterT
         }
     }
 
-    private DittoHeaders buildMessageHeaders(final DittoHeadersBuilder headersBuilder,
+    private DittoHeaders buildMessageHeaders(final DittoHeadersBuilder<?, ?> headersBuilder,
             final MessageDirection messageDirection,
             final CharSequence subject,
             final CharSequence contentType) {

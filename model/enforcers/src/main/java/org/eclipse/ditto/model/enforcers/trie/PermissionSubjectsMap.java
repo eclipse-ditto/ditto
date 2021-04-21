@@ -270,10 +270,10 @@ final class PermissionSubjectsMap extends AbstractMap<String, Map<String, Intege
             if (subjectMap == null) {
                 return new HashMap<>(subjects);
             } else {
-                subjects.forEach((subject, thatWeight) -> {
-                    subjectMap.compute(subject, (s, thisWeight) ->
-                            thisWeight == null ? thatWeight : Math.max(thisWeight, thatWeight));
-                });
+                subjects.forEach((subject, thatWeight) ->
+                        subjectMap.compute(subject, (s, thisWeight) ->
+                            thisWeight == null ? thatWeight : Math.max(thisWeight, thatWeight))
+                );
                 return subjectMap;
             }
         });

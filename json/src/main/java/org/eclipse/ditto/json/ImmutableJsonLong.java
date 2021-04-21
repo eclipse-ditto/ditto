@@ -53,7 +53,7 @@ final class ImmutableJsonLong extends AbstractJsonNumber<Long> {
             return true;
         }
         if (o instanceof AbstractJsonNumber) {
-            final AbstractJsonNumber that = (AbstractJsonNumber) o;
+            final AbstractJsonNumber<?> that = (AbstractJsonNumber<?>) o;
             if (that.isLong()) {
                 return Objects.equals(getValue(), that.asLong());
             }

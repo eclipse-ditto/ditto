@@ -57,9 +57,7 @@ public interface ThingCommandResponse<T extends ThingCommandResponse<T>> extends
          * JSON field containing the ThingCommandResponse's thingId.
          */
         public static final JsonFieldDefinition<String> JSON_THING_ID =
-                JsonFactory.newStringFieldDefinition("thingId", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
-
+                JsonFactory.newStringFieldDefinition("thingId", FieldType.REGULAR, JsonSchemaVersion.V_2);
     }
 
 }

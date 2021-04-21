@@ -149,12 +149,12 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
                 .map(Optional::get);
     }
 
-    private CommandResponse buildResponse(final WithDittoHeaders cmd,
-            final Set<String> ids) {
+    @SuppressWarnings({"rawtypes", "java:S3740"})
+    private CommandResponse buildResponse(final WithDittoHeaders cmd, final Set<String> ids) {
         return RetrieveAllConnectionIdsResponse.of(ids, cmd.getDittoHeaders());
     }
 
-    private CommandResponse buildErrorResponse(final Throwable throwable, final DittoHeaders dittoHeaders) {
+    private ConnectivityErrorResponse buildErrorResponse(final Throwable throwable, final DittoHeaders dittoHeaders) {
         final ConnectivityInternalErrorException dittoRuntimeException =
                 ConnectivityInternalErrorException.newBuilder()
                         .message(() -> "Failed to load connections ids from persistence: " + throwable.getMessage())

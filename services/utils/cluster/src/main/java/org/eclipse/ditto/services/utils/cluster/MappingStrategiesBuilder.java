@@ -98,10 +98,9 @@ public final class MappingStrategiesBuilder {
      * @return this builder instance to allow Method Chaining.
      * @throws NullPointerException if {@code jsonParsableRegistry} is {@code null}.
      */
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
     public MappingStrategiesBuilder add(final JsonParsableRegistry<? extends Jsonifiable> jsonParsableRegistry) {
         checkNotNull(jsonParsableRegistry, "jsonParsableRegistry");
-        final BiFunction<JsonObject, DittoHeaders, Jsonifiable<?>> jsonDeserializer = jsonParsableRegistry::parse;
         for (final String type : jsonParsableRegistry.getTypes()) {
             add(type, (JsonParsable<Jsonifiable<?>>) jsonParsableRegistry);
         }

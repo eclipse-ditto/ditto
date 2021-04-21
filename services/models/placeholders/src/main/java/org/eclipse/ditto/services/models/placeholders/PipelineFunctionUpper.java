@@ -62,7 +62,7 @@ final class PipelineFunctionUpper implements PipelineFunction {
         }
 
         @Override
-        public List<ParameterDefinition> getParameterDefinitions() {
+        public List<ParameterDefinition<?>> getParameterDefinitions() {
             return Collections.emptyList();
         }
 

@@ -41,7 +41,7 @@ public final class PipelineFunctionFilterTest {
 
     @Test
     public void getSignature() {
-        final List<PipelineFunction.ParameterDefinition> parameterDefinitions =
+        final List<PipelineFunction.ParameterDefinition<?>> parameterDefinitions =
                 underTest.getSignature().getParameterDefinitions();
         Assertions.assertThat(parameterDefinitions).hasSize(3);
         assertThat(parameterDefinitions.get(0).getName()).isEqualTo("filterValue");

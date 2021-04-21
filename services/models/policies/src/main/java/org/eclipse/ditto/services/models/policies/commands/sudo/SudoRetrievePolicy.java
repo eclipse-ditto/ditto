@@ -38,7 +38,7 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
  */
 @Immutable
 @AllValuesAreNonnullByDefault
-@JsonParsableCommand(typePrefix = SudoRetrievePolicy.TYPE_PREFIX, name = SudoRetrievePolicy.NAME)
+@JsonParsableCommand(typePrefix = SudoCommand.TYPE_PREFIX, name = SudoRetrievePolicy.NAME)
 public final class SudoRetrievePolicy extends AbstractCommand<SudoRetrievePolicy>
         implements SudoCommand<SudoRetrievePolicy>, SignalWithEntityId<SudoRetrievePolicy> {
 

@@ -50,7 +50,7 @@ public interface JsonField {
      * @throws NullPointerException if {@code key} is {@code null}.
      */
     static JsonField newInstance(final CharSequence key, @Nullable final JsonValue value,
-            @Nullable final JsonFieldDefinition definition) {
+            @Nullable final JsonFieldDefinition<?> definition) {
 
         return JsonFactory.newField(JsonFactory.newKey(key), value, definition);
     }
@@ -91,6 +91,7 @@ public interface JsonField {
      *
      * @return the definition of this field.
      */
+    @SuppressWarnings({"rawtypes", "java:S3740"})
     Optional<JsonFieldDefinition> getDefinition();
 
     /**

@@ -25,7 +25,6 @@ import org.eclipse.ditto.services.connectivity.messaging.ConnectionIdsRetrievalA
 import org.eclipse.ditto.services.connectivity.messaging.ConnectivityProxyActor;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceOperationsActor;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceStreamingActorCreator;
-import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPriorityProvider;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPriorityProviderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionSupervisorActor;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.UsageBasedPriorityProvider;

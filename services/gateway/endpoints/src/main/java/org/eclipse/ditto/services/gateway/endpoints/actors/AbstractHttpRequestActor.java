@@ -100,7 +100,6 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     public static final String COMPLETE_MESSAGE = "complete";
 
     private static final akka.http.javadsl.model.ContentType CONTENT_TYPE_JSON = ContentTypes.APPLICATION_JSON;
-    private static final akka.http.javadsl.model.ContentType CONTENT_TYPE_TEXT = ContentTypes.TEXT_PLAIN_UTF8;
 
     private final DittoDiagnosticLoggingAdapter logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 

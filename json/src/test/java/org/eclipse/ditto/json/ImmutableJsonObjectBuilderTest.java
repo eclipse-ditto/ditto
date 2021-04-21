@@ -34,7 +34,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link ImmutableJsonObjectBuilder}.
  */
-@SuppressWarnings({"NullableProblems", "ClassWithTooManyFields", "ConstantConditions"})
+@SuppressWarnings({"ClassWithTooManyFields", "ConstantConditions"})
 @RunWith(MockitoJUnitRunner.class)
 public final class ImmutableJsonObjectBuilderTest {
 
@@ -408,7 +408,7 @@ public final class ImmutableJsonObjectBuilderTest {
                 .contains(intKey, intValue);
     }
 
-    private static Predicate<JsonField> hasFieldDefinition(final JsonFieldDefinition definition) {
+    private static Predicate<JsonField> hasFieldDefinition(final JsonFieldDefinition<?> definition) {
         return field -> field.getDefinition()
                 .filter(definition::equals)
                 .isPresent();

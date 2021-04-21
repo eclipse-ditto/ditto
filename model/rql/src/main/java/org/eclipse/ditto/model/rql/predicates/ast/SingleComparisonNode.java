@@ -34,6 +34,7 @@ public final class SingleComparisonNode extends ComparisonNode<SingleComparisonN
     /**
      * {@inheritDoc}
      */
+    @Override
     public void accept(final PredicateVisitor predicateVisitor) {
         predicateVisitor.visit(this);
     }

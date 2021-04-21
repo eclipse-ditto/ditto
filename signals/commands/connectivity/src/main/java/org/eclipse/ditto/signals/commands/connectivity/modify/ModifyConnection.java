@@ -34,12 +34,13 @@ import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 
 /**
  * Command which modifies a {@link Connection}.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = ModifyConnection.TYPE_PREFIX, name = ModifyConnection.NAME)
+@JsonParsableCommand(typePrefix = ConnectivityCommand.TYPE_PREFIX, name = ModifyConnection.NAME)
 public final class ModifyConnection extends AbstractCommand<ModifyConnection>
         implements ConnectivityModifyCommand<ModifyConnection> {
 

@@ -37,12 +37,13 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 /**
  * Command which retrieves one {@link org.eclipse.ditto.model.things.Thing} based on the the passed in Thing ID.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = RetrieveThing.TYPE_PREFIX, name = RetrieveThing.NAME)
+@JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = RetrieveThing.NAME)
 public final class RetrieveThing extends AbstractCommand<RetrieveThing> implements ThingQueryCommand<RetrieveThing> {
 
     /**
@@ -128,7 +129,7 @@ public final class RetrieveThing extends AbstractCommand<RetrieveThing> implemen
      */
     public static RetrieveThing fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveThing>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
             final Builder builder = getBuilder(thingId, dittoHeaders);
 
@@ -163,7 +164,7 @@ public final class RetrieveThing extends AbstractCommand<RetrieveThing> implemen
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         if (null != selectedFields) {
             jsonObjectBuilder.set(JSON_SELECTED_FIELDS, selectedFields.toString(), predicate);
         }

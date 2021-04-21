@@ -97,7 +97,7 @@ public class PolicyPersistenceActorMailbox implements MailboxType,
         public void enqueue(final ActorRef receiver, final Envelope handle) {
             final Object message = handle.message();
             if (message instanceof PolicyModifyCommand) {
-                queueSizeBasedAction(handle.sender(), (PolicyModifyCommand) message, () -> queue().add(handle));
+                queueSizeBasedAction(handle.sender(), (PolicyModifyCommand<?>) message, () -> queue().add(handle));
             } else {
                 // all other messages are enqueued right away and with no "limit":
                 queue().add(handle);
@@ -108,14 +108,14 @@ public class PolicyPersistenceActorMailbox implements MailboxType,
         public void enqueueFirst(final ActorRef receiver, final Envelope handle) {
             final Object message = handle.message();
             if (message instanceof PolicyModifyCommand) {
-                queueSizeBasedAction(handle.sender(), (PolicyModifyCommand) message, () -> queue().addFirst(handle));
+                queueSizeBasedAction(handle.sender(), (PolicyModifyCommand<?>) message, () -> queue().addFirst(handle));
             } else {
                 // all other messages are enqueued right away and with no "limit":
                 queue().addFirst(handle);
             }
         }
 
-        private void queueSizeBasedAction(final ActorRef sender, final PolicyModifyCommand command, final Runnable r) {
+        private void queueSizeBasedAction(final ActorRef sender, final PolicyModifyCommand<?> command, final Runnable r) {
             // instead of blocking return "too many requests" response if numberOfMessages > capacity
             if (numberOfMessages() > capacity) {
                 log.warning("Number of messages ({}) in the Mailbox of thing with ID '{}' exceeded the max capacity of "

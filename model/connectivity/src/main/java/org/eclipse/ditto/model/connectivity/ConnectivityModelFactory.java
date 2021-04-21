@@ -549,7 +549,8 @@ public final class ConnectivityModelFactory {
      *
      * @return new {@link Source} builder
      */
-    public static SourceBuilder<?> newSourceBuilder() {
+    @SuppressWarnings({"rawtypes", "java:S3740"})
+    public static SourceBuilder newSourceBuilder() {
         return new ImmutableSource.Builder();
     }
 
@@ -558,7 +559,8 @@ public final class ConnectivityModelFactory {
      *
      * @return new {@link Source} builder
      */
-    public static SourceBuilder<?> newSourceBuilder(final Source source) {
+    @SuppressWarnings({"rawtypes", "java:S3740"})
+    public static SourceBuilder newSourceBuilder(final Source source) {
         return new ImmutableSource.Builder(source);
     }
 

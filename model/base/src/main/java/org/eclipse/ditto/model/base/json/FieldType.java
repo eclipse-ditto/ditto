@@ -12,11 +12,9 @@
  */
 package org.eclipse.ditto.model.base.json;
 
-import java.util.Optional;
 import java.util.function.Predicate;
 
 import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldMarker;
 
 /**
@@ -44,11 +42,8 @@ public enum FieldType implements JsonFieldMarker, Predicate<JsonField> {
 
     private final Predicate<JsonField> predicate;
 
-    private FieldType() {
-        predicate = jsonField -> {
-            final Optional<JsonFieldDefinition> definition = jsonField.getDefinition();
-            return !definition.isPresent() || jsonField.isMarkedAs(this);
-        };
+    FieldType() {
+        predicate = jsonField -> !jsonField.getDefinition().isPresent() || jsonField.isMarkedAs(this);
     }
 
     /**

@@ -34,12 +34,13 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 /**
  * This command deletes a Feature.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = DeleteFeature.TYPE_PREFIX, name = DeleteFeature.NAME)
+@JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = DeleteFeature.NAME)
 public final class DeleteFeature extends AbstractCommand<DeleteFeature> implements ThingModifyCommand<DeleteFeature>,
         WithFeatureId {
 
@@ -110,7 +111,7 @@ public final class DeleteFeature extends AbstractCommand<DeleteFeature> implemen
      */
     public static DeleteFeature fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<DeleteFeature>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
             final String featureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
 
@@ -139,7 +140,7 @@ public final class DeleteFeature extends AbstractCommand<DeleteFeature> implemen
             final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        payloadJsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        payloadJsonObjectBuilder.set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         payloadJsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
     }
 

@@ -47,7 +47,7 @@ public interface JmsExceptionThrowingFunction<T> {
      * @return a function that throws {@link javax.jms.JMSRuntimeException}
      */
     static <T> Function<Message, T> wrap(final JmsExceptionThrowingFunction<T> throwingFunction) {
-        return (m) -> {
+        return m -> {
             try {
                 return throwingFunction.apply(m);
             } catch (final JMSException jmsException) {

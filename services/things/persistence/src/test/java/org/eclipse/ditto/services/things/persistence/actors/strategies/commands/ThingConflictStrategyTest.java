@@ -41,7 +41,7 @@ import org.mockito.Mockito;
 /**
  * Unit test for {@link ThingConflictStrategy}.
  */
-@SuppressWarnings("rawtypes")
+@SuppressWarnings({"rawtypes", "java:S3740"})
 public final class ThingConflictStrategyTest {
 
     @Test

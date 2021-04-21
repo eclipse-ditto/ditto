@@ -31,12 +31,13 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 /**
  * Command which retrieves the Policy ID of a {@code Thing} based on the passed in ID.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = RetrievePolicyId.TYPE_PREFIX, name = RetrievePolicyId.NAME)
+@JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = RetrievePolicyId.NAME)
 public final class RetrievePolicyId extends AbstractCommand<RetrievePolicyId>
         implements ThingQueryCommand<RetrievePolicyId> {
 
@@ -101,7 +102,7 @@ public final class RetrievePolicyId extends AbstractCommand<RetrievePolicyId>
      */
     public static RetrievePolicyId fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrievePolicyId>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
             return of(thingId, dittoHeaders);
         });
@@ -132,7 +133,7 @@ public final class RetrievePolicyId extends AbstractCommand<RetrievePolicyId>
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
     }
 
     @Override

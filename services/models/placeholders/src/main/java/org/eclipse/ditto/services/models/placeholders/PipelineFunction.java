@@ -61,16 +61,16 @@ interface PipelineFunction {
         /**
          * @return the function's signature as a List of {@link PipelineFunction.ParameterDefinition}s.
          */
-        List<PipelineFunction.ParameterDefinition> getParameterDefinitions();
+        List<PipelineFunction.ParameterDefinition<?>> getParameterDefinitions();
 
         /**
          * @return renders a nice String description of the complete signature
          */
         default String renderSignature() {
-            final List<ParameterDefinition> parameterDefinitions = getParameterDefinitions();
+            final List<ParameterDefinition<?>> parameterDefinitions = getParameterDefinitions();
             final StringBuilder sb = new StringBuilder("(");
             for (int i = 0; i < parameterDefinitions.size(); i++) {
-                final ParameterDefinition definition = parameterDefinitions.get(i);
+                final ParameterDefinition<?> definition = parameterDefinitions.get(i);
                 sb.append(definition.getType().getSimpleName());
                 sb.append(" ");
                 sb.append(definition.getName());

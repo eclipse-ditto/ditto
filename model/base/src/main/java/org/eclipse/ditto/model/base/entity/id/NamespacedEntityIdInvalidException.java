@@ -16,15 +16,19 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.net.URI;
 import java.text.MessageFormat;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
@@ -55,7 +59,9 @@ public final class NamespacedEntityIdInvalidException extends DittoRuntimeExcept
     private static final URI DEFAULT_HREF =
             URI.create("https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id");
 
-    private final CharSequence entityId;
+    private static final long serialVersionUID = -8903476318490123234L;
+
+    private final transient CharSequence entityId;
 
     private NamespacedEntityIdInvalidException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
@@ -100,6 +106,16 @@ public final class NamespacedEntityIdInvalidException extends DittoRuntimeExcept
         return jsonObject.getValue(JsonFields.ENTITY_ID);
     }
 
+    @Override
+    protected void appendToJson(final JsonObjectBuilder jsonObjectBuilder, final Predicate<JsonField> predicate) {
+        jsonObjectBuilder.set(JsonFields.ENTITY_ID, entityId.toString(), predicate);
+    }
+
+    /**
+     * Returns the entity id which was invalid.
+     *
+     * @return the invalid entity id.
+     */
     public Optional<CharSequence> getEntityId() {
         return Optional.ofNullable(entityId);
     }
@@ -113,6 +129,26 @@ public final class NamespacedEntityIdInvalidException extends DittoRuntimeExcept
                 .href(getHref().orElse(null))
                 .dittoHeaders(dittoHeaders)
                 .build();
+    }
+
+    @Override
+    public boolean equals(@Nullable final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
+        final NamespacedEntityIdInvalidException that = (NamespacedEntityIdInvalidException) o;
+        return Objects.equals(entityId, that.entityId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), entityId);
     }
 
     /**

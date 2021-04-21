@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.protocoladapter.signals;
 
+import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommand;
@@ -27,7 +28,6 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
-import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
 
 /**
  * Factory class that instantiates all available {@link SignalMapper}s.
@@ -35,6 +35,10 @@ import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
  * @since 1.1.0
  */
 public final class SignalMapperFactory {
+
+    private SignalMapperFactory() {
+        throw new AssertionError();
+    }
 
     public static SignalMapper<ThingModifyCommand<?>> newThingModifySignalMapper() {
         return new ThingModifySignalMapper();

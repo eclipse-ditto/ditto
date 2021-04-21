@@ -45,7 +45,7 @@ final class ImmutableJsonFieldSelectorBuilder implements JsonFieldSelectorBuilde
     }
 
     @Override
-    public JsonFieldSelectorBuilder addPointerString(final String pointerString,
+    public JsonFieldSelectorBuilder addPointerString(@Nullable final String pointerString,
             final String... furtherPointerStrings) {
 
         requireNonNull(furtherPointerStrings, "The further JSON pointer strings to be added must not be null!");
@@ -109,30 +109,30 @@ final class ImmutableJsonFieldSelectorBuilder implements JsonFieldSelectorBuilde
     }
 
     @Override
-    public JsonFieldSelectorBuilder addFieldDefinition(@Nullable final JsonFieldDefinition fieldDefinition,
-            final JsonFieldDefinition... furtherFieldDefinitions) {
+    public JsonFieldSelectorBuilder addFieldDefinition(@Nullable final JsonFieldDefinition<?> fieldDefinition,
+            final JsonFieldDefinition<?>... furtherFieldDefinitions) {
 
         requireNonNull(furtherFieldDefinitions, "The further JSON field definitions to be added must not be null!");
 
         addFieldDefinition(fieldDefinition);
-        for (final JsonFieldDefinition furtherFieldDefinition : furtherFieldDefinitions) {
+        for (final JsonFieldDefinition<?> furtherFieldDefinition : furtherFieldDefinitions) {
             addFieldDefinition(furtherFieldDefinition);
         }
 
         return this;
     }
 
-    private void addFieldDefinition(@Nullable final JsonFieldDefinition fieldDefinition) {
+    private void addFieldDefinition(@Nullable final JsonFieldDefinition<?> fieldDefinition) {
         if (null != fieldDefinition) {
             addPointer(fieldDefinition.getPointer());
         }
     }
 
     @Override
-    public JsonFieldSelectorBuilder addFieldDefinitions(final Iterable<JsonFieldDefinition> fieldDefinitions) {
+    public JsonFieldSelectorBuilder addFieldDefinitions(final Iterable<JsonFieldDefinition<?>> fieldDefinitions) {
         requireNonNull(fieldDefinitions, "The JSON field definitions must not be null!");
 
-        for (final JsonFieldDefinition fieldDefinition : fieldDefinitions) {
+        for (final JsonFieldDefinition<?> fieldDefinition : fieldDefinitions) {
             addFieldDefinition(fieldDefinition);
         }
 
@@ -211,7 +211,7 @@ final class ImmutableJsonFieldSelectorBuilder implements JsonFieldSelectorBuilde
     }
 
     @Override
-    public JsonFieldSelectorBuilder removeFieldDefinition(@Nullable final JsonFieldDefinition fieldDefinition) {
+    public JsonFieldSelectorBuilder removeFieldDefinition(@Nullable final JsonFieldDefinition<?> fieldDefinition) {
         if (null == fieldDefinition) {
             return this;
         }
@@ -219,10 +219,10 @@ final class ImmutableJsonFieldSelectorBuilder implements JsonFieldSelectorBuilde
     }
 
     @Override
-    public JsonFieldSelectorBuilder removeFieldDefinitions(final Iterable<JsonFieldDefinition> fieldDefinitions) {
+    public JsonFieldSelectorBuilder removeFieldDefinitions(final Iterable<JsonFieldDefinition<?>> fieldDefinitions) {
         requireNonNull(fieldDefinitions, "The JSON field definitions to be removed must not be null!");
 
-        for (final JsonFieldDefinition fieldDefinition : fieldDefinitions) {
+        for (final JsonFieldDefinition<?> fieldDefinition : fieldDefinitions) {
             removeFieldDefinition(fieldDefinition);
         }
 

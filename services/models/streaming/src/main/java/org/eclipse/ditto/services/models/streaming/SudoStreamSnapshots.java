@@ -45,8 +45,7 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 @Immutable
 @AllValuesAreNonnullByDefault
 @JsonParsableCommand(typePrefix = SudoStreamSnapshots.TYPE_PREFIX, name = SudoStreamSnapshots.NAME)
-public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapshots>
-        implements StartStreamRequest {
+public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapshots> implements StartStreamRequest {
 
     static final String NAME = "SudoStreamSnapshots";
 
@@ -91,6 +90,7 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
         final JsonArray snapshotFields = fields.stream()
                 .map(JsonValue::of)
                 .collect(JsonCollectors.valuesToArray());
+
         return new SudoStreamSnapshots(burst, timeoutMillis, LowerBound.emptyEntityId(entityType), snapshotFields,
                 dittoHeaders);
     }
@@ -109,12 +109,11 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
 
         final int burst = jsonObject.getValueOrThrow(JsonFields.JSON_BURST);
         final long timeoutMillis = jsonObject.getValueOrThrow(JsonFields.JSON_TIMEOUT_MILLIS);
-
         final EntityType entityType = EntityType.of(jsonObject.getValueOrThrow(JsonFields.JSON_LOWER_BOUND_TYPE));
-        final EntityId lowerBound =
-                EntityId.of(entityType, jsonObject.getValueOrThrow(JsonFields.JSON_LOWER_BOUND));
+        final EntityId lowerBound = EntityId.of(entityType, jsonObject.getValueOrThrow(JsonFields.JSON_LOWER_BOUND));
         final JsonArray snapshotFields =
                 jsonObject.getValue(JsonFields.JSON_SNAPSHOT_FIELDS).orElseGet(JsonArray::empty);
+
         return new SudoStreamSnapshots(burst, timeoutMillis, lowerBound, snapshotFields, dittoHeaders);
     }
 
@@ -240,6 +239,10 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
 
     static final class JsonFields {
 
+        private JsonFields() {
+            throw new AssertionError();
+        }
+
         static final JsonFieldDefinition<Integer> JSON_BURST =
                 JsonFactory.newIntFieldDefinition("payload/burst", REGULAR, V_2);
 
@@ -255,4 +258,5 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
         static final JsonFieldDefinition<JsonArray> JSON_SNAPSHOT_FIELDS =
                 JsonFactory.newJsonArrayFieldDefinition("payload/fields", REGULAR, V_2);
     }
+
 }

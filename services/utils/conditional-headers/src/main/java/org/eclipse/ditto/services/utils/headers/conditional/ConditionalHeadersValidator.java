@@ -47,7 +47,7 @@ public final class ConditionalHeadersValidator {
          * @param actual the actual ETag value.
          * @return the builder.
          */
-        DittoRuntimeExceptionBuilder createPreconditionFailedExceptionBuilder(final String conditionalHeaderName,
+        DittoRuntimeExceptionBuilder<?> createPreconditionFailedExceptionBuilder(final String conditionalHeaderName,
                 final String expected, final String actual);
 
         /**
@@ -58,7 +58,7 @@ public final class ConditionalHeadersValidator {
          * @param matched the matched value.
          * @return the builder.
          */
-        DittoRuntimeExceptionBuilder createPreconditionNotModifiedExceptionBuilder(final String expectedNotToMatch,
+        DittoRuntimeExceptionBuilder<?> createPreconditionNotModifiedExceptionBuilder(final String expectedNotToMatch,
                 final String matched);
     }
 
@@ -107,7 +107,7 @@ public final class ConditionalHeadersValidator {
      * @throws org.eclipse.ditto.model.base.exceptions.DittoRuntimeException when a condition fails (the concrete
      * subclass is defined by {@link ValidationSettings}).
      */
-    public void checkConditionalHeaders(final Command command,
+    public void checkConditionalHeaders(final Command<?> command,
             @Nullable final EntityTag currentETagValue) {
 
         if (skipPreconditionHeaderCheck(command, currentETagValue)) {
@@ -118,7 +118,7 @@ public final class ConditionalHeadersValidator {
         checkIfNoneMatch(command, currentETagValue);
     }
 
-    private boolean skipPreconditionHeaderCheck(final Command command, @Nullable final EntityTag
+    private boolean skipPreconditionHeaderCheck(final Command<?> command, @Nullable final EntityTag
             currentETagValue) {
         return (currentETagValue == null &&
                 (Command.Category.DELETE.equals(command.getCategory()) ||
@@ -126,7 +126,7 @@ public final class ConditionalHeadersValidator {
         ) || additionalSkipPreconditionHeaderCheckPredicate.test(command);
     }
 
-    private void checkIfMatch(final Command command, @Nullable final EntityTag currentETagValue) {
+    private void checkIfMatch(final Command<?> command, @Nullable final EntityTag currentETagValue) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         IfMatchPreconditionHeader.fromDittoHeaders(dittoHeaders).ifPresent(ifMatch -> {
@@ -136,7 +136,7 @@ public final class ConditionalHeadersValidator {
         });
     }
 
-    private void checkIfNoneMatch(final Command command, @Nullable final EntityTag currentETagValue) {
+    private void checkIfNoneMatch(final Command<?> command, @Nullable final EntityTag currentETagValue) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         IfNoneMatchPreconditionHeader.fromDittoHeaders(dittoHeaders).ifPresent(ifNoneMatch -> {
@@ -151,7 +151,7 @@ public final class ConditionalHeadersValidator {
     }
 
     private DittoRuntimeException buildPreconditionFailedException(
-            final PreconditionHeader preconditionHeader,
+            final PreconditionHeader<?> preconditionHeader,
             final DittoHeaders dittoHeaders, @Nullable final EntityTag currentETagValue) {
         final String headerKey = preconditionHeader.getKey();
         final String headerValue = preconditionHeader.getValue();
@@ -162,7 +162,7 @@ public final class ConditionalHeadersValidator {
                 .build();
     }
 
-    private DittoRuntimeException buildNotModifiedException(final PreconditionHeader preconditionHeader,
+    private DittoRuntimeException buildNotModifiedException(final PreconditionHeader<?> preconditionHeader,
             final DittoHeaders dittoHeaders, @Nullable final EntityTag currentETagValue) {
         return validationSettings
                 .createPreconditionNotModifiedExceptionBuilder(preconditionHeader.getValue(),

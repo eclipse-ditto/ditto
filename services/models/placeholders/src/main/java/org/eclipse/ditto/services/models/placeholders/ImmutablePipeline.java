@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.models.placeholders;
 
+import static org.eclipse.ditto.services.models.placeholders.FunctionExpression.SEPARATOR;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -47,7 +49,7 @@ final class ImmutablePipeline implements Pipeline {
     public void validate() {
         stageExpressions.stream()
                 .map(expression -> expression.replaceFirst(
-                        functionExpression.getPrefix() + FunctionExpression.SEPARATOR, ""))
+                        functionExpression.getPrefix() + SEPARATOR, ""))
                 .forEach(expression -> {
                     if (!functionExpression.supports(expression)) {
                         throw PlaceholderFunctionUnknownException.newBuilder(expression).build();

@@ -38,7 +38,7 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
  * Command which resets the complete {@code Metrics} of a {@link Connection}.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = ResetConnectionMetrics.TYPE_PREFIX, name = ResetConnectionMetrics.NAME)
+@JsonParsableCommand(typePrefix = ConnectivityCommand.TYPE_PREFIX, name = ResetConnectionMetrics.NAME)
 public final class ResetConnectionMetrics extends AbstractCommand<ResetConnectionMetrics>
         implements ConnectivityModifyCommand<ResetConnectionMetrics> {
 

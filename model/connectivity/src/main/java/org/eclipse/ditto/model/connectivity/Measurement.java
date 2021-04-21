@@ -80,5 +80,10 @@ public interface Measurement extends Jsonifiable.WithFieldSelectorAndPredicate<J
         public static final JsonFieldDefinition<String> LAST_MESSAGE_AT =
                 JsonFactory.newStringFieldDefinition("lastMessageAt", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
+
+        JsonFields() {
+            throw new AssertionError();
+        }
     }
+
 }

@@ -27,7 +27,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
  * Ack message that is used for acking elements while streaming.
  */
 @Immutable
-public final class StreamAck implements Jsonifiable {
+public final class StreamAck implements Jsonifiable<JsonValue> {
 
     /**
      * The element id.

@@ -62,7 +62,7 @@ final class PipelineFunctionLower implements PipelineFunction {
         }
 
         @Override
-        public List<ParameterDefinition> getParameterDefinitions() {
+        public List<ParameterDefinition<?>> getParameterDefinitions() {
             return Collections.emptyList();
         }
 

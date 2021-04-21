@@ -58,7 +58,7 @@ public final class ThingModifyCommandAckRequestSetter extends AbstractCommandAck
     }
 
     @Override
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
     public Class<ThingModifyCommand<?>> getMatchedClass() {
         return (Class) ThingModifyCommand.class;
     }

@@ -245,8 +245,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
                     jsonifiable -> {
                         final Optional<String> topic =
                                 Optional.ofNullable(dittoHeaders.get(TOPIC_HEADER))
-                                        .map(Optional::of)
-                                        .orElseGet(() -> executePiggyback.getPiggybackCommand()
+                                        .or(() -> executePiggyback.getPiggybackCommand()
                                                 .getValue(Command.JsonFields.TYPE));
                         if (topic.isPresent()) {
                             if (isGroupTopic(dittoHeaders)) {
@@ -274,7 +273,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
     }
 
     private void handleDevOpsCommandViaPubSub(final DevOpsCommandViaPubSub devOpsCommandViaPubSub) {
-        final DevOpsCommand wrappedCommand = devOpsCommandViaPubSub.wrappedCommand;
+        final DevOpsCommand<?> wrappedCommand = devOpsCommandViaPubSub.wrappedCommand;
         if (wrappedCommand instanceof ChangeLogLevel) {
             handleChangeLogLevel((ChangeLogLevel) wrappedCommand);
         } else if (wrappedCommand instanceof RetrieveLoggerConfig) {
@@ -285,7 +284,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
     }
 
     private void handleChangeLogLevel(final ChangeLogLevel command) {
-        final Boolean isApplied = loggingFacade.setLogLevel(command.getLoggerConfig());
+        final boolean isApplied = loggingFacade.setLogLevel(command.getLoggerConfig());
         final ChangeLogLevelResponse changeLogLevelResponse =
                 ChangeLogLevelResponse.of(serviceName, instance, isApplied, command.getDittoHeaders());
         getSender().tell(changeLogLevelResponse, getSelf());
@@ -420,9 +419,9 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
 
     private static final class DevOpsCommandViaPubSub {
 
-        private final DevOpsCommand wrappedCommand;
+        private final DevOpsCommand<?> wrappedCommand;
 
-        private DevOpsCommandViaPubSub(final DevOpsCommand wrappedCommand) {
+        private DevOpsCommandViaPubSub(final DevOpsCommand<?> wrappedCommand) {
             this.wrappedCommand = wrappedCommand;
         }
 

@@ -41,13 +41,14 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
 /**
  * Command for searching things.
  * @since 1.0.0
  */
 @Immutable
-@JsonParsableCommand(typePrefix = QueryThings.TYPE_PREFIX, name = QueryThings.NAME)
+@JsonParsableCommand(typePrefix = ThingSearchCommand.TYPE_PREFIX, name = QueryThings.NAME)
 public final class QueryThings extends AbstractCommand<QueryThings> implements ThingSearchQueryCommand<QueryThings> {
 
     /**

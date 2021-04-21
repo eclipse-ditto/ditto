@@ -74,6 +74,7 @@ public interface ResourceKey extends CharSequence {
      *
      * @return the JsonFieldDefinition for this Label.
      */
+    @SuppressWarnings({"rawtypes", "java:S3740"})
     default JsonFieldDefinition getJsonFieldDefinition() {
         return JsonFactory.newStringFieldDefinition(this, FieldType.REGULAR, JsonSchemaVersion.V_2);
     }

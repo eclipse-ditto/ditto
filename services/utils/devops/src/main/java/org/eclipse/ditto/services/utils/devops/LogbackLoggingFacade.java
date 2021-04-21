@@ -50,7 +50,7 @@ public final class LogbackLoggingFacade implements LoggingFacade {
     @Override
     public boolean setLogLevel(@Nonnull final LoggerConfig loggerConfig) {
         final Level level = Level.valueOf(loggerConfig.getLevel().getIdentifier());
-        final String loggerName = loggerConfig.getLogger().orElse(Logger.ROOT_LOGGER_NAME);
+        final String loggerName = loggerConfig.getLogger().orElse(org.slf4j.Logger.ROOT_LOGGER_NAME);
         final Logger logger = (Logger) LoggerFactory.getLogger(loggerName);
 
         logger.setLevel(level);
@@ -61,7 +61,7 @@ public final class LogbackLoggingFacade implements LoggingFacade {
     @Override
     @Nonnull
     public List<LoggerConfig> getLoggerConfig() {
-        final Logger rootLogger = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+        final Logger rootLogger = (Logger) LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
         final List<Logger> loggerList = rootLogger.getLoggerContext().getLoggerList();
 
         return loggerConfigsFor(loggerList);

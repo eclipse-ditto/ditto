@@ -20,7 +20,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 /**
  * Base class for all registries which map a command to its according exception (access, modify).
  */
-public abstract class AbstractCommandToExceptionRegistry<C extends Command, T extends DittoRuntimeException>
+public abstract class AbstractCommandToExceptionRegistry<C extends Command<?>, T extends DittoRuntimeException>
         implements CommandToExceptionRegistry<C, T> {
 
     private final Map<String, Function<C, T>> mappingStrategies;
@@ -30,7 +30,7 @@ public abstract class AbstractCommandToExceptionRegistry<C extends Command, T ex
      *
      * @param mappingStrategies the mapping strategies for this registry
      */
-    public AbstractCommandToExceptionRegistry(final Map<String, Function<C, T>> mappingStrategies) {
+    protected AbstractCommandToExceptionRegistry(final Map<String, Function<C, T>> mappingStrategies) {
         this.mappingStrategies = mappingStrategies;
     }
 

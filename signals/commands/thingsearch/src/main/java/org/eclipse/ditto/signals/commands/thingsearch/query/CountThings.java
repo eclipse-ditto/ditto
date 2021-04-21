@@ -38,12 +38,13 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
 /**
  * Command for counting things.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = CountThings.TYPE_PREFIX, name = CountThings.NAME)
+@JsonParsableCommand(typePrefix = ThingSearchCommand.TYPE_PREFIX, name = CountThings.NAME)
 public final class CountThings extends AbstractCommand<CountThings> implements ThingSearchQueryCommand<CountThings> {
 
     /**

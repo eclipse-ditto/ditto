@@ -22,8 +22,8 @@ import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 /**
  * An abstract Assert for {@link ThingModifyCommand}s.
  */
-public abstract class AbstractThingModifyCommandAssert<S extends AbstractThingModifyCommandAssert<S, C>, C extends
-        ThingModifyCommand> extends AbstractThingCommandAssert<S, C> {
+public abstract class AbstractThingModifyCommandAssert<S extends AbstractThingModifyCommandAssert<S, C>,
+        C extends ThingModifyCommand<?>> extends AbstractThingCommandAssert<S, C> {
 
     /**
      * Constructs a new {@code AbstractThingModifyCommandAssert} object.
@@ -40,7 +40,8 @@ public abstract class AbstractThingModifyCommandAssert<S extends AbstractThingMo
         final Optional<JsonValue> actualEntity = actual.getEntity();
         if (null != expectedEntity) {
             Assertions.assertThat(actualEntity)
-                    .overridingErrorMessage("Expected Command to have entity\n<%s> but it had\n<%s>", expectedEntity,
+                    .overridingErrorMessage(
+                            "Expected Command to have entity\n<%s> but it had\n<%s>", expectedEntity,
                             actualEntity.orElse(null))
                     .contains(expectedEntity);
             return myself;
