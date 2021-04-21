@@ -68,8 +68,8 @@ public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorTest<
 
     private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
     private static final Connection CONNECTION = TestConstants.createConnection(CONNECTION_ID);
-    private static final MqttSpecificConfig SPECIFIC_CONFIG = MqttSpecificConfig.fromConnection(CONNECTION,
-            CONNECTION_CONFIG.getMqttConfig());
+    private static final MqttSpecificConfig SPECIFIC_CONFIG =
+            MqttSpecificConfig.fromConnection(CONNECTION, CONNECTION_CONFIG.getMqttConfig());
 
     @Override
     protected Props getConsumerActorProps(final ActorRef mappingActor,
@@ -167,4 +167,5 @@ public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorTest<
             return true;
         }
     }
+
 }

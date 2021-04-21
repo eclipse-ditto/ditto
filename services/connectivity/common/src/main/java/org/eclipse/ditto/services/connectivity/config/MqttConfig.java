@@ -35,11 +35,15 @@ public interface MqttConfig {
      * Indicates whether the client should reconnect to enforce a redelivery for a failed acknowledgement.
      *
      * @return true if the client should reconnect, false if not.
+     * @since 2.0.0
      */
     boolean shouldReconnectForRedelivery();
 
     /**
+     * Duration how long to wait for the next reconnect after a failed acknowledgement.
+     *
      * @return the amount of time that a reconnect will be delayed after a failed acknowledgement.
+     * @since 2.0.0
      */
     Duration getReconnectForRedeliveryDelay();
 
@@ -48,6 +52,7 @@ public interface MqttConfig {
      * {@link #shouldReconnectForRedelivery()} returns true to avoid that the publisher has downtimes.
      *
      * @return true if a separate client should be used, false if not.
+     * @since 2.0.0
      */
     boolean shouldUseSeparatePublisherClient();
 
@@ -68,7 +73,7 @@ public interface MqttConfig {
         RECONNECT_FOR_REDELIVERY("reconnect-for-redelivery", false),
 
         /**
-         * The amount of time that a reconnect will be delayed after a failed acknowledgement
+         * The amount of time that a reconnect will be delayed after a failed acknowledgement.
          */
         RECONNECT_FOR_REDELIVERY_DELAY("reconnect-for-redelivery-delay", Duration.ofSeconds(2)),
 

@@ -119,8 +119,8 @@ public abstract class AbstractConsumerActorTest<M> {
 
     @Test
     public void testInboundMessageWitMultipleMappingsSucceeds() {
-        testInboundMessage(header("device_id", TestConstants.Things.THING_ID), 2, 0, s -> {}, o -> {},
-                ConnectivityModelFactory.newPayloadMapping("ditto", "ditto"));
+        testInboundMessage(header("device_id", TestConstants.Things.THING_ID), 2, 0,
+                s -> {}, o -> {}, ConnectivityModelFactory.newPayloadMapping("ditto", "ditto"));
     }
 
     @Test
@@ -233,14 +233,14 @@ public abstract class AbstractConsumerActorTest<M> {
 
     @Test
     public void testInboundMessageWithMultipleMappingsOneFailingSucceeds() {
-        testInboundMessage(header("device_id", TestConstants.Things.THING_ID), 1, 1, s -> {}, o -> {},
-                ConnectivityModelFactory.newPayloadMapping("faulty", "ditto"));
+        testInboundMessage(header("device_id", TestConstants.Things.THING_ID), 1, 1,
+                s -> {}, o -> {}, ConnectivityModelFactory.newPayloadMapping("faulty", "ditto"));
     }
 
     @Test
     public void testInboundMessageWithDuplicatingMapperSucceeds() {
-        testInboundMessage(header("device_id", TestConstants.Things.THING_ID), 3, 0, s -> {}, o -> {},
-                ConnectivityModelFactory.newPayloadMapping("duplicator", "ditto"));
+        testInboundMessage(header("device_id", TestConstants.Things.THING_ID), 3, 0,
+                s -> {}, o -> {}, ConnectivityModelFactory.newPayloadMapping("duplicator", "ditto"));
     }
 
     @Test
@@ -316,7 +316,6 @@ public abstract class AbstractConsumerActorTest<M> {
             final Consumer<OutboundSignal.Mapped> verifyResponse,
             final PayloadMapping payloadMapping
     ) {
-
         new TestKit(actorSystem) {{
             final TestProbe sender = TestProbe.apply(actorSystem);
             final TestProbe proxyActor = TestProbe.apply(actorSystem);
@@ -351,7 +350,6 @@ public abstract class AbstractConsumerActorTest<M> {
     }
 
     private ActorRef setupMessageMappingProcessorActor(final ActorRef clientActor, final ActorRef proxyActor) {
-
         final Map<String, MappingContext> mappings = new HashMap<>();
         mappings.put("ditto", DittoMessageMapper.CONTEXT);
         mappings.put("faulty", FaultyMessageMapper.CONTEXT);

@@ -54,6 +54,7 @@ public final class MqttSpecificConfigTest {
         configuredSpecificConfig.put("keepAlive", "30s");
         when(connection.getSpecificConfig()).thenReturn(configuredSpecificConfig);
         final MqttSpecificConfig specificConfig = MqttSpecificConfig.fromConnection(connection, mqttConfig);
+
         assertThat(specificConfig.reconnectForRedelivery()).isFalse();
         assertThat(specificConfig.separatePublisherClient()).isFalse();
         assertThat(specificConfig.getMqttClientId()).contains("consumer-client-id");
@@ -66,6 +67,7 @@ public final class MqttSpecificConfigTest {
     public void defaultConfig() {
         when(connection.getSpecificConfig()).thenReturn(Collections.emptyMap());
         final MqttSpecificConfig specificConfig = MqttSpecificConfig.fromConnection(connection, mqttConfig);
+
         assertThat(specificConfig.reconnectForRedelivery()).isFalse();
         assertThat(specificConfig.separatePublisherClient()).isFalse();
         assertThat(specificConfig.getMqttClientId()).isEmpty();
@@ -73,4 +75,5 @@ public final class MqttSpecificConfigTest {
         assertThat(specificConfig.getReconnectForDeliveryDelay()).isEqualTo(Duration.ofSeconds(2L));
         assertThat(specificConfig.getKeepAliveInterval()).isEmpty();
     }
+
 }

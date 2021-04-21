@@ -36,11 +36,11 @@ public final class MqttSpecificConfig {
 
     private static final String CLEAN_SESSION = "cleanSession";
     private static final String RECONNECT_FOR_REDELIVERY = "reconnectForRedelivery";
+    private static final String RECONNECT_FOR_REDELIVERY_DELAY = "reconnectForRedeliveryDelay";
     private static final String SEPARATE_PUBLISHER_CLIENT = "separatePublisherClient";
     private static final String CLIENT_ID = "clientId";
     private static final String PUBLISHER_ID = "publisherId";
     private static final String KEEP_ALIVE_INTERVAL = "keepAlive";
-    private static final String RECONNECT_FOR_REDELIVERY_DELAY = "reconnectForRedeliveryDelay";
 
     private final Config specificConfig;
 
@@ -67,8 +67,8 @@ public final class MqttSpecificConfig {
     private static Map<String, Object> toDefaultConfig(final MqttConfig mqttConfig) {
         final Map<String, Object> defaultMap = new HashMap<>();
         defaultMap.put(RECONNECT_FOR_REDELIVERY, mqttConfig.shouldReconnectForRedelivery());
-        defaultMap.put(SEPARATE_PUBLISHER_CLIENT, mqttConfig.shouldUseSeparatePublisherClient());
         defaultMap.put(RECONNECT_FOR_REDELIVERY_DELAY, mqttConfig.getReconnectForRedeliveryDelay());
+        defaultMap.put(SEPARATE_PUBLISHER_CLIENT, mqttConfig.shouldUseSeparatePublisherClient());
         return defaultMap;
     }
 
@@ -175,4 +175,5 @@ public final class MqttSpecificConfig {
             return defaultValue;
         }
     }
+
 }
