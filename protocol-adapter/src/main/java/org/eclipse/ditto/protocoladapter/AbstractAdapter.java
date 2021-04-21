@@ -135,10 +135,11 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
      */
     private static DittoHeaders mapTopicPathToHeaders(final TopicPath topicPath) {
         final DittoHeadersBuilder<?, ?> headersBuilder = DittoHeaders.newBuilder();
-        if (topicPath.getNamespace() != null && topicPath.getId() != null) {
+        if (topicPath.getNamespace() != null && topicPath.getEntityName() != null) {
             // add entity ID for known topic-paths for error reporting.
             headersBuilder.putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(),
-                    (topicPath.getNamespace() + ":" + topicPath.getId()));
+                    topicPath.getGroup().getEntityType() + ":" + topicPath.getNamespace() + ":" +
+                            topicPath.getEntityName());
         }
         if (topicPath.getChannel() == TopicPath.Channel.LIVE) {
             headersBuilder.channel(TopicPath.Channel.LIVE.getName());
@@ -176,7 +177,7 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
 
     protected EventsTopicPathBuilder getEventTopicPathBuilderFor(final ThingEvent<?> event,
             final TopicPath.Channel channel) {
-        final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(event.getThingEntityId());
+        final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(event.getEntityId());
         final EventsTopicPathBuilder eventsTopicPathBuilder;
         if (channel == TopicPath.Channel.TWIN) {
             eventsTopicPathBuilder = topicPathBuilder.twin().events();

@@ -30,7 +30,7 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 
 /**
  * Helpers and utils for converting {@link ThingEvent}s to {@link Thing}s.
@@ -55,7 +55,7 @@ public final class ThingEventToThingConverter {
         return Optional.ofNullable(EVENT_TO_THING_MAPPERS.get(thingEvent.getClass()))
                 .map(eventToThingMapper -> {
                     final ThingBuilder.FromScratch thingBuilder = Thing.newBuilder()
-                            .setId(thingEvent.getThingEntityId())
+                            .setId(thingEvent.getEntityId())
                             .setRevision(thingEvent.getRevision())
                             .setModified(thingEvent.getTimestamp().orElse(null));
                     return eventToThingMapper.apply(thingEvent, thingBuilder);
@@ -100,8 +100,8 @@ public final class ThingEventToThingConverter {
             return Optional.empty();
         }
 
-        if (signal instanceof Event) {
-            return Optional.of(thing.toBuilder().setRevision(((Event<?>) signal).getRevision()).build());
+        if (signal instanceof EventsourcedEvent) {
+            return Optional.of(thing.toBuilder().setRevision(((EventsourcedEvent<?>) signal).getRevision()).build());
         }
         return Optional.of(thing);
     }
@@ -123,17 +123,6 @@ public final class ThingEventToThingConverter {
         mappers.put(ThingDeleted.class,
                 (te, tb) -> tb.build());
 
-        mappers.put(AclModified.class,
-                (te, tb) -> tb.setPermissions(((AclModified) te).getAccessControlList()).build());
-        mappers.put(AclEntryCreated.class,
-                (te, tb) -> tb.setPermissions(((AclEntryCreated) te).getAclEntry()).build());
-        mappers.put(AclEntryModified.class,
-                (te, tb) -> tb.setPermissions(((AclEntryModified) te).getAclEntry()).build());
-        mappers.put(AclEntryDeleted.class,
-                (te, tb) -> tb.build());
-
-        mappers.put(PolicyIdCreated.class,
-                (te, tb) -> tb.setPolicyId(((PolicyIdCreated) te).getPolicyEntityId()).build());
         mappers.put(PolicyIdModified.class,
                 (te, tb) -> tb.setPolicyId(((PolicyIdModified) te).getPolicyEntityId()).build());
 

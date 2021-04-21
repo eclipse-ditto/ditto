@@ -15,6 +15,7 @@ package org.eclipse.ditto.model.enforcers.testbench.scenarios.scenario5;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.Scenario;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.ScenarioSetup;
 import org.eclipse.ditto.model.policies.SubjectId;
@@ -35,7 +36,7 @@ public class Scenario5Simple1 implements Scenario5Simple {
                 getPolicy(), //
                 Scenario.newAuthorizationContext(SUBJECT), //
                 "/policy", //
-                Stream.of(SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT).toString())
+                Stream.of(AuthorizationSubject.newInstance(SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT)))
                         .collect(Collectors.toSet()),
                 "READ");
     }

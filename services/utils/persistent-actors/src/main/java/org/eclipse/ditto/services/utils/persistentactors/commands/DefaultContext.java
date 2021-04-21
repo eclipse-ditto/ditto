@@ -68,7 +68,7 @@ public final class DefaultContext<K> implements CommandStrategy.Context<K> {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final DefaultContext that = (DefaultContext) o;
+        final DefaultContext<?> that = (DefaultContext<?>) o;
         return Objects.equals(state, that.state) && Objects.equals(log, that.log);
     }
 

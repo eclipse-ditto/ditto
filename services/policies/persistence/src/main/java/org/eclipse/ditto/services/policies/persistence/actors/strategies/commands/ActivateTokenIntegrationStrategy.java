@@ -42,7 +42,6 @@ import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.services.models.policies.PoliciesValidator;
 import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
-import org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersistenceActor;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegration;
@@ -126,14 +125,14 @@ final class ActivateTokenIntegrationStrategy
 
                     if (policyEntry.getSubjects().getSubject(subjectId).isPresent()) {
                         event = SubjectModified.of(policyId, label, adjustedSubject, nextRevision, eventTimestamp,
-                                adjustedHeaders);
+                                adjustedHeaders, metadata);
                     } else {
                         event = SubjectCreated.of(policyId, label, adjustedSubject, nextRevision, eventTimestamp,
-                                adjustedHeaders);
+                                adjustedHeaders, metadata);
                     }
                 } else {
                     event = SubjectsModifiedPartially.of(policyId, Map.of(label, adjustedSubjects), nextRevision,
-                            eventTimestamp, adjustedHeaders);
+                            eventTimestamp, adjustedHeaders, metadata);
                 }
                 final ActivateTokenIntegrationResponse rawResponse =
                         ActivateTokenIntegrationResponse.of(policyId, label, subjectIds, adjustedHeaders);

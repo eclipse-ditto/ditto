@@ -17,15 +17,15 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.model.placeholders.ExpressionResolver;
-import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
-import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
+import org.eclipse.ditto.services.models.placeholders.ExpressionResolver;
+import org.eclipse.ditto.services.models.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.services.models.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.commands.policies.actions.PolicyActionCommand;
 
 /**
- * Default subject ID resolver utilizing the {@link org.eclipse.ditto.model.placeholders.PolicyEntryPlaceholder}.
+ * Default subject ID resolver utilizing the {@link PolicyEntryPlaceholder}.
  */
 @SuppressWarnings("unused") // called by reflection
 public final class DefaultSubjectIdFromActionResolver implements SubjectIdFromActionResolver {
@@ -42,7 +42,7 @@ public final class DefaultSubjectIdFromActionResolver implements SubjectIdFromAc
     static Set<SubjectId> resolveSubjectId(final PolicyEntry entry,
             final Collection<SubjectId> subjectIdsWithPlaceholder) {
         final ExpressionResolver expressionResolver = PlaceholderFactory.newExpressionResolver(
-                PlaceholderFactory.newPlaceholderResolver(PlaceholderFactory.newPolicyEntryPlaceholder(), entry)
+                PlaceholderFactory.newPlaceholderResolver(PoliciesPlaceholders.newPolicyEntryPlaceholder(), entry)
         );
         return subjectIdsWithPlaceholder.stream()
                 .map(subjectId -> {

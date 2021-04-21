@@ -27,7 +27,6 @@ import org.bson.BsonArray;
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
 import org.bson.BsonString;
-import org.bson.BsonValue;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
@@ -86,6 +85,7 @@ public class MongoReadJournal {
      * ID field of documents delivered by the read journal.
      */
     public static final String J_ID = JournallingFieldNames$.MODULE$.ID();
+    public static final String S_ID = J_ID;
 
     /**
      * Prefix of the priority tag which is used in
@@ -105,6 +105,7 @@ public class MongoReadJournal {
     private static final String J_PROCESSOR_ID = JournallingFieldNames$.MODULE$.PROCESSOR_ID();
     private static final String J_TO = JournallingFieldNames$.MODULE$.TO();
     private static final String J_TAGS = JournallingFieldNames$.MODULE$.TAGS();
+    private static final String S_PROCESSOR_ID = SnapshottingFieldNames$.MODULE$.PROCESSOR_ID();
     private static final String S_SN = SnapshottingFieldNames$.MODULE$.SEQUENCE_NUMBER();
 
     // Not working: SnapshottingFieldNames.V2$.MODULE$.SERIALIZED()
@@ -525,26 +526,26 @@ public class MongoReadJournal {
         final List<Bson> pipeline = new ArrayList<>(5);
         // optional match stage
         if (!startPid.isEmpty()) {
-            pipeline.add(Aggregates.match(Filters.gt(J_PROCESSOR_ID, startPid)));
+            pipeline.add(Aggregates.match(Filters.gt(S_PROCESSOR_ID, startPid)));
         }
 
         // sort stage
-        pipeline.add(Aggregates.sort(Sorts.orderBy(Sorts.ascending(J_PROCESSOR_ID), Sorts.descending(S_SN))));
+        pipeline.add(Aggregates.sort(Sorts.orderBy(Sorts.ascending(S_PROCESSOR_ID), Sorts.descending(S_SN))));
 
         // limit stage. It should come before group stage or MongoDB would scan the entire journal collection.
         pipeline.add(Aggregates.limit(batchSize));
 
-        // group stage 1: by PID
-        pipeline.add(Aggregates.group("$" + J_PROCESSOR_ID, asFirstSnapshotBsonFields(snapshotFields)));
+        // group stage 1: by PID. PID is from now on in field _id (S_ID)
+        pipeline.add(Aggregates.group("$" + S_PROCESSOR_ID, asFirstSnapshotBsonFields(snapshotFields)));
 
         // sort stage 2 -- order after group stage is not defined
-        pipeline.add(Aggregates.sort(Sorts.ascending(J_ID)));
+        pipeline.add(Aggregates.sort(Sorts.ascending(S_ID)));
 
         // group stage 2: filter out pids whose latest snapshot is a deleted snapshot, but retain max encountered pid
         final String maxPid = "m";
         final String items = "i";
         pipeline.add(Aggregates.group(null,
-                Accumulators.max(maxPid, "$" + J_ID),
+                Accumulators.max(maxPid, "$" + S_ID),
                 Accumulators.push(
                         items,
                         new Document().append("$cond", new Document()

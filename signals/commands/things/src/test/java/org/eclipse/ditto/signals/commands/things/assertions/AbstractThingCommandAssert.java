@@ -19,7 +19,7 @@ import org.eclipse.ditto.signals.commands.things.ThingCommand;
 /**
  * An abstract Assert for {@link ThingCommand}s.
  */
-public abstract class AbstractThingCommandAssert<S extends AbstractThingCommandAssert<S, C>, C extends ThingCommand>
+public abstract class AbstractThingCommandAssert<S extends AbstractThingCommandAssert<S, C>, C extends ThingCommand<?>>
         extends AbstractCommandAssert<S, C> {
 
     /**
@@ -38,7 +38,7 @@ public abstract class AbstractThingCommandAssert<S extends AbstractThingCommandA
     }
 
     public S withId(final ThingId expectedThingId) {
-        return assertThatEquals(actual.getThingEntityId(), expectedThingId, "thingId");
+        return assertThatEquals(actual.getEntityId(), expectedThingId, "thingId");
     }
 
 }

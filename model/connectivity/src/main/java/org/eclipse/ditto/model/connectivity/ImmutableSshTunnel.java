@@ -53,15 +53,6 @@ final class ImmutableSshTunnel implements SshTunnel {
         uri = checkNotNull(builder.uri, "uri");
     }
 
-    private ImmutableSshTunnel(final boolean enabled, final Credentials credentials, final boolean validateHost,
-            final List<String> knownHosts, final String uri) {
-        this.enabled = checkNotNull(enabled, "enabled");
-        this.credentials = checkNotNull(credentials, "credentials");
-        this.validateHost = validateHost;
-        this.knownHosts = Collections.unmodifiableList(new ArrayList<>(checkNotNull(knownHosts, "knownHosts")));
-        this.uri = checkNotNull(uri, "uri");
-    }
-
     /**
      * Returns a new {@code SshTunnelBuilder} object.
      *

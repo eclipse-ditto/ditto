@@ -39,7 +39,6 @@ messages to Things and receive messages from Things.
 | Messages                      | ✓     | ✓ |
 | Change notifications          | ✓     | ✓ (SSEs) |
 | Access control via Policy	    | ✓     | ✓ (v2 only) |
-| Access control via ACL        | ✓     | ✓ (v1 only) |
 
 
 ## Further aspects in which the interfaces differ

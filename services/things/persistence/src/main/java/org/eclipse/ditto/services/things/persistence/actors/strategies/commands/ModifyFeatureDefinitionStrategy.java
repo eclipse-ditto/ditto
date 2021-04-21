@@ -85,7 +85,7 @@ final class ModifyFeatureDefinitionStrategy extends AbstractThingCommandStrategy
         final ThingEvent<?> event =
                 FeatureDefinitionModified.of(thingId, featureId, command.getDefinition(), nextRevision,
                         getEventTimestamp(), dittoHeaders, metadata);
-        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
+        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                 ModifyFeatureDefinitionResponse.modified(thingId, featureId, dittoHeaders), thing);
 
         return ResultFactory.newMutationResult(command, event, response);
@@ -100,7 +100,7 @@ final class ModifyFeatureDefinitionStrategy extends AbstractThingCommandStrategy
 
         final ThingEvent<?> event = FeatureDefinitionCreated.of(thingId, featureId, command.getDefinition(),
                 nextRevision, getEventTimestamp(), dittoHeaders, metadata);
-        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
+        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                 ModifyFeatureDefinitionResponse.created(thingId, featureId, command.getDefinition(), dittoHeaders),
                 thing);
 

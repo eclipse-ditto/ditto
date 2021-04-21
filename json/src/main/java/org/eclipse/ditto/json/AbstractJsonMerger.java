@@ -18,6 +18,9 @@ package org.eclipse.ditto.json;
  */
 abstract class AbstractJsonMerger {
 
+    protected AbstractJsonMerger() {
+    }
+
     protected static boolean areJsonObjects(final JsonValue value1, final JsonValue value2) {
         return value1.isObject() && value2.isObject();
     }

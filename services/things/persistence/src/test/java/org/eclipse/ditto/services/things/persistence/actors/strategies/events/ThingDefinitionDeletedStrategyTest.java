@@ -36,7 +36,7 @@ public final class ThingDefinitionDeletedStrategyTest extends AbstractStrategyTe
     public void appliesEventCorrectly() {
         final ThingDefinitionDeletedStrategy strategy = new ThingDefinitionDeletedStrategy();
         final ThingDefinitionDeleted event = ThingDefinitionDeleted.of(THING_ID, REVISION,
-                DittoHeaders.empty());
+                TIMESTAMP, DittoHeaders.empty(), null);
 
         final Thing thingWithDefinition = THING.toBuilder()
                 .setDefinition(THING_DEFINITION)
@@ -46,6 +46,7 @@ public final class ThingDefinitionDeletedStrategyTest extends AbstractStrategyTe
         final Thing expected = THING.toBuilder()
                 .setDefinition(null)
                 .setRevision(NEXT_REVISION)
+                .setModified(TIMESTAMP)
                 .build();
         assertThat(thingWithEventApplied).isEqualTo(expected);
     }

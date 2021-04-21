@@ -7,9 +7,9 @@ permalink: intro-digitaltwins.html
 
 {% include callout.html content="**TL;DR**<br/>Digital twins are a pattern for simplifying IoT solution development." type="primary" %}
 
-The problem with the term **digital twin** is that there are many different understandings of what it means. Furthermore
-the term was previously mostly used and coined by marketing. The term was/is missing a technical foundation of what to
-expect from a framework for digital twins.
+The problem with the term **digital twin** is that there are many different understandings of what it means. 
+Furthermore, the term was previously mostly used and coined by marketing. The term was/is missing a 
+technical foundation of what to expect from a framework for digital twins.
 
 Eclipse Ditto provides such a framework for digital twins and this page describes how Ditto defines/sees digital twins
 from a technical perspective. 

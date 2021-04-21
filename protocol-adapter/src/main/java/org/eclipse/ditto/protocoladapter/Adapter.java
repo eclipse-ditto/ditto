@@ -103,7 +103,7 @@ public interface Adapter<T extends Jsonifiable<?>> {
     boolean isForResponses();
 
     /**
-     * Retrieve whether this adapter requires a subject in the topic.
+     * Indicates whether this adapter requires a subject in the topic.
      * Only relevant for message commands and responses and acknowledgements.
      *
      * @return whether a subject in the topic is required.
@@ -111,4 +111,16 @@ public interface Adapter<T extends Jsonifiable<?>> {
     default boolean requiresSubject() {
         return false;
     }
+
+    /**
+     * Indicates whether this adapter can handle a wildcard topic or not.
+     * Some signals like RetrieveThings don't have an ID in their topic path. Adapter which can handle such
+     * signals can return true for this method to indicate that they can adapt those signals.
+     *
+     * @return whether this adapter supports a wildcard topic (signals without an entity id).
+     */
+    default boolean supportsWildcardTopics() {
+        return false;
+    }
+
 }

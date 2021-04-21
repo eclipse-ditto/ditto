@@ -103,7 +103,7 @@ public final class DeleteThingDefinitionResponse extends AbstractCommandResponse
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

@@ -12,23 +12,23 @@
  */
 package org.eclipse.ditto.services.concierge.enforcement.placeholders.strategies;
 
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.HeaderBasedPlaceholderSubstitutionAlgorithm;
 
 /**
- * Defines the (placeholder) substitution strategy for a certain command (which is of type {@link WithDittoHeaders}.
+ * Defines the (placeholder) substitution strategy for a certain command (which is of type {@link DittoHeadersSettable}.
  *
- * @param <T> the subtype of {@link WithDittoHeaders} handled by this strategy.
+ * @param <T> the subtype of {@link DittoHeadersSettable} handled by this strategy.
  */
-public interface SubstitutionStrategy<T extends WithDittoHeaders> {
+public interface SubstitutionStrategy<T extends DittoHeadersSettable<?>> {
 
     /**
-     * Checks whether this strategy is applicable for the given {@code withDittoHeaders}.
+     * Checks whether this strategy is applicable for the given {@code dittoHeadersSettable}.
      *
-     * @param withDittoHeaders the command which may have content to be substituted.
+     * @param dittoHeadersSettable the command which may have content to be substituted.
      * @return {@code true}, if this strategy is applicable; {@code false}, otherwise.
      */
-    boolean matches(final WithDittoHeaders withDittoHeaders);
+    boolean matches(final DittoHeadersSettable<?> dittoHeadersSettable);
 
     /**
      * Apply (placeholder) substitution on the given {@code withDittoHeaders} using the {@code substitutionAlgorithm}.
@@ -38,6 +38,6 @@ public interface SubstitutionStrategy<T extends WithDittoHeaders> {
      * @return a copy of {@code withDittoHeaders} with substitutions applied, if substitutions were necessary; the
      * same {@code withDittoHeaders}, if no substitutions were necessary.
      */
-    WithDittoHeaders apply(final T withDittoHeaders,
+    DittoHeadersSettable<?> apply(final T withDittoHeaders,
             final HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm);
 }

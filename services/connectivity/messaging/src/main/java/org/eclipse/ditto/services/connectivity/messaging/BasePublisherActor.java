@@ -50,8 +50,6 @@ import org.eclipse.ditto.model.connectivity.ReplyTarget;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.model.placeholders.ExpressionResolver;
-import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.connectivity.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
@@ -68,6 +66,9 @@ import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.Connect
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+import org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders;
+import org.eclipse.ditto.services.models.placeholders.ExpressionResolver;
+import org.eclipse.ditto.services.models.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
@@ -136,7 +137,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         this.logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connection.getId());
 
-        connectionIdResolver = PlaceholderFactory.newExpressionResolver(PlaceholderFactory.newConnectionIdPlaceholder(),
+        connectionIdResolver = PlaceholderFactory.newExpressionResolver(
+                ConnectivityPlaceholders.newConnectionIdPlaceholder(),
                 connection.getId());
     }
 
@@ -189,10 +191,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     final Collection<CommandResponse<?>> nonAcknowledgements = new ArrayList<>();
                     responsesList.forEach(response -> {
                         if (response instanceof Acknowledgement) {
-                            final Acknowledgement acknowledgement = (Acknowledgement) response;
-                            if (shouldPublishAcknowledgement(acknowledgement)) {
-                                acknowledgements.add(acknowledgement);
-                            }
+                            acknowledgements.add((Acknowledgement) response);
                         } else {
                             nonAcknowledgements.add(response);
                         }
@@ -207,8 +206,6 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     return null;
                 });
     }
-
-    protected abstract boolean shouldPublishAcknowledgement(final Acknowledgement acknowledgement);
 
     private void issueAcknowledgements(final OutboundSignal.MultiMapped multiMapped, @Nullable final ActorRef sender,
             final Collection<Acknowledgement> ackList) {
@@ -416,9 +413,9 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             logger.debug("Publishing mapped message of type <{}> to PublishTarget <{}>: {}", outboundSource.getType(),
                     publishTarget, sendingContext.getExternalMessage());
             @Nullable final Target autoAckTarget = sendingContext.getAutoAckTarget().orElse(null);
-            final HeaderMapping headerMapping = genericTarget.getHeaderMapping().orElse(null);
+            final HeaderMapping headerMapping = genericTarget.getHeaderMapping();
             final ExternalMessage mappedMessage = applyHeaderMapping(resolver, outbound, headerMapping);
-            final CompletionStage<CommandResponse<?>> responsesFuture = publishMessage(outboundSource,
+            final CompletionStage<SendResult> responsesFuture = publishMessage(outboundSource,
                     autoAckTarget,
                     publishTarget,
                     mappedMessage,
@@ -471,16 +468,16 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * @param signal the nullable Target for getting even more information about the configured Target to publish to.
      * @param autoAckTarget if set, this is the Target from which {@code Acknowledgement}s should automatically be
      * produced and delivered.
-     * @param publishTarget the {@link PublishTarget} to publish to.
-     * @param message the {@link ExternalMessage} to publish.
+     * @param publishTarget the {@link org.eclipse.ditto.services.connectivity.messaging.PublishTarget} to publish to.
+     * @param message the {@link org.eclipse.ditto.services.models.connectivity.ExternalMessage} to publish.
      * @param maxTotalMessageSize the total max message size in bytes of the payload of an automatically created
      * response.
      * @param ackSizeQuota budget in bytes for how large the payload of this acknowledgement can be, or 0 to not
      * send any acknowledgement.
-     * @return future of command responses (acknowledgements and potentially responses to live commands / live messages)
-     * to reply to sender, or future of null if ackSizeQuota is 0.
+     * @return future of the send result holding a command responses (acknowledgements and potentially responses to
+     * live commands / live messages) to reply to sender, or future of null if ackSizeQuota is 0.
      */
-    protected abstract CompletionStage<CommandResponse<?>> publishMessage(Signal<?> signal,
+    protected abstract CompletionStage<SendResult> publishMessage(Signal<?> signal,
             @Nullable Target autoAckTarget,
             T publishTarget,
             ExternalMessage message,

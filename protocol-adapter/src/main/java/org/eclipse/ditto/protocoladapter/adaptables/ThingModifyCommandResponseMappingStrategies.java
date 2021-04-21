@@ -19,7 +19,6 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableMapper;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
-import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntryResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinitionResponse;
@@ -31,8 +30,6 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeaturesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntryResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyAclResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinitionResponse;
@@ -68,7 +65,6 @@ final class ThingModifyCommandResponseMappingStrategies
         final Map<String, JsonifiableMapper<ThingModifyCommandResponse<?>>> mappingStrategies = new HashMap<>();
 
         addTopLevelResponses(mappingStrategies);
-        addAclResponses(mappingStrategies);
         addAttributeResponses(mappingStrategies);
         addDefinitionResponses(mappingStrategies);
         addFeatureResponses(mappingStrategies);
@@ -95,23 +91,6 @@ final class ThingModifyCommandResponseMappingStrategies
         return isCreated(adaptable) ?
                 ModifyPolicyIdResponse.created(thingId, policyIdFrom(adaptable), dittoHeadersFrom(adaptable)) :
                 ModifyPolicyIdResponse.modified(thingId, dittoHeadersFrom(adaptable));
-    }
-
-    private static void addAclResponses(
-            final Map<String, JsonifiableMapper<ThingModifyCommandResponse<?>>> mappingStrategies) {
-        mappingStrategies.put(ModifyAclResponse.TYPE,
-                adaptable -> ModifyAclResponse.modified(thingIdFrom(adaptable), aclFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
-
-        mappingStrategies.put(ModifyAclEntryResponse.TYPE,
-                adaptable -> isCreated(adaptable)
-                        ? ModifyAclEntryResponse.created(thingIdFrom(adaptable), aclEntryFrom(adaptable),
-                        dittoHeadersFrom(adaptable))
-                        : ModifyAclEntryResponse.modified(thingIdFrom(adaptable), aclEntryFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
-        mappingStrategies.put(DeleteAclEntryResponse.TYPE,
-                adaptable -> DeleteAclEntryResponse.of(thingIdFrom(adaptable), authorizationSubjectFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
     }
 
     private static void addAttributeResponses(
@@ -191,10 +170,12 @@ final class ThingModifyCommandResponseMappingStrategies
 
         mappingStrategies.put(ModifyFeatureDesiredPropertiesResponse.TYPE,
                 adaptable -> isCreated(adaptable)
-                        ? ModifyFeatureDesiredPropertiesResponse.created(thingIdFrom(adaptable), featureIdFrom(adaptable),
-                        featurePropertiesFrom(adaptable),
-                        dittoHeadersFrom(adaptable))
-                        : ModifyFeatureDesiredPropertiesResponse.modified(thingIdFrom(adaptable), featureIdFrom(adaptable),
+                        ?
+                        ModifyFeatureDesiredPropertiesResponse.created(thingIdFrom(adaptable), featureIdFrom(adaptable),
+                                featurePropertiesFrom(adaptable),
+                                dittoHeadersFrom(adaptable))
+                        : ModifyFeatureDesiredPropertiesResponse.modified(thingIdFrom(adaptable),
+                        featureIdFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
         mappingStrategies.put(DeleteFeatureDesiredPropertiesResponse.TYPE,
                 adaptable -> DeleteFeatureDesiredPropertiesResponse.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
@@ -217,12 +198,14 @@ final class ThingModifyCommandResponseMappingStrategies
                         ? ModifyFeatureDesiredPropertyResponse.created(thingIdFrom(adaptable), featureIdFrom(adaptable),
                         featurePropertyPointerFrom(adaptable),
                         featurePropertyValueFrom(adaptable), dittoHeadersFrom(adaptable))
-                        : ModifyFeatureDesiredPropertyResponse.modified(thingIdFrom(adaptable), featureIdFrom(adaptable),
-                        featurePropertyPointerFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
-        mappingStrategies.put(DeleteFeatureDesiredPropertyResponse.TYPE, adaptable -> DeleteFeatureDesiredPropertyResponse
-                .of(thingIdFrom(adaptable), featureIdFrom(adaptable), featurePropertyPointerFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                        :
+                        ModifyFeatureDesiredPropertyResponse.modified(thingIdFrom(adaptable), featureIdFrom(adaptable),
+                                featurePropertyPointerFrom(adaptable),
+                                dittoHeadersFrom(adaptable)));
+        mappingStrategies.put(DeleteFeatureDesiredPropertyResponse.TYPE,
+                adaptable -> DeleteFeatureDesiredPropertyResponse
+                        .of(thingIdFrom(adaptable), featureIdFrom(adaptable), featurePropertyPointerFrom(adaptable),
+                                dittoHeadersFrom(adaptable)));
     }
 
 }

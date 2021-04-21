@@ -37,6 +37,7 @@ import org.eclipse.ditto.services.gateway.security.utils.HttpUtils;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
+import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.Query;
@@ -57,6 +58,7 @@ import akka.http.javadsl.server.RequestContext;
  * @since 1.1.0
  */
 @Immutable
+@AllValuesAreNonnullByDefault
 public final class PreAuthenticatedAuthenticationProvider
         extends TimeMeasuringAuthenticationProvider<AuthenticationResult> {
 
@@ -80,8 +82,7 @@ public final class PreAuthenticatedAuthenticationProvider
 
     @Override
     public boolean isApplicable(final RequestContext requestContext) {
-        return containsHeader(requestContext, HttpHeader.X_DITTO_PRE_AUTH) ||
-                containsHeader(requestContext, HttpHeader.X_DITTO_DUMMY_AUTH);
+        return containsHeader(requestContext, HttpHeader.X_DITTO_PRE_AUTH);
     }
 
     private static boolean containsHeader(final RequestContext requestContext, final HttpHeader header) {
@@ -128,9 +129,7 @@ public final class PreAuthenticatedAuthenticationProvider
 
     private static Optional<String> getPreAuthenticated(final RequestContext requestContext) {
         return HttpUtils.getRequestHeader(requestContext, HttpHeader.X_DITTO_PRE_AUTH.getName())
-                .or(() -> HttpUtils.getRequestHeader(requestContext, HttpHeader.X_DITTO_DUMMY_AUTH.getName()))
-                .or(() -> getRequestParam(requestContext, HttpHeader.X_DITTO_PRE_AUTH))
-                .or(() -> getRequestParam(requestContext, HttpHeader.X_DITTO_DUMMY_AUTH));
+                .or(() -> getRequestParam(requestContext, HttpHeader.X_DITTO_PRE_AUTH));
     }
 
     private static DittoRuntimeException getAuthenticationFailedException(final DittoHeaders dittoHeaders) {

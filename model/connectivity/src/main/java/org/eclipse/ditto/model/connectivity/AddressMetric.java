@@ -61,13 +61,13 @@ public interface AddressMetric extends Jsonifiable.WithFieldSelectorAndPredicate
          */
         public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
                 JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the timestamp when the last message was consumed/published.
          */
         public static final JsonFieldDefinition<String> LAST_MESSAGE_AT =
-                JsonFactory.newStringFieldDefinition("lastMessageAt", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("lastMessageAt", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

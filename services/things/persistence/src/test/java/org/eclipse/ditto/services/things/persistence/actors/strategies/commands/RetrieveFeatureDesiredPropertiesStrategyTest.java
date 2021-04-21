@@ -55,7 +55,7 @@ public final class RetrieveFeatureDesiredPropertiesStrategyTest extends Abstract
         final RetrieveFeatureDesiredProperties command =
                 RetrieveFeatureDesiredProperties.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
         final RetrieveFeatureDesiredPropertiesResponse expectedResponse =
-                retrieveFeatureDesiredPropertiesResponse(command.getThingEntityId(), command.getFeatureId(),
+                retrieveFeatureDesiredPropertiesResponse(command.getEntityId(), command.getFeatureId(),
                         FLUX_CAPACITOR_PROPERTIES, command.getDittoHeaders());
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
@@ -67,22 +67,22 @@ public final class RetrieveFeatureDesiredPropertiesStrategyTest extends Abstract
         final RetrieveFeatureDesiredProperties command =
                 RetrieveFeatureDesiredProperties.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featureNotFound(command.getThingEntityId(), command.getFeatureId(),
+                ExceptionFactory.featureNotFound(command.getEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.removeFeatures(), command, expectedException);
     }
 
     @Test
-    public void getNonExistingProperties() {
+    public void getNonExistingDesiredProperties() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeatureDesiredProperties command =
                 RetrieveFeatureDesiredProperties.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featureDesiredPropertiesNotFound(command.getThingEntityId(), command.getFeatureId(),
+                ExceptionFactory.featureDesiredPropertiesNotFound(command.getEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
 
-        assertErrorResult(underTest, THING_V2.setFeature(FLUX_CAPACITOR.removeProperties()), command,
+        assertErrorResult(underTest, THING_V2.setFeature(FLUX_CAPACITOR.removeDesiredProperties()), command,
                 expectedException);
     }
 
@@ -94,7 +94,7 @@ public final class RetrieveFeatureDesiredPropertiesStrategyTest extends Abstract
                 RetrieveFeatureDesiredProperties.of(context.getState(), FLUX_CAPACITOR_ID, selectedFields,
                         DittoHeaders.empty());
         final RetrieveFeatureDesiredPropertiesResponse expectedResponse =
-                retrieveFeatureDesiredPropertiesResponse(command.getThingEntityId(), command.getFeatureId(),
+                retrieveFeatureDesiredPropertiesResponse(command.getEntityId(), command.getFeatureId(),
                         FLUX_CAPACITOR_PROPERTIES,
                         FeatureProperties.newBuilder()
                                 .set("target_year_1",

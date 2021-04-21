@@ -29,7 +29,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * @param <T> the type of the message's payload.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = SendThingMessage.TYPE_PREFIX, name = SendThingMessage.NAME)
+@JsonParsableCommand(typePrefix = MessageCommand.TYPE_PREFIX, name = SendThingMessage.NAME)
 public final class SendThingMessage<T> extends AbstractMessageCommand<T, SendThingMessage<T>> {
 
     /**
@@ -47,27 +47,8 @@ public final class SendThingMessage<T> extends AbstractMessageCommand<T, SendThi
     }
 
     @Override
-    public SendThingMessage setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), getMessage(), dittoHeaders);
-    }
-
-    /**
-     * Creates a new instance of {@link SendThingMessage}.
-     *
-     * @param thingId the ID of the Thing to send the message to
-     * @param message the message to send to the Thing
-     * @param dittoHeaders the DittoHeaders of this message.
-     * @param <T> the type of the message's payload.
-     * @return new instance of {@link SendThingMessage}.
-     * @throws NullPointerException if any arguments is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.messages.Message, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static <T> SendThingMessage<T> of(final String thingId, final Message<T> message,
-            final DittoHeaders dittoHeaders) {
-        return of(ThingId.of(thingId), message, dittoHeaders);
+    public SendThingMessage<T> setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return of(getEntityId(), getMessage(), dittoHeaders);
     }
 
     /**

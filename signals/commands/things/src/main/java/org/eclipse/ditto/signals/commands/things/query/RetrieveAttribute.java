@@ -34,13 +34,14 @@ import org.eclipse.ditto.model.things.AttributesModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 
 /**
  * Command which retrieves a single attribute of a {@code Thing} based on the passed in ID and a JSON pointer.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = RetrieveAttribute.TYPE_PREFIX, name = RetrieveAttribute.NAME)
+@JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = RetrieveAttribute.NAME)
 public final class RetrieveAttribute extends AbstractCommand<RetrieveAttribute>
         implements ThingQueryCommand<RetrieveAttribute> {
 
@@ -55,7 +56,7 @@ public final class RetrieveAttribute extends AbstractCommand<RetrieveAttribute>
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<String> JSON_ATTRIBUTE =
-            JsonFactory.newStringFieldDefinition("attribute", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("attribute", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final ThingId thingId;
@@ -71,29 +72,6 @@ public final class RetrieveAttribute extends AbstractCommand<RetrieveAttribute>
     private JsonPointer checkAttributePointer(final JsonPointer attributePointer) {
         checkNotNull(attributePointer, "JSON pointer which attribute to retrieve");
         return AttributesModelFactory.validateAttributePointer(attributePointer);
-    }
-
-    /**
-     * Returns a command for retrieving an attribute of a Thing with the given ID.
-     *
-     * @param thingId the ID of a single Thing from which a single attribute will be retrieved by this command.
-     * @param attributeJsonPointer defines one JSON pointer of the attribute to retrieve.
-     * @param dittoHeaders the headers of the command.
-     * @return a Command for retrieving a single attribute of the Thing with the {@code thingId} as its ID which is
-     * readable from the passed authorization context.
-     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributeJsonPointer} are not valid
-     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer,
-     * org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrieveAttribute of(final String thingId, final JsonPointer attributeJsonPointer,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), attributeJsonPointer, dittoHeaders);
     }
 
     /**
@@ -149,7 +127,7 @@ public final class RetrieveAttribute extends AbstractCommand<RetrieveAttribute>
      */
     public static RetrieveAttribute fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveAttribute>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
             final String extractedPointerString = jsonObject.getValueOrThrow(JSON_ATTRIBUTE);
             final JsonPointer extractedPointer = JsonFactory.newPointer(extractedPointerString);
@@ -168,7 +146,7 @@ public final class RetrieveAttribute extends AbstractCommand<RetrieveAttribute>
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 
@@ -183,7 +161,7 @@ public final class RetrieveAttribute extends AbstractCommand<RetrieveAttribute>
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_ATTRIBUTE, attributePointer.toString(), predicate);
     }
 

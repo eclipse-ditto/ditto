@@ -67,7 +67,7 @@ final class DeleteAttributesStrategy
         final ThingId thingId = context.getState();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
+        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                 DeleteAttributesResponse.of(thingId, dittoHeaders), thing);
 
         return ResultFactory.newMutationResult(command,

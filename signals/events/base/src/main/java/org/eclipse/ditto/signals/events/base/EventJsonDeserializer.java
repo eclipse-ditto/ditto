@@ -18,7 +18,6 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.text.MessageFormat;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
-import java.util.Optional;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -41,11 +40,10 @@ import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
  * @param <T> the type of the Event.
  */
 @Immutable
-public final class EventJsonDeserializer<T extends Event> {
+public final class EventJsonDeserializer<T extends Event<T>> {
 
     private final JsonObject jsonObject;
     private final String expectedType;
-    private final String eventTypePrefix;
 
     /**
      * Constructs a new {@code EventJsonDeserializer} object.
@@ -61,7 +59,6 @@ public final class EventJsonDeserializer<T extends Event> {
 
         this.jsonObject = jsonObject;
         expectedType = type;
-        eventTypePrefix = type.split(":")[0];
     }
 
     private static void validateType(final String type) {
@@ -101,7 +98,7 @@ public final class EventJsonDeserializer<T extends Event> {
         validateEventType();
 
         // added in V2 for V1, fallback to revision "0":
-        final Long revision = jsonObject.getValue(Event.JsonFields.REVISION).orElse(0L);
+        final Long revision = jsonObject.getValue(EventsourcedEvent.JsonFields.REVISION).orElse(0L);
 
         final Instant timestamp = jsonObject.getValue(Event.JsonFields.TIMESTAMP.getPointer())
                 .filter(JsonValue::isString)
@@ -120,23 +117,13 @@ public final class EventJsonDeserializer<T extends Event> {
 
     private void validateEventType() {
         final String type = jsonObject.getValue(Event.JsonFields.TYPE)
-                .orElseGet(() -> // if type was not present (was included in V2)
-                        // take event instead and transform to V2 format, fail if "event" is not present, too
-                        extractEventTypeV1()
-                                .orElseThrow(() -> new JsonMissingFieldException(Event.JsonFields.TYPE.getPointer()))
-                );
+                .orElseThrow(() -> new JsonMissingFieldException(Event.JsonFields.TYPE.getPointer()));
 
         if (!expectedType.equals(type)) {
             final String msgPattern = "Event JSON was not a <{0}> event but a <{1}>!";
             final String msg = MessageFormat.format(msgPattern, expectedType, type);
             throw new DittoJsonException(new JsonParseException(msg));
         }
-    }
-
-    @SuppressWarnings("squid:CallToDeprecatedMethod")
-    private Optional<String> extractEventTypeV1() {
-        return jsonObject.getValue(Event.JsonFields.ID)
-                .map(event -> eventTypePrefix + ':' + event);
     }
 
     private static Instant tryToParseModified(final CharSequence dateTime) {
@@ -154,12 +141,12 @@ public final class EventJsonDeserializer<T extends Event> {
      * @param <T> the type of the result of the function.
      */
     @FunctionalInterface
-    public interface FactoryMethodFunction<T extends Event> {
+    public interface FactoryMethodFunction<T extends Event<T>> {
 
         /**
          * Creates a {@code Event} with the help of the given arguments.
          *
-         * @param revision the revision of the Entity.
+         * @param revision the revision of the event or {@code 0L} if the event did not contain a revision.
          * @param timestamp the event's timestamp.
          * @param metadata the event's metadata.
          * @return the created event.

@@ -53,12 +53,12 @@ public interface Scenario {
             final Policy policy,
             final AuthorizationContext authorizationContext,
             final String resource,
-            final Set<String> expectedSubjectIds,
+            final Set<AuthorizationSubject> expectedSubjects,
             final String permission,
             final String... permissions) {
 
         return new ScenarioSetup(policy, authorizationContext, JsonPointer.of(resource), THING_TYPE,
-                Permissions.newInstance(permission, permissions), expectedResult, description, expectedSubjectIds);
+                Permissions.newInstance(permission, permissions), expectedResult, description, expectedSubjects);
     }
 
     static ScenarioSetup newScenarioSetup(final boolean expectedResult,
@@ -66,13 +66,13 @@ public interface Scenario {
             final Policy policy,
             final AuthorizationContext authorizationContext,
             final String resource,
-            final Set<String> expectedSubjectIds,
+            final Set<AuthorizationSubject> expectedSubjects,
             final Function<PolicyAlgorithm, Boolean> additionalAlgorithmFunction,
             final String permission,
             final String... permissions) {
 
         return new ScenarioSetup(policy, authorizationContext, JsonPointer.of(resource), THING_TYPE,
-                Permissions.newInstance(permission, permissions), expectedResult, description, expectedSubjectIds,
+                Permissions.newInstance(permission, permissions), expectedResult, description, expectedSubjects,
                 additionalAlgorithmFunction);
     }
 
@@ -83,13 +83,13 @@ public interface Scenario {
             final String resource,
             final Jsonifiable.WithFieldSelectorAndPredicate<JsonField> fullJsonifiable,
             final JsonObject expectedJsonView,
-            final Set<String> expectedSubjectIds,
+            final Set<AuthorizationSubject> expectedSubjects,
             final String permission,
             final String... permissions) {
 
         return new ScenarioSetup(policy, authorizationContext, JsonPointer.of(resource), THING_TYPE,
                 Permissions.newInstance(permission, permissions), expectedResult, fullJsonifiable, expectedJsonView,
-                description, expectedSubjectIds);
+                description, expectedSubjects);
     }
 
     static AuthorizationContext newAuthorizationContext(final String authorizationSubject,

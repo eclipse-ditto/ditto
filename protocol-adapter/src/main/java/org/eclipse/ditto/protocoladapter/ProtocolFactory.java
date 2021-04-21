@@ -65,22 +65,6 @@ public final class ProtocolFactory {
     }
 
     /**
-     * Returns a new {@code AdaptableBuilder} for the existing {@code existingAdaptable} and a specific
-     * {@code overwriteTopicPath} to overwrite the one in {@code existingAdaptable}.
-     *
-     * @param existingAdaptable the existingAdaptable to initialize the AdaptableBuilder with.
-     * @param overwriteTopicPath the specific {@code TopicPath} to set as overwrite.
-     * @return the builder.
-     * @deprecated since 1.1.0, please use {@link #newAdaptableBuilder(Adaptable)} instead.
-     */
-    @Deprecated
-    public static AdaptableBuilder newAdaptableBuilder(final Adaptable existingAdaptable,
-            final TopicPath overwriteTopicPath) {
-        return ImmutableAdaptableBuilder.of(overwriteTopicPath).withPayload(existingAdaptable.getPayload())
-                .withHeaders(existingAdaptable.getDittoHeaders());
-    }
-
-    /**
      * Returns a new {@code Adaptable} with the {@code extra} field set in the payload.
      *
      * @param existingAdaptable the existing adaptable.
@@ -175,23 +159,6 @@ public final class ProtocolFactory {
         } catch (final NoSuchElementException e) {
             throw UnknownTopicPathException.newBuilder(path).build();
         }
-    }
-
-    /**
-     * Returns a new {@code TopicPathBuilder} for the specified {@code thingId}. The {@code namespace} and {@code id}
-     * part of the {@code TopicPath} will pe parsed from the {@code thingId} and set in the builder.
-     *
-     * @param thingId the id.
-     * @return the builder.
-     * @throws NullPointerException if {@code thingId} is {@code null}.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if {@code thingId} is not in the expected format.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #newTopicPathBuilder(org.eclipse.ditto.model.things.ThingId)}
-     * instead.
-     */
-    @Deprecated
-    public static TopicPathBuilder newTopicPathBuilder(final String thingId) {
-        return newTopicPathBuilder(ThingId.of(thingId));
     }
 
     /**

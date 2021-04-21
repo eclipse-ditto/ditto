@@ -68,13 +68,6 @@ public final class ThingMongoSnapshotAdapterTest {
     }
 
     @Test
-    public void toSnapshotStoreFromSnapshotStoreRoundTripV1ReturnsExpected() {
-        final var thingV1 = TestConstants.Thing.THING_V1;
-        toSnapshotStoreFromSnapshotStoreRoundTripReturnsExpected(thingV1);
-        expectSnapshotPublished(thingV1);
-    }
-
-    @Test
     public void toSnapshotStoreFromSnapshotStoreRoundTripV2ReturnsExpected() {
         final var thingV2 = TestConstants.Thing.THING_V2;
         toSnapshotStoreFromSnapshotStoreRoundTripReturnsExpected(thingV2);

@@ -34,13 +34,15 @@ public final class PolicyIdModifiedStrategyTest extends AbstractStrategyTest {
     @Test
     public void appliesEventCorrectly() {
         final PolicyIdModifiedStrategy strategy = new PolicyIdModifiedStrategy();
-        final PolicyIdModified event = PolicyIdModified.of(THING_ID, POLICY_ID, REVISION, DittoHeaders.empty());
+        final PolicyIdModified event = PolicyIdModified.of(THING_ID, POLICY_ID, REVISION, TIMESTAMP, DittoHeaders.empty(),
+                null);
 
         final Thing thingWithEventApplied = strategy.handle(event, THING, NEXT_REVISION);
 
         final Thing expected = THING.toBuilder()
                 .setPolicyId(POLICY_ID)
                 .setRevision(NEXT_REVISION)
+                .setModified(TIMESTAMP)
                 .build();
         assertThat(thingWithEventApplied).isEqualTo(expected);
     }

@@ -25,7 +25,7 @@ import akka.actor.Props;
  * Configurable default implementation of {@link AbstractPersistenceStreamingActor}.
  */
 @AllValuesAreNonnullByDefault
-public final class DefaultPersistenceStreamingActor<T extends EntityIdWithRevision>
+public final class DefaultPersistenceStreamingActor<T extends EntityIdWithRevision<?>>
         extends AbstractPersistenceStreamingActor<T> {
 
     private final Class<T> elementClass;
@@ -33,7 +33,7 @@ public final class DefaultPersistenceStreamingActor<T extends EntityIdWithRevisi
     @SuppressWarnings("unused")
     private DefaultPersistenceStreamingActor(final Class<T> elementClass,
             final Function<PidWithSeqNr, T> entityMapper,
-            final Function<EntityIdWithRevision, PidWithSeqNr> entityUnmapper) {
+            final Function<EntityIdWithRevision<?>, PidWithSeqNr> entityUnmapper) {
 
         super(entityMapper, entityUnmapper);
         this.elementClass = elementClass;
@@ -42,7 +42,7 @@ public final class DefaultPersistenceStreamingActor<T extends EntityIdWithRevisi
     @SuppressWarnings("unused")
     private DefaultPersistenceStreamingActor(final Class<T> elementClass,
             final Function<PidWithSeqNr, T> entityMapper,
-            final Function<EntityIdWithRevision, PidWithSeqNr> entityUnmapper,
+            final Function<EntityIdWithRevision<?>, PidWithSeqNr> entityUnmapper,
             final MongoReadJournal readJournal) {
 
         super(entityMapper, entityUnmapper, readJournal);
@@ -60,16 +60,16 @@ public final class DefaultPersistenceStreamingActor<T extends EntityIdWithRevisi
      * @param entityUnmapper the inverse of {@code entityMapper}.
      * @return the Akka configuration Props object.
      */
-    public static <T extends EntityIdWithRevision> Props props(final Class<T> elementClass,
+    public static <T extends EntityIdWithRevision<?>> Props props(final Class<T> elementClass,
             final Function<PidWithSeqNr, T> entityMapper,
-            final Function<EntityIdWithRevision, PidWithSeqNr> entityUnmapper) {
+            final Function<EntityIdWithRevision<?>, PidWithSeqNr> entityUnmapper) {
 
         return Props.create(DefaultPersistenceStreamingActor.class, elementClass, entityMapper, entityUnmapper);
     }
 
-    static <T extends EntityIdWithRevision> Props propsForTests(final Class<T> elementClass,
+    static <T extends EntityIdWithRevision<?>> Props propsForTests(final Class<T> elementClass,
             final Function<PidWithSeqNr, T> entityMapper,
-            final Function<EntityIdWithRevision, PidWithSeqNr> entityUnmapper,
+            final Function<EntityIdWithRevision<?>, PidWithSeqNr> entityUnmapper,
             final MongoReadJournal readJournal) {
 
         return Props.create(DefaultPersistenceStreamingActor.class, elementClass, entityMapper, entityUnmapper,

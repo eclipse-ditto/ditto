@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
@@ -75,11 +76,12 @@ public class PolicyIdReferencePlaceholderResolverTest {
         final CompletionStage<String> policyIdCS = sut.resolve(referencePlaceholder, DittoHeaders.empty());
 
         final RetrieveThing retrieveThing = conciergeForwarderActorProbe.expectMsgClass(RetrieveThing.class);
-        assertThat((CharSequence) retrieveThing.getThingEntityId()).isEqualTo(THING_ID);
+        assertThat((CharSequence) retrieveThing.getEntityId()).isEqualTo(THING_ID);
         assertThat(retrieveThing.getSelectedFields()).contains(JsonFieldSelector.newInstance("policyId"));
 
         conciergeForwarderActorProbe.reply(RetrieveThingResponse.of(THING_ID,
-                Thing.newBuilder().setPolicyId("namespace:myPolicy").build(), DittoHeaders.empty()));
+                Thing.newBuilder().setPolicyId(PolicyId.of("namespace:myPolicy")).build(), null, null,
+                DittoHeaders.empty()));
 
         Awaitility.await()
                 .atMost(Duration.ofSeconds(1))
@@ -98,12 +100,12 @@ public class PolicyIdReferencePlaceholderResolverTest {
         final CompletionStage<String> policyIdCS = sut.resolve(referencePlaceholder, DittoHeaders.empty());
 
         final RetrieveThing retrieveThing = conciergeForwarderActorProbe.expectMsgClass(RetrieveThing.class);
-        assertThat((CharSequence) retrieveThing.getThingEntityId()).isEqualTo(THING_ID);
+        assertThat((CharSequence) retrieveThing.getEntityId()).isEqualTo(THING_ID);
         assertThat(retrieveThing.getSelectedFields()).contains(JsonFieldSelector.newInstance("/attributes/policyId"));
 
         conciergeForwarderActorProbe.reply(RetrieveThingResponse.of(THING_ID,
                 Thing.newBuilder().setAttribute(JsonPointer.of("policyId"), JsonValue.of("namespace:myPolicy")).build(),
-                DittoHeaders.empty()));
+                null, null, DittoHeaders.empty()));
 
         Awaitility.await()
                 .atMost(Duration.ofSeconds(1))
@@ -123,12 +125,12 @@ public class PolicyIdReferencePlaceholderResolverTest {
         final CompletionStage<String> policyIdCS = sut.resolve(referencePlaceholder, DittoHeaders.empty());
 
         final RetrieveThing retrieveThing = conciergeForwarderActorProbe.expectMsgClass(RetrieveThing.class);
-        assertThat((CharSequence) retrieveThing.getThingEntityId()).isEqualTo(THING_ID);
+        assertThat((CharSequence) retrieveThing.getEntityId()).isEqualTo(THING_ID);
         assertThat(retrieveThing.getSelectedFields()).contains(JsonFieldSelector.newInstance("/attributes/policyId"));
 
         conciergeForwarderActorProbe.reply(RetrieveThingResponse.of(THING_ID,
                 Thing.newBuilder().build(),
-                DittoHeaders.empty()));
+                null, null, DittoHeaders.empty()));
 
         Awaitility.await()
                 .atMost(Duration.ofSeconds(1))
@@ -148,11 +150,11 @@ public class PolicyIdReferencePlaceholderResolverTest {
         final CompletionStage<String> policyIdCS = sut.resolve(referencePlaceholder, DittoHeaders.empty());
 
         final RetrieveThing retrieveThing = conciergeForwarderActorProbe.expectMsgClass(RetrieveThing.class);
-        assertThat((CharSequence) retrieveThing.getThingEntityId()).isEqualTo(THING_ID);
+        assertThat((CharSequence) retrieveThing.getEntityId()).isEqualTo(THING_ID);
         assertThat(retrieveThing.getSelectedFields()).contains(JsonFieldSelector.newInstance("policyId"));
 
         conciergeForwarderActorProbe.reply(
-                RetrieveThingResponse.of(THING_ID, Thing.newBuilder().build(), DittoHeaders.empty()));
+                RetrieveThingResponse.of(THING_ID, Thing.newBuilder().build(), null, null, DittoHeaders.empty()));
 
         Awaitility.await()
                 .atMost(Duration.ofSeconds(1))
@@ -172,7 +174,7 @@ public class PolicyIdReferencePlaceholderResolverTest {
         final CompletionStage<String> policyIdCS = sut.resolve(referencePlaceholder, DittoHeaders.empty());
 
         final RetrieveThing retrieveThing = conciergeForwarderActorProbe.expectMsgClass(RetrieveThing.class);
-        assertThat((CharSequence) retrieveThing.getThingEntityId()).isEqualTo(THING_ID);
+        assertThat((CharSequence) retrieveThing.getEntityId()).isEqualTo(THING_ID);
         assertThat(retrieveThing.getSelectedFields()).contains(JsonFieldSelector.newInstance("policyId"));
 
         final DittoRuntimeException dre = ThingNotAccessibleException.newBuilder(THING_ID).build();
@@ -196,7 +198,7 @@ public class PolicyIdReferencePlaceholderResolverTest {
         final CompletionStage<String> policyIdCS = sut.resolve(referencePlaceholder, DittoHeaders.empty());
 
         final RetrieveThing retrieveThing = conciergeForwarderActorProbe.expectMsgClass(RetrieveThing.class);
-        assertThat((CharSequence) retrieveThing.getThingEntityId()).isEqualTo(THING_ID);
+        assertThat((CharSequence) retrieveThing.getEntityId()).isEqualTo(THING_ID);
         assertThat(retrieveThing.getSelectedFields()).contains(JsonFieldSelector.newInstance("policyId"));
 
         conciergeForwarderActorProbe.reply("someThingUnexpected");

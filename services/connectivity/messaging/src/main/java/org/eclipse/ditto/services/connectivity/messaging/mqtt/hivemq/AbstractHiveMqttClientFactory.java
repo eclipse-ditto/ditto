@@ -80,8 +80,8 @@ abstract class AbstractHiveMqttClientFactory {
         }
     }
 
-    void configureWillPublish(final Mqtt3ClientBuilder clientBuilder, final Connection connection) {
-        final MqttSpecificConfig mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection);
+    @SuppressWarnings("Duplicates")
+    void configureWillPublish(final Mqtt3ClientBuilder clientBuilder, final MqttSpecificConfig mqttSpecificConfig) {
         // since topic is required, the other last will parameters will only be applied if the topic is set
         mqttSpecificConfig.getMqttWillTopic()
                 .map(topic -> clientBuilder.willPublish().topic(topic))
@@ -95,8 +95,8 @@ abstract class AbstractHiveMqttClientFactory {
                 .map(Mqtt3WillPublishBuilder.Nested.Complete::applyWillPublish);
     }
 
-    void configureWillPublish(final Mqtt5ClientBuilder clientBuilder, final Connection connection) {
-        final MqttSpecificConfig mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection);
+    @SuppressWarnings("Duplicates")
+    void configureWillPublish(final Mqtt5ClientBuilder clientBuilder, final MqttSpecificConfig mqttSpecificConfig) {
         // since topic is required, the other last will parameters will only be applied if the topic is set
         mqttSpecificConfig.getMqttWillTopic()
                 .map(topic -> clientBuilder.willPublish().topic(topic))

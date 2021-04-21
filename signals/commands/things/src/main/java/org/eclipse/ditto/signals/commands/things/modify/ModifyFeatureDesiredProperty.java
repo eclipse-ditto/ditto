@@ -37,6 +37,7 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 
 /**
@@ -45,7 +46,7 @@ import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
  * @since 1.5.0
  */
 @Immutable
-@JsonParsableCommand(typePrefix = ModifyFeatureDesiredProperty.TYPE_PREFIX, name = ModifyFeatureDesiredProperty.NAME)
+@JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = ModifyFeatureDesiredProperty.NAME)
 public final class ModifyFeatureDesiredProperty extends AbstractCommand<ModifyFeatureDesiredProperty> implements
         ThingModifyCommand<ModifyFeatureDesiredProperty>, WithFeatureId {
 
@@ -164,7 +165,7 @@ public final class ModifyFeatureDesiredProperty extends AbstractCommand<ModifyFe
     public static ModifyFeatureDesiredProperty fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
 
         return new CommandJsonDeserializer<ModifyFeatureDesiredProperty>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
             final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
             final String pointerString = jsonObject.getValueOrThrow(JSON_DESIRED_PROPERTY);
@@ -194,7 +195,7 @@ public final class ModifyFeatureDesiredProperty extends AbstractCommand<ModifyFe
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 
@@ -229,7 +230,7 @@ public final class ModifyFeatureDesiredProperty extends AbstractCommand<ModifyFe
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
         jsonObjectBuilder.set(JSON_DESIRED_PROPERTY, desiredPropertyPointer.toString(), predicate);
         jsonObjectBuilder.set(JSON_DESIRED_PROPERTY_VALUE, desiredPropertyValue, predicate);

@@ -57,7 +57,6 @@ public final class SudoRetrieveThingsResponseTest {
 
     private static final DittoHeaders EMPTY_DITTO_HEADERS = DittoHeaders.empty();
 
-    /** */
     @Test
     public void assertImmutability() {
         assertInstancesOf(SudoRetrieveThingsResponse.class,
@@ -67,7 +66,6 @@ public final class SudoRetrieveThingsResponseTest {
                 assumingFields("things").areModifiedAsPartOfAnUnobservableCachingStrategy());
     }
 
-    /** */
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(SudoRetrieveThingsResponse.class)
@@ -75,13 +73,11 @@ public final class SudoRetrieveThingsResponseTest {
                 .verify();
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void tryToCreateNewInstanceWithNullJsonArray() {
         SudoRetrieveThingsResponse.of(null, FieldType.notHidden(), EMPTY_DITTO_HEADERS);
     }
 
-    /** */
     @Test
     public void responseStatusCodeIsOk() {
         final SudoRetrieveThingsResponse underTest = SudoRetrieveThingsResponse.of(KNOWN_THINGS, FieldType.notHidden(),
@@ -90,7 +86,6 @@ public final class SudoRetrieveThingsResponseTest {
         assertThat(underTest.getHttpStatus()).isSameAs(HttpStatus.OK);
     }
 
-    /** */
     @Test
     public void toJsonReturnsExpectedJson() {
         final SudoRetrieveThingsResponse underTest = SudoRetrieveThingsResponse.of(KNOWN_THINGS, FieldType.notHidden(),
@@ -100,7 +95,6 @@ public final class SudoRetrieveThingsResponseTest {
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
 
-    /** */
     @Test
     public void createInstanceFromJson() {
         final SudoRetrieveThingsResponse response =
@@ -114,7 +108,6 @@ public final class SudoRetrieveThingsResponseTest {
         assertThat(responseFromJson).isEqualTo(response);
     }
 
-    /** */
     @Test
     public void checkSudoCommandResponseTypeWorks() {
         final SudoRetrieveThingsResponse sudoRetrieveThingsResponse =

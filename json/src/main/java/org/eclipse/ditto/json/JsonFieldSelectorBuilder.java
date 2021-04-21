@@ -68,8 +68,8 @@ public interface JsonFieldSelectorBuilder extends Iterable<JsonPointer> {
      * @return this builder to allow method chaining.
      * @throws NullPointerException if {@code furtherFieldDefinitions} is {@code null}.
      */
-    JsonFieldSelectorBuilder addFieldDefinition(@Nullable JsonFieldDefinition fieldDefinition,
-            JsonFieldDefinition... furtherFieldDefinitions);
+    JsonFieldSelectorBuilder addFieldDefinition(@Nullable JsonFieldDefinition<?> fieldDefinition,
+            JsonFieldDefinition<?>... furtherFieldDefinitions);
 
     /**
      * Adds the JSON pointer of each given {@link JsonFieldDefinition}s to the field selector to be built.
@@ -78,7 +78,7 @@ public interface JsonFieldSelectorBuilder extends Iterable<JsonPointer> {
      * @return this builder to allow method chaining.
      * @throws NullPointerException if {@code fieldDefinitions} is {@code null}.
      */
-    JsonFieldSelectorBuilder addFieldDefinitions(Iterable<JsonFieldDefinition> fieldDefinitions);
+    JsonFieldSelectorBuilder addFieldDefinitions(Iterable<JsonFieldDefinition<?>> fieldDefinitions);
 
     /**
      * Adds the Json Pointers from the given {@link JsonFieldSelector}s to the field selector to be built.
@@ -97,7 +97,7 @@ public interface JsonFieldSelectorBuilder extends Iterable<JsonPointer> {
      * For example, the field selector string
      * </p>
      * <pre>
-     * "thingId,attributes(acceleration,someData(foo,bar/baz)),acl,features/key"
+     * "thingId,attributes(acceleration,someData(foo,bar/baz)),features/key"
      * </pre>
      * would lead to a JSON field selector which consists of the following JSON pointers:
      * <ul>
@@ -105,7 +105,6 @@ public interface JsonFieldSelectorBuilder extends Iterable<JsonPointer> {
      *     <li>{@code "attributes/acceleration"},</li>
      *     <li>{@code "attributes/someData/foo"},</li>
      *     <li>{@code "attributes/someData/bar/baz"},</li>
-     *     <li>{@code "acl"} and</li>
      *     <li>{@code "features/key"}.</li>
      * </ul>
      *
@@ -127,7 +126,7 @@ public interface JsonFieldSelectorBuilder extends Iterable<JsonPointer> {
      * For example, the field selector string
      * </p>
      * <pre>
-     * "thingId,attributes(acceleration,someData(foo,bar/baz)),acl,features/key"
+     * "thingId,attributes(acceleration,someData(foo,bar/baz)),features/key"
      * </pre>
      * <p>
      * would lead to a JSON field selector which consists of the following JSON pointers:
@@ -136,7 +135,6 @@ public interface JsonFieldSelectorBuilder extends Iterable<JsonPointer> {
      *     <li>{@code "attributes/acceleration"},</li>
      *     <li>{@code "attributes/someData/foo"},</li>
      *     <li>{@code "attributes/someData/bar/baz"},</li>
-     *     <li>{@code "acl"} and</li>
      *     <li>{@code "features/key"}.</li>
      * </ul>
      *
@@ -192,7 +190,7 @@ public interface JsonFieldSelectorBuilder extends Iterable<JsonPointer> {
      * selector. Removing {@code null} has no effect.
      * @return this builder to allow method chaining.
      */
-    JsonFieldSelectorBuilder removeFieldDefinition(@Nullable JsonFieldDefinition fieldDefinition);
+    JsonFieldSelectorBuilder removeFieldDefinition(@Nullable JsonFieldDefinition<?> fieldDefinition);
 
     /**
      * Removes the JSON Pointers of the given JSON field definitions from the field selector to be built.
@@ -202,7 +200,7 @@ public interface JsonFieldSelectorBuilder extends Iterable<JsonPointer> {
      * @return this builder to allow method chaining.
      * @throws NullPointerException if {@code fieldDefinitions} is {@code null}.
      */
-    JsonFieldSelectorBuilder removeFieldDefinitions(Iterable<JsonFieldDefinition> fieldDefinitions);
+    JsonFieldSelectorBuilder removeFieldDefinitions(Iterable<JsonFieldDefinition<?>> fieldDefinitions);
 
     /**
      * Creates a new {@link JsonFieldSelector} instance containing all JSON Pointers which were added beforehand.

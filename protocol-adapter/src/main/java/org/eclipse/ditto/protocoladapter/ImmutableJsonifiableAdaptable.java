@@ -15,7 +15,6 @@ package org.eclipse.ditto.protocoladapter;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
@@ -85,12 +84,6 @@ final class ImmutableJsonifiableAdaptable implements JsonifiableAdaptable {
     @Override
     public Payload getPayload() {
         return delegateAdaptable.getPayload();
-    }
-
-    @Override
-    @Deprecated
-    public Optional<DittoHeaders> getHeaders() {
-        return delegateAdaptable.getHeaders();
     }
 
     @Override

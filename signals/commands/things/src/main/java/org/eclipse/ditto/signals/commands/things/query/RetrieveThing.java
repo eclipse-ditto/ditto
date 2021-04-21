@@ -37,12 +37,13 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 /**
  * Command which retrieves one {@link org.eclipse.ditto.model.things.Thing} based on the the passed in Thing ID.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = RetrieveThing.TYPE_PREFIX, name = RetrieveThing.NAME)
+@JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = RetrieveThing.NAME)
 public final class RetrieveThing extends AbstractCommand<RetrieveThing> implements ThingQueryCommand<RetrieveThing> {
 
     /**
@@ -56,11 +57,11 @@ public final class RetrieveThing extends AbstractCommand<RetrieveThing> implemen
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<String> JSON_SELECTED_FIELDS =
-            JsonFactory.newStringFieldDefinition("selectedFields", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("selectedFields", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<Long> JSON_SNAPSHOT_REVISION =
-            JsonFactory.newLongFieldDefinition("snapshotRevision", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newLongFieldDefinition("snapshotRevision", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private static final long NULL_SNAPSHOT_REVISION = -1L;
@@ -84,42 +85,9 @@ public final class RetrieveThing extends AbstractCommand<RetrieveThing> implemen
      * @return a Command for retrieving the Thing with the {@code thingId} as its ID which is readable from the passed
      * authorization context.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrieveThing of(final CharSequence thingId, final DittoHeaders dittoHeaders) {
-        return of(ThingId.of(thingId), dittoHeaders);
-    }
-
-    /**
-     * Returns a Command for retrieving the Thing with the given ID.
-     *
-     * @param thingId the ID of a single Thing to be retrieved by this command.
-     * @param dittoHeaders the headers of the command.
-     * @return a Command for retrieving the Thing with the {@code thingId} as its ID which is readable from the passed
-     * authorization context.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
     public static RetrieveThing of(final ThingId thingId, final DittoHeaders dittoHeaders) {
         return getBuilder(thingId, dittoHeaders).build();
-    }
-
-    /**
-     * Returns a builder with a fluent API for an immutable {@code RetrieveThing} instance.
-     *
-     * @param thingId the ID of a single Thing to be retrieved by this command.
-     * @param dittoHeaders the headers of the command.
-     * @return the builder.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #getBuilder(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static Builder getBuilder(final CharSequence thingId, final DittoHeaders dittoHeaders) {
-        return getBuilder(ThingId.of(thingId), dittoHeaders);
     }
 
     /**
@@ -161,7 +129,7 @@ public final class RetrieveThing extends AbstractCommand<RetrieveThing> implemen
      */
     public static RetrieveThing fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveThing>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
             final Builder builder = getBuilder(thingId, dittoHeaders);
 
@@ -183,7 +151,7 @@ public final class RetrieveThing extends AbstractCommand<RetrieveThing> implemen
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 
@@ -196,7 +164,7 @@ public final class RetrieveThing extends AbstractCommand<RetrieveThing> implemen
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         if (null != selectedFields) {
             jsonObjectBuilder.set(JSON_SELECTED_FIELDS, selectedFields.toString(), predicate);
         }

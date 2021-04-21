@@ -13,7 +13,6 @@
 package org.eclipse.ditto.signals.events.base;
 
 import java.util.Map;
-import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -61,19 +60,8 @@ public final class GlobalEventRegistry<T extends Event<?>>
 
     @Override
     protected String resolveType(final JsonObject jsonObject) {
-        /*
-         * If type was not present (was included in V2) take "event" instead and transform to V2 format.
-         * Fail if "event" also is not present.
-         */
         return jsonObject.getValue(Event.JsonFields.TYPE)
-                .orElseGet(() -> extractTypeV1(jsonObject)
-                        .orElseThrow(() -> new JsonMissingFieldException(Event.JsonFields.TYPE)));
-    }
-
-    @SuppressWarnings({"squid:CallToDeprecatedMethod",})
-    @Deprecated
-    private Optional<String> extractTypeV1(final JsonObject jsonObject) {
-        return jsonObject.getValue(Event.JsonFields.ID);
+                .orElseThrow(() -> new JsonMissingFieldException(Event.JsonFields.TYPE));
     }
 
     /**
@@ -84,12 +72,6 @@ public final class GlobalEventRegistry<T extends Event<?>>
             AbstractAnnotationBasedJsonParsableFactory<T, JsonParsableEvent> {
 
         private EventParsingStrategyFactory() {}
-
-        @Override
-        @Deprecated
-        protected String getV1FallbackKeyFor(final JsonParsableEvent annotation) {
-            return annotation.name();
-        }
 
         @Override
         protected String getKeyFor(final JsonParsableEvent annotation) {

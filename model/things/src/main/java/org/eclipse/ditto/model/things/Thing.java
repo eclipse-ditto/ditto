@@ -24,9 +24,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.entity.Entity;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyId;
@@ -58,16 +56,6 @@ import org.eclipse.ditto.model.policies.PolicyId;
 public interface Thing extends Entity<ThingRevision> {
 
     /**
-     * The set of permissions which at least must be present in the ACL of a Thing for one Authorization Subject.
-     *
-     * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
-     */
-    @SuppressWarnings("squid:S2386")
-    @Deprecated
-    Permissions MIN_REQUIRED_PERMISSIONS =
-            ThingsModelFactory.newUnmodifiablePermissions(Permission.READ, Permission.WRITE, Permission.ADMINISTRATE);
-
-    /**
      * Returns a mutable builder with a fluent API for an immutable {@code Thing} from scratch.
      *
      * @return the new builder.
@@ -88,8 +76,7 @@ public interface Thing extends Entity<ThingRevision> {
 
     @Override
     default JsonSchemaVersion getImplementedSchemaVersion() {
-        return (getAccessControlList().isPresent() && !getPolicyEntityId().isPresent())
-                ? JsonSchemaVersion.V_1 : JsonSchemaVersion.LATEST;
+        return JsonSchemaVersion.LATEST;
     }
 
     /**
@@ -457,7 +444,8 @@ public interface Thing extends Entity<ThingRevision> {
     default Thing setFeatureDesiredProperty(final CharSequence featureId, final CharSequence desiredPropertyPath,
             final boolean desiredPropertyValue) {
 
-        return setFeatureDesiredProperty(featureId, JsonPointer.of(desiredPropertyPath), JsonValue.of(desiredPropertyValue));
+        return setFeatureDesiredProperty(featureId, JsonPointer.of(desiredPropertyPath),
+                JsonValue.of(desiredPropertyValue));
     }
 
     /**
@@ -470,8 +458,10 @@ public interface Thing extends Entity<ThingRevision> {
      * @throws NullPointerException if any argument is {@code null}.
      * @since 1.5.0
      */
-    default Thing setFeatureDesiredProperty(final CharSequence featureId, final CharSequence desiredPropertyPath, final int desiredPropertyValue) {
-        return setFeatureDesiredProperty(featureId, JsonPointer.of(desiredPropertyPath), JsonValue.of(desiredPropertyValue));
+    default Thing setFeatureDesiredProperty(final CharSequence featureId, final CharSequence desiredPropertyPath,
+            final int desiredPropertyValue) {
+        return setFeatureDesiredProperty(featureId, JsonPointer.of(desiredPropertyPath),
+                JsonValue.of(desiredPropertyValue));
     }
 
     /**
@@ -487,7 +477,8 @@ public interface Thing extends Entity<ThingRevision> {
     default Thing setFeatureDesiredProperty(final CharSequence featureId, final CharSequence desiredPropertyPath,
             final long desiredPropertyValue) {
 
-        return setFeatureDesiredProperty(featureId, JsonPointer.of(desiredPropertyPath), JsonValue.of(desiredPropertyValue));
+        return setFeatureDesiredProperty(featureId, JsonPointer.of(desiredPropertyPath),
+                JsonValue.of(desiredPropertyValue));
     }
 
     /**
@@ -503,7 +494,8 @@ public interface Thing extends Entity<ThingRevision> {
     default Thing setFeatureDesiredProperty(final CharSequence featureId, final CharSequence desiredPropertyPath,
             final double desiredPropertyValue) {
 
-        return setFeatureDesiredProperty(featureId, JsonPointer.of(desiredPropertyPath), JsonValue.of(desiredPropertyValue));
+        return setFeatureDesiredProperty(featureId, JsonPointer.of(desiredPropertyPath),
+                JsonValue.of(desiredPropertyValue));
     }
 
     /**
@@ -519,7 +511,8 @@ public interface Thing extends Entity<ThingRevision> {
     default Thing setFeatureDesiredProperty(final CharSequence featureId, final CharSequence desiredPropertyPath,
             final String desiredPropertyValue) {
 
-        return setFeatureDesiredProperty(featureId, JsonPointer.of(desiredPropertyPath), JsonValue.of(desiredPropertyValue));
+        return setFeatureDesiredProperty(featureId, JsonPointer.of(desiredPropertyPath),
+                JsonValue.of(desiredPropertyValue));
     }
 
     /**
@@ -532,7 +525,8 @@ public interface Thing extends Entity<ThingRevision> {
      * @throws NullPointerException if any argument is {@code null}.
      * @since 1.5.0
      */
-    Thing setFeatureDesiredProperty(CharSequence featureId, JsonPointer desiredPropertyPath, JsonValue desiredPropertyValue);
+    Thing setFeatureDesiredProperty(CharSequence featureId, JsonPointer desiredPropertyPath,
+            JsonValue desiredPropertyValue);
 
     /**
      * Removes all desired properties from the given Feature on a copy of this Thing.
@@ -597,73 +591,6 @@ public interface Thing extends Entity<ThingRevision> {
     }
 
     /**
-     * Returns the Access Control List of this Thing.
-     *
-     * @return the Access Control List of this Thing.
-     * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
-     */
-    @Deprecated
-    Optional<AccessControlList> getAccessControlList();
-
-    /**
-     * Sets the given Access Control List on a copy of this Thing. Removes any Policy and Policy ID from this Thing.
-     *
-     * @param accessControlList the Access Control List to be set.
-     * @return a copy of this Thing with {@code accessControlList} as its ACL.
-     * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
-     */
-    @Deprecated
-    Thing setAccessControlList(AccessControlList accessControlList);
-
-    /**
-     * Sets the given ACL entry to the Access Control List of a copy of this Thing. An already existing entry with the
-     * same authorization subject is overwritten.
-     *
-     * @param aclEntry the entry to be set.
-     * @return a copy of this Thing with the changed ACL.
-     * @throws NullPointerException if {@code aclEntry} is {@code null}.
-     * @deprecated AccessControlLists belong to deprecated API version 1. Use API version 2 with policies instead.
-     */
-    @Deprecated
-    Thing setAclEntry(AclEntry aclEntry);
-
-    /**
-     * Removes all permissions which are associated to the specified authorization subject in the Access Control List of
-     * a copy of this Thing.
-     *
-     * @param authorizationSubject the authorization subject of which all permissions are to be removed.
-     * @return a copy of this Thing whose ACL does not contain any entries which are associated with the specified
-     * authorization subject.
-     * @throws NullPointerException if {@code authorizationSubject} is {@code null}.
-     * @deprecated Permissions belong to deprecated API version 1. Use API version 2 with policies instead.
-     */
-    @Deprecated
-    Thing removeAllPermissionsOf(AuthorizationSubject authorizationSubject);
-
-    /**
-     * Returns the Policy ID of this Thing.
-     *
-     * @return the Policy ID of this Thing.
-     * @deprecated Policy ID of the thing is now typed. Use {@link #getPolicyEntityId()} instead.
-     */
-    @Deprecated
-    default Optional<String> getPolicyId() {
-        return getPolicyEntityId().map(String::valueOf);
-    }
-
-    /**
-     * Sets the given Policy ID on a copy of this Thing.
-     *
-     * @param policyId the Policy ID to set.
-     * @return a copy of this Thing with {@code policyId} as its Policy ID.
-     * @deprecated Policy ID of the thing is now typed. Use {@link #setPolicyId(PolicyId)} ()} instead.
-     */
-    @Deprecated
-    default Thing setPolicyId(@Nullable String policyId) {
-        return setPolicyId(policyId == null ? null : PolicyId.of(policyId));
-    }
-
-    /**
      * Sets the given Policy ID on a copy of this Thing.
      *
      * @param policyId the Policy ID to set.
@@ -718,12 +645,6 @@ public interface Thing extends Entity<ThingRevision> {
     Thing removeFeature(String featureId);
 
     /**
-     * @deprecated this method does nothing anymore. IDs are now typed and already validated.
-     */
-    @Deprecated
-    default void validate(DittoHeaders headers) { }
-
-    /**
      * An enumeration of the known {@link JsonField}s of a Thing.
      */
     @Immutable
@@ -734,35 +655,35 @@ public interface Thing extends Entity<ThingRevision> {
          */
         public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
                 JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's lifecycle.
          */
         public static final JsonFieldDefinition<String> LIFECYCLE =
                 JsonFactory.newStringFieldDefinition("__lifecycle", FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's namespace.
          */
         public static final JsonFieldDefinition<String> NAMESPACE =
                 JsonFactory.newStringFieldDefinition("_namespace", FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's revision.
          */
         public static final JsonFieldDefinition<Long> REVISION =
                 JsonFactory.newLongFieldDefinition("_revision", FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's modified timestamp in ISO-8601 format.
          */
         public static final JsonFieldDefinition<String> MODIFIED =
                 JsonFactory.newStringFieldDefinition("_modified", FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's created timestamp in ISO-8601 format.
@@ -771,20 +692,14 @@ public interface Thing extends Entity<ThingRevision> {
          */
         public static final JsonFieldDefinition<String> CREATED =
                 JsonFactory.newStringFieldDefinition("_created", FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's ID.
          */
         public static final JsonFieldDefinition<String> ID =
-                JsonFactory.newStringFieldDefinition("thingId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("thingId", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
-
-        /**
-         * JSON field containing the Thing's Access Control List (ACL).
-         */
-        public static final JsonFieldDefinition<JsonObject> ACL =
-                JsonFactory.newJsonObjectFieldDefinition("acl", FieldType.REGULAR, JsonSchemaVersion.V_1);
 
         /**
          * JSON field containing the Thing's Policy ID.
@@ -803,14 +718,14 @@ public interface Thing extends Entity<ThingRevision> {
          * JSON field containing the Thing's attributes.
          */
         public static final JsonFieldDefinition<JsonObject> ATTRIBUTES =
-                JsonFactory.newJsonObjectFieldDefinition("attributes", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonObjectFieldDefinition("attributes", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's features.
          */
         public static final JsonFieldDefinition<JsonObject> FEATURES =
-                JsonFactory.newJsonObjectFieldDefinition("features", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonObjectFieldDefinition("features", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
@@ -819,8 +734,8 @@ public interface Thing extends Entity<ThingRevision> {
          * @since 1.2.0
          */
         public static final JsonFieldDefinition<JsonObject> METADATA =
-            JsonFactory.newJsonObjectFieldDefinition("_metadata", FieldType.SPECIAL, FieldType.HIDDEN,
-                JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                JsonFactory.newJsonObjectFieldDefinition("_metadata", FieldType.SPECIAL, FieldType.HIDDEN,
+                        JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

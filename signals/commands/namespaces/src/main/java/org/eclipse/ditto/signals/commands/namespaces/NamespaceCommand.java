@@ -37,7 +37,7 @@ public interface NamespaceCommand<T extends NamespaceCommand<T>> extends Command
          * Namespace at which the command is directed.
          */
         public static final JsonFieldDefinition<String> NAMESPACE = JsonFactory.newStringFieldDefinition("namespace",
-                FieldType.REGULAR, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     }
 

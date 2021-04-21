@@ -486,7 +486,7 @@ public final class BaseClientActorTest {
         @Override
         protected CompletionStage<Status.Status> doTestConnection(final TestConnection testConnectionCommand) {
             logger.withCorrelationId(testConnectionCommand)
-                    .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, testConnectionCommand.getConnectionEntityId())
+                    .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, testConnectionCommand.getEntityId())
                     .info("doTestConnection");
             return delegate.doTestConnection(testConnectionCommand);
         }

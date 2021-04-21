@@ -349,7 +349,6 @@ public final class JavaScriptMessageMapperRhinoTest {
             "  }\n" +
             "  if (headers) {\n" +
             "    return null; // returning 'null' means that the message will be dropped\n" +
-            "    // TODO replace with something useful\n" +
             "  }\n" +
             "  // ###\n" +
             "\n" +
@@ -386,7 +385,6 @@ public final class JavaScriptMessageMapperRhinoTest {
             "  // Insert your mapping logic here:\n" +
             "  let headers = dittoHeaders;\n" +
             "  let textPayload = JSON.stringify(Ditto.buildDittoProtocolMsg(namespace, id, group, channel, criterion, action, path, dittoHeaders, value, status));\n" +
-            "  // TODO replace with something useful, this will publish the message in Ditto Protocol JSON\n" +
             "  let bytePayload = null;\n" +
             "  let contentType = 'application/vnd.eclipse.ditto+json';\n" +
             "  // ###\n" +
@@ -651,7 +649,7 @@ public final class JavaScriptMessageMapperRhinoTest {
         assertThat(adaptable.getTopicPath().getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);
         assertThat(adaptable.getTopicPath().getAction()).contains(TopicPath.Action.MODIFY);
         assertThat(adaptable.getTopicPath().getNamespace()).isEqualTo(MAPPING_INCOMING_NAMESPACE);
-        assertThat(adaptable.getTopicPath().getId()).isEqualTo(MAPPING_INCOMING_ID);
+        assertThat(adaptable.getTopicPath().getEntityName()).isEqualTo(MAPPING_INCOMING_ID);
         assertThat(adaptable.getPayload().getPath().toString()).isEqualTo(MAPPING_INCOMING_PATH);
         assertThat(adaptable.getPayload().getValue()).contains(JsonValue.of(MAPPING_INCOMING_PAYLOAD_STRING));
     }
@@ -683,7 +681,7 @@ public final class JavaScriptMessageMapperRhinoTest {
         assertThat(adaptable.getTopicPath().getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);
         assertThat(adaptable.getTopicPath().getAction()).contains(TopicPath.Action.MODIFY);
         assertThat(adaptable.getTopicPath().getNamespace()).isEqualTo(MAPPING_INCOMING_NAMESPACE);
-        assertThat(adaptable.getTopicPath().getId()).isEqualTo(MAPPING_INCOMING_ID);
+        assertThat(adaptable.getTopicPath().getEntityName()).isEqualTo(MAPPING_INCOMING_ID);
         assertThat(adaptable.getPayload().getPath().toString()).isEqualTo(MAPPING_INCOMING_PATH);
         assertThat(adaptable.getPayload().getValue()).map(JsonValue::asString)
                 .contains(modifyThingResponse.toJsonString());
@@ -718,7 +716,7 @@ public final class JavaScriptMessageMapperRhinoTest {
                 softly.assertThat(topicPath.getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);
                 softly.assertThat(topicPath.getAction()).contains(TopicPath.Action.MODIFY);
                 softly.assertThat(topicPath.getNamespace()).isEqualTo(MAPPING_INCOMING_NAMESPACE);
-                softly.assertThat(topicPath.getId()).isEqualTo(MAPPING_INCOMING_ID);
+                softly.assertThat(topicPath.getEntityName()).isEqualTo(MAPPING_INCOMING_ID);
             });
             softly.assertThat(adaptable.getPayload()).satisfies(payload -> {
                 softly.assertThat(payload.getPath().toString()).isEqualTo(MAPPING_INCOMING_PATH);
@@ -819,7 +817,7 @@ public final class JavaScriptMessageMapperRhinoTest {
                 assertThat(topicPath.getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);
                 assertThat(topicPath.getAction()).contains(TopicPath.Action.MODIFY);
                 assertThat(topicPath.getNamespace()).isEqualTo(MAPPING_INCOMING_NAMESPACE);
-                assertThat(topicPath.getId()).isEqualTo(MAPPING_INCOMING_ID);
+                assertThat(topicPath.getEntityName()).isEqualTo(MAPPING_INCOMING_ID);
             });
             assertThat(adaptable.getPayload()).satisfies(payload -> {
                 assertThat(payload.getPath().toString()).isEqualTo(MAPPING_INCOMING_PATH);

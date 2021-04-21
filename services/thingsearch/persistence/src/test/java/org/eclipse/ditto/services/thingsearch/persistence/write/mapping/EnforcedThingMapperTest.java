@@ -68,7 +68,7 @@ public final class EnforcedThingMapperTest {
                 "  \"_id\": \"hello:world\",\n" +
                 "  \"_revision\": 1024,\n" +
                 "  \"_namespace\": \"hello\",\n" +
-                "  \"gr\":[\"g:0\",\"g:1\"],\n"+
+                "  \"gr\":[\"g:1\",\"g:0\"],\n"+
                 "  \"policyId\": \"hello:world\",\n" +
                 "  \"__policyRev\": 56,\n" +
                 "  \"s\": {\n" +

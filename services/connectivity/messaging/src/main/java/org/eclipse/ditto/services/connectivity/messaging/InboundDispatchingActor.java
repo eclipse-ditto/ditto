@@ -32,17 +32,16 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotDeclaredExceptio
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityInternalErrorException;
 import org.eclipse.ditto.model.connectivity.Source;
-import org.eclipse.ditto.model.placeholders.ExpressionResolver;
-import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
-import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
@@ -64,13 +63,16 @@ import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.InboundSignal;
 import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders;
+import org.eclipse.ditto.services.models.placeholders.ExpressionResolver;
+import org.eclipse.ditto.services.models.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.services.models.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
@@ -140,7 +142,8 @@ public final class InboundDispatchingActor extends AbstractActor
         logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connection.getId());
 
-        connectionIdResolver = PlaceholderFactory.newExpressionResolver(PlaceholderFactory.newConnectionIdPlaceholder(),
+        connectionIdResolver = PlaceholderFactory.newExpressionResolver(
+                ConnectivityPlaceholders.newConnectionIdPlaceholder(),
                 connection.getId());
 
         final DefaultScopedConfig dittoScoped =
@@ -329,8 +332,7 @@ public final class InboundDispatchingActor extends AbstractActor
         final Set<AcknowledgementLabel> declaredAckLabels = getDeclaredAckLabels(outcomes);
         final PartialFunction<Signal<?>, Signal<?>> appendConnectionId = new PFBuilder<Signal<?>, Signal<?>>()
                 .match(Acknowledgements.class, this::appendConnectionIdToAcknowledgements)
-                .match(CommandResponse.class,
-                        ack -> appendConnectionIdToAcknowledgementOrResponse(ack))
+                .match(CommandResponse.class, ack -> appendConnectionIdToAcknowledgementOrResponse(ack))
                 .matchAny(x -> x)
                 .build();
 
@@ -374,9 +376,10 @@ public final class InboundDispatchingActor extends AbstractActor
     private int dispatchIncomingSignal(final IncomingSignal incomingSignal) {
         final Signal<?> signal = incomingSignal.signal;
         final ActorRef sender = incomingSignal.sender;
-        if (incomingSignal.isAckRequesting) {
+        final Optional<ThingId> thingIdOptional = WithEntityId.getEntityIdOfType(ThingId.class, signal);
+        if (incomingSignal.isAckRequesting && thingIdOptional.isPresent()) {
             try {
-                startAckregatorAndForwardSignal(signal, sender);
+                startAckregatorAndForwardSignal(thingIdOptional.get(), signal.getDittoHeaders(), signal, sender);
             } catch (final DittoRuntimeException e) {
                 handleErrorDuringStartingOfAckregator(e, signal.getDittoHeaders(), sender);
             }
@@ -387,9 +390,9 @@ public final class InboundDispatchingActor extends AbstractActor
                 Patterns.ask(proxyActor, signal, originalHeaders.getTimeout()
                         .orElse(acknowledgementConfig.getForwarderFallbackTimeout())
                 ).thenApply(response -> {
-                    if (response instanceof WithDittoHeaders<?>) {
+                    if (response instanceof WithDittoHeaders) {
                         return AcknowledgementAggregatorActor.restoreCommandConnectivityHeaders(
-                                (WithDittoHeaders<?>) response,
+                                (DittoHeadersSettable<?>) response,
                                 originalHeaders);
                     } else {
                         final String messageTemplate =
@@ -404,7 +407,7 @@ public final class InboundDispatchingActor extends AbstractActor
                         return ConnectivityErrorResponse.of(dre, originalHeaders);
                     }
                 })
-                .thenAccept(response -> sender.tell(response, ActorRef.noSender()));
+                        .thenAccept(response -> sender.tell(response, ActorRef.noSender()));
             } else {
                 proxyActor.tell(signal, sender);
             }
@@ -417,8 +420,9 @@ public final class InboundDispatchingActor extends AbstractActor
                 (signal instanceof ThingCommand && ProtocolAdapter.isLiveSignal(signal)));
     }
 
-    private void startAckregatorAndForwardSignal(final Signal<?> signal, @Nullable final ActorRef sender) {
-        ackregatorStarter.doStart(signal,
+    private void startAckregatorAndForwardSignal(final ThingId thingId, final DittoHeaders dittoHeaders,
+            final Signal<?> signal, @Nullable final ActorRef sender) {
+        ackregatorStarter.doStart(thingId, dittoHeaders,
                 responseSignal -> {
                     // potentially publish response/aggregated acks to reply target
                     if (signal.getDittoHeaders().isResponseRequired()) {
@@ -515,8 +519,9 @@ public final class InboundDispatchingActor extends AbstractActor
         return newTopicPathBuilder(acks, acks).acks().aggregatedAcks().build();
     }
 
-    private TopicPathBuilder newTopicPathBuilder(final WithId withId, final WithDittoHeaders<?> withDittoHeaders) {
-        final TopicPathBuilder builder = ProtocolFactory.newTopicPathBuilder(ThingId.of(withId.getEntityId()));
+    private TopicPathBuilder newTopicPathBuilder(final WithEntityId withEntityId,
+            final WithDittoHeaders withDittoHeaders) {
+        final TopicPathBuilder builder = ProtocolFactory.newTopicPathBuilder(ThingId.of(withEntityId.getEntityId()));
         return withDittoHeaders.getDittoHeaders()
                 .getChannel()
                 .filter(TopicPath.Channel.LIVE.getName()::equals)
@@ -586,9 +591,9 @@ public final class InboundDispatchingActor extends AbstractActor
     private void applySignalIdEnforcement(final ExternalMessage externalMessage, final Signal<?> signal) {
         externalMessage.getEnforcementFilter().ifPresent(enforcementFilter -> {
             logger.withCorrelationId(signal)
-                    .debug("Connection Signal ID Enforcement enabled - matching Signal ID <{}> with filter <{}>.",
-                            signal.getEntityId(), enforcementFilter);
-            enforcementFilter.match(signal.getEntityId(), signal.getDittoHeaders());
+                    .debug("Connection Signal ID Enforcement enabled - matching Signal <{}> with filter <{}>.",
+                            signal, enforcementFilter);
+            enforcementFilter.match(signal);
         });
     }
 
@@ -724,7 +729,7 @@ public final class InboundDispatchingActor extends AbstractActor
                 isApplicable(MessageCommandAckRequestSetter.getInstance(), signal);
     }
 
-    private static <C extends WithDittoHeaders<? extends C>> boolean isApplicable(
+    private static <C extends DittoHeadersSettable<? extends C>> boolean isApplicable(
             final AbstractCommandAckRequestSetter<C> setter, final Signal<?> signal) {
         return setter.getMatchedClass().isInstance(signal) &&
                 setter.isApplicable(setter.getMatchedClass().cast(signal));

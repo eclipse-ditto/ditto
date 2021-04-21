@@ -36,14 +36,13 @@ public final class ImmutableMessageTest {
                 areImmutable(),
                 assumingFields("payload", "rawPayload").areNotModifiedAndDoNotEscape(),
                 provided(MessageHeaders.class, ByteBuffer.class, AuthorizationContext.class,
-                        MessageResponseConsumer.class, JsonObject.class).areAlsoImmutable());
+                        JsonObject.class).areAlsoImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ImmutableMessage.class)
                 .usingGetClass()
-                .withIgnoredFields("responseConsumer")
                 .verify();
     }
 

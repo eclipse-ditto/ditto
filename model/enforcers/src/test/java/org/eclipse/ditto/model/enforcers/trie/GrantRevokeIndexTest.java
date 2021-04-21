@@ -21,7 +21,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.eclipse.ditto.model.enforcers.EffectedSubjectIds;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.model.enforcers.TestConstants;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.SubjectId;
@@ -45,7 +46,6 @@ public final class GrantRevokeIndexTest {
     private PermissionSubjectsMap revokedMap = null;
     private GrantRevokeIndex underTest = null;
 
-    /** */
     @BeforeClass
     public static void initTestConstants() {
         subjectId = TestConstants.Policy.SUBJECT_ID.toString();
@@ -57,7 +57,6 @@ public final class GrantRevokeIndexTest {
         Collections.addAll(permissions, "READ", "WRITE");
     }
 
-    /** */
     @Before
     public void initTestVariables() {
         final Map<String, Integer> readGrantedSubjects = new HashMap<>(2);
@@ -84,7 +83,6 @@ public final class GrantRevokeIndexTest {
         underTest = new GrantRevokeIndex(grantedMap, revokedMap);
     }
 
-    /** */
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(GrantRevokeIndex.class)
@@ -92,19 +90,16 @@ public final class GrantRevokeIndexTest {
                 .verify();
     }
 
-    /** */
     @Test
     public void getGrantedReturnsExpected() {
         assertThat(underTest.getGranted()).isEqualTo(grantedMap);
     }
 
-    /** */
     @Test
     public void getRevokedReturnsExpected() {
         assertThat(underTest.getRevoked()).isEqualTo(revokedMap);
     }
 
-    /** */
     @Test
     public void copyWithDecrementedWeightReturnsExpected() {
         final GrantRevokeIndex copyWithDecrementedWeight = underTest.copyWithDecrementedWeight();
@@ -115,7 +110,6 @@ public final class GrantRevokeIndexTest {
         assertThat(revokedWithDecrementedWeight).isEqualTo(revokedMap.copyWithDecrementedWeight());
     }
 
-    /** */
     @SuppressWarnings("ConstantConditions")
     @Test
     public void tryToOverrideByNull() {
@@ -125,7 +119,6 @@ public final class GrantRevokeIndexTest {
                 .withNoCause();
     }
 
-    /** */
     @Test
     public void overrideByReturnsExpected() {
         final PermissionSubjectsMap updateGrantedMap = new PermissionSubjectsMap();
@@ -145,7 +138,6 @@ public final class GrantRevokeIndexTest {
         assertThat(overwritten.getRevoked()).isEqualTo(expectedRevokedMap);
     }
 
-    /** */
     @Test
     public void subjectIdHasReadAndWritePermissions() {
         final boolean hasPermissions = underTest.hasPermissions(Collections.singleton(subjectId), permissions);
@@ -153,7 +145,6 @@ public final class GrantRevokeIndexTest {
         assertThat(hasPermissions).isTrue();
     }
 
-    /** */
     @Test
     public void anotherSubjectIdHasNoWritePermission() {
         final boolean hasPermissions = underTest.hasPermissions(Collections.singleton(anotherSubjectId),
@@ -162,7 +153,9 @@ public final class GrantRevokeIndexTest {
         assertThat(hasPermissions).isFalse();
     }
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void anotherSubjectIdHasNoReadPermissionBecauseRevokedWithSameWeight() {
         final boolean hasPermissions = underTest.hasPermissions(Collections.singleton(anotherSubjectId),
@@ -171,28 +164,30 @@ public final class GrantRevokeIndexTest {
         assertThat(hasPermissions).isFalse();
     }
 
-    /** */
     @Test
-    public void getEffectedSubjectIdsForReadPermissionReturnsExpected() {
-        final EffectedSubjectIds effectedSubjectIds =
-                underTest.getEffectedSubjectIds(Collections.singleton("READ"));
-        final Set<String> grantedSubjectIds = effectedSubjectIds.getGranted();
-        final Set<String> revokedSubjectIds = effectedSubjectIds.getRevoked();
+    public void getEffectedSubjectsForReadPermissionReturnsExpected() {
+        final EffectedSubjects effectedSubjects = underTest.getEffectedSubjects(Collections.singleton("READ"));
+        final Set<AuthorizationSubject> grantedSubjects = effectedSubjects.getGranted();
+        final Set<AuthorizationSubject> revokedSubjects = effectedSubjects.getRevoked();
 
-        assertThat(grantedSubjectIds).as("Granted subject IDs").containsOnly(subjectId, anotherSubjectId);
-        assertThat(revokedSubjectIds).as("Revoked subject IDs").containsOnly(anotherSubjectId);
+        assertThat(grantedSubjects).as("Granted subjects")
+                .containsOnly(AuthorizationSubject.newInstance(subjectId),
+                        AuthorizationSubject.newInstance(anotherSubjectId));
+        assertThat(revokedSubjects).as("Revoked subjects")
+                .containsOnly(AuthorizationSubject.newInstance(anotherSubjectId));
     }
 
-    /** */
     @Test
     public void getEffectedSubjectIdsForWritePermissionReturnsExpected() {
-        final EffectedSubjectIds effectedSubjectIds =
-                underTest.getEffectedSubjectIds(Collections.singleton("WRITE"));
-        final Set<String> grantedSubjectIds = effectedSubjectIds.getGranted();
-        final Set<String> revokedSubjectIds = effectedSubjectIds.getRevoked();
+        final EffectedSubjects effectedSubjects =
+                underTest.getEffectedSubjects(Collections.singleton("WRITE"));
+        final Set<AuthorizationSubject> grantedSubjectIds = effectedSubjects.getGranted();
+        final Set<AuthorizationSubject> revokedSubjectIds = effectedSubjects.getRevoked();
 
-        assertThat(grantedSubjectIds).as("Granted subject IDs").containsOnly(subjectId);
-        assertThat(revokedSubjectIds).as("Revoked subject IDs").containsOnly(anotherSubjectId);
+        assertThat(grantedSubjectIds).as("Granted subject IDs")
+                .containsOnly(AuthorizationSubject.newInstance(subjectId));
+        assertThat(revokedSubjectIds).as("Revoked subject IDs")
+                .containsOnly(AuthorizationSubject.newInstance(anotherSubjectId));
     }
 
 }

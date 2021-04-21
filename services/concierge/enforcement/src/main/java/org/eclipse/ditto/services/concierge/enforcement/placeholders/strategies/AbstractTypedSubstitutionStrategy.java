@@ -18,26 +18,23 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.Subjects;
-import org.eclipse.ditto.model.things.AccessControlList;
-import org.eclipse.ditto.model.things.AclEntry;
-import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.HeaderBasedPlaceholderSubstitutionAlgorithm;
 
 /**
  * Abstract base class for instances of {@link SubstitutionStrategy} which matches on a concrete subtype of
- * {@link WithDittoHeaders}.
- * @param <T> the subtype of {@link WithDittoHeaders} handled by this strategy.
+ * {@link DittoHeadersSettable}.
+ *
+ * @param <T> the subtype of {@link DittoHeadersSettable} handled by this strategy.
  */
-abstract class AbstractTypedSubstitutionStrategy<T extends WithDittoHeaders> implements SubstitutionStrategy<T> {
+abstract class AbstractTypedSubstitutionStrategy<T extends DittoHeadersSettable<?>> implements SubstitutionStrategy<T> {
+
     private final Class<T> type;
 
     AbstractTypedSubstitutionStrategy(final Class<T> type) {
@@ -45,8 +42,8 @@ abstract class AbstractTypedSubstitutionStrategy<T extends WithDittoHeaders> imp
     }
 
     @Override
-    public boolean matches(final WithDittoHeaders withDittoHeaders) {
-        return type.isAssignableFrom(withDittoHeaders.getClass());
+    public boolean matches(final DittoHeadersSettable<?> dittoHeadersSettable) {
+        return type.isAssignableFrom(dittoHeadersSettable.getClass());
     }
 
     static Subjects substituteSubjects(final Subjects subjects,
@@ -135,56 +132,6 @@ abstract class AbstractTypedSubstitutionStrategy<T extends WithDittoHeaders> imp
         }
 
         return newEntries;
-    }
-
-    static AclEntry substituteAclEntry(final AclEntry existingAclEntry,
-            final HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm, final DittoHeaders dittoHeaders) {
-
-        final String subjectId = existingAclEntry.getAuthorizationSubject().getId();
-        final String substitutedSubjectId = substitutionAlgorithm.substitute(subjectId, dittoHeaders);
-
-        final AclEntry resultAclEntry;
-        if (subjectId.equals(substitutedSubjectId)) {
-            resultAclEntry = existingAclEntry;
-        } else {
-            resultAclEntry = AclEntry.newInstance(AuthorizationSubject.newInstance(substitutedSubjectId),
-                    existingAclEntry.getPermissions());
-        }
-
-        return resultAclEntry;
-    }
-
-    static AccessControlList substituteAcl(final AccessControlList acl,
-            final HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm, final DittoHeaders dittoHeaders) {
-        AccessControlList newAcl = acl;
-        for (final AclEntry aclEntry : acl) {
-            final AclEntry substitutedEntry = substituteAclEntry(aclEntry, substitutionAlgorithm, dittoHeaders);
-
-            if (!aclEntry.equals(substitutedEntry)) {
-                newAcl = newAcl.removeEntry(aclEntry).setEntry(substitutedEntry);
-            }
-        }
-
-        return newAcl;
-    }
-
-    static Thing substituteThing(final Thing existingThing,
-            final HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm, final DittoHeaders dittoHeaders) {
-
-        final AccessControlList existingAcl = existingThing.getAccessControlList().orElse(null);
-        if (existingAcl == null) {
-            return existingThing;
-        }
-
-        final AccessControlList substitutedAcl = substituteAcl(existingAcl, substitutionAlgorithm, dittoHeaders);
-
-        if (existingAcl.equals(substitutedAcl)) {
-            return existingThing;
-        } else {
-            return ThingsModelFactory.newThingBuilder(existingThing)
-                    .removeAllPermissions()
-                    .setPermissions(substitutedAcl).build();
-        }
     }
 
 }

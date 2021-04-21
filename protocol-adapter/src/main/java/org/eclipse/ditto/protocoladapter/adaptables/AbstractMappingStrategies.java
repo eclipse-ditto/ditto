@@ -76,7 +76,7 @@ abstract class AbstractMappingStrategies<T extends Jsonifiable.WithPredicate<Jso
 
     protected static ThingId thingIdFrom(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();
-        return ThingId.of(topicPath.getNamespace(), topicPath.getId());
+        return ThingId.of(topicPath.getNamespace(), topicPath.getEntityName());
     }
 
 }

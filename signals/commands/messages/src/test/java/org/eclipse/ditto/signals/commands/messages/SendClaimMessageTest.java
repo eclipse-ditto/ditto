@@ -26,7 +26,6 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -49,7 +48,6 @@ public final class SendClaimMessageTest {
 
     private static final MessageHeaders MESSAGE_HEADERS = MessageHeaders.newBuilderForClaiming(THING_ID)
             .contentType("text/plain")
-            .timeout(42)
             .build();
 
     private static final Message<?> MESSAGE = Message.newBuilder(MESSAGE_HEADERS)
@@ -85,14 +83,9 @@ public final class SendClaimMessageTest {
                 .verify();
     }
 
-    @Test(expected = ThingIdInvalidException.class)
-    public void tryCreateWithNullThingIdString() {
-        SendClaimMessage.of((String) null, MESSAGE, DITTO_HEADERS);
-    }
-
     @Test(expected = NullPointerException.class)
     public void tryCreateWithNullThingId() {
-        SendClaimMessage.of((ThingId) null, MESSAGE, DITTO_HEADERS);
+        SendClaimMessage.of(null, MESSAGE, DITTO_HEADERS);
     }
 
     @Test(expected = NullPointerException.class)
@@ -133,7 +126,7 @@ public final class SendClaimMessageTest {
                 SendClaimMessage.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat((CharSequence) underTest.getThingEntityId()).isEqualTo(THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(THING_ID);
         assertThat(underTest.getMessageType()).isEqualTo(SendClaimMessage.NAME);
         assertThat(underTest.getMessage()).isEqualTo(DESERIALIZED_MESSAGE);
     }

@@ -28,8 +28,6 @@ import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.AccessControlListModelFactory;
-import org.eclipse.ditto.model.things.AclNotAllowedException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
@@ -158,40 +156,6 @@ public final class ModifyThingTest {
         assertThat(underTest.getThing()).isEqualTo(TestConstants.Thing.THING);
     }
 
-    @Test(expected = AclNotAllowedException.class)
-    public void ensuresNoACLInV2Command() {
-        final DittoHeaders v2Headers = DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.LATEST).build();
-        final Thing thingWithAcl = TestConstants.Thing.THING.toBuilder()
-                .setPermissions(AuthorizationModelFactory.newAuthSubject("any"),
-                        AccessControlListModelFactory.allPermissions())
-                .removePolicyId()
-                .build();
-        ModifyThing.of(TestConstants.Thing.THING_ID, thingWithAcl, null, v2Headers);
-    }
-
-    @Test(expected = PolicyIdNotAllowedException.class)
-    public void ensuresNoPolicyInV1Command() {
-        final DittoHeaders v1Headers = DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.V_1).build();
-        final Thing thingWithoutAclAndPolicy = TestConstants.Thing.THING.toBuilder()
-                .removeAllPermissions()
-                .removePolicyId()
-                .build();
-        final JsonObject initialPolicy = JsonObject.newBuilder().build();
-        ModifyThing.of(TestConstants.Thing.THING_ID, thingWithoutAclAndPolicy, initialPolicy, v1Headers);
-
-    }
-
-    @Test(expected = PolicyIdNotAllowedException.class)
-    public void ensuresNoPolicyIdInV1Command() {
-        final DittoHeaders v1Headers = DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.V_1).build();
-        final Thing thingWithPolicyId = TestConstants.Thing.THING.toBuilder()
-                .removeAllPermissions()
-                .setPolicyId("any:policyId")
-                .build();
-        ModifyThing.of(TestConstants.Thing.THING_ID, thingWithPolicyId, null, v1Headers);
-
-    }
-
     @Test
     public void modifyTooLargeThing() {
         final StringBuilder sb = new StringBuilder();
@@ -213,13 +177,12 @@ public final class ModifyThingTest {
     @Test
     public void initializeWithInitialPolicyNullAndWithCopiedPolicyNull() {
         final DittoHeaders v2Headers = DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.LATEST).build();
-        final Thing thingWithoutAclAndPolicy = TestConstants.Thing.THING.toBuilder()
-                .removeAllPermissions()
+        final Thing thingWithoutPolicy = TestConstants.Thing.THING.toBuilder()
                 .removePolicyId()
                 .build();
 
         final ModifyThing modifyThing =
-                ModifyThing.of(TestConstants.Thing.THING_ID, thingWithoutAclAndPolicy, null, null, v2Headers);
+                ModifyThing.of(TestConstants.Thing.THING_ID, thingWithoutPolicy, null, null, v2Headers);
 
         assertThat(modifyThing.getInitialPolicy()).isNotPresent();
         assertThat(modifyThing.getPolicyIdOrPlaceholder()).isNotPresent();
@@ -228,14 +191,13 @@ public final class ModifyThingTest {
     @Test
     public void initializeWithCopiedPolicy() {
         final DittoHeaders v2Headers = DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.LATEST).build();
-        final Thing thingWithoutAclAndPolicy = TestConstants.Thing.THING.toBuilder()
-                .removeAllPermissions()
+        final Thing thingWithoutPolicy = TestConstants.Thing.THING.toBuilder()
                 .removePolicyId()
                 .build();
         final String thingReference = "{{ ref:things/my_namespace:my_thing/policyId }}";
 
         final ModifyThing modifyThing =
-                ModifyThing.withCopiedPolicy(TestConstants.Thing.THING_ID, thingWithoutAclAndPolicy, thingReference,
+                ModifyThing.withCopiedPolicy(TestConstants.Thing.THING_ID, thingWithoutPolicy, thingReference,
                         v2Headers);
 
         assertThat(modifyThing.getInitialPolicy()).isNotPresent();
@@ -246,14 +208,13 @@ public final class ModifyThingTest {
     @Test
     public void initializeWithCopiedPolicyAndWithInitialPolicyNull() {
         final DittoHeaders v2Headers = DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.LATEST).build();
-        final Thing thingWithoutAclAndPolicy = TestConstants.Thing.THING.toBuilder()
-                .removeAllPermissions()
+        final Thing thingWithoutPolicy = TestConstants.Thing.THING.toBuilder()
                 .removePolicyId()
                 .build();
         final String thingReference = "{{ ref:things/my_namespace:my_thing/policyId }}";
 
         final ModifyThing modifyThing =
-                ModifyThing.of(TestConstants.Thing.THING_ID, thingWithoutAclAndPolicy, null, thingReference,
+                ModifyThing.of(TestConstants.Thing.THING_ID, thingWithoutPolicy, null, thingReference,
                         v2Headers);
 
         assertThat(modifyThing.getInitialPolicy()).isNotPresent();
@@ -264,14 +225,13 @@ public final class ModifyThingTest {
     @Test
     public void initializeWithCopiedPolicyAndWithInitialPolicy() {
         final DittoHeaders v2Headers = DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.LATEST).build();
-        final Thing thingWithoutAclAndPolicy = TestConstants.Thing.THING.toBuilder()
-                .removeAllPermissions()
+        final Thing thingWithoutPolicy = TestConstants.Thing.THING.toBuilder()
                 .removePolicyId()
                 .build();
         final String thingReference = "{{ ref:things/my_namespace:my_thing/policyId }}";
 
         assertThatThrownBy(() ->
-                ModifyThing.of(TestConstants.Thing.THING_ID, thingWithoutAclAndPolicy, JsonObject.newBuilder().build(),
+                ModifyThing.of(TestConstants.Thing.THING_ID, thingWithoutPolicy, JsonObject.newBuilder().build(),
                         thingReference,
                         v2Headers))
                 .isInstanceOf(PoliciesConflictingException.class)

@@ -36,10 +36,9 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.concierge.common.CachesConfig;
 import org.eclipse.ditto.services.concierge.common.DefaultCachesConfig;
 import org.eclipse.ditto.services.utils.cache.Cache;
+import org.eclipse.ditto.services.utils.cache.CacheKey;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
-import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
-import org.eclipse.ditto.services.utils.cacheloaders.AclEnforcerCacheLoader;
 import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.services.utils.cacheloaders.ThingEnforcementIdCacheLoader;
@@ -49,12 +48,11 @@ import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.services.utils.pubsub.LiveSignalPub;
 import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
-import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.typesafe.config.Config;
@@ -154,29 +152,25 @@ public final class TestSetup {
 
             final PolicyEnforcerCacheLoader policyEnforcerCacheLoader =
                     new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegion);
-            final Cache<EntityIdWithResourceType, Entry<PolicyEnforcer>> policyEnforcerCache =
+            final Cache<CacheKey, Entry<PolicyEnforcer>> policyEnforcerCache =
                     CaffeineCache.of(Caffeine.newBuilder(), policyEnforcerCacheLoader);
-            final Cache<EntityIdWithResourceType, Entry<Enforcer>> projectedEnforcerCache =
+            final Cache<CacheKey, Entry<Enforcer>> projectedEnforcerCache =
                     policyEnforcerCache.projectValues(PolicyEnforcer::project, PolicyEnforcer::embed);
-            final AclEnforcerCacheLoader aclEnforcerCacheLoader =
-                    new AclEnforcerCacheLoader(askTimeout, thingsShardRegion);
-            final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache =
-                    CaffeineCache.of(Caffeine.newBuilder(), aclEnforcerCacheLoader);
             final ThingEnforcementIdCacheLoader thingEnforcementIdCacheLoader =
                     new ThingEnforcementIdCacheLoader(askTimeout, thingsShardRegion);
-            final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache =
+            final Cache<CacheKey, Entry<CacheKey>> thingIdCache =
                     CaffeineCache.of(Caffeine.newBuilder(), thingEnforcementIdCacheLoader);
 
             final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
             enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegion,
-                    policiesShardRegion, thingIdCache, projectedEnforcerCache, aclEnforcerCache, preEnforcer));
+                    policiesShardRegion, thingIdCache, projectedEnforcerCache, preEnforcer));
             enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegion, policyEnforcerCache));
             enforcementProviders.add(
-                    new LiveSignalEnforcement.Provider(thingIdCache, projectedEnforcerCache, aclEnforcerCache,
+                    new LiveSignalEnforcement.Provider(thingIdCache, projectedEnforcerCache,
                             new DummyLiveSignalPub(testActorRef)));
 
             final Props props =
-                    EnforcerActor.props(testActorRef, enforcementProviders, conciergeForwarder, preEnforcer, null, null,
+                    EnforcerActor.props(testActorRef, enforcementProviders, conciergeForwarder, preEnforcer, null,
                             null);
             return system.actorOf(props, EnforcerActor.ACTOR_NAME);
         }
@@ -234,7 +228,7 @@ public final class TestSetup {
         }
 
         @Override
-        public DistributedPub<Command> command() {
+        public DistributedPub<ThingCommand<?>> command() {
             return new DistributedPub<>() {
                 @Override
                 public ActorRef getPublisher() {
@@ -242,12 +236,12 @@ public final class TestSetup {
                 }
 
                 @Override
-                public Object wrapForPublication(final Command message) {
+                public Object wrapForPublication(final ThingCommand<?> message) {
                     return DistPubSubAccess.publish(StreamingType.LIVE_COMMANDS.getDistributedPubSubTopic(), message);
                 }
 
                 @Override
-                public <S extends Command> Object wrapForPublicationWithAcks(final S message,
+                public <S extends ThingCommand<?>> Object wrapForPublicationWithAcks(final S message,
                         final AckExtractor<S> ackExtractor) {
                     return wrapForPublication(message);
                 }
@@ -255,7 +249,7 @@ public final class TestSetup {
         }
 
         @Override
-        public DistributedPub<Event> event() {
+        public DistributedPub<ThingEvent<?>> event() {
             return new DistributedPub<>() {
                 @Override
                 public ActorRef getPublisher() {
@@ -263,12 +257,12 @@ public final class TestSetup {
                 }
 
                 @Override
-                public Object wrapForPublication(final Event message) {
+                public Object wrapForPublication(final ThingEvent<?> message) {
                     return DistPubSubAccess.publish(StreamingType.LIVE_EVENTS.getDistributedPubSubTopic(), message);
                 }
 
                 @Override
-                public <S extends Event> Object wrapForPublicationWithAcks(final S message,
+                public <S extends ThingEvent<?>> Object wrapForPublicationWithAcks(final S message,
                         final AckExtractor<S> ackExtractor) {
                     return wrapForPublication(message);
                 }
@@ -276,7 +270,7 @@ public final class TestSetup {
         }
 
         @Override
-        public DistributedPub<Signal> message() {
+        public DistributedPub<SignalWithEntityId<?>> message() {
             return new DistributedPub<>() {
 
                 @Override
@@ -285,12 +279,12 @@ public final class TestSetup {
                 }
 
                 @Override
-                public Object wrapForPublication(final Signal message) {
+                public Object wrapForPublication(final SignalWithEntityId<?> message) {
                     return DistPubSubAccess.publish(StreamingType.MESSAGES.getDistributedPubSubTopic(), message);
                 }
 
                 @Override
-                public <S extends Signal> Object wrapForPublicationWithAcks(final S message,
+                public <S extends SignalWithEntityId<?>> Object wrapForPublicationWithAcks(final S message,
                         final AckExtractor<S> ackExtractor) {
                     return wrapForPublication(message);
                 }

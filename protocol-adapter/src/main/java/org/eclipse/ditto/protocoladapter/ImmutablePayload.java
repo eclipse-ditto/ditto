@@ -27,7 +27,6 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 
 /**
@@ -246,16 +245,6 @@ final class ImmutablePayload implements Payload {
         @Override
         public ImmutablePayloadBuilder withStatus(@Nullable final HttpStatus status) {
             this.status = status;
-            return this;
-        }
-
-        @Override
-        public ImmutablePayloadBuilder withStatus(final int status) {
-            try {
-                this.status = HttpStatus.getInstance(status);
-            } catch (final HttpStatusCodeOutOfRangeException e) {
-                throw new IllegalArgumentException(e.getMessage(), e);
-            }
             return this;
         }
 

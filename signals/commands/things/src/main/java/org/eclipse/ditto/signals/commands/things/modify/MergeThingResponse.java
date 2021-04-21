@@ -75,7 +75,7 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

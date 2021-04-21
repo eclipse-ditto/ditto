@@ -96,14 +96,9 @@ public final class SendFeatureMessageTest {
                 .verify();
     }
 
-    @Test(expected = org.eclipse.ditto.model.things.ThingIdInvalidException.class)
-    public void tryCreateWithNullThingIdString() {
-        SendFeatureMessage.of((String) null, FEATURE_ID, MESSAGE, DITTO_HEADERS);
-    }
-
     @Test(expected = NullPointerException.class)
     public void tryCreateWithNullThingId() {
-        SendFeatureMessage.of((ThingId) null, FEATURE_ID, MESSAGE, DITTO_HEADERS);
+        SendFeatureMessage.of(null, FEATURE_ID, MESSAGE, DITTO_HEADERS);
     }
 
     @Test(expected = NullPointerException.class)
@@ -177,7 +172,7 @@ public final class SendFeatureMessageTest {
                 SendFeatureMessage.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat((CharSequence) underTest.getThingEntityId()).isEqualTo(THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(THING_ID);
         assertThat(underTest.getFeatureId()).isEqualTo(FEATURE_ID);
         assertThat(underTest.getMessageType()).isEqualTo(SendFeatureMessage.NAME);
         assertThat(underTest.getMessage()).isEqualTo(DESERIALIZED_MESSAGE);

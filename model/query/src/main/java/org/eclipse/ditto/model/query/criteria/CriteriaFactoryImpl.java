@@ -47,7 +47,7 @@ public final class CriteriaFactoryImpl implements CriteriaFactory {
 
     @Override
     public Criteria fieldCriteria(final FilterFieldExpression fieldExpression, final Predicate predicate) {
-        return new FieldCriteriaImpl(requireNonNull(fieldExpression), requireNonNull((Predicate) predicate));
+        return new FieldCriteriaImpl(requireNonNull(fieldExpression), requireNonNull(predicate));
     }
 
     @Override

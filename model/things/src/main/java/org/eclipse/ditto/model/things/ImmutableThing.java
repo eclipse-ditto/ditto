@@ -26,7 +26,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -41,9 +40,6 @@ final class ImmutableThing implements Thing {
 
 
     @Nullable private final ThingId thingId;
-    @Nullable
-    @Deprecated
-    private final AccessControlList acl;
     @Nullable private final PolicyId policyId;
     @Nullable private final ThingDefinition definition;
     @Nullable private final Attributes attributes;
@@ -55,7 +51,6 @@ final class ImmutableThing implements Thing {
     @Nullable private final Metadata metadata;
 
     private ImmutableThing(@Nullable final ThingId thingId,
-            @Nullable final AccessControlList acl,
             @Nullable final PolicyId policyId,
             @Nullable final ThingDefinition definition,
             @Nullable final Attributes attributes,
@@ -67,8 +62,6 @@ final class ImmutableThing implements Thing {
             @Nullable final Metadata metadata) {
 
         this.thingId = thingId;
-        this.acl = acl;
-
         this.policyId = policyId;
         this.definition = definition;
         this.attributes = attributes;
@@ -78,103 +71,6 @@ final class ImmutableThing implements Thing {
         this.modified = modified;
         this.created = created;
         this.metadata = metadata;
-    }
-
-    /**
-     * Creates a new Thing object which is based on the given values.
-     *
-     * @param thingId the ID of the Thing to be created.
-     * @param accessControlList the Access Control List of the Thing to be created.
-     * @param attributes the attributes of the Thing to be created.
-     * @param features the features of the Thing to be created.
-     * @param lifecycle the lifecycle of the Thing to be created.
-     * @param revision the revision of the Thing to be created.
-     * @param modified the modified timestamp of the Thing to be created.
-     * @param created the created timestamp of the thing to be created.
-     * @param metadata the metadata of the Thing to be created.
-     * @return the {@code Thing} which was created from the given JSON object.
-     * @deprecated ThingId is now typed. Use
-     * {@link #of(ThingId, AccessControlList, Attributes, Features, ThingLifecycle, ThingRevision, java.time.Instant,
-     * java.time.Instant, Metadata)}
-     * instead.
-     */
-    @Deprecated
-    static Thing of(@Nullable final String thingId,
-            @Nullable final AccessControlList accessControlList,
-            @Nullable final Attributes attributes,
-            @Nullable final Features features,
-            @Nullable final ThingLifecycle lifecycle,
-            @Nullable final ThingRevision revision,
-            @Nullable final Instant modified,
-            @Nullable final Instant created,
-            @Nullable final Metadata metadata) {
-
-        return of(ThingId.of(thingId), accessControlList, attributes, features, lifecycle, revision,
-                modified, created, metadata);
-    }
-
-    /**
-     * Creates a new Thing object which is based on the given values.
-     *
-     * @param thingId the ID of the Thing to be created.
-     * @param accessControlList the Access Control List of the Thing to be created.
-     * @param attributes the attributes of the Thing to be created.
-     * @param features the features of the Thing to be created.
-     * @param lifecycle the lifecycle of the Thing to be created.
-     * @param revision the revision of the Thing to be created.
-     * @param modified the modified timestamp of the Thing to be created.
-     * @param created the created timestamp of the thing to be created.
-     * @param metadata the metadata of the Thing to be created.
-     * @return the {@code Thing} which was created from the given JSON object.
-     * @deprecated deprecated API version 1. Use API version 2 instead.
-     */
-    @Deprecated
-    static Thing of(@Nullable final ThingId thingId,
-            @Nullable final AccessControlList accessControlList,
-            @Nullable final Attributes attributes,
-            @Nullable final Features features,
-            @Nullable final ThingLifecycle lifecycle,
-            @Nullable final ThingRevision revision,
-            @Nullable final Instant modified,
-            @Nullable final Instant created,
-            @Nullable final Metadata metadata) {
-
-        return new ImmutableThing(thingId, accessControlList, null, null, attributes, features, lifecycle,
-                revision, modified, created, metadata);
-    }
-
-    /**
-     * Creates a new Thing object which is based on the given values.
-     *
-     * @param thingId the ID of the Thing to be created.
-     * @param policyId the Policy ID for the Thing to be created.
-     * @param accessControlList the Access Control List of the Thing to be created.
-     * @param attributes the attributes of the Thing to be created.
-     * @param definition the definition of the Thing to be created.
-     * @param features the features of the Thing to be created.
-     * @param lifecycle the lifecycle of the Thing to be created.
-     * @param revision the revision of the Thing to be created.
-     * @param modified the modified timestamp of the thing to be created.
-     * @param created the created timestamp of the thing to be created.
-     * @param metadata the metadata of the Thing to be created.
-     * @return the {@code Thing} which was created from the given JSON object.
-     */
-
-    static Thing of(@Nullable final ThingId thingId,
-
-            @Nullable final AccessControlList accessControlList,
-            @Nullable final PolicyId policyId,
-            @Nullable final ThingDefinition definition,
-            @Nullable final Attributes attributes,
-            @Nullable final Features features,
-            @Nullable final ThingLifecycle lifecycle,
-            @Nullable final ThingRevision revision,
-            @Nullable final Instant modified,
-            @Nullable final Instant created,
-            @Nullable final Metadata metadata) {
-
-        return new ImmutableThing(thingId, accessControlList, policyId, definition, attributes, features, lifecycle,
-                revision, modified, created, metadata);
     }
 
     /**
@@ -203,7 +99,7 @@ final class ImmutableThing implements Thing {
             @Nullable final Instant created,
             @Nullable final Metadata metadata) {
 
-        return new ImmutableThing(thingId, null, policyId, definition, attributes, features, lifecycle, revision,
+        return new ImmutableThing(thingId, policyId, definition, attributes, features, lifecycle, revision,
                 modified, created, metadata);
     }
 
@@ -248,7 +144,7 @@ final class ImmutableThing implements Thing {
             return this;
         }
 
-        return new ImmutableThing(thingId, acl, policyId, definition, attributes, features, lifecycle, revision,
+        return new ImmutableThing(thingId, policyId, definition, attributes, features, lifecycle, revision,
                 modified, created, metadata);
     }
 
@@ -292,7 +188,7 @@ final class ImmutableThing implements Thing {
     @Override
     public Thing setDefinition(@Nullable final CharSequence definitionIdentifier) {
         if (null != definitionIdentifier) {
-            return new ImmutableThing(thingId, acl, policyId,
+            return new ImmutableThing(thingId, policyId,
                     ImmutableThingDefinition.ofParsed(definitionIdentifier),
                     attributes,
                     features,
@@ -302,7 +198,7 @@ final class ImmutableThing implements Thing {
                     created,
                     metadata);
         } else {
-            return new ImmutableThing(thingId, acl, policyId,
+            return new ImmutableThing(thingId, policyId,
                     NullThingDefinition.getInstance(),
                     attributes,
                     features,
@@ -319,7 +215,7 @@ final class ImmutableThing implements Thing {
         if (null == this.definition) {
             return this;
         }
-        return new ImmutableThing(thingId, acl, policyId, null, attributes, features, lifecycle, revision,
+        return new ImmutableThing(thingId, policyId, null, attributes, features, lifecycle, revision,
                 modified, created, metadata);
     }
 
@@ -343,7 +239,7 @@ final class ImmutableThing implements Thing {
             return this;
         }
 
-        return new ImmutableThing(thingId, acl, policyId, definition, attributes, features, lifecycle, revision,
+        return new ImmutableThing(thingId, policyId, definition, attributes, features, lifecycle, revision,
                 modified, created, metadata);
     }
 
@@ -437,7 +333,8 @@ final class ImmutableThing implements Thing {
             final FeatureProperties desiredProperties = ThingsModelFactory.newFeaturePropertiesBuilder()
                     .set(desiredPropertyPath, desiredPropertyValue)
                     .build();
-            newFeatures = ThingsModelFactory.newFeatures(ThingsModelFactory.newFeature(featureId, null, null, desiredProperties));
+            newFeatures = ThingsModelFactory.newFeatures(
+                    ThingsModelFactory.newFeature(featureId, null, null, desiredProperties));
         } else {
             newFeatures = features.setDesiredProperty(featureId, desiredPropertyPath, desiredPropertyValue);
         }
@@ -451,57 +348,13 @@ final class ImmutableThing implements Thing {
     }
 
     @Override
-    @Deprecated
-    public Optional<AccessControlList> getAccessControlList() {
-        return Optional.ofNullable(acl);
-    }
-
-    @Override
-    @Deprecated
-    public Thing setAccessControlList(final AccessControlList accessControlList) {
-        if (policyId != null) {
-            throw AclInvalidException.newBuilder(thingId)
-                    .description("Could not set v1 ACL to Thing already containing v2 Policy")
-                    .build();
-        } else if (Objects.equals(acl, accessControlList)) {
-            return this;
-        }
-
-        return new ImmutableThing(thingId, accessControlList, null, definition, attributes, features, lifecycle,
-                revision, modified, created, metadata);
-    }
-
-    @Override
-    @Deprecated
-    public Thing setAclEntry(final AclEntry aclEntry) {
-        final AccessControlList newAcl;
-        if (null == acl || acl.isEmpty()) {
-            newAcl = ThingsModelFactory.newAcl(aclEntry);
-        } else {
-            newAcl = acl.setEntry(aclEntry);
-        }
-
-        return setAccessControlList(newAcl);
-    }
-
-    @Override
-    @Deprecated
-    public Thing removeAllPermissionsOf(final AuthorizationSubject authorizationSubject) {
-        if (null == acl || acl.isEmpty()) {
-            return this;
-        }
-
-        return setAccessControlList(acl.removeAllPermissionsOf(authorizationSubject));
-    }
-
-    @Override
     public Optional<PolicyId> getPolicyEntityId() {
         return Optional.ofNullable(policyId);
     }
 
     @Override
     public Thing setPolicyId(@Nullable final PolicyId policyId) {
-        return new ImmutableThing(thingId, acl, policyId, definition, attributes, features, lifecycle, revision,
+        return new ImmutableThing(thingId, policyId, definition, attributes, features, lifecycle, revision,
                 modified, created, metadata);
     }
 
@@ -514,7 +367,7 @@ final class ImmutableThing implements Thing {
     public Thing setLifecycle(final ThingLifecycle newLifecycle) {
         ConditionChecker.checkNotNull(newLifecycle, "lifecycle to be set");
 
-        return new ImmutableThing(thingId, acl, policyId, definition, attributes, features, newLifecycle, revision,
+        return new ImmutableThing(thingId, policyId, definition, attributes, features, newLifecycle, revision,
                 modified, created, metadata);
     }
 
@@ -551,19 +404,14 @@ final class ImmutableThing implements Thing {
             jsonObjectBuilder.set(JsonFields.ID, thingId.toString(), predicate);
         }
 
-        if (JsonSchemaVersion.V_1.equals(schemaVersion)) {
-            final AccessControlList theAcl = getAccessControlList().orElseGet(ThingsModelFactory::emptyAcl);
-            jsonObjectBuilder.set(JsonFields.ACL, theAcl.toJson(), predicate);
-        } else {
-            if (null != policyId) {
-                jsonObjectBuilder.set(JsonFields.POLICY_ID, String.valueOf(policyId), predicate);
-            }
-            if (null != definition) {
-                if (definition instanceof NullThingDefinition) {
-                    jsonObjectBuilder.set(JsonFields.DEFINITION, JsonValue.nullLiteral(), predicate);
-                } else {
-                    jsonObjectBuilder.set(JsonFields.DEFINITION, JsonValue.of(definition.toString()), predicate);
-                }
+        if (null != policyId) {
+            jsonObjectBuilder.set(JsonFields.POLICY_ID, String.valueOf(policyId), predicate);
+        }
+        if (null != definition) {
+            if (definition instanceof NullThingDefinition) {
+                jsonObjectBuilder.set(JsonFields.DEFINITION, JsonValue.nullLiteral(), predicate);
+            } else {
+                jsonObjectBuilder.set(JsonFields.DEFINITION, JsonValue.of(definition.toString()), predicate);
             }
         }
 
@@ -586,7 +434,7 @@ final class ImmutableThing implements Thing {
 
     @Override
     public int hashCode() {
-        return Objects.hash(thingId, policyId, acl, definition, attributes, features, lifecycle, revision, modified,
+        return Objects.hash(thingId, policyId, definition, attributes, features, lifecycle, revision, modified,
                 created, metadata);
     }
 
@@ -605,7 +453,6 @@ final class ImmutableThing implements Thing {
         final ImmutableThing other = (ImmutableThing) obj;
         return Objects.equals(thingId, other.thingId) &&
                 Objects.equals(policyId, other.policyId) &&
-                Objects.equals(acl, other.acl) &&
                 Objects.equals(definition, other.definition) &&
                 Objects.equals(attributes, other.attributes) &&
                 Objects.equals(features, other.features) &&
@@ -620,7 +467,6 @@ final class ImmutableThing implements Thing {
     public String toString() {
         return getClass().getSimpleName() + " ["
                 + "thingId=" + thingId +
-                ", acl=" + acl +
                 ", policyId=" + policyId +
                 ", definition=" + definition +
                 ", attributes=" + attributes +

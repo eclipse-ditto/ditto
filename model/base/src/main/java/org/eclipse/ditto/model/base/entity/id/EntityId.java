@@ -14,11 +14,25 @@ package org.eclipse.ditto.model.base.entity.id;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.entity.type.EntityType;
+
 /**
  * Java representation of an Entity ID.
  */
 @Immutable
 public interface EntityId extends CharSequence, Comparable<EntityId> {
+
+    /**
+     * Instantiates a {@link EntityId} based on the given entity type and entity ID.
+     *
+     * @param entityType The type of the entity which is identified by the given ID.
+     * @param entityId The ID of the entity.
+     * @return the instance.
+     * @since 2.0.0
+     */
+    static EntityId of(final EntityType entityType, final CharSequence entityId) {
+        return EntityIds.getEntityId(entityType, entityId);
+    }
 
     @Override
     default int length() {
@@ -48,10 +62,11 @@ public interface EntityId extends CharSequence, Comparable<EntityId> {
     }
 
     /**
-     * Checks whether this ID acts as dummy ID. Dummy IDs should not be used as ID for any entity.
+     * Returns the entity type.
      *
-     * @return true if this ID is a dummy ID, otherwise false.
+     * @return the entity type.
+     * @since 2.0.0
      */
-    boolean isDummy();
+    EntityType getEntityType();
 
 }

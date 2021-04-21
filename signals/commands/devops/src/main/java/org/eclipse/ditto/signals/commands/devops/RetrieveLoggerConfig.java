@@ -41,7 +41,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * Command to retrieve the {@link org.eclipse.ditto.model.devops.LoggerConfig} for each configured Logger.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = RetrieveLoggerConfig.TYPE_PREFIX, name = RetrieveLoggerConfig.NAME)
+@JsonParsableCommand(typePrefix = DevOpsCommand.TYPE_PREFIX, name = RetrieveLoggerConfig.NAME)
 public final class RetrieveLoggerConfig extends AbstractDevOpsCommand<RetrieveLoggerConfig> {
 
     /**
@@ -55,11 +55,11 @@ public final class RetrieveLoggerConfig extends AbstractDevOpsCommand<RetrieveLo
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<Boolean> JSON_ALL_KNOWN_LOGGERS =
-            JsonFactory.newBooleanFieldDefinition("allKnownLoggers", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newBooleanFieldDefinition("allKnownLoggers", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<JsonArray> JSON_SPECIFIC_LOGGERS =
-            JsonFactory.newJsonArrayFieldDefinition("specificLoggers", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonArrayFieldDefinition("specificLoggers", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final boolean allKnownLoggers;

@@ -18,7 +18,6 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 /**
@@ -26,7 +25,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  *
  * @param <T> the type of the implementing class.
  */
-public interface SudoCommand<T extends SudoCommand<T>> extends Command<T>, WithIdButActuallyNot {
+public interface SudoCommand<T extends SudoCommand<T>> extends Command<T> {
 
     /**
      * Type Prefix of Sudo commands.
@@ -67,7 +66,7 @@ public interface SudoCommand<T extends SudoCommand<T>> extends Command<T>, WithI
          */
         public static final JsonFieldDefinition<String> JSON_THING_ID =
                 JsonFactory.newStringFieldDefinition("payload/thingId", FieldType.REGULAR,
-                        JsonSchemaVersion.V_1,
+
                         JsonSchemaVersion.V_2);
 
         /**
@@ -76,7 +75,7 @@ public interface SudoCommand<T extends SudoCommand<T>> extends Command<T>, WithI
          */
         public static final JsonFieldDefinition<String> SELECTED_FIELDS =
                 JsonFactory.newStringFieldDefinition("payload/selectedFields", FieldType.REGULAR,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

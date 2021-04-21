@@ -25,6 +25,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -36,7 +37,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a {@link Connection} was opened.
  */
 @Immutable
-@JsonParsableEvent(name = ConnectionOpened.NAME, typePrefix= ConnectionOpened.TYPE_PREFIX)
+@JsonParsableEvent(name = ConnectionOpened.NAME, typePrefix= ConnectivityEvent.TYPE_PREFIX)
 public final class ConnectionOpened extends AbstractConnectivityEvent<ConnectionOpened>
         implements ConnectivityEvent<ConnectionOpened> {
 
@@ -50,70 +51,33 @@ public final class ConnectionOpened extends AbstractConnectivityEvent<Connection
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private ConnectionOpened(final ConnectionId connectionId, @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
-        super(TYPE, connectionId, timestamp, dittoHeaders);
+    private ConnectionOpened(final ConnectionId connectionId,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
+
+        super(TYPE, connectionId, revision, timestamp, dittoHeaders, metadata);
     }
 
     /**
      * Returns a new {@code ConnectionOpened} event.
      *
      * @param connectionId the identifier of the opened Connection.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the event.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Connection ID is now typed. Use
-     * {@link #of(ConnectionId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ConnectionOpened of(final String connectionId, final DittoHeaders dittoHeaders) {
-        return of(ConnectionId.of(connectionId), dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code ConnectionOpened} event.
-     *
-     * @param connectionId the identifier of the opened Connection.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the event.
-     * @throws NullPointerException if any argument is {@code null}.
-     */
-    public static ConnectionOpened of(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
-        return of(connectionId, null, dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code ConnectionOpened} event.
-     *
-     * @param connectionId the identifier of the opened Connection.
+     * @param revision the revision of the Connection.
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the event.
-     * @throws NullPointerException if {@code connectionId} or {@code dittoHeaders} are {@code null}.
-     * @deprecated Connection ID is now typed. Use
-     * {@link #of(ConnectionId, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ConnectionOpened of(final String connectionId, @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
-        return of(ConnectionId.of(connectionId), timestamp, dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code ConnectionOpened} event.
-     *
-     * @param connectionId the identifier of the opened Connection.
-     * @param timestamp the timestamp of this event.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @param metadata the metadata to apply for the event.
      * @return the event.
      * @throws NullPointerException if {@code connectionId} or {@code dittoHeaders} are {@code null}.
      */
-    public static ConnectionOpened of(final ConnectionId connectionId, @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
+    public static ConnectionOpened of(final ConnectionId connectionId,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
         checkNotNull(connectionId, "Connection ID");
-        return new ConnectionOpened(connectionId, timestamp, dittoHeaders);
+        return new ConnectionOpened(connectionId, revision, timestamp, dittoHeaders, metadata);
     }
 
     /**
@@ -143,9 +107,10 @@ public final class ConnectionOpened extends AbstractConnectivityEvent<Connection
     public static ConnectionOpened fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<ConnectionOpened>(TYPE, jsonObject)
                 .deserialize((revision, timestamp, metadata) -> {
-                    final String readConnectionId = jsonObject.getValueOrThrow(JsonFields.CONNECTION_ID);
+                    final String readConnectionId = jsonObject.getValueOrThrow(
+                            ConnectivityEvent.JsonFields.CONNECTION_ID);
                     final ConnectionId connectionId = ConnectionId.of(readConnectionId);
-                    return of(connectionId, timestamp, dittoHeaders);
+                    return of(connectionId, revision, timestamp, dittoHeaders, metadata);
                 });
     }
 
@@ -155,8 +120,15 @@ public final class ConnectionOpened extends AbstractConnectivityEvent<Connection
     }
 
     @Override
+    public ConnectionOpened setRevision(final long revision) {
+        return of(getEntityId(), revision, getTimestamp().orElse(null), getDittoHeaders(),
+                getMetadata().orElse(null));
+    }
+
+    @Override
     public ConnectionOpened setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getConnectionEntityId(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getEntityId(), getRevision(), getTimestamp().orElse(null), dittoHeaders,
+                getMetadata().orElse(null));
     }
 
     @Override

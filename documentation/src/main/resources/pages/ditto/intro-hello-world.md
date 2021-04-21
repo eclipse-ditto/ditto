@@ -4,11 +4,13 @@ tags: [getting_started]
 permalink: intro-hello-world.html
 ---
 
-After [starting Ditto](installation-running.html), we have a HTTP and WebSocket API for your [digital twins](intro-digitaltwins.html) at our hands.
+After [starting Ditto](installation-running.html), we have a HTTP and WebSocket API for your
+[digital twins](intro-digitaltwins.html) at our hands.
 
 ## Example
 
-Assume we want to create a digital twin for a car. The twin should hold static metadata and dynamic state data. The state data should change as often as its real world counterpart does.
+Assume we want to create a digital twin for a car. The twin should hold static metadata and dynamic state data. 
+The state data should change as often as its real world counterpart does.
 
 Those static and dynamic types of data are mapped in the Ditto model to "attributes" (for static metadata), "features" 
 (for dynamic state data) and "definition" (to link a model the thing follows, 
@@ -51,8 +53,8 @@ Background: Ditto only knows about "attributes", "features" and the "definition"
 
 Inside "attributes" (the metadata) we can add as much JSON keys as we like with any JSON value we need.
 
-Inside "features" (the state data) we can add as much features as we like - but each feature needs to have a "properties" JSON object.
-Inside that JSON object we can add as much JSON keys as we like with any JSON value we need. 
+Inside "features" (the state data) we can add as much features as we like - but each feature needs to have 
+a "properties" JSON object. Inside that JSON object we can add as much JSON keys as we like with any JSON value we need. 
 
 Inside "definition" we can add one JSON string value. 
 
@@ -91,11 +93,11 @@ curl -u ditto:ditto -X PUT -d '{
        }
      }
    }
- }' 'http://localhost:8080/api/1/things/org.eclipse.ditto:fancy-car'
+ }' 'http://localhost:8080/api/2/things/org.eclipse.ditto:fancy-car'
 ```
 
-The result is a digital twin in Thing notation. The Thing ID is `org.eclipse.ditto:fancy-car`. An ID must always contain a 
-namespace before the `:`. That way Things are easier to organize.
+The result is a digital twin in Thing notation. The Thing ID is `org.eclipse.ditto:fancy-car`. 
+An ID must always contain a namespace before the `:`. That way Things are easier to organize.
 
 ## Querying an existing Thing
 
@@ -105,10 +107,10 @@ our Thing.
 For Things we know the ID of, we can simply query them by their ID:
 
 ```bash
-curl -u ditto:ditto -X GET 'http://localhost:8080/api/1/things/org.eclipse.ditto:fancy-car'
+curl -u ditto:ditto -X GET 'http://localhost:8080/api/2/things/org.eclipse.ditto:fancy-car'
 
 # if you have python installed, that's how to get a prettier response:
-curl -u ditto:ditto -X GET 'http://localhost:8080/api/1/things/org.eclipse.ditto:fancy-car' | python -m json.tool
+curl -u ditto:ditto -X GET 'http://localhost:8080/api/2/things/org.eclipse.ditto:fancy-car' | python -m json.tool
 ```
 
 ## Querying one specific state value
@@ -118,7 +120,7 @@ The created API for our Thing also provides HTTP endpoints for each attribute an
 That way we can for example just retrieve the `cur_speed` of our fancy car:
 
 ```bash
-curl -u ditto:ditto -X GET 'http://localhost:8080/api/1/things/org.eclipse.ditto:fancy-car/features/transmission/properties/cur_speed'
+curl -u ditto:ditto -X GET 'http://localhost:8080/api/2/things/org.eclipse.ditto:fancy-car/features/transmission/properties/cur_speed'
 ```
 
 ## Updating one specific state value
@@ -126,7 +128,7 @@ curl -u ditto:ditto -X GET 'http://localhost:8080/api/1/things/org.eclipse.ditto
 We can just as easy use the HTTP API to update one attribute or feature property, e.g. update the `cur_speed` to `77`:
 
 ```bash
-curl -u ditto:ditto -X PUT -d '77' 'http://localhost:8080/api/1/things/org.eclipse.ditto:fancy-car/features/transmission/properties/cur_speed'
+curl -u ditto:ditto -X PUT -d '77' 'http://localhost:8080/api/2/things/org.eclipse.ditto:fancy-car/features/transmission/properties/cur_speed'
 ```
 
 ## Searching for all Things
@@ -135,5 +137,5 @@ When we lost the overview which Things we have already created, we can use the `
 e.g. searching all Things with the same `manufacturer` named `"ACME"`:
 
 ```bash
-curl -u ditto:ditto -X GET 'http://localhost:8080/api/1/search/things?filter=eq(attributes/manufacturer,"ACME")'
+curl -u ditto:ditto -X GET 'http://localhost:8080/api/2/search/things?filter=eq(attributes/manufacturer,"ACME")'
 ```

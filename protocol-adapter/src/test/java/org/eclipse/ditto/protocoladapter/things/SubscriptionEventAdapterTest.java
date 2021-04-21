@@ -292,16 +292,6 @@ public final class SubscriptionEventAdapterTest implements ProtocolAdapterTest {
         }
 
         @Override
-        public long getRevision() {
-            return TestConstants.REVISION;
-        }
-
-        @Override
-        public UnknownSubscriptionEvent setRevision(final long revision) {
-            return this;
-        }
-
-        @Override
         public Optional<Instant> getTimestamp() {
             return Optional.empty();
         }
@@ -313,14 +303,13 @@ public final class SubscriptionEventAdapterTest implements ProtocolAdapterTest {
 
         @Override
         public DittoHeaders getDittoHeaders() {
-            return TestConstants.DITTO_HEADERS_V_1;
+            return TestConstants.DITTO_HEADERS_V_2;
         }
 
         @Override
         public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate predicate) {
             return JsonObject.newBuilder()
                     .set(Event.JsonFields.TYPE, getType())
-                    .set(Event.JsonFields.REVISION, getRevision())
                     .build();
         }
 

@@ -80,10 +80,11 @@ final class DeactivateTokenIntegrationStrategy
             final Instant eventTimestamp = getEventTimestamp();
             if (subjectIds.size() == 1) {
                 final SubjectId subjectId = subjectIds.stream().findFirst().orElseThrow();
-                event = SubjectDeleted.of(policyId, label, subjectId, nextRevision, eventTimestamp, dittoHeaders);
+                event = SubjectDeleted.of(policyId, label, subjectId, nextRevision, eventTimestamp, dittoHeaders,
+                        metadata);
             } else {
                 event = SubjectsDeletedPartially.of(policyId, Map.of(label, subjectIds), nextRevision, eventTimestamp,
-                        dittoHeaders);
+                        dittoHeaders, metadata);
             }
             final DeactivateTokenIntegrationResponse rawResponse =
                     DeactivateTokenIntegrationResponse.of(policyId, label, dittoHeaders);

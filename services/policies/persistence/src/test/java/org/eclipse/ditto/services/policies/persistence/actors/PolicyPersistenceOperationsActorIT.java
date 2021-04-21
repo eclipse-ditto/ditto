@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.policies.persistence.actors;
 import java.util.Arrays;
 import java.util.Collections;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.Policy;
@@ -69,7 +68,7 @@ public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceIT
     }
 
     @Override
-    protected PolicyId toEntityId(final EntityId entityId) {
+    protected PolicyId toEntityId(final CharSequence entityId) {
         return PolicyId.of(entityId);
     }
 

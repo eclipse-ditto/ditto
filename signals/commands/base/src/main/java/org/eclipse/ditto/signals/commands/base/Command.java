@@ -114,15 +114,6 @@ public interface Command<T extends Command<T>> extends Signal<T> {
     abstract class JsonFields {
 
         /**
-         * JSON field containing the command's identification as String.
-         *
-         * @deprecated Command ID belongs to deprecated API 1. Use API 2 with {@link #TYPE} instead
-         */
-        @Deprecated
-        public static final JsonFieldDefinition<String> ID =
-                JsonFactory.newStringFieldDefinition("command", FieldType.REGULAR, JsonSchemaVersion.V_1);
-
-        /**
          * JSON field containing the command's type as String.
          */
         public static final JsonFieldDefinition<String> TYPE =

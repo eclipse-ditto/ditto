@@ -157,7 +157,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
 
     private Map.Entry<String, MappingContext> getEmptyMappingContextForAlias(final String alias) {
         final MappingContext emptyMappingContext =
-                ConnectivityModelFactory.newMappingContext(alias, JsonObject.empty());
+                ConnectivityModelFactory.newMappingContextBuilder(alias, JsonObject.empty()).build();
         return new SimpleImmutableEntry<>(alias, emptyMappingContext);
     }
 

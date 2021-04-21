@@ -54,7 +54,7 @@ final class MessageSignalMapper<T extends Signal<?> & WithThingId & WithMessage<
 
     @Override
     TopicPath getTopicPath(final T signal, final TopicPath.Channel channel) {
-        return ProtocolFactory.newTopicPathBuilder(signal.getThingEntityId())
+        return ProtocolFactory.newTopicPathBuilder(signal.getEntityId())
                 .live()
                 .messages()
                 .subject(signal.getMessage().getSubject())

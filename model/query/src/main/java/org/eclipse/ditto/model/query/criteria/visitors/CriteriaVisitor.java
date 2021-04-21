@@ -13,8 +13,6 @@
 package org.eclipse.ditto.model.query.criteria.visitors;
 
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.criteria.Predicate;
@@ -35,19 +33,6 @@ public interface CriteriaVisitor<T> {
      * @return the created thingy.
      */
     T visitAnd(List<T> conjuncts);
-
-    /**
-     * Visits the passed {@code conjuncts} applying "and" semantics.
-     *
-     * @param conjuncts the streamed parts to apply "and" on.
-     * @return the created thingy.
-     * @deprecated it is dangerous to use a stream as parameter as the stream might be consumed more than once, use
-     * {@link #visitAnd(java.util.List)} instead
-     */
-    @Deprecated
-    default T visitAnd(final Stream<T> conjuncts) {
-        return visitAnd(conjuncts.collect(Collectors.toList()));
-    }
 
     /**
      * Visits applying "any" semantics.
@@ -82,37 +67,11 @@ public interface CriteriaVisitor<T> {
     T visitNor(List<T> negativeDisjoints);
 
     /**
-     * Visits the passed {@code negativeDisjoints} applying "nor" semantics.
-     *
-     * @param negativeDisjoints the streamed parts to apply "nor" on.
-     * @return the created thingy.
-     * @deprecated it is dangerous to use a stream as parameter as the stream might be consumed more than once, use
-     * {@link #visitNor(java.util.List)} instead
-     */
-    @Deprecated
-    default T visitNor(final Stream<T> negativeDisjoints) {
-        return visitNor(negativeDisjoints.collect(Collectors.toList()));
-    }
-
-    /**
      * Visits the passed {@code disjoints} applying "or" semantics.
      *
      * @param disjoints the streamed parts to apply "or" on.
      * @return the created thingy.
      */
     T visitOr(List<T> disjoints);
-
-    /**
-     * Visits the passed {@code disjoints} applying "or" semantics.
-     *
-     * @param disjoints the streamed parts to apply "or" on.
-     * @return the created thingy.
-     * @deprecated it is dangerous to use a stream as parameter as the stream might be consumed more than once, use
-     * {@link #visitOr(java.util.List)} instead
-     */
-    @Deprecated
-    default T visitOr(final Stream<T> disjoints) {
-        return visitOr(disjoints.collect(Collectors.toList()));
-    }
 
 }

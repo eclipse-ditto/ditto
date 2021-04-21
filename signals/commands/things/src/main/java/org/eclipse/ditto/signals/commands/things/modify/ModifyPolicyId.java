@@ -38,12 +38,13 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 /**
  * This command modifies the Policy ID of a Thing.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = ModifyPolicyId.TYPE_PREFIX, name = ModifyPolicyId.NAME)
+@JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = ModifyPolicyId.NAME)
 public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
         implements ThingModifyCommand<ModifyPolicyId> {
 
@@ -77,23 +78,6 @@ public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
     @Override
     public JsonSchemaVersion[] getSupportedSchemaVersions() {
         return new JsonSchemaVersion[]{JsonSchemaVersion.V_2};
-    }
-
-    /**
-     * Returns a command for modifying a Policy ID which is passed as argument.
-     *
-     * @param thingId the ID of the thing on which to modify the Policy ID.
-     * @param policyId the Policy ID to set.
-     * @param dittoHeaders the headers of the command.
-     * @return a command for modifying the provided new Policy ID.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(ThingId, PolicyId, DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifyPolicyId of(final String thingId, final String policyId, final DittoHeaders dittoHeaders) {
-        return of(ThingId.of(thingId), PolicyId.of(policyId), dittoHeaders);
     }
 
     /**
@@ -141,7 +125,7 @@ public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
      */
     public static ModifyPolicyId fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifyPolicyId>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
             final String readPolicyId = jsonObject.getValueOrThrow(JSON_POLICY_ID);
             final PolicyId policyId = PolicyId.of(readPolicyId);
@@ -154,24 +138,13 @@ public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
      * Returns the new Policy ID.
      *
      * @return the new Policy ID.
-     * @deprecated Policy ID of the Thing is now typed. Use {@link #getPolicyEntityId()} instead.
-     */
-    @Deprecated
-    public String getPolicyId() {
-        return String.valueOf(getPolicyEntityId());
-    }
-
-    /**
-     * Returns the new Policy ID.
-     *
-     * @return the new Policy ID.
      */
     public PolicyId getPolicyEntityId() {
         return policyId;
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 
@@ -190,7 +163,7 @@ public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_POLICY_ID, String.valueOf(policyId), predicate);
     }
 

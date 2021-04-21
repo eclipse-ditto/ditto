@@ -20,7 +20,6 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 /**
@@ -28,7 +27,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  *
  * @param <T> the type of the implementing class.
  */
-public interface DevOpsCommand<T extends DevOpsCommand<T>> extends Command<T>, WithIdButActuallyNot {
+public interface DevOpsCommand<T extends DevOpsCommand<T>> extends Command<T> {
 
     /**
      * Type Prefix of DevOps commands.
@@ -84,14 +83,14 @@ public interface DevOpsCommand<T extends DevOpsCommand<T>> extends Command<T>, W
          * JSON field containing the serviceName to which to send the DevOpsCommand.
          */
         public static final JsonFieldDefinition<String> JSON_SERVICE_NAME =
-                JsonFactory.newStringFieldDefinition("serviceName", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("serviceName", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the instance index of the serviceName serviceName to which to send the DevOpsCommand.
          */
         public static final JsonFieldDefinition<String> JSON_INSTANCE =
-                JsonFactory.newStringFieldDefinition("instance", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("instance", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
     }

@@ -20,7 +20,6 @@ import java.util.Optional;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.things.ThingId;
 
 /**
@@ -76,15 +75,6 @@ public interface Message<T> {
     Optional<JsonObject> getExtra();
 
     /**
-     * Returns the MessageResponseConsumer which is stored together with the message but never serialized.
-     *
-     * @return the MessageResponseConsumer stored locally with the message.
-     * @deprecated since 1.2.0.
-     */
-    @Deprecated
-    Optional<MessageResponseConsumer<?>> getResponseConsumer();
-
-    /**
      * Returns the direction of the message, specifying if the message has been sent <em>FROM</em> a {@code Thing} (or
      * its {@code Feature}), or <em>TO</em> a {@code Thing} (or its {@code Feature}).
      *
@@ -96,19 +86,8 @@ public interface Message<T> {
      * Returns the ID of the {@code Thing} from/to which this message is sent.
      *
      * @return the thing ID.
-     * @deprecated the thing ID is now typed. Use {@link #getThingEntityId()} instead.
      */
-    @Deprecated
-    default String getThingId() {
-        return getThingEntityId().toString();
-    }
-
-    /**
-     * Returns the ID of the {@code Thing} from/to which this message is sent.
-     *
-     * @return the thing ID.
-     */
-    ThingId getThingEntityId();
+    ThingId getEntityId();
 
     /**
      * Returns the subject of the message as provided by the message sender.
@@ -160,17 +139,6 @@ public interface Message<T> {
      * @return the authorization context of the message.
      */
     AuthorizationContext getAuthorizationContext();
-
-    /**
-     * Returns the status code of the message.
-     *
-     * @return the status code.
-     * @deprecated as of 2.0.0 please use {@link #getHttpStatus()} instead.
-     */
-    @Deprecated
-    default Optional<HttpStatusCode> getStatusCode() {
-        return getHttpStatus().map(HttpStatus::getCode).flatMap(HttpStatusCode::forInt);
-    }
 
     /**
      * Returns the HTTP status of this message.

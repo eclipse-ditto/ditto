@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.utils.cache;
 
-import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 

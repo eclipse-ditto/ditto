@@ -475,7 +475,7 @@ public final class JsonFactory {
      * @throws NullPointerException if {@code key} is {@code null}.
      */
     public static JsonField newField(final JsonKey key, @Nullable final JsonValue value,
-            @Nullable final JsonFieldDefinition definition) {
+            @Nullable final JsonFieldDefinition<?> definition) {
 
         return ImmutableJsonField.newInstance(key, null != value ? value : nullLiteral(), definition);
     }
@@ -579,7 +579,7 @@ public final class JsonFactory {
      * For example, the field selector string
      * </p>
      * <pre>
-     * "thingId,attributes(acceleration,someData(foo,bar/baz)),acl,features/key"
+     * "thingId,attributes(acceleration,someData(foo,bar/baz)),features/key"
      * </pre>
      * would lead to a JSON field selector which consists of the following JSON pointers:
      * <ul>
@@ -587,7 +587,6 @@ public final class JsonFactory {
      * <li>{@code "attributes/acceleration"},</li>
      * <li>{@code "attributes/someData/foo"},</li>
      * <li>{@code "attributes/someData/bar/baz"},</li>
-     * <li>{@code "acl"} and</li>
      * <li>{@code "features/key"}.</li>
      * </ul>
      *
@@ -706,15 +705,15 @@ public final class JsonFactory {
      * @return a new JSON field selector.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static JsonFieldSelector newFieldSelector(final JsonFieldDefinition fieldDefinition,
-            final JsonFieldDefinition... furtherFieldDefinitions) {
+    public static JsonFieldSelector newFieldSelector(final JsonFieldDefinition<?> fieldDefinition,
+            final JsonFieldDefinition<?>... furtherFieldDefinitions) {
 
         requireNonNull(fieldDefinition, "The JSON field definition must not be null!");
         requireNonNull(furtherFieldDefinitions, "The optional JSON field definitions must not be null!");
 
         final Collection<JsonPointer> pointers = new LinkedHashSet<>(1 + furtherFieldDefinitions.length);
         pointers.add(fieldDefinition.getPointer());
-        for (final JsonFieldDefinition furtherFieldDefinition : furtherFieldDefinitions) {
+        for (final JsonFieldDefinition<?> furtherFieldDefinition : furtherFieldDefinitions) {
             pointers.add(furtherFieldDefinition.getPointer());
         }
 

@@ -48,7 +48,7 @@ public final class RetrieveStatisticsDetailsResponse
     public static final String TYPE = TYPE_PREFIX + RetrieveStatisticsDetails.NAME;
 
     private static final JsonFieldDefinition<JsonObject> JSON_STATISTICS_DETAILS =
-            JsonFactory.newJsonObjectFieldDefinition("statisticsDetails", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonObjectFieldDefinition("statisticsDetails", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final JsonObject statisticsDetails;

@@ -214,7 +214,7 @@ final class ResourceNode implements PolicyTreeNode {
     private JsonPointer getAbsolutePointer(final ResourceNode resourceNode) {
         final JsonPointer result = resourceNode.getParent()
                 .filter(p -> PolicyTreeNode.Type.RESOURCE == p.getType())
-                .map(p -> (ResourceNode) p)
+                .map(ResourceNode.class::cast)
                 .map(this::getAbsolutePointer) // Recursion!
                 .orElseGet(JsonFactory::emptyPointer);
 
@@ -228,8 +228,8 @@ final class ResourceNode implements PolicyTreeNode {
      * @return the level of this node within its tree.
      */
     public int getLevel() {
-        final JsonPointer absolutePointer = getAbsolutePointer();
-        return absolutePointer.getLevelCount();
+        final JsonPointer absoluteJsonPointer = getAbsolutePointer();
+        return absoluteJsonPointer.getLevelCount();
     }
 
     @Override

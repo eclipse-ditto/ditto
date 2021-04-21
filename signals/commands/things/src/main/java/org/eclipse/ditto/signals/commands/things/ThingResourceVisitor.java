@@ -53,28 +53,6 @@ public interface ThingResourceVisitor<P, R> {
     R visitPolicyId(JsonPointer path, @Nullable P param);
 
     /**
-     * Invoked for the {@link org.eclipse.ditto.signals.commands.things.ThingResource#ACL} resource.
-     *
-     * @param path the original resource path
-     * @param param the parameter that is passed through
-     * @return the result for the {@link org.eclipse.ditto.signals.commands.things.ThingResource#ACL} resource.
-     * @deprecated will be removed with Ditto 2.0.0, use policies instead.
-     */
-    @Deprecated
-    R visitAcl(JsonPointer path, @Nullable P param);
-
-    /**
-     * Invoked for the {@link org.eclipse.ditto.signals.commands.things.ThingResource#ACL_ENTRY} resource.
-     *
-     * @param path the original resource path
-     * @param param the parameter that is passed through
-     * @return the result for the {@link org.eclipse.ditto.signals.commands.things.ThingResource#ACL_ENTRY} resource.
-     * @deprecated will be removed with Ditto 2.0.0, use policies instead.
-     */
-    @Deprecated
-    R visitAclEntry(JsonPointer path, @Nullable P param);
-
-    /**
      * Invoked for the {@link org.eclipse.ditto.signals.commands.things.ThingResource#ATTRIBUTES} resource.
      *
      * @param path the original resource path

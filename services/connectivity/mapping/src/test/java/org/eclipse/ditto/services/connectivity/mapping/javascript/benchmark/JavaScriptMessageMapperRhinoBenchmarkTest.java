@@ -120,6 +120,6 @@ public class JavaScriptMessageMapperRhinoBenchmarkTest {
         assertThat(adaptable.getTopicPath().getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);
         assertThat(adaptable.getTopicPath().getAction()).contains(TopicPath.Action.MODIFY);
         assertThat(adaptable.getTopicPath().getNamespace()).isEqualTo(MAPPING_INCOMING_NAMESPACE);
-        assertThat(adaptable.getTopicPath().getId()).isEqualTo(MAPPING_INCOMING_ID);
+        assertThat(adaptable.getTopicPath().getEntityName()).isEqualTo(MAPPING_INCOMING_ID);
     }
 }

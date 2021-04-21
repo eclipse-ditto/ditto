@@ -30,7 +30,7 @@ import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Source;
-import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.services.models.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.BaseConsumerActor;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
@@ -40,6 +40,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.signals.base.Signal;
 
 import com.rabbitmq.client.BasicProperties;
 import com.rabbitmq.client.Channel;
@@ -62,7 +63,7 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
     private final ThreadSafeDittoLoggingAdapter log;
 
     @Nullable
-    private final EnforcementFilterFactory<Map<String, String>, CharSequence> headerEnforcementFilterFactory;
+    private final EnforcementFilterFactory<Map<String, String>, Signal<?>> headerEnforcementFilterFactory;
     private final PayloadMapping payloadMapping;
     private final Channel channel;
 
@@ -145,7 +146,7 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
             if (headerEnforcementFilterFactory != null) {
                 externalMessageBuilder.withEnforcement(headerEnforcementFilterFactory.getFilter(headers));
             }
-            externalMessageBuilder.withHeaderMapping(source.getHeaderMapping().orElse(null));
+            externalMessageBuilder.withHeaderMapping(source.getHeaderMapping());
             externalMessageBuilder.withSourceAddress(sourceAddress);
             externalMessageBuilder.withPayloadMapping(payloadMapping);
             final ExternalMessage externalMessage = externalMessageBuilder.build();

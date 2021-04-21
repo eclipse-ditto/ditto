@@ -34,7 +34,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a {@link org.eclipse.ditto.model.things.Thing} was deleted.
  */
 @Immutable
-@JsonParsableEvent(name = ThingDeleted.NAME, typePrefix = ThingDeleted.TYPE_PREFIX)
+@JsonParsableEvent(name = ThingDeleted.NAME, typePrefix = ThingEvent.TYPE_PREFIX)
 public final class ThingDeleted extends AbstractThingEvent<ThingDeleted> implements ThingModifiedEvent<ThingDeleted> {
 
     /**
@@ -54,88 +54,6 @@ public final class ThingDeleted extends AbstractThingEvent<ThingDeleted> impleme
             @Nullable final Metadata metadata) {
 
         super(TYPE, thingId, revision, timestamp, dittoHeaders, metadata);
-    }
-
-    /**
-     * Constructs a new {@code ThingDeleted} object.
-     *
-     * @param thingId the ID of the {@link org.eclipse.ditto.model.things.Thing} that was deleted.
-     * @param revision the revision of the Thing.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the ThingDeleted created.
-     * @throws NullPointerException if {@code thingId} is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
-     * instead.
-     */
-    @Deprecated
-    public static ThingDeleted of(final String thingId,
-            final long revision,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), revision, null, dittoHeaders, null);
-    }
-
-    /**
-     * Constructs a new {@code ThingDeleted} object.
-     *
-     * @param thingId the ID of the {@link org.eclipse.ditto.model.things.Thing} that was deleted.
-     * @param revision the revision of the Thing.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the ThingDeleted created.
-     * @throws NullPointerException if {@code thingId} is {@code null}.
-     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.ThingId, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
-     * instead.
-     */
-    @Deprecated
-    public static ThingDeleted of(final ThingId thingId,
-            final long revision,
-            final DittoHeaders dittoHeaders) {
-
-        return of(thingId, revision, null, dittoHeaders, null);
-    }
-
-    /**
-     * Constructs a new {@code ThingDeleted} object.
-     *
-     * @param thingId the ID of the {@link org.eclipse.ditto.model.things.Thing} that was deleted.
-     * @param revision the revision of the Thing.
-     * @param timestamp the timestamp of this event.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the ThingDeleted created.
-     * @throws NullPointerException if {@code thing} is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
-     * instead.
-     */
-    @Deprecated
-    public static ThingDeleted of(final String thingId,
-            final long revision,
-            @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), revision, timestamp, dittoHeaders, null);
-    }
-
-    /**
-     * Constructs a new {@code ThingDeleted} object.
-     *
-     * @param thingId the ID of the {@link org.eclipse.ditto.model.things.Thing} that was deleted.
-     * @param revision the revision of the Thing.
-     * @param timestamp the timestamp of this event.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the ThingDeleted created.
-     * @throws NullPointerException if {@code thing} is {@code null}.
-     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.ThingId, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
-     * instead.
-     */
-    @Deprecated
-    public static ThingDeleted of(final ThingId thingId,
-            final long revision,
-            @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
-
-        return of(thingId, revision, timestamp, dittoHeaders, null);
     }
 
     /**
@@ -186,7 +104,7 @@ public final class ThingDeleted extends AbstractThingEvent<ThingDeleted> impleme
     public static ThingDeleted fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<ThingDeleted>(TYPE, jsonObject).deserialize(
                 (revision, timestamp, metadata) -> {
-                    final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+                    final String extractedThingId = jsonObject.getValueOrThrow(ThingEvent.JsonFields.THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
 
                     return of(thingId, revision, timestamp, dittoHeaders, metadata);
@@ -200,13 +118,13 @@ public final class ThingDeleted extends AbstractThingEvent<ThingDeleted> impleme
 
     @Override
     public ThingDeleted setRevision(final long revision) {
-        return of(getThingEntityId(), revision, getTimestamp().orElse(null), getDittoHeaders(),
+        return of(getEntityId(), revision, getTimestamp().orElse(null), getDittoHeaders(),
                 getMetadata().orElse(null));
     }
 
     @Override
     public ThingDeleted setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), getRevision(), getTimestamp().orElse(null), dittoHeaders,
+        return of(getEntityId(), getRevision(), getTimestamp().orElse(null), dittoHeaders,
                 getMetadata().orElse(null));
     }
 

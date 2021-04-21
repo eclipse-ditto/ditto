@@ -21,10 +21,9 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.streaming.IdentifiableStreamingMessage;
 
 /**
@@ -38,11 +37,11 @@ public final class PolicyReferenceTag implements IdentifiableStreamingMessage, J
      **/
     private static final String ENTITY_ID_FROM_POLICY_TAG_SEPARATOR = "/";
 
-    private final EntityId entityId;
+    private final ThingId thingId;
     private final PolicyTag policyTag;
 
-    private PolicyReferenceTag(final EntityId entityId, final PolicyTag policyTag) {
-        this.entityId = requireNonNull(entityId);
+    private PolicyReferenceTag(final ThingId thingId, final PolicyTag policyTag) {
+        this.thingId = requireNonNull(thingId);
         this.policyTag = requireNonNull(policyTag);
     }
 
@@ -53,7 +52,7 @@ public final class PolicyReferenceTag implements IdentifiableStreamingMessage, J
      * @param policyTag the {@link PolicyTag}.
      * @return a new {@link PolicyReferenceTag}.
      */
-    public static PolicyReferenceTag of(final EntityId entityId, final PolicyTag policyTag) {
+    public static PolicyReferenceTag of(final ThingId entityId, final PolicyTag policyTag) {
         return new PolicyReferenceTag(entityId, policyTag);
     }
 
@@ -70,23 +69,23 @@ public final class PolicyReferenceTag implements IdentifiableStreamingMessage, J
      */
     public static PolicyReferenceTag fromJson(final JsonObject jsonObject) {
         final String extractedEntityId = jsonObject.getValueOrThrow(JsonFields.ENTITY_ID);
-        final EntityId entityId = DefaultEntityId.of(extractedEntityId);
+        final ThingId thingId = ThingId.of(extractedEntityId);
         final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
         final PolicyId policyId = PolicyId.of(extractedPolicyId);
         final long extractedPolicyRev = jsonObject.getValueOrThrow(JsonFields.POLICY_REV);
 
         final PolicyTag extractedPolicyTag = PolicyTag.of(policyId, extractedPolicyRev);
 
-        return new PolicyReferenceTag(entityId, extractedPolicyTag);
+        return new PolicyReferenceTag(thingId, extractedPolicyTag);
     }
 
     /**
-     * Returns the ID of the entity referencing the policy.
+     * Returns the ID of the thing referencing the policy.
      *
      * @return the ID
      */
-    public EntityId getEntityId() {
-        return entityId;
+    public ThingId getThingId() {
+        return thingId;
     }
 
     /**
@@ -101,7 +100,7 @@ public final class PolicyReferenceTag implements IdentifiableStreamingMessage, J
     @Override
     public JsonObject toJson() {
         return JsonFactory.newObjectBuilder()
-                .set(JsonFields.ENTITY_ID, String.valueOf(entityId))
+                .set(JsonFields.ENTITY_ID, String.valueOf(thingId))
                 .set(JsonFields.POLICY_ID, String.valueOf(policyTag.getEntityId()))
                 .set(JsonFields.POLICY_REV, policyTag.getRevision())
                 .build();
@@ -109,7 +108,7 @@ public final class PolicyReferenceTag implements IdentifiableStreamingMessage, J
 
     @Override
     public String asIdentifierString() {
-        return entityId + ENTITY_ID_FROM_POLICY_TAG_SEPARATOR + policyTag.getRevision();
+        return thingId + ENTITY_ID_FROM_POLICY_TAG_SEPARATOR + policyTag.getRevision();
     }
 
     @Override
@@ -121,19 +120,19 @@ public final class PolicyReferenceTag implements IdentifiableStreamingMessage, J
             return false;
         }
         final PolicyReferenceTag that = (PolicyReferenceTag) o;
-        return Objects.equals(entityId, that.entityId) &&
+        return Objects.equals(thingId, that.thingId) &&
                 Objects.equals(policyTag, that.policyTag);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(entityId, policyTag);
+        return Objects.hash(thingId, policyTag);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "entityId='" + entityId + '\'' +
+                "thingId='" + thingId + '\'' +
                 ", policyTag=" + policyTag +
                 ']';
     }

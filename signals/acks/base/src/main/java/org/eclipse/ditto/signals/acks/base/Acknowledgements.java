@@ -14,7 +14,6 @@ package org.eclipse.ditto.signals.acks.base;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
@@ -29,14 +28,14 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.common.ResponseType;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.entity.type.WithEntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
@@ -49,7 +48,8 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
  */
 @Immutable
 public interface Acknowledgements
-        extends Iterable<Acknowledgement>, CommandResponse<Acknowledgements>, WithOptionalEntity, WithEntityType {
+        extends Iterable<Acknowledgement>, CommandResponse<Acknowledgements>, WithOptionalEntity, WithEntityType,
+        SignalWithEntityId<Acknowledgements> {
 
 
     /**
@@ -92,33 +92,6 @@ public interface Acknowledgements
     /**
      * Returns a new {@code Acknowledgements} based on the passed params, including the contained
      * {@link Acknowledgement}s.
-     * <p>
-     * <em>Should only be used for deserializing from a JSON representation, as {@link #of(Collection, DittoHeaders)}
-     * does e.g. the calculation of the correct {@code statusCode}.</em>
-     * </p>
-     *
-     * @param entityId the ID of the affected entity being acknowledged.
-     * @param acknowledgements the map of acknowledgements to be included in the result.
-     * @param statusCode the status code (HTTP semantics) of the combined Acknowledgements.
-     * @param dittoHeaders the headers of the returned Acknowledgements instance.
-     * @return the Acknowledgements.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @throws IllegalArgumentException if the given {@code acknowledgements} are empty or if the entity IDs or entity
-     * types of the given acknowledgements are not equal.
-     * @deprecated as of 2.0.0 please use {@link #of(EntityIdWithType, Collection, HttpStatus, DittoHeaders)} instead.
-     */
-    @Deprecated
-    static Acknowledgements of(final EntityIdWithType entityId,
-            final Collection<? extends Acknowledgement> acknowledgements,
-            final HttpStatusCode statusCode,
-            final DittoHeaders dittoHeaders) {
-
-        return of(entityId, acknowledgements, statusCode.getAsHttpStatus(), dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code Acknowledgements} based on the passed params, including the contained
-     * {@link Acknowledgement}s.
      * <p><em>
      * Should only be used for deserializing from a JSON representation, as {@link #of(Collection, DittoHeaders)}
      * does e.g. the calculation of the correct {@code httpStatus}.
@@ -134,7 +107,7 @@ public interface Acknowledgements
      * types of the given acknowledgements are not equal.
      * @since 2.0.0
      */
-    static Acknowledgements of(final EntityIdWithType entityId,
+    static Acknowledgements of(final EntityId entityId,
             final Collection<? extends Acknowledgement> acknowledgements,
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
@@ -150,42 +123,8 @@ public interface Acknowledgements
      * @return the Acknowledgements.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    static Acknowledgements empty(final EntityIdWithType entityId, final DittoHeaders dittoHeaders) {
+    static Acknowledgements empty(final EntityId entityId, final DittoHeaders dittoHeaders) {
         return AcknowledgementFactory.emptyAcknowledgements(entityId, dittoHeaders);
-    }
-
-    /**
-     * Returns the status code of the Acknowledgements:
-     * <ul>
-     *     <li>If only one acknowledgement is included, its status code is returned.</li>
-     *     <li>
-     *         If several acknowledgements are included:
-     *         <ul>
-     *             <li>
-     *                 If all contained acknowledgements are successful, the overall status code is
-     *                 {@link HttpStatusCode#OK}.
-     *             </li>
-     *             <li>
-     *                 If at least one acknowledgement failed, the overall status code is
-     *                 {@link HttpStatusCode#FAILED_DEPENDENCY}.
-     *             </li>
-     *         </ul>
-     *     </li>
-     * </ul>
-     *
-     * @return the status code.
-     * @deprecated as of 2.0.0 please use {@link #getHttpStatus()} instead.
-     */
-    @Deprecated
-    default HttpStatusCode getStatusCode() {
-        final HttpStatus httpStatus = getHttpStatus();
-        return HttpStatusCode.forInt(httpStatus.getCode()).orElseThrow(() -> {
-
-            // This might happen at runtime when httpStatus has a code which is
-            // not reflected as constant in HttpStatusCode.
-            final String msgPattern = "Found no HttpStatusCode for int <{0}>!";
-            return new IllegalStateException(MessageFormat.format(msgPattern, httpStatus.getCode()));
-        });
     }
 
     /**
@@ -315,7 +254,7 @@ public interface Acknowledgements
     }
 
     @Override
-    EntityIdWithType getEntityId();
+    EntityId getEntityId();
 
     /**
      * Definition of fields of the JSON representation of an {@link Acknowledgements}.
@@ -331,35 +270,35 @@ public interface Acknowledgements
          * Definition of the JSON field for the Acknowledgements' entity ID.
          */
         static final JsonFieldDefinition<String> ENTITY_ID =
-                JsonFactory.newStringFieldDefinition("entityId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("entityId", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * Definition of the JSON field for the Acknowledgements' entity type.
          */
         static final JsonFieldDefinition<String> ENTITY_TYPE =
-                JsonFactory.newStringFieldDefinition("entityType", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("entityType", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * Definition of the JSON field for the Acknowledgements' statusCode.
          */
         static final JsonFieldDefinition<Integer> STATUS_CODE =
-                JsonFactory.newIntFieldDefinition("statusCode", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newIntFieldDefinition("statusCode", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * Definition of the JSON field for the Acknowledgements' acknowledgements.
          */
         static final JsonFieldDefinition<JsonObject> ACKNOWLEDGEMENTS =
-                JsonFactory.newJsonObjectFieldDefinition("acknowledgements", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonObjectFieldDefinition("acknowledgements", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * Definition of the JSON field for the Acknowledgements' DittoHeaders.
          */
         static final JsonFieldDefinition<JsonObject> DITTO_HEADERS =
-                JsonFactory.newJsonObjectFieldDefinition("dittoHeaders", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonObjectFieldDefinition("dittoHeaders", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
     }

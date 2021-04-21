@@ -52,7 +52,6 @@ import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
-import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingFieldSelector;
 import org.eclipse.ditto.model.things.ThingId;
@@ -66,9 +65,11 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.InboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
+import org.eclipse.ditto.services.models.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
@@ -78,6 +79,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
+import org.eclipse.ditto.signals.events.base.AbstractEventsourcedEvent;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
@@ -104,9 +106,9 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
         final Enforcement mqttEnforcement =
                 ConnectivityModelFactory.newEnforcement("{{ test:placeholder }}",
                         "mqtt/topic/{{ thing:namespace }}/{{ thing:name }}");
-        final EnforcementFilterFactory<String, CharSequence> factory =
+        final EnforcementFilterFactory<String, Signal<?>> factory =
                 EnforcementFactoryFactory.newEnforcementFilterFactory(mqttEnforcement, new TestPlaceholder());
-        final EnforcementFilter<CharSequence> enforcementFilter = factory.getFilter("mqtt/topic/my/thing");
+        final EnforcementFilter<Signal<?>> enforcementFilter = factory.getFilter("mqtt/topic/my/thing");
         testExternalMessageInDittoProtocolIsProcessed(enforcementFilter);
     }
 
@@ -116,9 +118,9 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
         final Enforcement mqttEnforcement =
                 ConnectivityModelFactory.newEnforcement("{{ test:placeholder }}",
                         "mqtt/topic/{{ thing:namespace }}/{{ thing:name }}");
-        final EnforcementFilterFactory<String, CharSequence> factory =
+        final EnforcementFilterFactory<String, Signal<?>> factory =
                 EnforcementFactoryFactory.newEnforcementFilterFactory(mqttEnforcement, new TestPlaceholder());
-        final EnforcementFilter<CharSequence> enforcementFilter = factory.getFilter("some/invalid/target");
+        final EnforcementFilter<Signal<?>> enforcementFilter = factory.getFilter("some/invalid/target");
         testExternalMessageInDittoProtocolIsProcessed(enforcementFilter, false, null,
                 r -> assertThat(r.getDittoRuntimeException())
                         .isInstanceOf(ConnectionSignalIdEnforcementFailedException.class)
@@ -151,8 +153,6 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
             final ThingFieldSelector extraFields = ThingFieldSelector.fromJsonFieldSelector(
                     JsonFieldSelector.newInstance("attributes/x", "attributes/y"));
             final AuthorizationSubject targetAuthSubject = AuthorizationSubject.newInstance("target:auth-subject");
-            final AuthorizationSubject targetAuthSubjectWithoutIssuer =
-                    AuthorizationSubject.newInstance("auth-subject");
             final Target targetWithEnrichment = ConnectivityModelFactory.newTargetBuilder()
                     .address("target/address")
                     .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
@@ -172,8 +172,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
             // THEN: Receive a RetrieveThing command from the facade.
             final RetrieveThing retrieveThing = proxyActorProbe.expectMsgClass(RetrieveThing.class);
             assertThat(retrieveThing.getSelectedFields()).contains(extraFields);
-            assertThat(retrieveThing.getDittoHeaders().getAuthorizationContext()).containsExactly(targetAuthSubject,
-                    targetAuthSubjectWithoutIssuer);
+            assertThat(retrieveThing.getDittoHeaders().getAuthorizationContext()).containsExactly(targetAuthSubject);
 
             final JsonObject extra = JsonObject.newBuilder().set("/attributes/x", 5).build();
             proxyActorProbe.reply(
@@ -209,15 +208,14 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
             //  - 1 w/o enrichment with 2 payload mappings
             final JsonFieldSelector extraFields = JsonFactory.newFieldSelector("attributes/x,attributes/y",
                     JsonParseOptions.newBuilder().withoutUrlDecoding().build());
+            final ThingFieldSelector thingFieldSelector = ThingFieldSelector.fromJsonFieldSelector(extraFields);
             final AuthorizationSubject targetAuthSubject = AuthorizationSubject.newInstance("target:auth-subject");
-            final AuthorizationSubject targetAuthSubjectWithoutIssuer =
-                    AuthorizationSubject.newInstance("auth-subject");
             final Target targetWithEnrichment = ConnectivityModelFactory.newTargetBuilder()
                     .address("target/address")
                     .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
                             targetAuthSubject))
                     .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
-                            .withExtraFields(extraFields)
+                            .withExtraFields(thingFieldSelector)
                             .build())
                     .build();
             final Target targetWithEnrichmentAnd1PayloadMapper = ConnectivityModelFactory.newTargetBuilder()
@@ -225,7 +223,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                     .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
                             targetAuthSubject))
                     .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
-                            .withExtraFields(extraFields)
+                            .withExtraFields(thingFieldSelector)
                             .build())
                     .payloadMapping(ConnectivityModelFactory.newPayloadMapping(ADD_HEADER_MAPPER))
                     .build();
@@ -234,7 +232,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                     .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
                             targetAuthSubject))
                     .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
-                            .withExtraFields(extraFields)
+                            .withExtraFields(thingFieldSelector)
                             .build())
                     .payloadMapping(ConnectivityModelFactory.newPayloadMapping(DUPLICATING_MAPPER, ADD_HEADER_MAPPER))
                     .build();
@@ -255,7 +253,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                             .payloadMapping(
                                     ConnectivityModelFactory.newPayloadMapping(ADD_HEADER_MAPPER, DUPLICATING_MAPPER))
                             .build();
-            final Signal<?> signal = TestConstants.thingModified(Collections.emptyList())
+            final Signal<?> signal = ((AbstractEventsourcedEvent<?>) TestConstants.thingModified(Collections.emptyList()))
                     .setRevision(8L); // important to set revision to same value as cache lookup retrieves
             final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(signal, Arrays.asList(
                     targetWithEnrichment,
@@ -273,8 +271,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                     .addFieldDefinition(Thing.JsonFields.REVISION) // additionally always select the revision
                     .build();
             assertThat(retrieveThing.getSelectedFields()).contains(extraFieldsWithAdditionalCachingSelectedOnes);
-            assertThat(retrieveThing.getDittoHeaders().getAuthorizationContext()).containsExactly(targetAuthSubject,
-                    targetAuthSubjectWithoutIssuer);
+            assertThat(retrieveThing.getDittoHeaders().getAuthorizationContext()).containsExactly(targetAuthSubject);
             final JsonObject extra = JsonObject.newBuilder()
                     .set("/attributes/x", 5)
                     .build();
@@ -362,12 +359,10 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                         AuthorizationModelFactory.newAuthSubject(
                                 "integration:{{header:content-type}}:hub-{{ header:correlation-id }}"));
 
-        final AuthorizationContext expectedAuthContext = TestConstants.Authorization.withUnprefixedSubjects(
-                AuthorizationModelFactory.newAuthContext(
-                        DittoAuthorizationContextType.UNSPECIFIED,
-                        AuthorizationModelFactory.newAuthSubject(
-                                "integration:" + correlationId + ":hub-application/json"),
-                        AuthorizationModelFactory.newAuthSubject("integration:application/json:hub-" + correlationId)));
+        final AuthorizationContext expectedAuthContext = AuthorizationModelFactory.newAuthContext(
+                DittoAuthorizationContextType.UNSPECIFIED,
+                AuthorizationModelFactory.newAuthSubject("integration:" + correlationId + ":hub-application/json"),
+                AuthorizationModelFactory.newAuthSubject("integration:application/json:hub-" + correlationId));
 
         testMessageMapping(correlationId, contextWithPlaceholders, ModifyAttribute.class, modifyAttribute -> {
             assertThat(modifyAttribute.getType()).isEqualTo(ModifyAttribute.TYPE);
@@ -431,14 +426,9 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                 AuthorizationModelFactory.newAuthSubject("integration:application/json:hub"),
                 AuthorizationModelFactory.newAuthSubject("integration:hub-application/json"));
 
-        final AuthorizationContext expectedMessageAuthContext =
-                TestConstants.Authorization.withUnprefixedSubjects(connectionAuthContext);
-
         testMessageMappingWithoutCorrelationId(connectionAuthContext, ModifyAttribute.class, modifyAttribute -> {
             assertThat(modifyAttribute.getType()).isEqualTo(ModifyAttribute.TYPE);
-            assertThat(modifyAttribute.getDittoHeaders().getAuthorizationContext()).isEqualTo(
-                    expectedMessageAuthContext);
-
+            assertThat(modifyAttribute.getDittoHeaders().getAuthorizationContext()).isEqualTo(connectionAuthContext);
         });
     }
 
@@ -537,7 +527,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                     ThingNotAccessibleException.newBuilder(KNOWN_THING_ID)
                             .dittoHeaders(HEADERS_WITH_REPLY_INFORMATION.toBuilder()
                                     .correlationId(correlationId)
-                                    .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), KNOWN_THING_ID)
+                                    .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), "thing:" + KNOWN_THING_ID)
                                     .build())
                             .build();
 
@@ -708,7 +698,9 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
             assertThat(source).isInstanceOf(ErrorResponse.class);
             assertThat(((ErrorResponse<?>) source).getDittoRuntimeException())
                     .isEqualTo(AcknowledgementLabelNotDeclaredException.of(label, acknowledgement.getDittoHeaders()));
-            assertThat((CharSequence) source.getEntityId()).isEqualTo(KNOWN_THING_ID);
+            assertThat(source).isInstanceOf(SignalWithEntityId.class);
+            final CharSequence entityId = ((SignalWithEntityId<?>) source).getEntityId();
+            assertThat(entityId).isEqualTo(KNOWN_THING_ID);
         }};
     }
 

@@ -41,11 +41,11 @@ import akka.stream.javadsl.Source;
  * @param <T> type of the elements.
  */
 @AllValuesAreNonnullByDefault
-public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRevision>
+public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRevision<?>>
         extends AbstractStreamingActor<SudoStreamPids, T> {
 
     private final Function<PidWithSeqNr, T> entityMapper;
-    private final Function<EntityIdWithRevision, PidWithSeqNr> entityUnmapper;
+    private final Function<EntityIdWithRevision<?>, PidWithSeqNr> entityUnmapper;
 
     private final DittoMongoClient mongoClient;
     private final MongoReadJournal readJournal;
@@ -58,7 +58,7 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
      * @param entityUnmapper the mapper used to map elements back to PidWithSeqNr for stream resumption.
      */
     protected AbstractPersistenceStreamingActor(final Function<PidWithSeqNr, T> entityMapper,
-            final Function<EntityIdWithRevision, PidWithSeqNr> entityUnmapper) {
+            final Function<EntityIdWithRevision<?>, PidWithSeqNr> entityUnmapper) {
         this.entityMapper = requireNonNull(entityMapper);
         this.entityUnmapper = entityUnmapper;
 
@@ -78,7 +78,7 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
      * @param readJournal the ReadJournal to use instead of creating one in the non-test constructor.
      */
     protected AbstractPersistenceStreamingActor(final Function<PidWithSeqNr, T> entityMapper,
-            final Function<EntityIdWithRevision, PidWithSeqNr> entityUnmapper,
+            final Function<EntityIdWithRevision<?>, PidWithSeqNr> entityUnmapper,
             final MongoReadJournal readJournal) {
         this.entityMapper = requireNonNull(entityMapper);
         this.entityUnmapper = entityUnmapper;

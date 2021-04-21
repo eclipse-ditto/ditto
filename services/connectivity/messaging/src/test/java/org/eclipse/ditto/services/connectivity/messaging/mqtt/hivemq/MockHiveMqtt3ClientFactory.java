@@ -32,6 +32,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttSpecificConfig;
 import org.mockito.Mockito;
 
 import com.hivemq.client.mqtt.datatypes.MqttTopic;
@@ -100,7 +101,10 @@ class MockHiveMqtt3ClientFactory implements HiveMqtt3ClientFactory {
     }
 
     @Override
-    public Mqtt3AsyncClient newClient(final Connection connection, final String identifier, final boolean reconnect,
+    public Mqtt3AsyncClient newClient(final Connection connection,
+            final String identifier,
+            final MqttSpecificConfig mqttSpecificConfig,
+            final boolean reconnect,
             final boolean applyLastWillConfig,
             @Nullable final MqttClientConnectedListener connectedListener,
             @Nullable final MqttClientDisconnectedListener disconnectedListener,
@@ -168,15 +172,17 @@ class MockHiveMqtt3ClientFactory implements HiveMqtt3ClientFactory {
     }
 
     @Override
-    public Mqtt3ClientBuilder newClientBuilder(final Connection connection, final String identifier,
+    public Mqtt3ClientBuilder newClientBuilder(final Connection connection,
+            final String identifier,
+            final MqttSpecificConfig mqttSpecificConfig,
             final boolean allowReconnect,
             final boolean applyLastWillConfig,
             @Nullable final MqttClientConnectedListener connectedListener,
             @Nullable final MqttClientDisconnectedListener disconnectedListener,
             final ConnectionLogger connectionLogger) {
         final Mqtt3Client client =
-                newClient(connection, identifier, allowReconnect, applyLastWillConfig, connectedListener,
-                        disconnectedListener, connectionLogger);
+                newClient(connection, identifier, mqttSpecificConfig, allowReconnect, applyLastWillConfig,
+                        connectedListener, disconnectedListener, connectionLogger);
         final Mqtt3ClientBuilder builder = Mockito.mock(Mqtt3ClientBuilder.class);
         Mockito.doReturn(client).when(builder).build();
         return builder;

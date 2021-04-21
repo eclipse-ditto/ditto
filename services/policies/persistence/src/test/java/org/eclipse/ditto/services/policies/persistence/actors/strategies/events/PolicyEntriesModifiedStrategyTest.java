@@ -42,7 +42,7 @@ public class PolicyEntriesModifiedStrategyTest extends AbstractPolicyEventStrate
     PolicyEntriesModified getPolicyEvent(final Instant instant, final Policy policy) {
         final PolicyId policyId = policy.getEntityId().orElseThrow();
         return PolicyEntriesModified.of(policyId, Arrays.asList(MODIFIED_1, MODIFIED_2), 10L, instant,
-                DittoHeaders.empty());
+                DittoHeaders.empty(), METADATA);
     }
 
     @Override

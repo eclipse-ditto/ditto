@@ -59,7 +59,8 @@ final class TestConnectionStrategy extends AbstractConnectivityCommandStrategy<T
             return newErrorResult(validationError.get(), command);
         } else if (entity == null) {
             final Connection connection = command.getConnection();
-            final ConnectivityEvent event = ConnectionCreated.of(connection, command.getDittoHeaders());
+            final ConnectivityEvent<?> event = ConnectionCreated.of(connection, nextRevision,
+                    getEventTimestamp(), command.getDittoHeaders(), metadata);
             final List<ConnectionAction> actions =
                     Arrays.asList(APPLY_EVENT, TEST_CONNECTION, SEND_RESPONSE, PASSIVATE);
             final StagedCommand stagedCommand = StagedCommand.of(command, event, command, actions);

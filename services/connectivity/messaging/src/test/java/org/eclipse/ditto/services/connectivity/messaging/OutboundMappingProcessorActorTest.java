@@ -22,7 +22,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
@@ -41,6 +40,7 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingFieldSelector;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -300,11 +300,11 @@ public final class OutboundMappingProcessorActorTest {
                 .authorizationContext(singletonContext(target2Subject()))
                 .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
                                 .withFilter("exists(attributes/target2)")
-                                .withExtraFields(JsonFieldSelector.newInstance("attributes"))
+                                .withExtraFields(ThingFieldSelector.fromString("attributes"))
                                 .build(),
                         ConnectivityModelFactory.newFilteredTopicBuilder(Topic.LIVE_EVENTS)
                                 .withFilter("exists(attributes/target2)")
-                                .withExtraFields(JsonFieldSelector.newInstance("attributes"))
+                                .withExtraFields(ThingFieldSelector.fromString("attributes"))
                                 .build())
                 .issuedAcknowledgementLabel(AcknowledgementLabel.of("target2"))
                 .build();
@@ -358,7 +358,7 @@ public final class OutboundMappingProcessorActorTest {
 
     private static RetrieveThingResponse retrieveThingResponse(final Attributes attributes) {
         return RetrieveThingResponse.of(thingId(),
-                Thing.newBuilder().setId(thingId()).setAttributes(attributes).build(),
+                Thing.newBuilder().setId(thingId()).setAttributes(attributes).build(), null, null,
                 DittoHeaders.empty());
     }
 }

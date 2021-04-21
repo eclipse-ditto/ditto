@@ -132,7 +132,8 @@ The default value is `0` (at-most-once).
 #### Target header mapping
 
 MQTT 5 supports so-called user defined properties, which are defined for every message type.
-The [header mapping](connectivity-header-mapping.html) applies to the supported MQTT 5 specific headers as well as to the user defined properties.
+The [header mapping](connectivity-header-mapping.html) applies to the supported MQTT 5 specific headers as well as to 
+the user defined properties.
 
 #### Target acknowledgement handling
 
@@ -216,9 +217,9 @@ Default: the negation of `"reconnectForRedelivery"`
 #### separatePublisherClient
 
 Configures whether to create a separate physical client and connection to the MQTT broker for publishing messages, or not.
-By default (configured to `true`), a single Ditto connection would open 2 MQTT connections/sessions: one for subscribing and one for publishing.
-If configured to `false`, the same MQTT connection/session is used both: for subscribing to messages, and for
-publishing messages.
+By default (configured to `true`), a single Ditto connection would open 2 MQTT connections/sessions: one for subscribing 
+and one for publishing. If configured to `false`, the same MQTT connection/session is used both: for subscribing 
+to messages, and for publishing messages.
 
 Default: `true`
 

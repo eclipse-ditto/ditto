@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.services.base.persistence.PersistenceLifecycle;
 import org.eclipse.ditto.services.base.persistence.SnapshotTaken;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -118,7 +119,7 @@ public final class ThingSnapshotTakenTest {
 
         final var jsonObject = JsonObject.newBuilder()
                 .set(Event.JsonFields.TYPE, underTest.getType())
-                .set(Event.JsonFields.REVISION, underTest.getRevision())
+                .set(EventsourcedEvent.JsonFields.REVISION, underTest.getRevision())
                 .set(Event.JsonFields.TIMESTAMP, timestamp.toString())
                 .set(SnapshotTaken.JsonFields.ENTITY_ID, String.valueOf(underTest.getEntityId()))
                 .set(SnapshotTaken.JsonFields.ENTITY, thingJson)
@@ -142,59 +143,6 @@ public final class ThingSnapshotTakenTest {
         final var underTest = ThingSnapshotTaken.fromJson(thingSnapshotTaken.toJson(), dittoHeaders);
 
         assertThat(underTest).isEqualTo(thingSnapshotTaken);
-    }
-
-    @Test
-    public void setRevisionReturnsInstanceWithNewRevision() {
-        final var lifecycle = PersistenceLifecycle.DELETED;
-        final var newRevisionNumber = 42L;
-        final var underTest = ThingSnapshotTaken.newBuilder(THING_ID, REVISION, lifecycle, thingJson)
-                .policyId(POLICY_ID)
-                .timestamp(timestamp)
-                .dittoHeaders(getDittoHeadersWithCorrelationId())
-                .build();
-
-        final var thingSnapshotTakenWithNewRevisionNumber = underTest.setRevision(newRevisionNumber);
-
-        softly.assertThat((CharSequence) thingSnapshotTakenWithNewRevisionNumber.getEntityId())
-                .as("entity ID")
-                .isEqualTo(underTest.getEntityId());
-        softly.assertThat(thingSnapshotTakenWithNewRevisionNumber.getPolicyId())
-                .as("policy ID")
-                .isEqualTo(underTest.getPolicyId());
-        softly.assertThat(thingSnapshotTakenWithNewRevisionNumber.getRevision())
-                .as("revision")
-                .isEqualTo(newRevisionNumber);
-        softly.assertThat(thingSnapshotTakenWithNewRevisionNumber.getLifecycle())
-                .as("lifecycle")
-                .isEqualTo(underTest.getLifecycle());
-        softly.assertThat(thingSnapshotTakenWithNewRevisionNumber.getPubSubTopic())
-                .as("pub-sub topic")
-                .isEqualTo(underTest.getPubSubTopic());
-        softly.assertThat(thingSnapshotTakenWithNewRevisionNumber.getEntity())
-                .as("entity")
-                .isEqualTo(underTest.getEntity());
-        softly.assertThat(thingSnapshotTakenWithNewRevisionNumber.getType())
-                .as("type")
-                .isEqualTo(underTest.getType());
-        softly.assertThat(thingSnapshotTakenWithNewRevisionNumber.getManifest())
-                .as("manifest")
-                .isEqualTo(underTest.getManifest());
-        softly.assertThat(thingSnapshotTakenWithNewRevisionNumber.getTimestamp())
-                .as("timestamp")
-                .isEqualTo(underTest.getTimestamp());
-        softly.assertThat(thingSnapshotTakenWithNewRevisionNumber.getMetadata())
-                .as("metadata")
-                .isEqualTo(underTest.getMetadata());
-        softly.assertThat(thingSnapshotTakenWithNewRevisionNumber.getDittoHeaders())
-                .as("Ditto headers")
-                .isEqualTo(underTest.getDittoHeaders());
-        softly.assertThat((CharSequence) thingSnapshotTakenWithNewRevisionNumber.getResourcePath())
-                .as("resource path")
-                .isEqualTo(underTest.getResourcePath());
-        softly.assertThat(thingSnapshotTakenWithNewRevisionNumber.getResourceType())
-                .as("resource type")
-                .isEqualTo(underTest.getResourceType());
     }
 
     @Test

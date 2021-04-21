@@ -61,20 +61,20 @@ public interface TargetMetrics extends Jsonifiable.WithFieldSelectorAndPredicate
          */
         public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
                 JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code AddressMetrics} value.
          */
         public static final JsonFieldDefinition<JsonObject> ADDRESS_METRICS =
-                JsonFactory.newJsonObjectFieldDefinition("addressMetrics", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonObjectFieldDefinition("addressMetrics", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the amount of published messages.
          */
         public static final JsonFieldDefinition<Long> PUBLISHED_MESSAGES =
-                JsonFactory.newLongFieldDefinition("publishedMessages", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newLongFieldDefinition("publishedMessages", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

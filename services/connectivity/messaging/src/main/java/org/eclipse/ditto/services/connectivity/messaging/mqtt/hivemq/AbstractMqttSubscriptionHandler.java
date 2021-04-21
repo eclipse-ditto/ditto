@@ -121,7 +121,7 @@ abstract class AbstractMqttSubscriptionHandler<S, P, R> {
                     })
                     .collect(Collectors.toList());
             return CompletableFuture.allOf(subAckFutures.toArray(CompletableFuture[]::new))
-                    .thenApply(_void -> subAckFutures.stream()
+                    .thenApply(unused -> subAckFutures.stream()
                             .map(CompletableFuture::join)
                             .collect(Collectors.toList())
                     );

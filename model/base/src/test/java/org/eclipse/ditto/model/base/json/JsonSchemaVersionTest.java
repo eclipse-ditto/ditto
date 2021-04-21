@@ -45,10 +45,10 @@ public final class JsonSchemaVersionTest {
 
     @Test
     public void getSchemaVersionForKnownVersionIntReturnsExpected() {
-        final int known = 1;
+        final int known = 2;
         final Optional<JsonSchemaVersion> jsonSchemaVersion = JsonSchemaVersion.forInt(known);
 
-        assertThat(jsonSchemaVersion).contains(JsonSchemaVersion.V_1);
+        assertThat(jsonSchemaVersion).contains(JsonSchemaVersion.V_2);
     }
 
 }

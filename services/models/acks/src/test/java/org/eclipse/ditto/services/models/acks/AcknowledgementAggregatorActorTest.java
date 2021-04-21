@@ -261,8 +261,8 @@ public final class AcknowledgementAggregatorActorTest {
     }
 
     private Props getAcknowledgementAggregatorProps(final ThingModifyCommand<?> command, final TestKit testKit) {
-        return AcknowledgementAggregatorActor.props(command, DefaultAcknowledgementConfig.of(ConfigFactory.empty()),
-                headerTranslator, tellThis(testKit));
+        return AcknowledgementAggregatorActor.props(command.getEntityId(), command.getDittoHeaders(),
+                DefaultAcknowledgementConfig.of(ConfigFactory.empty()), headerTranslator, tellThis(testKit));
     }
 
     private static Consumer<Object> tellThis(final TestKit testKit) {

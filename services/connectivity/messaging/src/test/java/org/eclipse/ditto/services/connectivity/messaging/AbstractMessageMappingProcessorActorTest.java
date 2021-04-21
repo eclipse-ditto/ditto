@@ -51,7 +51,6 @@ import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
 import org.eclipse.ditto.model.connectivity.SourceBuilder;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
@@ -62,6 +61,7 @@ import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor.Publish
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+import org.eclipse.ditto.services.models.placeholders.Placeholder;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
@@ -98,8 +98,6 @@ public abstract class AbstractMessageMappingProcessorActorTest {
     static final String FAULTY_MAPPER = FaultyMessageMapper.ALIAS;
     static final String ADD_HEADER_MAPPER = AddHeaderMessageMapper.ALIAS;
     static final String DUPLICATING_MAPPER = DuplicatingMessageMapper.ALIAS;
-    static final AuthorizationContext AUTHORIZATION_CONTEXT_WITH_DUPLICATES =
-            TestConstants.Authorization.withUnprefixedSubjects(AUTHORIZATION_CONTEXT);
     static final DittoHeaders HEADERS_WITH_REPLY_INFORMATION = DittoHeaders.newBuilder()
             .replyTarget(0)
             .expectedResponseTypes(ResponseType.RESPONSE, ResponseType.ERROR, ResponseType.NACK)
@@ -173,17 +171,17 @@ public abstract class AbstractMessageMappingProcessorActorTest {
     }
 
     void testExternalMessageInDittoProtocolIsProcessed(
-            @Nullable final EnforcementFilter<CharSequence> enforcement) {
+            @Nullable final EnforcementFilter<Signal<?>> enforcement) {
         testExternalMessageInDittoProtocolIsProcessed(enforcement, null);
     }
 
     void testExternalMessageInDittoProtocolIsProcessed(
-            @Nullable final EnforcementFilter<CharSequence> enforcement, @Nullable final String mapping) {
+            @Nullable final EnforcementFilter<Signal<?>> enforcement, @Nullable final String mapping) {
         testExternalMessageInDittoProtocolIsProcessed(enforcement, true, mapping, r -> {});
     }
 
     void testExternalMessageInDittoProtocolIsProcessed(
-            @Nullable final EnforcementFilter<CharSequence> enforcement, final boolean expectSuccess,
+            @Nullable final EnforcementFilter<Signal<?>> enforcement, final boolean expectSuccess,
             @Nullable final String mapping, final Consumer<ThingErrorResponse> verifyErrorResponse) {
 
         new TestKit(actorSystem) {{
@@ -212,10 +210,13 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                 assertThat(modifyAttribute.getDittoHeaders().getCorrelationId()).contains(
                         modifyCommand.getDittoHeaders().getCorrelationId().orElse(null));
                 assertThat(modifyAttribute.getDittoHeaders().getAuthorizationContext())
-                        .isEqualTo(AUTHORIZATION_CONTEXT_WITH_DUPLICATES);
+                        .isEqualTo(AUTHORIZATION_CONTEXT);
                 // thing ID is included in the header for error reporting
                 assertThat(modifyAttribute.getDittoHeaders())
-                        .extracting(headers -> headers.get(DittoHeaderDefinition.ENTITY_ID.getKey()))
+                        .extracting(headers -> {
+                            final String prefixedEntityId = headers.get(DittoHeaderDefinition.ENTITY_ID.getKey());
+                            return prefixedEntityId.substring(prefixedEntityId.indexOf(":") + 1);
+                        })
                         .isEqualTo(KNOWN_THING_ID.toString());
                 // internal headers added by consumer actors are appended
                 assertThat(modifyAttribute.getDittoHeaders()).containsEntry("ditto-reply-target", "0");

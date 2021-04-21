@@ -112,7 +112,7 @@ final class DefaultAuthenticationFailureAggregator implements AuthenticationFail
     }
 
     private static DittoHeaders buildAggregatedHeaders(final Iterable<DittoRuntimeException> reasonsOfFailure) {
-        final DittoHeadersBuilder dittoHeadersBuilder = DittoHeaders.newBuilder();
+        final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = DittoHeaders.newBuilder();
         for (final DittoRuntimeException reasonOfFailure : reasonsOfFailure) {
             dittoHeadersBuilder.putHeaders(reasonOfFailure.getDittoHeaders());
         }

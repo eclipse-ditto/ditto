@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_ID;
-import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_V2;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
 import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.retrieveFeatureDesiredPropertyResponse;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -56,7 +55,7 @@ public final class RetrieveFeatureDesiredPropertyStrategyTest extends AbstractCo
                 RetrieveFeatureDesiredProperty.of(context.getState(), FLUX_CAPACITOR_ID, propertyPointer,
                         DittoHeaders.empty());
         final RetrieveFeatureDesiredPropertyResponse expectedResponse =
-                retrieveFeatureDesiredPropertyResponse(command.getThingEntityId(), command.getFeatureId(),
+                retrieveFeatureDesiredPropertyResponse(command.getEntityId(), command.getFeatureId(),
                         command.getDesiredPropertyPointer(), JsonFactory.newValue(1955), command.getDittoHeaders());
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
@@ -68,7 +67,7 @@ public final class RetrieveFeatureDesiredPropertyStrategyTest extends AbstractCo
         final RetrieveFeatureDesiredProperty command = RetrieveFeatureDesiredProperty.of(context.getState(), FLUX_CAPACITOR_ID,
                 JsonFactory.newPointer("target_year_1"), DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featureNotFound(command.getThingEntityId(), command.getFeatureId(),
+                ExceptionFactory.featureNotFound(command.getEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.removeFeatures(), command, expectedException);
@@ -81,7 +80,7 @@ public final class RetrieveFeatureDesiredPropertyStrategyTest extends AbstractCo
                 RetrieveFeatureDesiredProperty.of(context.getState(), FLUX_CAPACITOR_ID,
                         JsonFactory.newPointer("target_year_1"), DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featureDesiredPropertiesNotFound(command.getThingEntityId(), command.getFeatureId(),
+                ExceptionFactory.featureDesiredPropertiesNotFound(command.getEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.setFeature(FLUX_CAPACITOR.removeDesiredProperties()), command,
@@ -97,10 +96,10 @@ public final class RetrieveFeatureDesiredPropertyStrategyTest extends AbstractCo
                 RetrieveFeatureDesiredProperty.of(context.getState(), FLUX_CAPACITOR_ID, propertyPointer,
                         DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featureDesiredPropertyNotFound(command.getThingEntityId(), command.getFeatureId(),
+                ExceptionFactory.featureDesiredPropertyNotFound(command.getEntityId(), command.getFeatureId(),
                         command.getDesiredPropertyPointer(), command.getDittoHeaders());
 
-        assertErrorResult(underTest, THING_V2.setFeature(FLUX_CAPACITOR_V2.removeDesiredProperty(propertyPointer)), command,
+        assertErrorResult(underTest, THING_V2.setFeature(FLUX_CAPACITOR.removeDesiredProperty(propertyPointer)), command,
                 expectedException);
     }
 

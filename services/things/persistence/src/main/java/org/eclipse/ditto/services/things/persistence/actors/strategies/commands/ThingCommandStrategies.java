@@ -37,7 +37,6 @@ public final class ThingCommandStrategies
         super(Command.class);
         addThingStrategies();
         addPolicyStrategies();
-        addAclStrategies();
         addAttributesStrategies();
         addDefinitionStrategies();
         addFeaturesStrategies();
@@ -76,14 +75,6 @@ public final class ThingCommandStrategies
     private void addPolicyStrategies() {
         addStrategy(new RetrievePolicyIdStrategy());
         addStrategy(new ModifyPolicyIdStrategy());
-    }
-
-    private void addAclStrategies() {
-        addStrategy(new ModifyAclStrategy());
-        addStrategy(new RetrieveAclStrategy());
-        addStrategy(new ModifyAclEntryStrategy());
-        addStrategy(new RetrieveAclEntryStrategy());
-        addStrategy(new DeleteAclEntryStrategy());
     }
 
     private void addAttributesStrategies() {

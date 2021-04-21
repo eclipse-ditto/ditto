@@ -146,7 +146,7 @@ public abstract class AbstractPolicyCommandStrategyTest {
 
     private static <T extends PolicyEvent<?>> T assertModificationResult(final Result<?> result,
             final Class<T> eventClazz,
-            final WithDittoHeaders<?> expectedResponse,
+            final WithDittoHeaders expectedResponse,
             final boolean becomeDeleted) {
 
         final ArgumentCaptor<T> event = ArgumentCaptor.forClass(eventClazz);
@@ -173,7 +173,7 @@ public abstract class AbstractPolicyCommandStrategyTest {
         final List<E> box = new ArrayList<>(1);
         result.accept(new ResultVisitor<>() {
             @Override
-            public void onMutation(final Command<?> command, final E event, final WithDittoHeaders<?> response,
+            public void onMutation(final Command<?> command, final E event, final WithDittoHeaders response,
                     final boolean becomeCreated,
                     final boolean becomeDeleted) {
 
@@ -181,7 +181,7 @@ public abstract class AbstractPolicyCommandStrategyTest {
             }
 
             @Override
-            public void onQuery(final Command<?> command, final WithDittoHeaders<?> response) {
+            public void onQuery(final Command<?> command, final WithDittoHeaders response) {
                 throw new AssertionError("Expect mutation result, got query response: " + response);
             }
 
@@ -193,7 +193,7 @@ public abstract class AbstractPolicyCommandStrategyTest {
         return box.get(0);
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
     private static <T extends Event<?>> Dummy<T> cast(final Dummy<?> dummy) {
         return (Dummy) dummy;
     }

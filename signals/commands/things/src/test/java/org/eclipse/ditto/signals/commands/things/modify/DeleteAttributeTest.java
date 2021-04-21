@@ -24,7 +24,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException;
@@ -58,14 +57,9 @@ public final class DeleteAttributeTest {
                 .verify();
     }
 
-    @Test(expected = ThingIdInvalidException.class)
-    public void tryToCreateInstanceWithNullThingIdString() {
-        DeleteAttribute.of((String) null, TestConstants.Pointer.VALID_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
-    }
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        DeleteAttribute.of((ThingId) null, TestConstants.Pointer.VALID_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
+        DeleteAttribute.of(null, TestConstants.Pointer.VALID_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
 

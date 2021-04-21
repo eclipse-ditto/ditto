@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.signals.events.things;
 
-import static org.eclipse.ditto.signals.events.things.ThingEvent.TYPE_PREFIX;
-
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
@@ -44,7 +42,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a {@code ThingDefinition}s was created.
  */
 @Immutable
-@JsonParsableEvent(name = ThingDefinitionCreated.NAME, typePrefix = TYPE_PREFIX)
+@JsonParsableEvent(name = ThingDefinitionCreated.NAME, typePrefix = ThingEvent.TYPE_PREFIX)
 public final class ThingDefinitionCreated extends AbstractThingEvent<ThingDefinitionCreated>
         implements ThingModifiedEvent<ThingDefinitionCreated> {
 
@@ -73,51 +71,6 @@ public final class ThingDefinitionCreated extends AbstractThingEvent<ThingDefini
 
         super(TYPE, thingId, revision, timestamp, dittoHeaders, metadata);
         this.definition = definition;
-    }
-
-
-    /**
-     * Constructs a new {@code ThingDefinitionCreated} object.
-     *
-     * @param thingId the ID of the Thing with which this event is associated.
-     * @param definition the changes on the definition object.
-     * @param revision the revision of the Thing.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the ThingDefinitionCreated created.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.ThingDefinition, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
-     * instead.
-     */
-    @Deprecated
-    public static ThingDefinitionCreated of(final ThingId thingId,
-            final ThingDefinition definition,
-            final long revision,
-            final DittoHeaders dittoHeaders) {
-
-        return of(thingId, definition, revision, null, dittoHeaders, null);
-    }
-
-    /**
-     * Constructs a new {@code ThingDefinitionCreated} object.
-     *
-     * @param thingId the ID of the Thing with which this event is associated.
-     * @param definition the changes on the definition object.
-     * @param revision the revision of the Thing.
-     * @param timestamp the timestamp of this event.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the ThingDefinitionCreated created.
-     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
-     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.ThingDefinition, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
-     * instead.
-     */
-    @Deprecated
-    public static ThingDefinitionCreated of(final ThingId thingId,
-            final ThingDefinition definition,
-            final long revision,
-            @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
-
-        return of(thingId, definition, revision, timestamp, dittoHeaders, null);
     }
 
     /**
@@ -170,7 +123,7 @@ public final class ThingDefinitionCreated extends AbstractThingEvent<ThingDefini
     public static ThingDefinitionCreated fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<ThingDefinitionCreated>(TYPE, jsonObject)
                 .deserialize((revision, timestamp, metadata) -> {
-                    final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+                    final String extractedThingId = jsonObject.getValueOrThrow(ThingEvent.JsonFields.THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
                     final JsonValue extractedDefinition = jsonObject.getValueOrThrow(JSON_DEFINITION);
                     final ThingDefinition definition;
@@ -211,13 +164,13 @@ public final class ThingDefinitionCreated extends AbstractThingEvent<ThingDefini
 
     @Override
     public ThingDefinitionCreated setRevision(final long revision) {
-        return of(getThingEntityId(), definition, revision, getTimestamp().orElse(null), getDittoHeaders(),
+        return of(getEntityId(), definition, revision, getTimestamp().orElse(null), getDittoHeaders(),
                 getMetadata().orElse(null));
     }
 
     @Override
     public ThingDefinitionCreated setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), definition, getRevision(), getTimestamp().orElse(null), dittoHeaders,
+        return of(getEntityId(), definition, getRevision(), getTimestamp().orElse(null), dittoHeaders,
                 getMetadata().orElse(null));
     }
 

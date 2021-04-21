@@ -87,10 +87,10 @@ public class ConnectivityProxyActorTest {
 
             // WHEN: concierge responds with SourceRef of things
             final SourceRef<RetrieveThingResponse> retrieveThingResponseSourceRef =
-                    Source.from(retrieveThings.getThingEntityIds())
+                    Source.from(retrieveThings.getEntityIds())
                             .map(thingId -> Thing.newBuilder().setId(thingId).build())
                             .map(thing -> RetrieveThingResponse.
-                                    of(thing.getEntityId().orElseThrow(), thing, DittoHeaders.empty()))
+                                    of(thing.getEntityId().orElseThrow(), thing, null, null, DittoHeaders.empty()))
                             .runWith(StreamRefs.sourceRef(), actorSystem);
 
             getLastSender().tell(retrieveThingResponseSourceRef, ActorRef.noSender());

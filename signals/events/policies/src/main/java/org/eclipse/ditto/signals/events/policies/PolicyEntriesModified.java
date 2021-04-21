@@ -31,6 +31,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
@@ -44,7 +45,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after all {@link PolicyEntry}s were modified at once.
  */
 @Immutable
-@JsonParsableEvent(name = PolicyEntriesModified.NAME, typePrefix= PolicyEntriesModified.TYPE_PREFIX)
+@JsonParsableEvent(name = PolicyEntriesModified.NAME, typePrefix= PolicyEvent.TYPE_PREFIX)
 public final class PolicyEntriesModified extends AbstractPolicyEvent<PolicyEntriesModified> implements
         PolicyEvent<PolicyEntriesModified> {
 
@@ -67,9 +68,10 @@ public final class PolicyEntriesModified extends AbstractPolicyEvent<PolicyEntri
             final Iterable<PolicyEntry> policyEntries,
             final long revision,
             @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
 
-        super(TYPE, checkNotNull(policyId, "Policy identifier"), revision, timestamp, dittoHeaders);
+        super(TYPE, checkNotNull(policyId, "Policy identifier"), revision, timestamp, dittoHeaders, metadata);
         this.policyEntries = checkNotNull(policyEntries, "Policy Entries");
     }
 
@@ -79,72 +81,9 @@ public final class PolicyEntriesModified extends AbstractPolicyEvent<PolicyEntri
      * @param policyId the identifier of the Policy to which the modified entry belongs
      * @param policyEntries the modified {@link PolicyEntry}s.
      * @param revision the revision of the Policy.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the created PolicyEntriesModified.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, Iterable, long, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static PolicyEntriesModified of(final String policyId,
-            final Iterable<PolicyEntry> policyEntries,
-            final long revision,
-            final DittoHeaders dittoHeaders) {
-
-        return of(PolicyId.of(policyId), policyEntries, revision, dittoHeaders);
-    }
-
-    /**
-     * Constructs a new {@code PolicyEntriesModified} object indicating the modification of the entries.
-     *
-     * @param policyId the identifier of the Policy to which the modified entry belongs
-     * @param policyEntries the modified {@link PolicyEntry}s.
-     * @param revision the revision of the Policy.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the created PolicyEntriesModified.
-     * @throws NullPointerException if any argument is {@code null}.
-     */
-    public static PolicyEntriesModified of(final PolicyId policyId,
-            final Iterable<PolicyEntry> policyEntries,
-            final long revision,
-            final DittoHeaders dittoHeaders) {
-
-        return of(policyId, policyEntries, revision, null, dittoHeaders);
-    }
-
-    /**
-     * Constructs a new {@code PolicyEntriesModified} object indicating the modification of the entries.
-     *
-     * @param policyId the identifier of the Policy to which the modified entry belongs
-     * @param policyEntries the modified {@link PolicyEntry}s.
-     * @param revision the revision of the Policy.
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the created PolicyEntriesModified.
-     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, Iterable, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static PolicyEntriesModified of(final String policyId,
-            final Iterable<PolicyEntry> policyEntries,
-            final long revision,
-            @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
-
-        return of(PolicyId.of(policyId), policyEntries, revision, timestamp, dittoHeaders);
-    }
-
-    /**
-     * Constructs a new {@code PolicyEntriesModified} object indicating the modification of the entries.
-     *
-     * @param policyId the identifier of the Policy to which the modified entry belongs
-     * @param policyEntries the modified {@link PolicyEntry}s.
-     * @param revision the revision of the Policy.
-     * @param timestamp the timestamp of this event.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @param metadata the metadata to apply for the event.
      * @return the created PolicyEntriesModified.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
@@ -152,9 +91,10 @@ public final class PolicyEntriesModified extends AbstractPolicyEvent<PolicyEntri
             final Iterable<PolicyEntry> policyEntries,
             final long revision,
             @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
 
-        return new PolicyEntriesModified(policyId, policyEntries, revision, timestamp, dittoHeaders);
+        return new PolicyEntriesModified(policyId, policyEntries, revision, timestamp, dittoHeaders, metadata);
     }
 
     /**
@@ -184,13 +124,13 @@ public final class PolicyEntriesModified extends AbstractPolicyEvent<PolicyEntri
     public static PolicyEntriesModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<PolicyEntriesModified>(TYPE, jsonObject)
                 .deserialize((revision, timestamp, metadata) -> {
-                    final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+                    final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyEvent.JsonFields.POLICY_ID);
                     final PolicyId policyId = PolicyId.of(extractedPolicyId);
                     final JsonObject policyEntriesJsonObject = jsonObject.getValueOrThrow(JSON_POLICY_ENTRIES);
                     final Iterable<PolicyEntry> extractedModifiedPolicyEntry =
                             PoliciesModelFactory.newPolicyEntries(policyEntriesJsonObject);
 
-                    return of(policyId, extractedModifiedPolicyEntry, revision, timestamp, dittoHeaders);
+                    return of(policyId, extractedModifiedPolicyEntry, revision, timestamp, dittoHeaders, metadata);
                 });
     }
 
@@ -222,16 +162,18 @@ public final class PolicyEntriesModified extends AbstractPolicyEvent<PolicyEntri
 
     @Override
     public PolicyEntriesModified setRevision(final long revision) {
-        return of(getPolicyEntityId(), policyEntries, revision, getTimestamp().orElse(null), getDittoHeaders());
+        return of(getPolicyEntityId(), policyEntries, revision, getTimestamp().orElse(null), getDittoHeaders(),
+                getMetadata().orElse(null));
     }
 
     @Override
     public PolicyEntriesModified setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getPolicyEntityId(), policyEntries, getRevision(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getPolicyEntityId(), policyEntries, getRevision(), getTimestamp().orElse(null), dittoHeaders,
+                getMetadata().orElse(null));
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayloadAndBuild(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_POLICY_ENTRIES, StreamSupport.stream(policyEntries.spliterator(), false)

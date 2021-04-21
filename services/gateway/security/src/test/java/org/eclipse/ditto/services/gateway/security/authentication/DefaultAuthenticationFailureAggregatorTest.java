@@ -19,9 +19,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.jwt.JwtInvalidException;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
 import org.junit.Before;
 import org.junit.Test;
@@ -49,7 +50,8 @@ public final class DefaultAuthenticationFailureAggregatorTest {
     @Test
     public void aggregateAuthenticationFailuresWithoutDittoRuntimeExceptions() {
         final List<AuthenticationResult> authenticationResults =
-                Collections.singletonList(DefaultAuthenticationResult.failed(KNOWN_DITTO_HEADERS, new IllegalStateException("Not a DRE")));
+                Collections.singletonList(DefaultAuthenticationResult.failed(KNOWN_DITTO_HEADERS,
+                        new IllegalStateException("Not a DRE")));
 
         assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> underTest.aggregateAuthenticationFailures(authenticationResults));
@@ -58,7 +60,7 @@ public final class DefaultAuthenticationFailureAggregatorTest {
     @Test
     public void aggregateAuthenticationFailuresWitNestedDittoRuntimeExceptionWithoutDescription() {
         final DittoRuntimeException expectedException =
-                DittoRuntimeException.newBuilder("test:my.error", HttpStatus.UNAUTHORIZED).build();
+                GatewayAuthenticationFailedException.newBuilder("you're out").description((String) null).build();
         final IllegalStateException reasonOfFailure = new IllegalStateException("Not a DRE", expectedException);
         final List<AuthenticationResult> authenticationResults =
                 Collections.singletonList(DefaultAuthenticationResult.failed(KNOWN_DITTO_HEADERS, reasonOfFailure));
@@ -69,10 +71,9 @@ public final class DefaultAuthenticationFailureAggregatorTest {
 
     @Test
     public void aggregateAuthenticationFailuresWitNestedDittoRuntimeException() {
-        final DittoRuntimeException expectedException =
-                DittoRuntimeException.newBuilder("test:my.error", HttpStatus.UNAUTHORIZED)
-                        .description("foo")
-                        .build();
+        final DittoRuntimeException expectedException = GatewayAuthenticationFailedException.newBuilder("you're out")
+                .description("foo")
+                .build();
         final IllegalStateException reasonOfFailure = new IllegalStateException("Not a DRE", expectedException);
         final List<AuthenticationResult> authenticationResults =
                 Collections.singletonList(DefaultAuthenticationResult.failed(KNOWN_DITTO_HEADERS, reasonOfFailure));
@@ -86,18 +87,17 @@ public final class DefaultAuthenticationFailureAggregatorTest {
     @Test
     public void aggregateAuthenticationFailures() {
         final DittoHeaders fooHeader = DittoHeaders.newBuilder().putHeader("foo-header", "foo").build();
-        final DittoRuntimeException exceptionA =
-                DittoRuntimeException.newBuilder("test:my.error", HttpStatus.UNAUTHORIZED)
-                        .dittoHeaders(fooHeader)
-                        .description("do this")
-                        .build();
+        final DittoRuntimeException exceptionA = GatewayAuthenticationFailedException.newBuilder("you're out")
+                .dittoHeaders(fooHeader)
+                .description("do this")
+                .build();
 
         final DittoHeaders barHeader = DittoHeaders.newBuilder().putHeader("bar-header", "bar").build();
-        final DittoRuntimeException exceptionB =
-                DittoRuntimeException.newBuilder("test:my.error", HttpStatus.UNAUTHORIZED)
-                        .dittoHeaders(barHeader)
-                        .description("do that")
-                        .build();
+        final DittoRuntimeException exceptionB = GatewayAuthenticationFailedException.newBuilder("you're out")
+                .dittoHeaders(barHeader)
+                .description("do that")
+                .build();
+
         final DittoHeaders expectedHeaders = DittoHeaders.newBuilder()
                 .putHeaders(fooHeader)
                 .putHeaders(barHeader)
@@ -121,18 +121,16 @@ public final class DefaultAuthenticationFailureAggregatorTest {
     @Test
     public void aggregateAuthenticationFailuresWithExceptionNotUnauthorized() {
         final DittoHeaders fooHeader = DittoHeaders.newBuilder().putHeader("foo-header", "foo").build();
-        final DittoRuntimeException exceptionA =
-                DittoRuntimeException.newBuilder("test:my.error", HttpStatus.BAD_REQUEST)
-                        .dittoHeaders(fooHeader)
-                        .description("do this")
-                        .build();
+        final DittoRuntimeException exceptionA = JwtInvalidException.newBuilder()
+                .dittoHeaders(fooHeader)
+                .description("do this")
+                .build();
 
         final DittoHeaders barHeader = DittoHeaders.newBuilder().putHeader("bar-header", "bar").build();
-        final DittoRuntimeException exceptionB =
-                DittoRuntimeException.newBuilder("test:my.error", HttpStatus.UNAUTHORIZED)
-                        .dittoHeaders(barHeader)
-                        .description("do that")
-                        .build();
+        final DittoRuntimeException exceptionB = GatewayAuthenticationFailedException.newBuilder("you're out")
+                .dittoHeaders(barHeader)
+                .description("do that")
+                .build();
 
         final List<AuthenticationResult> authenticationResults =
                 Arrays.asList(DefaultAuthenticationResult.failed(KNOWN_DITTO_HEADERS, exceptionA),

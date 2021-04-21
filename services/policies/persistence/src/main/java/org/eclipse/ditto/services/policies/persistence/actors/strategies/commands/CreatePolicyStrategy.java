@@ -85,10 +85,11 @@ final class CreatePolicyStrategy extends AbstractPolicyCommandStrategy<CreatePol
                     .setModified(timestamp)
                     .setCreated(timestamp)
                     .setRevision(nextRevision)
+                    .setMetadata(metadata)
                     .build();
             final PolicyCreated policyCreated =
-                    PolicyCreated.of(newPolicyWithImplicits, nextRevision, timestamp, adjustedHeaders);
-            final WithDittoHeaders<?> response = appendETagHeaderIfProvided(adjustedCommand,
+                    PolicyCreated.of(newPolicyWithImplicits, nextRevision, timestamp, adjustedHeaders, metadata);
+            final WithDittoHeaders response = appendETagHeaderIfProvided(adjustedCommand,
                     CreatePolicyResponse.of(context.getState(), newPolicyWithImplicits, adjustedHeaders),
                     newPolicyWithImplicits);
             context.getLog().withCorrelationId(adjustedCommand)

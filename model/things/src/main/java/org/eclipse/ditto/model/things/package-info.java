@@ -15,9 +15,6 @@
  * Contains the Things framework around the cornerstone of this package: {@link org.eclipse.ditto.model.things.Thing}.
  * A Thing can consist of
  * <ul>
- * <li>an {@link org.eclipse.ditto.model.things.AccessControlList} which contains the
- * {@link org.eclipse.ditto.model.things.Permission}s of {@link org.eclipse.ditto.model.base.auth.AuthorizationSubject
- * AuthorizationSubject}s on that Thing,</li>
  * <li>{@link org.eclipse.ditto.model.things.Attributes} for describing the Thing in more details,</li>
  * <li>and {@link org.eclipse.ditto.model.things.Features} for managing all data and functionality of the Thing.</li>
  * </ul>

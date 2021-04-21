@@ -91,30 +91,6 @@ public final class RetrieveSubjectResponse extends AbstractCommandResponse<Retri
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, String, org.eclipse.ditto.json.JsonObject, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrieveSubjectResponse of(final String policyId,
-            final Label label,
-            final String subjectId,
-            final JsonObject subject,
-            final DittoHeaders dittoHeaders) {
-
-        return of(PolicyId.of(policyId), label, subjectId, subject, dittoHeaders);
-    }
-
-    /**
-     * Creates a response to a {@code RetrieveSubject} command.
-     *
-     * @param policyId the Policy ID of the retrieved subject.
-     * @param label the Label of the PolicyEntry.
-     * @param subjectId the ID of the retrieved Subject.
-     * @param subject the retrieved Subject.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
      */
     public static RetrieveSubjectResponse of(final PolicyId policyId,
             final Label label,
@@ -123,28 +99,6 @@ public final class RetrieveSubjectResponse extends AbstractCommandResponse<Retri
             final DittoHeaders dittoHeaders) {
 
         return new RetrieveSubjectResponse(policyId, label, subjectId, subject, HttpStatus.OK, dittoHeaders);
-    }
-
-    /**
-     * Creates a response to a {@code RetrieveSubject} command.
-     *
-     * @param policyId the Policy ID of the retrieved subject.
-     * @param label the Label of the PolicyEntry.
-     * @param subject the retrieved Subject.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.Subject, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrieveSubjectResponse of(final String policyId,
-            final Label label,
-            final Subject subject,
-            final DittoHeaders dittoHeaders) {
-
-        return of(PolicyId.of(policyId), label, subject, dittoHeaders);
     }
 
     /**

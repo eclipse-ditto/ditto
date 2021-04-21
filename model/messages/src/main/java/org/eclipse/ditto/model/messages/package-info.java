@@ -19,5 +19,5 @@
  * {@link org.eclipse.ditto.model.messages.MessagesModelFactory} is the main entry point for obtaining objects of this
  * package's interfaces to work with.
  */
-@org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault
+@org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault
 package org.eclipse.ditto.model.messages;

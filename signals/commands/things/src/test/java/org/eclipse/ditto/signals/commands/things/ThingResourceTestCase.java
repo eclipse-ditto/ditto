@@ -19,8 +19,6 @@ import org.eclipse.ditto.json.JsonPointer;
  */
 enum ThingResourceTestCase {
     THING("", ThingResource.THING),
-    ACL("acl", ThingResource.ACL),
-    ACL_ENTRY("acl/subject", ThingResource.ACL_ENTRY),
     POLICY_ID("policyId", ThingResource.POLICY_ID),
     ATTRIBUTES("attributes", ThingResource.ATTRIBUTES),
     ATTRIBUTE1("attributes/a", ThingResource.ATTRIBUTE),

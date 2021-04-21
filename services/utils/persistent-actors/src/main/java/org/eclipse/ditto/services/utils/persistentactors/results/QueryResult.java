@@ -26,9 +26,9 @@ import org.eclipse.ditto.signals.events.base.Event;
 public final class QueryResult<E extends Event<?>> implements Result<E> {
 
     private final Command<?> command;
-    private final WithDittoHeaders<?> response;
+    private final WithDittoHeaders response;
 
-    QueryResult(final Command<?> command, final WithDittoHeaders<?> response) {
+    QueryResult(final Command<?> command, final WithDittoHeaders response) {
         this.command = command;
         this.response = response;
     }

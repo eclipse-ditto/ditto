@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -32,7 +33,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
  * Holds the status of a specific akka cluster role.
  */
 @Immutable
-public final class ClusterRoleStatus implements Jsonifiable {
+public final class ClusterRoleStatus implements Jsonifiable<JsonObject> {
 
     /**
      * JSON array of reachable members.
@@ -117,7 +118,7 @@ public final class ClusterRoleStatus implements Jsonifiable {
     }
 
     @Override
-    public JsonValue toJson() {
+    public JsonObject toJson() {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
 
         jsonObjectBuilder.set(JSON_KEY_REACHABLE,

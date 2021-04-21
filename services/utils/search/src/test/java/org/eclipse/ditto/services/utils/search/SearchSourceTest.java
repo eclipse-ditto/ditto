@@ -189,7 +189,7 @@ public final class SearchSourceTest {
     }
 
     private RetrieveThingResponse retrieveThingResponse(final int i) {
-        return RetrieveThingResponse.of(ThingId.of("t:" + i), getThing(i), dittoHeaders);
+        return RetrieveThingResponse.of(ThingId.of("t:" + i), getThing(i), null, null, dittoHeaders);
     }
 
     private RetrieveThing retrieveThing(final String id, @Nullable final JsonFieldSelector fields) {

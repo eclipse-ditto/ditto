@@ -15,7 +15,6 @@ package org.eclipse.ditto.model.things.assertions;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
-import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -29,24 +28,17 @@ import org.eclipse.ditto.model.base.assertions.AbstractJsonifiableAssert;
 import org.eclipse.ditto.model.base.assertions.JsonifiableAssertions;
 import org.eclipse.ditto.model.base.assertions.JsonifiableWithPredicateAssert;
 import org.eclipse.ditto.model.base.assertions.JsonifiableWithSelectorAndPredicateAssert;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.things.AccessControlList;
-import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
-import org.eclipse.ditto.model.things.Permission;
-import org.eclipse.ditto.model.things.Permissions;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingDefinition;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingRevision;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
 
 /**
  * Specific assertion for {@link Thing} objects.
@@ -154,72 +146,6 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
                 .overridingErrorMessage("Expected Thing not have a PolicyId but it had <%s>",
                         policyIdOptional.orElse(null))
                 .isFalse();
-
-        return this;
-    }
-
-    public ThingAssert hasAcl(final AccessControlList expectedAcl) {
-        isNotNull();
-
-        final Optional<AccessControlList> aclOptional = actual.getAccessControlList();
-
-        assertThat(aclOptional.isPresent() && Objects.equals(aclOptional.get(), expectedAcl))
-                .overridingErrorMessage("Expected Thing ACL to be \n<%s> but was \n<%s>", expectedAcl,
-                        aclOptional.orElse(null))
-                .isTrue();
-
-        return this;
-    }
-
-    public ThingAssert hasNoAcl() {
-        isNotNull();
-
-        final Optional<AccessControlList> accessControlListOptional = actual.getAccessControlList();
-
-        assertThat(accessControlListOptional.isPresent())
-                .overridingErrorMessage("Expected Thing not have an Access Control List but it had <%s>",
-                        accessControlListOptional.orElse(null))
-                .isFalse();
-
-        return this;
-    }
-
-    public ThingAssert hasAclEntry(final AuthorizationSubject authorizationSubject, final Permission permission,
-            final Permission... furtherPermissions) {
-        return hasAclEntry(authorizationSubject, ThingsModelFactory.newPermissions(permission, furtherPermissions));
-    }
-
-    public ThingAssert hasAclEntry(final AuthorizationSubject authorizationSubject,
-            final Collection<Permission> expectedPermissions) {
-        isNotNull();
-
-        final Permissions actualPermissions = actual.getAccessControlList()
-                .map(acl -> acl.getPermissionsOf(authorizationSubject))
-                .orElse(ThingsModelFactory.noPermissions());
-
-        assertThat(actualPermissions.containsAll(expectedPermissions))
-                .overridingErrorMessage("Expected Thing ACL to contain an entry for <%s> with the permission(s) \n<%s> "
-                        + "but it contained \n<%s>", authorizationSubject, expectedPermissions, actualPermissions)
-                .isTrue();
-
-        return this;
-    }
-
-    public ThingAssert hasAclEntry(final AclEntry expectedAclEntry) {
-        isNotNull();
-
-        boolean isHasAclEntry = false;
-        final Optional<AccessControlList> accessControlListOptional = actual.getAccessControlList();
-        if (accessControlListOptional.isPresent()) {
-            isHasAclEntry = accessControlListOptional.get()
-                    .stream()
-                    .anyMatch(actualAclEntry -> Objects.equals(actualAclEntry, expectedAclEntry));
-        }
-
-        assertThat(isHasAclEntry)
-                .overridingErrorMessage("Expected Thing ACL to contain the entry <%s> but it did not",
-                        expectedAclEntry)
-                .isTrue();
 
         return this;
     }
@@ -443,7 +369,8 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
         return this;
     }
 
-    public ThingAssert hasFeatureDesiredProperties(final String featureId, final FeatureProperties expectedDesiredProperties) {
+    public ThingAssert hasFeatureDesiredProperties(final String featureId,
+            final FeatureProperties expectedDesiredProperties) {
         isNotNull();
 
         final FeatureProperties actualDesiredProperties = actual.getFeatures()
@@ -452,7 +379,8 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
                 .orElse(null);
 
         assertThat(actualDesiredProperties)
-                .overridingErrorMessage("Expected Thing Feature <%s> to have the desired properties \n<%s> but it had \n<%s>",
+                .overridingErrorMessage(
+                        "Expected Thing Feature <%s> to have the desired properties \n<%s> but it had \n<%s>",
                         featureId, expectedDesiredProperties, actualDesiredProperties)
                 .isEqualTo(expectedDesiredProperties);
 
@@ -675,13 +603,7 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
         assertThat(actual.getEntityId()).isEqualTo(expected.getEntityId());
         assertThat(actual.getAttributes()).isEqualTo(expected.getAttributes());
         assertThat(actual.getFeatures()).isEqualTo(expected.getFeatures());
-
-        if (JsonSchemaVersion.V_1.equals(expected.getImplementedSchemaVersion())) {
-            assertThat(actual.getAccessControlList()).isEqualTo(expected.getAccessControlList());
-        }
-        if (JsonSchemaVersion.V_2.equals(expected.getImplementedSchemaVersion())) {
-            assertThat(actual.getPolicyEntityId()).isEqualTo(expected.getPolicyEntityId());
-        }
+        assertThat(actual.getPolicyEntityId()).isEqualTo(expected.getPolicyEntityId());
 
         return this;
     }

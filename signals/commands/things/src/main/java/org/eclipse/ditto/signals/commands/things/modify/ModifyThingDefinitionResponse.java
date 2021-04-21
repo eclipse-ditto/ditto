@@ -153,7 +153,7 @@ public final class ModifyThingDefinitionResponse extends AbstractCommandResponse
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

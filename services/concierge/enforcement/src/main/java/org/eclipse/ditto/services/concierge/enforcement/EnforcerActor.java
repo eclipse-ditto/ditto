@@ -22,7 +22,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.services.utils.cache.Cache;
-import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
+import org.eclipse.ditto.services.utils.cache.CacheKey;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcer;
 
@@ -40,7 +40,7 @@ import akka.stream.javadsl.Merge;
 import akka.stream.javadsl.Sink;
 
 /**
- * Actor to authorize signals by enforcing policies or ACLs on signals.
+ * Actor to authorize signals by enforcing policies on signals.
  */
 public final class EnforcerActor extends AbstractEnforcerActor {
 
@@ -49,18 +49,17 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      */
     public static final String ACTOR_NAME = "enforcer";
 
-    private final Sink<Contextual<WithDittoHeaders<?>>, CompletionStage<Done>> sink;
+    private final Sink<Contextual<WithDittoHeaders>, CompletionStage<Done>> sink;
 
     @SuppressWarnings("unused")
     private EnforcerActor(final ActorRef pubSubMediator,
             final Set<EnforcementProvider<?>> enforcementProviders,
             final ActorRef conciergeForwarder,
             @Nullable final PreEnforcer preEnforcer,
-            @Nullable final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
-            @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache,
-            @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache) {
+            @Nullable final Cache<CacheKey, Entry<CacheKey>> thingIdCache,
+            @Nullable final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache) {
 
-        super(pubSubMediator, conciergeForwarder, thingIdCache, aclEnforcerCache, policyEnforcerCache);
+        super(pubSubMediator, conciergeForwarder, thingIdCache, policyEnforcerCache);
         final ActorRef enforcementScheduler =
                 getContext().actorOf(EnforcementScheduler.props(), EnforcementScheduler.ACTOR_NAME);
         sink = assembleSink(enforcementProviders, preEnforcer, enforcementScheduler);
@@ -73,8 +72,7 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      * @param enforcementProviders a set of {@link EnforcementProvider}s.
      * @param conciergeForwarder an actorRef to concierge forwarder.
      * @param preEnforcer a function executed before actual enforcement, may be {@code null}.
-     * @param thingIdCache the cache for Thing IDs to either ACL or Policy ID.
-     * @param aclEnforcerCache the ACL cache.
+     * @param thingIdCache the cache for Thing IDs to Policy ID.
      * @param policyEnforcerCache the Policy cache.
      * @return the Akka configuration Props object.
      */
@@ -82,12 +80,11 @@ public final class EnforcerActor extends AbstractEnforcerActor {
             final Set<EnforcementProvider<?>> enforcementProviders,
             final ActorRef conciergeForwarder,
             @Nullable final PreEnforcer preEnforcer,
-            @Nullable final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
-            @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache,
-            @Nullable final Cache<EntityIdWithResourceType, Entry<PolicyEnforcer>> policyEnforcerCache) {
+            @Nullable final Cache<CacheKey, Entry<CacheKey>> thingIdCache,
+            @Nullable final Cache<CacheKey, Entry<PolicyEnforcer>> policyEnforcerCache) {
 
         return Props.create(EnforcerActor.class, pubSubMediator, enforcementProviders, conciergeForwarder, preEnforcer,
-                thingIdCache, aclEnforcerCache, policyEnforcerCache);
+                thingIdCache, policyEnforcerCache);
     }
 
     /**
@@ -97,24 +94,21 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      * @param pubSubMediator Akka pub sub mediator.
      * @param enforcementProviders a set of {@link EnforcementProvider}s.
      * @param conciergeForwarder an actorRef to concierge forwarder.
-     * @param thingIdCache the cache for Thing IDs to either ACL or Policy ID.
-     * @param aclEnforcerCache the ACL cache.
+     * @param thingIdCache the cache for Thing IDs to Policy ID.
      * @param policyEnforcerCache the Policy cache.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
             final Set<EnforcementProvider<?>> enforcementProviders,
             final ActorRef conciergeForwarder,
-            @Nullable final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
-            @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache,
-            @Nullable final Cache<EntityIdWithResourceType, Entry<PolicyEnforcer>> policyEnforcerCache) {
+            @Nullable final Cache<CacheKey, Entry<CacheKey>> thingIdCache,
+            @Nullable final Cache<CacheKey, Entry<PolicyEnforcer>> policyEnforcerCache) {
 
-        return props(pubSubMediator, enforcementProviders, conciergeForwarder, null, thingIdCache, aclEnforcerCache,
-                policyEnforcerCache);
+        return props(pubSubMediator, enforcementProviders, conciergeForwarder, null, thingIdCache, policyEnforcerCache);
     }
 
     @Override
-    protected Sink<Contextual<WithDittoHeaders<?>>, ?> createSink() {
+    protected Sink<Contextual<WithDittoHeaders>, ?> createSink() {
         return sink;
     }
 
@@ -127,16 +121,16 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      * @return a handler as {@link Flow} of {@link Contextual} messages.
      */
     @SuppressWarnings("unchecked") // due to GraphDSL usage
-    private Sink<Contextual<WithDittoHeaders<?>>, CompletionStage<Done>> assembleSink(
+    private Sink<Contextual<WithDittoHeaders>, CompletionStage<Done>> assembleSink(
             final Set<EnforcementProvider<?>> enforcementProviders,
             @Nullable final PreEnforcer preEnforcer,
             final ActorRef enforcementScheduler) {
 
         final PreEnforcer preEnforcerStep =
                 preEnforcer != null ? preEnforcer : CompletableFuture::completedStage;
-        final Graph<FlowShape<Contextual<WithDittoHeaders<?>>, EnforcementTask>, NotUsed> enforcerFlow =
+        final Graph<FlowShape<Contextual<WithDittoHeaders>, EnforcementTask>, NotUsed> enforcerFlow =
                 GraphDSL.create(
-                        Broadcast.<Contextual<WithDittoHeaders<?>>>create(enforcementProviders.size()),
+                        Broadcast.<Contextual<WithDittoHeaders>>create(enforcementProviders.size()),
                         Merge.<EnforcementTask>create(enforcementProviders.size(), true),
                         (notUsed1, notUsed2) -> notUsed1,
                         (builder, bcast, merge) -> {
@@ -150,7 +144,7 @@ public final class EnforcerActor extends AbstractEnforcerActor {
                             return FlowShape.of(bcast.in(), merge.out());
                         });
 
-        return Flow.<Contextual<WithDittoHeaders<?>>>create()
+        return Flow.<Contextual<WithDittoHeaders>>create()
                 .via(enforcerFlow)
                 .toMat(Sink.foreach(task -> enforcementScheduler.tell(task, ActorRef.noSender())), Keep.right());
     }

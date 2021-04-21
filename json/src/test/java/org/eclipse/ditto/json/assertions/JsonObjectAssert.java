@@ -152,9 +152,10 @@ public final class JsonObjectAssert
         isNotNull();
         final List<JsonKey> actualNames = actual.getKeys();
 
-        Assertions.assertThat(actualNames).contains(key)
+        Assertions.assertThat(actualNames)
                 .overridingErrorMessage("Expected JSON object to contain a field with name <%s> but it did not.",
-                        key);
+                        key)
+                .contains(key);
 
         final Optional<JsonValue> actualValue = actual.getValue(key);
 
@@ -189,7 +190,7 @@ public final class JsonObjectAssert
      * @param jsonFieldDefinition provides a JsonPointer which should not be contained in the checked JSON object.
      * @return this assert to allow method chaining.
      */
-    public JsonObjectAssert doesNotContain(final JsonFieldDefinition jsonFieldDefinition) {
+    public JsonObjectAssert doesNotContain(final JsonFieldDefinition<?> jsonFieldDefinition) {
         isNotNull();
         final JsonPointer pointer = jsonFieldDefinition.getPointer();
         final Optional<JsonValue> valueOptional = actual.getValue(pointer);
@@ -287,19 +288,16 @@ public final class JsonObjectAssert
     }
 
     private static void compareFieldDefinitions(final JsonField expectedField, final JsonField actualField) {
-        final Optional<JsonFieldDefinition> expectedFieldDefinition = expectedField.getDefinition();
-        final Optional<JsonFieldDefinition> actualFieldDefinition = actualField.getDefinition();
-
-        if (expectedFieldDefinition.isPresent()) {
-            Assertions.assertThat(actualFieldDefinition)
+        expectedField.getDefinition().ifPresent(expectedFieldDefinition -> {
+            Assertions.assertThat(actualField.getDefinition())
                     .overridingErrorMessage("Expected JsonField <%s> to have definition <%s> but it had " +
-                            "none", expectedField.getKey(), expectedFieldDefinition.get())
+                            "none", expectedField.getKey(), expectedFieldDefinition)
                     .isPresent();
 
             Assertions.assertThat(expectedFieldDefinition)
                     .as("Definitions of JsonField <%s> are equal", expectedField.getKey())
-                    .contains(actualFieldDefinition.get());
-        }
+                    .isEqualTo(actualField.getDefinition().get());
+        });
     }
 
     private static Optional<JsonField> getField(final Iterable<JsonField> jsonFields, final JsonKey key) {
@@ -339,7 +337,7 @@ public final class JsonObjectAssert
      * @param expectedValue the expected value of the field which is denoted by {@code jsonPointer}.
      * @return this assertion object.
      */
-    public JsonObjectAssert contains(final JsonFieldDefinition jsonFieldDefinition, final JsonValue expectedValue) {
+    public JsonObjectAssert contains(final JsonFieldDefinition<?> jsonFieldDefinition, final JsonValue expectedValue) {
         return contains(jsonFieldDefinition.getPointer(), expectedValue);
     }
 
@@ -372,7 +370,7 @@ public final class JsonObjectAssert
      * @param expectedValue the expected value of the field which is denoted by {@code jsonPointer}.
      * @return this assertion object.
      */
-    public JsonObjectAssert contains(final JsonFieldDefinition jsonFieldDefinition, final String expectedValue) {
+    public JsonObjectAssert contains(final JsonFieldDefinition<?> jsonFieldDefinition, final String expectedValue) {
         return contains(jsonFieldDefinition.getPointer(), expectedValue);
     }
 

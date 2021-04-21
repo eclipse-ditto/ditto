@@ -12,14 +12,13 @@
  */
 package org.eclipse.ditto.services.concierge.enforcement.placeholders.strategies;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 
 /**
@@ -28,10 +27,10 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 @Immutable
 public final class SubstitutionStrategyRegistry {
 
-    private final List<SubstitutionStrategy> strategies;
+    private final List<SubstitutionStrategy<?>> strategies;
 
     private SubstitutionStrategyRegistry() {
-        strategies = Collections.unmodifiableList(new ArrayList<>(createStrategies()));
+        strategies = List.copyOf(createStrategies());
     }
 
     public static SubstitutionStrategyRegistry newInstance() {
@@ -45,8 +44,9 @@ public final class SubstitutionStrategyRegistry {
      * @return an {@link Optional} containing the first strategy which matches; an empty {@link Optional} in case no
      * strategy matches.
      */
-    public final Optional<SubstitutionStrategy> getMatchingStrategy(final WithDittoHeaders withDittoHeaders) {
-        for (final SubstitutionStrategy strategy : strategies) {
+    @SuppressWarnings({"rawtypes", "java:S3740"})
+    public final Optional<SubstitutionStrategy> getMatchingStrategy(final DittoHeadersSettable<?> withDittoHeaders) {
+        for (final SubstitutionStrategy<?> strategy : strategies) {
             if (strategy.matches(withDittoHeaders)) {
                 return Optional.of(strategy);
             }
@@ -55,12 +55,12 @@ public final class SubstitutionStrategyRegistry {
     }
 
     // for testing purposes
-    List<SubstitutionStrategy> getStrategies() {
+    List<SubstitutionStrategy<?>> getStrategies() {
         return strategies;
     }
 
-    private static List<SubstitutionStrategy> createStrategies() {
-        final List<SubstitutionStrategy> strategies = new LinkedList<>();
+    private static List<SubstitutionStrategy<?>> createStrategies() {
+        final List<SubstitutionStrategy<?>> strategies = new LinkedList<>();
 
         // replacement for policy-subject-id
         strategies.add(new ModifySubjectSubstitutionStrategy());
@@ -70,11 +70,7 @@ public final class SubstitutionStrategyRegistry {
         strategies.add(new ModifyPolicySubstitutionStrategy());
         strategies.add(new CreatePolicySubstitutionStrategy());
 
-        // replacement for acl-subject-id
-        strategies.add(new ModifyAclEntrySubstitutionStrategy());
-        strategies.add(new ModifyAclSubstitutionStrategy());
-
-        // replacement for both policy-subject-id and acl-subject-id
+        // replacement for both policy-subject-id
         strategies.add(new ModifyThingSubstitutionStrategy());
         strategies.add(new CreateThingSubstitutionStrategy());
 

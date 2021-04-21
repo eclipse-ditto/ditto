@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.concierge.enforcement.placeholders.strategies
 import static java.util.Objects.requireNonNull;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.HeaderBasedPlaceholderSubstitutionAlgorithm;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicy;
@@ -31,7 +31,7 @@ final class ModifyPolicySubstitutionStrategy extends AbstractTypedSubstitutionSt
     }
 
     @Override
-    public WithDittoHeaders apply(final ModifyPolicy modifyPolicy,
+    public DittoHeadersSettable<?> apply(final ModifyPolicy modifyPolicy,
             final HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm) {
         requireNonNull(modifyPolicy);
         requireNonNull(substitutionAlgorithm);

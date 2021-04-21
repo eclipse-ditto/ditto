@@ -358,14 +358,12 @@ public final class EventSnapshotCleanupCoordinator
         if (dittoHeaders.containsKey(REQUESTED_MESSAGE_HEADER)) {
             messageBuilder.append("requested by ");
         }
-        if (!response.getEntityId().isDummy()) {
-            messageBuilder.append(response.getEntityId().toString());
-            if (dittoHeaders.containsKey(ERROR_MESSAGE_HEADER)) {
-                messageBuilder.append(": ").append(dittoHeaders.get(ERROR_MESSAGE_HEADER));
-            }
-        } else {
-            messageBuilder.append(dittoHeaders.get(ERROR_MESSAGE_HEADER));
+
+        messageBuilder.append(response.getEntityId().toString());
+        if (dittoHeaders.containsKey(ERROR_MESSAGE_HEADER)) {
+            messageBuilder.append(": ").append(dittoHeaders.get(ERROR_MESSAGE_HEADER));
         }
+
         return messageBuilder.toString();
     }
 

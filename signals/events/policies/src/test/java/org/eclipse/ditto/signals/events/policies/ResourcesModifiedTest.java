@@ -22,10 +22,9 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.policies.Label;
-import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.model.policies.Resources;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -38,7 +37,8 @@ public class ResourcesModifiedTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, ResourcesModified.TYPE)
-            .set(Event.JsonFields.REVISION, TestConstants.Policy.REVISION_NUMBER)
+            .set(EventsourcedEvent.JsonFields.REVISION, TestConstants.Policy.REVISION_NUMBER)
+            .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
             .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(ResourcesModified.JSON_LABEL, TestConstants.Policy.LABEL.toString())
             .set(ResourcesModified.JSON_RESOURCES,
@@ -52,7 +52,6 @@ public class ResourcesModifiedTest {
                 provided(Resources.class, Label.class).isAlsoImmutable());
     }
 
-
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ResourcesModified.class)
@@ -60,45 +59,37 @@ public class ResourcesModifiedTest {
                 .verify();
     }
 
-    @Test(expected = PolicyIdInvalidException.class)
-    public void tryToCreateInstanceWithNullPolicyIdString() {
-        ResourcesModified.of((String) null, TestConstants.Policy.LABEL, TestConstants.Policy.RESOURCES,
-                TestConstants.Policy.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS);
-    }
-
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
-        ResourcesModified.of((PolicyId) null, TestConstants.Policy.LABEL, TestConstants.Policy.RESOURCES,
-                TestConstants.Policy.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS);
+        ResourcesModified.of(null, TestConstants.Policy.LABEL, TestConstants.Policy.RESOURCES,
+                TestConstants.Policy.REVISION_NUMBER, TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS,
+                TestConstants.METADATA);
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullLabel() {
         ResourcesModified.of(TestConstants.Policy.POLICY_ID, null, TestConstants.Policy.RESOURCES,
-                TestConstants.Policy.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS);
+                TestConstants.Policy.REVISION_NUMBER, TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS,
+                TestConstants.METADATA);
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullResources() {
         ResourcesModified.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL, null,
-                TestConstants.Policy.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS);
+                TestConstants.Policy.REVISION_NUMBER, TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS,
+                TestConstants.METADATA);
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
         final ResourcesModified underTest =
                 ResourcesModified.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL,
-                        TestConstants.Policy.RESOURCES, TestConstants.Policy.REVISION_NUMBER, TestConstants.TIMESTAMP,
-                        TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.Policy.RESOURCES, TestConstants.Policy.REVISION_NUMBER,
+                        TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {

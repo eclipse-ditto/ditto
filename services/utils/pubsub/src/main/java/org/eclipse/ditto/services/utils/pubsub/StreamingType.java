@@ -91,7 +91,7 @@ public enum StreamingType {
      * @param signal the signal.
      * @return whether it is a live signal.
      */
-    public static boolean isLiveSignal(final Signal signal) {
+    public static boolean isLiveSignal(final Signal<?> signal) {
         return signal.getDittoHeaders().getChannel().filter(LIVE_CHANNEL_NAME::equals).isPresent();
     }
 
@@ -101,7 +101,7 @@ public enum StreamingType {
      * @param signal the signal.
      * @return the streaming type most appropriate for the signal.
      */
-    public static Optional<StreamingType> fromSignal(final Signal signal) {
+    public static Optional<StreamingType> fromSignal(final Signal<?> signal) {
         final StreamingType result;
         final boolean isThingEvent = signal.getType().startsWith(EVENTS.getDistributedPubSubTopic());
         if (isLiveSignal(signal)) {

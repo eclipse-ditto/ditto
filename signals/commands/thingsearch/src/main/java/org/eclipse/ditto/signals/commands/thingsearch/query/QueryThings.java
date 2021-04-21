@@ -41,13 +41,14 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
 /**
  * Command for searching things.
  * @since 1.0.0
  */
 @Immutable
-@JsonParsableCommand(typePrefix = QueryThings.TYPE_PREFIX, name = QueryThings.NAME)
+@JsonParsableCommand(typePrefix = ThingSearchCommand.TYPE_PREFIX, name = QueryThings.NAME)
 public final class QueryThings extends AbstractCommand<QueryThings> implements ThingSearchQueryCommand<QueryThings> {
 
     /**
@@ -61,19 +62,19 @@ public final class QueryThings extends AbstractCommand<QueryThings> implements T
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<String> JSON_FILTER =
-            JsonFactory.newStringFieldDefinition("filter", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("filter", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<JsonArray> JSON_OPTIONS =
-            JsonFactory.newJsonArrayFieldDefinition("options", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonArrayFieldDefinition("options", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<String> JSON_FIELDS =
-            JsonFactory.newStringFieldDefinition("fields", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("fields", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<JsonArray> JSON_NAMESPACES =
-            JsonFactory.newJsonArrayFieldDefinition("namespaces", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonArrayFieldDefinition("namespaces", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     @Nullable private final String filter;

@@ -36,12 +36,13 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 /**
  * This command retrieves a {@link org.eclipse.ditto.model.things.Feature}'s properties.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = RetrieveFeatureProperties.TYPE_PREFIX, name = RetrieveFeatureProperties.NAME)
+@JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = RetrieveFeatureProperties.NAME)
 public final class RetrieveFeatureProperties extends AbstractCommand<RetrieveFeatureProperties> implements
         ThingQueryCommand<RetrieveFeatureProperties>, WithFeatureId {
 
@@ -56,11 +57,11 @@ public final class RetrieveFeatureProperties extends AbstractCommand<RetrieveFea
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<String> JSON_FEATURE_ID =
-            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<String> JSON_SELECTED_FIELDS =
-            JsonFactory.newStringFieldDefinition("selectedFields", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("selectedFields", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final ThingId thingId;
@@ -86,52 +87,11 @@ public final class RetrieveFeatureProperties extends AbstractCommand<RetrieveFea
      * @param dittoHeaders the headers of the command.
      * @return a Command for retrieving the Properties of the specified Feature.
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrieveFeatureProperties of(final String thingId, final String featureId,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), featureId, dittoHeaders);
-    }
-
-    /**
-     * Returns a Command for retrieving a Feature's Properties on a Thing.
-     *
-     * @param thingId the {@code Thing}'s ID whose {@code Feature}'s Properties to retrieve.
-     * @param featureId the {@code Feature}'s ID whose Properties to retrieve.
-     * @param dittoHeaders the headers of the command.
-     * @return a Command for retrieving the Properties of the specified Feature.
-     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
      */
     public static RetrieveFeatureProperties of(final ThingId thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
 
         return new RetrieveFeatureProperties(thingId, featureId, null, dittoHeaders);
-    }
-
-    /**
-     * Returns a Command for retrieving a Feature's Properties on a Thing.
-     *
-     * @param thingId the {@code Thing}'s ID whose {@code Feature}'s Properties to retrieve.
-     * @param featureId the {@code Feature}'s ID whose Properties to retrieve.
-     * @param selectedFields defines the fields of the JSON representation of the Properties to retrieve.
-     * @param dittoHeaders the headers of the command.
-     * @return a Command for retrieving the Properties of the specified Feature.
-     * @throws NullPointerException if {@code featureId} or {@code dittoHeaders} is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.json.JsonFieldSelector, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrieveFeatureProperties of(final String thingId,
-            final String featureId,
-            @Nullable final JsonFieldSelector selectedFields,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), featureId, selectedFields, dittoHeaders);
     }
 
     /**
@@ -183,7 +143,7 @@ public final class RetrieveFeatureProperties extends AbstractCommand<RetrieveFea
      */
     public static RetrieveFeatureProperties fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveFeatureProperties>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
             final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
             final JsonFieldSelector extractedFieldSelector = jsonObject.getValue(JSON_SELECTED_FIELDS)
@@ -202,7 +162,7 @@ public final class RetrieveFeatureProperties extends AbstractCommand<RetrieveFea
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 
@@ -222,7 +182,7 @@ public final class RetrieveFeatureProperties extends AbstractCommand<RetrieveFea
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
         if (null != selectedFields) {
             jsonObjectBuilder.set(JSON_SELECTED_FIELDS, selectedFields.toString(), predicate);

@@ -14,8 +14,10 @@ package org.eclipse.ditto.model.enforcers.testbench.scenarios.scenario3;
 
 import java.util.Collections;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.Scenario;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.ScenarioSetup;
+import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
@@ -26,8 +28,8 @@ import org.openjdk.jmh.annotations.State;
 @State(Scope.Benchmark)
 public class Scenario3Revoke5 implements Scenario3Revoke {
 
-    private static final String EXPECTED_GRANTED_SUBJECT = SubjectId.newInstance(SubjectIssuer.GOOGLE,
-            SUBJECT_ALL_GRANTED_ATTRIBUTES_REVOKED).toString();
+    private static final AuthorizationSubject EXPECTED_GRANTED_SUBJECT = AuthorizationSubject.newInstance(
+            SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ALL_GRANTED_ATTRIBUTES_REVOKED));
 
     private final ScenarioSetup setup;
 
@@ -42,8 +44,8 @@ public class Scenario3Revoke5 implements Scenario3Revoke {
                 resource,
                 Collections.singleton(EXPECTED_GRANTED_SUBJECT),
                 policyAlgorithm -> // as the subject has READ granted on "/attributes/location" he shall be able to read "/attributes" partially
-                        policyAlgorithm.getSubjectIdsWithPartialPermission(
-                                PoliciesResourceType.thingResource("/attributes"), "READ")
+                        policyAlgorithm.getSubjectsWithPartialPermission(
+                                PoliciesResourceType.thingResource("/attributes"), Permissions.newInstance("READ"))
                                 .contains(EXPECTED_GRANTED_SUBJECT),
                 "READ");
     }

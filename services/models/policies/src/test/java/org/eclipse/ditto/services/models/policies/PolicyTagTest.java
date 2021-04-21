@@ -19,6 +19,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -29,7 +30,8 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class PolicyTagTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(PolicyTag.JsonFields.ID, TestConstants.Policy.POLICY_ID.toString())
+            .set(EntityIdWithRevision.JsonFields.ENTITY_TYPE, TestConstants.Policy.POLICY_ID.getEntityType().toString())
+            .set(PolicyTag.JsonFields.ENTITY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(PolicyTag.JsonFields.REVISION, TestConstants.Policy.REVISION_NUMBER)
             .build();
 

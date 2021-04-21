@@ -22,8 +22,8 @@ Currently the following protocol bindings are supported:
 
 ## Content Type
 
-When sending messages towards Ditto, the following content type has to be specified in a protocol-specific way given that
-the messages are already in [Ditto Protocol](protocol-overview.html) format.
+When sending messages towards Ditto, the following content type has to be specified in a protocol-specific way given 
+that the messages are already in [Ditto Protocol](protocol-overview.html) format.
 
 All [change notifications](basic-changenotifications.html) emitted by Ditto will also contain the `content-type`:
 

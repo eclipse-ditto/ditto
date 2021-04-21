@@ -41,7 +41,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a {@link Thing} was modified.
  */
 @Immutable
-@JsonParsableEvent(name = ThingModified.NAME, typePrefix = ThingModified.TYPE_PREFIX)
+@JsonParsableEvent(name = ThingModified.NAME, typePrefix = ThingEvent.TYPE_PREFIX)
 public final class ThingModified extends AbstractThingEvent<ThingModified>
         implements ThingModifiedEvent<ThingModified> {
 
@@ -67,46 +67,6 @@ public final class ThingModified extends AbstractThingEvent<ThingModified>
                 timestamp,
                 dittoHeaders, metadata);
         this.thing = thing;
-    }
-
-    /**
-     * Constructs a new {@code ThingModified} object.
-     *
-     * @param thing the modified {@link Thing}.
-     * @param revision the revision of the Thing.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the ThingModified created.
-     * @throws NullPointerException if {@code thing} is {@code null}.
-     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.Thing, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
-     * instead.
-     */
-    @Deprecated
-    public static ThingModified of(final Thing thing,
-            final long revision,
-            final DittoHeaders dittoHeaders) {
-
-        return of(thing, revision, null, dittoHeaders, null);
-    }
-
-    /**
-     * Constructs a new {@code ThingModified} object.
-     *
-     * @param thing the modified {@link Thing}.
-     * @param revision the revision of the Thing.
-     * @param timestamp the timestamp of this event.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the ThingModified created.
-     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
-     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.Thing, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
-     * instead.
-     */
-    @Deprecated
-    public static ThingModified of(final Thing thing,
-            final long revision,
-            @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
-
-        return of(thing, revision, timestamp, dittoHeaders, null);
     }
 
     /**
@@ -158,7 +118,7 @@ public final class ThingModified extends AbstractThingEvent<ThingModified>
         return new EventJsonDeserializer<ThingModified>(TYPE, jsonObject).deserialize(
                 (revision, timestamp, metadata) -> {
                     final JsonObject thingJsonObject =
-                            jsonObject.getValueOrThrow(JsonFields.THING); // THING was in V1 and V2
+                            jsonObject.getValueOrThrow(ThingEvent.JsonFields.THING); // THING was in V1 and V2
                     final Thing extractedModifiedThing = ThingsModelFactory.newThing(thingJsonObject);
 
                     return of(extractedModifiedThing, revision, timestamp, dittoHeaders, metadata);
@@ -176,7 +136,7 @@ public final class ThingModified extends AbstractThingEvent<ThingModified>
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(thing.toJson(schemaVersion, FieldType.notHidden()));
+        return Optional.of(thing.toJson(schemaVersion, FieldType.notHidden()));
     }
 
     @Override
@@ -198,7 +158,7 @@ public final class ThingModified extends AbstractThingEvent<ThingModified>
     protected void appendPayloadAndBuild(final JsonObjectBuilder jsonObjectBuilder,
             final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(JsonFields.THING, thing.toJson(schemaVersion, thePredicate), predicate);
+        jsonObjectBuilder.set(ThingEvent.JsonFields.THING, thing.toJson(schemaVersion, thePredicate), predicate);
     }
 
     @SuppressWarnings("squid:S109")
@@ -224,7 +184,7 @@ public final class ThingModified extends AbstractThingEvent<ThingModified>
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
+    protected boolean canEqual(@Nullable final Object other) {
         return (other instanceof ThingModified);
     }
 

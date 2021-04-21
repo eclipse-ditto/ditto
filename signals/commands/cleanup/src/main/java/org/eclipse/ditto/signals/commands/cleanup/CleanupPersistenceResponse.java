@@ -23,8 +23,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -90,6 +90,7 @@ public final class CleanupPersistenceResponse extends AbstractCommandResponse<Cl
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicate) {
 
+        jsonObjectBuilder.set(CleanupCommandResponse.JsonFields.ENTITY_TYPE, entityId.getEntityType().toString());
         jsonObjectBuilder.set(CleanupCommandResponse.JsonFields.ENTITY_ID, String.valueOf(entityId), predicate);
     }
 
@@ -101,15 +102,18 @@ public final class CleanupPersistenceResponse extends AbstractCommandResponse<Cl
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain
-     * {@link Command.JsonFields#ID}.
+     * {@link Command.JsonFields#TYPE}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
     public static CleanupPersistenceResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<CleanupPersistenceResponse>(TYPE, jsonObject).deserialize(
                 httpStatus -> {
+                    final EntityType entityType =
+                            EntityType.of(jsonObject.getValueOrThrow(CleanupCommandResponse.JsonFields.ENTITY_TYPE));
                     final String readEntityId = jsonObject.getValueOrThrow(CleanupCommandResponse.JsonFields.ENTITY_ID);
-                    return new CleanupPersistenceResponse(DefaultEntityId.of(readEntityId), httpStatus, dittoHeaders);
+                    return new CleanupPersistenceResponse(EntityId.of(entityType, readEntityId), httpStatus,
+                            dittoHeaders);
                 }
         );
     }
@@ -142,7 +146,7 @@ public final class CleanupPersistenceResponse extends AbstractCommandResponse<Cl
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                 super.toString() +
+                super.toString() +
                 ", entityId=" + entityId +
                 "]";
     }

@@ -40,6 +40,7 @@ import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.exceptions.PoliciesConflictingException;
 
@@ -49,7 +50,7 @@ import org.eclipse.ditto.signals.commands.things.exceptions.PoliciesConflictingE
  * generated.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = CreateThing.TYPE_PREFIX, name = CreateThing.NAME)
+@JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = CreateThing.NAME)
 public final class CreateThing extends AbstractCommand<CreateThing> implements ThingModifyCommand<CreateThing> {
 
     /**
@@ -63,7 +64,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     public static final JsonFieldDefinition<JsonObject> JSON_THING =
-            JsonFactory.newJsonObjectFieldDefinition("thing", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonObjectFieldDefinition("thing", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     /**
@@ -135,9 +136,6 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
      * @return a Command for creating the provided new Thing.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws ThingIdInvalidException if the {@link Thing}'s ID is not valid.
-     * @throws org.eclipse.ditto.model.things.AclInvalidException if the Access Control List of {@code thing} does not
-     * contain at least one authorization subject which has the permissions {@link org.eclipse.ditto.model.things.Permission#READ},
-     * {@link org.eclipse.ditto.model.things.Permission#WRITE} and {@link org.eclipse.ditto.model.things.Permission#WRITE}.
      */
     public static CreateThing of(final Thing newThing, @Nullable final JsonObject initialPolicy,
             final DittoHeaders dittoHeaders) {
@@ -157,9 +155,6 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
      * @return a Command for creating the provided new Thing.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws ThingIdInvalidException if the {@link Thing}'s ID is not valid.
-     * @throws org.eclipse.ditto.model.things.AclInvalidException if the Access Control List of {@code thing} does not
-     * contain at least one authorization subject which has the permissions {@link org.eclipse.ditto.model.things.Permission#READ},
-     * {@link org.eclipse.ditto.model.things.Permission#WRITE} and {@link org.eclipse.ditto.model.things.Permission#WRITE}.
      */
     public static CreateThing withCopiedPolicy(final Thing newThing, final String policyIdOrPlaceholder,
             final DittoHeaders dittoHeaders) {
@@ -181,9 +176,6 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
      * @return a Command for creating the provided new Thing.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws ThingIdInvalidException if the {@link Thing}'s ID is not valid.
-     * @throws org.eclipse.ditto.model.things.AclInvalidException if the Access Control List of {@code thing} does not
-     * contain at least one authorization subject which has the permissions {@link org.eclipse.ditto.model.things.Permission#READ},
-     * {@link org.eclipse.ditto.model.things.Permission#WRITE} and {@link org.eclipse.ditto.model.things.Permission#WRITE}.
      */
     public static CreateThing of(final Thing newThing, @Nullable final JsonObject initialPolicy,
             @Nullable final String policyIdOrPlaceholder, final DittoHeaders dittoHeaders) {
@@ -258,7 +250,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
     public Optional<String> getPolicyIdOrPlaceholder() { return Optional.ofNullable(policyIdOrPlaceholder);}
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thing.getEntityId().orElseThrow(() -> new NullPointerException("Thing has no ID!"));
     }
 

@@ -26,8 +26,8 @@ The supported HTTP `<http_verb>` values are:
 * PUT
 * PATCH
 
-The specified `<http_path>` contains the path - including optionally potential query parameters - to be appended to the configured
-`uri` of the connection.
+The specified `<http_path>` contains the path - including optionally potential query parameters - to be appended to the 
+configured `uri` of the connection.
 
 The body of the HTTP request is either the outgoing [Ditto Protocol](protocol-specification.html) message (e.g. an event)
 or - if a [payload mapping](connectivity-mapping.html) was specified in the connection - a transformed body.

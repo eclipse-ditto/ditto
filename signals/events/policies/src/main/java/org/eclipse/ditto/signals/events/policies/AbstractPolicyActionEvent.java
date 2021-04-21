@@ -21,6 +21,7 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PolicyId;
@@ -44,11 +45,17 @@ abstract class AbstractPolicyActionEvent<T extends AbstractPolicyActionEvent<T>>
      * @param revision the revision of the Policy.
      * @param timestamp the timestamp of the event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @param metadata the metadata to apply for the event.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
-    protected AbstractPolicyActionEvent(final String type, final PolicyId policyId, final long revision,
-            @Nullable final Instant timestamp, final DittoHeaders dittoHeaders) {
-        super(type, policyId, revision, timestamp, dittoHeaders);
+    protected AbstractPolicyActionEvent(final String type,
+            final PolicyId policyId,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
+
+        super(type, policyId, revision, timestamp, dittoHeaders, metadata);
     }
 
     /**
@@ -80,7 +87,7 @@ abstract class AbstractPolicyActionEvent<T extends AbstractPolicyActionEvent<T>>
             }
         }
         return SubjectsModifiedPartially.of(getPolicyEntityId(), modifiedSubjects, getRevision(),
-                getTimestamp().orElse(null), getDittoHeaders());
+                getTimestamp().orElse(null), getDittoHeaders(), getMetadata().orElse(null));
     }
 
     /**
@@ -113,7 +120,7 @@ abstract class AbstractPolicyActionEvent<T extends AbstractPolicyActionEvent<T>>
             }
         }
         return SubjectsDeletedPartially.of(getPolicyEntityId(), deletedSubjectIds, getRevision(),
-                getTimestamp().orElse(null), getDittoHeaders());
+                getTimestamp().orElse(null), getDittoHeaders(), getMetadata().orElse(null));
     }
 
     private static <T> LinkedHashSet<T> append(@Nullable final Collection<T> existingItems, final T newItem) {

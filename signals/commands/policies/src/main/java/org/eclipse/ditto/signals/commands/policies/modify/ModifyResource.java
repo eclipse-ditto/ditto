@@ -32,18 +32,19 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.ResourceKey;
-import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 
 /**
  * This command modifies a {@link Resource} of a {@link org.eclipse.ditto.model.policies.PolicyEntry}'s {@link
  * org.eclipse.ditto.model.policies.Resources}.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = ModifyResource.TYPE_PREFIX, name = ModifyResource.NAME)
+@JsonParsableCommand(typePrefix = PolicyCommand.TYPE_PREFIX, name = ModifyResource.NAME)
 public final class ModifyResource extends AbstractCommand<ModifyResource>
         implements PolicyModifyCommand<ModifyResource> {
 
@@ -78,28 +79,6 @@ public final class ModifyResource extends AbstractCommand<ModifyResource>
         this.policyId = policyId;
         this.label = label;
         this.resource = resource;
-    }
-
-    /**
-     * Creates a command for modifying {@code Resource} of a {@code Policy}'s {@code PolicyEntry}.
-     *
-     * @param policyId the identifier of the Policy.
-     * @param label the Label of the PolicyEntry.
-     * @param resource the Resource to modify.
-     * @param dittoHeaders the headers of the command.
-     * @return the command.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.Resource, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifyResource of(final String policyId,
-            final Label label,
-            final Resource resource,
-            final DittoHeaders dittoHeaders) {
-
-        return of(PolicyId.of(policyId), label, resource, dittoHeaders);
     }
 
     /**
@@ -150,7 +129,7 @@ public final class ModifyResource extends AbstractCommand<ModifyResource>
      */
     public static ModifyResource fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifyResource>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyCommand.JsonFields.JSON_POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
             final String resourceKey = jsonObject.getValueOrThrow(JSON_RESOURCE_KEY);
@@ -192,7 +171,7 @@ public final class ModifyResource extends AbstractCommand<ModifyResource>
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(resource.toJson(schemaVersion, FieldType.regularOrSpecial()));
+        return Optional.of(resource.toJson(schemaVersion, FieldType.regularOrSpecial()));
     }
 
     @Override
@@ -205,7 +184,7 @@ public final class ModifyResource extends AbstractCommand<ModifyResource>
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
+        jsonObjectBuilder.set(PolicyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
         jsonObjectBuilder.set(JSON_RESOURCE_KEY, resource.getFullQualifiedPath(), predicate);
         jsonObjectBuilder.set(JSON_RESOURCE, resource.toJson(schemaVersion, thePredicate), predicate);

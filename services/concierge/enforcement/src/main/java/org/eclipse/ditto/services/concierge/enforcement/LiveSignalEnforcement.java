@@ -24,7 +24,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.model.enforcers.AclEnforcer;
 import org.eclipse.ditto.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.messages.MessageFormatInvalidException;
@@ -35,13 +34,14 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.UnknownCommandException;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.utils.cache.Cache;
-import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
+import org.eclipse.ditto.services.utils.cache.CacheKey;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.services.utils.pubsub.LiveSignalPub;
 import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
@@ -58,7 +58,7 @@ import akka.japi.Pair;
 /**
  * Enforces live commands (including message commands) and live events.
  */
-public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> {
+public final class LiveSignalEnforcement extends AbstractEnforcement<SignalWithEntityId<?>> {
 
     private static final AckExtractor<ThingCommand<?>> THING_COMMAND_ACK_EXTRACTOR =
             AckExtractor.of(ThingCommand::getEntityId, ThingCommand::getDittoHeaders);
@@ -70,29 +70,25 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
     private final EnforcerRetriever<Enforcer> enforcerRetriever;
     private final LiveSignalPub liveSignalPub;
 
-    private LiveSignalEnforcement(final Contextual<Signal<?>> context,
-            final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
-            final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache,
-            final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache,
+    private LiveSignalEnforcement(final Contextual<SignalWithEntityId<?>> context,
+            final Cache<CacheKey, Entry<CacheKey>> thingIdCache,
+            final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache,
             final LiveSignalPub liveSignalPub) {
 
         super(context);
         requireNonNull(thingIdCache);
         requireNonNull(policyEnforcerCache);
-        requireNonNull(aclEnforcerCache);
-        enforcerRetriever =
-                PolicyOrAclEnforcerRetrieverFactory.create(thingIdCache, policyEnforcerCache, aclEnforcerCache);
+        enforcerRetriever = PolicyEnforcerRetrieverFactory.create(thingIdCache, policyEnforcerCache);
         this.liveSignalPub = liveSignalPub;
     }
 
     /**
      * {@link EnforcementProvider} for {@link LiveSignalEnforcement}.
      */
-    public static final class Provider implements EnforcementProvider<Signal<?>> {
+    public static final class Provider implements EnforcementProvider<SignalWithEntityId<?>> {
 
-        private final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache;
-        private final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache;
-        private final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache;
+        private final Cache<CacheKey, Entry<CacheKey>> thingIdCache;
+        private final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache;
         private final LiveSignalPub liveSignalPub;
 
         /**
@@ -100,42 +96,38 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
          *
          * @param thingIdCache the thing-id-cache.
          * @param policyEnforcerCache the policy-enforcer cache.
-         * @param aclEnforcerCache the acl-enforcer cache.
          * @param liveSignalPub distributed-pub access for live signal publication
          */
-        public Provider(final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
-                final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache,
-                final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache,
+        public Provider(final Cache<CacheKey, Entry<CacheKey>> thingIdCache,
+                final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache,
                 final LiveSignalPub liveSignalPub) {
 
             this.thingIdCache = requireNonNull(thingIdCache);
             this.policyEnforcerCache = requireNonNull(policyEnforcerCache);
-            this.aclEnforcerCache = requireNonNull(aclEnforcerCache);
             this.liveSignalPub = liveSignalPub;
         }
 
         @Override
-        @SuppressWarnings({"unchecked", "rawtypes"})
-        public Class<Signal<?>> getCommandClass() {
+        @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
+        public Class<SignalWithEntityId<?>> getCommandClass() {
             return (Class) Signal.class;
         }
 
         @Override
-        public boolean isApplicable(final Signal<?> signal) {
+        public boolean isApplicable(final SignalWithEntityId<?> signal) {
             return LiveSignalEnforcement.isLiveSignal(signal);
         }
 
         @Override
-        public AbstractEnforcement<Signal<?>> createEnforcement(final Contextual<Signal<?>> context) {
-            return new LiveSignalEnforcement(context, thingIdCache, policyEnforcerCache, aclEnforcerCache,
-                    liveSignalPub);
+        public AbstractEnforcement<SignalWithEntityId<?>> createEnforcement(final Contextual<SignalWithEntityId<?>> context) {
+            return new LiveSignalEnforcement(context, thingIdCache, policyEnforcerCache, liveSignalPub);
         }
 
     }
 
     @Override
-    public CompletionStage<Contextual<WithDittoHeaders<?>>> enforce() {
-        final Signal<?> liveSignal = signal();
+    public CompletionStage<Contextual<WithDittoHeaders>> enforce() {
+        final SignalWithEntityId<?> liveSignal = signal();
         return enforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             try {
                 return doEnforce(liveSignal, enforcerEntry);
@@ -145,7 +137,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
         });
     }
 
-    private CompletionStage<Contextual<WithDittoHeaders<?>>> doEnforce(final Signal<?> liveSignal,
+    private CompletionStage<Contextual<WithDittoHeaders>> doEnforce(final SignalWithEntityId<?> liveSignal,
             final Entry<Enforcer> enforcerEntry) {
 
         final Optional<String> correlationIdOpt = liveSignal.getDittoHeaders().getCorrelationId();
@@ -181,7 +173,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
         }
     }
 
-    private CompletionStage<Contextual<WithDittoHeaders<?>>> enforceLiveCommandResponse(final Signal<?> liveSignal,
+    private CompletionStage<Contextual<WithDittoHeaders>> enforceLiveCommandResponse(final Signal<?> liveSignal,
             final String correlationId) {
 
         final Optional<Cache<String, ActorRef>> responseReceiversOptional = context.getResponseReceivers();
@@ -215,7 +207,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
         }
     }
 
-    private CompletionStage<Contextual<WithDittoHeaders<?>>> enforceLiveSignal(final StreamingType streamingType,
+    private CompletionStage<Contextual<WithDittoHeaders>> enforceLiveSignal(final StreamingType streamingType,
             final Signal<?> liveSignal, final Enforcer enforcer) {
 
         switch (streamingType) {
@@ -224,11 +216,8 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
             case LIVE_EVENTS:
                 return enforceLiveEvent(liveSignal, enforcer);
             case LIVE_COMMANDS:
-                if (enforcer instanceof AclEnforcer) {
-                    ThingCommandEnforcement.authorizeByAclOrThrow(enforcer, (ThingCommand<?>) liveSignal);
-                } else {
-                    ThingCommandEnforcement.authorizeByPolicyOrThrow(enforcer, (ThingCommand<?>) liveSignal);
-                }
+
+                ThingCommandEnforcement.authorizeByPolicyOrThrow(enforcer, (ThingCommand<?>) liveSignal);
                 final ThingCommand<?> withReadSubjects =
                         addEffectedReadSubjectsToThingSignal((ThingCommand<?>) liveSignal, enforcer);
                 log(withReadSubjects).info("Live Command was authorized: <{}>", withReadSubjects);
@@ -242,7 +231,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
         }
     }
 
-    private CompletionStage<Contextual<WithDittoHeaders<?>>> enforceLiveEvent(final Signal<?> liveSignal,
+    private CompletionStage<Contextual<WithDittoHeaders>> enforceLiveEvent(final Signal<?> liveSignal,
             final Enforcer enforcer) {
 
         // enforce Live Events
@@ -259,7 +248,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
             return publishLiveSignal(withReadSubjects, THING_EVENT_ACK_EXTRACTOR, liveSignalPub.event());
         } else {
             log(liveSignal).info("Live Event was NOT authorized: <{}>", liveSignal);
-            throw EventSendNotAllowedException.newBuilder(((ThingEvent<?>) liveSignal).getThingEntityId())
+            throw EventSendNotAllowedException.newBuilder(((ThingEvent<?>) liveSignal).getEntityId())
                     .dittoHeaders(liveSignal.getDittoHeaders())
                     .build();
         }
@@ -275,7 +264,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
         return StreamingType.isLiveSignal(signal);
     }
 
-    private CompletionStage<Contextual<WithDittoHeaders<?>>> enforceMessageCommand(final MessageCommand<?, ?> command,
+    private CompletionStage<Contextual<WithDittoHeaders>> enforceMessageCommand(final MessageCommand<?, ?> command,
             final Enforcer enforcer) {
 
         if (isAuthorized(command, enforcer)) {
@@ -285,7 +274,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
         }
     }
 
-    private CompletionStage<Contextual<WithDittoHeaders<?>>> publishMessageCommand(final MessageCommand<?, ?> command,
+    private CompletionStage<Contextual<WithDittoHeaders>> publishMessageCommand(final MessageCommand<?, ?> command,
             final Enforcer enforcer) {
 
         final ResourceKey resourceKey =
@@ -302,7 +291,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
 
     private MessageSendNotAllowedException rejectMessageCommand(final MessageCommand<?, ?> command) {
         final MessageSendNotAllowedException error =
-                MessageSendNotAllowedException.newBuilder(command.getThingEntityId())
+                MessageSendNotAllowedException.newBuilder(command.getEntityId())
                         .dittoHeaders(command.getDittoHeaders())
                         .build();
 
@@ -314,7 +303,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
     }
 
     @SuppressWarnings("unchecked")
-    private <T extends Signal<?>, S extends T> CompletionStage<Contextual<WithDittoHeaders<?>>> publishLiveSignal(
+    private <T extends Signal<?>, S extends T> CompletionStage<Contextual<WithDittoHeaders>> publishLiveSignal(
             final S signal,
             final AckExtractor<S> ackExtractor,
             final DistributedPub<T> pub) {

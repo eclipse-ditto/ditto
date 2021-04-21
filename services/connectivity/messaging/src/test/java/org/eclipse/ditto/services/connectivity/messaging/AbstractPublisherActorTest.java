@@ -12,16 +12,15 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
@@ -42,9 +41,7 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestName;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -59,9 +56,6 @@ public abstract class AbstractPublisherActorTest {
 
     protected static final Config CONFIG = ConfigFactory.load("test");
     protected ActorSystem actorSystem;
-
-    @Rule
-    public TestName name = new TestName();
 
     @Before
     public void setUp() {
@@ -78,7 +72,6 @@ public abstract class AbstractPublisherActorTest {
 
     @Test
     public void testPublishMessage() throws Exception {
-
         new TestKit(actorSystem) {{
 
             final TestProbe probe = new TestProbe(actorSystem);
@@ -100,7 +93,6 @@ public abstract class AbstractPublisherActorTest {
 
     @Test
     public void testAutoAck() throws Exception {
-
         new TestKit(actorSystem) {{
 
             final TestProbe probe = new TestProbe(actorSystem);
@@ -125,7 +117,6 @@ public abstract class AbstractPublisherActorTest {
 
     @Test
     public void testPublishResponseToReplyTarget() throws Exception {
-
         new TestKit(actorSystem) {{
 
             final TestProbe probe = new TestProbe(actorSystem);
@@ -194,7 +185,8 @@ public abstract class AbstractPublisherActorTest {
         }
         final DittoHeaders dittoHeaders = headersBuilder.build();
 
-        final Signal<?> source = ThingDeleted.of(TestConstants.Things.THING_ID, 99L, dittoHeaders);
+        final Signal<?> source = ThingDeleted.of(TestConstants.Things.THING_ID, 99L, Instant.now(), dittoHeaders,
+                null);
         final OutboundSignal outboundSignal =
                 OutboundSignalFactory.newOutboundSignal(source, Collections.singletonList(target));
         final ExternalMessage externalMessage =
@@ -212,7 +204,7 @@ public abstract class AbstractPublisherActorTest {
         final DittoHeaders internalHeaders = externalHeaders.toBuilder()
                 .replyTarget(0)
                 .build();
-        final ThingCommandResponse source = DeleteThingResponse.of(ThingId.of("thing", "id"), internalHeaders);
+        final ThingCommandResponse<?> source = DeleteThingResponse.of(ThingId.of("thing", "id"), internalHeaders);
         final ExternalMessage externalMessage =
                 ExternalMessageFactory.newExternalMessageBuilder(externalHeaders)
                         .withAdditionalHeaders(DittoHeaderDefinition.CORRELATION_ID.getKey(),

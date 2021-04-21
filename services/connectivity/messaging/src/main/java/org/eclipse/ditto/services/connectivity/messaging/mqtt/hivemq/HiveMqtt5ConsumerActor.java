@@ -27,10 +27,11 @@ import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.EnforcementFilter;
 import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
 import org.eclipse.ditto.model.connectivity.Source;
-import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.services.models.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttSpecificConfig;
 import org.eclipse.ditto.services.models.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.signals.base.Signal;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5PayloadFormatIndicator;
@@ -48,7 +49,7 @@ import akka.http.javadsl.model.ContentTypes;
 public final class HiveMqtt5ConsumerActor extends AbstractMqttConsumerActor<Mqtt5Publish> {
 
     static final String NAME = "HiveMqtt5ConsumerActor";
-    @Nullable private final EnforcementFilterFactory<Map<String, String>, CharSequence> headerEnforcementFilterFactory;
+    @Nullable private final EnforcementFilterFactory<Map<String, String>, Signal<?>> headerEnforcementFilterFactory;
 
     @SuppressWarnings("unused")
     private HiveMqtt5ConsumerActor(final Connection connection, final ActorRef inboundMessageProcessor,
@@ -143,7 +144,7 @@ public final class HiveMqtt5ConsumerActor extends AbstractMqttConsumerActor<Mqtt
 
     @Override
     @Nullable
-    EnforcementFilter<CharSequence> getEnforcementFilter(final Map<String, String> headers, final String topic) {
+    EnforcementFilter<Signal<?>> getEnforcementFilter(final Map<String, String> headers, final String topic) {
         if (headerEnforcementFilterFactory != null) {
             return headerEnforcementFilterFactory.getFilter(headers);
         } else if (topicEnforcementFilterFactory != null) {

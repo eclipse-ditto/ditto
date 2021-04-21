@@ -184,7 +184,7 @@ final class ImmutableJsonObjectBuilder implements JsonObjectBuilder {
     }
 
     @Override
-    public ImmutableJsonObjectBuilder remove(final JsonFieldDefinition fieldDefinition) {
+    public ImmutableJsonObjectBuilder remove(final JsonFieldDefinition<?> fieldDefinition) {
         requireNonNull(fieldDefinition, "The field definition must not be null!");
         return remove(fieldDefinition.getPointer());
     }

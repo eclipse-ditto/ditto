@@ -95,8 +95,8 @@ public final class DeleteFeatureDesiredPropertyStrategyTest extends AbstractComm
     }
 
     @Test
-    public void deleteFeatureDesiredPropertyFromFeatureWithoutProperties() {
-        final Feature feature = FLUX_CAPACITOR.removeProperties();
+    public void deleteFeatureDesiredPropertyFromFeatureWithoutDesiredProperties() {
+        final Feature feature = FLUX_CAPACITOR.removeDesiredProperties();
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final DeleteFeatureDesiredProperty command =
                 DeleteFeatureDesiredProperty.of(context.getState(), feature.getId(), propertyPointer, DittoHeaders.empty());
@@ -109,7 +109,7 @@ public final class DeleteFeatureDesiredPropertyStrategyTest extends AbstractComm
 
     @Test
     public void deleteFeatureDesiredPropertyFromFeatureWithoutThatProperty() {
-        final Feature feature = FLUX_CAPACITOR.removeProperty(propertyPointer);
+        final Feature feature = FLUX_CAPACITOR.removeDesiredProperty(propertyPointer);
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final DeleteFeatureDesiredProperty command =
                 DeleteFeatureDesiredProperty.of(context.getState(), feature.getId(), propertyPointer, DittoHeaders.empty());

@@ -90,9 +90,10 @@ public final class StatisticsActor extends AbstractActorWithStashWithTimers {
     private final ActorRef pubSubMediator;
     private final ClusterSharding clusterSharding;
     private final ClusterStatusSupplier clusterStatusSupplier;
-    private List<NamedShardGauge> gauges;
-    private Statistics currentStatistics;
-    private StatisticsDetails currentStatisticsDetails;
+    private final List<NamedShardGauge> gauges;
+
+    @Nullable private Statistics currentStatistics;
+    @Nullable private StatisticsDetails currentStatisticsDetails;
 
     @SuppressWarnings("unused")
     private StatisticsActor(final ActorRef pubSubMediator) {
@@ -261,7 +262,7 @@ public final class StatisticsActor extends AbstractActorWithStashWithTimers {
                                 shardStatistics.get().count = regions.isEmpty() ? 0 : regions.values().stream()
                                         .mapToInt(shardRegionStats -> shardRegionStats.getStats().isEmpty() ? 0 :
                                                 shardRegionStats.getStats().values().stream()
-                                                        .mapToInt(o -> (Integer) o)
+                                                        .mapToInt(Integer.class::cast)
                                                         .sum())
                                         .sum();
                             } else {
@@ -458,8 +459,7 @@ public final class StatisticsActor extends AbstractActorWithStashWithTimers {
                     shardRegions.isEmpty() ? statisticsJson.stream() :
                             shardRegions.stream().flatMap(shardRegion ->
                                     statisticsJson.getField(StatisticsDetails.toNamespacesHotness(shardRegion))
-                                            .map(Stream::of)
-                                            .orElseGet(Stream::empty)
+                                            .stream()
                             );
             final JsonObject filteredStatisticsJson =
                     relevantJsonFields.filter(field -> field.getValue().isObject())

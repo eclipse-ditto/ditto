@@ -17,7 +17,6 @@ import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITO
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_DEFINITION;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_ID;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES;
-import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_V2;
 import static org.eclipse.ditto.model.things.assertions.DittoThingsAssertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -53,7 +52,7 @@ public final class ImmutableFeaturesTest {
     @Before
     public void setUp() {
         underTest = ImmutableFeatures.of(FLUX_CAPACITOR);
-        underTest_v2 = ImmutableFeatures.of(FLUX_CAPACITOR_V2);
+        underTest_v2 = ImmutableFeatures.of(FLUX_CAPACITOR);
     }
 
     @Test

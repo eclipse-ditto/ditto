@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
-import java.util.Optional;
-
 /**
  * Super type of targets and reply-targets that provides enough information to send 1 message.
  *
@@ -33,6 +31,6 @@ public interface GenericTarget {
      *
      * @return the optional header mapping
      */
-    Optional<HeaderMapping> getHeaderMapping();
+    HeaderMapping getHeaderMapping();
 
 }

@@ -57,10 +57,10 @@ public final class DittoMessageMapper extends AbstractMessageMapper {
     /**
      * The context representing this mapper
      */
-    public static final MappingContext CONTEXT = ConnectivityModelFactory.newMappingContext(
+    public static final MappingContext CONTEXT = ConnectivityModelFactory.newMappingContextBuilder(
             DittoMessageMapper.class.getCanonicalName(),
             DEFAULT_OPTIONS
-    );
+    ).build();
 
     @Override
     public List<Adaptable> map(final ExternalMessage message) {

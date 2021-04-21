@@ -12,37 +12,26 @@
  */
 package org.eclipse.ditto.services.things.persistence.serializer;
 
-import static org.eclipse.ditto.model.base.assertions.DittoBaseAssertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.TestConstants;
-import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJson;
-import org.eclipse.ditto.signals.events.things.AclEntryCreated;
-import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
-import org.eclipse.ditto.signals.events.things.AclEntryModified;
-import org.eclipse.ditto.signals.events.things.AclModified;
-import org.eclipse.ditto.signals.events.things.AttributeCreated;
-import org.eclipse.ditto.signals.events.things.AttributeDeleted;
-import org.eclipse.ditto.signals.events.things.AttributeModified;
-import org.eclipse.ditto.signals.events.things.AttributesCreated;
-import org.eclipse.ditto.signals.events.things.AttributesDeleted;
-import org.eclipse.ditto.signals.events.things.AttributesModified;
-import org.eclipse.ditto.signals.events.things.FeatureCreated;
-import org.eclipse.ditto.signals.events.things.FeatureModified;
-import org.eclipse.ditto.signals.events.things.FeaturePropertiesCreated;
-import org.eclipse.ditto.signals.events.things.FeaturePropertiesModified;
-import org.eclipse.ditto.signals.events.things.FeaturePropertyCreated;
-import org.eclipse.ditto.signals.events.things.FeaturePropertyDeleted;
-import org.eclipse.ditto.signals.events.things.FeaturePropertyModified;
-import org.eclipse.ditto.signals.events.things.FeaturesCreated;
-import org.eclipse.ditto.signals.events.things.FeaturesModified;
+import java.time.Instant;
+import java.util.List;
+
+import org.bson.BsonDocument;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.things.Attributes;
+import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingLifecycle;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
 import org.eclipse.ditto.signals.events.things.ThingCreated;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.junit.Test;
+
+import akka.persistence.journal.EventSeq;
+import scala.jdk.javaapi.CollectionConverters;
 
 /**
  * Tests for {@link ThingMongoEventAdapter}.
@@ -56,570 +45,105 @@ public final class ThingMongoEventAdapterTest {
     }
 
     @Test
-    public void deserializeThingCreatedV1() {
-        final JsonObject eventJson = JsonFactory.newObjectBuilder()
-                .set("event", ThingCreated.NAME)
-                .set("__schemaVersion", 1)
-                .set("/payload/thingId", TestConstants.Thing.THING_ID.toString())
-                .set("/payload/thing", TestConstants.Thing.THING_V1.toJson(JsonSchemaVersion.V_1))
-                .build();
-
-        final Object object = toDbObject(eventJson);
-        final Object actual = underTest.fromJournal(object, null).events().head();
-
-        assertThat(actual).isInstanceOf(ThingEvent.class);
-        final ThingEvent event = (ThingEvent) actual;
-        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(event.getName()).isEqualTo(ThingCreated.NAME);
-        assertThat(event.getType()).isEqualTo(ThingCreated.TYPE);
-        assertThat(event).isInstanceOf(ThingCreated.class);
-        final ThingCreated thingCreated = (ThingCreated) event;
-        assertThat(thingCreated.getThing().toJsonString()).isEqualTo(TestConstants.Thing.THING_V1.toJsonString());
-        assertThat((CharSequence) thingCreated.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
+    public void extractsTypeOfEventAsManifest() {
+        final ThingDeleted event = ThingDeleted.of(ThingId.generateRandom(), 1L, null, DittoHeaders.empty(), null);
+        assertThat(underTest.manifest(event)).isEqualTo(event.getType());
     }
 
     @Test
-    public void deserializeAttributeCreatedV1() {
-        final String attributePointer = "test1";
-        final JsonValue attributeValue = JsonValue.of(1234);
-
-        final JsonObject eventJson = JsonFactory.newObjectBuilder()
-                .set("event", "thingAttributeModified")
-                .set("__schemaVersion", 1)
-                .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID.toString())
-                        .set("attributeJsonPointer", attributePointer)
-                        .set("attributeValue", attributeValue)
-                        .set("created", true)
-                        .build())
-                .build();
-
-        final Object object = toDbObject(eventJson);
-        final Object actual = underTest.fromJournal(object, null).events().head();
-
-        assertThat(actual).isInstanceOf(ThingEvent.class);
-        final ThingEvent event = (ThingEvent) actual;
-        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(event.getName()).isEqualTo(AttributeCreated.NAME);
-        assertThat(event.getType()).isEqualTo(AttributeCreated.TYPE);
-        assertThat(event).isInstanceOf(AttributeCreated.class);
-        final AttributeCreated attributeCreated = (AttributeCreated) event;
-        assertThat((CharSequence) attributeCreated.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(attributeCreated.getAttributePointer()).isEqualTo(JsonPointer.of(attributePointer));
-        assertThat(attributeCreated.getAttributeValue()).isEqualTo(attributeValue);
+    public void manifestThrowsIllegalArgumentExceptionForNonEvents() {
+        final DeleteThing nonEvent = DeleteThing.of(ThingId.generateRandom(), DittoHeaders.empty());
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> underTest.manifest(nonEvent));
     }
 
     @Test
-    public void deserializeAttributeModifiedV1() {
-        final String attributePointer = "test1";
-        final JsonValue attributeValue = JsonValue.of(1234);
-
-        final JsonObject eventJson = JsonFactory.newObjectBuilder()
-                .set("event", "thingAttributeModified")
-                .set("__schemaVersion", 1)
-                .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID.toString())
-                        .set("attributeJsonPointer", attributePointer)
-                        .set("attributeValue", attributeValue)
-                        .set("created", false)
-                        .build())
-                .build();
-
-        final Object object = toDbObject(eventJson);
-        final Object actual = underTest.fromJournal(object, null).events().head();
-
-        assertThat(actual).isInstanceOf(ThingEvent.class);
-        final ThingEvent event = (ThingEvent) actual;
-        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(event.getName()).isEqualTo(AttributeModified.NAME);
-        assertThat(event.getType()).isEqualTo(AttributeModified.TYPE);
-        assertThat(event).isInstanceOf(AttributeModified.class);
-        final AttributeModified attributeModified = (AttributeModified) event;
-        assertThat((CharSequence) attributeModified.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(attributeModified.getAttributePointer()).isEqualTo(JsonPointer.of(attributePointer));
-        assertThat(attributeModified.getAttributeValue()).isEqualTo(attributeValue);
+    public void toJournalThrowsIllegalArgumentExceptionForNonEvents() {
+        final DeleteThing nonEvent = DeleteThing.of(ThingId.generateRandom(), DittoHeaders.empty());
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> underTest.toJournal(nonEvent));
     }
 
     @Test
-    public void deserializeAttributeDeletedV1() {
-        final String attributePointer = "test1";
-
-        final JsonObject eventJson = JsonFactory.newObjectBuilder()
-                .set("event", "thingAttributeDeleted")
-                .set("__schemaVersion", 1)
-                .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID.toString())
-                        .set("attributeJsonPointer", attributePointer)
-                        .build())
+    public void toJournalReturnsBsonDocument() {
+        final Thing thing = Thing.newBuilder()
+                .setId(ThingId.of("pap.th.tMJyAjktUVP:YlmZXbTQ"))
+                .setModified(Instant.parse("2021-02-24T14:17:37.581679843Z"))
+                .setCreated(Instant.parse("2021-02-24T14:17:37.581679843Z"))
+                .setLifecycle(ThingLifecycle.ACTIVE)
+                .setRevision(1)
+                .setPolicyId(PolicyId.of("pap.th.tMJyAjktUVP:YlmZXbTQ"))
+                .setAttributes(Attributes.newBuilder().set("hello", "cloud").build())
                 .build();
+        final ThingCreated thingCreated =
+                ThingCreated.of(thing, 0, Instant.parse("2021-02-24T14:17:37.581679843Z"), DittoHeaders.empty(), null);
 
-        final Object object = toDbObject(eventJson);
-        final Object actual = underTest.fromJournal(object, null).events().head();
+        final String journalEntry = "{\n" +
+                "                \"type\" : \"things.events:thingCreated\",\n" +
+                "                \"_timestamp\" : \"2021-02-24T14:17:37.581679843Z\",\n" +
+                "                \"_metadata\" : null,\n" +
+                "                \"thingId\" : \"pap.th.tMJyAjktUVP:YlmZXbTQ\",\n" +
+                "                \"thing\" : {\n" +
+                "                    \"__schemaVersion\" : 2,\n" +
+                "                    \"__lifecycle\" : \"ACTIVE\",\n" +
+                "                    \"_revision\" : 1,\n" +
+                "                    \"_modified\" : \"2021-02-24T14:17:37.581679843Z\",\n" +
+                "                    \"_created\" : \"2021-02-24T14:17:37.581679843Z\",\n" +
+                "                    \"_namespace\" : \"pap.th.tMJyAjktUVP\",\n" +
+                "                    \"thingId\" : \"pap.th.tMJyAjktUVP:YlmZXbTQ\",\n" +
+                "                    \"policyId\" : \"pap.th.tMJyAjktUVP:YlmZXbTQ\",\n" +
+                "                    \"attributes\" : {\n" +
+                "                        \"hello\" : \"cloud\"\n" +
+                "                    }\n" +
+                "                }\n" +
+                "            }";
+        final BsonDocument bsonEvent = BsonDocument.parse(journalEntry);
 
-        assertThat(actual).isInstanceOf(ThingEvent.class);
-        final ThingEvent event = (ThingEvent) actual;
-        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(event.getName()).isEqualTo(AttributeDeleted.NAME);
-        assertThat(event.getType()).isEqualTo(AttributeDeleted.TYPE);
-        assertThat(event).isInstanceOf(AttributeDeleted.class);
-        final AttributeDeleted attributeDeleted = (AttributeDeleted) event;
-        assertThat((CharSequence) attributeDeleted.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(attributeDeleted.getAttributePointer()).isEqualTo(JsonPointer.of(attributePointer));
+        assertThat(underTest.toJournal(thingCreated)).isEqualTo(bsonEvent);
     }
 
     @Test
-    public void deserializeAttributesDeletedV1() {
-        final JsonObject eventJson = JsonFactory.newObjectBuilder()
-                .set("event", "thingAttributesDeleted")
-                .set("__schemaVersion", 1)
-                .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID.toString())
-                        .build())
-                .build();
-
-        final Object object = toDbObject(eventJson);
-        final Object actual = underTest.fromJournal(object, null).events().head();
-
-        assertThat(actual).isInstanceOf(ThingEvent.class);
-        final ThingEvent event = (ThingEvent) actual;
-        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(event.getName()).isEqualTo(AttributesDeleted.NAME);
-        assertThat(event.getType()).isEqualTo(AttributesDeleted.TYPE);
-        assertThat(event).isInstanceOf(AttributesDeleted.class);
-        final AttributesDeleted attributesDeleted = (AttributesDeleted) event;
-        assertThat((CharSequence) attributesDeleted.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
+    public void fromJournalThrowsIllegalArgumentExceptionForNonBsonValues() {
+        final DeleteThing nonEvent = DeleteThing.of(ThingId.generateRandom(), DittoHeaders.empty());
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> underTest.fromJournal(nonEvent, DeleteThing.TYPE));
     }
 
     @Test
-    public void deserializeAttributesCreatedV1() {
-        final JsonObject eventJson = JsonFactory.newObjectBuilder()
-                .set("event", "thingAttributesModified")
-                .set("__schemaVersion", 1)
-                .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID.toString())
-                        .set("attributes", TestConstants.Thing.ATTRIBUTES.toJson(JsonSchemaVersion.V_1))
-                        .set("created", true)
-                        .build())
+    public void fromJournalReturnsEvent() {
+        final String journalEntry = "{\n" +
+                "                \"type\" : \"things.events:thingCreated\",\n" +
+                "                \"_timestamp\" : \"2021-02-24T14:17:37.581679843Z\",\n" +
+                "                \"_metadata\" : null,\n" +
+                "                \"thingId\" : \"pap.th.tMJyAjktUVP:YlmZXbTQ\",\n" +
+                "                \"thing\" : {\n" +
+                "                    \"__schemaVersion\" : 2,\n" +
+                "                    \"__lifecycle\" : \"ACTIVE\",\n" +
+                "                    \"_revision\" : 1,\n" +
+                "                    \"_modified\" : \"2021-02-24T14:17:37.581679843Z\",\n" +
+                "                    \"_created\" : \"2021-02-24T14:17:37.581679843Z\",\n" +
+                "                    \"_namespace\" : \"pap.th.tMJyAjktUVP\",\n" +
+                "                    \"thingId\" : \"pap.th.tMJyAjktUVP:YlmZXbTQ\",\n" +
+                "                    \"policyId\" : \"pap.th.tMJyAjktUVP:YlmZXbTQ\",\n" +
+                "                    \"attributes\" : {\n" +
+                "                        \"hello\" : \"cloud\"\n" +
+                "                    }\n" +
+                "                }\n" +
+                "            }";
+        final BsonDocument bsonEvent = BsonDocument.parse(journalEntry);
+
+        final Thing thing = Thing.newBuilder()
+                .setId(ThingId.of("pap.th.tMJyAjktUVP:YlmZXbTQ"))
+                .setModified(Instant.parse("2021-02-24T14:17:37.581679843Z"))
+                .setCreated(Instant.parse("2021-02-24T14:17:37.581679843Z"))
+                .setLifecycle(ThingLifecycle.ACTIVE)
+                .setRevision(1)
+                .setPolicyId(PolicyId.of("pap.th.tMJyAjktUVP:YlmZXbTQ"))
+                .setAttributes(Attributes.newBuilder().set("hello", "cloud").build())
                 .build();
-
-        final Object object = toDbObject(eventJson);
-        final Object actual = underTest.fromJournal(object, null).events().head();
-
-        assertThat(actual).isInstanceOf(ThingEvent.class);
-        final ThingEvent event = (ThingEvent) actual;
-        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(event.getName()).isEqualTo(AttributesCreated.NAME);
-        assertThat(event.getType()).isEqualTo(AttributesCreated.TYPE);
-        assertThat(event).isInstanceOf(AttributesCreated.class);
-        final AttributesCreated attributesCreated = (AttributesCreated) event;
-        assertThat((CharSequence) attributesCreated.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(attributesCreated.getCreatedAttributes().toJsonString())
-                .isEqualTo(TestConstants.Thing.ATTRIBUTES.toJsonString());
-    }
-
-    @Test
-    public void deserializeAttributesModifiedV1() {
-        final JsonObject eventJson = JsonFactory.newObjectBuilder()
-                .set("event", "thingAttributesModified")
-                .set("__schemaVersion", 1)
-                .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID.toString())
-                        .set("attributes", TestConstants.Thing.ATTRIBUTES.toJson(JsonSchemaVersion.V_1))
-                        .set("created", false)
-                        .build())
-                .build();
-
-        final Object object = toDbObject(eventJson);
-        final Object actual = underTest.fromJournal(object, null).events().head();
-
-        assertThat(actual).isInstanceOf(ThingEvent.class);
-        final ThingEvent event = (ThingEvent) actual;
-        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(event.getName()).isEqualTo(AttributesModified.NAME);
-        assertThat(event.getType()).isEqualTo(AttributesModified.TYPE);
-        assertThat(event).isInstanceOf(AttributesModified.class);
-        final AttributesModified attributesModified = (AttributesModified) event;
-        assertThat((CharSequence) attributesModified.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(attributesModified.getModifiedAttributes().toJsonString())
-                .isEqualTo(TestConstants.Thing.ATTRIBUTES.toJsonString());
-    }
-
-    @Test
-    public void deserializeAclModifiedV1() {
-        final JsonObject eventJson = JsonFactory.newObjectBuilder()
-                .set("event", "thingAclModified")
-                .set("__schemaVersion", 1)
-                .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID.toString())
-                        .set("acl", TestConstants.Thing.ACL.toJson(JsonSchemaVersion.V_1))
-                        .build())
-                .build();
-
-        final Object object = toDbObject(eventJson);
-        final Object actual = underTest.fromJournal(object, null).events().head();
-
-        assertThat(actual).isInstanceOf(ThingEvent.class);
-        final ThingEvent event = (ThingEvent) actual;
-        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(event.getName()).isEqualTo(AclModified.NAME);
-        assertThat(event.getType()).isEqualTo(AclModified.TYPE);
-        assertThat(event).isInstanceOf(AclModified.class);
-        final AclModified aclModified = (AclModified) event;
-        assertThat((CharSequence) aclModified.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(aclModified.getAccessControlList().toJsonString()).isEqualTo(TestConstants.Thing.ACL.toJsonString());
-    }
-
-    @Test
-    public void deserializeAclEntryDeletedV1() {
-        final JsonObject eventJson = JsonFactory.newObjectBuilder()
-                .set("event", "thingAclEntryDeleted")
-                .set("__schemaVersion", 1)
-                .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID.toString())
-                        .set("authorizationSubject", TestConstants.Authorization.AUTH_SUBJECT_OLDMAN.getId())
-                        .build())
-                .build();
-
-        final Object object = toDbObject(eventJson);
-        final Object actual = underTest.fromJournal(object, null).events().head();
-
-        assertThat(actual).isInstanceOf(ThingEvent.class);
-        final ThingEvent event = (ThingEvent) actual;
-        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(event.getName()).isEqualTo(AclEntryDeleted.NAME);
-        assertThat(event.getType()).isEqualTo(AclEntryDeleted.TYPE);
-        assertThat(event).isInstanceOf(AclEntryDeleted.class);
-        final AclEntryDeleted aclEntryDeleted = (AclEntryDeleted) event;
-        assertThat((CharSequence) aclEntryDeleted.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(aclEntryDeleted.getAuthorizationSubject().getId())
-                .isEqualTo(TestConstants.Authorization.AUTH_SUBJECT_OLDMAN.getId());
-    }
-
-    @Test
-    public void deserializeAclEntryCreatedV1() {
-        final JsonObject eventJson = JsonFactory.newObjectBuilder()
-                .set("event", "thingAclEntryModified")
-                .set("__schemaVersion", 1)
-                .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID.toString())
-                        .set("aclEntry", TestConstants.Authorization.ACL_ENTRY_OLDMAN.toJson(JsonSchemaVersion.V_1))
-                        .set("created", true)
-                        .build())
-                .build();
-
-        final Object object = toDbObject(eventJson);
-        final Object actual = underTest.fromJournal(object, null).events().head();
-
-        assertThat(actual).isInstanceOf(ThingEvent.class);
-        final ThingEvent event = (ThingEvent) actual;
-        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(event.getName()).isEqualTo(AclEntryCreated.NAME);
-        assertThat(event.getType()).isEqualTo(AclEntryCreated.TYPE);
-        assertThat(event).isInstanceOf(AclEntryCreated.class);
-        final AclEntryCreated aclEntryCreated = (AclEntryCreated) event;
-        assertThat((CharSequence) aclEntryCreated.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(aclEntryCreated.getAclEntry().toJsonString())
-                .isEqualTo(TestConstants.Authorization.ACL_ENTRY_OLDMAN.toJsonString());
-    }
-
-    @Test
-    public void deserializeAclEntryModifiedV1() {
-        final JsonObject eventJson = JsonFactory.newObjectBuilder()
-                .set("event", "thingAclEntryModified")
-                .set("__schemaVersion", 1)
-                .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID.toString())
-                        .set("aclEntry", TestConstants.Authorization.ACL_ENTRY_OLDMAN.toJson(JsonSchemaVersion.V_1))
-                        .set("created", false)
-                        .build())
-                .build();
-
-        final Object object = toDbObject(eventJson);
-        final Object actual = underTest.fromJournal(object, null).events().head();
-
-        assertThat(actual).isInstanceOf(ThingEvent.class);
-        final ThingEvent event = (ThingEvent) actual;
-        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(event.getName()).isEqualTo(AclEntryModified.NAME);
-        assertThat(event.getType()).isEqualTo(AclEntryModified.TYPE);
-        assertThat(event).isInstanceOf(AclEntryModified.class);
-        final AclEntryModified aclEntryModified = (AclEntryModified) event;
-        assertThat((CharSequence) aclEntryModified.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(aclEntryModified.getAclEntry().toJsonString())
-                .isEqualTo(TestConstants.Authorization.ACL_ENTRY_OLDMAN.toJsonString());
-    }
-
-    @Test
-    public void deserializeFeatureCreatedV1() {
-        final JsonObject eventJson = JsonFactory.newObjectBuilder()
-                .set("event", FeatureModified.NAME) // use modified with created true to simulate old created events
-                .set("__schemaVersion", 1)
-                .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID.toString())
-                        .set("featureId", TestConstants.Feature.FLUX_CAPACITOR_ID)
-                        .set("feature", TestConstants.Feature.FLUX_CAPACITOR.toJson(JsonSchemaVersion.V_1))
-                        .set("created", true)
-                        .build())
-                .build();
-
-        final Object object = toDbObject(eventJson);
-        final Object actual = underTest.fromJournal(object, null).events().head();
-
-        assertThat(actual).isInstanceOf(ThingEvent.class);
-        final ThingEvent event = (ThingEvent) actual;
-        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(event.getName()).isEqualTo(FeatureCreated.NAME);
-        assertThat(event.getType()).isEqualTo(FeatureCreated.TYPE);
-        assertThat(event).isInstanceOf(FeatureCreated.class);
-        final FeatureCreated featureCreated = (FeatureCreated) event;
-        assertThat((CharSequence) featureCreated.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(featureCreated.getFeature().toJsonString())
-                .isEqualTo(TestConstants.Feature.FLUX_CAPACITOR.toJsonString());
-    }
-
-    @Test
-    public void deserializeFeatureModifiedV1() {
-        final JsonObject eventJson = JsonFactory.newObjectBuilder()
-                .set("event", FeatureModified.NAME)
-                .set("__schemaVersion", 1)
-                .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID.toString())
-                        .set("featureId", TestConstants.Feature.FLUX_CAPACITOR_ID)
-                        .set("feature", TestConstants.Feature.FLUX_CAPACITOR.toJson(JsonSchemaVersion.V_1))
-                        .set("created", false)
-                        .build())
-                .build();
-
-        final Object object = toDbObject(eventJson);
-        final Object actual = underTest.fromJournal(object, null).events().head();
-
-        assertThat(actual).isInstanceOf(ThingEvent.class);
-        final ThingEvent event = (ThingEvent) actual;
-        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(event.getName()).isEqualTo(FeatureModified.NAME);
-        assertThat(event.getType()).isEqualTo(FeatureModified.TYPE);
-        assertThat(event).isInstanceOf(FeatureModified.class);
-        final FeatureModified featureModified = (FeatureModified) event;
-        assertThat((CharSequence) featureModified.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(featureModified.getFeature().toJsonString())
-                .isEqualTo(TestConstants.Feature.FLUX_CAPACITOR.toJsonString());
-    }
-
-    @Test
-    public void deserializeFeaturesCreatedV1() {
-        final JsonObject eventJson = JsonFactory.newObjectBuilder()
-                .set("event", FeaturesModified.NAME) // use modified with created true to simulate old created events
-                .set("__schemaVersion", 1)
-                .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID.toString())
-                        .set("features", TestConstants.Feature.FEATURES.toJson(JsonSchemaVersion.V_1))
-                        .set("created", true)
-                        .build())
-                .build();
-
-        final Object object = toDbObject(eventJson);
-        final Object actual = underTest.fromJournal(object, null).events().head();
-
-        assertThat(actual).isInstanceOf(ThingEvent.class);
-        final ThingEvent event = (ThingEvent) actual;
-        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(event.getName()).isEqualTo(FeaturesCreated.NAME);
-        assertThat(event.getType()).isEqualTo(FeaturesCreated.TYPE);
-        assertThat(event).isInstanceOf(FeaturesCreated.class);
-        final FeaturesCreated featuresCreated = (FeaturesCreated) event;
-        assertThat((CharSequence) featuresCreated.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(featuresCreated.getFeatures().toJsonString()).isEqualTo(
-                TestConstants.Feature.FEATURES.toJsonString());
-    }
-
-    @Test
-    public void deserializeFeaturesModifiedV1() {
-        final JsonObject eventJson = JsonFactory.newObjectBuilder()
-                .set("event", FeaturesModified.NAME)
-                .set("__schemaVersion", 1)
-                .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID.toString())
-                        .set("features", TestConstants.Feature.FEATURES.toJson(JsonSchemaVersion.V_1))
-                        .set("created", false)
-                        .build())
-                .build();
-
-        final Object object = toDbObject(eventJson);
-        final Object actual = underTest.fromJournal(object, null).events().head();
-
-        assertThat(actual).isInstanceOf(ThingEvent.class);
-        final ThingEvent event = (ThingEvent) actual;
-        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(event.getName()).isEqualTo(FeaturesModified.NAME);
-        assertThat(event.getType()).isEqualTo(FeaturesModified.TYPE);
-        assertThat(event).isInstanceOf(FeaturesModified.class);
-        final FeaturesModified featuresModified = (FeaturesModified) event;
-        assertThat((CharSequence) featuresModified.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(featuresModified.getFeatures().toJsonString())
-                .isEqualTo(TestConstants.Feature.FEATURES.toJsonString());
-    }
-
-    @Test
-    public void deserializeFeaturePropertyDeletedV1() {
-        final JsonPointer propertyPointer = JsonPointer.of("test");
-
-        final JsonObject eventJson = JsonFactory.newObjectBuilder()
-                .set("event", FeaturePropertyDeleted.NAME)
-                .set("__schemaVersion", 1)
-                .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID.toString())
-                        .set("featureId", TestConstants.Feature.FLUX_CAPACITOR_ID)
-                        .set("propertyJsonPointer", propertyPointer.toString())
-                        .build())
-                .build();
-
-        final Object object = toDbObject(eventJson);
-        final Object actual = underTest.fromJournal(object, null).events().head();
-
-        assertThat(actual).isInstanceOf(ThingEvent.class);
-        final ThingEvent event = (ThingEvent) actual;
-        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(event.getName()).isEqualTo(FeaturePropertyDeleted.NAME);
-        assertThat(event.getType()).isEqualTo(FeaturePropertyDeleted.TYPE);
-        assertThat(event).isInstanceOf(FeaturePropertyDeleted.class);
-        final FeaturePropertyDeleted featurePropertyDeleted = (FeaturePropertyDeleted) event;
-        assertThat((CharSequence) featurePropertyDeleted.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(featurePropertyDeleted.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
-        assertThat(featurePropertyDeleted.getPropertyPointer()).isEqualTo(propertyPointer);
-    }
-
-    @Test
-    public void deserializeFeaturePropertyCreatedV1() {
-        final JsonPointer propertyPointer = JsonPointer.of("test");
-        final JsonValue propertyValue = JsonValue.of(1234);
-
-        final JsonObject eventJson = JsonFactory.newObjectBuilder()
-                .set("event",
-                        FeaturePropertyModified.NAME) // use modified with created true to simulate old created events
-                .set("__schemaVersion", 1)
-                .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID.toString())
-                        .set("featureId", TestConstants.Feature.FLUX_CAPACITOR_ID)
-                        .set("propertyJsonPointer", propertyPointer.toString())
-                        .set("propertyValue", propertyValue)
-                        .set("created", true)
-                        .build())
-                .build();
-
-        final Object object = toDbObject(eventJson);
-        final Object actual = underTest.fromJournal(object, null).events().head();
-
-        assertThat(actual).isInstanceOf(ThingEvent.class);
-        final ThingEvent event = (ThingEvent) actual;
-        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(event.getName()).isEqualTo(FeaturePropertyCreated.NAME);
-        assertThat(event.getType()).isEqualTo(FeaturePropertyCreated.TYPE);
-        assertThat(event).isInstanceOf(FeaturePropertyCreated.class);
-        final FeaturePropertyCreated featurePropertyCreated = (FeaturePropertyCreated) event;
-        assertThat((CharSequence) featurePropertyCreated.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(featurePropertyCreated.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
-        assertThat(featurePropertyCreated.getPropertyPointer()).isEqualTo(propertyPointer);
-        assertThat(featurePropertyCreated.getPropertyValue()).isEqualTo(propertyValue);
-    }
-
-    @Test
-    public void deserializeFeaturePropertyModifiedV1() {
-        final JsonPointer propertyPointer = JsonPointer.of("test");
-        final JsonValue propertyValue = JsonValue.of(1234);
-
-        final JsonObject eventJson = JsonFactory.newObjectBuilder()
-                .set("event", FeaturePropertyModified.NAME)
-                .set("__schemaVersion", 1)
-                .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID.toString())
-                        .set("featureId", TestConstants.Feature.FLUX_CAPACITOR_ID)
-                        .set("propertyJsonPointer", propertyPointer.toString())
-                        .set("propertyValue", propertyValue)
-                        .set("created", false)
-                        .build())
-                .build();
-
-        final Object object = toDbObject(eventJson);
-        final Object actual = underTest.fromJournal(object, null).events().head();
-
-        assertThat(actual).isInstanceOf(ThingEvent.class);
-        final ThingEvent event = (ThingEvent) actual;
-        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(event.getName()).isEqualTo(FeaturePropertyModified.NAME);
-        assertThat(event.getType()).isEqualTo(FeaturePropertyModified.TYPE);
-        assertThat(event).isInstanceOf(FeaturePropertyModified.class);
-        final FeaturePropertyModified featurePropertyModified = (FeaturePropertyModified) event;
-        assertThat((CharSequence) featurePropertyModified.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(featurePropertyModified.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
-        assertThat(featurePropertyModified.getPropertyPointer()).isEqualTo(propertyPointer);
-        assertThat(featurePropertyModified.getPropertyValue()).isEqualTo(propertyValue);
-    }
-
-    @Test
-    public void deserializeFeaturePropertiesCreatedV1() {
-        final JsonObject eventJson = JsonFactory.newObjectBuilder()
-                .set("event",
-                        FeaturePropertiesModified.NAME) // use modified with created true to simulate old created events
-                .set("__schemaVersion", 1)
-                .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID.toString())
-                        .set("featureId", TestConstants.Feature.FLUX_CAPACITOR_ID)
-                        .set("properties",
-                                TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.toJson(JsonSchemaVersion.V_1))
-                        .set("created", true)
-                        .build())
-                .build();
-
-        final Object object = toDbObject(eventJson);
-        final Object actual = underTest.fromJournal(object, null).events().head();
-
-        assertThat(actual).isInstanceOf(ThingEvent.class);
-        final ThingEvent event = (ThingEvent) actual;
-        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(event.getName()).isEqualTo(FeaturePropertiesCreated.NAME);
-        assertThat(event.getType()).isEqualTo(FeaturePropertiesCreated.TYPE);
-        assertThat(event).isInstanceOf(FeaturePropertiesCreated.class);
-        final FeaturePropertiesCreated featurePropertiesCreated = (FeaturePropertiesCreated) event;
-        assertThat((CharSequence) featurePropertiesCreated.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(featurePropertiesCreated.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
-        assertThat(featurePropertiesCreated.getProperties().toJsonString())
-                .isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.toJsonString());
-    }
-
-    @Test
-    public void deserializeFeaturePropertiesModifiedV1() {
-        final JsonObject eventJson = JsonFactory.newObjectBuilder()
-                .set("event",
-                        FeaturePropertiesModified.NAME) // use modified with created true to simulate old created events
-                .set("__schemaVersion", 1)
-                .set("payload", JsonFactory.newObjectBuilder()
-                        .set("thingId", TestConstants.Thing.THING_ID.toString())
-                        .set("featureId", TestConstants.Feature.FLUX_CAPACITOR_ID)
-                        .set("properties",
-                                TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.toJson(JsonSchemaVersion.V_1))
-                        .set("created", false)
-                        .build())
-                .build();
-
-        final Object object = toDbObject(eventJson);
-        final Object actual = underTest.fromJournal(object, null).events().head();
-
-        assertThat(actual).isInstanceOf(ThingEvent.class);
-        final ThingEvent event = (ThingEvent) actual;
-        assertThat((CharSequence) event.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(event.getName()).isEqualTo(FeaturePropertiesModified.NAME);
-        assertThat(event.getType()).isEqualTo(FeaturePropertiesModified.TYPE);
-        assertThat(event).isInstanceOf(FeaturePropertiesModified.class);
-        final FeaturePropertiesModified featurePropertiesModified = (FeaturePropertiesModified) event;
-        assertThat((CharSequence) featurePropertiesModified.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(featurePropertiesModified.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
-        assertThat(featurePropertiesModified.getProperties().toJsonString())
-                .isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.toJsonString());
-    }
-
-    private static Object toDbObject(final JsonObject jsonObject) {
-        final DittoBsonJson dittoBsonJson = DittoBsonJson.getInstance();
-        return dittoBsonJson.parse(jsonObject);
+        final ThingCreated thingCreated =
+                ThingCreated.of(thing, 0, Instant.parse("2021-02-24T14:17:37.581679843Z"), DittoHeaders.empty(), null);
+        final EventSeq eventSeq = underTest.fromJournal(bsonEvent, "things.events:thingCreated");
+        final List<Object> objects = CollectionConverters.asJava(eventSeq.events());
+        assertThat(objects).containsExactly(thingCreated);
     }
 
 }

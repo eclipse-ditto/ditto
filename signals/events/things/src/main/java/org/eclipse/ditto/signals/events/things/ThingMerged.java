@@ -44,7 +44,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * @since 2.0.0
  */
 @Immutable
-@JsonParsableEvent(name = ThingMerged.NAME, typePrefix = ThingMerged.TYPE_PREFIX)
+@JsonParsableEvent(name = ThingMerged.NAME, typePrefix = ThingEvent.TYPE_PREFIX)
 public final class ThingMerged extends AbstractThingEvent<ThingMerged> implements ThingModifiedEvent<ThingMerged> {
 
     /**
@@ -189,6 +189,10 @@ public final class ThingMerged extends AbstractThingEvent<ThingMerged> implement
      * An enumeration of the JSON fields of a {@code ThingMerged} event.
      */
     static final class JsonFields {
+
+        private JsonFields() {
+            throw new AssertionError();
+        }
 
         static final JsonFieldDefinition<String> JSON_PATH =
                 JsonFactory.newStringFieldDefinition("path", FieldType.REGULAR, JsonSchemaVersion.V_2);

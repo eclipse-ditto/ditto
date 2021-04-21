@@ -54,7 +54,7 @@ public final class ModifyThingResponse extends AbstractCommandResponse<ModifyThi
     public static final String TYPE = TYPE_PREFIX + ModifyThing.NAME;
 
     static final JsonFieldDefinition<JsonValue> JSON_THING =
-            JsonFactory.newJsonValueFieldDefinition("thing", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonValueFieldDefinition("thing", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final ThingId thingId;
@@ -82,23 +82,6 @@ public final class ModifyThingResponse extends AbstractCommandResponse<ModifyThi
     public static ModifyThingResponse created(final Thing thing, final DittoHeaders dittoHeaders) {
         final ThingId thingId = thing.getEntityId().orElseThrow(() -> new NullPointerException("Thing has no ID!"));
         return new ModifyThingResponse(thingId, HttpStatus.CREATED, thing, dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code ModifyThingResponse} for a modified Thing. This corresponds to the HTTP status
-     * {@link HttpStatus#NO_CONTENT}.
-     *
-     * @param thingId the Thing ID of the modified Thing.
-     * @param dittoHeaders the headers of the ThingCommand which caused the new response.
-     * @return a command response for a modified Thing.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #modified(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifyThingResponse modified(final String thingId, final DittoHeaders dittoHeaders) {
-        return modified(ThingId.of(thingId), dittoHeaders);
     }
 
     /**
@@ -153,7 +136,7 @@ public final class ModifyThingResponse extends AbstractCommandResponse<ModifyThi
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

@@ -29,7 +29,8 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotDeclaredExceptio
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.model.base.acks.FatalPubSubException;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
@@ -44,7 +45,7 @@ import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
-import org.eclipse.ditto.model.things.WithThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
@@ -68,7 +69,6 @@ import org.eclipse.ditto.services.utils.search.SubscriptionManager;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
@@ -429,11 +429,13 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
 
         return ackregatorStarter.preprocess(signal,
                 (s, shouldStart) -> {
-                    if (shouldStart) {
+                    final Optional<ThingId> thingIdOptional = WithEntityId.getEntityIdOfType(ThingId.class, s);
+                    if (shouldStart && thingIdOptional.isPresent()) {
                         // websocket-specific header check: acks requested with response-required=false are forbidden
                         final Optional<DittoHeaderInvalidException> headerInvalid = checkForAcksWithoutResponse(s);
                         return headerInvalid.map(this::publishResponseOrError)
-                                .orElseGet(() -> ackregatorStarter.doStart(s, this::publishResponseOrError,
+                                .orElseGet(() -> ackregatorStarter.doStart(thingIdOptional.get(), s.getDittoHeaders(),
+                                        this::publishResponseOrError,
                                         ackregator -> forwardToCommandRouterAndReturnDone(s, ackregator)));
                     } else {
                         return doNothing(s);
@@ -454,8 +456,10 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
 
     // no precondition; forwarder starter does not start for signals without ack requests, in contrast to ackregator
     private Signal<?> startAckForwarder(final Signal<?> signal) {
-        if (signal instanceof WithThingId) {
-            final EntityIdWithType entityIdWithType = ((WithThingId) signal).getThingEntityId();
+        final Optional<EntityId> entityIdOptional =
+                WithEntityId.getEntityIdOfType(EntityId.class, signal);
+        if (entityIdOptional.isPresent()) {
+            final EntityId entityIdWithType = entityIdOptional.get();
             return AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(),
                     entityIdWithType, signal, acknowledgementConfig, declaredAcks::contains);
         } else {
@@ -589,11 +593,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                     final AuthenticationResult authorizationResult =
                             jwtAuthenticationResultProvider.getAuthenticationResult(jsonWebToken, DittoHeaders.empty());
 
-                    // Duplicating authorization subjects for equality check.
-                    // TODO Ditto 2.0: use authorizationResult.getAuthorizationContext() directly.
-                    final AuthorizationContext jwtAuthorizationContext =
-                            authorizationResult.getDittoHeaders().getAuthorizationContext();
-
+                    final AuthorizationContext jwtAuthorizationContext = authorizationResult.getAuthorizationContext();
                     getSelf().tell(new RefreshSession(jwtConnectionCorrelationId, jsonWebToken.getExpirationTime(),
                             jwtAuthorizationContext), ActorRef.noSender());
                 } catch (final Exception exception) {
@@ -626,13 +626,12 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         final ActorRef self = getSelf();
         logger.info("Declaring acknowledgement labels <{}>", acknowledgementLabels);
         dittoProtocolSub.declareAcknowledgementLabels(acknowledgementLabels, self, null)
-                .thenAccept(_void -> logger.info("Acknowledgement label declaration successful for labels: <{}>",
+                .thenAccept(unused -> logger.info("Acknowledgement label declaration successful for labels: <{}>",
                         acknowledgementLabels))
                 .exceptionally(error -> {
-                    final DittoRuntimeException template = AcknowledgementLabelNotUniqueException.getInstance();
                     final DittoRuntimeException dittoRuntimeException =
                             DittoRuntimeException.asDittoRuntimeException(error,
-                                    cause -> DittoRuntimeException.newBuilder(template).cause(cause).build());
+                                    cause -> AcknowledgementLabelNotUniqueException.newBuilder().cause(cause).build());
                     logger.info("Acknowledgement label declaration failed for labels: <{}> - cause: {} {}",
                             acknowledgementLabels, error.getClass().getSimpleName(), error.getMessage());
                     self.tell(dittoRuntimeException, ActorRef.noSender());
@@ -658,8 +657,12 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     }
 
     @Nullable
-    private static String namespaceFromId(final WithId withId) {
-        return NamespaceReader.fromEntityId(withId.getEntityId()).orElse(null);
+    private static String namespaceFromId(final Signal<?> signal) {
+        return Optional.of(signal)
+                .map(WithEntityId.class::cast)
+                .map(WithEntityId::getEntityId)
+                .flatMap(NamespaceReader::fromEntityId)
+                .orElse(null);
     }
 
     private static Criteria parseCriteria(final String filter, final DittoHeaders dittoHeaders) {

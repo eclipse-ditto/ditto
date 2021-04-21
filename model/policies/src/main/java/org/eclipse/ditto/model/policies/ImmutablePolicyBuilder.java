@@ -25,6 +25,8 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
+
 /**
  * A mutable builder for a {@link ImmutablePolicy} with a fluent API.
  */
@@ -39,6 +41,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
     @Nullable private PolicyRevision revision;
     @Nullable private Instant modified;
     @Nullable private Instant created;
+    @Nullable private Metadata metadata;
 
     private ImmutablePolicyBuilder() {
         subjects = new LinkedHashMap<>();
@@ -49,6 +52,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
         revision = null;
         modified = null;
         created = null;
+        metadata = null;
     }
 
     /**
@@ -122,12 +126,6 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
     }
 
     @Override
-    @Deprecated
-    public ImmutablePolicyBuilder setId(final CharSequence id) {
-        return setId(PolicyId.of(id));
-    }
-
-    @Override
     public ImmutablePolicyBuilder setId(final PolicyId id) {
         this.id = checkNotNull(id, "Policy ID");
         return this;
@@ -154,6 +152,12 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
     @Override
     public ImmutablePolicyBuilder setCreated(@Nullable final Instant created) {
         this.created = created;
+        return this;
+    }
+
+    @Override
+    public ImmutablePolicyBuilder setMetadata(@Nullable final Metadata metadata) {
+        this.metadata = metadata;
         return this;
     }
 
@@ -342,7 +346,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
                 .map(lbl -> PoliciesModelFactory.newPolicyEntry(lbl, getFinalSubjects(lbl), getFinalResources(lbl)))
                 .collect(Collectors.toList());
 
-        return ImmutablePolicy.of(id, lifecycle, revision, modified, created, policyEntries);
+        return ImmutablePolicy.of(id, lifecycle, revision, modified, created, metadata, policyEntries);
     }
 
     @Nonnull

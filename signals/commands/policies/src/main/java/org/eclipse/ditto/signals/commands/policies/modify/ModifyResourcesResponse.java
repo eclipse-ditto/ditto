@@ -75,25 +75,6 @@ public final class ModifyResourcesResponse extends AbstractCommandResponse<Modif
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifyResourcesResponse of(final String policyId, final Label label,
-            final DittoHeaders dittoHeaders) {
-
-        return of(PolicyId.of(policyId), label, dittoHeaders);
-    }
-
-    /**
-     * Creates a response to a {@code ModifyResources} command.
-     *
-     * @param policyId the Policy ID of the modified resources.
-     * @param label the Label of the PolicyEntry.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyResourcesResponse of(final PolicyId policyId, final Label label,
             final DittoHeaders dittoHeaders) {

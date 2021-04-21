@@ -34,12 +34,13 @@ import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 
 /**
  * Command which retrieves the Policy entry of a {@code Policy} based on the passed in Policy ID and Label.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = RetrievePolicyEntry.TYPE_PREFIX, name = RetrievePolicyEntry.NAME)
+@JsonParsableCommand(typePrefix = PolicyCommand.TYPE_PREFIX, name = RetrievePolicyEntry.NAME)
 public final class RetrievePolicyEntry extends AbstractCommand<RetrievePolicyEntry>
         implements PolicyQueryCommand<RetrievePolicyEntry> {
 
@@ -63,24 +64,6 @@ public final class RetrievePolicyEntry extends AbstractCommand<RetrievePolicyEnt
         super(TYPE, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy identifier");
         this.label = checkNotNull(label, "Label");
-    }
-
-    /**
-     * Returns a command for retrieving a specific Policy entry with the given ID and Label.
-     *
-     * @param policyId the ID of a single Policy whose Policy entry will be retrieved by this command.
-     * @param label the specified label for which to retrieve the Policy entry for.
-     * @param dittoHeaders the optional command headers of the request.
-     * @return a Command for retrieving one Policy entry with the {@code policyId} and {@code label} which is readable
-     * from the passed authorization context.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrievePolicyEntry of(final String policyId, final Label label, final DittoHeaders dittoHeaders) {
-        return of(PolicyId.of(policyId), label, dittoHeaders);
     }
 
     /**
@@ -124,7 +107,7 @@ public final class RetrievePolicyEntry extends AbstractCommand<RetrievePolicyEnt
      */
     public static RetrievePolicyEntry fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrievePolicyEntry>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
+            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyCommand.JsonFields.JSON_POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final Label extractedLabel = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
 
@@ -162,7 +145,7 @@ public final class RetrievePolicyEntry extends AbstractCommand<RetrievePolicyEnt
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyQueryCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
+        jsonObjectBuilder.set(PolicyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
     }
 

@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.config;
 
+import java.time.Duration;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
@@ -30,6 +32,31 @@ public interface MqttConfig {
     int getSourceBufferSize();
 
     /**
+     * Indicates whether the client should reconnect to enforce a redelivery for a failed acknowledgement.
+     *
+     * @return true if the client should reconnect, false if not.
+     * @since 2.0.0
+     */
+    boolean shouldReconnectForRedelivery();
+
+    /**
+     * Duration how long to wait for the next reconnect after a failed acknowledgement.
+     *
+     * @return the amount of time that a reconnect will be delayed after a failed acknowledgement.
+     * @since 2.0.0
+     */
+    Duration getReconnectForRedeliveryDelay();
+
+    /**
+     * Indicates whether a separate client should be used for publishing. This could be useful when
+     * {@link #shouldReconnectForRedelivery()} returns true to avoid that the publisher has downtimes.
+     *
+     * @return true if a separate client should be used, false if not.
+     * @since 2.0.0
+     */
+    boolean shouldUseSeparatePublisherClient();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code MqttConfig}.
      */
@@ -38,7 +65,23 @@ public interface MqttConfig {
         /**
          * The maximum number of buffered messages for each MQTT source.
          */
-        SOURCE_BUFFER_SIZE("source-buffer-size", 8);
+        SOURCE_BUFFER_SIZE("source-buffer-size", 8),
+
+        /**
+         * Indicates whether the client should reconnect to enforce a redelivery for a failed acknowledgement.
+         */
+        RECONNECT_FOR_REDELIVERY("reconnect-for-redelivery", false),
+
+        /**
+         * The amount of time that a reconnect will be delayed after a failed acknowledgement.
+         */
+        RECONNECT_FOR_REDELIVERY_DELAY("reconnect-for-redelivery-delay", Duration.ofSeconds(2)),
+
+        /**
+         * Indicates whether a separate client should be used for publishing. This could be useful when
+         * {@link #shouldReconnectForRedelivery()} returns true to avoid that the publisher has downtimes.
+         */
+        SEPARATE_PUBLISHER_CLIENT("separate-publisher-client", false);
 
         private final String path;
         private final Object defaultValue;

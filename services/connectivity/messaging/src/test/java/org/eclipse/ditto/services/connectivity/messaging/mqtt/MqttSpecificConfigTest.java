@@ -13,18 +13,35 @@
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.services.connectivity.config.MqttConfig;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 /**
  * Tests {@link org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttSpecificConfig}.
  */
 public final class MqttSpecificConfigTest {
+
+    private MqttConfig mqttConfig;
+    private Connection connection;
+
+    @Before
+    public void setup() {
+        mqttConfig = Mockito.mock(MqttConfig.class);
+        when(mqttConfig.getReconnectForRedeliveryDelay()).thenReturn(Duration.ofSeconds(2));
+        when(mqttConfig.shouldUseSeparatePublisherClient()).thenReturn(false);
+        when(mqttConfig.shouldReconnectForRedelivery()).thenReturn(false);
+        connection = Mockito.mock(Connection.class);
+    }
 
     @Test
     public void parseMqttSpecificConfig() {
@@ -42,7 +59,8 @@ public final class MqttSpecificConfigTest {
         configuredSpecificConfig.put("lastWillRetain", "true");
 
         // WHEN
-        final MqttSpecificConfig specificConfig = new MqttSpecificConfig(configuredSpecificConfig);
+        when(connection.getSpecificConfig()).thenReturn(configuredSpecificConfig);
+        final MqttSpecificConfig specificConfig = MqttSpecificConfig.fromConnection(connection, mqttConfig);
 
         // THEN
         assertThat(specificConfig.reconnectForRedelivery()).isFalse();
@@ -60,9 +78,11 @@ public final class MqttSpecificConfigTest {
 
     @Test
     public void defaultConfig() {
-        final MqttSpecificConfig specificConfig = new MqttSpecificConfig(Collections.emptyMap());
-        assertThat(specificConfig.reconnectForRedelivery()).isTrue();
-        assertThat(specificConfig.separatePublisherClient()).isTrue();
+        when(connection.getSpecificConfig()).thenReturn(Collections.emptyMap());
+        final MqttSpecificConfig specificConfig = MqttSpecificConfig.fromConnection(connection, mqttConfig);
+
+        assertThat(specificConfig.reconnectForRedelivery()).isFalse();
+        assertThat(specificConfig.separatePublisherClient()).isFalse();
         assertThat(specificConfig.getMqttClientId()).isEmpty();
         assertThat(specificConfig.getMqttPublisherId()).isEmpty();
         assertThat(specificConfig.getReconnectForDeliveryDelay()).isEqualTo(Duration.ofSeconds(2L));
@@ -72,4 +92,5 @@ public final class MqttSpecificConfigTest {
         assertThat(specificConfig.getMqttWillMessage()).isEmpty();
         assertThat(specificConfig.getMqttWillRetain()).isFalse();
     }
+
 }

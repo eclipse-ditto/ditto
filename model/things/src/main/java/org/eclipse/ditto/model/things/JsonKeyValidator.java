@@ -26,6 +26,10 @@ import org.eclipse.ditto.model.base.entity.validation.NoControlCharactersNoSlash
  */
 final class JsonKeyValidator {
 
+    private JsonKeyValidator() {
+        throw new AssertionError();
+    }
+
     /**
      * Validates all keys of a given JsonObject including all nested objects.
      *

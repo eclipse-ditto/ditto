@@ -74,20 +74,6 @@ public final class SubjectInvalidException extends DittoRuntimeException impleme
     }
 
     /**
-     * Constructs a new {@code SubjectInvalidException} object with the given exception message.
-     *
-     * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
-     * @return the new SubjectInvalidException.
-     * @deprecated since DittoHeaders are required for the builder. Use {@code #fromMessage(String, DittoHeaders)} instead.
-     */
-    @Deprecated
-    public static SubjectInvalidException fromMessage(final String message) {
-        return new Builder()
-                .message(message)
-                .build();
-    }
-
-    /**
      * Constructs a new {@code SubjectInvalidException} object with given message.
      *
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.

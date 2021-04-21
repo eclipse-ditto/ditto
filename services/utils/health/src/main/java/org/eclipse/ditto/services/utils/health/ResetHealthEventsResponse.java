@@ -25,7 +25,6 @@ import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 
 /**
@@ -33,8 +32,7 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
  */
 @Immutable
 @JsonParsableCommandResponse(type = ResetHealthEventsResponse.TYPE)
-public final class ResetHealthEventsResponse extends AbstractCommandResponse<ResetHealthEventsResponse> implements
-        WithIdButActuallyNot {
+public final class ResetHealthEventsResponse extends AbstractCommandResponse<ResetHealthEventsResponse> {
 
     /**
      * Type of this response.

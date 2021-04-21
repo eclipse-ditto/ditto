@@ -36,13 +36,14 @@ import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Resources;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
 
 /**
  * This command modifies {@link Resources} of a {@link org.eclipse.ditto.model.policies.PolicyEntry}.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = ModifyResources.TYPE_PREFIX, name = ModifyResources.NAME)
+@JsonParsableCommand(typePrefix = PolicyCommand.TYPE_PREFIX, name = ModifyResources.NAME)
 public final class ModifyResources extends AbstractCommand<ModifyResources>
         implements PolicyModifyCommand<ModifyResources> {
 
@@ -81,28 +82,6 @@ public final class ModifyResources extends AbstractCommand<ModifyResources>
                 resourcesJsonObject::getUpperBoundForStringSize,
                 () -> resourcesJsonObject.toString().length(),
                 () -> dittoHeaders);
-    }
-
-    /**
-     * Creates a command for modifying {@code Resources} of a {@code Policy}'s {@code PolicyEntry}.
-     *
-     * @param policyId the identifier of the Policy.
-     * @param label the Label of the PolicyEntry.
-     * @param resources the Resources to modify.
-     * @param dittoHeaders the headers of the command.
-     * @return the command.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.Resources, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifyResources of(final String policyId,
-            final Label label,
-            final Resources resources,
-            final DittoHeaders dittoHeaders) {
-
-        return of(PolicyId.of(policyId), label, resources, dittoHeaders);
     }
 
     /**
@@ -153,7 +132,7 @@ public final class ModifyResources extends AbstractCommand<ModifyResources>
      */
     public static ModifyResources fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifyResources>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyCommand.JsonFields.JSON_POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
             final JsonObject resourcesJsonObject = jsonObject.getValueOrThrow(JSON_RESOURCES);
@@ -207,7 +186,7 @@ public final class ModifyResources extends AbstractCommand<ModifyResources>
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
+        jsonObjectBuilder.set(PolicyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
         jsonObjectBuilder.set(JSON_RESOURCES, resources.toJson(schemaVersion, thePredicate), predicate);
     }

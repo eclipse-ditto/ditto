@@ -26,7 +26,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
@@ -96,17 +95,6 @@ public interface Payload extends Jsonifiable<JsonObject> {
      * @return the extra payload or an empty Optional.
      */
     Optional<JsonObject> getExtra();
-
-    /**
-     * Returns the {@code status} of this {@code Payload} if present.
-     *
-     * @return the optional status.
-     * @deprecated as of 2.0.0 please use {@link #getHttpStatus()} instead.
-     */
-    @Deprecated
-    default Optional<HttpStatusCode> getStatus() {
-        return getHttpStatus().map(HttpStatus::getCode).flatMap(HttpStatusCode::forInt);
-    }
 
     /**
      * Returns the {@code status} of this {@code Payload} if present.

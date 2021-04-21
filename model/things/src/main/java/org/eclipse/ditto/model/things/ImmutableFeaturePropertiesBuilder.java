@@ -129,7 +129,7 @@ final class ImmutableFeaturePropertiesBuilder implements FeaturePropertiesBuilde
     }
 
     @Override
-    public FeaturePropertiesBuilder remove(final JsonFieldDefinition fieldDefinition) {
+    public FeaturePropertiesBuilder remove(final JsonFieldDefinition<?> fieldDefinition) {
         jsonObjectBuilder.remove(fieldDefinition);
         return this;
     }

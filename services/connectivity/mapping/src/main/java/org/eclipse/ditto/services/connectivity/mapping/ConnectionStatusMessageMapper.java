@@ -28,10 +28,10 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
-import org.eclipse.ditto.model.placeholders.ExpressionResolver;
-import org.eclipse.ditto.model.placeholders.HeadersPlaceholder;
-import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
-import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.services.models.placeholders.ExpressionResolver;
+import org.eclipse.ditto.services.models.placeholders.HeadersPlaceholder;
+import org.eclipse.ditto.services.models.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.services.models.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
@@ -112,7 +112,7 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
         } catch (final Exception e) {
             final DittoHeaders dittoHeaders;
             if (e instanceof WithDittoHeaders) {
-                dittoHeaders = ((WithDittoHeaders<?>) e).getDittoHeaders();
+                dittoHeaders = ((WithDittoHeaders) e).getDittoHeaders();
             } else {
                 dittoHeaders = externalMessage.getInternalHeaders();
             }

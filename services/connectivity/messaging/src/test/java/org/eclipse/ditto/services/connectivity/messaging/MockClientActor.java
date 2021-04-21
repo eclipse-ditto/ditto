@@ -14,10 +14,11 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.connectivity.ConnectionIdInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CheckConnectionLogsActive;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
@@ -145,8 +146,7 @@ public class MockClientActor extends AbstractActor {
                 })
                 .match(TestConnection.class, testConnection -> {
                     log.info("Testing connection");
-                    final DittoRuntimeException exception =
-                            DittoRuntimeException.newBuilder("some.error", HttpStatus.BAD_REQUEST).build();
+                    final DittoRuntimeException exception = ConnectionIdInvalidException.newBuilder("invalid").build();
                     if (testConnection.getDittoHeaders().getOrDefault("error", "").equals("true")) {
                         sender().tell(exception, getSelf());
                     }

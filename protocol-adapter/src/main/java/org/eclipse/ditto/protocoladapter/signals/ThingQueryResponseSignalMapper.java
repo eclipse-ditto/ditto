@@ -33,7 +33,7 @@ final class ThingQueryResponseSignalMapper
 
     @Override
     TopicPathBuilder getTopicPathBuilder(final ThingQueryCommandResponse<?> command) {
-        return ProtocolFactory.newTopicPathBuilder(command.getThingEntityId()).things();
+        return ProtocolFactory.newTopicPathBuilder(command.getEntityId()).things();
     }
 
     @Override

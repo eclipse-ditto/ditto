@@ -56,11 +56,11 @@ public final class ModifyFeatureDefinitionResponse extends AbstractCommandRespon
     public static final String TYPE = TYPE_PREFIX + ModifyFeatureDefinition.NAME;
 
     static final JsonFieldDefinition<String> JSON_FEATURE_ID =
-            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<JsonArray> JSON_DEFINITION =
-            JsonFactory.newJsonArrayFieldDefinition("definition", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonArrayFieldDefinition("definition", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final ThingId thingId;
@@ -89,29 +89,6 @@ public final class ModifyFeatureDefinitionResponse extends AbstractCommandRespon
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a created FeatureDefinition.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #created(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.things.FeatureDefinition, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifyFeatureDefinitionResponse created(final String thingId,
-            final String featureId,
-            final FeatureDefinition definitionCreated,
-            final DittoHeaders dittoHeaders) {
-
-        return created(ThingId.of(thingId), featureId, definitionCreated, dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code ModifyFeatureDefinitionResponse} for a created FeatureDefinition. This corresponds to the
-     * HTTP status {@link HttpStatus#CREATED}.
-     *
-     * @param thingId the Thing ID of the created Feature Definition.
-     * @param featureId the {@code Feature}'s ID whose Definition were created.
-     * @param definitionCreated the created FeatureDefinition.
-     * @param dittoHeaders the headers of the ThingCommand which caused the new response.
-     * @return a command response for a created FeatureDefinition.
-     * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyFeatureDefinitionResponse created(final ThingId thingId,
             final String featureId,
@@ -123,26 +100,6 @@ public final class ModifyFeatureDefinitionResponse extends AbstractCommandRespon
                 checkNotNull(definitionCreated, "definitionCreated"),
                 HttpStatus.CREATED,
                 dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code ModifyFeatureDefinitionResponse} for a modified FeatureDefinition. This corresponds to the
-     * HTTP status {@link HttpStatus#NO_CONTENT}.
-     *
-     * @param thingId the Thing ID of the modified Feature Definition.
-     * @param featureId the {@code Feature}'s ID whose Definition were modified.
-     * @param dittoHeaders the headers of the ThingCommand which caused the new response.
-     * @return a command response for a modified FeatureDefinition.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #modified(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifyFeatureDefinitionResponse modified(final String thingId, final String featureId,
-            final DittoHeaders dittoHeaders) {
-
-        return modified(ThingId.of(thingId), featureId, dittoHeaders);
     }
 
     /**
@@ -226,7 +183,7 @@ public final class ModifyFeatureDefinitionResponse extends AbstractCommandRespon
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

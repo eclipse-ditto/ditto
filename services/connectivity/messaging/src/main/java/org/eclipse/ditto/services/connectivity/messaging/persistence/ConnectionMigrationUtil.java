@@ -48,7 +48,7 @@ final class ConnectionMigrationUtil {
      */
     static final JsonFieldDefinition<JsonArray> AUTHORIZATION_CONTEXT =
             JsonFactory.newJsonArrayFieldDefinition("authorizationContext", FieldType.REGULAR,
-                    JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                    JsonSchemaVersion.V_2);
 
 
     private ConnectionMigrationUtil() {

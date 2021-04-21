@@ -76,7 +76,6 @@ public final class DefaultJwtValidator implements JwtValidator {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private BinaryValidationResult validateWithPublicKey(final JsonWebToken jsonWebToken, final Key publicKey) {
         final JwtParserBuilder jwtParserBuilder = Jwts.parserBuilder();
         jwtParserBuilder.deserializeJsonWith(JjwtDeserializer.getInstance())

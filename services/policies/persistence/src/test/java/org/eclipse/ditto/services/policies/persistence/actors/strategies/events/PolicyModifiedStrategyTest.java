@@ -37,7 +37,7 @@ public class PolicyModifiedStrategyTest extends AbstractPolicyEventStrategyTest<
     @Override
     PolicyModified getPolicyEvent(final Instant instant, final Policy policy) {
         final Policy modified = policy.toBuilder().set(MODIFIED).build();
-        return PolicyModified.of(modified, 10L, instant, DittoHeaders.empty());
+        return PolicyModified.of(modified, 10L, instant, DittoHeaders.empty(), METADATA);
     }
 
     @Override

@@ -22,7 +22,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
@@ -60,7 +59,7 @@ public final class RetrieveThingResponseTest {
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThing() {
-        RetrieveThingResponse.of(TestConstants.Thing.THING_ID, (Thing) null, TestConstants.EMPTY_DITTO_HEADERS);
+        RetrieveThingResponse.of(TestConstants.Thing.THING_ID, null, null, null, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test(expected = NullPointerException.class)
@@ -71,7 +70,7 @@ public final class RetrieveThingResponseTest {
     @Test
     public void toJsonReturnsExpected() {
         final RetrieveThingResponse underTest =
-                RetrieveThingResponse.of(TestConstants.Thing.THING_ID, TestConstants.Thing.THING,
+                RetrieveThingResponse.of(TestConstants.Thing.THING_ID, TestConstants.Thing.THING, null, null,
                         TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
@@ -90,7 +89,7 @@ public final class RetrieveThingResponseTest {
     @Test
     public void parseRetrieveThingCommandResponse() {
         final RetrieveThingResponse commandResponse =
-                RetrieveThingResponse.of(TestConstants.Thing.THING_ID, TestConstants.Thing.THING,
+                RetrieveThingResponse.of(TestConstants.Thing.THING_ID, TestConstants.Thing.THING, null, null,
                         TestConstants.DITTO_HEADERS);
         final JsonObject jsonObject = commandResponse.toJson(FieldType.regularOrSpecial());
 

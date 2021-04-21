@@ -119,7 +119,7 @@ final class ModifyFeatureDesiredPropertiesStrategy
         final ThingEvent<?> event =
                 FeatureDesiredPropertiesModified.of(thingId, featureId, command.getDesiredProperties(), nextRevision,
                         getEventTimestamp(), dittoHeaders, metadata);
-        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
+        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                 ModifyFeatureDesiredPropertiesResponse.modified(context.getState(), featureId, dittoHeaders), thing);
 
         return ResultFactory.newMutationResult(command, event, response);
@@ -139,7 +139,7 @@ final class ModifyFeatureDesiredPropertiesStrategy
         final ThingEvent<?> event =
                 FeatureDesiredPropertiesCreated.of(thingId, featureId, desiredProperties, nextRevision,
                         getEventTimestamp(), dittoHeaders, metadata);
-        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
+        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                 ModifyFeatureDesiredPropertiesResponse.created(thingId, featureId, desiredProperties, dittoHeaders),
                 thing);
 

@@ -32,8 +32,8 @@ the following environment variables in order to configure the connection to the 
 
 Each of Ditto's microservice has many options for configuration, e.g. timeouts, cache sizes, etc.
 
-In order to have a look at all possible configuration options and what default values they have, here are the configuration
-files of Ditto's microservices:
+In order to have a look at all possible configuration options and what default values they have, here are the 
+configuration files of Ditto's microservices:
 * Policies: [policies.conf](https://github.com/eclipse/ditto/blob/master/services/policies/starter/src/main/resources/policies.conf)
 * Things: [things.conf](https://github.com/eclipse/ditto/blob/master/services/things/starter/src/main/resources/things.conf)
 * Things-Search: [things-search.conf](https://github.com/eclipse/ditto/blob/master/services/thingsearch/starter/src/main/resources/things-search.conf)
@@ -71,8 +71,8 @@ By default, `pre-authentication` is **disabled** in the Ditto [gateway](architec
 It can however be enabled by configuring the environment variable `ENABLE_PRE_AUTHENTICATION` to the value `true`.
 
 When it is enabled, the reverse proxy has to set the HTTP header `x-ditto-pre-authenticated`.<br/>
-The format of the "pre-authenticated" string is: `<issuer>:<subject>`. The issuer defines which system authenticated the
-user and the subject contains e.g. the user-id or -name.
+The format of the "pre-authenticated" string is: `<issuer>:<subject>`. The issuer defines which system authenticated 
+the user and the subject contains e.g. the user-id or -name.
 
 This string must then be used in [policies](basic-policy.html#subjects) as "Subject ID".
 
@@ -145,8 +145,8 @@ As of the OAuth2.0 and OpenID Connect standards Ditto expects the headers `Autho
 the OIDC provider [keycloak](https://www.keycloak.org/), a project like [keycloak-gatekeeper](https://github.com/keycloak/keycloak-gatekeeper)
 may be put in front of Ditto to handle the token-logic.
 
-**If the chosen OIDC provider uses a self-signed certificate**, the certificate has to be retrieved and configured for the
-akka-http ssl configuration.
+**If the chosen OIDC provider uses a self-signed certificate**, the certificate has to be retrieved and configured for 
+the akka-http ssl configuration.
 
 ```
 ssl-config {
@@ -176,8 +176,8 @@ backend, from where the metrics can be accessed to display in dashboards (e.g. w
 
 ### Configuring
 
-In the default configuration, each Ditto service opens a HTTP endpoint, where it provides the Prometheus metrics on port
-`9095`. This can be changed via the environment variable `PROMETHEUS_PORT`.
+In the default configuration, each Ditto service opens a HTTP endpoint, where it provides the Prometheus metrics 
+on port `9095`. This can be changed via the environment variable `PROMETHEUS_PORT`.
 
 Ditto will automatically publish gathered metrics at the endpoint `http://<container-host-or-ip>:9095/`.
 
@@ -204,11 +204,11 @@ jvm_class_loading{component="system-metrics",mode="loaded"} 10491.0
 # TYPE jvm_memory_buffer_pool_usage gauge
 jvm_memory_buffer_pool_usage{component="system-metrics",pool="direct",measure="used"} 396336.0
 # TYPE roundtrip_http_seconds histogram
-roundtrip_http_seconds_bucket{le="0.05",ditto_request_path="/api/1/things/x",ditto_request_method="PUT",ditto_statusCode="201",segment="overall"} 1.0
-roundtrip_http_seconds_sum{ditto_request_path="/api/1/things/x",ditto_statusCode="201",ditto_request_method="PUT",segment="overall"} 0.038273024
-roundtrip_http_seconds_bucket{le="0.001",ditto_request_path="/api/1/things/x",ditto_request_method="PUT",ditto_statusCode="204",segment="overall"} 0.0
-roundtrip_http_seconds_bucket{le="0.1",ditto_request_path="/api/1/things/x",ditto_request_method="PUT",ditto_statusCode="204",segment="overall"} 7.0
-roundtrip_http_seconds_sum{ditto_request_path="/api/1/things/x",ditto_statusCode="204",ditto_request_method="PUT",segment="overall"} 0.828899328
+roundtrip_http_seconds_bucket{le="0.05",ditto_request_path="/api/2/things/x",ditto_request_method="PUT",ditto_statusCode="201",segment="overall"} 1.0
+roundtrip_http_seconds_sum{ditto_request_path="/api/2/things/x",ditto_statusCode="201",ditto_request_method="PUT",segment="overall"} 0.038273024
+roundtrip_http_seconds_bucket{le="0.001",ditto_request_path="/api/2/things/x",ditto_request_method="PUT",ditto_statusCode="204",segment="overall"} 0.0
+roundtrip_http_seconds_bucket{le="0.1",ditto_request_path="/api/2/things/x",ditto_request_method="PUT",ditto_statusCode="204",segment="overall"} 7.0
+roundtrip_http_seconds_sum{ditto_request_path="/api/2/things/x",ditto_statusCode="204",ditto_request_method="PUT",segment="overall"} 0.828899328
 # TYPE jvm_gc_promotion histogram
 jvm_gc_promotion_sum{space="old"} 7315456.0
 # TYPE jvm_gc_seconds histogram

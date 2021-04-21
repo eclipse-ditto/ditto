@@ -70,7 +70,7 @@ public final class ImmutableConnectionTest {
     private static final List<Source> SOURCES_WITH_REPLY_TARGET_DISABLED = SOURCES.stream()
             .map(s -> ConnectivityModelFactory.newSourceBuilder(s).replyTargetEnabled(false).build())
             .collect(Collectors.toList());
-    private static final HeaderMapping HEADER_MAPPING = null;
+    private static final HeaderMapping HEADER_MAPPING = ConnectivityModelFactory.emptyHeaderMapping();
     private static final Target TARGET1 = ConnectivityModelFactory.newTargetBuilder()
             .address("amqp/target1")
             .authorizationContext(AUTHORIZATION_CONTEXT)
@@ -534,7 +534,7 @@ public final class ImmutableConnectionTest {
 
         connectionWithoutHeaderMappingForTarget.getTargets()
                 .forEach(target -> assertThat(target.getHeaderMapping())
-                        .contains(ConnectivityModelFactory.emptyHeaderMapping()));
+                        .isEqualTo(ConnectivityModelFactory.emptyHeaderMapping()));
     }
 
     @Test
@@ -548,7 +548,7 @@ public final class ImmutableConnectionTest {
 
         connectionWithoutHeaderMappingForTarget.getTargets()
                 .forEach(target -> assertThat(target.getHeaderMapping())
-                        .contains(ConnectivityModelFactory.emptyHeaderMapping()));
+                        .isEqualTo(ConnectivityModelFactory.emptyHeaderMapping()));
     }
 
     private List<Source> addSourceMapping(final List<Source> sources, final String... mapping) {

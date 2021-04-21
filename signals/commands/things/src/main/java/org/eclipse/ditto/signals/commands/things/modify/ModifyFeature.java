@@ -38,13 +38,14 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 
 /**
  * This command modifies an existing Feature.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = ModifyFeature.TYPE_PREFIX, name = ModifyFeature.NAME)
+@JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = ModifyFeature.NAME)
 public final class ModifyFeature extends AbstractCommand<ModifyFeature> implements ThingModifyCommand<ModifyFeature>,
         WithFeatureId {
 
@@ -59,11 +60,11 @@ public final class ModifyFeature extends AbstractCommand<ModifyFeature> implemen
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<String> JSON_FEATURE_ID =
-            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<JsonObject> JSON_FEATURE =
-            JsonFactory.newJsonObjectFieldDefinition("feature", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonObjectFieldDefinition("feature", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final ThingId thingId;
@@ -80,23 +81,6 @@ public final class ModifyFeature extends AbstractCommand<ModifyFeature> implemen
                 featureJsonObject::getUpperBoundForStringSize,
                 () -> featureJsonObject.toString().length(),
                 () -> dittoHeaders);
-    }
-
-    /**
-     * Returns a Command for modifying a Feature on a Thing.
-     *
-     * @param thingId the ID of the {@code Thing} on which the {@code Feature} to modify.
-     * @param feature the {@code Feature} to modify.
-     * @param dittoHeaders the headers of the command.
-     * @return a Command for modifying the provided Feature.
-     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.Feature, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifyFeature of(final String thingId, final Feature feature, final DittoHeaders dittoHeaders) {
-        return of(ThingId.of(thingId), feature, dittoHeaders);
     }
 
     /**
@@ -143,7 +127,7 @@ public final class ModifyFeature extends AbstractCommand<ModifyFeature> implemen
      */
     public static ModifyFeature fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifyFeature>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
             final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
             final JsonObject featureJsonObject = jsonObject.getValueOrThrow(JSON_FEATURE);
@@ -171,7 +155,7 @@ public final class ModifyFeature extends AbstractCommand<ModifyFeature> implemen
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 
@@ -195,7 +179,7 @@ public final class ModifyFeature extends AbstractCommand<ModifyFeature> implemen
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, getFeatureId(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE, feature.toJson(schemaVersion, thePredicate), predicate);
     }

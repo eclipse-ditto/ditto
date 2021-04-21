@@ -40,13 +40,13 @@ public interface NamespaceCommandResponse<T extends NamespaceCommandResponse<T>>
          * Namespace for which the command response is emitted.
          */
         public static final JsonFieldDefinition<String> NAMESPACE = JsonFactory.newStringFieldDefinition("namespace",
-                FieldType.REGULAR, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * Resource type checked.
          */
         public static final JsonFieldDefinition<String> RESOURCE_TYPE =
-                JsonFactory.newStringFieldDefinition("resourceType", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("resourceType", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
     }

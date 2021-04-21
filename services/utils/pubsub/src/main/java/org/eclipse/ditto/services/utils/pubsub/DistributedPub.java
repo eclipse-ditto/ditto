@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.utils.pubsub;
 
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 
 import akka.actor.ActorRef;
 
@@ -76,7 +76,7 @@ public interface DistributedPub<T> {
      * @param topicExtractor the previous topic extractor.
      * @return a new interface of this object.
      */
-    default <S extends Signal<?>> DistributedPub<S> withTopicExtractor(final PubSubTopicExtractor<S> topicExtractor) {
+    default <S extends SignalWithEntityId<?>> DistributedPub<S> withTopicExtractor(final PubSubTopicExtractor<S> topicExtractor) {
         return DistributedPubWithTopicExtractor.of(this, topicExtractor);
     }
 
@@ -88,7 +88,7 @@ public interface DistributedPub<T> {
      * @param <T> the type of messages.
      * @return the publication access.
      */
-    static <T extends Signal<?>> DistributedPub<T> of(final ActorRef pubSupervisor,
+    static <T extends SignalWithEntityId<?>> DistributedPub<T> of(final ActorRef pubSupervisor,
             final PubSubTopicExtractor<T> topicExtractor) {
         return new DistributedPubImpl<>(pubSupervisor, topicExtractor);
     }

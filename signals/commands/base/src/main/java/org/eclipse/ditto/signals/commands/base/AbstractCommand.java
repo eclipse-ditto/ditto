@@ -103,14 +103,8 @@ public abstract class AbstractCommand<T extends AbstractCommand<T>> implements C
     @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
-
-        // for types containing the exchange separated with ":" :
-        if (type.contains(":")) {
-            // backward compatibility to V1!
-            jsonObjectBuilder.set(JsonFields.ID, getName(), predicate);
-        }
-        jsonObjectBuilder.set(JsonFields.TYPE, type, predicate);
+        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder()
+                .set(JsonFields.TYPE, type, predicate);
 
         appendPayload(jsonObjectBuilder, schemaVersion, thePredicate);
 
@@ -141,7 +135,7 @@ public abstract class AbstractCommand<T extends AbstractCommand<T>> implements C
         if (obj == null || getClass() != obj.getClass()) {
             return false;
         }
-        final AbstractCommand other = (AbstractCommand) obj;
+        final AbstractCommand<?> other = (AbstractCommand<?>) obj;
         return other.canEqual(this) && Objects.equals(dittoHeaders, other.dittoHeaders)
                 && Objects.equals(type, other.type);
     }

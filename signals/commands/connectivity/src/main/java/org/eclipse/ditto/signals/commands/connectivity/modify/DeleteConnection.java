@@ -37,7 +37,7 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
  * Command which deletes a {@link Connection}.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = DeleteConnection.TYPE_PREFIX, name = DeleteConnection.NAME)
+@JsonParsableCommand(typePrefix = ConnectivityCommand.TYPE_PREFIX, name = DeleteConnection.NAME)
 public final class DeleteConnection extends AbstractCommand<DeleteConnection>
         implements ConnectivityModifyCommand<DeleteConnection> {
 
@@ -114,7 +114,7 @@ public final class DeleteConnection extends AbstractCommand<DeleteConnection>
     }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return connectionId;
     }
 

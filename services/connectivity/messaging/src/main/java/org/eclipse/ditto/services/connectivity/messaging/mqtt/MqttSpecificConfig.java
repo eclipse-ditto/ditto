@@ -22,6 +22,7 @@ import java.util.function.Supplier;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.services.connectivity.config.MqttConfig;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
@@ -35,14 +36,11 @@ public final class MqttSpecificConfig {
 
     private static final String CLEAN_SESSION = "cleanSession";
     private static final String RECONNECT_FOR_REDELIVERY = "reconnectForRedelivery";
+    private static final String RECONNECT_FOR_REDELIVERY_DELAY = "reconnectForRedeliveryDelay";
     private static final String SEPARATE_PUBLISHER_CLIENT = "separatePublisherClient";
     private static final String CLIENT_ID = "clientId";
     private static final String PUBLISHER_ID = "publisherId";
     private static final String KEEP_ALIVE_INTERVAL = "keepAlive";
-    private static final String RECONNECT_FOR_REDELIVERY_DELAY = "reconnectForRedeliveryDelay";
-
-    private static final boolean DEFAULT_RECONNECT_FOR_REDELIVERY = true;
-    private static final Duration DEFAULT_RECONNECT_DURATION = Duration.ofSeconds(2L);
 
     static final String LAST_WILL_TOPIC = "lastWillTopic";
     static final String LAST_WILL_QOS = "lastWillQos";
@@ -54,13 +52,8 @@ public final class MqttSpecificConfig {
 
     private final Config specificConfig;
 
-    MqttSpecificConfig(final Map<String, String> specificConfig) {
-        final Map<String, Object> defaultMap = new HashMap<>();
-        defaultMap.put(RECONNECT_FOR_REDELIVERY, DEFAULT_RECONNECT_FOR_REDELIVERY);
-        defaultMap.put(SEPARATE_PUBLISHER_CLIENT, DEFAULT_RECONNECT_FOR_REDELIVERY);
-        defaultMap.put(RECONNECT_FOR_REDELIVERY_DELAY, DEFAULT_RECONNECT_DURATION);
-        this.specificConfig = ConfigFactory.parseMap(specificConfig)
-                .withFallback(ConfigFactory.parseMap(defaultMap));
+    private MqttSpecificConfig(final Config specificConfig) {
+        this.specificConfig = specificConfig;
     }
 
     /**
@@ -68,10 +61,23 @@ public final class MqttSpecificConfig {
      * {@code connection}.
      *
      * @param connection the Connection to extract the {@code specificConfig} map from.
+     * @param mqttConfig the mqtt config to create the default config from.
      * @return the new MqttSpecificConfig instance
      */
-    public static MqttSpecificConfig fromConnection(final Connection connection) {
-        return new MqttSpecificConfig(connection.getSpecificConfig());
+    public static MqttSpecificConfig fromConnection(final Connection connection, final MqttConfig mqttConfig) {
+        final Map<String, Object> defaultConfig = toDefaultConfig(mqttConfig);
+        final Config config = ConfigFactory.parseMap(connection.getSpecificConfig())
+                .withFallback(ConfigFactory.parseMap(defaultConfig));
+
+        return new MqttSpecificConfig(config);
+    }
+
+    private static Map<String, Object> toDefaultConfig(final MqttConfig mqttConfig) {
+        final Map<String, Object> defaultMap = new HashMap<>();
+        defaultMap.put(RECONNECT_FOR_REDELIVERY, mqttConfig.shouldReconnectForRedelivery());
+        defaultMap.put(RECONNECT_FOR_REDELIVERY_DELAY, mqttConfig.getReconnectForRedeliveryDelay());
+        defaultMap.put(SEPARATE_PUBLISHER_CLIENT, mqttConfig.shouldUseSeparatePublisherClient());
+        return defaultMap;
     }
 
     /**
@@ -91,7 +97,7 @@ public final class MqttSpecificConfig {
      * @return whether reconnect-for-redelivery behavior is activated.
      */
     public boolean reconnectForRedelivery() {
-        return getSafely(() -> specificConfig.getBoolean(RECONNECT_FOR_REDELIVERY), DEFAULT_RECONNECT_FOR_REDELIVERY);
+        return specificConfig.getBoolean(RECONNECT_FOR_REDELIVERY);
     }
 
     /**
@@ -99,7 +105,7 @@ public final class MqttSpecificConfig {
      * does not disrupt the publisher.
      */
     public boolean separatePublisherClient() {
-        return getSafely(() -> specificConfig.getBoolean(SEPARATE_PUBLISHER_CLIENT), DEFAULT_RECONNECT_FOR_REDELIVERY);
+        return specificConfig.getBoolean(SEPARATE_PUBLISHER_CLIENT);
     }
 
     /**
@@ -190,6 +196,7 @@ public final class MqttSpecificConfig {
             return Optional.empty();
         }
     }
+
     private Optional<Duration> getDurationOptional(final String key) {
         if (specificConfig.hasPath(key)) {
             return Optional.of(specificConfig.getDuration(key));
@@ -205,4 +212,5 @@ public final class MqttSpecificConfig {
             return defaultValue;
         }
     }
+
 }

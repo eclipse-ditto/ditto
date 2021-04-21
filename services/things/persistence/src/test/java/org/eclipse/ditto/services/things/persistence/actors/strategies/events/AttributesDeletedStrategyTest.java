@@ -34,13 +34,14 @@ public final class AttributesDeletedStrategyTest extends AbstractStrategyTest {
     @Test
     public void appliesEventCorrectly() {
         final AttributesDeletedStrategy strategy = new AttributesDeletedStrategy();
-        final AttributesDeleted event = AttributesDeleted.of(THING_ID, REVISION, DittoHeaders.empty());
+        final AttributesDeleted event = AttributesDeleted.of(THING_ID, REVISION, TIMESTAMP, DittoHeaders.empty(), null);
 
         final Thing thingWithAttributes = THING.toBuilder().setAttributes(ATTRIBUTES).build();
         final Thing thingWithEventApplied = strategy.handle(event, thingWithAttributes, NEXT_REVISION);
 
         final Thing expected = THING.toBuilder()
                 .setRevision(NEXT_REVISION)
+                .setModified(TIMESTAMP)
                 .build();
         assertThat(thingWithEventApplied).isEqualTo(expected);
     }

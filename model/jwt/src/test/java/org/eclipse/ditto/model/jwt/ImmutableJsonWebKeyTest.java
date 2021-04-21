@@ -24,13 +24,11 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public class ImmutableJsonWebKeyTest {
 
-    /** */
     @Test
     public void assertImmutability() {
         assertInstancesOf(ImmutableJsonWebKey.class, areImmutable());
     }
 
-    /** */
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ImmutableJsonWebKey.class).verify();

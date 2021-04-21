@@ -22,7 +22,9 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.models.streaming.LowerBound;
 import org.eclipse.ditto.services.models.streaming.StreamedSnapshot;
 import org.eclipse.ditto.services.models.streaming.SudoStreamSnapshots;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
@@ -40,6 +42,7 @@ import akka.stream.javadsl.Source;
  */
 final class ThingsMetadataSource {
 
+    private static final ThingId EMPTY_THING_ID = ThingId.of(LowerBound.emptyEntityId(ThingConstants.ENTITY_TYPE));
     private static final String REVISION = "_revision";
     private static final String POLICY_ID = "policyId";
     private static final String MODIFIED = "_modified";
@@ -76,15 +79,17 @@ final class ThingsMetadataSource {
 
     private Object getStartStreamCommand(final ThingId lowerBound) {
         final SudoStreamSnapshots commandWithoutLowerBound =
-                SudoStreamSnapshots.of(burst, idleTimeout.toMillis(), SNAPSHOT_FIELDS, DittoHeaders.empty());
+                SudoStreamSnapshots.of(burst, idleTimeout.toMillis(), SNAPSHOT_FIELDS, DittoHeaders.empty(),
+                        ThingConstants.ENTITY_TYPE);
         final SudoStreamSnapshots command =
-                lowerBound.isDummy() ? commandWithoutLowerBound : commandWithoutLowerBound.withLowerBound(lowerBound);
+                lowerBound.equals(EMPTY_THING_ID) ? commandWithoutLowerBound :
+                        commandWithoutLowerBound.withLowerBound(lowerBound);
         return DistPubSubAccess.send(ThingsMessagingConstants.THINGS_SNAPSHOT_STREAMING_ACTOR_PATH, command);
     }
 
     private Source<SourceRef<?>, NotUsed> requestStream(final ThingId lowerBound) {
         final Object startStreamCommand = getStartStreamCommand(lowerBound);
-        return Source.fromCompletionStage(Patterns.ask(pubSubMediator, startStreamCommand, idleTimeout))
+        return Source.completionStage(Patterns.ask(pubSubMediator, startStreamCommand, idleTimeout))
                 .flatMapConcat(response -> {
                     if (response instanceof SourceRef<?>) {
                         return Source.single((SourceRef<?>) response);

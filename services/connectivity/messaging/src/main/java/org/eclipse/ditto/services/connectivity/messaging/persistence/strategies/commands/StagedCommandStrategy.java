@@ -12,10 +12,13 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.persistence.strategies.commands;
 
+import java.text.MessageFormat;
+
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectivityInternalErrorException;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionState;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.StagedCommand;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
@@ -39,6 +42,12 @@ final class StagedCommandStrategy extends AbstractConnectivityCommandStrategy<St
             final StagedCommand command,
             @Nullable final Metadata metadata) {
 
-        return ResultFactory.newMutationResult(command, command.getEvent(), command.getResponse());
+        return command.getEvent().<Result<ConnectivityEvent<?>>>map(
+                connectivityEvent -> ResultFactory.newMutationResult(command, connectivityEvent, command.getResponse()))
+                .orElseGet(() -> ResultFactory.newErrorResult(ConnectivityInternalErrorException.newBuilder()
+                        .message(MessageFormat.format("Staged command <{0}> did not contain required event.", command))
+                        .description("This is an internal error. Please contact the service team.")
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build(), command));
     }
 }

@@ -44,7 +44,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * @since 1.5.0
  */
 @Immutable
-@JsonParsableEvent(name = FeatureDesiredPropertyModified.NAME, typePrefix = FeatureDesiredPropertyModified.TYPE_PREFIX)
+@JsonParsableEvent(name = FeatureDesiredPropertyModified.NAME, typePrefix = ThingEvent.TYPE_PREFIX)
 public final class FeatureDesiredPropertyModified extends AbstractThingEvent<FeatureDesiredPropertyModified> implements
         ThingModifiedEvent<FeatureDesiredPropertyModified>, WithFeatureId {
 
@@ -139,9 +139,9 @@ public final class FeatureDesiredPropertyModified extends AbstractThingEvent<Fea
             final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<FeatureDesiredPropertyModified>(TYPE, jsonObject)
                 .deserialize((revision, timestamp, metadata) -> {
-                    final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+                    final String extractedThingId = jsonObject.getValueOrThrow(ThingEvent.JsonFields.THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
-                    final String extractedFeatureId = jsonObject.getValueOrThrow(JsonFields.FEATURE_ID);
+                    final String extractedFeatureId = jsonObject.getValueOrThrow(ThingEvent.JsonFields.FEATURE_ID);
                     final String pointerString = jsonObject.getValueOrThrow(JSON_DESIRED_PROPERTY);
                     final JsonPointer extractedPointer = JsonFactory.newPointer(pointerString);
                     final JsonValue extractedValue = jsonObject.getValueOrThrow(JSON_DESIRED_VALUE);
@@ -187,14 +187,14 @@ public final class FeatureDesiredPropertyModified extends AbstractThingEvent<Fea
 
     @Override
     public FeatureDesiredPropertyModified setRevision(final long revision) {
-        return of(getThingEntityId(), featureId, desiredPropertyPointer, desiredPropertyValue, revision,
+        return of(getEntityId(), featureId, desiredPropertyPointer, desiredPropertyValue, revision,
                 getTimestamp().orElse(null),
                 getDittoHeaders(), getMetadata().orElse(null));
     }
 
     @Override
     public FeatureDesiredPropertyModified setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), featureId, desiredPropertyPointer, desiredPropertyValue, getRevision(),
+        return of(getEntityId(), featureId, desiredPropertyPointer, desiredPropertyValue, getRevision(),
                 getTimestamp().orElse(null), dittoHeaders, getMetadata().orElse(null));
     }
 
@@ -203,7 +203,7 @@ public final class FeatureDesiredPropertyModified extends AbstractThingEvent<Fea
             final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(JsonFields.FEATURE_ID, featureId, predicate);
+        jsonObjectBuilder.set(ThingEvent.JsonFields.FEATURE_ID, featureId, predicate);
         jsonObjectBuilder.set(JSON_DESIRED_PROPERTY, desiredPropertyPointer.toString(), predicate);
         jsonObjectBuilder.set(JSON_DESIRED_VALUE, desiredPropertyValue, predicate);
     }

@@ -22,8 +22,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -35,6 +35,9 @@ public final class ConnectionClosedTest {
 
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(Event.JsonFields.TYPE, ConnectionClosed.TYPE)
+            .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
+            .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
+            .set(EventsourcedEvent.JsonFields.REVISION, TestConstants.REVISION)
             .set(ConnectivityEvent.JsonFields.CONNECTION_ID, TestConstants.ID.toString())
             .build();
 
@@ -51,24 +54,18 @@ public final class ConnectionClosedTest {
     }
 
     @Test
-    public void createInstanceWithNullConnectionIdString() {
-        assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ConnectionClosed.of((String) null, DittoHeaders.empty()))
-                .withMessage("The connectionId must not be null!")
-                .withNoCause();
-    }
-
-    @Test
     public void createInstanceWithNullConnectionId() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ConnectionClosed.of((ConnectionId) null, DittoHeaders.empty()))
+                .isThrownBy(() -> ConnectionClosed.of(null, TestConstants.REVISION,
+                        TestConstants.TIMESTAMP, TestConstants.HEADERS, TestConstants.METADATA))
                 .withMessage("The %s must not be null!", "Connection ID")
                 .withNoCause();
     }
 
     @Test
     public void fromJsonReturnsExpected() {
-        final ConnectionClosed expected = ConnectionClosed.of(TestConstants.ID, DittoHeaders.empty());
+        final ConnectionClosed expected = ConnectionClosed.of(TestConstants.ID, TestConstants.REVISION,
+                TestConstants.TIMESTAMP, TestConstants.HEADERS, TestConstants.METADATA);
 
         final ConnectionClosed actual = ConnectionClosed.fromJson(KNOWN_JSON, DittoHeaders.empty());
 
@@ -77,7 +74,8 @@ public final class ConnectionClosedTest {
 
     @Test
     public void toJsonReturnsExpected() {
-        final JsonObject actual = ConnectionClosed.of(TestConstants.ID, DittoHeaders.empty()).toJson();
+        final JsonObject actual = ConnectionClosed.of(TestConstants.ID, TestConstants.REVISION,
+                TestConstants.TIMESTAMP, TestConstants.HEADERS, TestConstants.METADATA).toJson();
 
         assertThat(actual).isEqualTo(KNOWN_JSON);
     }
@@ -88,7 +86,8 @@ public final class ConnectionClosedTest {
         final JsonPointer expectedResourcePath = JsonFactory.emptyPointer();
 
         final ConnectionClosed underTest =
-                ConnectionClosed.of(TestConstants.ID, DittoHeaders.empty());
+                ConnectionClosed.of(TestConstants.ID, TestConstants.REVISION,
+                        TestConstants.TIMESTAMP, TestConstants.HEADERS, TestConstants.METADATA);
 
         DittoJsonAssertions.assertThat(underTest.getResourcePath()).isEqualTo(expectedResourcePath);
     }

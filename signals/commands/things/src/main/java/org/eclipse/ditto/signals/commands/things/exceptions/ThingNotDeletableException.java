@@ -27,7 +27,6 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingException;
 import org.eclipse.ditto.model.things.ThingId;
 
@@ -42,9 +41,6 @@ public final class ThingNotDeletableException extends DittoRuntimeException impl
      * Error code of this exception.
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "thing.notdeletable";
-
-    private static final String MESSAGE_TEMPLATE_V1 = "The Thing with ID ''{0}'' could not be deleted as the requester "
-            + "had insufficient permissions ( 'WRITE' and 'ADMINISTRATE' are required).";
 
     private static final String MESSAGE_TEMPLATE = "The Thing with ID ''{0}'' could not be deleted as the requester "
             + "had insufficient permissions ( 'WRITE' on root resource is required).";
@@ -119,7 +115,7 @@ public final class ThingNotDeletableException extends DittoRuntimeException impl
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<ThingNotDeletableException> {
 
-        private ThingId thingId;
+        @Nullable private ThingId thingId;
 
         private Builder() {
             description(DEFAULT_DESCRIPTION);
@@ -136,19 +132,11 @@ public final class ThingNotDeletableException extends DittoRuntimeException impl
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-            final JsonSchemaVersion schemaVersion =
-                    checkNotNull(dittoHeaders, "command headers").getSchemaVersion().orElse(JsonSchemaVersion.LATEST);
 
             if (message == null) {
-                if (schemaVersion.equals(JsonSchemaVersion.V_1)) {
-                    return new ThingNotDeletableException(dittoHeaders,
-                            MessageFormat.format(MESSAGE_TEMPLATE_V1, String.valueOf(thingId)),
-                            description, cause, href);
-                } else {
-                    return new ThingNotDeletableException(dittoHeaders,
-                            MessageFormat.format(MESSAGE_TEMPLATE, String.valueOf(thingId)),
-                            description, cause, href);
-                }
+                return new ThingNotDeletableException(dittoHeaders,
+                        MessageFormat.format(MESSAGE_TEMPLATE, String.valueOf(thingId)),
+                        description, cause, href);
             }
 
             return new ThingNotDeletableException(dittoHeaders, message, description, cause, href);

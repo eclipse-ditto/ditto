@@ -18,6 +18,7 @@ import java.util.Set;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
@@ -101,28 +102,20 @@ public final class DittoHeadersAssert extends AbstractJsonifiableAssert<DittoHea
         return myself;
     }
 
-    /**
-     * @deprecated as of 1.1.0 {@link DittoHeaders#getReadSubjects()} is deprecated.
-     */
-    @Deprecated
-    public DittoHeadersAssert hasReadSubject(final String expectedReadSubject,
-            final String... furtherExpectedReadSubjects) {
+    public DittoHeadersAssert hasReadGrantedSubject(final AuthorizationSubject expectedReadSubject,
+            final AuthorizationSubject... furtherExpectedReadSubjects) {
 
         isNotNull();
-        final Set<String> actualReadSubjects = actual.getReadSubjects();
+        final Set<AuthorizationSubject> actualReadSubjects = actual.getReadGrantedSubjects();
         Assertions.assertThat(actualReadSubjects)
                 .contains(expectedReadSubject)
                 .contains(furtherExpectedReadSubjects);
         return myself;
     }
 
-    /**
-     * @deprecated as of 1.1.0 {@link DittoHeaders#getReadSubjects()} is deprecated.
-     */
-    @Deprecated
-    public DittoHeadersAssert hasNoReadSubjects() {
+    public DittoHeadersAssert hasNoReadGrantedSubjects() {
         isNotNull();
-        final Set<String> actualReadSubjects = actual.getReadSubjects();
+        final Set<AuthorizationSubject> actualReadSubjects = actual.getReadGrantedSubjects();
         Assertions.assertThat(actualReadSubjects)
                 .overridingErrorMessage("Expected DittoHeaders not to have read subjects but it had <%s>",
                         actualReadSubjects)

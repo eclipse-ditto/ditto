@@ -44,6 +44,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.announcements.policies.SubjectDeletionAnnouncement;
@@ -83,8 +84,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
     @Before
     public void setUp() {
         underTest = DittoProtocolAdapter.newInstance();
-        dittoRuntimeException = DittoRuntimeException
-                .newBuilder("error.code", HttpStatus.BAD_REQUEST)
+        dittoRuntimeException = ThingIdInvalidException.newBuilder("invalid")
                 .message("the error message")
                 .description("the error description")
                 .build();
@@ -173,8 +173,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
-        final ThingModifyCommand actualCommand = (ThingModifyCommand) underTest.fromAdaptable(adaptable);
-
+        final ThingModifyCommand<?> actualCommand = (ThingModifyCommand<?>) underTest.fromAdaptable(adaptable);
         assertWithExternalHeadersThat(actualCommand).isEqualTo(modifyThing);
     }
 
@@ -200,8 +199,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
-        final ThingModifyCommand actualCommand = (ThingModifyCommand) underTest.fromAdaptable(adaptable);
-
+        final ThingModifyCommand<?> actualCommand = (ThingModifyCommand<?>) underTest.fromAdaptable(adaptable);
         assertWithExternalHeadersThat(actualCommand).isEqualTo(modifyThing);
     }
 
@@ -220,8 +218,8 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                 .build();
         final JsonPointer path = JsonPointer.empty();
 
-        final ThingModifyCommandResponse actualCommandResponseCreated =
-                (ThingModifyCommandResponse) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)
+        final ThingModifyCommandResponse<?> actualCommandResponseCreated =
+                (ThingModifyCommandResponse<?>) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)
                         .withPayload(Payload.newBuilder(path)
                                 .withStatus(HttpStatus.CREATED)
                                 .withValue(TestConstants.THING.toJson(FieldType.regularOrSpecial()))
@@ -231,8 +229,8 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
 
         assertWithExternalHeadersThat(actualCommandResponseCreated).isEqualTo(modifyThingResponseCreated);
 
-        final ThingModifyCommandResponse actualCommandResponseModified =
-                (ThingModifyCommandResponse) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)
+        final ThingModifyCommandResponse<?> actualCommandResponseModified =
+                (ThingModifyCommandResponse<?>) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)
                         .withPayload(Payload.newBuilder(path)
                                 .withStatus(HttpStatus.NO_CONTENT)
                                 .build())
@@ -254,8 +252,8 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                 .build();
         final JsonPointer path = JsonPointer.empty();
 
-        final ThingQueryCommand actualCommand =
-                (ThingQueryCommand) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)
+        final ThingQueryCommand<?> actualCommand =
+                (ThingQueryCommand<?>) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)
                         .withPayload(Payload.newBuilder(path)
                                 .build())
                         .withHeaders(TestConstants.HEADERS_V_2)
@@ -268,8 +266,8 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                 .withSelectedFields(selectedFields)
                 .build();
 
-        final ThingQueryCommand actualCommandWithFields =
-                (ThingQueryCommand) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)
+        final ThingQueryCommand<?> actualCommandWithFields =
+                (ThingQueryCommand<?>) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)
                         .withPayload(Payload.newBuilder(path)
                                 .withFields(selectedFields)
                                 .build())
@@ -293,8 +291,8 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                 .build();
         final JsonPointer path = JsonPointer.empty();
 
-        final ThingQueryCommand actualCommand =
-                (ThingQueryCommand) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)
+        final ThingQueryCommand<?> actualCommand =
+                (ThingQueryCommand<?>) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)
                         .withPayload(Payload.newBuilder(path)
                                 .build())
                         .withHeaders(TestConstants.HEADERS_V_2)
@@ -329,8 +327,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
-        final ThingQueryCommandResponse actual = (ThingQueryCommandResponse) underTest.fromAdaptable(adaptable);
-
+        final ThingQueryCommandResponse<?> actual = (ThingQueryCommandResponse<?>) underTest.fromAdaptable(adaptable);
         assertWithExternalHeadersThat(actual).isEqualTo(retrieveThingResponse);
     }
 
@@ -347,8 +344,8 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                 .subscribe()
                 .build();
 
-        final ThingSearchCommand actualCommand =
-                (ThingSearchCommand) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)
+        final ThingSearchCommand<?> actualCommand =
+                (ThingSearchCommand<?>) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)
                         .withPayload(Payload.newBuilder().build())
                         .withHeaders(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE)
                         .build());
@@ -360,8 +357,8 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                 CreateSubscription.of(null, null, selectedFields, Collections.emptySet(),
                         DITTO_HEADERS_V_2);
 
-        final ThingSearchCommand actualCommandWithFields =
-                (ThingSearchCommand) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)
+        final ThingSearchCommand<?> actualCommandWithFields =
+                (ThingSearchCommand<?>) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)
                         .withPayload(Payload.newBuilder()
                                 .withFields(selectedFields)
                                 .build())
@@ -391,7 +388,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                         .build())
                 .withHeaders(DITTO_HEADERS_V_2_NO_STATUS)
                 .build();
-        final SubscriptionEvent actual = (SubscriptionEvent) underTest.fromAdaptable(adaptable);
+        final SubscriptionEvent<?> actual = (SubscriptionEvent<?>) underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
 
@@ -400,7 +397,8 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
     @Test
     public void thingEventFromAdaptable() {
         final ThingModified expected =
-                ThingModified.of(TestConstants.THING, TestConstants.REVISION, DITTO_HEADERS_V_2);
+                ThingModified.of(TestConstants.THING, TestConstants.REVISION, TestConstants.TIMESTAMP, DITTO_HEADERS_V_2,
+                        TestConstants.METADATA);
 
         final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
                 .things()
@@ -414,10 +412,12 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.THING.toJson(FieldType.regularOrSpecial()))
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingEvent actual = (ThingEvent) underTest.fromAdaptable(adaptable);
+        final ThingEvent<?> actual = (ThingEvent<?>) underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -464,7 +464,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
         final TopicPath topicPath = ProtocolFactory.newTopicPath(topicPathString);
 
         assertThat(topicPath.getSubject()).contains(subject);
-        assertThat(topicPath.getId()).isEqualTo(thingId);
+        assertThat(topicPath.getEntityName()).isEqualTo(thingId);
     }
 
     @Test

@@ -17,8 +17,6 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.services.utils.pubsub.actors.AckUpdater;
-
 import akka.actor.ActorRef;
 
 /**

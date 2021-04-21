@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.api;
 
-import org.eclipse.ditto.services.utils.pubsub.actors.AckUpdater;
-
 import akka.actor.ActorRef;
 
 /**

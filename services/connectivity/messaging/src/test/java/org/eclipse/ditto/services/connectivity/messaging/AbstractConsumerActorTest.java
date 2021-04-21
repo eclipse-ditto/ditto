@@ -17,6 +17,7 @@ import static org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel.TWIN_P
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.MODIFY_THING_WITH_ACK;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.header;
+import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -41,12 +42,12 @@ import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
-import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor.PublishMappedMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+import org.eclipse.ditto.services.models.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
@@ -118,14 +119,14 @@ public abstract class AbstractConsumerActorTest<M> {
 
     @Test
     public void testInboundMessageWitMultipleMappingsSucceeds() {
-        testInboundMessage(header("device_id", TestConstants.Things.THING_ID), 2, 0, s -> {}, o -> {},
-                ConnectivityModelFactory.newPayloadMapping("ditto", "ditto"));
+        testInboundMessage(header("device_id", TestConstants.Things.THING_ID), 2, 0,
+                s -> {}, o -> {}, ConnectivityModelFactory.newPayloadMapping("ditto", "ditto"));
     }
 
     @Test
     public void testPositiveSourceAcknowledgementSettlement() throws Exception {
         testSourceAcknowledgementSettlement(true, true, modifyThing ->
-                        ModifyThingResponse.modified(modifyThing.getThingEntityId(), modifyThing.getDittoHeaders()),
+                        ModifyThingResponse.modified(modifyThing.getEntityId(), modifyThing.getDittoHeaders()),
                 MODIFY_THING_WITH_ACK, publishMappedMessage ->
                         assertThat(publishMappedMessage.getOutboundSignal()
                                 .first()
@@ -142,7 +143,7 @@ public abstract class AbstractConsumerActorTest<M> {
     @Test
     public void testNegativeSourceAcknowledgementSettlementDueToError() throws Exception {
         testSourceAcknowledgementSettlement(false, false, modifyThing ->
-                ThingNotAccessibleException.newBuilder(modifyThing.getThingEntityId())
+                ThingNotAccessibleException.newBuilder(modifyThing.getEntityId())
                         .dittoHeaders(modifyThing.getDittoHeaders())
                         .build(), MODIFY_THING_WITH_ACK, publishMappedMessage ->
                 assertThat(publishMappedMessage.getOutboundSignal()
@@ -160,7 +161,7 @@ public abstract class AbstractConsumerActorTest<M> {
     @Test
     public void testNegativeSourceAcknowledgementSettlementDueToNAck() throws Exception {
         testSourceAcknowledgementSettlement(false, false, modifyThing ->
-                        Acknowledgement.of(AcknowledgementLabel.of("twin-persisted"), modifyThing.getThingEntityId(),
+                        Acknowledgement.of(AcknowledgementLabel.of("twin-persisted"), modifyThing.getEntityId(),
                                 HttpStatus.BAD_REQUEST, modifyThing.getDittoHeaders()),
                 MODIFY_THING_WITH_ACK,
                 publishMappedMessage -> {}
@@ -188,7 +189,7 @@ public abstract class AbstractConsumerActorTest<M> {
     @Test
     public void testNegativeSourceAcknowledgementSettlementDueToServerError() throws Exception {
         testSourceAcknowledgementSettlement(false, true, modifyThing ->
-                        ThingUnavailableException.newBuilder(modifyThing.getThingEntityId())
+                        ThingUnavailableException.newBuilder(modifyThing.getEntityId())
                                 .dittoHeaders(modifyThing.getDittoHeaders())
                                 .build(), MODIFY_THING_WITH_ACK,
                 publishMappedMessage -> assertThat(publishMappedMessage.getOutboundSignal()
@@ -222,7 +223,7 @@ public abstract class AbstractConsumerActorTest<M> {
                     sender.ref());
 
             final ModifyThing modifyThing = concierge.expectMsgClass(ModifyThing.class);
-            assertThat((CharSequence) modifyThing.getThingEntityId()).isEqualTo(TestConstants.Things.THING_ID);
+            assertThat((CharSequence) modifyThing.getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
             concierge.reply(responseCreator.apply(modifyThing));
 
             messageConsumer.accept(clientActor.expectMsgClass(PublishMappedMessage.class));
@@ -232,14 +233,14 @@ public abstract class AbstractConsumerActorTest<M> {
 
     @Test
     public void testInboundMessageWithMultipleMappingsOneFailingSucceeds() {
-        testInboundMessage(header("device_id", TestConstants.Things.THING_ID), 1, 1, s -> {}, o -> {},
-                ConnectivityModelFactory.newPayloadMapping("faulty", "ditto"));
+        testInboundMessage(header("device_id", TestConstants.Things.THING_ID), 1, 1,
+                s -> {}, o -> {}, ConnectivityModelFactory.newPayloadMapping("faulty", "ditto"));
     }
 
     @Test
     public void testInboundMessageWithDuplicatingMapperSucceeds() {
-        testInboundMessage(header("device_id", TestConstants.Things.THING_ID), 3, 0, s -> {}, o -> {},
-                ConnectivityModelFactory.newPayloadMapping("duplicator", "ditto"));
+        testInboundMessage(header("device_id", TestConstants.Things.THING_ID), 3, 0,
+                s -> {}, o -> {}, ConnectivityModelFactory.newPayloadMapping("duplicator", "ditto"));
     }
 
     @Test
@@ -315,7 +316,6 @@ public abstract class AbstractConsumerActorTest<M> {
             final Consumer<OutboundSignal.Mapped> verifyResponse,
             final PayloadMapping payloadMapping
     ) {
-
         new TestKit(actorSystem) {{
             final TestProbe sender = TestProbe.apply(actorSystem);
             final TestProbe proxyActor = TestProbe.apply(actorSystem);
@@ -330,7 +330,7 @@ public abstract class AbstractConsumerActorTest<M> {
             if (forwardedToConcierge >= 0) {
                 for (int i = 0; i < forwardedToConcierge; i++) {
                     final ModifyThing modifyThing = proxyActor.expectMsgClass(ModifyThing.class);
-                    assertThat((CharSequence) modifyThing.getThingEntityId()).isEqualTo(TestConstants.Things.THING_ID);
+                    assertThat((CharSequence) modifyThing.getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
                     verifySignal.accept(modifyThing);
                 }
             } else {
@@ -350,7 +350,6 @@ public abstract class AbstractConsumerActorTest<M> {
     }
 
     private ActorRef setupMessageMappingProcessorActor(final ActorRef clientActor, final ActorRef proxyActor) {
-
         final Map<String, MappingContext> mappings = new HashMap<>();
         mappings.put("ditto", DittoMessageMapper.CONTEXT);
         mappings.put("faulty", FaultyMessageMapper.CONTEXT);
@@ -361,13 +360,13 @@ public abstract class AbstractConsumerActorTest<M> {
 
         final ConnectivityConfig connectivityConfig = TestConstants.CONNECTIVITY_CONFIG;
         final ThreadSafeDittoLoggingAdapter logger = Mockito.mock(ThreadSafeDittoLoggingAdapter.class);
-        Mockito.when(logger.withMdcEntry(Mockito.any(CharSequence.class), Mockito.nullable(CharSequence.class)))
+        when(logger.withMdcEntry(Mockito.any(CharSequence.class), Mockito.nullable(CharSequence.class)))
                 .thenReturn(logger);
-        Mockito.when(logger.withCorrelationId(Mockito.any(DittoHeaders.class)))
+        when(logger.withCorrelationId(Mockito.any(DittoHeaders.class)))
                 .thenReturn(logger);
-        Mockito.when(logger.withCorrelationId(Mockito.nullable(CharSequence.class)))
+        when(logger.withCorrelationId(Mockito.nullable(CharSequence.class)))
                 .thenReturn(logger);
-        Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
+        when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
                 .thenReturn(logger);
         final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
         final InboundMappingProcessor inboundMappingProcessor = InboundMappingProcessor.of(CONNECTION_ID,

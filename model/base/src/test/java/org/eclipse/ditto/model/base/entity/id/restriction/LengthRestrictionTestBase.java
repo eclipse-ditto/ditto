@@ -19,27 +19,27 @@ public abstract class LengthRestrictionTestBase {
 
     protected static final int MAX_LENGTH = 256;
 
-    public String generateStringExceedingMaxLength() {
+    public static String generateStringExceedingMaxLength() {
         return generateStringExceedingMaxLength("");
     }
 
-    public String generateStringExceedingMaxLength(final String prefix) {
+    public static String generateStringExceedingMaxLength(final String prefix) {
         return generateStringWithLength(MAX_LENGTH + 1, prefix);
     }
 
-    public String generateStringWithMaxLength() {
+    public static String generateStringWithMaxLength() {
         return generateStringWithMaxLength("");
     }
 
-    public String generateStringWithMaxLength(final String prefix) {
+    public static String generateStringWithMaxLength(final String prefix) {
         return generateStringWithLength(MAX_LENGTH, prefix);
     }
 
-    public String generateStringWithLength(final int length) {
+    public static String generateStringWithLength(final int length) {
         return generateStringWithLength(length, "");
     }
 
-    public String generateStringWithLength(final int length, final String prefix) {
+    public static String generateStringWithLength(final int length, final String prefix) {
         final StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append(prefix);
         for (int i = 0; i < (length - prefix.length()); i++) {

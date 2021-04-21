@@ -21,7 +21,7 @@ import akka.actor.ActorRef;
  *
  * @param <T> type of message.
  */
-public interface WithSender<T extends WithDittoHeaders> {
+public interface WithSender<T> {
 
     /**
      * @return the message.
@@ -37,10 +37,9 @@ public interface WithSender<T extends WithDittoHeaders> {
      * Replace the message.
      *
      * @param newMessage the new message.
-     * @param <S> type of the new message.
      * @return copy of this object with message replaced.
      */
-    <S extends WithDittoHeaders> WithSender<S> withMessage(S newMessage);
+    WithSender<T> withMessage(T newMessage);
 
     /**
      * Create a message with sender.

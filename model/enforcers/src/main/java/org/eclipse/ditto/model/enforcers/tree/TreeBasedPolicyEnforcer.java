@@ -39,7 +39,6 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.enforcers.EffectedSubjectIds;
 import org.eclipse.ditto.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
@@ -188,16 +187,6 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
     }
 
     @Override
-    public EffectedSubjectIds getSubjectIdsWithPermission(final ResourceKey resourceKey,
-            final Permissions permissions) {
-
-        checkResourceKey(resourceKey);
-        checkPermissions(permissions);
-        final JsonPointer resourcePointer = createAbsoluteResourcePointer(resourceKey);
-        return visitTree(new CollectEffectedSubjectIdsVisitor(resourcePointer, permissions));
-    }
-
-    @Override
     public EffectedSubjects getSubjectsWithPermission(final ResourceKey resourceKey, final Permissions permissions) {
         checkResourceKey(resourceKey);
         checkPermissions(permissions);
@@ -207,16 +196,6 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
 
     private static void checkResourceKey(final ResourceKey resourceKey) {
         checkNotNull(resourceKey, "resource key");
-    }
-
-    @Override
-    public Set<String> getSubjectIdsWithPartialPermission(final ResourceKey resourceKey,
-            final Permissions permissions) {
-
-        checkResourceKey(resourceKey);
-        checkPermissions(permissions);
-        final JsonPointer resourcePointer = createAbsoluteResourcePointer(resourceKey);
-        return visitTree(new CollectPartialGrantedSubjectIdsVisitor(resourcePointer, permissions));
     }
 
     @Override

@@ -33,7 +33,6 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.entity.type.WithEntityType;
@@ -108,7 +107,7 @@ public final class PurgeEntities extends CommonCommand<PurgeEntities> implements
             final EntityType entityType = EntityType.of(jsonObject.getValueOrThrow(JsonFields.ENTITY_TYPE));
             final List<EntityId> entityIds = jsonObject.getValueOrThrow(JsonFields.ENTITY_IDS).stream()
                     .map(JsonValue::asString)
-                    .map(DefaultEntityId::of)
+                    .map(entityId -> EntityId.of(entityType, entityId))
                     .collect(Collectors.toList());
 
             return of(entityType, entityIds, dittoHeaders);
@@ -192,13 +191,13 @@ public final class PurgeEntities extends CommonCommand<PurgeEntities> implements
          */
         public static final JsonFieldDefinition<String> ENTITY_TYPE =
                 JsonFactory.newStringFieldDefinition("entityType",
-                        FieldType.REGULAR, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        FieldType.REGULAR, JsonSchemaVersion.V_2);
         /**
          * The entityIDs.
          */
         public static final JsonFieldDefinition<JsonArray> ENTITY_IDS =
                 JsonFactory.newJsonArrayFieldDefinition("entityIds",
-                        FieldType.REGULAR, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     }
 

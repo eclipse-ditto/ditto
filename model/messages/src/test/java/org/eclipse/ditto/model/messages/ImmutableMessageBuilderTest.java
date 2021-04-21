@@ -41,7 +41,7 @@ public final class ImmutableMessageBuilderTest {
         final Message<?> message = ImmutableMessageBuilder.newInstance(messageHeaders).build();
 
         assertThat(message.getDirection()).isEqualTo(MessageDirection.TO);
-        assertThat((CharSequence) message.getThingEntityId()).isEqualTo(KNOWN_THING_ID);
+        assertThat((CharSequence) message.getEntityId()).isEqualTo(KNOWN_THING_ID);
         assertThat(message.getSubject()).isEqualTo(KNOWN_SUBJECT);
         assertThat(message.getFeatureId()).isEmpty();
         assertThat(message.getPayload()).isEmpty();
@@ -63,7 +63,7 @@ public final class ImmutableMessageBuilderTest {
                 .build();
 
         assertThat(message.getDirection()).isEqualTo(MessageDirection.FROM);
-        assertThat((CharSequence) message.getThingEntityId()).isEqualTo(KNOWN_THING_ID);
+        assertThat((CharSequence) message.getEntityId()).isEqualTo(KNOWN_THING_ID);
         assertThat(message.getSubject()).isEqualTo(KNOWN_SUBJECT);
         assertThat(message.getFeatureId()).hasValue(KNOWN_FEATURE_ID);
         assertThat(message.getPayload()).hasValue(KNOWN_STRING_PAYLOAD);

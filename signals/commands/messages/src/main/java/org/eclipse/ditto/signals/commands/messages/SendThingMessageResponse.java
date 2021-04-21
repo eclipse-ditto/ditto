@@ -17,7 +17,6 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.messages.Message;
@@ -52,47 +51,7 @@ public final class SendThingMessageResponse<T> extends AbstractMessageCommandRes
 
     @Override
     public SendThingMessageResponse<T> setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), getMessage(), getHttpStatus(), dittoHeaders);
-    }
-
-    /**
-     * Creates a new instance of {@code SendThingMessageResponse}.
-     *
-     * @param thingId the ID of the Thing to send the message from.
-     * @param message the response message to send from the Thing.
-     * @param responseStatusCode the optional status code of this response.
-     * @param dittoHeaders the DittoHeaders of this message.
-     * @param <T> the type of the message's payload.
-     * @return new instance of {@code SendThingMessageResponse}.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Thing ID is now typed. Use {@link #of(ThingId, Message, HttpStatus, DittoHeaders)} instead.
-     */
-    @Deprecated
-    public static <T> SendThingMessageResponse<T> of(final String thingId,
-            final Message<T> message,
-            final HttpStatusCode responseStatusCode,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), message, responseStatusCode.getAsHttpStatus(), dittoHeaders);
-    }
-
-    /**
-     * Creates a new instance of {@code SendThingMessageResponse}.
-     *
-     * @param thingId the ID of the Thing to send the message from.
-     * @param message the response message to send from the Thing.
-     * @param responseStatusCode the optional status code of this response.
-     * @param dittoHeaders the DittoHeaders of this message.
-     * @param <T> the type of the message's payload.
-     * @return new instance of {@code SendThingMessageResponse}.
-     * @throws NullPointerException if any argument is {@code null}.
-     */
-    public static <T> SendThingMessageResponse<T> of(final ThingId thingId,
-            final Message<T> message,
-            final HttpStatusCode responseStatusCode,
-            final DittoHeaders dittoHeaders) {
-
-        return of(thingId, message, responseStatusCode.getAsHttpStatus(), dittoHeaders);
+        return of(getEntityId(), getMessage(), getHttpStatus(), dittoHeaders);
     }
 
     /**

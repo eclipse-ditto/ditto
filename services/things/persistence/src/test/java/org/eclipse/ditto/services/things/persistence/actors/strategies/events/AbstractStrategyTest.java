@@ -12,19 +12,17 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.events;
 
+import java.time.Instant;
+
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.things.AccessControlList;
-import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
-import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingDefinition;
 import org.eclipse.ditto.model.things.ThingId;
@@ -46,22 +44,6 @@ abstract class AbstractStrategyTest {
     static final Thing THING = Thing.newBuilder()
             .setId(THING_ID)
             .build();
-
-    /**
-     * An authorization subject for testing.
-     */
-    static final AuthorizationSubject AUTHORIZATION_SUBJECT = AuthorizationSubject.newInstance("ditto:subject");
-
-    /**
-     * An ACL entry for testing.
-     */
-    static final AclEntry ACL_ENTRY = AclEntry.newInstance(AUTHORIZATION_SUBJECT,
-            Permission.READ, Permission.WRITE, Permission.ADMINISTRATE);
-
-    /**
-     * An ACL for testing.
-     */
-    static final AccessControlList ACL = AccessControlList.newBuilder().set(ACL_ENTRY).build();
 
     /**
      * An attribute pointer for testing.
@@ -152,6 +134,12 @@ abstract class AbstractStrategyTest {
      * Revision of a Thing.
      */
     static final long REVISION = 0;
+
+    static final Instant TIMESTAMP = Instant.EPOCH;
+
+    static final Metadata METADATA = Metadata.newBuilder()
+            .set("creator", "The epic Ditto team")
+            .build();
 
     /**
      * Incremented revision of a Thing.

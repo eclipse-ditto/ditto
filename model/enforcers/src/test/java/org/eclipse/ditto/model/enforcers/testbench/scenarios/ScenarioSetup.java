@@ -20,6 +20,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.enforcers.testbench.algorithms.PolicyAlgorithm;
 import org.eclipse.ditto.model.policies.Permissions;
@@ -36,7 +37,7 @@ public final class ScenarioSetup {
     private final boolean expectedResult;
     private final Jsonifiable.WithFieldSelectorAndPredicate<JsonField> fullJsonifiable;
     private final JsonObject expectedJsonView;
-    private final Set<String> expectedSubjectIds;
+    private final Set<AuthorizationSubject> expectedSubjects;
     private final String description;
     private final Function<PolicyAlgorithm, Boolean> additionalAlgorithmFunction;
 
@@ -47,10 +48,10 @@ public final class ScenarioSetup {
             final Permissions requiredPermissions,
             final boolean expectedResult,
             final String description,
-            final Set<String> expectedSubjectIds) {
+            final Set<AuthorizationSubject> expectedSubjects) {
 
         this(policy, authorizationContext, resource, type, requiredPermissions, expectedResult, null, null, description,
-                expectedSubjectIds, null);
+                expectedSubjects, null);
     }
 
     public ScenarioSetup(final Policy policy,
@@ -60,11 +61,11 @@ public final class ScenarioSetup {
             final Permissions requiredPermissions,
             final boolean expectedResult,
             final String description,
-            final Set<String> excpectedSubjectIds,
+            final Set<AuthorizationSubject> expectedSubjects,
             final Function<PolicyAlgorithm, Boolean> additionalAlgorithmFunction) {
 
         this(policy, authorizationContext, resource, type, requiredPermissions, expectedResult, null, null, description,
-                excpectedSubjectIds, additionalAlgorithmFunction);
+                expectedSubjects, additionalAlgorithmFunction);
     }
 
     public ScenarioSetup(final Policy policy,
@@ -76,10 +77,10 @@ public final class ScenarioSetup {
             final Jsonifiable.WithFieldSelectorAndPredicate<JsonField> fullJsonifiable,
             final JsonObject expectedJsonView,
             final String description,
-            final Set<String> excpectedSubjectIds) {
+            final Set<AuthorizationSubject> expectedSubjects) {
 
         this(policy, authorizationContext, resource, type, requiredPermissions, expectedResult, fullJsonifiable,
-                expectedJsonView, description, excpectedSubjectIds, null);
+                expectedJsonView, description, expectedSubjects, null);
     }
 
     public ScenarioSetup(final Policy policy,
@@ -91,7 +92,7 @@ public final class ScenarioSetup {
             final Jsonifiable.WithFieldSelectorAndPredicate<JsonField> fullJsonifiable,
             final JsonObject expectedJsonView,
             final String description,
-            final Set<String> expectedSubjectIds,
+            final Set<AuthorizationSubject> expectedSubjects,
             final Function<PolicyAlgorithm, Boolean> additionalAlgorithmFunction) {
 
         this.policy = policy;
@@ -102,7 +103,7 @@ public final class ScenarioSetup {
         this.fullJsonifiable = fullJsonifiable;
         this.description = description;
         this.expectedJsonView = expectedJsonView;
-        this.expectedSubjectIds = expectedSubjectIds;
+        this.expectedSubjects = expectedSubjects;
         this.type = type;
         this.additionalAlgorithmFunction = additionalAlgorithmFunction;
     }
@@ -131,8 +132,8 @@ public final class ScenarioSetup {
         return Optional.ofNullable(fullJsonifiable);
     }
 
-    public Optional<Set<String>> getExpectedSubjectIds() {
-        return Optional.ofNullable(expectedSubjectIds);
+    public Optional<Set<AuthorizationSubject>> getExpectedSubjects() {
+        return Optional.ofNullable(expectedSubjects);
     }
 
     public Optional<JsonObject> getExpectedJsonView() {

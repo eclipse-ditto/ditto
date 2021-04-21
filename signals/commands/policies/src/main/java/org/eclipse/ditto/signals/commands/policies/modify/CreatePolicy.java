@@ -38,6 +38,7 @@ import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
 
 /**
@@ -46,7 +47,7 @@ import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
  * generated.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = CreatePolicy.TYPE_PREFIX, name = CreatePolicy.NAME)
+@JsonParsableCommand(typePrefix = PolicyCommand.TYPE_PREFIX, name = CreatePolicy.NAME)
 public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements PolicyModifyCommand<CreatePolicy> {
 
     /**

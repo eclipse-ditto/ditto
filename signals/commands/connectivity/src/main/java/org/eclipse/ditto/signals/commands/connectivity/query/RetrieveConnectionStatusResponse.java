@@ -46,6 +46,8 @@ import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
+import org.eclipse.ditto.model.connectivity.WithConnectionId;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
@@ -57,7 +59,8 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandRespon
 @Immutable
 @JsonParsableCommandResponse(type = RetrieveConnectionStatusResponse.TYPE)
 public final class RetrieveConnectionStatusResponse extends AbstractCommandResponse<RetrieveConnectionStatusResponse>
-        implements ConnectivityQueryCommandResponse<RetrieveConnectionStatusResponse> {
+        implements ConnectivityQueryCommandResponse<RetrieveConnectionStatusResponse>, WithConnectionId,
+        SignalWithEntityId<RetrieveConnectionStatusResponse> {
 
     /**
      * Type of this response.
@@ -232,7 +235,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
     }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return connectionId;
     }
 
@@ -304,29 +307,26 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
     public static final class JsonFields extends CommandResponse.JsonFields {
 
         public static final JsonFieldDefinition<String> CONNECTION_STATUS =
-                JsonFactory.newStringFieldDefinition("connectionStatus", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newStringFieldDefinition("connectionStatus", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         public static final JsonFieldDefinition<String> LIVE_STATUS =
-                JsonFactory.newStringFieldDefinition("liveStatus", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newStringFieldDefinition("liveStatus", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         public static final JsonFieldDefinition<String> CONNECTED_SINCE =
-                JsonFactory.newStringFieldDefinition("connectedSince", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newStringFieldDefinition("connectedSince", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         public static final JsonFieldDefinition<JsonArray> CLIENT_STATUS =
-                JsonFactory.newJsonArrayFieldDefinition("clientStatus", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonArrayFieldDefinition("clientStatus", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
         public static final JsonFieldDefinition<JsonArray> SOURCE_STATUS =
-                JsonFactory.newJsonArrayFieldDefinition("sourceStatus", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonArrayFieldDefinition("sourceStatus", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
         public static final JsonFieldDefinition<JsonArray> TARGET_STATUS =
-                JsonFactory.newJsonArrayFieldDefinition("targetStatus", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonArrayFieldDefinition("targetStatus", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
         public static final JsonFieldDefinition<JsonArray> SSH_TUNNEL_STATUS =
-                JsonFactory.newJsonArrayFieldDefinition("sshTunnelStatus", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonArrayFieldDefinition("sshTunnelStatus", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
     }
 
     /**

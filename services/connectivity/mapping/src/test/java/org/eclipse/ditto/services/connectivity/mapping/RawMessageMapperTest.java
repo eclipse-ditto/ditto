@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -138,7 +139,7 @@ public final class RawMessageMapperTest {
 
     @Test
     public void mapFromNonMessageCommand() {
-        final Signal<?> signal = ThingDeleted.of(ThingId.of("thing:id"), 25L, DittoHeaders.empty());
+        final Signal<?> signal = ThingDeleted.of(ThingId.of("thing:id"), 25L, Instant.EPOCH, DittoHeaders.empty(), null);
         final Adaptable adaptable = ADAPTER.toAdaptable(signal);
         final List<ExternalMessage> actualExternalMessages = underTest.map(adaptable);
         final List<ExternalMessage> expectedExternalMessages = new DittoMessageMapper().map(adaptable);
@@ -338,7 +339,8 @@ public final class RawMessageMapperTest {
 
     @Test
     public void mapToNonMessageCommandWithDittoProtocolContentType() {
-        final Signal<?> signal = ThingDeleted.of(ThingId.of("thing:id"), 25L, DittoHeaders.empty());
+        final Signal<?> signal = ThingDeleted.of(ThingId.of("thing:id"), 25L, Instant.EPOCH, DittoHeaders.empty(),
+                null);
         final Adaptable adaptable = ADAPTER.toAdaptable(signal);
         final ExternalMessage externalMessage = new DittoMessageMapper().map(adaptable).get(0)
                 .withHeader("content-type", "application/vnd.eclipse.ditto+json");

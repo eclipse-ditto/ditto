@@ -110,14 +110,9 @@ public final class SendThingMessageTest {
                 .verify();
     }
 
-    @Test(expected = org.eclipse.ditto.model.things.ThingIdInvalidException.class)
-    public void tryCreateWithNullThingIdString() {
-        SendThingMessage.of((String) null, MESSAGE, DITTO_HEADERS);
-    }
-
     @Test(expected = NullPointerException.class)
     public void tryCreateWithNullThingId() {
-        SendThingMessage.of((ThingId) null, MESSAGE, DITTO_HEADERS);
+        SendThingMessage.of(null, MESSAGE, DITTO_HEADERS);
     }
 
     @Test(expected = NullPointerException.class)
@@ -144,7 +139,7 @@ public final class SendThingMessageTest {
             final String expectedDescription =
                     MessageFormat.format("It does not match the 'thingId' from the Message " +
                                     "the command transports (<{0}>). Please ensure that they are equal.",
-                            MESSAGE.getThingEntityId().toString());
+                            MESSAGE.getEntityId().toString());
 
             assertThat(e.getDescription()).hasValue(expectedDescription);
         }
@@ -178,7 +173,7 @@ public final class SendThingMessageTest {
                 SendThingMessage.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat((CharSequence) underTest.getThingEntityId()).isEqualTo(THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(THING_ID);
         assertThat(underTest.getMessageType()).isEqualTo(SendThingMessage.NAME);
         assertThat(underTest.getMessage()).isEqualTo(MESSAGE);
     }
@@ -189,7 +184,7 @@ public final class SendThingMessageTest {
                 SendThingMessage.fromJson(KNOWN_JSON_WITH_EMPTY_PAYLOAD, TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat((CharSequence) underTest.getThingEntityId()).isEqualTo(THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(THING_ID);
         assertThat(underTest.getMessageType()).isEqualTo(SendThingMessage.NAME);
         assertThat(underTest.getMessage()).isEqualTo(MESSAGE_EMPTY_PAYLOAD);
         assertThat(underTest.getMessage().getPayload()).isEmpty();

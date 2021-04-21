@@ -39,7 +39,7 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
  */
 @Immutable
 @AllValuesAreNonnullByDefault
-@JsonParsableCommand(typePrefix = SudoCountThings.TYPE_PREFIX, name = SudoCountThings.NAME)
+@JsonParsableCommand(typePrefix = ThingSearchSudoCommand.TYPE_PREFIX, name = SudoCountThings.NAME)
 public final class SudoCountThings extends AbstractCommand<SudoCountThings>
         implements ThingSearchSudoCommand<SudoCountThings> {
 
@@ -54,7 +54,7 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<String> JSON_FILTER =
-            JsonFactory.newStringFieldDefinition("filter", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("filter", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     @Nullable
@@ -137,7 +137,7 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        getFilter().ifPresent(filter -> jsonObjectBuilder.set(JSON_FILTER, filter, predicate));
+        getFilter().ifPresent(theFilter -> jsonObjectBuilder.set(JSON_FILTER, theFilter, predicate));
     }
 
     @Override

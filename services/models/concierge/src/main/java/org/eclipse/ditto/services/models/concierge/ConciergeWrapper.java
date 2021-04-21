@@ -12,7 +12,9 @@
  */
 package org.eclipse.ditto.services.models.concierge;
 
-import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
+import org.eclipse.ditto.services.utils.cache.CacheKey;
 import org.eclipse.ditto.signals.base.Signal;
 
 import akka.routing.ConsistentHashingRouter;
@@ -37,7 +39,9 @@ public final class ConciergeWrapper {
     }
 
     private static String hashFor(final Signal<?> signal) {
-        return EntityIdWithResourceType.of(signal.getResourceType(), signal.getEntityId()).toString();
+        return WithEntityId.getEntityIdOfType(EntityId.class, signal)
+                .map(entityId -> CacheKey.of(entityId).toString())
+                .orElse(signal.getResourceType());
     }
 
 }

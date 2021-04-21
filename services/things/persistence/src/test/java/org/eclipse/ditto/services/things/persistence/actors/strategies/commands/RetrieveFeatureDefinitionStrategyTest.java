@@ -52,7 +52,7 @@ public final class RetrieveFeatureDefinitionStrategyTest extends AbstractCommand
         final RetrieveFeatureDefinition command =
                 RetrieveFeatureDefinition.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
         final RetrieveFeatureDefinitionResponse expectedResponse =
-                retrieveFeatureDefinitionResponse(command.getThingEntityId(), command.getFeatureId(),
+                retrieveFeatureDefinitionResponse(command.getEntityId(), command.getFeatureId(),
                         FLUX_CAPACITOR_DEFINITION, command.getDittoHeaders());
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
@@ -64,7 +64,7 @@ public final class RetrieveFeatureDefinitionStrategyTest extends AbstractCommand
         final RetrieveFeatureDefinition command =
                 RetrieveFeatureDefinition.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featureNotFound(command.getThingEntityId(), command.getFeatureId(),
+                ExceptionFactory.featureNotFound(command.getEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.removeFeatures(), command, expectedException);
@@ -76,7 +76,7 @@ public final class RetrieveFeatureDefinitionStrategyTest extends AbstractCommand
         final RetrieveFeatureDefinition command =
                 RetrieveFeatureDefinition.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featureDefinitionNotFound(command.getThingEntityId(), command.getFeatureId(),
+                ExceptionFactory.featureDefinitionNotFound(command.getEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.setFeature(FLUX_CAPACITOR.removeDefinition()), command,

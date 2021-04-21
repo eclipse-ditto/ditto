@@ -36,7 +36,7 @@ final class RetrieveThingsSignalMapper extends AbstractQuerySignalMapper<Retriev
     @Override
     void enhancePayloadBuilder(final RetrieveThings command, final PayloadBuilder payloadBuilder) {
         command.getSelectedFields().ifPresent(payloadBuilder::withFields);
-        payloadBuilder.withValue(createIdsPayload(command.getThingEntityIds()));
+        payloadBuilder.withValue(createIdsPayload(command.getEntityIds()));
     }
 
     private static JsonValue createIdsPayload(final Collection<ThingId> ids) {

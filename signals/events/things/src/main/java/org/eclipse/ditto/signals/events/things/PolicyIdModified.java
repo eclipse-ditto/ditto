@@ -41,7 +41,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a Thing's {@code policyId} was modified.
  */
 @Immutable
-@JsonParsableEvent(name = PolicyIdModified.NAME, typePrefix = PolicyIdModified.TYPE_PREFIX)
+@JsonParsableEvent(name = PolicyIdModified.NAME, typePrefix = ThingEvent.TYPE_PREFIX)
 public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
         implements ThingModifiedEvent<PolicyIdModified> {
 
@@ -69,93 +69,6 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
 
         super(TYPE, thingId, revision, timestamp, dittoHeaders, metadata);
         this.policyId = policyId;
-    }
-
-    /**
-     * Creates a new {@code PolicyIdModified} object.
-     *
-     * @param thingId the ID of the Thing with which this event is associated.
-     * @param policyId the ID of the Policy.
-     * @param revision the revision of the Thing.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the {@code PolicyIdModified}
-     * @throws NullPointerException if {@code thingId}, {@code revision} or {@code dittoHeaders} are {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(ThingId, PolicyId, long, DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static PolicyIdModified of(final String thingId,
-            final String policyId,
-            final long revision,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), PolicyId.of(policyId), revision, dittoHeaders);
-    }
-
-    /**
-     * Creates a new {@code PolicyIdModified} object.
-     *
-     * @param thingId the ID of the Thing with which this event is associated.
-     * @param policyId the ID of the Policy.
-     * @param revision the revision of the Thing.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the {@code PolicyIdModified}
-     * @throws NullPointerException if {@code thingId}, {@code revision} or {@code dittoHeaders} are {@code null}.
-     */
-    public static PolicyIdModified of(final ThingId thingId,
-            final PolicyId policyId,
-            final long revision,
-            final DittoHeaders dittoHeaders) {
-
-        return of(thingId, policyId, revision, null, dittoHeaders, null);
-    }
-
-    /**
-     * Creates a new {@code PolicyIdModified} object.
-     *
-     * @param thingId the ID of the Thing with which this event is associated.
-     * @param policyId the ID of the Policy.
-     * @param revision the revision of the Thing.
-     * @param timestamp the timestamp of this event.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the {@code PolicyIdModified}
-     * @throws NullPointerException if {@code thingId}, {@code revision} or {@code dittoHeaders} are {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.policies.PolicyId, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
-     * instead.
-     */
-    @Deprecated
-    public static PolicyIdModified of(final String thingId,
-            final String policyId,
-            final long revision,
-            @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), PolicyId.of(policyId), revision, timestamp, dittoHeaders, null);
-    }
-
-    /**
-     * Creates a new {@code PolicyIdModified} object.
-     *
-     * @param thingId the ID of the Thing with which this event is associated.
-     * @param policyId the ID of the Policy.
-     * @param revision the revision of the Thing.
-     * @param timestamp the timestamp of this event.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the {@code PolicyIdModified}
-     * @throws NullPointerException if {@code thingId}, {@code revision} or {@code dittoHeaders} are {@code null}.
-     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.policies.PolicyId, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
-     * instead.
-     */
-    @Deprecated
-    public static PolicyIdModified of(final ThingId thingId,
-            final PolicyId policyId,
-            final long revision,
-            @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
-
-        return of(thingId, policyId, revision, timestamp, dittoHeaders, null);
     }
 
     /**
@@ -209,24 +122,13 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
     public static PolicyIdModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<PolicyIdModified>(TYPE, jsonObject).deserialize(
                 (revision, timestamp, metadata) -> {
-                    final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+                    final String extractedThingId = jsonObject.getValueOrThrow(ThingEvent.JsonFields.THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
                     final String extractedPolicyId = jsonObject.getValueOrThrow(JSON_POLICY_ID);
                     final PolicyId thingPolicyId = PolicyId.of(extractedPolicyId);
 
                     return of(thingId, thingPolicyId, revision, timestamp, dittoHeaders, metadata);
                 });
-    }
-
-    /**
-     * Returns the modified Policy ID.
-     *
-     * @return the modified Policy ID.
-     * @deprecated Policy Id of Thing is now typed. Use {@link #getPolicyEntityId()} instead.
-     */
-    @Deprecated
-    public String getPolicyId() {
-        return String.valueOf(getPolicyEntityId());
     }
 
     /**
@@ -251,13 +153,13 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
 
     @Override
     public PolicyIdModified setRevision(final long revision) {
-        return of(getThingEntityId(), policyId, revision, getTimestamp().orElse(null), getDittoHeaders(),
+        return of(getEntityId(), policyId, revision, getTimestamp().orElse(null), getDittoHeaders(),
                 getMetadata().orElse(null));
     }
 
     @Override
     public PolicyIdModified setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), policyId, getRevision(), getTimestamp().orElse(null), dittoHeaders,
+        return of(getEntityId(), policyId, getRevision(), getTimestamp().orElse(null), dittoHeaders,
                 getMetadata().orElse(null));
     }
 

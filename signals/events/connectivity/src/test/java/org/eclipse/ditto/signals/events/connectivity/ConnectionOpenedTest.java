@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -35,6 +36,9 @@ public final class ConnectionOpenedTest {
 
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(Event.JsonFields.TYPE, ConnectionOpened.TYPE)
+            .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
+            .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
+            .set(EventsourcedEvent.JsonFields.REVISION, TestConstants.REVISION)
             .set(ConnectivityEvent.JsonFields.CONNECTION_ID, TestConstants.ID.toString())
             .build();
 
@@ -51,24 +55,18 @@ public final class ConnectionOpenedTest {
     }
 
     @Test
-    public void createInstanceWithNullConnectionIdString() {
-        assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ConnectionOpened.of((String) null, DittoHeaders.empty()))
-                .withMessage("The connectionId must not be null!")
-                .withNoCause();
-    }
-
-    @Test
     public void createInstanceWithNullConnectionId() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ConnectionOpened.of((ConnectionId) null, DittoHeaders.empty()))
+                .isThrownBy(() -> ConnectionOpened.of((ConnectionId) null, TestConstants.REVISION,
+                        TestConstants.TIMESTAMP, TestConstants.HEADERS, TestConstants.METADATA))
                 .withMessage("The %s must not be null!", "Connection ID")
                 .withNoCause();
     }
 
     @Test
     public void fromJsonReturnsExpected() {
-        final ConnectionOpened expected = ConnectionOpened.of(TestConstants.ID, DittoHeaders.empty());
+        final ConnectionOpened expected = ConnectionOpened.of(TestConstants.ID, TestConstants.REVISION,
+                TestConstants.TIMESTAMP, TestConstants.HEADERS, TestConstants.METADATA);
 
         final ConnectionOpened actual = ConnectionOpened.fromJson(KNOWN_JSON, DittoHeaders.empty());
 
@@ -77,7 +75,8 @@ public final class ConnectionOpenedTest {
 
     @Test
     public void toJsonReturnsExpected() {
-        final JsonObject actual = ConnectionOpened.of(TestConstants.ID, DittoHeaders.empty()).toJson();
+        final JsonObject actual = ConnectionOpened.of(TestConstants.ID, TestConstants.REVISION,
+                TestConstants.TIMESTAMP, TestConstants.HEADERS, TestConstants.METADATA).toJson();
 
         assertThat(actual).isEqualTo(KNOWN_JSON);
     }
@@ -87,7 +86,8 @@ public final class ConnectionOpenedTest {
         final JsonPointer expectedResourcePath = JsonFactory.emptyPointer();
 
         final ConnectionOpened underTest =
-                ConnectionOpened.of(TestConstants.ID, DittoHeaders.empty());
+                ConnectionOpened.of(TestConstants.ID, TestConstants.REVISION,
+                        TestConstants.TIMESTAMP, TestConstants.HEADERS, TestConstants.METADATA);
 
         DittoJsonAssertions.assertThat(underTest.getResourcePath()).isEqualTo(expectedResourcePath);
     }

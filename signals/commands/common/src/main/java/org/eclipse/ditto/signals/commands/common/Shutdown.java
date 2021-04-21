@@ -37,7 +37,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * Each recipient decides whether it accepts the provided reason of this command or if it ignores the command.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = Shutdown.TYPE_PREFIX, name = Shutdown.NAME)
+@JsonParsableCommand(typePrefix = CommonCommand.TYPE_PREFIX, name = Shutdown.NAME)
 public final class Shutdown extends CommonCommand<Shutdown> {
 
     /**
@@ -156,7 +156,7 @@ public final class Shutdown extends CommonCommand<Shutdown> {
     public static final class JsonFields extends Command.JsonFields {
 
         public static final JsonFieldDefinition<JsonObject> REASON = JsonFactory.newJsonObjectFieldDefinition("reason",
-                FieldType.REGULAR, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

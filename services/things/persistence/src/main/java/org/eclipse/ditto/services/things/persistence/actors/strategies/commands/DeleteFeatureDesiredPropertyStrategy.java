@@ -79,11 +79,11 @@ final class DeleteFeatureDesiredPropertyStrategy extends AbstractThingCommandStr
 
         return feature.getDesiredProperties()
                 .flatMap(desiredProperties -> desiredProperties.getValue(desiredPropertyPointer))
-                .<Result<ThingEvent<?>>>map(FeatureDesiredProperty -> {
+                .<Result<ThingEvent<?>>>map(featureDesiredProperty -> {
                     final ThingEvent<?> event =
                             FeatureDesiredPropertyDeleted.of(thingId, featureId, desiredPropertyPointer, nextRevision,
                                     getEventTimestamp(), dittoHeaders, metadata);
-                    final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
+                    final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                             DeleteFeatureDesiredPropertyResponse.of(thingId, featureId, desiredPropertyPointer,
                                     dittoHeaders), thing);
                     return ResultFactory.newMutationResult(command, event, response);

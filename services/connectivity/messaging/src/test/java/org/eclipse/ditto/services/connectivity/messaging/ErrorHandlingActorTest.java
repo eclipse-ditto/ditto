@@ -104,7 +104,7 @@ public class ErrorHandlingActorTest extends WithMockServers {
             underTest.tell(createConnection, getRef());
             final CreateConnectionResponse createConnectionResponse =
                     CreateConnectionResponse.of(connection, DittoHeaders.empty());
-            expectMsg(createConnectionResponse);
+            expectMsg(dilated(Duration.ofSeconds(5)), createConnectionResponse);
 
             // delete connection
             final ConnectivityModifyCommand<?> command = DeleteConnection.of(connectionId, DittoHeaders.empty());

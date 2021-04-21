@@ -26,7 +26,6 @@ import nl.jqno.equalsverifier.Warning;
  */
 public class MultiComparisonNodeTest {
 
-    /** */
     @Test
     public void hashcodeAndEquals() {
         EqualsVerifier.forClass(MultiComparisonNode.class)
@@ -35,13 +34,11 @@ public class MultiComparisonNodeTest {
                 .verify();
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void typeConstructorWithNullAsFilterProperty() {
         new MultiComparisonNode(MultiComparisonNode.Type.IN, null);
     }
 
-    /** */
     @Test
     public void typeConstructorSuccess() {
         final MultiComparisonNode filterNode = new MultiComparisonNode(
@@ -55,7 +52,6 @@ public class MultiComparisonNodeTest {
         assertThat(filterNode.getComparisonValue().get(0)).isEqualTo("test");
     }
 
-    /** */
     @Test
     public void addNullValues() {
         final MultiComparisonNode filterNode = new MultiComparisonNode(

@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;

@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashSet;
 
@@ -23,6 +24,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -91,7 +93,11 @@ public class JsonExamplesProducer {
             .setRevision(REVISION)
             .build();
 
+    private static final Instant TIMESTAMP = Instant.EPOCH;
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.empty();
+    private static final Metadata METADATA = Metadata.newBuilder()
+            .set("creator", "The epic Ditto team")
+            .build();
 
     public static void main(final String... args) throws IOException {
         run(args, new JsonExamplesProducer());
@@ -114,61 +120,61 @@ public class JsonExamplesProducer {
         final Path eventsDir = rootPath.resolve(Paths.get("events"));
         Files.createDirectories(eventsDir);
 
-        final PolicyCreated policyCreated = PolicyCreated.of(POLICY, REVISION_NUMBER, DITTO_HEADERS);
+        final PolicyCreated policyCreated = PolicyCreated.of(POLICY, REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("policyCreated.json")), policyCreated);
 
-        final PolicyModified policyModified = PolicyModified.of(POLICY, REVISION_NUMBER, DITTO_HEADERS);
+        final PolicyModified policyModified = PolicyModified.of(POLICY, REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("policyModified.json")), policyModified);
 
-        final PolicyDeleted policyDeleted = PolicyDeleted.of(POLICY_ID, REVISION_NUMBER, DITTO_HEADERS);
+        final PolicyDeleted policyDeleted = PolicyDeleted.of(POLICY_ID, REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("policyDeleted.json")), policyDeleted);
 
         final PolicyEntriesModified policyEntriesModified =
-                PolicyEntriesModified.of(POLICY_ID, POLICY_ENTRIES, REVISION_NUMBER, DITTO_HEADERS);
+                PolicyEntriesModified.of(POLICY_ID, POLICY_ENTRIES, REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("policyEntriesModified.json")), policyEntriesModified);
 
         final PolicyEntryCreated policyEntryCreated =
-                PolicyEntryCreated.of(POLICY_ID, POLICY_ENTRY, REVISION_NUMBER, DITTO_HEADERS);
+                PolicyEntryCreated.of(POLICY_ID, POLICY_ENTRY, REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("policyEntryCreated.json")), policyEntryCreated);
 
         final PolicyEntryModified policyEntryModified =
-                PolicyEntryModified.of(POLICY_ID, POLICY_ENTRY, REVISION_NUMBER, DITTO_HEADERS);
+                PolicyEntryModified.of(POLICY_ID, POLICY_ENTRY, REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("policyEntryModified.json")), policyEntryModified);
 
         final PolicyEntryDeleted policyEntryDeleted =
-                PolicyEntryDeleted.of(POLICY_ID, LABEL, REVISION_NUMBER, DITTO_HEADERS);
+                PolicyEntryDeleted.of(POLICY_ID, LABEL, REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("policyEntryDeleted.json")), policyEntryDeleted);
 
         final SubjectsModified subjectsModified =
-                SubjectsModified.of(POLICY_ID, LABEL, SUBJECTS, REVISION_NUMBER, DITTO_HEADERS);
+                SubjectsModified.of(POLICY_ID, LABEL, SUBJECTS, REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("subjectsModified.json")), subjectsModified);
 
         final SubjectCreated subjectCreated =
-                SubjectCreated.of(POLICY_ID, LABEL, SUBJECT, REVISION_NUMBER, DITTO_HEADERS);
+                SubjectCreated.of(POLICY_ID, LABEL, SUBJECT, REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("subjectCreated.json")), subjectCreated);
 
         final SubjectModified subjectModified =
-                SubjectModified.of(POLICY_ID, LABEL, SUBJECT, REVISION_NUMBER, DITTO_HEADERS);
+                SubjectModified.of(POLICY_ID, LABEL, SUBJECT, REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("subjectModified.json")), subjectModified);
 
         final SubjectDeleted subjectDeleted =
-                SubjectDeleted.of(POLICY_ID, LABEL, SUBJECT_ID, REVISION_NUMBER, DITTO_HEADERS);
+                SubjectDeleted.of(POLICY_ID, LABEL, SUBJECT_ID, REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("subjectDeleted.json")), subjectDeleted);
 
         final ResourcesModified resourcesModified =
-                ResourcesModified.of(POLICY_ID, LABEL, RESOURCES, REVISION_NUMBER, DITTO_HEADERS);
+                ResourcesModified.of(POLICY_ID, LABEL, RESOURCES, REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("resourcesModified.json")), resourcesModified);
 
         final ResourceCreated resourceCreated =
-                ResourceCreated.of(POLICY_ID, LABEL, RESOURCE, REVISION_NUMBER, DITTO_HEADERS);
+                ResourceCreated.of(POLICY_ID, LABEL, RESOURCE, REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("resourceCreated.json")), resourceCreated);
 
         final ResourceModified resourceModified =
-                ResourceModified.of(POLICY_ID, LABEL, RESOURCE, REVISION_NUMBER, DITTO_HEADERS);
+                ResourceModified.of(POLICY_ID, LABEL, RESOURCE, REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("resourceModified.json")), resourceModified);
 
         final ResourceDeleted resourceDeleted =
-                ResourceDeleted.of(POLICY_ID, LABEL, RESOURCE_KEY, REVISION_NUMBER, DITTO_HEADERS);
+                ResourceDeleted.of(POLICY_ID, LABEL, RESOURCE_KEY, REVISION_NUMBER, TIMESTAMP, DITTO_HEADERS, METADATA);
         writeJson(eventsDir.resolve(Paths.get("resourceDeleted.json")), resourceDeleted);
     }
 

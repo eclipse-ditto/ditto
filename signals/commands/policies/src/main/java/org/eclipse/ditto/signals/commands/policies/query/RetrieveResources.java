@@ -34,12 +34,13 @@ import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 
 /**
  * Command which retrieves the {@code Resources} based on the passed in Policy ID and Label.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = RetrieveResources.TYPE_PREFIX, name = RetrieveResources.NAME)
+@JsonParsableCommand(typePrefix = PolicyCommand.TYPE_PREFIX, name = RetrieveResources.NAME)
 public final class RetrieveResources extends AbstractCommand<RetrieveResources>
         implements PolicyQueryCommand<RetrieveResources> {
 
@@ -63,24 +64,6 @@ public final class RetrieveResources extends AbstractCommand<RetrieveResources>
         super(TYPE, dittoHeaders);
         this.policyId = checkNotNull(policyId, "policy ID");
         this.label = checkNotNull(label, "Label");
-    }
-
-    /**
-     * Returns a command for retrieving the Resources with the given Policy ID and Label.
-     *
-     * @param policyId the ID of a single Policy whose Resources of the Policy entry will be retrieved by this command.
-     * @param label the specified label of the Policy entry for which to retrieve the Resources for.
-     * @param dittoHeaders the optional command headers of the request.
-     * @return a Command for retrieving the Resources with the {@code policyId} and {@code label} which is readable from
-     * the passed authorization context.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrieveResources of(final String policyId, final Label label, final DittoHeaders dittoHeaders) {
-        return of(PolicyId.of(policyId), label, dittoHeaders);
     }
 
     /**
@@ -126,7 +109,7 @@ public final class RetrieveResources extends AbstractCommand<RetrieveResources>
      */
     public static RetrieveResources fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveResources>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
+            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyCommand.JsonFields.JSON_POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final Label extractedLabel = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
 
@@ -164,7 +147,7 @@ public final class RetrieveResources extends AbstractCommand<RetrieveResources>
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyQueryCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
+        jsonObjectBuilder.set(PolicyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
     }
 

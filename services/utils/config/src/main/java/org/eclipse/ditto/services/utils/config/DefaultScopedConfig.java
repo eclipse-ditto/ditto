@@ -383,13 +383,13 @@ public final class DefaultScopedConfig implements ScopedConfig {
     }
 
     @Override
-    @Deprecated
+    @Deprecated(forRemoval = false) // can't be deleted as we inherit this @Deprecated flag
     public Long getMilliseconds(final String path) {
         return config.getMilliseconds(path);
     }
 
     @Override
-    @Deprecated
+    @Deprecated(forRemoval = false) // can't be deleted as we inherit this @Deprecated flag
     public Long getNanoseconds(final String path) {
         return config.getNanoseconds(path);
     }
@@ -565,13 +565,13 @@ public final class DefaultScopedConfig implements ScopedConfig {
     }
 
     @Override
-    @Deprecated
+    @Deprecated(forRemoval = false) // can't be deleted as we inherit this @Deprecated flag
     public List<Long> getMillisecondsList(final String path) {
         return config.getMillisecondsList(path);
     }
 
     @Override
-    @Deprecated
+    @Deprecated(forRemoval = false) // can't be deleted as we inherit this @Deprecated flag
     public List<Long> getNanosecondsList(final String path) {
         return config.getNanosecondsList(path);
     }

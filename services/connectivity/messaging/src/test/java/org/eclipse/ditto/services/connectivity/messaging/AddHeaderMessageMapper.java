@@ -70,7 +70,7 @@ public final class AddHeaderMessageMapper implements MessageMapper {
     @Override
     public List<Adaptable> map(final ExternalMessage message) {
         return delegate.map(message).stream().map(adaptable -> {
-            final DittoHeadersBuilder modifiedHeaders = DittoHeaders.newBuilder(adaptable.getDittoHeaders());
+            final DittoHeadersBuilder<?, ?> modifiedHeaders = DittoHeaders.newBuilder(adaptable.getDittoHeaders());
             modifiedHeaders.putHeader(INBOUND_HEADER.getKey(), INBOUND_HEADER.getValue());
             return adaptable.setDittoHeaders(modifiedHeaders.build());
         }).collect(Collectors.toList());

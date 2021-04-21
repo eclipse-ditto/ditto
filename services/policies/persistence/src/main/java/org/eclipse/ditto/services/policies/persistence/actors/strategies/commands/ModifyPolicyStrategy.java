@@ -92,8 +92,8 @@ final class ModifyPolicyStrategy extends AbstractPolicyCommandStrategy<ModifyPol
 
         if (validator.isValid()) {
             final PolicyModified policyModified =
-                    PolicyModified.of(modifiedPolicyWithImplicits, nextRevision, eventTs, adjustedHeaders);
-            final WithDittoHeaders<?> response = appendETagHeaderIfProvided(adjustedCommand,
+                    PolicyModified.of(modifiedPolicyWithImplicits, nextRevision, eventTs, adjustedHeaders, metadata);
+            final WithDittoHeaders response = appendETagHeaderIfProvided(adjustedCommand,
                     ModifyPolicyResponse.modified(context.getState(), adjustedHeaders),
                     modifiedPolicyWithImplicits);
             return ResultFactory.newMutationResult(adjustedCommand, policyModified, response);

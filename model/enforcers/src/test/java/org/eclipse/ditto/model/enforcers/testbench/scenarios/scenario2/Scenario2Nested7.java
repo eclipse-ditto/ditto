@@ -14,8 +14,10 @@ package org.eclipse.ditto.model.enforcers.testbench.scenarios.scenario2;
 
 import java.util.Collections;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.Scenario;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.ScenarioSetup;
+import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
@@ -37,11 +39,10 @@ public class Scenario2Nested7 implements Scenario2Nested {
                 "/attributes", //
                 Collections.emptySet(),
                 policyAlgorithm ->
-                        !policyAlgorithm.getSubjectIdsWithPartialPermission(
-                                PoliciesResourceType.thingResource("/attributes"), "READ")
-                                .contains(SubjectId
-                                        .newInstance(SubjectIssuer.GOOGLE, SUBJECT_FEATURES_READ_GRANTED)
-                                        .toString()
+                        !policyAlgorithm.getSubjectsWithPartialPermission(
+                                PoliciesResourceType.thingResource("/attributes"), Permissions.newInstance("READ"))
+                                .contains(AuthorizationSubject.newInstance(
+                                        SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_FEATURES_READ_GRANTED))
                                 ),
                 "READ");
     }

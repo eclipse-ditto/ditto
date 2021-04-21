@@ -33,11 +33,13 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonPointerInvalidException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 
 /**
  * An event to be emitted when a snapshot of an entity was taken.
@@ -45,7 +47,8 @@ import org.eclipse.ditto.signals.events.base.Event;
  * @param <T> the type of the extending event.
  */
 @Immutable
-public abstract class SnapshotTaken<T extends SnapshotTaken<T>> implements Event<T> {
+public abstract class SnapshotTaken<T extends SnapshotTaken<T>>
+        implements Event<T>, EventsourcedEvent<T>, WithEntityId {
 
     private final String type;
     private final long revision;
@@ -131,21 +134,6 @@ public abstract class SnapshotTaken<T extends SnapshotTaken<T>> implements Event
         return revision;
     }
 
-    @Override
-    public T setRevision(final long revision) {
-        return setRevision(revision, entityOfSnapshot);
-    }
-
-    /**
-     * Helps subclasses to implement {@link #setRevision(long)} as it provides the entity JSON for constructing a new
-     * SnapshotTaken event.
-     *
-     * @param revisionNumber the new revision number to be set.
-     * @param entityOfSnapshot the JSON representation of the entity of which a snapshot was taken.
-     * @return the new SnapshotTaken event with {@code revisionNumber} set.
-     */
-    protected abstract T setRevision(long revisionNumber, JsonObject entityOfSnapshot);
-
     /**
      * Gets the type of the event.
      *
@@ -208,7 +196,7 @@ public abstract class SnapshotTaken<T extends SnapshotTaken<T>> implements Event
 
         return JsonFactory.newObjectBuilder()
                 .set(Event.JsonFields.TYPE, type) // always include the type ignoring the predicate
-                .set(Event.JsonFields.REVISION, revision, predicate)
+                .set(EventsourcedEvent.JsonFields.REVISION, revision, predicate)
                 .set(Event.JsonFields.TIMESTAMP,
                         getTimestamp().map(Instant::toString).orElse(null),
                         predicate.and(JsonField.isValueNonNull()))
@@ -266,24 +254,21 @@ public abstract class SnapshotTaken<T extends SnapshotTaken<T>> implements Event
          * Key of the field is {@code "entityId"}.
          */
         public static final JsonFieldDefinition<String> ENTITY_ID =
-                JsonFieldDefinition.ofString("entityId", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
+                JsonFieldDefinition.ofString("entityId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * Definition of a JSON field containing the lifecycle of the entity of which a snapshot was taken.
          * Key of the field is {@code "lifecycle"}.
          */
         public static final JsonFieldDefinition<String> LIFECYCLE =
-                JsonFieldDefinition.ofString("lifecycle", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
+                JsonFieldDefinition.ofString("lifecycle", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * Definition of a JSON field containing the entity.
          * Key of the field is {@code "entity"}.
          */
         public static final JsonFieldDefinition<JsonObject> ENTITY =
-                JsonFieldDefinition.ofJsonObject("entity", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
+                JsonFieldDefinition.ofJsonObject("entity", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
 
         private JsonFields() {
@@ -340,7 +325,7 @@ public abstract class SnapshotTaken<T extends SnapshotTaken<T>> implements Event
         }
 
         /**
-         * Returns the value for {@link Event.JsonFields#REVISION} from the wrapped JSON object.
+         * Returns the value for {@link EventsourcedEvent.JsonFields#REVISION} from the wrapped JSON object.
          *
          * @return the revision number.
          * @throws org.eclipse.ditto.json.JsonMissingFieldException if the wrapped JSON object did not contain this
@@ -348,7 +333,7 @@ public abstract class SnapshotTaken<T extends SnapshotTaken<T>> implements Event
          * @throws JsonParseException if the value of the JSON field was no {@code long}.
          */
         public long deserializeRevision() {
-            return jsonObject.getValueOrThrow(Event.JsonFields.REVISION);
+            return jsonObject.getValueOrThrow(EventsourcedEvent.JsonFields.REVISION);
         }
 
         /**

@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.signals.events.things;
 
-import static org.eclipse.ditto.signals.events.things.ThingEvent.TYPE_PREFIX;
-
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
@@ -45,7 +43,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a Thing's {@code definition} was modified.
  */
 @Immutable
-@JsonParsableEvent(name = ThingDefinitionModified.NAME, typePrefix = TYPE_PREFIX)
+@JsonParsableEvent(name = ThingDefinitionModified.NAME, typePrefix = ThingEvent.TYPE_PREFIX)
 public final class ThingDefinitionModified extends AbstractThingEvent<ThingDefinitionModified>
         implements ThingModifiedEvent<ThingDefinitionModified> {
 
@@ -75,50 +73,6 @@ public final class ThingDefinitionModified extends AbstractThingEvent<ThingDefin
 
         super(TYPE, thingId, revision, timestamp, dittoHeaders, metadata);
         this.definition = definition;
-    }
-
-    /**
-     * Constructs a new {@code ThingDefinitionModified} object.
-     *
-     * @param thingId the ID of the Thing whose Definition was modified.
-     * @param definition the modified {@link ThingDefinition}.
-     * @param revision the revision of the Thing.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the ThingDefinitionModified created.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.ThingDefinition, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
-     * instead.
-     */
-    @Deprecated
-    public static ThingDefinitionModified of(final ThingId thingId,
-            final ThingDefinition definition,
-            final long revision,
-            final DittoHeaders dittoHeaders) {
-
-        return of(thingId, definition, revision, null, dittoHeaders, null);
-    }
-
-    /**
-     * Constructs a new {@code ThingDefinitionModified} object.
-     *
-     * @param thingId the ID of the Thing whose Definition was modified.
-     * @param definition the modified {@link ThingDefinition}.
-     * @param revision the revision of the Thing.
-     * @param timestamp the timestamp of this event.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the ThingDefinitionModified created.
-     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
-     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.ThingDefinition, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
-     * instead.
-     */
-    @Deprecated
-    public static ThingDefinitionModified of(final ThingId thingId,
-            final ThingDefinition definition,
-            final long revision,
-            @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
-
-        return of(thingId, definition, revision, timestamp, dittoHeaders, null);
     }
 
     /**
@@ -212,13 +166,13 @@ public final class ThingDefinitionModified extends AbstractThingEvent<ThingDefin
 
     @Override
     public ThingDefinitionModified setRevision(final long revision) {
-        return of(getThingEntityId(), definition, revision, getTimestamp().orElse(null), getDittoHeaders(),
+        return of(getEntityId(), definition, revision, getTimestamp().orElse(null), getDittoHeaders(),
                 getMetadata().orElse(null));
     }
 
     @Override
     public ThingDefinitionModified setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), definition, getRevision(), getTimestamp().orElse(null), dittoHeaders,
+        return of(getEntityId(), definition, getRevision(), getTimestamp().orElse(null), dittoHeaders,
                 getMetadata().orElse(null));
     }
 

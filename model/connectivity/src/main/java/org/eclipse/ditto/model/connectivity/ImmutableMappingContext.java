@@ -54,22 +54,6 @@ final class ImmutableMappingContext implements MappingContext {
     }
 
     /**
-     * Creates a new {@code ImmutableMappingContext} instance.
-     *
-     * @param mappingEngine the mapping engine to use as fully qualified classname of an implementation of
-     * {@code MessageMapper} interface.
-     * @param options the mapping engine specific options to apply.
-     * @return a new instance of ImmutableMappingContext.
-     * @deprecated Use {@link org.eclipse.ditto.model.connectivity.ImmutableMappingContext.Builder} instead.
-     */
-    static ImmutableMappingContext of(final String mappingEngine, final JsonObject options) {
-        checkNotNull(mappingEngine, "mappingEngine");
-        checkNotNull(options, "options");
-
-        return (ImmutableMappingContext) new Builder(mappingEngine, options).build();
-    }
-
-    /**
      * Creates a new {@code MappingContext} object from the specified JSON object.
      *
      * @param jsonObject a JSON object which provides the data for the MappingContext to be created.

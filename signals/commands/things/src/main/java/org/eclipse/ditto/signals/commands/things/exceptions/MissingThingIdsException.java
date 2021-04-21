@@ -20,7 +20,6 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -38,13 +37,6 @@ public class MissingThingIdsException extends DittoRuntimeException implements T
      * Error code of this exception.
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "things.ids.missing";
-
-    /**
-     * Status code of this exception.
-     * @deprecated as of 2.0.0 please use {@link #HTTP_STATUS} instead.
-     */
-    @Deprecated
-    public static final HttpStatusCode STATUS_CODE = HttpStatusCode.BAD_REQUEST;
 
     /**
      * HTTP status of this exception.
@@ -66,11 +58,6 @@ public class MissingThingIdsException extends DittoRuntimeException implements T
             @Nullable final URI href) {
 
         super(ERROR_CODE, HTTP_STATUS, dittoHeaders, message, description, cause, href);
-    }
-
-    @Override
-    protected Builder getEmptyBuilder() {
-        return new Builder();
     }
 
     /**

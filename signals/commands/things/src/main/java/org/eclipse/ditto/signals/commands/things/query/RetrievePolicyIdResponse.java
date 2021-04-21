@@ -75,25 +75,6 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(ThingId, PolicyId, DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrievePolicyIdResponse of(final String thingId, final String policyId,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), PolicyId.of(policyId), dittoHeaders);
-    }
-
-    /**
-     * Creates a response to a {@link RetrievePolicyId} command.
-     *
-     * @param thingId the Thing ID of the retrieved Policy ID.
-     * @param policyId the retrieved Policy ID.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
      */
     public static RetrievePolicyIdResponse of(final ThingId thingId, final PolicyId policyId,
             final DittoHeaders dittoHeaders) {
@@ -150,19 +131,8 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
-    }
-
-    /**
-     * Returns the retrieved Policy ID.
-     *
-     * @return the retrieved Policy ID.
-     * @deprecated Policy ID of the Thing is now typed. Use {@link #getPolicyEntityId()} instead.
-     */
-    @Deprecated
-    public String getPolicyId() {
-        return String.valueOf(getPolicyEntityId());
     }
 
     /**

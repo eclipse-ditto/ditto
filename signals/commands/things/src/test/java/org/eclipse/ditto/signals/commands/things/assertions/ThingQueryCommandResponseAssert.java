@@ -28,7 +28,7 @@ import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse
  * An assert for {@link ThingQueryCommandResponse}s.
  */
 public class ThingQueryCommandResponseAssert
-        extends AbstractCommandResponseAssert<ThingQueryCommandResponseAssert, ThingQueryCommandResponse> {
+        extends AbstractCommandResponseAssert<ThingQueryCommandResponseAssert, ThingQueryCommandResponse<?>> {
 
     /**
      * Constructs a new {@code ThingQueryCommandResponseAssert} object.

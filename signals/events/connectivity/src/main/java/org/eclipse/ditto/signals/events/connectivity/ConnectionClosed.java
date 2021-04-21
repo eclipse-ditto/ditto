@@ -25,6 +25,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -36,7 +37,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a {@link Connection} was closed.
  */
 @Immutable
-@JsonParsableEvent(name = ConnectionClosed.NAME, typePrefix= ConnectionClosed.TYPE_PREFIX)
+@JsonParsableEvent(name = ConnectionClosed.NAME, typePrefix= ConnectivityEvent.TYPE_PREFIX)
 public final class ConnectionClosed extends AbstractConnectivityEvent<ConnectionClosed>
         implements ConnectivityEvent<ConnectionClosed> {
 
@@ -50,70 +51,33 @@ public final class ConnectionClosed extends AbstractConnectivityEvent<Connection
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private ConnectionClosed(final ConnectionId connectionId, @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
-        super(TYPE, connectionId, timestamp, dittoHeaders);
+    private ConnectionClosed(final ConnectionId connectionId,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
+
+        super(TYPE, connectionId, revision, timestamp, dittoHeaders, metadata);
     }
 
     /**
      * Returns a new {@code ConnectionClosed} event.
      *
      * @param connectionId the identifier of the closed Connection.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the event.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Connection ID is now typed. Use
-     * {@link #of(ConnectionId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ConnectionClosed of(final String connectionId, final DittoHeaders dittoHeaders) {
-        return of(ConnectionId.of(connectionId), dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code ConnectionClosed} event.
-     *
-     * @param connectionId the identifier of the closed Connection.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the event.
-     * @throws NullPointerException if any argument is {@code null}.
-     */
-    public static ConnectionClosed of(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
-        return of(connectionId, null, dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code ConnectionClosed} event.
-     *
-     * @param connectionId the identifier of the closed Connection.
+     * @param revision the revision of the Connection.
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the event.
-     * @throws NullPointerException if {@code connectionId} or {@code dittoHeaders} are {@code null}.
-     * @deprecated Connection ID is now typed. Use
-     * {@link #of(ConnectionId, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ConnectionClosed of(final String connectionId, @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
-        return of(ConnectionId.of(connectionId), timestamp, dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code ConnectionClosed} event.
-     *
-     * @param connectionId the identifier of the closed Connection.
-     * @param timestamp the timestamp of this event.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @param metadata the metadata to apply for the event.
      * @return the event.
      * @throws NullPointerException if {@code connectionId} or {@code dittoHeaders} are {@code null}.
      */
-    public static ConnectionClosed of(final ConnectionId connectionId, @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
+    public static ConnectionClosed of(final ConnectionId connectionId,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
         checkNotNull(connectionId, "Connection ID");
-        return new ConnectionClosed(connectionId, timestamp, dittoHeaders);
+        return new ConnectionClosed(connectionId, revision, timestamp, dittoHeaders, metadata);
     }
 
     /**
@@ -143,10 +107,11 @@ public final class ConnectionClosed extends AbstractConnectivityEvent<Connection
     public static ConnectionClosed fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<ConnectionClosed>(TYPE, jsonObject)
                 .deserialize((revision, timestamp, metadata) -> {
-                    final String readConnectionId = jsonObject.getValueOrThrow(JsonFields.CONNECTION_ID);
+                    final String readConnectionId = jsonObject
+                            .getValueOrThrow(ConnectivityEvent.JsonFields.CONNECTION_ID);
                     final ConnectionId connectionId = ConnectionId.of(readConnectionId);
 
-                    return of(connectionId, timestamp, dittoHeaders);
+                    return of(connectionId, revision, timestamp, dittoHeaders, metadata);
                 });
     }
 
@@ -156,8 +121,15 @@ public final class ConnectionClosed extends AbstractConnectivityEvent<Connection
     }
 
     @Override
+    public ConnectionClosed setRevision(final long revision) {
+        return of(getEntityId(), revision, getTimestamp().orElse(null), getDittoHeaders(),
+                getMetadata().orElse(null));
+    }
+
+    @Override
     public ConnectionClosed setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getConnectionEntityId(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getEntityId(), getRevision(), getTimestamp().orElse(null), dittoHeaders,
+                getMetadata().orElse(null));
     }
 
     @Override

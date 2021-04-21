@@ -124,7 +124,7 @@ final class PolicyEventForwarder extends AbstractActor {
      *
      * @param policyEvent incoming policy event
      */
-    private void policyEvent(final PolicyEvent policyEvent) {
+    private void policyEvent(final PolicyEvent<?> policyEvent) {
         final ActorRef self = getSelf();
         blockNamespaceBehavior.block(policyEvent)
                 .whenComplete((result, error) -> {

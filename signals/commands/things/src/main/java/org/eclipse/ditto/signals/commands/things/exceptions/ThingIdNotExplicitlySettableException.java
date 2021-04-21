@@ -68,19 +68,6 @@ public final class ThingIdNotExplicitlySettableException extends DittoRuntimeExc
         super(ERROR_CODE, HttpStatus.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
-    /**
-     * A mutable builder for a {@code ThingIdNotExplicitlySettableException}.
-     *
-     * @param isPostMethod whether the exception is created for a POST request ({@code true}) or for a PUT request (
-     * {@code false}).
-     * @return the builder.
-     * @deprecated this is legacy use where we only needed to distinguish between put and post. Now whe have a third
-     * option "ditto protocol" as well.
-     */
-    public static Builder newBuilder(final boolean isPostMethod) {
-        return isPostMethod ? forPostMethod() : forPutMethod();
-    }
-
     public static Builder forPostMethod() {
         return new Builder(MESSAGE_TEMPLATE_POST, DEFAULT_DESCRIPTION_POST);
     }
@@ -125,36 +112,6 @@ public final class ThingIdNotExplicitlySettableException extends DittoRuntimeExc
                 .href(getHref().orElse(null))
                 .dittoHeaders(dittoHeaders)
                 .build();
-    }
-
-    /**
-     * Constructs a new {@code ThingIdNotExplicitlySettableException} object with the given exception message.
-     *
-     * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
-     * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new ThingIdNotExplicitlySettableException.
-     * @deprecated This method will eventually be deleted, because it's not used anywhere.
-     */
-    public static ThingIdNotExplicitlySettableException fromMessage(final String message,
-            final DittoHeaders dittoHeaders) {
-        switch (message) {
-            case MESSAGE_TEMPLATE_POST:
-                return forPostMethod()
-                        .dittoHeaders(dittoHeaders)
-                        .build();
-            case MESSAGE_TEMPLATE_PUT_AND_PATCH:
-                return forPutMethod()
-                        .dittoHeaders(dittoHeaders)
-                        .build();
-            case MESSAGE_TEMPLATE_DITTO_PROTOCOL:
-                return forDittoProtocol()
-                        .dittoHeaders(dittoHeaders)
-                        .build();
-            default:
-                return new Builder(message, "")
-                        .dittoHeaders(dittoHeaders)
-                        .build();
-        }
     }
 
     /**

@@ -40,13 +40,19 @@ final class ImmutableTopicPath implements TopicPath {
     private final Channel channel;
     private final Criterion criterion;
     @Nullable private final Action action;
-    @Nullable private final String subject;
     @Nullable private final SearchAction searchAction;
+    @Nullable private final String subject;
     private final String path;
 
-    private ImmutableTopicPath(final String namespace, final String name, final Group group,
-            @Nullable final Channel channel, final Criterion criterion, @Nullable final Action action, @Nullable final SearchAction searchAction,
-            @Nullable final String subject) {
+    private ImmutableTopicPath(final String namespace,
+            final String name,
+            final Group group,
+            @Nullable final Channel channel,
+            final Criterion criterion,
+            @Nullable final Action action,
+            @Nullable final SearchAction searchAction,
+            @Nullable final String subject
+            ) {
         this.namespace = checkNotNull(namespace, PROP_NAME_NAMESPACE);
         this.name = checkNotNull(name, PROP_NAME_ID);
         this.group = checkNotNull(group, PROP_NAME_GROUP);
@@ -181,11 +187,6 @@ final class ImmutableTopicPath implements TopicPath {
     }
 
     @Override
-    public String getId() {
-        return name;
-    }
-
-    @Override
     public String getEntityName() {
         return name;
     }
@@ -220,7 +221,8 @@ final class ImmutableTopicPath implements TopicPath {
     public String toString() {
         return getClass().getSimpleName() + " [" + "namespace=" + namespace + ", id=" + name + ", group=" + group +
                 ", channel=" + channel
-                + ", criterion=" + criterion + ", action=" + action + ", searchAction=" + searchAction + ", subject=" + subject + ", path=" + path + ']';
+                + ", criterion=" + criterion + ", action=" + action + ", searchAction=" + searchAction + ", subject=" +
+                subject + ", path=" + path + ']';
     }
 
     private String buildPath() {
@@ -241,7 +243,7 @@ final class ImmutableTopicPath implements TopicPath {
         } else if (subject != null) {
             // e.g.: <ns>/<id>/things/live/messages/<subject>
             builder.append(PATH_DELIMITER).append(subject);
-        }else if (searchAction != null) {
+        } else if (searchAction != null) {
             builder.append(PATH_DELIMITER).append(searchAction);
         }
 

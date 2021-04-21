@@ -29,8 +29,6 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
-import org.eclipse.ditto.model.base.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.model.base.headers.AbstractDittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
@@ -44,7 +42,7 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
     static final Set<MessageHeaderDefinition> MANDATORY_HEADERS = Collections.unmodifiableSet(
             EnumSet.of(MessageHeaderDefinition.DIRECTION, MessageHeaderDefinition.THING_ID,
                     MessageHeaderDefinition.SUBJECT));
-    private static final Set<MessageHeaderDefinition> DEFINITIONS = determineMessageHeaderDefinitions();
+    private static final Set<MessageHeaderDefinition> DEFINITIONS = EnumSet.allOf(MessageHeaderDefinition.class);
 
     private MessageHeadersBuilder(final Map<String, String> headers) {
         super(headers, DEFINITIONS, MessageHeadersBuilder.class);
@@ -52,35 +50,6 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
 
     private MessageHeadersBuilder(final MessageHeaders dittoHeaders) {
         super(dittoHeaders, DEFINITIONS, MessageHeadersBuilder.class);
-    }
-
-    private static Set<MessageHeaderDefinition> determineMessageHeaderDefinitions() {
-        final Set<MessageHeaderDefinition> result = EnumSet.allOf(MessageHeaderDefinition.class);
-
-        // remove deprecated timeout entry as this is now defined in DittoHeaderDefinitions
-        result.remove(MessageHeaderDefinition.TIMEOUT);
-        return result;
-    }
-
-    /**
-     * Returns a new instance of {@code MessageHeadersBuilder}.
-     *
-     * @param direction the direction of the message.
-     * @param thingId the thing ID of the message.
-     * @param subject the subject of the message.
-     * @return the instance.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @throws IllegalArgumentException if {@code thingId} or {@code subject} is empty.
-     * @throws SubjectInvalidException if {@code subject} is invalid.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #newInstance(MessageDirection, org.eclipse.ditto.model.things.ThingId, CharSequence)}
-     * instead.
-     */
-    @Deprecated
-    public static MessageHeadersBuilder newInstance(final MessageDirection direction, final CharSequence thingId,
-            final CharSequence subject) {
-
-        return newInstance(direction, ThingId.of(thingId), subject);
     }
 
     /**
@@ -205,20 +174,6 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
     }
 
     /**
-     * Sets the timeout of the Message to build.
-     *
-     * @param timeoutInSeconds the seconds of the Message to time out.
-     * @return this builder to allow method chaining.
-     * @deprecated as of 1.1.0 please use
-     * {@link org.eclipse.ditto.model.base.headers.DittoHeadersBuilder#timeout(CharSequence)} instead.
-     * This method will be removed in version 2.0.
-     */
-    @Deprecated
-    public MessageHeadersBuilder timeout(final long timeoutInSeconds) {
-        return timeout(Duration.ofSeconds(timeoutInSeconds));
-    }
-
-    /**
      * Sets the timestamp of the Message to build.
      *
      * @param timestamp the timestamp of the message.
@@ -257,18 +212,6 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
     }
 
     /**
-     * Sets the status code of the Message to build.
-     *
-     * @param statusCode the status code.
-     * @return this builder to allow method chaining.
-     * @deprecated as of 2.0.0 please use {@link #httpStatus(HttpStatus)} instead.
-     */
-    @Deprecated
-    public MessageHeadersBuilder statusCode(@Nullable final HttpStatusCode statusCode) {
-        return httpStatus(null != statusCode ? statusCode.getAsHttpStatus() : null);
-    }
-
-    /**
      * Sets the Http status of the Message to build.
      *
      * @param httpStatus the HTTP status.
@@ -283,27 +226,6 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
             removeHeader(definition.getKey());
         }
         return myself;
-    }
-
-    /**
-     * Sets the status code of the Message to build.
-     *
-     * @param statusCode the status code.
-     * @return this builder to allow method chaining.
-     * @throws IllegalArgumentException if {@code statusCode} is unknown.
-     * @deprecated as of 2.0.0 please use {@link #httpStatus(HttpStatus)} instead.
-     */
-    @Deprecated
-    public MessageHeadersBuilder statusCode(final int statusCode) {
-        return httpStatus(getHttpStatus(statusCode));
-    }
-
-    private static HttpStatus getHttpStatus(final int statusCode) {
-        try {
-            return HttpStatus.getInstance(statusCode);
-        } catch (final HttpStatusCodeOutOfRangeException e) {
-            throw new IllegalArgumentException(e.getMessage(), e);
-        }
     }
 
     @Override

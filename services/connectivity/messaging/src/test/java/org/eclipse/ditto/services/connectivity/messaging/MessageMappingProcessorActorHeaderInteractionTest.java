@@ -141,8 +141,8 @@ public final class MessageMappingProcessorActorHeaderInteractionTest extends Abs
 
     private Object getModifyThingResponse(final ModifyThing modifyThing) {
         return (isSuccess
-                ? ModifyThingResponse.modified(modifyThing.getThingEntityId(), modifyThing.getDittoHeaders())
-                : ThingNotAccessibleException.newBuilder(modifyThing.getThingEntityId()).build())
+                ? ModifyThingResponse.modified(modifyThing.getEntityId(), modifyThing.getDittoHeaders())
+                : ThingNotAccessibleException.newBuilder(modifyThing.getEntityId()).build())
                 .setDittoHeaders(modifyThing.getDittoHeaders()); // use setDittoHeaders to lose concrete exception type
     }
 

@@ -21,6 +21,7 @@ import java.util.Set;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.Scenario;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.ScenarioSetup;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
@@ -33,8 +34,8 @@ import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 
 /**
  * Tests Policy with granted permissions only.
@@ -102,8 +103,9 @@ public final class JsonViewScenario13 implements JsonViewScenario {
         final AuthorizationContext authorizationContext = Scenario.newAuthorizationContext(LABEL_CLIENT);
         final String resource = "/features/" + GYROSCOPE_FEATURE.getId();
         final JsonObject expectedJsonView = GYROSCOPE_FEATURE.toJson();
-        final Set<String> expectedSubjectIds = new HashSet<>();
-        Collections.addAll(expectedSubjectIds, SUBJECT_ID_OWNER.toString(), SUBJECT_ID_CLIENT.toString());
+        final Set<AuthorizationSubject> expectedSubjectIds = new HashSet<>();
+        Collections.addAll(expectedSubjectIds, AuthorizationSubject.newInstance(SUBJECT_ID_OWNER),
+                AuthorizationSubject.newInstance(SUBJECT_ID_CLIENT));
 
         return Scenario.newScenarioSetup(true, "description", policy, authorizationContext, resource, TEST_THING,
                 expectedJsonView, expectedSubjectIds, Permission.READ, Permission.WRITE);

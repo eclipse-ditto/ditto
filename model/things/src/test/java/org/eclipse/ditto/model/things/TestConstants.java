@@ -47,19 +47,6 @@ public final class TestConstants {
         public static final AuthorizationSubject AUTH_SUBJECT_GRIMES =
                 AuthorizationModelFactory.newAuthSubject("FrankGrimes");
 
-        /**
-         * The known ACL entry of John Oldman.
-         */
-        public static final AclEntry ACL_ENTRY_OLDMAN =
-                ThingsModelFactory.newAclEntry(Authorization.AUTH_SUBJECT_OLDMAN, Permission.READ, Permission.WRITE,
-                        Permission.ADMINISTRATE);
-
-        /**
-         * The known ACL entry of Frank Grimes.
-         */
-        public static final AclEntry ACL_ENTRY_GRIMES =
-                ThingsModelFactory.newAclEntry(Authorization.AUTH_SUBJECT_GRIMES, Permission.READ);
-
         private Authorization() {
             throw new AssertionError();
         }
@@ -93,7 +80,7 @@ public final class TestConstants {
         /**
          * A known Feature which is required for time travel.
          */
-        public static final org.eclipse.ditto.model.things.Feature FLUX_CAPACITOR_V2 =
+        public static final org.eclipse.ditto.model.things.Feature FLUX_CAPACITOR =
                 org.eclipse.ditto.model.things.Feature.newBuilder()
                         .properties(FLUX_CAPACITOR_PROPERTIES)
                         .desiredProperties(FLUX_CAPACITOR_PROPERTIES)
@@ -102,24 +89,9 @@ public final class TestConstants {
                         .build();
 
         /**
-         * A known Feature for API V1.
-         */
-        public static final org.eclipse.ditto.model.things.Feature FLUX_CAPACITOR =
-                org.eclipse.ditto.model.things.Feature.newBuilder()
-                        .properties(FLUX_CAPACITOR_PROPERTIES)
-                        .definition(FLUX_CAPACITOR_DEFINITION)
-                        .withId(FLUX_CAPACITOR_ID)
-                        .build();
-
-        /**
-         * Known features of a Thing.
+         * Known features of a Thing for API v2.
          */
         public static final Features FEATURES = ThingsModelFactory.newFeatures(Feature.FLUX_CAPACITOR);
-
-        /**
-         * Known features of a Thing for API v!.
-         */
-        public static final Features FEATURES_V2 = ThingsModelFactory.newFeatures(Feature.FLUX_CAPACITOR_V2);
 
         private Feature() {
             throw new AssertionError();
@@ -152,12 +124,6 @@ public final class TestConstants {
         public static final ThingLifecycle LIFECYCLE = ThingLifecycle.ACTIVE;
 
         /**
-         * A known Access Control List of a Thing.
-         */
-        public static final AccessControlList ACL =
-                ThingsModelFactory.newAcl(Authorization.ACL_ENTRY_OLDMAN, Authorization.ACL_ENTRY_GRIMES);
-
-        /**
          * A known location attribute for testing.
          */
         public static final JsonObject LOCATION_ATTRIBUTE = JsonFactory.newObjectBuilder()
@@ -177,7 +143,8 @@ public final class TestConstants {
         /**
          * A known Definition for testing.
          */
-        public static final ThingDefinition DEFINITION = ImmutableThingDefinition.ofParsed("Namespace.test.version:thing:1.0");
+        public static final ThingDefinition DEFINITION =
+                ImmutableThingDefinition.ofParsed("Namespace.test.version:thing:1.0");
 
         /**
          * A known revision number of a Thing.
@@ -194,26 +161,12 @@ public final class TestConstants {
         public static final Instant CREATED = Instant.EPOCH;
 
         /**
-         * A known Thing for testing in V1.
-         */
-        public static final org.eclipse.ditto.model.things.Thing THING_V1 = ThingsModelFactory.newThingBuilder()
-                .setAttributes(ATTRIBUTES)
-                .setFeatures(Feature.FEATURES)
-                .setLifecycle(LIFECYCLE)
-                .setPermissions(ACL)
-                .setId(THING_ID)
-                .setRevision(REVISION_NUMBER)
-                .setModified(MODIFIED)
-                .setCreated(CREATED)
-                .build();
-
-        /**
          * A known Thing for testing in V2.
          */
         public static final org.eclipse.ditto.model.things.Thing THING_V2 = ThingsModelFactory.newThingBuilder()
                 .setAttributes(ATTRIBUTES)
                 .setDefinition(DEFINITION)
-                .setFeatures(Feature.FEATURES_V2)
+                .setFeatures(Feature.FEATURES)
                 .setLifecycle(LIFECYCLE)
                 .setPolicyId(POLICY_ID)
                 .setId(THING_ID)

@@ -14,9 +14,6 @@ package org.eclipse.ditto.services.utils.akka.controlflow;
 
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.function.Predicate;
-
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 
 import akka.NotUsed;
 import akka.stream.FanOutShape2;
@@ -54,43 +51,6 @@ public final class Filter {
 
     private Filter() {
         throw new AssertionError();
-    }
-
-    /**
-     * Create a filter stage from a class and a predicate.
-     *
-     * @param <T> type of messages to filter for.
-     * @param clazz class of {@code T}.
-     * @param predicate predicate to test instances of {@code T} with.
-     * @return {@code GraphStage} that performs the filtering.
-     */
-    public static <T extends WithDittoHeaders> Graph<FanOutShape2<WithSender, WithSender<T>, WithSender>, NotUsed> of(
-            final Class<T> clazz,
-            final Predicate<T> predicate) {
-
-        return Filter.multiplexBy(withSender -> {
-            // introduce wildcard type parameter to un-confuse type-checker
-            final WithSender<?> input = (WithSender<?>) withSender;
-            if (clazz.isInstance(input.getMessage())) {
-                final T message = clazz.cast(input.getMessage());
-                if (predicate.test(message)) {
-                    return Optional.of(input.withMessage(message));
-                }
-            }
-            return Optional.empty();
-        });
-    }
-
-    /**
-     * Create a filter stage from a class.
-     *
-     * @param <T> type of messages to filter for.
-     * @param clazz class of {@code T}.
-     * @return {@code GraphStage} that performs the filtering.
-     */
-    public static <T extends WithDittoHeaders> Graph<FanOutShape2<WithSender, WithSender<T>, WithSender>, NotUsed> of(
-            final Class<T> clazz) {
-        return of(clazz, x -> true);
     }
 
     /**

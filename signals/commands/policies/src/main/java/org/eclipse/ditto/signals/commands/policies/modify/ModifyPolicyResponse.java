@@ -78,48 +78,11 @@ public final class ModifyPolicyResponse extends AbstractCommandResponse<ModifyPo
      * @param dittoHeaders the headers of the PolicyCommand which caused the new response.
      * @return a command response for a created Policy.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #created(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Policy, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifyPolicyResponse created(final String policyId, final Policy policy,
-            final DittoHeaders dittoHeaders) {
-
-        return created(PolicyId.of(policyId), policy, dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code ModifyPolicyResponse} for a created Policy. This corresponds to the HTTP status
-     * {@link HttpStatus#CREATED}.
-     *
-     * @param policyId the Policy ID of the created policy.
-     * @param policy the created Policy.
-     * @param dittoHeaders the headers of the PolicyCommand which caused the new response.
-     * @return a command response for a created Policy.
-     * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyPolicyResponse created(final PolicyId policyId, final Policy policy,
             final DittoHeaders dittoHeaders) {
 
         return new ModifyPolicyResponse(policyId, HttpStatus.CREATED, policy, dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code ModifyPolicyResponse} for a modified Policy. This corresponds to the HTTP status
-     * {@link HttpStatus#NO_CONTENT}.
-     *
-     * @param policyId the Policy ID of the modified policy.
-     * @param dittoHeaders the headers of the PolicyCommand which caused the new response.
-     * @return a command response for a modified Policy.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #modified(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifyPolicyResponse modified(final String policyId, final DittoHeaders dittoHeaders) {
-        return modified(PolicyId.of(policyId), dittoHeaders);
     }
 
     /**

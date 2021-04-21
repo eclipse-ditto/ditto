@@ -68,7 +68,7 @@ final class DeleteSubjectStrategy extends AbstractPolicyCommandStrategy<DeleteSu
                 if (validator.isValid()) {
                     final SubjectDeleted subjectDeleted =
                             SubjectDeleted.of(policyId, label, subjectId, nextRevision, getEventTimestamp(),
-                                    headers);
+                                    headers, metadata);
                     final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                             DeleteSubjectResponse.of(policyId, label, subjectId, headers), nonNullPolicy);
                     return ResultFactory.newMutationResult(command, subjectDeleted, response);

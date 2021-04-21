@@ -20,8 +20,7 @@ import org.eclipse.ditto.protocoladapter.TopicPathBuilder;
 import org.eclipse.ditto.protocoladapter.UnknownCommandResponseException;
 import org.eclipse.ditto.signals.commands.things.modify.MergeThingResponse;
 
-final class ThingMergeResponseSignalMapper
-        extends AbstractModifySignalMapper<MergeThingResponse>
+final class ThingMergeResponseSignalMapper extends AbstractModifySignalMapper<MergeThingResponse>
         implements ResponseSignalMapper {
 
     @Override
@@ -38,8 +37,7 @@ final class ThingMergeResponseSignalMapper
         return ProtocolFactory.newTopicPathBuilder(command.getEntityId()).things();
     }
 
-    private static final TopicPath.Action[] SUPPORTED_ACTIONS =
-            {TopicPath.Action.MERGE};
+    private static final TopicPath.Action[] SUPPORTED_ACTIONS = {TopicPath.Action.MERGE};
 
     @Override
     TopicPath.Action[] getSupportedActions() {
@@ -47,9 +45,8 @@ final class ThingMergeResponseSignalMapper
     }
 
     @Override
-    void enhancePayloadBuilder(final MergeThingResponse commandResponse,
-            final PayloadBuilder payloadBuilder) {
-        payloadBuilder.withStatus(commandResponse.getStatusCode());
+    void enhancePayloadBuilder(final MergeThingResponse commandResponse, final PayloadBuilder payloadBuilder) {
+        payloadBuilder.withStatus(commandResponse.getHttpStatus());
     }
 
     @Override

@@ -20,6 +20,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 
 /**
  * A mutable builder for a {@link Policy} with a fluent API.
@@ -469,18 +470,6 @@ public interface PolicyBuilder {
      *
      * @param id the Policy ID to set.
      * @return this builder to allow method chaining.
-     * @throws PolicyIdInvalidException if {@code policyId} did not comply to
-     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
-     * @deprecated policy ID is now typed. Use {@link #setId(PolicyId)} instead.
-     */
-    @Deprecated
-    PolicyBuilder setId(CharSequence id);
-
-    /**
-     * Sets the Policy ID. The previous ID is overwritten.
-     *
-     * @param id the Policy ID to set.
-     * @return this builder to allow method chaining.
      */
     PolicyBuilder setId(PolicyId id);
 
@@ -526,6 +515,15 @@ public interface PolicyBuilder {
      * @since 1.2.0
      */
     PolicyBuilder setCreated(@Nullable Instant created);
+
+    /**
+     * Sets the given metadata to this builder.
+     *
+     * @param metadata the metadata to be set.
+     * @return this builder to allow method chaining.
+     * @since 2.0.0
+     */
+    PolicyBuilder setMetadata(@Nullable Metadata metadata);
 
     /**
      * Sets the given entry to this builder. A previous entry with the same {@link Label} as the one of the

@@ -250,7 +250,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
         log.warning("Received message during downtime of child actor for Entity with ID <{}>: <{}>", entityId, message);
         final DittoRuntimeExceptionBuilder<?> builder = getUnavailableExceptionBuilder(entityId);
         if (message instanceof WithDittoHeaders) {
-            builder.dittoHeaders(((WithDittoHeaders<?>) message).getDittoHeaders());
+            builder.dittoHeaders(((WithDittoHeaders) message).getDittoHeaders());
         }
         getSender().tell(builder.build(), getSelf());
     }

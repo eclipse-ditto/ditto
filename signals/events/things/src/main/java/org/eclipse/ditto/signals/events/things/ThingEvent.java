@@ -20,16 +20,16 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.WithThingId;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
+import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 
 /**
  * Interface for all Thing-related events.
  *
  * @param <T> the type of the implementing class.
  */
-public interface ThingEvent<T extends ThingEvent<T>> extends Event<T>, WithThingId {
+public interface ThingEvent<T extends ThingEvent<T>> extends EventsourcedEvent<T>, WithThingId, SignalWithEntityId<T> {
 
     /**
      * Type Prefix of Thing events.
@@ -40,11 +40,6 @@ public interface ThingEvent<T extends ThingEvent<T>> extends Event<T>, WithThing
      * Thing resource type.
      */
     String RESOURCE_TYPE = "thing";
-
-    @Override
-    default ThingId getEntityId() {
-        return getThingEntityId();
-    }
 
     @Override
     default String getResourceType() {
@@ -64,7 +59,7 @@ public interface ThingEvent<T extends ThingEvent<T>> extends Event<T>, WithThing
          * Payload JSON field containing the Thing ID.
          */
         public static final JsonFieldDefinition<String> THING_ID =
-                JsonFactory.newStringFieldDefinition("thingId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("thingId", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
 
@@ -72,14 +67,14 @@ public interface ThingEvent<T extends ThingEvent<T>> extends Event<T>, WithThing
          * Payload JSON field containing the Feature ID.
          */
         public static final JsonFieldDefinition<String> FEATURE_ID =
-                JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * Payload JSON field containing the Thing.
          */
         public static final JsonFieldDefinition<JsonObject> THING =
-                JsonFactory.newJsonObjectFieldDefinition("thing", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonObjectFieldDefinition("thing", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

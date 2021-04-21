@@ -34,13 +34,14 @@ import org.eclipse.ditto.model.things.AttributesModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException;
 
 /**
  * This command deletes a thing's attribute. Contains the key of the attribute to delete and the ID of the Thing.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = DeleteAttribute.TYPE_PREFIX, name = DeleteAttribute.NAME)
+@JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = DeleteAttribute.NAME)
 public final class DeleteAttribute extends AbstractCommand<DeleteAttribute>
         implements ThingModifyCommand<DeleteAttribute> {
 
@@ -55,7 +56,7 @@ public final class DeleteAttribute extends AbstractCommand<DeleteAttribute>
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<String> JSON_ATTRIBUTE =
-            JsonFactory.newStringFieldDefinition("attribute", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("attribute", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final ThingId thingId;
@@ -77,31 +78,6 @@ public final class DeleteAttribute extends AbstractCommand<DeleteAttribute>
                     .build();
         }
         return AttributesModelFactory.validateAttributePointer(attributePointer);
-    }
-
-    /**
-     * Returns a command for deleting a Thing's attribute which can be accessed with the given authorization context.
-     * The attribute's key and the Thing's ID are passed as arguments.
-     *
-     * @param thingId the thing's key.
-     * @param attributeJsonPointer the JSON pointer of the attribute key to delete.
-     * @param dittoHeaders the headers of the command.
-     * @return a command for deleting a Thing's attribute.
-     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
-     * @throws org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException if
-     * {@code attributeJsonPointer} is empty.
-     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributeJsonPointer} are not valid
-     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer,
-     * org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static DeleteAttribute of(final String thingId, final JsonPointer attributeJsonPointer,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), attributeJsonPointer, dittoHeaders);
     }
 
     /**
@@ -159,7 +135,7 @@ public final class DeleteAttribute extends AbstractCommand<DeleteAttribute>
      */
     public static DeleteAttribute fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<DeleteAttribute>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
             final String extractedPointerString = jsonObject.getValueOrThrow(JSON_ATTRIBUTE);
             final JsonPointer extractedPointer = JsonFactory.newPointer(extractedPointerString);
@@ -178,7 +154,7 @@ public final class DeleteAttribute extends AbstractCommand<DeleteAttribute>
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 
@@ -192,7 +168,7 @@ public final class DeleteAttribute extends AbstractCommand<DeleteAttribute>
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_ATTRIBUTE, attributePointer.toString(), predicate);
     }
 

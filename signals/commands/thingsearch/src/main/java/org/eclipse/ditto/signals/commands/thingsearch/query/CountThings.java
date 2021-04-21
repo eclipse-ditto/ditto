@@ -38,12 +38,13 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
 /**
  * Command for counting things.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = CountThings.TYPE_PREFIX, name = CountThings.NAME)
+@JsonParsableCommand(typePrefix = ThingSearchCommand.TYPE_PREFIX, name = CountThings.NAME)
 public final class CountThings extends AbstractCommand<CountThings> implements ThingSearchQueryCommand<CountThings> {
 
     /**
@@ -57,11 +58,11 @@ public final class CountThings extends AbstractCommand<CountThings> implements T
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<String> JSON_FILTER =
-            JsonFactory.newStringFieldDefinition("filter", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("filter", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<JsonArray> JSON_NAMESPACES =
-            JsonFactory.newJsonArrayFieldDefinition("namespaces", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonArrayFieldDefinition("namespaces", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     @Nullable private final String filter;

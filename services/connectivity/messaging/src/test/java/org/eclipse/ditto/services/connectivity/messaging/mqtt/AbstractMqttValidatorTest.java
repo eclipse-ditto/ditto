@@ -19,9 +19,7 @@ import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Au
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
-import org.assertj.core.api.Assertions;
 import org.assertj.core.api.ThrowableAssertAlternative;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -39,7 +37,7 @@ import akka.actor.ActorSystem;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Base class for Mqtt3Validator tests.
+ * Base class for MqttValidator tests.
  */
 abstract class AbstractMqttValidatorTest {
 
@@ -67,6 +65,9 @@ abstract class AbstractMqttValidatorTest {
                 .build();
         verifyConnectionConfigurationInvalidExceptionIsThrown(connection);
     }
+
+    protected abstract ThrowableAssertAlternative<ConnectionConfigurationInvalidException>
+    verifyConnectionConfigurationInvalidExceptionIsThrown(Connection connection);
 
     Connection connectionWithSource(final String source) {
         final Enforcement enforcement = newSourceAddressEnforcement("things/{{ thing:id }}", "things/{{ entity:id }}");
@@ -97,12 +98,6 @@ abstract class AbstractMqttValidatorTest {
                         .topics(Topic.LIVE_EVENTS)
                         .build()))
                 .build();
-    }
-
-    ThrowableAssertAlternative<ConnectionConfigurationInvalidException> verifyConnectionConfigurationInvalidExceptionIsThrown(
-            final Connection connection) {
-        return Assertions.assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
-                .isThrownBy(() -> Mqtt3Validator.newInstance().validate(connection, DittoHeaders.empty(), actorSystem));
     }
 
 }

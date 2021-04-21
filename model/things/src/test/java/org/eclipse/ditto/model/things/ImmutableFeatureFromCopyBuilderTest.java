@@ -33,7 +33,7 @@ public final class ImmutableFeatureFromCopyBuilderTest {
 
     @Before
     public void setUp() {
-        underTest = ImmutableFeatureFromCopyBuilder.of(TestConstants.Feature.FLUX_CAPACITOR_V2);
+        underTest = ImmutableFeatureFromCopyBuilder.of(TestConstants.Feature.FLUX_CAPACITOR);
     }
 
     @Test(expected = NullPointerException.class)
@@ -45,7 +45,7 @@ public final class ImmutableFeatureFromCopyBuilderTest {
     public void builderOfFeatureIsCorrectlyInitialised() {
         final Feature feature = underTest.build();
 
-        assertThat(feature).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_V2);
+        assertThat(feature).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR);
     }
 
     @Test

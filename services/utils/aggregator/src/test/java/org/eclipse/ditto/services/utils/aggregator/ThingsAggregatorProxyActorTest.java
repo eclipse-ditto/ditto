@@ -14,10 +14,10 @@ package org.eclipse.ditto.services.utils.aggregator;
 
 import java.util.UUID;
 
-import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.junit.AfterClass;
@@ -39,7 +39,7 @@ public final class ThingsAggregatorProxyActorTest {
     private static final DittoHeaders DITTO_HEADERS =
             DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
     private static final DittoRuntimeException DITTO_RUNTIME_EXCEPTION =
-            DittoRuntimeException.newBuilder("test.error", HttpStatus.BAD_REQUEST)
+            ThingIdInvalidException.newBuilder("invalidThingId")
                     .dittoHeaders(DITTO_HEADERS)
                     .build();
     private static final GatewayInternalErrorException GATEWAY_INTERNAL_ERROR_EXCEPTION =

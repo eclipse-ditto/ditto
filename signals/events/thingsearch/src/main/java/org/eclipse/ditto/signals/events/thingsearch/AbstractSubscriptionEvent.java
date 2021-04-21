@@ -27,8 +27,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -71,26 +69,6 @@ abstract class AbstractSubscriptionEvent<T extends AbstractSubscriptionEvent<T>>
     @Override
     public String getType() {
         return type;
-    }
-
-    @Override
-    public long getRevision() {
-        // subscription events have no revision.
-        return 0L;
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public T setRevision(final long revision) {
-        // subscription events have no revision.
-        return (T) this;
-    }
-
-    @Override
-    public EntityId getEntityId() {
-        // subscription events relate to no entity.
-        // subscription ID is ephemeral, similar to correlation ID.
-        return DefaultEntityId.dummy();
     }
 
     @Override

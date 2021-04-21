@@ -6,7 +6,7 @@ permalink: protocol-specification-policies-retrieve.html
 ---
 
 {% include note.html content="The *topic path* of policy commands contains no *channel* element. 
-See the [specification](protocol-specification-policies.html#ditto-protocol-topic-structure-for-policies) for details. " %}
+See the [specification](protocol-specification-policies.html#ditto-protocol-topic-structure-for-policies) for details." %}
 
 ## Retrieve a Policy
 

@@ -30,7 +30,6 @@
         <module>common</module>
         <module>connectivity</module>
         <module>devops</module>
-        <module>live</module>
         <module>messages</module>
         <module>namespaces</module>
         <module>policies</module>

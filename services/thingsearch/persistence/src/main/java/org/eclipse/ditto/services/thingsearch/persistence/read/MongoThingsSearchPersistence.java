@@ -44,6 +44,7 @@ import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.model.query.SortOption;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.models.streaming.LowerBound;
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceReportResult;
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceResultEntry;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
@@ -128,8 +129,8 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
      * @return copy of this object with hints configured.
      */
     public MongoThingsSearchPersistence withHintsByNamespace(final String jsonString) {
-        final MongoHints hints = MongoHints.byNamespace(jsonString);
-        return new MongoThingsSearchPersistence(collection, log, indexInitializer, maxQueryTime, hints);
+        final MongoHints theHints = MongoHints.byNamespace(jsonString);
+        return new MongoThingsSearchPersistence(collection, log, indexInitializer, maxQueryTime, theHints);
     }
 
     @Override
@@ -253,7 +254,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
     @Override
     public Source<Metadata, NotUsed> sudoStreamMetadata(final EntityId lowerBound) {
         final Bson notDeletedFilter = Filters.exists(FIELD_DELETE_AT, false);
-        final Bson filter = lowerBound.isDummy()
+        final Bson filter = LowerBound.emptyEntityId(lowerBound.getEntityType()).equals(lowerBound)
                 ? notDeletedFilter
                 : Filters.and(notDeletedFilter, Filters.gt(FIELD_ID, lowerBound.toString()));
         final Bson relevantFieldsProjection =

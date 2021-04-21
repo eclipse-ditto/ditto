@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.signals.commands.base;
 
-import java.util.Optional;
-
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonMissingFieldException;
@@ -29,8 +27,8 @@ import org.eclipse.ditto.signals.base.AbstractGlobalJsonParsableRegistry;
  */
 @Immutable
 public final class GlobalCommandRegistry
-        extends AbstractGlobalJsonParsableRegistry<Command, JsonParsableCommand>
-        implements CommandRegistry<Command> {
+        extends AbstractGlobalJsonParsableRegistry<Command<?>, JsonParsableCommand>
+        implements CommandRegistry<Command<?>> {
 
     private static final GlobalCommandRegistry INSTANCE = new GlobalCommandRegistry();
 
@@ -54,14 +52,7 @@ public final class GlobalCommandRegistry
          * Fail if "event" also is not present.
          */
         return jsonObject.getValue(Command.JsonFields.TYPE)
-                .orElseGet(() -> extractTypeV1(jsonObject)
-                        .orElseThrow(() -> new JsonMissingFieldException(Command.JsonFields.TYPE)));
-    }
-
-    @SuppressWarnings({"squid:CallToDeprecatedMethod"})
-    @Deprecated
-    private Optional<String> extractTypeV1(final JsonObject jsonObject) {
-        return jsonObject.getValue(Command.JsonFields.ID);
+                .orElseThrow(() -> new JsonMissingFieldException(Command.JsonFields.TYPE));
     }
 
     /**
@@ -69,15 +60,9 @@ public final class GlobalCommandRegistry
      * from a combination of {@link JsonObject} and {@link DittoHeaders}.
      */
     private static final class CommandParsingStrategyFactory
-            extends AbstractAnnotationBasedJsonParsableFactory<Command, JsonParsableCommand> {
+            extends AbstractAnnotationBasedJsonParsableFactory<Command<?>, JsonParsableCommand> {
 
         private CommandParsingStrategyFactory() {}
-
-        @Override
-        @Deprecated
-        protected String getV1FallbackKeyFor(final JsonParsableCommand annotation) {
-            return annotation.name();
-        }
 
         @Override
         protected String getKeyFor(final JsonParsableCommand annotation) {

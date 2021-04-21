@@ -85,7 +85,7 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
     public void retrieveThingWithoutSelectedFields() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .schemaVersion(JsonSchemaVersion.V_1)
+                .schemaVersion(JsonSchemaVersion.V_2)
                 .build();
         final SudoRetrieveThing command = SudoRetrieveThing.of(context.getState(), dittoHeaders);
         final JsonObject expectedThingJson = THING_V2.toJson(command.getImplementedSchemaVersion(),
@@ -114,7 +114,7 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector("/attribute/location");
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .schemaVersion(JsonSchemaVersion.V_1)
+                .schemaVersion(JsonSchemaVersion.V_2)
                 .build();
         final SudoRetrieveThing command =
                 SudoRetrieveThing.of(context.getState(), fieldSelector, dittoHeaders);

@@ -16,6 +16,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.Payload;
@@ -25,6 +26,8 @@ import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.signals.base.ErrorRegistry;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
+import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
+import org.eclipse.ditto.signals.commands.things.exceptions.ThingUnavailableException;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -40,8 +43,7 @@ public class ThingErrorResponseAdapterTest implements ProtocolAdapterTest {
     public void setUp() {
         final ErrorRegistry<DittoRuntimeException> errorRegistry = GlobalErrorRegistry.getInstance();
         underTest = ThingErrorResponseAdapter.of(DittoProtocolAdapter.getHeaderTranslator(), errorRegistry);
-        dittoRuntimeException = DittoRuntimeException
-                .newBuilder("error.code", HttpStatus.UNAUTHORIZED)
+        dittoRuntimeException = ThingNotAccessibleException.newBuilder(TestConstants.THING_ID)
                 .message("the message")
                 .description("the description")
                 .build();
@@ -79,7 +81,7 @@ public class ThingErrorResponseAdapterTest implements ProtocolAdapterTest {
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(dittoRuntimeException.toJson(FieldType.regularOrSpecial()))
-                        .withStatus(HttpStatus.UNAUTHORIZED)
+                        .withStatus(HttpStatus.NOT_FOUND)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();

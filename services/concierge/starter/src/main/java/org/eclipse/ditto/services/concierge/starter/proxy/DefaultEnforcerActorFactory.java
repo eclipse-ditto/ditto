@@ -25,7 +25,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
@@ -47,9 +47,8 @@ import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClust
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CacheFactory;
-import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
+import org.eclipse.ditto.services.utils.cache.CacheKey;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
-import org.eclipse.ditto.services.utils.cacheloaders.AclEnforcerCacheLoader;
 import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.services.utils.cacheloaders.ThingEnforcementIdCacheLoader;
@@ -95,28 +94,21 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
 
         final ActorRef thingsShardRegionProxy = shardRegions.things();
 
-        final AsyncCacheLoader<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingEnforcerIdCacheLoader =
+        final AsyncCacheLoader<CacheKey, Entry<CacheKey>> thingEnforcerIdCacheLoader =
                 new ThingEnforcementIdCacheLoader(askTimeout, thingsShardRegionProxy);
-        final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache =
+        final Cache<CacheKey, Entry<CacheKey>> thingIdCache =
                 CacheFactory.createCache(thingEnforcerIdCacheLoader, cachesConfig.getIdCacheConfig(),
                         ID_CACHE_METRIC_NAME_PREFIX + ThingCommand.RESOURCE_TYPE,
                         actorSystem.dispatchers().lookup("thing-id-cache-dispatcher"));
 
-        final AsyncCacheLoader<EntityIdWithResourceType, Entry<PolicyEnforcer>> policyEnforcerCacheLoader =
+        final AsyncCacheLoader<CacheKey, Entry<PolicyEnforcer>> policyEnforcerCacheLoader =
                 new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegionProxy);
-        final Cache<EntityIdWithResourceType, Entry<PolicyEnforcer>> policyEnforcerCache =
+        final Cache<CacheKey, Entry<PolicyEnforcer>> policyEnforcerCache =
                 CacheFactory.createCache(policyEnforcerCacheLoader, cachesConfig.getEnforcerCacheConfig(),
                         ENFORCER_CACHE_METRIC_NAME_PREFIX + "policy",
                         actorSystem.dispatchers().lookup("policy-enforcer-cache-dispatcher"));
-        final Cache<EntityIdWithResourceType, Entry<Enforcer>> projectedEnforcerCache =
+        final Cache<CacheKey, Entry<Enforcer>> projectedEnforcerCache =
                 policyEnforcerCache.projectValues(PolicyEnforcer::project, PolicyEnforcer::embed);
-
-        final AsyncCacheLoader<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCacheLoader =
-                new AclEnforcerCacheLoader(askTimeout, thingsShardRegionProxy);
-        final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache =
-                CacheFactory.createCache(aclEnforcerCacheLoader, cachesConfig.getEnforcerCacheConfig(),
-                        ENFORCER_CACHE_METRIC_NAME_PREFIX + "acl",
-                        actorSystem.dispatchers().lookup("acl-enforcer-cache-dispatcher"));
 
         // pre-enforcer
         final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
@@ -127,10 +119,10 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
 
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
         enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegionProxy,
-                policiesShardRegionProxy, thingIdCache, projectedEnforcerCache, aclEnforcerCache, preEnforcer));
+                policiesShardRegionProxy, thingIdCache, projectedEnforcerCache, preEnforcer));
         enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegionProxy, policyEnforcerCache));
-        enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache, projectedEnforcerCache,
-                aclEnforcerCache, liveSignalPub));
+        enforcementProviders.add(
+                new LiveSignalEnforcement.Provider(thingIdCache, projectedEnforcerCache, liveSignalPub));
 
         final ActorRef conciergeEnforcerRouter =
                 ConciergeEnforcerClusterRouterFactory.createConciergeEnforcerClusterRouter(context,
@@ -146,8 +138,7 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
 
         // start cache invalidator
         final Props cachedNamespaceInvalidatorProps =
-                CachedNamespaceInvalidator.props(blockedNamespaces,
-                        Arrays.asList(thingIdCache, policyEnforcerCache, aclEnforcerCache));
+                CachedNamespaceInvalidator.props(blockedNamespaces, Arrays.asList(thingIdCache, policyEnforcerCache));
         context.actorOf(cachedNamespaceInvalidatorProps, CachedNamespaceInvalidator.ACTOR_NAME);
 
         // start cluster singleton that writes to the distributed cache of blocked namespaces
@@ -158,8 +149,8 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
 
         // passes in the caches to be able to invalidate cache entries
         final Props enforcerProps =
-                EnforcerActor.props(pubSubMediator, enforcementProviders, conciergeForwarder,
-                        preEnforcer, thingIdCache, aclEnforcerCache, policyEnforcerCache);
+                EnforcerActor.props(pubSubMediator, enforcementProviders, conciergeForwarder, preEnforcer, thingIdCache,
+                        policyEnforcerCache);
 
         return context.actorOf(enforcerProps, EnforcerActor.ACTOR_NAME);
     }
@@ -170,7 +161,7 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
      * @param originalSignal A signal with authorization context.
      * @return A copy of the signal with the header "ditto-originator" set.
      */
-    public static WithDittoHeaders<?> setOriginatorHeader(final WithDittoHeaders<?> originalSignal) {
+    public static DittoHeadersSettable<?> setOriginatorHeader(final DittoHeadersSettable<?> originalSignal) {
         final DittoHeaders dittoHeaders = originalSignal.getDittoHeaders();
         final AuthorizationContext authorizationContext = dittoHeaders.getAuthorizationContext();
         return authorizationContext.getFirstAuthorizationSubject()
@@ -178,30 +169,30 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
                 .map(originatorSubjectId -> DittoHeaders.newBuilder(dittoHeaders)
                         .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(), originatorSubjectId)
                         .build())
-                .<WithDittoHeaders<?>>map(originalSignal::setDittoHeaders)
+                .<DittoHeadersSettable<?>>map(originalSignal::setDittoHeaders)
                 .orElse(originalSignal);
     }
 
     private static PreEnforcer newPreEnforcer(final BlockedNamespaces blockedNamespaces,
             final PlaceholderSubstitution placeholderSubstitution) {
 
-        return withDittoHeaders ->
+        return dittoHeadersSettable ->
                 BlockNamespaceBehavior.of(blockedNamespaces)
-                        .block(withDittoHeaders)
+                        .block(dittoHeadersSettable)
                         .thenApply(CommandWithOptionalEntityValidator.getInstance())
                         .thenApply(DefaultEnforcerActorFactory::prependDefaultNamespaceToCreateThing)
                         .thenApply(DefaultEnforcerActorFactory::setOriginatorHeader)
                         .thenCompose(placeholderSubstitution);
     }
 
-    private static WithDittoHeaders<?> prependDefaultNamespaceToCreateThing(final WithDittoHeaders<?> signal) {
+    private static DittoHeadersSettable<?> prependDefaultNamespaceToCreateThing(final DittoHeadersSettable<?> signal) {
         if (signal instanceof CreateThing) {
             final CreateThing createThing = (CreateThing) signal;
             final Thing thing = createThing.getThing();
             final Optional<String> namespace = thing.getNamespace();
             if (namespace.isEmpty()) {
                 final Thing thingInDefaultNamespace = thing.toBuilder()
-                        .setId(ThingId.of(DEFAULT_NAMESPACE, createThing.getThingEntityId().toString()))
+                        .setId(ThingId.of(DEFAULT_NAMESPACE, createThing.getEntityId().toString()))
                         .build();
                 final JsonObject initialPolicy = createThing.getInitialPolicy().orElse(null);
                 return CreateThing.of(thingInDefaultNamespace, initialPolicy, createThing.getDittoHeaders());

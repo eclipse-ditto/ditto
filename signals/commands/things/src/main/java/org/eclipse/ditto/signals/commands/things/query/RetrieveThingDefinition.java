@@ -122,7 +122,7 @@ public final class RetrieveThingDefinition extends AbstractCommand<RetrieveThing
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

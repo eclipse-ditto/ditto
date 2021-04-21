@@ -28,17 +28,18 @@ Using the `EventSource` object in JavaScript is also covered in the [HTML5 speci
 
 The SSE API for receiving [change notifications](basic-changenotifications.html) is the `/things` endpoint:
 ```
-http://localhost:8080/api/<1|2>/things
+http://localhost:8080/api/2/things
 ```
 
 This is a mechanism to get [change notifications](basic-changenotifications.html).
-The benefit of this mechanism in comparison to the [WebSocket](httpapi-protocol-bindings-websocket.html) channel is, that it is
-even easier to open a SSE connection from the client than a WebSocket, and that in Ditto's interpretation of SSEs the
-events sent back from the backend have the same JSON structure as the HTTP API on which they are invoked. 
+The benefit of this mechanism in comparison to the [WebSocket](httpapi-protocol-bindings-websocket.html) channel is, 
+that it is even easier to open a SSE connection from the client than a WebSocket, 
+and that in Ditto's interpretation of SSEs the events sent back from the backend have the same JSON structure as 
+the HTTP API on which they are invoked. 
 
 When the endpoint is invoked with an HTTP header `Accept` with value `text/event-stream`, a Server-Sent Event stream of
-[change notifications](basic-changenotifications.html) is created by Ditto and for each notification for which the caller
-has READ permissions (see [authorization](basic-auth.html#authorization)), an event is sent to the client.
+[change notifications](basic-changenotifications.html) is created by Ditto and for each notification for which the 
+caller has READ permissions (see [authorization](basic-auth.html#authorization)), an event is sent to the client.
 
 The format of the event at the `/things` endpoint is always in the form of a [Thing JSON](basic-thing.html#model-specification)
 (in API 1 format or API 2 format depending on which endpoint the SSE was created).
@@ -54,7 +55,7 @@ several possibilities listed in the sections below.
 All of the query parameters below can be combined, so that you can for example express that only events from
 a certain namespace with a specific RQL expression should be emitted, which could look like:
 ```
-http://localhost:8080/api/<1|2>/things?namespaces=org.eclipse.ditto.one,org.eclipse.test&filter=gt
+http://localhost:8080/api/2/things?namespaces=org.eclipse.ditto.one,org.eclipse.test&filter=gt
 (attributes/counter,42)
 ```
 
@@ -64,40 +65,39 @@ When the `/things` endpoint is used for connecting to the SSE stream, all
 things visible for the authenticated user are
 included in the stream. If only specific things should be watched, the query parameter `ids` can be added:
 ```
-http://localhost:8080/api/<1|2>/things?ids=<thingId1>,<thingId2>
+http://localhost:8080/api/2/things?ids=<thingId1>,<thingId2>
 ```
 
 #### Fields projection
 
-Additionally using the `fields` parameter of the [partial request](httpapi-concepts.html#partial-requests) feature, only
-specific parts can be watched for changes, e.g.:
+Additionally, using the `fields` parameter of the [partial request](httpapi-concepts.html#partial-requests) feature, 
+only specific parts can be watched for changes, e.g.:
 ```
-http://localhost:8080/api/<1|2>/things?fields=thingId,attributes
+http://localhost:8080/api/2/things?fields=thingId,attributes
 ```
 
-{% include tip.html content="The `thingId` should always be included in the `fields` query, otherwise it is no longer
-    visible for which thing the change was made." %}
+{% include tip.html content="The `thingId` should always be included in the `fields` query, otherwise it is no longer visible for which thing the change was made." %}
 
 #### Field enrichment
 
 In addition to the fields projection, one can also choose to select [extra fields](basic-enrichment.html) 
 to return in addition to the actually changed fields, e.g.:
 ```
-http://localhost:8080/api/<1|2>/things?extraFields=attributes
+http://localhost:8080/api/2/things?extraFields=attributes
 ```
 
 The result is, that the server-sent events are merged, i.e. the SSE contains the actually changed data + the extra fields.
 
 This can be used in combination with the below mentioned [RQL filter](#filtering-by-rql-expression), e.g.:
 ```
-http://localhost:8080/api/<1|2>/things?extraFields=attributes/location&filter=eq(attributes/location,"kitchen")
+http://localhost:8080/api/2/things?extraFields=attributes/location&filter=eq(attributes/location,"kitchen")
 ```
 
-For combined usage of `fields` and `extraFields` one needs to specify all fields, selected as extra fields, for the field projection, too.
-This is required to allow filtering based on extra fields but still omit them in the payload.
+For combined usage of `fields` and `extraFields` one needs to specify all fields, selected as extra fields, for the 
+field projection, too. This is required to allow filtering based on extra fields but still omit them in the payload.
 An example without filtering would look like this:
 ```
-http://localhost:8080/api/<1|2>/things?fields=thingId,attributes&extraFields=attributes
+http://localhost:8080/api/2/things?fields=thingId,attributes&extraFields=attributes
 ```
 
 #### Filtering by namespaces
@@ -106,16 +106,16 @@ As described in [change notifications](basic-changenotifications.html#by-namespa
 for changes done in specific namespaces. At the SSE API, simply specify the `namespaces` parameter and provide a comma
 separated list of which namespaces to select, e.g.:
 ```
-http://localhost:8080/api/<1|2>/things?namespaces=org.eclipse.ditto.one,org.eclipse.test
+http://localhost:8080/api/2/things?namespaces=org.eclipse.ditto.one,org.eclipse.test
 ```
 
 #### Filtering by RQL expression
 
-As also described in [change notifications](basic-changenotifications.html#by-rql-expression), it is additionally possible
-to specify an RQL expression expressing on which occasions to emit an event via the SSE API. Simply specify the `filter`
-parameter with an [RQL expression](basic-rql.html), e.g.:
+As also described in [change notifications](basic-changenotifications.html#by-rql-expression), it is additionally 
+possible to specify an RQL expression expressing on which occasions to emit an event via the SSE API. 
+Simply specify the `filter` parameter with an [RQL expression](basic-rql.html), e.g.:
 ```
-http://localhost:8080/api/<1|2>/things?filter=gt(attributes/counter,42)
+http://localhost:8080/api/2/things?filter=gt(attributes/counter,42)
 ```
 
 
@@ -144,9 +144,9 @@ Assuming we have a thing with the following JSON content:
 }
 ```
 
-From within JavaScript we can now create an `EventSource` in order to open up a SSE stream in Ditto and simply print each
-event to the console. This one tracks only changes to the thing with ID `org.eclipse.ditto:fancy-thing` and only watches
-for changes on the feature `lamp`:
+From within JavaScript we can now create an `EventSource` in order to open up a SSE stream in Ditto and simply print 
+each event to the console. This one tracks only changes to the thing with ID `org.eclipse.ditto:fancy-thing` and 
+only watches for changes on the feature `lamp`:
 ```javascript
 // the javascript must be served from the same domain as Ditto is running in order to avoid CORS problems
 let source = new EventSource('/api/2/things?ids=org.eclipse.ditto:fancy-thing&fields=thingId,features/lamp', { withCredentials: true });
@@ -156,14 +156,14 @@ source.onmessage = function (event) {
 ```
 
 By defining `{ withCredentials: true }` at the `new EventSource()`, the browser credentials (`Authorization` header) of 
-the already authenticated browser against that domain are sent along, this works for Basic Auth as well as for JWT based
-authentication using a `Bearer` token.
+the already authenticated browser against that domain are sent along, this works for Basic Auth as well as for 
+JWT based authentication using a `Bearer` token.
 
 This would log the changed content of each thing the authenticated subject is allowed to `READ`.
 
 So when the `on` property of the `lamp` feature is changed to `true` via such an HTTP API call:
 ```
-PUT /api/1/things/org.eclipse.ditto:fancy-thing/features/lamp/properties/on
+PUT /api/2/things/org.eclipse.ditto:fancy-thing/features/lamp/properties/on
 payload: true
 ```
 
@@ -185,7 +185,7 @@ the JavaScript snippet would log to console:
 
 The SSE API to stream search results is the `/search/things` endpoint:
 ```
-http://localhost:8080/api/<1|2>/search/things
+http://localhost:8080/api/2/search/things
 ```
 
 This is the second mechanism of Ditto in order to get [search results](basic-search.html).
@@ -210,14 +210,14 @@ Specify the `filter` parameter with an [RQL expression](basic-rql.html) to restr
 matching the RQL expression. For example, the SSE stream below emits only things which have a `counter` attribute
 with value `42`:
 ```
-http://localhost:8080/api/<1|2>/search/things?filter=eq(attributes/counter,42)
+http://localhost:8080/api/2/search/things?filter=eq(attributes/counter,42)
 ```
 
 ### Filtering by namespaces
 
 Specify the `namespaces` parameter to restrict search to the namespaces given as a comma separated list. For example:
 ```
-http://localhost:8080/api/<1|2>/search/things?namespaces=org.eclipse.ditto.one,org.eclipse.test
+http://localhost:8080/api/2/search/things?namespaces=org.eclipse.ditto.one,org.eclipse.test
 ```
 
 ### Sorting by RQL sort option
@@ -227,14 +227,14 @@ order. For example, the SSE stream below emits things according to the timestamp
 is stored in the `_modified` field, and `-` describes the descending order, thus the thing with the newest
 changes appears first:
 ```
-http://localhost:8080/api/<1|2>/search/things?option=sort(-_modified)
+http://localhost:8080/api/2/search/things?option=sort(-_modified)
 ```
 
 **Fields projection**
 
 Use the `fields` parameter to retrieve only specific parts of things in search results, e.g.:
 ```
-http://localhost:8080/api/<1|2>/search/things?fields=thingId,attributes
+http://localhost:8080/api/2/search/things?fields=thingId,attributes
 ```
 
 ### Resuming by `Last-Event-ID`

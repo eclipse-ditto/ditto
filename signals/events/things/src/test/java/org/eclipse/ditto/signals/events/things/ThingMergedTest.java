@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.signals.events.things;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -24,12 +23,9 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.signals.base.UnsupportedSchemaVersionException;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -42,8 +38,8 @@ public final class ThingMergedTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, ThingMerged.TYPE)
-            .set(Event.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
             .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
+            .set(EventsourcedEvent.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
             .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ThingMerged.JsonFields.JSON_PATH, TestConstants.Thing.ABSOLUTE_LOCATION_ATTRIBUTE_POINTER.toString())
             .set(ThingMerged.JsonFields.JSON_VALUE, TestConstants.Thing.LOCATION_ATTRIBUTE_VALUE)
@@ -87,7 +83,7 @@ public final class ThingMergedTest {
                 ThingMerged.fromJson(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat((Object) underTest.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((Object) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getResourcePath()).isEqualTo(TestConstants.Thing.ABSOLUTE_LOCATION_ATTRIBUTE_POINTER);
         assertThat(underTest.getValue()).isEqualTo(TestConstants.Thing.LOCATION_ATTRIBUTE_VALUE);
         assertThat(underTest.getMetadata()).contains(TestConstants.METADATA);
@@ -95,11 +91,4 @@ public final class ThingMergedTest {
         assertThat(underTest.getTimestamp()).contains(TestConstants.TIMESTAMP);
     }
 
-    @Test
-    public void ensureSchemaVersion() {
-        final ThingId thingId = ThingId.of("foo", "bar");
-        assertThatThrownBy(() -> ThingMerged.of(thingId, JsonPointer.empty(), JsonObject.empty(),
-                1L, null, DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.V_1).build(), null))
-                .isInstanceOf(UnsupportedSchemaVersionException.class);
-    }
 }

@@ -18,6 +18,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
+import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
@@ -54,7 +55,7 @@ public final class ThingPersistenceActor
     /**
      * The prefix of the persistenceId for Things.
      */
-    static final String PERSISTENCE_ID_PREFIX = "thing:";
+    static final String PERSISTENCE_ID_PREFIX = ThingConstants.ENTITY_TYPE + ":";
 
     /**
      * The ID of the journal plugin this persistence actor uses.
@@ -113,7 +114,7 @@ public final class ThingPersistenceActor
 
     @Override
     public String persistenceId() {
-        return PERSISTENCE_ID_PREFIX + entityId;
+        return entityId.getEntityType() + ":" + entityId;
     }
 
     @Override

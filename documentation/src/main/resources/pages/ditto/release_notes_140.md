@@ -36,7 +36,7 @@ This is to guard against unavailability of OCSP servers.
 #### [Placeholder topic:entityId renamed to topic:entityName](https://github.com/eclipse/ditto/pull/859)
 
 The placeholder `topic:entityId`  was not named correctly. It was resolved with the
-name of an entity and not the complete ID. Therefore a new placeholder
+name of an entity and not the complete ID. Therefore, a new placeholder
 `topic:entityName` is introduced which reflects correctly what it means.
 
 ### New features

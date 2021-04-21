@@ -467,7 +467,7 @@ public abstract class AbstractShardedPersistenceActor<
     }
 
     @Override
-    public void onMutation(final Command<?> command, final E event, final WithDittoHeaders<?> response,
+    public void onMutation(final Command<?> command, final E event, final WithDittoHeaders response,
             final boolean becomeCreated, final boolean becomeDeleted) {
 
         persistAndApplyEvent(event, (persistedEvent, resultingEntity) -> {
@@ -484,7 +484,7 @@ public abstract class AbstractShardedPersistenceActor<
     }
 
     @Override
-    public void onQuery(final Command<?> command, final WithDittoHeaders<?> response) {
+    public void onQuery(final Command<?> command, final WithDittoHeaders response) {
         if (command.getDittoHeaders().isResponseRequired()) {
             notifySender(response);
         }
@@ -503,7 +503,7 @@ public abstract class AbstractShardedPersistenceActor<
      * @param sender recipient of the message.
      * @param message the message.
      */
-    protected void notifySender(final ActorRef sender, final WithDittoHeaders<?> message) {
+    protected void notifySender(final ActorRef sender, final WithDittoHeaders message) {
         accessCounter++;
         sender.tell(message, getSelf());
     }
@@ -561,7 +561,7 @@ public abstract class AbstractShardedPersistenceActor<
         publishEvent(event);
     }
 
-    private void notifySender(final WithDittoHeaders<?> message) {
+    private void notifySender(final WithDittoHeaders message) {
         notifySender(getSender(), message);
     }
 
@@ -591,7 +591,7 @@ public abstract class AbstractShardedPersistenceActor<
     private void notAccessible(final Object message) {
         final DittoRuntimeExceptionBuilder<?> builder = newNotAccessibleExceptionBuilder();
         if (message instanceof WithDittoHeaders) {
-            builder.dittoHeaders(((WithDittoHeaders<?>) message).getDittoHeaders());
+            builder.dittoHeaders(((WithDittoHeaders) message).getDittoHeaders());
         }
         notifySender(builder.build());
     }

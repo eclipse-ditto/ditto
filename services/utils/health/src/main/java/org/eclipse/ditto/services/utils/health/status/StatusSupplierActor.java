@@ -98,10 +98,10 @@ public final class StatusSupplierActor extends AbstractActor {
                                         return null;
                                     });
                         })
-                .match(SimpleCommand.class, command -> {
+                .match(SimpleCommand.class, command ->
                     log.warning("Unsupported SimpleCommand with name '{}': {}", command.getCommandName(),
-                            command);
-                })
+                            command)
+                )
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);

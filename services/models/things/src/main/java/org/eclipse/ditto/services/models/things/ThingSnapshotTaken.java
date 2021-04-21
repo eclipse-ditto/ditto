@@ -172,16 +172,6 @@ public final class ThingSnapshotTaken extends SnapshotTaken<ThingSnapshotTaken> 
     }
 
     @Override
-    protected ThingSnapshotTaken setRevision(final long revisionNumber, final JsonObject thingJson) {
-        return newBuilder(thingId, revisionNumber, getLifecycle(), thingJson)
-                .policyId(getPolicyId().orElse(null))
-                .timestamp(getTimestamp().orElse(null))
-                .metadata(getMetadata().orElse(null))
-                .dittoHeaders(getDittoHeaders())
-                .build();
-    }
-
-    @Override
     protected ThingSnapshotTaken setDittoHeaders(final DittoHeaders dittoHeaders, final JsonObject thingJson) {
         return newBuilder(thingId, getRevision(), getLifecycle(), thingJson)
                 .policyId(getPolicyId().orElse(null))

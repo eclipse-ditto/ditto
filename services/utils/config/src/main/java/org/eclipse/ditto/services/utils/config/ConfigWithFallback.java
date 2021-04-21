@@ -287,13 +287,13 @@ public final class ConfigWithFallback implements ScopedConfig, ConfigMergeable {
     }
 
     @Override
-    @Deprecated
+    @Deprecated(forRemoval = false) // can't be deleted as we inherit this @Deprecated flag
     public Long getMilliseconds(final String path) {
         return baseConfig.getMilliseconds(path);
     }
 
     @Override
-    @Deprecated
+    @Deprecated(forRemoval = false) // can't be deleted as we inherit this @Deprecated flag
     public Long getNanoseconds(final String path) {
         return baseConfig.getNanoseconds(path);
     }
@@ -385,13 +385,13 @@ public final class ConfigWithFallback implements ScopedConfig, ConfigMergeable {
     }
 
     @Override
-    @Deprecated
+    @Deprecated(forRemoval = false) // can't be deleted as we inherit this @Deprecated flag
     public List<Long> getMillisecondsList(final String path) {
         return baseConfig.getMillisecondsList(path);
     }
 
     @Override
-    @Deprecated
+    @Deprecated(forRemoval = false) // can't be deleted as we inherit this @Deprecated flag
     public List<Long> getNanosecondsList(final String path) {
         return baseConfig.getNanosecondsList(path);
     }

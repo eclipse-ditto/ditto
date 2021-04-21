@@ -25,7 +25,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
@@ -67,16 +66,9 @@ public final class RetrieveFeatureDefinitionTest {
     }
 
     @Test
-    public void tryToCreateInstanceWithNullThingIdString() {
-        assertThatExceptionOfType(ThingIdInvalidException.class)
-                .isThrownBy(() -> RetrieveFeatureDefinition.of((String) null, TestConstants.Feature.FLUX_CAPACITOR_ID,
-                        TestConstants.EMPTY_DITTO_HEADERS));
-    }
-
-    @Test
     public void tryToCreateInstanceWithNullThingId() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> RetrieveFeatureDefinition.of((ThingId) null, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                .isThrownBy(() -> RetrieveFeatureDefinition.of(null, TestConstants.Feature.FLUX_CAPACITOR_ID,
                         TestConstants.EMPTY_DITTO_HEADERS))
                 .withNoCause();
     }

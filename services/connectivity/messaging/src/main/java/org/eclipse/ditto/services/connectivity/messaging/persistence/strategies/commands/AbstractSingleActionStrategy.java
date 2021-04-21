@@ -52,8 +52,7 @@ abstract class AbstractSingleActionStrategy<C extends ConnectivityCommand<?>>
             final C command,
             @Nullable final Metadata metadata) {
 
-        final ConnectivityEvent<?> event = StagedCommand.dummyEvent();
         final List<ConnectionAction> actions = Collections.singletonList(getAction());
-        return newMutationResult(StagedCommand.of(command, event, command, actions), event, command);
+        return newMutationResult(StagedCommand.of(command, null, command, actions), null, command);
     }
 }

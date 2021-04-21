@@ -200,7 +200,7 @@ public final class OutboundMappingProcessorTest {
     }
 
     @Test
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
     public void testOutboundMessageEnriched() {
         new TestKit(actorSystem) {{
             final ThingModifiedEvent signal = TestConstants.thingModified(Collections.emptyList());
@@ -221,7 +221,7 @@ public final class OutboundMappingProcessorTest {
     }
 
     @Test
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
     public void testOutboundEventWithRequestedAcksWhichAreIssuedByTargetDontContainRequestedAcks() {
         new TestKit(actorSystem) {{
             ThingModifiedEvent signal = TestConstants.thingModified(Collections.emptyList());
@@ -260,7 +260,7 @@ public final class OutboundMappingProcessorTest {
     }
 
     @Test
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
     public void testOutboundLiveMessageWithRequestedAcksWhichAreIssuedByTargetDontContainRequestedAcks() {
         new TestKit(actorSystem) {{
             final AcknowledgementLabel customAckLabel = AcknowledgementLabel.of("custom:ack");

@@ -49,6 +49,7 @@ public final class ThingModifiedStrategyTest extends AbstractStrategyTest {
         final Thing expected = THING.toBuilder()
                 .setLifecycle(ThingLifecycle.ACTIVE)
                 .setRevision(NEXT_REVISION)
+                .setMetadata(METADATA)
                 .setModified(TIMESTAMP)
                 .setMetadata(METADATA)
                 .build();
@@ -68,6 +69,7 @@ public final class ThingModifiedStrategyTest extends AbstractStrategyTest {
         final Thing expected = THING.toBuilder()
                 .setLifecycle(ThingLifecycle.ACTIVE)
                 .setRevision(NEXT_REVISION)
+                .setMetadata(METADATA)
                 .setModified(TIMESTAMP)
                 .setMetadata(METADATA)
                 .build();

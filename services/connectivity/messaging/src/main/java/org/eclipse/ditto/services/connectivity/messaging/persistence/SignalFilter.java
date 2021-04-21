@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.FilteredTopic;
@@ -35,13 +36,12 @@ import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.namespaces.NamespaceReader;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
-import org.eclipse.ditto.model.things.WithThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
@@ -133,13 +133,14 @@ public final class SignalFilter {
         return t -> t.getTopic().equals(topicFromSignal(signal).orElse(null));
     }
 
-    private static Predicate<FilteredTopic> applyNamespaceFilter(final WithId signal) {
-        return t -> t.getNamespaces().isEmpty() || t.getNamespaces().contains(namespaceFromId(signal));
+    private static Predicate<FilteredTopic> applyNamespaceFilter(final Signal<?> signal) {
+        return t -> t.getNamespaces().isEmpty() ||
+                (signal instanceof WithEntityId && t.getNamespaces().contains(namespaceFromId((WithEntityId) signal)));
     }
 
     @Nullable
-    private static String namespaceFromId(final WithId withId) {
-        return NamespaceReader.fromEntityId(withId.getEntityId()).orElse(null);
+    private static String namespaceFromId(final WithEntityId withEntityId) {
+        return NamespaceReader.fromEntityId(withEntityId.getEntityId()).orElse(null);
     }
 
     private static boolean matchesFilterBeforeEnrichment(final FilteredTopic filteredTopic, final Signal<?> signal) {
@@ -173,7 +174,8 @@ public final class SignalFilter {
             return Optional.of(Topic.POLICY_ANNOUNCEMENTS);
         }
         // check things group
-        final TopicPath.Group group = signal instanceof WithThingId ? TopicPath.Group.THINGS : null;
+        final TopicPath.Group group =
+                WithEntityId.getEntityIdOfType(ThingId.class, signal).isPresent() ? TopicPath.Group.THINGS : null;
         final TopicPath.Channel channel = signal.getDittoHeaders()
                 .getChannel()
                 .flatMap(TopicPath.Channel::forName)

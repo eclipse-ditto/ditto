@@ -37,13 +37,14 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 
 /**
  * This command modifies all {@code Thing}'s attributes at once.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = ModifyAttributes.TYPE_PREFIX, name = ModifyAttributes.NAME)
+@JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = ModifyAttributes.NAME)
 public final class ModifyAttributes extends AbstractCommand<ModifyAttributes>
         implements ThingModifyCommand<ModifyAttributes> {
 
@@ -58,7 +59,7 @@ public final class ModifyAttributes extends AbstractCommand<ModifyAttributes>
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<JsonObject> JSON_ATTRIBUTES =
-            JsonFactory.newJsonObjectFieldDefinition("attributes", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonObjectFieldDefinition("attributes", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final ThingId thingId;
@@ -75,25 +76,6 @@ public final class ModifyAttributes extends AbstractCommand<ModifyAttributes>
                 attributesJsonObject::getUpperBoundForStringSize,
                 () -> attributesJsonObject.toString().length(),
                 () -> dittoHeaders);
-    }
-
-    /**
-     * Returns a command for modifying an attributes object which is passed as argument.
-     *
-     * @param thingId the ID of the thing on which to modify the attributes.
-     * @param newAttributesObject the value of the attributes to modify.
-     * @param dittoHeaders the headers of the command.
-     * @return a command for modifying the provided new attributes.
-     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.Attributes, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifyAttributes of(final String thingId, final Attributes newAttributesObject,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), newAttributesObject, dittoHeaders);
     }
 
     /**
@@ -142,7 +124,7 @@ public final class ModifyAttributes extends AbstractCommand<ModifyAttributes>
      */
     public static ModifyAttributes fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifyAttributes>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
             final JsonObject attributesJsonObject = jsonObject.getValueOrThrow(JSON_ATTRIBUTES);
             final Attributes extractedAttributes = ThingsModelFactory.newAttributes(attributesJsonObject);
@@ -161,7 +143,7 @@ public final class ModifyAttributes extends AbstractCommand<ModifyAttributes>
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 
@@ -179,7 +161,7 @@ public final class ModifyAttributes extends AbstractCommand<ModifyAttributes>
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_ATTRIBUTES, attributes, predicate);
     }
 

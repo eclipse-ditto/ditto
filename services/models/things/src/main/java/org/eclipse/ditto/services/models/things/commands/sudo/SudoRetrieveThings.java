@@ -49,7 +49,7 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
  */
 @Immutable
 @AllValuesAreNonnullByDefault
-@JsonParsableCommand(typePrefix = SudoRetrieveThings.TYPE_PREFIX, name = SudoRetrieveThings.NAME)
+@JsonParsableCommand(typePrefix = SudoCommand.TYPE_PREFIX, name = SudoRetrieveThings.NAME)
 public final class SudoRetrieveThings extends AbstractCommand<SudoRetrieveThings>
         implements SudoCommand<SudoRetrieveThings> {
 
@@ -64,7 +64,7 @@ public final class SudoRetrieveThings extends AbstractCommand<SudoRetrieveThings
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<JsonArray> JSON_THING_IDS =
-            JsonFactory.newJsonArrayFieldDefinition("payload/thingIds", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonArrayFieldDefinition("payload/thingIds", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final List<ThingId> thingIds;

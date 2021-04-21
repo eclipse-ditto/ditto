@@ -55,7 +55,7 @@ public final class MessageCommandAckRequestSetter extends AbstractCommandAckRequ
     }
 
     @Override
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
     public Class<MessageCommand<?, ?>> getMatchedClass() {
         return (Class) MessageCommand.class;
     }

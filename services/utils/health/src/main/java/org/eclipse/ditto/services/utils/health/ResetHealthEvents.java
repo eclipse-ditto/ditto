@@ -23,7 +23,6 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 
 /**
@@ -31,7 +30,7 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommand;
  */
 @Immutable
 @JsonParsableCommand(typePrefix = ResetHealthEvents.TYPE_PREFIX, name = ResetHealthEvents.NAME)
-public final class ResetHealthEvents extends AbstractCommand<ResetHealthEvents> implements WithIdButActuallyNot {
+public final class ResetHealthEvents extends AbstractCommand<ResetHealthEvents> {
 
     /**
      * Type prefix of this command.

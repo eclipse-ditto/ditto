@@ -138,7 +138,7 @@ public final class Transistor<T> extends GraphStage<FanInShape2<T, Integer, T>> 
         }
 
         private void considerPullSourceAndBase() {
-            if (credit > 0 & demand > 0 && inflight.isEmpty()) {
+            if (credit > 0 && demand > 0 && inflight.isEmpty()) {
                 if (!hasBeenPulled(collector)) {
                     credit--;
                     log().debug("pulling; {} credit left", credit);
