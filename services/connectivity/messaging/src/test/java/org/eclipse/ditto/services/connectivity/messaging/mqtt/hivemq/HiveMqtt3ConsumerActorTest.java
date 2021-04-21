@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.CONNECTION_CONFIG;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.header;
 
 import java.nio.charset.StandardCharsets;
@@ -54,7 +55,7 @@ public final class HiveMqtt3ConsumerActorTest extends AbstractConsumerActorTest<
     private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
     private static final Connection CONNECTION = TestConstants.createConnection(CONNECTION_ID);
     private static final MqttSpecificConfig SPECIFIC_CONFIG =
-            MqttSpecificConfig.fromConnection(CONNECTION);
+            MqttSpecificConfig.fromConnection(CONNECTION, CONNECTION_CONFIG.getMqttConfig());
 
     @Override
     protected Props getConsumerActorProps(final ActorRef mappingActor,

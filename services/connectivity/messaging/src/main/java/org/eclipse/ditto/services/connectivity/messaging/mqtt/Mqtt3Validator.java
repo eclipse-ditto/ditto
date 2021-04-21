@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.services.connectivity.config.MqttConfig;
 
 import akka.actor.ActorSystem;
 
@@ -32,13 +33,18 @@ import akka.actor.ActorSystem;
 @Immutable
 public final class Mqtt3Validator extends AbstractMqttValidator {
 
+    private Mqtt3Validator(final MqttConfig mqttConfig) {
+        super(mqttConfig);
+    }
+
     /**
      * Create a new {@code Mqtt3Validator}.
      *
+     * @param mqttConfig used to create the fallback specific config
      * @return a new instance.
      */
-    public static Mqtt3Validator newInstance() {
-        return new Mqtt3Validator();
+    public static Mqtt3Validator newInstance(final MqttConfig mqttConfig) {
+        return new Mqtt3Validator(mqttConfig);
     }
 
     @Override

@@ -24,7 +24,6 @@ import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -47,6 +46,7 @@ import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.connectivity.config.MqttConfig;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
 import org.eclipse.ditto.services.models.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.services.models.connectivity.placeholders.SourceAddressPlaceholder;
@@ -72,11 +72,16 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
     private static final String QOS = "qos";
 
     protected static final Collection<String> ACCEPTED_SCHEMES = List.of("tcp", "ssl");
-    protected static final Collection<String> SECURE_SCHEMES = Collections.unmodifiableList(
-            Collections.singletonList("ssl"));
+    protected static final Collection<String> SECURE_SCHEMES = List.of("ssl");
 
     private static final String ERROR_DESCRIPTION = "''{0}'' is not a valid value for MQTT enforcement. Valid" +
             " values are: ''{1}''.";
+
+    private final MqttConfig mqttConfig;
+
+    protected AbstractMqttValidator(final MqttConfig mqttConfig) {
+        this.mqttConfig = mqttConfig;
+    }
 
     @Override
     protected void validateSource(final Source source, final DittoHeaders dittoHeaders,
@@ -215,12 +220,13 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
     }
 
     protected void validateSpecificConfig(final Connection connection, final DittoHeaders dittoHeaders) {
-        final MqttSpecificConfig mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection);
+        final MqttSpecificConfig mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection, mqttConfig);
         mqttSpecificConfig.getKeepAliveInterval().ifPresent(keepAlive -> {
             final long seconds = keepAlive.toSeconds();
             if (!UnsignedDataTypes.isUnsignedShort(seconds)) {
                 throw ConnectionConfigurationInvalidException
-                        .newBuilder("Keep alive interval '"+seconds+"' is not within the allowed range of [0, 65535] seconds.")
+                        .newBuilder("Keep alive interval '" + seconds +
+                                "' is not within the allowed range of [0, 65535] seconds.")
                         .description("Please adjust the interval to be within the allowed range.")
                         .dittoHeaders(dittoHeaders)
                         .build();

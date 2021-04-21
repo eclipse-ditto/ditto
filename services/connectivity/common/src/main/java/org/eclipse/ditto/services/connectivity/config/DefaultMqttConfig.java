@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.config;
 
+import java.time.Duration;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
@@ -31,9 +32,16 @@ public final class DefaultMqttConfig implements MqttConfig {
     private static final String CONFIG_PATH = "mqtt";
 
     private final int sourceBufferSize;
+    private final boolean reconnectForRedelivery;
+    private final boolean useSeparateClientForPublisher;
+    private final Duration reconnectForRedeliveryDelay;
 
     private DefaultMqttConfig(final ScopedConfig config) {
         sourceBufferSize = config.getInt(MqttConfigValue.SOURCE_BUFFER_SIZE.getConfigPath());
+        reconnectForRedelivery = config.getBoolean(MqttConfigValue.RECONNECT_FOR_REDELIVERY.getConfigPath());
+        reconnectForRedeliveryDelay =
+                config.getDuration(MqttConfigValue.RECONNECT_FOR_REDELIVERY_DELAY.getConfigPath());
+        useSeparateClientForPublisher = config.getBoolean(MqttConfigValue.SEPARATE_PUBLISHER_CLIENT.getConfigPath());
     }
 
     /**
@@ -53,6 +61,21 @@ public final class DefaultMqttConfig implements MqttConfig {
     }
 
     @Override
+    public boolean shouldReconnectForRedelivery() {
+        return reconnectForRedelivery;
+    }
+
+    @Override
+    public Duration getReconnectForRedeliveryDelay() {
+        return reconnectForRedeliveryDelay;
+    }
+
+    @Override
+    public boolean shouldUseSeparatePublisherClient() {
+        return useSeparateClientForPublisher;
+    }
+
+    @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
@@ -61,18 +84,25 @@ public final class DefaultMqttConfig implements MqttConfig {
             return false;
         }
         final DefaultMqttConfig that = (DefaultMqttConfig) o;
-        return sourceBufferSize == that.sourceBufferSize;
+        return Objects.equals(sourceBufferSize, that.sourceBufferSize) &&
+                Objects.equals(reconnectForRedelivery, that.reconnectForRedelivery) &&
+                Objects.equals(reconnectForRedeliveryDelay, that.reconnectForRedeliveryDelay) &&
+                Objects.equals(useSeparateClientForPublisher, that.useSeparateClientForPublisher);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(sourceBufferSize);
+        return Objects.hash(sourceBufferSize, reconnectForRedelivery, reconnectForRedeliveryDelay,
+                useSeparateClientForPublisher);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "sourceBufferSize=" + sourceBufferSize +
+                ", reconnectForRedelivery=" + reconnectForRedelivery +
+                ", reconnectForRedeliveryDelay=" + reconnectForRedeliveryDelay +
+                ", useSeparateClientForPublisher=" + useSeparateClientForPublisher +
                 "]";
     }
 

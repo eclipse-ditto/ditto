@@ -28,6 +28,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Source;
+import org.eclipse.ditto.services.connectivity.config.MqttConfig;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
 import org.eclipse.ditto.services.connectivity.messaging.internal.AbstractWithOrigin;
@@ -72,12 +73,14 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
     @Nullable private ClientWithCancelSwitch publisherClient;
 
     @Nullable private ActorRef publisherActor;
+    private final MqttConfig mqttConfig;
 
     AbstractMqttClientActor(final Connection connection, @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor) {
         super(connection, proxyActor, connectionActor);
         this.connection = connection;
-        mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection);
+        mqttConfig = connectivityConfig.getConnectionConfig().getMqttConfig();
+        mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection, mqttConfig);
     }
 
     /**
@@ -300,7 +303,8 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
     @Override
     protected CompletionStage<Status.Status> doTestConnection(final TestConnection testConnectionCommand) {
         final Connection connectionToBeTested = testConnectionCommand.getConnection();
-        final MqttSpecificConfig mqttSpecificConfig = MqttSpecificConfig.fromConnection(connectionToBeTested);
+        final MqttSpecificConfig mqttSpecificConfig =
+                MqttSpecificConfig.fromConnection(connectionToBeTested, mqttConfig);
         final String mqttClientId = resolveMqttClientId(connectionToBeTested, mqttSpecificConfig);
         // attention: do not use reconnect, otherwise the future never returns
         final Q testClient;

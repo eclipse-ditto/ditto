@@ -17,6 +17,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
+import org.eclipse.ditto.services.connectivity.config.MqttConfig;
 
 import akka.actor.ActorSystem;
 
@@ -26,13 +27,18 @@ import akka.actor.ActorSystem;
 @Immutable
 public final class Mqtt5Validator extends AbstractMqttValidator {
 
+    private Mqtt5Validator(final MqttConfig mqttConfig) {
+        super(mqttConfig);
+    }
+
     /**
      * Create a new {@code Mqtt5Validator}.
      *
+     * @param mqttConfig used to create the fallback specific config
      * @return a new instance.
      */
-    public static Mqtt5Validator newInstance() {
-        return new Mqtt5Validator();
+    public static Mqtt5Validator newInstance(final MqttConfig mqttConfig) {
+        return new Mqtt5Validator(mqttConfig);
     }
 
     @Override
