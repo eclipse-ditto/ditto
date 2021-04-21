@@ -32,7 +32,7 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
-import org.eclipse.ditto.model.things.ThingConstants;
+import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;

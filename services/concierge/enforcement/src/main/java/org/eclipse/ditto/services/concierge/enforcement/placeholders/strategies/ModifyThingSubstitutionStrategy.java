@@ -22,7 +22,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.HeaderBasedPlaceholderSubstitutionAlgorithm;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

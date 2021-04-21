@@ -17,7 +17,7 @@
 
  import org.eclipse.ditto.json.JsonFactory;
  import org.eclipse.ditto.json.JsonPointer;
- import org.eclipse.ditto.model.things.ThingId;
+ import org.eclipse.ditto.things.model.ThingId;
  import org.eclipse.ditto.protocol.Adaptable;
  import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
  import org.eclipse.ditto.protocol.LiveTwinTest;
@@ -26,7 +26,7 @@
  import org.eclipse.ditto.protocol.TestConstants;
  import org.eclipse.ditto.protocol.TopicPath;
  import org.eclipse.ditto.protocol.TopicPathBuilder;
- import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
+ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
  import org.junit.Before;
  import org.junit.Test;
 

@@ -32,7 +32,7 @@ import org.eclipse.ditto.model.messages.ThingIdInvalidException;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.api.PoliciesMappingStrategies;
-import org.eclipse.ditto.services.models.things.ThingsMappingStrategies;
+import org.eclipse.ditto.things.api.ThingsMappingStrategies;
 import org.eclipse.ditto.services.models.thingsearch.ThingSearchMappingStrategies;
 import org.eclipse.ditto.policies.model.signals.announcements.SubjectDeletionAnnouncement;
 import org.eclipse.ditto.signals.base.JsonParsable;

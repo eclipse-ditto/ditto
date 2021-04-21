@@ -32,7 +32,7 @@ import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.rql.ParserException;
 import org.eclipse.ditto.model.rqlparser.RqlPredicateParser;
-import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.model.thingsearch.Option;
 import org.eclipse.ditto.model.thingsearch.SizeOption;
 import org.eclipse.ditto.model.thingsearch.SortOption;

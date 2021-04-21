@@ -32,7 +32,7 @@ import org.eclipse.ditto.protocol.TestConstants;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.TopicPathBuilder;
 import org.eclipse.ditto.protocol.UnknownPathException;
-import org.eclipse.ditto.signals.events.things.ThingMerged;
+import org.eclipse.ditto.things.model.signals.events.ThingMerged;
 import org.junit.Before;
 import org.junit.Test;
 

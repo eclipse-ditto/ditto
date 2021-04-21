@@ -29,7 +29,7 @@ import org.eclipse.ditto.protocol.PayloadBuilder;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 /**
  * Adapter for mapping a {@link ThingEvent} to and from an {@link Adaptable}.

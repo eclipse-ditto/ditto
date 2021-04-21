@@ -22,8 +22,8 @@ import org.eclipse.ditto.policies.model.PoliciesResourceType;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
-import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 
 
 public interface JsonViewScenario extends Scenario {

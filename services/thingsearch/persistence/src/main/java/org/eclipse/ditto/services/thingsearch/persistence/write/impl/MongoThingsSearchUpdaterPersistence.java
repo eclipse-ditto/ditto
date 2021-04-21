@@ -30,7 +30,7 @@ import org.bson.BsonString;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.policies.api.PolicyReferenceTag;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;

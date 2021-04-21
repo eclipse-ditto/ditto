@@ -18,7 +18,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
-import org.eclipse.ditto.model.things.ThingIdInvalidException;
+import org.eclipse.ditto.things.model.ThingIdInvalidException;
 import org.junit.Test;
 
 public final class DittoMessageThingIdValueValidatorTest {

@@ -64,8 +64,8 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceUnavaila
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.acks.MessageCommandAckRequestSetter;
-import org.eclipse.ditto.signals.commands.things.acks.ThingLiveCommandAckRequestSetter;
-import org.eclipse.ditto.signals.commands.things.acks.ThingModifyCommandAckRequestSetter;
+import org.eclipse.ditto.things.model.signals.commands.acks.ThingLiveCommandAckRequestSetter;
+import org.eclipse.ditto.things.model.signals.commands.acks.ThingModifyCommandAckRequestSetter;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;

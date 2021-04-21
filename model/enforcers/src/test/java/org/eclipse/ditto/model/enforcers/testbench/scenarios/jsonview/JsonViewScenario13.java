@@ -31,11 +31,11 @@ import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
 import org.eclipse.ditto.policies.model.SubjectType;
-import org.eclipse.ditto.model.things.Feature;
-import org.eclipse.ditto.model.things.Features;
-import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.things.model.Feature;
+import org.eclipse.ditto.things.model.Features;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 
 /**
  * Tests Policy with granted permissions only.

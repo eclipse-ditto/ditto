@@ -20,7 +20,7 @@
  import org.eclipse.ditto.json.JsonValue;
  import org.eclipse.ditto.protocol.Adaptable;
  import org.eclipse.ditto.protocol.JsonifiableMapper;
- import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
+ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingsResponse;
 
  public final class RetrieveThingsCommandResponseMappingStrategies
          extends AbstractThingMappingStrategies<RetrieveThingsResponse> {

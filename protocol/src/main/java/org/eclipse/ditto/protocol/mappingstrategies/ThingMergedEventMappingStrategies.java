@@ -23,7 +23,7 @@ import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableMapper;
 import org.eclipse.ditto.protocol.Payload;
-import org.eclipse.ditto.signals.events.things.ThingMerged;
+import org.eclipse.ditto.things.model.signals.events.ThingMerged;
 
 /**
  * Defines mapping strategies (map from signal type to JsonifiableMapper) for merged thing events.

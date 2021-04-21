@@ -17,7 +17,7 @@ import org.eclipse.ditto.protocol.PayloadBuilder;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.TopicPathBuilder;
-import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
+import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 
 final class ThingMergeSignalMapper extends AbstractModifySignalMapper<MergeThing> {
 

@@ -34,8 +34,8 @@ import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementRequestDuplicateCorrelationIdException;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
+import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;

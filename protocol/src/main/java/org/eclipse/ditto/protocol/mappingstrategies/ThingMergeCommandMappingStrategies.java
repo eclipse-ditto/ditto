@@ -23,16 +23,16 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.model.things.Attributes;
-import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingDefinition;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.things.model.Attributes;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingDefinition;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableMapper;
-import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotDeletableException;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingIdNotDeletableException;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingMergeInvalidException;
-import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyIdNotDeletableException;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingIdNotDeletableException;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingMergeInvalidException;
+import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 
 /**
  * Defines mapping strategies (map from signal type to JsonifiableMapper) for thing merge commands.

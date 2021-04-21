@@ -20,7 +20,7 @@ import org.eclipse.ditto.model.namespaces.NamespaceBlockedException;
 import org.eclipse.ditto.services.models.placeholders.PlaceholderFunctionUnknownException;
 import org.eclipse.ditto.policies.model.PolicyEntryInvalidException;
 import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
-import org.eclipse.ditto.model.things.ThingIdInvalidException;
+import org.eclipse.ditto.things.model.ThingIdInvalidException;
 import org.eclipse.ditto.services.utils.test.GlobalErrorRegistryTestCases;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingException;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
@@ -30,7 +30,7 @@ import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.PathUnknownException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyConflictException;
-import org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.AttributePointerInvalidException;
 
 public final class PoliciesServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
 

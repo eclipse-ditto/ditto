@@ -45,7 +45,7 @@ import org.eclipse.ditto.services.utils.protocol.DittoProtocolAdapterProvider;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
 import org.eclipse.ditto.signals.base.SignalWithEntityId;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;

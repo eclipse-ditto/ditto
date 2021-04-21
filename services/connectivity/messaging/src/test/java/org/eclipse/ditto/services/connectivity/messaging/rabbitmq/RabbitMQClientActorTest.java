@@ -44,7 +44,7 @@ import org.eclipse.ditto.services.models.connectivity.BaseClientState;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;

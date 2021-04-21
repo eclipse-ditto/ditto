@@ -37,7 +37,7 @@ import org.eclipse.ditto.services.models.connectivity.InboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.events.things.AttributeModified;
+import org.eclipse.ditto.things.model.signals.events.AttributeModified;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

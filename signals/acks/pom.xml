@@ -27,7 +27,6 @@
 
     <modules>
         <module>base</module>
-        <module>things</module>
     </modules>
 
     <dependencies>

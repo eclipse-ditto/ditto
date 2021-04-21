@@ -25,7 +25,7 @@ import org.eclipse.ditto.protocol.adapter.ProtocolAdapterTest;
 import org.eclipse.ditto.protocol.TestConstants;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
-import org.eclipse.ditto.signals.acks.things.ThingAcknowledgementFactory;
+import org.eclipse.ditto.things.model.signals.acks.ThingAcknowledgementFactory;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;

@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.utils.pubsub;
 import java.util.Collection;
 import java.util.Collections;
 
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.ReadSubjectExtractor;

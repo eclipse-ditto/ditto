@@ -43,7 +43,7 @@ import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.model.query.SortOption;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.models.streaming.LowerBound;
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceReportResult;
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceResultEntry;

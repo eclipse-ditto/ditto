@@ -16,7 +16,7 @@ import java.util.EnumSet;
 import java.util.Set;
 
 import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
+import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 
 /**
  * An {@code Adapter} mixin for merge commands.

@@ -25,8 +25,8 @@ import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.exceptions.SignalEnrichmentFailedException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.model.things.ThingFieldSelector;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingFieldSelector;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.signals.base.Signal;
 

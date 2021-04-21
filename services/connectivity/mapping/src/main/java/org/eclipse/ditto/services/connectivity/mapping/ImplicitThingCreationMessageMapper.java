@@ -38,9 +38,9 @@ import org.eclipse.ditto.services.models.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.models.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocol.TopicPath;
@@ -50,10 +50,10 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
+import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 
 /**
- * This mapper creates a {@link org.eclipse.ditto.signals.commands.things.modify.CreateThing} command from
+ * This mapper creates a {@link org.eclipse.ditto.things.model.signals.commands.modify.CreateThing} command from
  * a given thing template and may substitutes placeholders by given headers which can be {@code device_id},
  * {@code entity_id} or {@code gateway_id}.
  * The thingId must be set in the mapping configuration. It can either be a fixed Thing ID

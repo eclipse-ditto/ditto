@@ -64,8 +64,8 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureProperty;
 import org.junit.Test;
 import org.mockito.Mockito;
 

@@ -15,7 +15,7 @@ package org.eclipse.ditto.protocol.mapper;
 import org.eclipse.ditto.protocol.PayloadBuilder;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPathBuilder;
-import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
+import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 
 final class ThingQuerySignalMapper extends AbstractQuerySignalMapper<ThingQueryCommand<?>> {
 

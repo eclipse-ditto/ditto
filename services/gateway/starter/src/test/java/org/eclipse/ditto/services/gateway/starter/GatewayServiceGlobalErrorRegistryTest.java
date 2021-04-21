@@ -26,7 +26,7 @@ import org.eclipse.ditto.protocol.adapter.UnknownTopicPathException;
 import org.eclipse.ditto.services.models.placeholders.PlaceholderFunctionSignatureInvalidException;
 import org.eclipse.ditto.policies.model.PolicyEntryInvalidException;
 import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
-import org.eclipse.ditto.model.things.ThingIdInvalidException;
+import org.eclipse.ditto.things.model.ThingIdInvalidException;
 import org.eclipse.ditto.protocol.UnknownCommandException;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.PublicKeyProviderUnavailableException;
 import org.eclipse.ditto.services.utils.test.GlobalErrorRegistryTestCases;
@@ -39,7 +39,7 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationF
 import org.eclipse.ditto.signals.commands.base.exceptions.PathUnknownException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionConflictException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyConflictException;
-import org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.AttributePointerInvalidException;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidNamespacesException;
 
 public final class GatewayServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {

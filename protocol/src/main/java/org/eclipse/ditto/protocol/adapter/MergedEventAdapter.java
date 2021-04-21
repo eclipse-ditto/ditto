@@ -16,10 +16,10 @@ import java.util.EnumSet;
 import java.util.Set;
 
 import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.signals.events.things.ThingMerged;
+import org.eclipse.ditto.things.model.signals.events.ThingMerged;
 
 /**
- * An {@code Adapter} maps objects of type {@link org.eclipse.ditto.signals.events.things.ThingMerged} to an {@link org.eclipse.ditto.protocol.Adaptable} and
+ * An {@code Adapter} maps objects of type {@link org.eclipse.ditto.things.model.signals.events.ThingMerged} to an {@link org.eclipse.ditto.protocol.Adaptable} and
  * vice versa.
  *
  * @since 2.0.0

@@ -35,29 +35,30 @@ import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
-import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.things.api.commands.sudo.SudoCommand;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
+import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyConflictException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyResponse;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotCreatableException;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotModifiableException;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingUnavailableException;
-import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
-import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
+import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotCreatableException;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotModifiableException;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingUnavailableException;
+import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
+import org.eclipse.ditto.things.model.signals.commands.modify.CreateThingResponse;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThingResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -90,7 +91,7 @@ public final class MultiStageCommandTest {
     private static final String POLICY = PolicyCommand.RESOURCE_TYPE;
 
     private static final String THING_SUDO =
-            org.eclipse.ditto.services.models.things.commands.sudo.SudoCommand.RESOURCE_TYPE;
+            SudoCommand.RESOURCE_TYPE;
     private static final String POLICY_SUDO =
             org.eclipse.ditto.policies.api.commands.sudo.SudoCommand.RESOURCE_TYPE;
 

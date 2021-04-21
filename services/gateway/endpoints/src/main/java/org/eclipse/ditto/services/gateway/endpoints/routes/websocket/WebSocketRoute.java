@@ -62,7 +62,7 @@ import org.eclipse.ditto.model.jwt.ImmutableJsonWebToken;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.policies.model.PolicyException;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.model.thingsearch.ThingSearchException;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.HeaderTranslator;
@@ -96,7 +96,7 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorEx
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;
-import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
+import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse;
 import org.slf4j.Logger;
 

@@ -30,8 +30,8 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.ThingConstants;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingConstants;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.adapter.Adapter;
 import org.eclipse.ditto.protocol.HeaderTranslator;
@@ -40,8 +40,8 @@ import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
-import org.eclipse.ditto.signals.acks.things.ThingAcknowledgementFactory;
-import org.eclipse.ditto.signals.acks.things.ThingAcknowledgementsFactory;
+import org.eclipse.ditto.things.model.signals.acks.ThingAcknowledgementFactory;
+import org.eclipse.ditto.things.model.signals.acks.ThingAcknowledgementsFactory;
 
 /**
  * Adapter for mapping a {@link Acknowledgements} to and from an {@link Adaptable}.

@@ -16,18 +16,18 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.protocol.JsonifiableMapper;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributes;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinition;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDesiredProperties;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDesiredProperty;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperties;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperty;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatures;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThingDefinition;
-import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttribute;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributes;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureDefinition;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureDesiredProperties;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureDesiredProperty;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureProperties;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureProperty;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatures;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingDefinition;
+import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 
 /**
  * Defines mapping strategies (map from signal type to JsonifiableMapper) for thing query commands.

@@ -22,10 +22,10 @@ import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
 import org.eclipse.ditto.protocol.mapper.SignalMapper;
 import org.eclipse.ditto.protocol.mapper.SignalMapperFactory;
-import org.eclipse.ditto.signals.commands.things.modify.MergeThingResponse;
+import org.eclipse.ditto.things.model.signals.commands.modify.MergeThingResponse;
 
 /**
- * Adapter for mapping a {@link org.eclipse.ditto.signals.commands.things.modify.MergeThing} to and from an
+ * Adapter for mapping a {@link org.eclipse.ditto.things.model.signals.commands.modify.MergeThing} to and from an
  * {@link org.eclipse.ditto.protocol.Adaptable}.
  */
 final class ThingMergeCommandResponseAdapter extends AbstractThingAdapter<MergeThingResponse>

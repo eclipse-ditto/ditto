@@ -35,7 +35,7 @@ import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.TopicPathBuilder;
 import org.eclipse.ditto.protocol.UnknownEventException;
 import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategies;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 /**
  * Abstract implementation of {@link Adapter} to provide common functionality.

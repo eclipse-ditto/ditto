@@ -28,7 +28,7 @@ import org.eclipse.ditto.model.query.QueryBuilderFactory;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.expression.FieldExpressionUtil;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 import org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearchPersistence;

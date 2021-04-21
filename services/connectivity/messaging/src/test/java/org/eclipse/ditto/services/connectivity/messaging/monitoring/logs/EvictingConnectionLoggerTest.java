@@ -34,12 +34,12 @@ import org.eclipse.ditto.model.connectivity.LogCategory;
 import org.eclipse.ditto.model.connectivity.LogEntry;
 import org.eclipse.ditto.model.connectivity.LogLevel;
 import org.eclipse.ditto.model.connectivity.LogType;
-import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingIdInvalidException;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingIdInvalidException;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

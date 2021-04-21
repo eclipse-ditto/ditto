@@ -20,7 +20,7 @@ import java.util.Optional;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
-import org.eclipse.ditto.model.things.ThingIdInvalidException;
+import org.eclipse.ditto.things.model.ThingIdInvalidException;
 
 /**
  * Mutable implementation of {@link TopicPathBuilder} for building immutable {@link TopicPath} instances.

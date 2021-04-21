@@ -17,13 +17,15 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.model.things.Attributes;
-import org.eclipse.ditto.model.things.FeatureProperties;
-import org.eclipse.ditto.model.things.Features;
-import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingLifecycle;
-import org.eclipse.ditto.model.things.ThingRevision;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.things.model.Attributes;
+import org.eclipse.ditto.things.model.FeatureProperties;
+import org.eclipse.ditto.things.model.Features;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingLifecycle;
+import org.eclipse.ditto.things.model.ThingRevision;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
+import org.eclipse.ditto.things.model.Feature;
 
 /**
  * Defines constants for testing.
@@ -56,8 +58,8 @@ public final class TestConstants {
         /**
          * A known Feature which is required for time travel.
          */
-        public static final org.eclipse.ditto.model.things.Feature FLUX_CAPACITOR =
-                org.eclipse.ditto.model.things.Feature.newBuilder()
+        public static final Feature FLUX_CAPACITOR =
+                Feature.newBuilder()
                         .properties(FLUX_CAPACITOR_PROPERTIES)
                         .withId(FLUX_CAPACITOR_ID)
                         .build();
@@ -126,7 +128,7 @@ public final class TestConstants {
         /**
          * A known Thing for testing.
          */
-        public static final org.eclipse.ditto.model.things.Thing THING = ThingsModelFactory.newThingBuilder() //
+        public static final Thing THING = ThingsModelFactory.newThingBuilder() //
                 .setAttributes(ATTRIBUTES) //
                 .setFeatures(SearchFeature.FEATURES) //
                 .setLifecycle(LIFECYCLE) //

@@ -198,6 +198,7 @@
         <module>utils</module>
         <module>services</module>
         <module>policies</module>
+        <module>things</module>
     </modules>
 
     <properties>

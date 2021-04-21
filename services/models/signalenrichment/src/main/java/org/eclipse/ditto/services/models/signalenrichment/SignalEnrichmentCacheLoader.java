@@ -19,7 +19,7 @@ import java.util.concurrent.Executor;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.utils.cache.CacheKey;
 import org.eclipse.ditto.services.utils.cache.CacheLookupContext;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;

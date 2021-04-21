@@ -17,7 +17,7 @@ import java.util.HashMap;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableMapper;
-import org.eclipse.ditto.signals.commands.things.modify.MergeThingResponse;
+import org.eclipse.ditto.things.model.signals.commands.modify.MergeThingResponse;
 
 /**
  * Defines mapping strategies (map from signal type to JsonifiableMapper) for thing modify command responses.

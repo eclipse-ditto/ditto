@@ -17,7 +17,7 @@ import java.util.Collection;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.model.things.ThingFieldSelector;
+import org.eclipse.ditto.things.model.ThingFieldSelector;
 
 /**
  * A mutable builder with a fluent API for creating a {@link FilteredTopic}.

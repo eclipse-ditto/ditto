@@ -20,7 +20,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.query.Query;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceReportResult;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;

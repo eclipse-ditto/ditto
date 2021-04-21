@@ -31,7 +31,7 @@ import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabelExternalUseFor
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.protocol.AcknowledgementTopicPathBuilder;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.adapter.Adapter;
@@ -41,7 +41,7 @@ import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.TopicPathBuilder;
 import org.eclipse.ditto.protocol.adapter.UnknownTopicPathException;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
-import org.eclipse.ditto.signals.acks.things.ThingAcknowledgementFactory;
+import org.eclipse.ditto.things.model.signals.acks.ThingAcknowledgementFactory;
 
 /**
  * Adapter for mapping a {@link Acknowledgement} to and from an {@link org.eclipse.ditto.protocol.Adaptable}.

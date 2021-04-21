@@ -16,10 +16,10 @@ import java.util.UUID;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingIdInvalidException;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingIdInvalidException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;

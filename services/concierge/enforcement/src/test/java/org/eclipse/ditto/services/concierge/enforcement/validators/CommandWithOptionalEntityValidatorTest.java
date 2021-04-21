@@ -21,8 +21,8 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
-import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureProperty;
 import org.junit.Test;
 
 /**

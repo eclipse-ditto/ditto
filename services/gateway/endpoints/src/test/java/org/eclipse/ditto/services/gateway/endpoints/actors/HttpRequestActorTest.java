@@ -31,12 +31,12 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaders;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.gateway.endpoints.routes.whoami.Whoami;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributeResponse;
 import org.junit.Test;
 
 import akka.actor.ActorRef;

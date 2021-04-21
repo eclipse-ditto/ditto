@@ -17,7 +17,7 @@ import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import java.time.Duration;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Test;
 
 /**

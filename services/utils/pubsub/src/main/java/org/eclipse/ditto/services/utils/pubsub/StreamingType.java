@@ -16,8 +16,8 @@ import java.util.Arrays;
 import java.util.Optional;
 
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
+import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 /**
  * Enumeration of the different types which can be streamed (e.g. to an open Websocket connection). Each

@@ -20,7 +20,7 @@ import java.util.Optional;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 
 /**
  * Placeholder implementation that replaces {@code thing:id}, {@code thing:namespace} and {@code thing:name}.

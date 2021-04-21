@@ -26,7 +26,7 @@ import org.eclipse.ditto.model.query.expression.ExistsFieldExpression;
 import org.eclipse.ditto.model.query.expression.FilterFieldExpression;
 import org.eclipse.ditto.model.query.expression.SortFieldExpression;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.things.model.Thing;
 
 /**
  * {@link ThingsFieldExpressionFactory} which applies a special field mapping

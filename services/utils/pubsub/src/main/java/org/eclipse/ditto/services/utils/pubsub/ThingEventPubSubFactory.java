@@ -20,7 +20,7 @@ import org.eclipse.ditto.services.utils.pubsub.extractors.ConstantTopics;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.ReadSubjectExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.ShardIdExtractor;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorRefFactory;

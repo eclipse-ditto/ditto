@@ -37,7 +37,7 @@ import org.eclipse.ditto.model.base.acks.PubSubTerminatedException;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.utils.pubsub.actors.ActorEvent;
 import org.eclipse.ditto.services.utils.pubsub.api.LocalAcksChanged;
 import org.eclipse.ditto.services.utils.pubsub.api.SubAck;

@@ -18,15 +18,15 @@ import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.UNKNOWN_PATH;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.Feature;
-import org.eclipse.ditto.model.things.FeatureDefinition;
-import org.eclipse.ditto.model.things.FeatureProperties;
-import org.eclipse.ditto.model.things.Features;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.things.model.Feature;
+import org.eclipse.ditto.things.model.FeatureDefinition;
+import org.eclipse.ditto.things.model.FeatureProperties;
+import org.eclipse.ditto.things.model.Features;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperties;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureProperties;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;

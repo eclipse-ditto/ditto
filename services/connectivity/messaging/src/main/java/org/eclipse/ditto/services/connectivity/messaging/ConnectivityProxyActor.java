@@ -18,7 +18,7 @@ import org.eclipse.ditto.services.utils.aggregator.ThingsAggregatorProxyActor;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;

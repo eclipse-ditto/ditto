@@ -25,7 +25,7 @@ import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.ThingConstants;
+import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupCommandResponse;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
 import org.junit.After;

@@ -26,8 +26,8 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
@@ -36,8 +36,8 @@ import org.eclipse.ditto.services.utils.cache.CacheFactory;
 import org.eclipse.ditto.services.utils.cache.CacheKey;
 import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.events.things.ThingDeleted;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
+import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 /**
  * Retrieve additional parts of things by asking an asynchronous cache.

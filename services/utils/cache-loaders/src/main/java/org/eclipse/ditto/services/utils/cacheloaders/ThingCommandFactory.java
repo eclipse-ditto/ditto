@@ -19,8 +19,8 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.utils.cache.CacheLookupContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

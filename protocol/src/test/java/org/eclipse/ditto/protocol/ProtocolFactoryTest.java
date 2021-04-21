@@ -16,8 +16,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.ditto.model.base.entity.id.AbstractNamespacedEntityId;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.model.things.ThingConstants;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingConstants;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.protocol.adapter.UnknownTopicPathException;
 import org.junit.Test;
 

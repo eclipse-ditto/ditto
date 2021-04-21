@@ -40,7 +40,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-model-things</artifactId>
+            <artifactId>ditto-things-model</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -52,15 +52,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-commands-things</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-thingsearch</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-events-things</artifactId>
         </dependency>
 
         <dependency>
@@ -73,7 +65,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-models-things</artifactId>
+            <artifactId>ditto-things-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>

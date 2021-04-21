@@ -16,7 +16,7 @@ import java.util.Map;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 
 /**
  * Factory that creates new {@code messages} objects.

@@ -26,8 +26,8 @@ import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespace;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubject;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResource;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureProperty;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature;
 
 public final class PoliciesServiceGlobalCommandRegistryTest extends GlobalCommandRegistryTestCases {
 

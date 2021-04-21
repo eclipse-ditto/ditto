@@ -17,7 +17,7 @@ import java.util.function.Predicate;
 
 import org.eclipse.ditto.model.query.expression.FilterFieldExpression;
 import org.eclipse.ditto.model.query.expression.visitors.FilterFieldExpressionVisitor;
-import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.things.model.Thing;
 
 /**
  * FilterFieldExpressionVisitor for Java {@link Predicate}s of {@link Thing}s.

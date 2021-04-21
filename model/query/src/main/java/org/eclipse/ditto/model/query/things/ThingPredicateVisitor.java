@@ -19,7 +19,7 @@ import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.criteria.visitors.CriteriaVisitor;
 import org.eclipse.ditto.model.query.expression.ExistsFieldExpression;
 import org.eclipse.ditto.model.query.expression.FilterFieldExpression;
-import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.things.model.Thing;
 
 /**
  * CriteriaVisitor for Java {@link Predicate}s of {@link Thing}s.

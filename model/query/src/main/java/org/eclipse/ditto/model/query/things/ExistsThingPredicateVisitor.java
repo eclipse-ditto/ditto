@@ -16,7 +16,7 @@ import java.util.function.Predicate;
 
 import org.eclipse.ditto.model.query.expression.ExistsFieldExpression;
 import org.eclipse.ditto.model.query.expression.visitors.ExistsFieldExpressionVisitor;
-import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.things.model.Thing;
 
 /**
  * ExistsFieldExpressionVisitor for Java {@link Predicate}s of {@link Thing}s.

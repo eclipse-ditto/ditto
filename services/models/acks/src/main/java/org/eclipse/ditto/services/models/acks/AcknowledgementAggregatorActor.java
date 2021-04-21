@@ -30,8 +30,8 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
-import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.WithThingId;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.WithThingId;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
@@ -39,13 +39,13 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
-import org.eclipse.ditto.signals.acks.things.ThingAcknowledgementFactory;
+import org.eclipse.ditto.things.model.signals.acks.ThingAcknowledgementFactory;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayCommandTimeoutException;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
-import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
-import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
+import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
+import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 
 import akka.actor.AbstractActor;
 import akka.actor.Props;

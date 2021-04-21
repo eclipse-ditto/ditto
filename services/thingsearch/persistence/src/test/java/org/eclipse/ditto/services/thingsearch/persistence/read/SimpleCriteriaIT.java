@@ -21,7 +21,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
 import org.junit.Before;
 import org.junit.Test;

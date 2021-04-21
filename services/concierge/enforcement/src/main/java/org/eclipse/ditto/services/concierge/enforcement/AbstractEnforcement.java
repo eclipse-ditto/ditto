@@ -27,7 +27,7 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.policies.model.ResourceKey;
-import org.eclipse.ditto.model.things.ThingConstants;
+import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.cache.CacheKey;

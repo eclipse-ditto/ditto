@@ -21,10 +21,10 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotDeletableException;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingIdNotDeletableException;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingIdNotExplicitlySettableException;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyIdNotDeletableException;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingIdNotDeletableException;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingIdNotExplicitlySettableException;
 
 /**
  * Creates a Thing {@link org.eclipse.ditto.json.JsonObject} from a given JSON String for either PUT or PATCH requests.

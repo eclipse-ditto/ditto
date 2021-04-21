@@ -21,7 +21,7 @@
  import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
  import org.eclipse.ditto.protocol.mapper.SignalMapper;
  import org.eclipse.ditto.protocol.mapper.SignalMapperFactory;
- import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
+ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingsResponse;
 
  public final class RetrieveThingsCommandResponseAdapter extends AbstractThingAdapter<RetrieveThingsResponse>
          implements QueryCommandResponseAdapter<RetrieveThingsResponse> {

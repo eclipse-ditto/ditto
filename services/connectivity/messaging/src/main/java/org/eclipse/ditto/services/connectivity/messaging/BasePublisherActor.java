@@ -77,7 +77,7 @@ import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 
 import akka.actor.AbstractActor;

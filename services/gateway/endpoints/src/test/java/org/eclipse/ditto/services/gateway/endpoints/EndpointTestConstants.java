@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints;
 
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 
 import akka.http.javadsl.model.StatusCode;
 import akka.http.javadsl.model.StatusCodes;

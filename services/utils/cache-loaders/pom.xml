@@ -40,18 +40,13 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-model-things</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-commands-things</artifactId>
+            <artifactId>ditto-things-model</artifactId>
         </dependency>
 
         <!-- for Sudo commands: -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-models-things</artifactId>
+            <artifactId>ditto-things-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>

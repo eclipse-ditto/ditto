@@ -42,12 +42,12 @@ import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.ResourceKey;
-import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.ThingWriteModel;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 
 /**
  * Map Thing with Enforcer to Document.

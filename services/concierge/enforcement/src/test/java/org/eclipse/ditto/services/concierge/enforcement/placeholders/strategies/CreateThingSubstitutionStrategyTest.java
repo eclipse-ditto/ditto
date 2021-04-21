@@ -26,7 +26,7 @@ import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectType;
 import org.eclipse.ditto.policies.model.Subjects;
-import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
+import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.junit.Test;
 
 /**

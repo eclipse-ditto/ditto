@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.assertj.core.util.Lists;
@@ -34,9 +35,9 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.ThingId;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -47,7 +48,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class ImmutableAcknowledgementsTest {
 
-    private static final ThingId KNOWN_ENTITY_ID = ThingId.generateRandom();
+    private static final EntityId KNOWN_ENTITY_ID = EntityId.of(EntityType.of("thing"), UUID.randomUUID().toString());
     private static final HttpStatus KNOWN_HTTP_STATUS = HttpStatus.OK;
     private static final JsonValue KNOWN_PAYLOAD = JsonObject.newBuilder().set("known", "payload").build();
     private static final DittoHeaders KNOWN_DITTO_HEADERS = DittoHeaders.newBuilder()
@@ -98,8 +99,8 @@ public final class ImmutableAcknowledgementsTest {
 
     @Test
     public void testHashCodeAndEquals() {
-        final ThingId red = ThingId.generateRandom();
-        final ThingId black = ThingId.generateRandom();
+        final EntityId red = EntityId.of(EntityType.of("thing"), UUID.randomUUID().toString());
+        final EntityId black = EntityId.of(EntityType.of("thing"), UUID.randomUUID().toString());
 
         EqualsVerifier.forClass(ImmutableAcknowledgements.class)
                 .usingGetClass()
@@ -136,7 +137,7 @@ public final class ImmutableAcknowledgementsTest {
 
     @Test
     public void tryToGetInstanceWithAcknowledgementsWithDifferentEntityIds() {
-        final ThingId otherEntityId = ThingId.of("com.example:flux-condensator");
+        final EntityId otherEntityId = EntityId.of(EntityType.of("thing"), "com.example:flux-condensator");
         final Acknowledgement otherAcknowledgement =
                 ImmutableAcknowledgement.of(DittoAcknowledgementLabel.TWIN_PERSISTED, otherEntityId, KNOWN_HTTP_STATUS,
                         KNOWN_DITTO_HEADERS, null);

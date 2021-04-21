@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.models.connectivity.placeholders;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;

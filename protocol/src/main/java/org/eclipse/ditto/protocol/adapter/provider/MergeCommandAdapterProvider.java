@@ -13,8 +13,8 @@
 package org.eclipse.ditto.protocol.adapter.provider;
 
 import org.eclipse.ditto.protocol.adapter.Adapter;
-import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
-import org.eclipse.ditto.signals.commands.things.modify.MergeThingResponse;
+import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
+import org.eclipse.ditto.things.model.signals.commands.modify.MergeThingResponse;
 
 /**
  * Interface providing the mergeThing command adapter and the mergeThing command response adapter.

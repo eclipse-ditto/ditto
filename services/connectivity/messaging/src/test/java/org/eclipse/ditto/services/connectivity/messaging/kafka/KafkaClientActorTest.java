@@ -40,7 +40,7 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetrics;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
-import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
+import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;

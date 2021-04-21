@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.thingsearch.persistence.write;
 import java.util.Map;
 
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.policies.api.PolicyReferenceTag;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.services.utils.persistence.operations.NamespacePersistenceOperations;

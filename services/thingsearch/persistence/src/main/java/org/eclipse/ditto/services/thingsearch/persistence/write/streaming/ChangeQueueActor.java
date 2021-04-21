@@ -16,7 +16,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
 
 import akka.NotUsed;

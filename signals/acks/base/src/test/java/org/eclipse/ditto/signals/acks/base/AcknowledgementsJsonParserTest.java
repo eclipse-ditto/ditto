@@ -20,6 +20,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Arrays;
+import java.util.UUID;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -34,7 +35,6 @@ import org.eclipse.ditto.model.base.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.ThingId;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -52,21 +52,21 @@ public final class AcknowledgementsJsonParserTest {
     private DittoHeaders dittoHeaders;
     private Acknowledgement knownAcknowledgement;
     private Acknowledgements knownAcknowledgements;
-    private AcknowledgementsJsonParser<ThingId> underTest;
+    private AcknowledgementsJsonParser<EntityId> underTest;
 
     @Before
     public void setUp() {
         dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
-        final ThingId thingId = ThingId.generateRandom();
+        final EntityId entityId = EntityId.of(EntityType.of("thing"), UUID.randomUUID().toString());
         knownAcknowledgement =
-                Acknowledgement.of(AcknowledgementLabel.of("foo"), thingId, HttpStatus.OK, dittoHeaders);
+                Acknowledgement.of(AcknowledgementLabel.of("foo"), entityId, HttpStatus.OK, dittoHeaders);
         final Acknowledgement knownAcknowledgement2 =
-                Acknowledgement.of(AcknowledgementLabel.of("bar"), thingId, HttpStatus.NOT_FOUND, dittoHeaders,
+                Acknowledgement.of(AcknowledgementLabel.of("bar"), entityId, HttpStatus.NOT_FOUND, dittoHeaders,
                         JsonValue.of("bar does not exist!"));
         knownAcknowledgements =
                 Acknowledgements.of(Sets.newSet(knownAcknowledgement, knownAcknowledgement2), dittoHeaders);
 
-        underTest = AcknowledgementsJsonParser.getInstance(new ThingIdAcknowledgementJsonParser());
+        underTest = AcknowledgementsJsonParser.getInstance(new EntityIdAcknowledgementJsonParser());
     }
 
     @Test
@@ -96,8 +96,10 @@ public final class AcknowledgementsJsonParserTest {
     public void parseJsonWithSeveralAcksOfSameLabel() {
         final AcknowledgementLabel label = AcknowledgementLabel.of("same-label");
         final Acknowledgements acks = Acknowledgements.of(Arrays.asList(
-                Acknowledgement.of(label, ThingId.of("test:thing-id"), HttpStatus.OK, DittoHeaders.empty()),
-                Acknowledgement.of(label, ThingId.of("test:thing-id"), HttpStatus.FORBIDDEN, DittoHeaders.empty())
+                Acknowledgement.of(label, EntityId.of(EntityType.of("thing"), "test:thing-id"), HttpStatus.OK,
+                        DittoHeaders.empty()),
+                Acknowledgement.of(label, EntityId.of(EntityType.of("thing"), "test:thing-id"), HttpStatus.FORBIDDEN,
+                        DittoHeaders.empty())
         ), DittoHeaders.empty());
 
         final Acknowledgements parsedAcknowledgements = underTest.apply(acks.toJson());
@@ -259,7 +261,7 @@ public final class AcknowledgementsJsonParserTest {
 
     @Test
     public void parseJsonRepresentationWithDifferentAcknowledgementEntityId() {
-        final ThingId differentEntityId = ThingId.generateRandom();
+        final EntityId differentEntityId = EntityId.of(EntityType.of("thing"), UUID.randomUUID().toString());
         final Acknowledgement ackWithDifferentEntityId =
                 Acknowledgement.of(AcknowledgementLabel.of("baz"), differentEntityId, HttpStatus.OK, dittoHeaders);
         final JsonFieldDefinition<JsonObject> acknowledgementsFieldDefinition =
@@ -318,11 +320,11 @@ public final class AcknowledgementsJsonParserTest {
                 .withNoCause();
     }
 
-    private static final class ThingIdAcknowledgementJsonParser extends AcknowledgementJsonParser<ThingId> {
+    private static final class EntityIdAcknowledgementJsonParser extends AcknowledgementJsonParser<EntityId> {
 
         @Override
-        protected ThingId createEntityIdInstance(final CharSequence entityIdValue) {
-            return ThingId.of(entityIdValue);
+        protected EntityId createEntityIdInstance(final CharSequence entityIdValue) {
+            return EntityId.of(EntityType.of("thing"), entityIdValue);
         }
 
     }

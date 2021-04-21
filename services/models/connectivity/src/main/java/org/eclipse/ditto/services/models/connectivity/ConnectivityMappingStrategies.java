@@ -24,7 +24,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.policies.api.PoliciesMappingStrategies;
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
-import org.eclipse.ditto.services.models.things.ThingsMappingStrategies;
+import org.eclipse.ditto.things.api.ThingsMappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;

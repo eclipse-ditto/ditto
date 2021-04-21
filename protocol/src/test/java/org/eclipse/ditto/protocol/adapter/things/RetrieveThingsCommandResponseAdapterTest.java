@@ -25,7 +25,7 @@
  import org.eclipse.ditto.protocol.TestConstants;
  import org.eclipse.ditto.protocol.TopicPath;
  import org.eclipse.ditto.protocol.TopicPathBuilder;
- import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
+ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingsResponse;
  import org.junit.Before;
  import org.junit.Test;
 

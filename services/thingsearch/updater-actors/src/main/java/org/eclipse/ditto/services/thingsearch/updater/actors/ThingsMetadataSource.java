@@ -21,13 +21,13 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
-import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingConstants;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingConstants;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.models.streaming.LowerBound;
 import org.eclipse.ditto.services.models.streaming.StreamedSnapshot;
 import org.eclipse.ditto.services.models.streaming.SudoStreamSnapshots;
-import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
+import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 

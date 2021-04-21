@@ -30,11 +30,6 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-akka</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-commands-things</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
 </project>

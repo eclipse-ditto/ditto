@@ -12,11 +12,11 @@
  */
 package org.eclipse.ditto.services.concierge.starter;
 
-import org.eclipse.ditto.services.models.things.ThingSnapshotTaken;
+import org.eclipse.ditto.things.api.ThingSnapshotTaken;
 import org.eclipse.ditto.services.utils.test.GlobalEventRegistryTestCases;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionCreated;
 import org.eclipse.ditto.policies.model.signals.events.ResourceDeleted;
-import org.eclipse.ditto.signals.events.things.FeatureDeleted;
+import org.eclipse.ditto.things.model.signals.events.FeatureDeleted;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
 
 public final class ConciergeServiceGlobalEventRegistryTest extends GlobalEventRegistryTestCases {

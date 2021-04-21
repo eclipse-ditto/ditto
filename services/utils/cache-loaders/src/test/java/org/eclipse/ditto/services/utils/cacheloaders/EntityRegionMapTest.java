@@ -22,7 +22,7 @@ import java.util.UUID;
 
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.policies.model.PolicyConstants;
-import org.eclipse.ditto.model.things.ThingConstants;
+import org.eclipse.ditto.things.model.ThingConstants;
 import org.junit.AfterClass;
 import org.junit.Test;
 

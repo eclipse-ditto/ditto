@@ -21,13 +21,13 @@ import java.util.stream.IntStream;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.base.persistence.PersistenceLifecycle;
 import org.eclipse.ditto.services.concierge.actors.ShardRegions;
 import org.eclipse.ditto.services.concierge.actors.cleanup.messages.CreditDecision;
 import org.eclipse.ditto.services.concierge.common.PersistenceCleanupConfig;
-import org.eclipse.ditto.services.models.things.ThingSnapshotTaken;
+import org.eclipse.ditto.things.api.ThingSnapshotTaken;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
 import org.junit.After;
 import org.junit.Before;

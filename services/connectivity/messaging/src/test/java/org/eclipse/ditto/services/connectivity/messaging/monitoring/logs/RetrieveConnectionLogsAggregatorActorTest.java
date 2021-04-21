@@ -36,7 +36,7 @@ import org.eclipse.ditto.model.connectivity.LogCategory;
 import org.eclipse.ditto.model.connectivity.LogEntry;
 import org.eclipse.ditto.model.connectivity.LogLevel;
 import org.eclipse.ditto.model.connectivity.LogType;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.connectivity.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionTimeoutException;

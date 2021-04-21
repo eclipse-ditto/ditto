@@ -16,7 +16,7 @@ import java.util.EnumSet;
 import java.util.Set;
 
 import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.signals.commands.things.modify.MergeThingResponse;
+import org.eclipse.ditto.things.model.signals.commands.modify.MergeThingResponse;
 
 /**
  * An {@code Adapter} mixin for merge command responses.

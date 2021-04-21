@@ -16,8 +16,8 @@ package org.eclipse.ditto.services.connectivity.mapping;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.fail;
-import static org.eclipse.ditto.services.models.things.Permission.READ;
-import static org.eclipse.ditto.services.models.things.Permission.WRITE;
+import static org.eclipse.ditto.things.api.Permission.READ;
+import static org.eclipse.ditto.things.api.Permission.WRITE;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -33,9 +33,9 @@ import org.eclipse.ditto.services.models.placeholders.UnresolvedPlaceholderExcep
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
-import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.services.connectivity.config.mapping.DefaultMappingConfig;
@@ -43,10 +43,10 @@ import org.eclipse.ditto.services.connectivity.config.mapping.MappingConfig;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingConflictException;
-import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
-import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
+import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConflictException;
+import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
+import org.eclipse.ditto.things.model.signals.commands.modify.CreateThingResponse;
 import org.junit.Before;
 import org.junit.Test;
 

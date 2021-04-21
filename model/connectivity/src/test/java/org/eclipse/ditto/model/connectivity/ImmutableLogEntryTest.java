@@ -24,7 +24,7 @@ import java.time.Instant;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

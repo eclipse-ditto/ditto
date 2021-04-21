@@ -32,19 +32,19 @@ import org.eclipse.ditto.services.models.placeholders.ExpressionResolver;
 import org.eclipse.ditto.services.models.placeholders.HeadersPlaceholder;
 import org.eclipse.ditto.services.models.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.models.placeholders.PlaceholderFilter;
-import org.eclipse.ditto.model.things.Feature;
-import org.eclipse.ditto.model.things.FeatureDefinition;
-import org.eclipse.ditto.model.things.FeatureProperties;
-import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingIdInvalidException;
+import org.eclipse.ditto.things.model.Feature;
+import org.eclipse.ditto.things.model.FeatureDefinition;
+import org.eclipse.ditto.things.model.FeatureProperties;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingIdInvalidException;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.services.connectivity.config.mapping.MappingConfig;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeature;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureProperty;
 
 /**
  * This mapper extracts the headers {@code creation-time} and {@code ttd} from the message and builds a

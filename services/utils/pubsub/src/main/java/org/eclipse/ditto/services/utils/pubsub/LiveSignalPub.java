@@ -13,8 +13,8 @@
 package org.eclipse.ditto.services.utils.pubsub;
 
 import org.eclipse.ditto.signals.base.SignalWithEntityId;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
+import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 import akka.actor.ActorContext;
 

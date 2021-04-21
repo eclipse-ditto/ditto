@@ -25,7 +25,7 @@ import org.bson.BsonString;
 import org.bson.Document;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThingResponse;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;

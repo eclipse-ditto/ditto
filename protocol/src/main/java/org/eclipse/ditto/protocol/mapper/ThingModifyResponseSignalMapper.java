@@ -17,7 +17,7 @@ import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.TopicPathBuilder;
 import org.eclipse.ditto.protocol.UnknownCommandResponseException;
-import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
+import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommandResponse;
 
 final class ThingModifyResponseSignalMapper
         extends AbstractModifySignalMapper<ThingModifyCommandResponse<?>>

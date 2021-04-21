@@ -19,14 +19,14 @@ import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryComman
 import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
-import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
-import org.eclipse.ditto.signals.commands.things.modify.MergeThingResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
-import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
-import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
-import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
+import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
+import org.eclipse.ditto.things.model.signals.commands.modify.MergeThingResponse;
+import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
+import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommandResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingsResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
+import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
 /**

@@ -21,12 +21,12 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingsResponse;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;

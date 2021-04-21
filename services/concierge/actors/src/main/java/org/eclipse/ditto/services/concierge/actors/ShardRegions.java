@@ -16,7 +16,7 @@ import java.util.Optional;
 
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
-import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
+import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
 

@@ -30,7 +30,7 @@ import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.messages.MessagesModelFactory;
 import org.eclipse.ditto.model.messages.SubjectInvalidException;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.services.gateway.endpoints.actors.AbstractHttpRequestActor;

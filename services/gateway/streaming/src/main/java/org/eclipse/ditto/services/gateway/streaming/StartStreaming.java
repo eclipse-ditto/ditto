@@ -24,7 +24,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.things.ThingFieldSelector;
+import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 
 /**

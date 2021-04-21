@@ -24,10 +24,10 @@ import org.eclipse.ditto.protocol.PayloadBuilder;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
-import org.eclipse.ditto.signals.events.things.ThingMerged;
+import org.eclipse.ditto.things.model.signals.events.ThingMerged;
 
 /**
- * Adapter for mapping a {@link org.eclipse.ditto.signals.events.things.ThingMerged} to and from an
+ * Adapter for mapping a {@link org.eclipse.ditto.things.model.signals.events.ThingMerged} to and from an
  * {@link org.eclipse.ditto.protocol.Adaptable}.
  */
 final class ThingMergedEventAdapter extends AbstractThingAdapter<ThingMerged> implements MergedEventAdapter {

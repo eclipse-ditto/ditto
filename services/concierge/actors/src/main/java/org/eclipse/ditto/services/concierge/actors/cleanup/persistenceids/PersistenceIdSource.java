@@ -20,7 +20,7 @@ import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectivityConstants;
 import org.eclipse.ditto.policies.model.PolicyConstants;
-import org.eclipse.ditto.model.things.ThingConstants;
+import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.services.concierge.common.PersistenceIdsConfig;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
@@ -28,7 +28,7 @@ import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.models.streaming.LowerBound;
 import org.eclipse.ditto.services.models.streaming.SudoStreamPids;
-import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
+import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.services.utils.akka.controlflow.ResumeSource;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 

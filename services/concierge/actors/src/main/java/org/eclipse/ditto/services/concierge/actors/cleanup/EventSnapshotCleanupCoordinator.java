@@ -29,7 +29,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.concierge.actors.ShardRegions;
 import org.eclipse.ditto.services.concierge.actors.cleanup.credits.CreditDecisionSource;
 import org.eclipse.ditto.services.concierge.actors.cleanup.messages.CreditDecision;
@@ -38,8 +38,8 @@ import org.eclipse.ditto.services.concierge.common.PersistenceCleanupConfig;
 import org.eclipse.ditto.services.models.connectivity.ConnectionTag;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
-import org.eclipse.ditto.services.models.things.ThingSnapshotTaken;
-import org.eclipse.ditto.services.models.things.ThingTag;
+import org.eclipse.ditto.things.api.ThingSnapshotTaken;
+import org.eclipse.ditto.things.api.ThingTag;
 import org.eclipse.ditto.services.utils.akka.controlflow.Transistor;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.health.AbstractBackgroundStreamingActorWithConfigWithStatusReport;
@@ -47,7 +47,7 @@ import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistenceResponse;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 
 import com.typesafe.config.Config;
 

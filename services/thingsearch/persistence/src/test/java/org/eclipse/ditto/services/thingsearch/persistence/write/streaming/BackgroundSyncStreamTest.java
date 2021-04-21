@@ -21,7 +21,7 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyRevision;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyRevisionResponse;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;

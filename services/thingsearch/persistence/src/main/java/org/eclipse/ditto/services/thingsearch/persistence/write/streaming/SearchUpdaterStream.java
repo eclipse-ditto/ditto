@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.base.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.PersistenceStreamConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.StreamCacheConfig;

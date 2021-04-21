@@ -21,7 +21,7 @@ import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
 import org.eclipse.ditto.protocol.mapper.SignalMapper;
 import org.eclipse.ditto.protocol.mapper.SignalMapperFactory;
-import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 
 /**
  * Adapter for mapping a {@link ThingQueryCommandResponse} to and from an {@link Adaptable}.

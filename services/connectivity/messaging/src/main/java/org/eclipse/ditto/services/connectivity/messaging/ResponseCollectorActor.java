@@ -24,7 +24,7 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
-import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
+import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;

@@ -34,7 +34,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
-import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
+import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
 import org.junit.Test;
 
 /**

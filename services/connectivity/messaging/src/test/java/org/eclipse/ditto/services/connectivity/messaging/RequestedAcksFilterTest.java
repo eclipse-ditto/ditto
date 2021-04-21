@@ -24,11 +24,11 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.services.models.placeholders.PlaceholderFunctionSignatureInvalidException;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
+import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThing;
 import org.junit.Test;
 
 /**

@@ -23,15 +23,15 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingConstants;
-import org.eclipse.ditto.model.things.ThingRevision;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingConstants;
+import org.eclipse.ditto.things.model.ThingRevision;
+import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.utils.cache.CacheKey;
 import org.eclipse.ditto.services.utils.cache.CacheLookupContext;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 

@@ -32,7 +32,7 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.model.things.ThingFieldSelector;
+import org.eclipse.ditto.things.model.ThingFieldSelector;
 
 /**
  * Immutable implementation of {@link FilteredTopic}.
@@ -81,7 +81,7 @@ final class ImmutableFilteredTopic implements FilteredTopic {
      * @param filteredTopicString the string representation of a FilteredTopic.
      * @return instance.
      * @throws NullPointerException if {@code filteredTopicString} is {@code null}.
-     * @throws org.eclipse.ditto.model.things.InvalidThingFieldSelectionException when the given
+     * @throws org.eclipse.ditto.things.model.InvalidThingFieldSelectionException when the given
      * {@code filteredTopicString} contained a field selector with invalid fields.
      */
     public static ImmutableFilteredTopic fromString(final String filteredTopicString) {

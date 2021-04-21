@@ -18,7 +18,7 @@ import java.util.Optional;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.protocol.PayloadPathMatcher;
 import org.eclipse.ditto.protocol.UnknownPathException;
-import org.eclipse.ditto.signals.commands.things.ThingResource;
+import org.eclipse.ditto.things.model.signals.commands.ThingResource;
 
 /**
  * PayloadPathMatcher implementation for modify thing commands.

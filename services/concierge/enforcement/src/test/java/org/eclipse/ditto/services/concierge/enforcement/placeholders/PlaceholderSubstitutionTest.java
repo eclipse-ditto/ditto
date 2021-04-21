@@ -35,10 +35,10 @@ import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectType;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.strategies.SubstitutionStrategyRegistry;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubject;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
 import org.junit.Before;
 import org.junit.Test;
 

@@ -42,7 +42,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.model.jwt.JwtInvalidException;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationResult;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationResultProvider;
@@ -61,7 +61,7 @@ import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingEx
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
-import org.eclipse.ditto.signals.events.things.ThingDeleted;
+import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;

@@ -41,9 +41,9 @@ import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyBuilder;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.services.models.things.Permission;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotModifiableException;
-import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
+import org.eclipse.ditto.things.api.Permission;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotModifiableException;
+import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -51,7 +51,7 @@ import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 
 /**
- * Tests {@link org.eclipse.ditto.signals.commands.things.modify.MergeThing} by applying command enforcement to
+ * Tests {@link org.eclipse.ditto.things.model.signals.commands.modify.MergeThing} by applying command enforcement to
  * combinations of merge commands (at different levels) and policies (with permissions at different levels).
  */
 public final class MergeThingCommandEnforcementTest {

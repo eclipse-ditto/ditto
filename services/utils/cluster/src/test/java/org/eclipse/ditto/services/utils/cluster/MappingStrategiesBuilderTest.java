@@ -21,7 +21,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.model.things.ThingConstants;
+import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.services.utils.akka.PingCommand;
 import org.eclipse.ditto.services.utils.akka.PingCommandResponse;
 import org.eclipse.ditto.services.utils.akka.SimpleCommand;

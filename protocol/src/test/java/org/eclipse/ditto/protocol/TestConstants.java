@@ -51,17 +51,17 @@ import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
 import org.eclipse.ditto.policies.model.SubjectType;
 import org.eclipse.ditto.policies.model.Subjects;
-import org.eclipse.ditto.model.things.Attributes;
-import org.eclipse.ditto.model.things.Feature;
-import org.eclipse.ditto.model.things.FeatureDefinition;
-import org.eclipse.ditto.model.things.FeatureProperties;
-import org.eclipse.ditto.model.things.Features;
-import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingDefinition;
-import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingIdInvalidException;
-import org.eclipse.ditto.model.things.ThingLifecycle;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.things.model.Attributes;
+import org.eclipse.ditto.things.model.Feature;
+import org.eclipse.ditto.things.model.FeatureDefinition;
+import org.eclipse.ditto.things.model.FeatureProperties;
+import org.eclipse.ditto.things.model.Features;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingDefinition;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingIdInvalidException;
+import org.eclipse.ditto.things.model.ThingLifecycle;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 
 /**
  *

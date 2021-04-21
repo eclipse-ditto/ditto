@@ -31,7 +31,7 @@ import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.protocol.adapter.UnknownTopicPathException;
 
 /**
@@ -169,7 +169,7 @@ public final class ProtocolFactory {
      * @param thingId the id.
      * @return the builder.
      * @throws NullPointerException if {@code thingId} is {@code null}.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if {@code thingId} is not in the expected format.
+     * @throws org.eclipse.ditto.things.model.ThingIdInvalidException if {@code thingId} is not in the expected format.
      */
     public static TopicPathBuilder newTopicPathBuilder(final ThingId thingId) {
         return ImmutableTopicPathBuilder.of(thingId).things();
@@ -182,7 +182,7 @@ public final class ProtocolFactory {
      * @param entityId the id.
      * @return the builder.
      * @throws NullPointerException if {@code entityId} is {@code null}.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if {@code entityIdId} is not in the expected
+     * @throws org.eclipse.ditto.things.model.ThingIdInvalidException if {@code entityIdId} is not in the expected
      * format.
      */
     public static TopicPathBuilder newTopicPathBuilder(final NamespacedEntityId entityId) {

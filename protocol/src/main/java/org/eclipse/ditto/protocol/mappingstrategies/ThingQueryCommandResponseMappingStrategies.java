@@ -16,18 +16,18 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.protocol.JsonifiableMapper;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributesResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinitionResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDesiredPropertiesResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDesiredPropertyResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturePropertiesResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturePropertyResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturesResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThingDefinitionResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
-import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributeResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributesResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureDefinitionResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureDesiredPropertiesResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureDesiredPropertyResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeaturePropertiesResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeaturePropertyResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeaturesResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingDefinitionResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 
 /**
  * Defines mapping strategies (map from signal type to JsonifiableMapper) for thing query command responses.

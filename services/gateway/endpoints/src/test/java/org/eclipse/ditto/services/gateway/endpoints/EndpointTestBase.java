@@ -32,7 +32,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.base.config.http.DefaultHttpProxyConfig;
 import org.eclipse.ditto.services.gateway.endpoints.routes.RootRouteExceptionHandler;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.DittoJwtAuthorizationSubjectsProvider;
@@ -66,7 +66,7 @@ import org.eclipse.ditto.services.utils.protocol.config.DefaultProtocolConfig;
 import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
-import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
+import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.junit.BeforeClass;
 
 import com.typesafe.config.Config;

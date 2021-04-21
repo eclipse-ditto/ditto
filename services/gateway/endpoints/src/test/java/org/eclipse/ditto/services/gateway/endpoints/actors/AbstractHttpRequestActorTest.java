@@ -37,7 +37,7 @@ import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.routes.whoami.DefaultUserInformation;
 import org.eclipse.ditto.services.gateway.endpoints.routes.whoami.UserInformation;
@@ -47,7 +47,7 @@ import org.eclipse.ditto.services.gateway.util.config.GatewayConfig;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 

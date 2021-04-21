@@ -30,11 +30,6 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-model-base</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-commands-things</artifactId>
-        </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-messages</artifactId>

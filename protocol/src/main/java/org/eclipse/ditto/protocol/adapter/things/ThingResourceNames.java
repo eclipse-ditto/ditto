@@ -16,7 +16,7 @@ import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
 
-import org.eclipse.ditto.signals.commands.things.ThingResource;
+import org.eclipse.ditto.things.model.signals.commands.ThingResource;
 
 /**
  * Defines the mapping from a thing resource to a resource name.
@@ -29,7 +29,7 @@ final class ThingResourceNames {
 
     /**
      * This mapping is used in the method {@code AbstractAdapter#getType} to determine the second part of the command
-     * name (e.g. {@code thing} of {@value org.eclipse.ditto.signals.commands.things.modify.CreateThing#NAME}),
+     * name (e.g. {@code thing} of {@value org.eclipse.ditto.things.model.signals.commands.modify.CreateThing#NAME}),
      * i.e. the name of the resource that is affected by the command, from a given path.
      */
     private static final Map<ThingResource, String> resourceNames = new EnumMap<>(ThingResource.class);

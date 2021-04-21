@@ -37,7 +37,7 @@ import org.eclipse.ditto.model.namespaces.NamespaceReader;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.rqlparser.RqlPredicateParser;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
@@ -48,8 +48,8 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.events.base.Event;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
-import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
+import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.things.model.signals.events.ThingEventToThingConverter;
 
 /**
  * Filters a set of targets by

@@ -17,8 +17,8 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.headers.AbstractHeaderValueValidator;
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
-import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingIdInvalidException;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingIdInvalidException;
 
 /**
  * This validator checks if a CharSequence is a valid {@link ThingId}.

@@ -25,7 +25,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.query.QueryBuilderFactory;
 import org.eclipse.ditto.model.query.expression.FieldExpressionUtil;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.services.base.actors.DittoRootActor;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.SearchConfig;

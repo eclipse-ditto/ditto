@@ -23,7 +23,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageDirection;
-import org.eclipse.ditto.model.things.WithThingId;
+import org.eclipse.ditto.things.model.WithThingId;
 import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.Command;
 

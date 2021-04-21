@@ -21,7 +21,7 @@ import java.util.regex.Pattern;
 
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.query.criteria.visitors.PredicateVisitor;
-import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.things.model.Thing;
 
 /**
  * A Java {@link Predicate} based PredicateVisitor for evaluating whether {@link Thing}s match a given filter.

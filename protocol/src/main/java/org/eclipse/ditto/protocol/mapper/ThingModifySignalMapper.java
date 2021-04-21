@@ -15,7 +15,7 @@ package org.eclipse.ditto.protocol.mapper;
 import org.eclipse.ditto.protocol.PayloadBuilder;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPathBuilder;
-import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
+import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 
 final class ThingModifySignalMapper extends AbstractModifySignalMapper<ThingModifyCommand<?>> {
 

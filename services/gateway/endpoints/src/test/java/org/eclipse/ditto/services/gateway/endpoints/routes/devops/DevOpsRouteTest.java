@@ -16,7 +16,7 @@ package org.eclipse.ditto.services.gateway.endpoints.routes.devops;
 import java.util.Collections;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevopsAuthenticationDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevopsAuthenticationDirectiveFactory;
@@ -24,7 +24,7 @@ import org.eclipse.ditto.services.gateway.util.config.security.DefaultDevOpsConf
 import org.eclipse.ditto.services.gateway.util.config.security.DevOpsConfig;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.commands.devops.ExecutePiggybackCommand;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.junit.Before;
 import org.junit.Test;
 

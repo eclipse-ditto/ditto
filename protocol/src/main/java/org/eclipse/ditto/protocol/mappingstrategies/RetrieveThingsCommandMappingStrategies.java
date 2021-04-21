@@ -20,10 +20,10 @@
  import org.eclipse.ditto.json.JsonArray;
  import org.eclipse.ditto.json.JsonParseException;
  import org.eclipse.ditto.json.JsonValue;
- import org.eclipse.ditto.model.things.ThingId;
+ import org.eclipse.ditto.things.model.ThingId;
  import org.eclipse.ditto.protocol.Adaptable;
  import org.eclipse.ditto.protocol.JsonifiableMapper;
- import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
+ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 
  public final class RetrieveThingsCommandMappingStrategies extends AbstractThingMappingStrategies<RetrieveThings> {
 

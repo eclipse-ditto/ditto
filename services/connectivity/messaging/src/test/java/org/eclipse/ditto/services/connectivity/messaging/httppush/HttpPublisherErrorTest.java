@@ -48,7 +48,7 @@ import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.events.things.ThingDeleted;
+import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.junit.After;
 import org.junit.Test;
 

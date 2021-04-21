@@ -28,7 +28,7 @@ import org.eclipse.ditto.model.query.expression.visitors.FieldExpressionVisitor;
 import org.eclipse.ditto.model.query.things.ExistsThingPredicateVisitor;
 import org.eclipse.ditto.model.query.things.FilterThingPredicateVisitor;
 import org.eclipse.ditto.model.query.things.ThingPredicatePredicateVisitor;
-import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.things.model.Thing;
 
 /**
  * Visitor to evaluate a criteria against a partial thing with unknown fields.

@@ -34,7 +34,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-things-starter</artifactId>
+            <artifactId>ditto-things-service</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>

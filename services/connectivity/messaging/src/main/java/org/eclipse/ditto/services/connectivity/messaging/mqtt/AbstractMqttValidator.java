@@ -45,7 +45,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidExcept
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.connectivity.config.MqttConfig;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
 import org.eclipse.ditto.services.models.connectivity.EnforcementFactoryFactory;

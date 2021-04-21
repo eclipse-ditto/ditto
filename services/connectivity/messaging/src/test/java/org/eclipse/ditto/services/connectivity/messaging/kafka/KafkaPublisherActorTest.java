@@ -58,8 +58,8 @@ import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
-import org.eclipse.ditto.signals.events.things.ThingDeleted;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
+import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.junit.Test;
 
 import akka.actor.ActorRef;

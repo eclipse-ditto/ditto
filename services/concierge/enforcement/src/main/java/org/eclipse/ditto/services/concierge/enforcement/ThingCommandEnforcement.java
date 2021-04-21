@@ -44,9 +44,9 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.namespaces.NamespaceBlockedException;
-import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingConstants;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingConstants;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.api.PoliciesValidator;
 import org.eclipse.ditto.policies.model.Permissions;
@@ -80,23 +80,23 @@ import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.commands.base.CommandToExceptionRegistry;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
-import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotAllowedException;
-import org.eclipse.ditto.signals.commands.things.exceptions.PolicyInvalidException;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingCommandToAccessExceptionRegistry;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingCommandToModifyExceptionRegistry;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotCreatableException;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotModifiableException;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingUnavailableException;
-import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
-import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
-import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
-import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
-import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
+import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyIdNotAllowedException;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyInvalidException;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingCommandToAccessExceptionRegistry;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingCommandToModifyExceptionRegistry;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotCreatableException;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotModifiableException;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingUnavailableException;
+import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
+import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
+import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
+import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 
 import akka.actor.ActorRef;
 import akka.pattern.AskTimeoutException;
@@ -1005,7 +1005,7 @@ public final class ThingCommandEnforcement
                         .forLabel(DEFAULT_POLICY_ENTRY_LABEL)
                         .setSubject(subject)
                         .setGrantedPermissions(PoliciesResourceType.thingResource("/"),
-                                org.eclipse.ditto.services.models.things.Permission.DEFAULT_THING_PERMISSIONS)
+                                org.eclipse.ditto.things.api.Permission.DEFAULT_THING_PERMISSIONS)
                         .setGrantedPermissions(PoliciesResourceType.policyResource("/"),
                                 org.eclipse.ditto.policies.api.Permission.DEFAULT_POLICY_PERMISSIONS)
                         .setGrantedPermissions(PoliciesResourceType.messageResource("/"),

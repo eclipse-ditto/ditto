@@ -27,7 +27,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.common.ByteBufferUtils;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 
 /**
  * An Immutable implementation of {@link Message}.
