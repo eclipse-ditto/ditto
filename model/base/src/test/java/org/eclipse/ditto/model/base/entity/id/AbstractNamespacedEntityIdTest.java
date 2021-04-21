@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -36,7 +36,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class AbstractNamespacedEntityIdTest extends LengthRestrictionTestBase {
 
     private static final EntityType ENTITY_TYPE_PLUMBUS = EntityType.of("plumbus");
-    private static final EntityType ENTITY_TYPE_GRUMBO = EntityType.of("grumbo");
 
     private static final String URL_ESCAPE_EXAMPLE = "%3A";
     private static final List<String> ALLOWED_SPECIAL_CHARACTERS_IN_NAME = Arrays.asList(
