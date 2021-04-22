@@ -44,7 +44,7 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
  */
 @Immutable
 @AllValuesAreNonnullByDefault
-@JsonParsableCommand(typePrefix = SudoStreamSnapshots.TYPE_PREFIX, name = SudoStreamSnapshots.NAME)
+@JsonParsableCommand(typePrefix = StreamingMessage.TYPE_PREFIX, name = SudoStreamSnapshots.NAME)
 public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapshots> implements StartStreamRequest {
 
     static final String NAME = "SudoStreamSnapshots";

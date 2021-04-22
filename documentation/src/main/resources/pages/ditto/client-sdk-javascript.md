@@ -21,14 +21,6 @@ All released versions are published on [npmjs.com](https://www.npmjs.com/~eclips
 
 ## Compatibility with [Eclipse Ditto](https://github.com/eclipse/ditto)
 
-The `@eclipse-ditto/ditto-javascript-client-<package>_<ditto-major.minor-version>` modules
-will be compatible with the `<ditto-major.minor-version>`, so e.g. `@eclipse-ditto/ditto-javascript-client-<package>_1.0`
-will be compatible with Eclipse Ditto 1.0.x. The javascript modules themselves use 
-[semantic versioning](https://docs.npmjs.com/about-semantic-versioning) for their
-api changes. All modules are released together, so if there is a version
-`@eclipse-ditto/ditto-javascript-client-api_1.0:1.0.1`, there's also a release
-of `@eclipse-ditto/ditto-javascript-client-dom_1.0:1.0.1`.
-
 The newest release of the JavaScript client will always try to cover as much API
 functionality of the same Eclipse Ditto major version as possible. There might
 however be missing features for which we would be very happy to accept contributions.
