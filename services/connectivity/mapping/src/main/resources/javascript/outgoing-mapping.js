@@ -36,8 +36,8 @@ function mapFromDittoProtocolMsg(
 
   // ### example code using the Ditto protocol content type.
   let headers = dittoHeaders;
-  let textPayload = JSON.stringify(Ditto.buildDittoProtocolMsg(namespace, name, group, channel, criterion,
-                                                               action, path, dittoHeaders, value, status, extra));
+  let textPayload = JSON.stringify(Ditto.buildDittoProtocolMsg(namespace, name, group, channel, criterion, action,
+                                                               path, dittoHeaders, value, status, extra));
   let bytePayload = null;
   let contentType = 'application/vnd.eclipse.ditto+json';
 
@@ -63,7 +63,7 @@ function mapFromDittoProtocolMsgWrapper(dittoProtocolMsg) {
   let splitTopic = topic.split("/");
 
   let namespace = splitTopic[0];
-  let id = splitTopic[1];
+  let name = splitTopic[1];
   let group = splitTopic[2];
   let channel = splitTopic[3];
   let criterion = splitTopic[4];
@@ -75,5 +75,6 @@ function mapFromDittoProtocolMsgWrapper(dittoProtocolMsg) {
   let status = dittoProtocolMsg.status;
   let extra = dittoProtocolMsg.extra;
 
-  return mapFromDittoProtocolMsg(namespace, id, group, channel, criterion, action, path, dittoHeaders, value, status, extra);
+  return mapFromDittoProtocolMsg(namespace, name, group, channel, criterion, action,
+                                 path, dittoHeaders, value, status, extra);
 }

@@ -4,9 +4,9 @@
  * @property {string} topic - The topic of the Ditto Protocol message
  * @property {string} path - The path containing the info what to change / what changed
  * @property {Object.<string, string>} headers - The Ditto headers
- * @property {*} value - The value to change to / changed value
- * @property {number} status - The status code that indicates the result of the command.
- * @property {Object} extra - The enriched extra fields when selected via "extraFields" option.
+ * @property {*} [value] - The value to change to / changed value
+ * @property {number} [status] - The status code that indicates the result of the command.
+ * @property {Object} [extra] - The enriched extra fields when selected via "extraFields" option.
  */
 
 /**
@@ -40,16 +40,17 @@ let Ditto = (function () {
    *  The mapped Ditto Protocol message or
    *  <code>null</code> if the message could/should not be mapped
    */
-  function buildDittoProtocolMsg(namespace, name, group, channel, criterion, action, path, dittoHeaders, value, status, extra) {
+  function buildDittoProtocolMsg(namespace, name, group, channel, criterion, action,
+                                 path, dittoHeaders, value, status, extra) {
 
-    let dittoProtocolMsg = {};
-    dittoProtocolMsg.topic = namespace + "/" + name + "/" + group + "/" + channel + "/" + criterion + "/" + action;
-    dittoProtocolMsg.path = path;
-    dittoProtocolMsg.headers = dittoHeaders;
-    dittoProtocolMsg.value = value;
-    dittoProtocolMsg.status = status;
-    dittoProtocolMsg.extra = extra;
-    return dittoProtocolMsg;
+    return {
+      topic: namespace + "/" + name + "/" + group + "/" + channel + "/" + criterion + "/" + action,
+      path: path,
+      headers: dittoHeaders,
+      value: value,
+      status: status,
+      extra: extra,
+    };
   }
 
   /**
@@ -64,12 +65,12 @@ let Ditto = (function () {
    */
   function buildExternalMsg(headers, textPayload, bytePayload, contentType) {
 
-    let externalMsg = {};
-    externalMsg.headers = headers;
-    externalMsg.textPayload = textPayload;
-    externalMsg.bytePayload = bytePayload;
-    externalMsg.contentType = contentType;
-    return externalMsg;
+    return {
+      headers: headers,
+      textPayload: textPayload,
+      bytePayload: bytePayload,
+      contentType: contentType,
+    };
   }
 
   /**

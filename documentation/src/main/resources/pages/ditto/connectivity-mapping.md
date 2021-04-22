@@ -405,16 +405,17 @@ Ditto comes with a few helper functions, which makes writing the mapping scripts
  *  the mapped Ditto Protocol message or 
  *  <code>null</code> if the message could/should not be mapped
  */
-function buildDittoProtocolMsg(namespace, name, group, channel, criterion, action, path, dittoHeaders, value, status, extra) {
+function buildDittoProtocolMsg(namespace, name, group, channel, criterion, action, 
+                               path, dittoHeaders, value, status, extra) {
 
-    let dittoProtocolMsg = {};
-    dittoProtocolMsg.topic = namespace + "/" + name + "/" + group + "/" + channel + "/" + criterion + "/" + action;
-    dittoProtocolMsg.path = path;
-    dittoProtocolMsg.headers = dittoHeaders;
-    dittoProtocolMsg.value = value;
-    dittoProtocolMsg.status = status;
-    dittoProtocolMsg.extra = extra;
-    return dittoProtocolMsg;
+  return {
+    topic: namespace + "/" + name + "/" + group + "/" + channel + "/" + criterion + "/" + action,
+    path: path,
+    headers: dittoHeaders,
+    value: value,
+    status: status,
+    extra: extra,
+  };
 }
 
 /**
@@ -429,12 +430,12 @@ function buildDittoProtocolMsg(namespace, name, group, channel, criterion, actio
  */
 function buildExternalMsg(headers, textPayload, bytePayload, contentType) {
 
-    let externalMsg = {};
-    externalMsg.headers = headers;
-    externalMsg.textPayload = textPayload;
-    externalMsg.bytePayload = bytePayload;
-    externalMsg.contentType = contentType;
-    return externalMsg;
+  return {
+    headers: headers,
+    textPayload: textPayload,
+    bytePayload: bytePayload,
+    contentType: contentType,
+  };
 }
 
 /**
@@ -446,7 +447,7 @@ function buildExternalMsg(headers, textPayload, bytePayload, contentType) {
  */
 function arrayBufferToString(arrayBuffer) {
 
-    return String.fromCharCode.apply(null, new Uint8Array(arrayBuffer));
+  return String.fromCharCode.apply(null, new Uint8Array(arrayBuffer));
 }
 
 /**
@@ -457,12 +458,12 @@ function arrayBufferToString(arrayBuffer) {
  */
 function stringToArrayBuffer(string) {
 
-    let buf = new ArrayBuffer(string.length);
-    let bufView = new Uint8Array(buf);
-    for (let i=0, strLen=string.length; i<strLen; i++) {
-        bufView[i] = string.charCodeAt(i);
-    }
-    return buf;
+  let buf = new ArrayBuffer(string.length);
+  let bufView = new Uint8Array(buf);
+  for (let i=0, strLen=string.length; i<strLen; i++) {
+    bufView[i] = string.charCodeAt(i);
+  }
+  return buf;
 }
 
 /**
@@ -473,9 +474,9 @@ function stringToArrayBuffer(string) {
  */
 function asByteBuffer(arrayBuffer) {
     
-    let byteBuffer = new ArrayBuffer(arrayBuffer.byteLength);
-    new Uint8Array(byteBuffer).set(new Uint8Array(arrayBuffer));
-    return dcodeIO.ByteBuffer.wrap(byteBuffer);
+  let byteBuffer = new ArrayBuffer(arrayBuffer.byteLength);
+  new Uint8Array(byteBuffer).set(new Uint8Array(arrayBuffer));
+  return dcodeIO.ByteBuffer.wrap(byteBuffer);
 }
 ```
 
@@ -496,33 +497,31 @@ Incoming external messages can be mapped to Ditto Protocol conform messages by i
  *  <code>null</code> if the message could/should not be mapped
  */
 function mapToDittoProtocolMsg(
-    headers,
-    textPayload,
-    bytePayload,
-    contentType
+  headers,
+  textPayload,
+  bytePayload,
+  contentType
 ) {
 
-    // ### Insert/adapt your mapping logic here.
-    // Use helper function Ditto.buildDittoProtocolMsg to build Ditto protocol message
-    // based on incoming payload.
-    // See https://www.eclipse.org/ditto/connectivity-mapping.html#helper-functions for details.
-
-    // ### example code assuming the Ditto protocol content type for incoming messages.
-    if (contentType === 'application/vnd.eclipse.ditto+json') {
-        // Message is sent as Ditto protocol text payload and can be used directly
-        return JSON.parse(textPayload);
-    } else if (contentType === 'application/octet-stream') {
-        // Message is sent as binary payload; assume Ditto protocol message (JSON).
-        try {
-            return JSON.parse(Ditto.arrayBufferToString(bytePayload));
-        } catch (e) {
-            // parsing failed (no JSON document); return null to drop the message
-            return null;
-        }
+  // ### Insert/adapt your mapping logic here.
+  // Use helper function Ditto.buildDittoProtocolMsg to build Ditto protocol message
+  // based on incoming payload.
+  // See https://www.eclipse.org/ditto/connectivity-mapping.html#helper-functions for details.
+  // ### example code assuming the Ditto protocol content type for incoming messages.
+  if (contentType === 'application/vnd.eclipse.ditto+json') {
+    // Message is sent as Ditto protocol text payload and can be used directly
+    return JSON.parse(textPayload);
+  } else if (contentType === 'application/octet-stream') {
+    // Message is sent as binary payload; assume Ditto protocol message (JSON).
+    try {
+      return JSON.parse(Ditto.arrayBufferToString(bytePayload));
+    } catch (e) {
+      // parsing failed (no JSON document); return null to drop the message
+      return null;
     }
-
-    // no mapping logic matched; return null to drop the message
-    return null;
+  }
+  // no mapping logic matched; return null to drop the message
+  return null;
 }
 ```
 
@@ -556,35 +555,33 @@ can be mapped to external messages by implementing the following JavaScript func
  *  <code>null</code> if the message could/should not be mapped
  */
 function mapFromDittoProtocolMsg(
-    namespace,
-    name,
-    group,
-    channel,
-    criterion,
-    action,
-    path,
-    dittoHeaders,
-    value,
-    status,
-    extra
+  namespace,
+  name,
+  group,
+  channel,
+  criterion,
+  action,
+  path,
+  dittoHeaders,
+  value,
+  status,
+  extra
 ) {
 
-    // ###
-    // Insert your mapping logic here
-
-    // ### example code using the Ditto protocol content type.
-    let headers = dittoHeaders;
-    let textPayload = JSON.stringify(Ditto.buildDittoProtocolMsg(namespace, name, group, channel, criterion,
-                                                                 action, path, dittoHeaders, value, status, extra));
-    let bytePayload = null;
-    let contentType = 'application/vnd.eclipse.ditto+json';
-
-    return Ditto.buildExternalMsg(
-        headers, // The external headers Object containing header values
-        textPayload, // The external mapped String
-        bytePayload, // The external mapped byte[]
-        contentType // The returned Content-Type
-    );
+  // ###
+  // Insert your mapping logic here
+  // ### example code using the Ditto protocol content type.
+  let headers = dittoHeaders;
+  let textPayload = JSON.stringify(Ditto.buildDittoProtocolMsg(namespace, name, group, channel, criterion, action, 
+                                                               path, dittoHeaders, value, status, extra));
+  let bytePayload = null;
+  let contentType = 'application/vnd.eclipse.ditto+json';
+  return Ditto.buildExternalMsg(
+    headers, // The external headers Object containing header values
+    textPayload, // The external mapped String
+    bytePayload, // The external mapped byte[]
+    contentType // The returned Content-Type
+  );
 }
 ```
 
@@ -605,11 +602,11 @@ structured data may be processed like this:
 ```javascript
 let value;
 if (contentType === 'application/json') {
-    let parsedJson = JSON.parse(textPayload);
-    value = parsedJson.number1 + parsedJson['sub-field']; // remember to access JSON keys with dashes in a JS special way
+  let parsedJson = JSON.parse(textPayload);
+  value = parsedJson.number1 + parsedJson['sub-field']; // remember to access JSON keys with dashes in a JS special way
 } else {
-    // a script may decide to not map other content-types than application/json
-    return null;
+  // a script may decide to not map other content-types than application/json
+  return null;
 }
 // proceed ...
 ```
