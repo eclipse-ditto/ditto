@@ -22,17 +22,19 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.model.query.SortDirection;
 import org.eclipse.ditto.model.query.SortOption;
 import org.eclipse.ditto.model.query.criteria.Criteria;
-import org.eclipse.ditto.model.query.expression.SimpleFieldExpressionImpl;
+import org.eclipse.ditto.model.query.expression.FieldExpressionUtil;
+import org.eclipse.ditto.model.query.expression.SimpleFieldExpression;
 import org.eclipse.ditto.model.query.expression.SortFieldExpression;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
 import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.junit.Before;
@@ -51,7 +53,14 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class MongoQueryTest {
 
     private static final Criteria KNOWN_CRIT = mock(Criteria.class);
-    private static final ThingsFieldExpressionFactory EFT = new ThingsFieldExpressionFactoryImpl();
+
+    private static final Map<String, String> SIMPLE_FIELD_MAPPINGS = new HashMap<>();
+    static {
+        SIMPLE_FIELD_MAPPINGS.put(FieldExpressionUtil.FIELD_NAME_THING_ID, FieldExpressionUtil.FIELD_ID);
+        SIMPLE_FIELD_MAPPINGS.put(FieldExpressionUtil.FIELD_NAME_NAMESPACE, FieldExpressionUtil.FIELD_NAMESPACE);
+    }
+
+    private static final ThingsFieldExpressionFactory EFT = ThingsFieldExpressionFactory.of(SIMPLE_FIELD_MAPPINGS);
 
     private static int defaultPageSizeFromConfig;
 
@@ -73,7 +82,7 @@ public final class MongoQueryTest {
         knownSortOptions =
                 Arrays.asList(new SortOption(sortExp1, SortDirection.ASC),
                         new SortOption(sortExp2, SortDirection.DESC));
-        final String thingIdFieldName = ((SimpleFieldExpressionImpl) EFT.sortByThingId()).getFieldName();
+        final String thingIdFieldName = ((SimpleFieldExpression) EFT.sortByThingId()).getFieldName();
         final String attributeFieldName = "attributes.test";
         knownSortOptionsExpectedBson = Sorts.orderBy(Arrays.asList(
                 Sorts.ascending(thingIdFieldName),

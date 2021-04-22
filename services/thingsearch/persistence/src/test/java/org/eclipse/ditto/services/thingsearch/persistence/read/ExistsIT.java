@@ -27,9 +27,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
-import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Features;
@@ -66,8 +64,8 @@ public final class ExistsIT extends AbstractReadPersistenceITBase {
     private static final String TAGS4 = "tags4";
     private static final String TAGS5 = "tags5";
 
-    private final CriteriaFactory cf = new CriteriaFactoryImpl();
-    private final ThingsFieldExpressionFactory ef = new ThingsFieldExpressionFactoryImpl();
+    private final CriteriaFactory cf = CriteriaFactory.getInstance();
+    private final ThingsFieldExpressionFactory ef = ThingsFieldExpressionFactory.of(SIMPLE_FIELD_MAPPINGS);
 
     @Before
     public void createTestData() {

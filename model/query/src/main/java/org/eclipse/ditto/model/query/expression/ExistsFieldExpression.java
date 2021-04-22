@@ -27,8 +27,8 @@ public interface ExistsFieldExpression extends FieldExpression {
      * @param <T> The result type.
      * @return The result of the evaluation.
      */
-    <T> T acceptExistsVisitor(final ExistsFieldExpressionVisitor<T> visitor);
+    <T> T acceptExistsVisitor(ExistsFieldExpressionVisitor<T> visitor);
 
     @Override
-    <T> T accept(final FieldExpressionVisitor<T> visitor);
+    <T> T accept(FieldExpressionVisitor<T> visitor);
 }

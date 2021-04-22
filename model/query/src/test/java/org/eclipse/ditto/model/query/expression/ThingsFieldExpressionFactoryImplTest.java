@@ -14,6 +14,9 @@ package org.eclipse.ditto.model.query.expression;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.junit.Test;
 
 /**
@@ -42,7 +45,13 @@ public final class ThingsFieldExpressionFactoryImplTest {
 
     private static final String KNOWN_THING_DEFINITION = "definition/example:test:definition";
 
-    private final ThingsFieldExpressionFactory ef = new ThingsFieldExpressionFactoryImpl();
+    private static final Map<String, String> SIMPLE_FIELD_MAPPINGS = new HashMap<>();
+    static {
+        SIMPLE_FIELD_MAPPINGS.put(FieldExpressionUtil.FIELD_NAME_THING_ID, FieldExpressionUtil.FIELD_ID);
+        SIMPLE_FIELD_MAPPINGS.put(FieldExpressionUtil.FIELD_NAME_NAMESPACE, FieldExpressionUtil.FIELD_NAMESPACE);
+    }
+
+    private final ThingsFieldExpressionFactory ef = ThingsFieldExpressionFactory.of(SIMPLE_FIELD_MAPPINGS);
 
     @Test(expected = NullPointerException.class)
     public void filterByWithNullPropertyName() {

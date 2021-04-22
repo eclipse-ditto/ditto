@@ -24,9 +24,8 @@ import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.model.query.QueryBuilderFactory;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
-import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.expression.FieldExpressionFactory;
-import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
+import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
@@ -52,8 +51,8 @@ public final class SudoIT extends AbstractReadPersistenceITBase {
     private static final Instant TIMESTAMP2 = Instant.ofEpochSecond(2L);
 
     private final FieldExpressionFactory ef =
-            new ThingsFieldExpressionFactoryImpl(Map.of("policyId", "policyId", "_modified", "_modified"));
-    private final CriteriaFactory cf = new CriteriaFactoryImpl();
+            ThingsFieldExpressionFactory.of(Map.of("policyId", "policyId", "_modified", "_modified"));
+    private final CriteriaFactory cf = CriteriaFactory.getInstance();
     private final QueryBuilderFactory qbf = new MongoQueryBuilderFactory(Mockito.mock(LimitsConfig.class));
 
     @Before

@@ -17,7 +17,7 @@ import org.eclipse.ditto.model.query.criteria.visitors.PredicateVisitor;
 /**
  * Equals predicate.
  */
-public class EqPredicateImpl extends AbstractSinglePredicate {
+final class EqPredicateImpl extends AbstractSinglePredicate {
 
     /**
      * Constructor.

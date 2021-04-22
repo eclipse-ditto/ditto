@@ -28,7 +28,7 @@ import org.eclipse.ditto.model.query.QueryBuilder;
 import org.eclipse.ditto.model.query.SortDirection;
 import org.eclipse.ditto.model.query.SortOption;
 import org.eclipse.ditto.model.query.criteria.Criteria;
-import org.eclipse.ditto.model.query.expression.SimpleFieldExpressionImpl;
+import org.eclipse.ditto.model.query.expression.SimpleFieldExpression;
 import org.eclipse.ditto.model.query.expression.SortFieldExpression;
 
 /**
@@ -49,7 +49,7 @@ final class MongoQueryBuilder implements QueryBuilder {
      */
     private static final int MAX_LIMIT_UNLIMITED = Integer.MAX_VALUE;
 
-    private static final SortFieldExpression ID_SORT_FIELD_EXPRESSION = new SimpleFieldExpressionImpl(FIELD_ID);
+    private static final SortFieldExpression ID_SORT_FIELD_EXPRESSION = SimpleFieldExpression.of(FIELD_ID);
 
     private static final List<SortOption> DEFAULT_SORT_OPTIONS =
             Collections.singletonList(new SortOption(ID_SORT_FIELD_EXPRESSION, SortDirection.ASC));

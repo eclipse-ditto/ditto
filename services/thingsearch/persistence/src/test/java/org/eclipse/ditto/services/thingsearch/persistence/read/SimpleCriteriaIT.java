@@ -20,9 +20,7 @@ import java.util.stream.Stream;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
-import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
 import org.junit.Before;
@@ -53,8 +51,8 @@ public final class SimpleCriteriaIT extends AbstractReadPersistenceITBase {
     private static final int KNOWN_NUMBER_VALUE = 4711;
     private static final boolean KNOWN_BOOLEAN_VALUE = false;
 
-    private final CriteriaFactory cf = new CriteriaFactoryImpl();
-    private final ThingsFieldExpressionFactory ef = new ThingsFieldExpressionFactoryImpl();
+    private final CriteriaFactory cf = CriteriaFactory.getInstance();
+    private final ThingsFieldExpressionFactory ef = ThingsFieldExpressionFactory.of(SIMPLE_FIELD_MAPPINGS);
 
     @Before
     public void createTestData() {

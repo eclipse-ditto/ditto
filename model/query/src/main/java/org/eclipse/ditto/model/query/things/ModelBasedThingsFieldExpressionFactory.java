@@ -26,7 +26,6 @@ import org.eclipse.ditto.model.query.expression.ExistsFieldExpression;
 import org.eclipse.ditto.model.query.expression.FilterFieldExpression;
 import org.eclipse.ditto.model.query.expression.SortFieldExpression;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
 import org.eclipse.ditto.model.things.Thing;
 
 /**
@@ -47,10 +46,21 @@ public final class ModelBasedThingsFieldExpressionFactory implements ThingsField
         filteringSimpleFieldMappings = Collections.unmodifiableMap(hashMap);
     }
 
+    private static final ModelBasedThingsFieldExpressionFactory INSTANCE = new ModelBasedThingsFieldExpressionFactory();
+
     private final ThingsFieldExpressionFactory delegate;
 
-    public ModelBasedThingsFieldExpressionFactory() {
-        this.delegate = new ThingsFieldExpressionFactoryImpl(filteringSimpleFieldMappings);
+    private ModelBasedThingsFieldExpressionFactory() {
+        this.delegate = ThingsFieldExpressionFactory.of(filteringSimpleFieldMappings);
+    }
+
+    /**
+     * Returns the ModelBasedThingsFieldExpressionFactory.
+     *
+     * @return the ModelBasedThingsFieldExpressionFactory.
+     */
+    public static ModelBasedThingsFieldExpressionFactory getInstance() {
+        return INSTANCE;
     }
 
     @Override

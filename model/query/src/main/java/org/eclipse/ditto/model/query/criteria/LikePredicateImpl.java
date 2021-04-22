@@ -20,7 +20,7 @@ import org.eclipse.ditto.model.query.criteria.visitors.PredicateVisitor;
 /**
  * Like predicate.
  */
-public class LikePredicateImpl extends AbstractSinglePredicate {
+final class LikePredicateImpl extends AbstractSinglePredicate {
 
     private static final String LEADING_WILDCARD = "\\Q\\E.*";
     private static final String TRAILING_WILDCARD = ".*\\Q\\E";

@@ -23,7 +23,7 @@ import org.eclipse.ditto.model.query.criteria.visitors.CriteriaVisitor;
 /**
  * Criteria which performs a logical AND of arbitrary criterias.
  */
-public class AndCriteriaImpl implements Criteria {
+final class AndCriteriaImpl implements Criteria {
 
     private final List<Criteria> criterias;
 

@@ -20,11 +20,10 @@ import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.query.criteria.visitors.CriteriaVisitor;
 
-
 /**
  * Criteria which performs a logical OR of arbitrary criterias.
  */
-public class OrCriteriaImpl implements Criteria {
+final class OrCriteriaImpl implements Criteria {
 
     private final List<Criteria> criterias;
 

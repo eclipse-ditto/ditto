@@ -15,6 +15,7 @@ package org.eclipse.ditto.model.query.expression;
 import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -23,31 +24,12 @@ import java.util.function.Supplier;
 /**
  * Implementation of {@link ThingsFieldExpressionFactory}.
  */
-public final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpressionFactory {
-
-    private static final Map<String, String> mongoSimpleFieldMappings = new HashMap<>();
-
-    static {
-        mongoSimpleFieldMappings.put(FieldExpressionUtil.FIELD_NAME_THING_ID, FieldExpressionUtil.FIELD_ID);
-        mongoSimpleFieldMappings.put(FieldExpressionUtil.FIELD_NAME_NAMESPACE, FieldExpressionUtil.FIELD_NAMESPACE);
-    }
+final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpressionFactory {
 
     private final Map<String, String> simpleFieldMappings;
 
-    /**
-     * Creates a ThingsFieldExpressionFactory with default field mappings (MongoDB).
-     */
-    public ThingsFieldExpressionFactoryImpl() {
-        this(mongoSimpleFieldMappings);
-    }
-
-    /**
-     * Creates a ThingsFieldExpressionFactory with custom field mappings.
-     *
-     * @param simpleFieldMappings the field mappings to apply
-     */
-    public ThingsFieldExpressionFactoryImpl(final Map<String, String> simpleFieldMappings) {
-        this.simpleFieldMappings = simpleFieldMappings;
+    ThingsFieldExpressionFactoryImpl(final Map<String, String> simpleFieldMappings) {
+        this.simpleFieldMappings = Collections.unmodifiableMap(new HashMap<>(simpleFieldMappings));
     }
 
     @Override

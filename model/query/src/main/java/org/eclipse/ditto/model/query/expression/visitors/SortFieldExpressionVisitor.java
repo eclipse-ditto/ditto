@@ -13,7 +13,7 @@
 package org.eclipse.ditto.model.query.expression.visitors;
 
 /**
- * Compositional interpreter of * {@link SortFieldExpressionVisitor}.
+ * Compositional interpreter of {@link SortFieldExpressionVisitor}.
  */
 public interface SortFieldExpressionVisitor<T> {
 

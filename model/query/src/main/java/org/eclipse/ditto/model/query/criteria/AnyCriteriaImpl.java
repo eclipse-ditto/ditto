@@ -17,7 +17,7 @@ import org.eclipse.ditto.model.query.criteria.visitors.CriteriaVisitor;
 /**
  * This Criteria matches any document.
  */
-public class AnyCriteriaImpl implements Criteria {
+final class AnyCriteriaImpl implements Criteria {
 
     private static final AnyCriteriaImpl INSTANCE = new AnyCriteriaImpl();
 

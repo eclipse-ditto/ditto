@@ -14,7 +14,9 @@ package org.eclipse.ditto.services.thingsearch.persistence;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 
@@ -24,9 +26,8 @@ import org.bson.Document;
 import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.model.query.QueryBuilderFactory;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
-import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
+import org.eclipse.ditto.model.query.expression.FieldExpressionUtil;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
@@ -66,8 +67,15 @@ public abstract class AbstractThingSearchPersistenceITBase {
 
     protected static final List<String> KNOWN_SUBJECTS = Collections.singletonList("abc:mySid");
 
-    protected static final CriteriaFactory cf = new CriteriaFactoryImpl();
-    protected static final ThingsFieldExpressionFactory fef = new ThingsFieldExpressionFactoryImpl();
+    private static final Map<String, String> mongoSimpleFieldMappings = new HashMap<>();
+
+    static {
+        mongoSimpleFieldMappings.put(FieldExpressionUtil.FIELD_NAME_THING_ID, FieldExpressionUtil.FIELD_ID);
+        mongoSimpleFieldMappings.put(FieldExpressionUtil.FIELD_NAME_NAMESPACE, FieldExpressionUtil.FIELD_NAMESPACE);
+    }
+
+    protected static final CriteriaFactory cf = CriteriaFactory.getInstance();
+    protected static final ThingsFieldExpressionFactory fef = ThingsFieldExpressionFactory.of(mongoSimpleFieldMappings);
 
     protected static QueryBuilderFactory qbf;
 
