@@ -17,13 +17,13 @@ import java.util.Map;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
-import org.eclipse.ditto.signals.base.JsonParsable;
-import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
-import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
-import org.eclipse.ditto.signals.events.base.GlobalEventRegistry;
-import org.eclipse.ditto.signals.announcements.base.GlobalAnnouncementRegistry;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.base.model.signals.GlobalErrorRegistry;
+import org.eclipse.ditto.base.model.signals.JsonParsable;
+import org.eclipse.ditto.base.model.signals.commands.GlobalCommandRegistry;
+import org.eclipse.ditto.base.model.signals.commands.GlobalCommandResponseRegistry;
+import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
+import org.eclipse.ditto.base.model.signals.announcements.GlobalAnnouncementRegistry;
 
 @Immutable
 public final class GlobalMappingStrategies extends MappingStrategies {

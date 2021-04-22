@@ -16,7 +16,7 @@ import static akka.http.javadsl.server.Directives.complete;
 import static akka.http.javadsl.server.Directives.extractActorSystem;
 import static akka.http.javadsl.server.Directives.extractRequestContext;
 import static akka.http.javadsl.server.Directives.redirect;
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;

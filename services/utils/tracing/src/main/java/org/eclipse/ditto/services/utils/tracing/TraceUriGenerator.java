@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

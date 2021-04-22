@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.policies.model;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -28,9 +28,9 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.entity.Entity;
-import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.entity.Entity;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 /**
  * A Policy contains {@link PolicyEntry}s containing information about which {@link Subjects} are granted/revoked

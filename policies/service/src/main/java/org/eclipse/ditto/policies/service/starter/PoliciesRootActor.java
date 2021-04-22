@@ -15,7 +15,7 @@ package org.eclipse.ditto.policies.service.starter;
 import static org.eclipse.ditto.policies.api.PoliciesMessagingConstants.CLUSTER_ROLE;
 
 import org.eclipse.ditto.policies.model.Policy;
-import org.eclipse.ditto.services.base.actors.DittoRootActor;
+import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
 import org.eclipse.ditto.policies.service.common.config.PoliciesConfig;
 import org.eclipse.ditto.policies.service.persistence.actors.PoliciesPersistenceStreamingActorCreator;

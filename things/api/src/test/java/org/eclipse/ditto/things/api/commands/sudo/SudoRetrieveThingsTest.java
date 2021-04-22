@@ -26,13 +26,13 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.things.api.TestConstants;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.commands.GlobalCommandRegistry;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

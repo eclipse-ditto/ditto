@@ -21,7 +21,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
@@ -152,7 +152,7 @@ final class EnforcementFlow {
      * Create a flow from Thing changes to write models by retrieving data from Things shard region and enforcer cache.
      *
      * @param shouldAcknowledge defines whether for the created flow the requested ack
-     * {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel#SEARCH_PERSISTED} was required or not.
+     * {@link org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel#SEARCH_PERSISTED} was required or not.
      * @param parallelism how many SudoRetrieveThing commands to send in parallel.
      * @return the flow.
      */

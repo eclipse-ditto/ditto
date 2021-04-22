@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.protocol.adapter.acknowledgements;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collections;
 import java.util.EnumSet;
@@ -28,8 +28,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.protocol.Adaptable;
@@ -38,8 +38,8 @@ import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.Payload;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.signals.acks.base.Acknowledgement;
-import org.eclipse.ditto.signals.acks.base.Acknowledgements;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.things.model.signals.acks.ThingAcknowledgementFactory;
 import org.eclipse.ditto.things.model.signals.acks.ThingAcknowledgementsFactory;
 

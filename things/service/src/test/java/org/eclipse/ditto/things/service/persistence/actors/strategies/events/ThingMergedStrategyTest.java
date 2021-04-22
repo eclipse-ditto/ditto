@@ -19,8 +19,8 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Instant;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.entity.metadata.Metadata;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingLifecycle;
 import org.eclipse.ditto.things.model.ThingsModelFactory;

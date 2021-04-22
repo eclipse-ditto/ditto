@@ -23,7 +23,7 @@ public interface EnforcementFilter<M> {
      * Validates the given input. Throws an exception if the input is not valid.
      *
      * @param filterInput the input that should be validated.
-     * @throws org.eclipse.ditto.model.base.exceptions.DittoRuntimeException if input was invalid.
+     * @throws org.eclipse.ditto.base.model.exceptions.DittoRuntimeException if input was invalid.
      */
     void match(M filterInput);
 }

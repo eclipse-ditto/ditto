@@ -19,8 +19,8 @@ import static org.eclipse.ditto.services.connectivity.messaging.persistence.stag
 import java.util.Arrays;
 import java.util.List;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionState;
 import org.eclipse.ditto.signals.commands.connectivity.modify.EnableConnectionLogs;

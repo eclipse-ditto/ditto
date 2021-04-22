@@ -22,12 +22,12 @@ import java.util.Random;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Permissions;

@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.things;
 
-import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
+import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
 import java.util.Optional;
 

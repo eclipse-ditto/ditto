@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.devops;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevOpsOAuth2AuthenticationDirective.REALM_DEVOPS;
 
 import java.util.Map;
@@ -23,9 +23,9 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.devops.ImmutableLoggerConfig;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevopsAuthenticationDirective;

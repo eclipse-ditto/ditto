@@ -13,7 +13,7 @@
 
 package org.eclipse.ditto.services.connectivity.mapping;
 
-import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
+import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -26,11 +26,11 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.Placeholders;
-import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatcher;
-import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
+import org.eclipse.ditto.base.model.common.Placeholders;
+import org.eclipse.ditto.base.model.entity.id.NamespacedEntityIdInvalidException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatcher;
+import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.services.models.placeholders.ExpressionResolver;
 import org.eclipse.ditto.services.models.placeholders.HeadersPlaceholder;
@@ -48,8 +48,8 @@ import org.eclipse.ditto.services.connectivity.config.mapping.MappingConfig;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.base.model.signals.GlobalErrorRegistry;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 
 /**

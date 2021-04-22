@@ -41,11 +41,6 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-gateway-streaming</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-commands-base</artifactId>
-        </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-devops</artifactId>
@@ -101,7 +96,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-base</artifactId>
+            <artifactId>ditto-base-service</artifactId>
         </dependency>
 
         <dependency>

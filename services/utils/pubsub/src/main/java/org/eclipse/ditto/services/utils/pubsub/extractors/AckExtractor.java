@@ -19,12 +19,12 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.signals.acks.base.Acknowledgement;
-import org.eclipse.ditto.signals.acks.base.Acknowledgements;
+import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
+import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 
 /**
  * Extract information relevant to acknowledgements from a message.

@@ -16,7 +16,7 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.services.base.config.DittoServiceConfig;
+import org.eclipse.ditto.base.service.config.DittoServiceConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.DefaultUpdaterConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.DittoSearchConfig;
 import org.eclipse.ditto.services.utils.health.config.DefaultHealthCheckConfig;

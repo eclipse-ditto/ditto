@@ -299,7 +299,7 @@ public interface FeaturePropertiesBuilder extends JsonObjectBuilder {
      * @return a new FeatureProperties object.
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if a property name in the passed {@code jsonObject}
      * was not valid according to pattern
-     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     @Override
     FeatureProperties build();

@@ -40,7 +40,7 @@
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-model-base</artifactId>
+            <artifactId>ditto-base-model</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -56,10 +56,6 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-commands-base</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-thingsearch</artifactId>
         </dependency>
         <dependency>
@@ -67,10 +63,6 @@
             <artifactId>ditto-signals-commands-messages</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-events-base</artifactId>
-        </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-events-thingsearch</artifactId>
@@ -91,7 +83,7 @@
         <!-- ### Testing ### -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-model-base</artifactId>
+            <artifactId>ditto-base-model</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>

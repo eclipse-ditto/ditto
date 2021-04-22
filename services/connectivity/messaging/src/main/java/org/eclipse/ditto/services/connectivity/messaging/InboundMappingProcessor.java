@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -23,19 +23,19 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
-import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.base.model.headers.DittoHeadersSizeChecker;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
-import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
+import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.mapping.DefaultMessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
@@ -47,7 +47,7 @@ import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.base.model.signals.Signal;
 
 import akka.actor.ActorSystem;
 

@@ -12,14 +12,14 @@
  */
 package org.eclipse.ditto.services.models.connectivity.placeholders;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.policies.model.PolicyId;
 
 /**

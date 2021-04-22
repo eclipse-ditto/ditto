@@ -16,7 +16,7 @@ import java.util.Optional;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.signals.commands.base.assertions.AbstractCommandAssert;
+import org.eclipse.ditto.base.model.signals.commands.assertions.AbstractCommandAssert;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 
 /**

@@ -22,7 +22,7 @@ import java.time.Instant;
 import java.util.Collections;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.signals.announcements.SubjectDeletionAnnouncement;

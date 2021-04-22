@@ -28,10 +28,6 @@
         <!-- ### Compile ### -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-acks-base</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-things-model</artifactId>
         </dependency>
         <dependency>

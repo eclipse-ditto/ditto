@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.junit.Test;
 
 /**

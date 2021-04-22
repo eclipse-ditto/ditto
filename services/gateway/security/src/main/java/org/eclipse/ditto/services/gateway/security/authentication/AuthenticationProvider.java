@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.gateway.security.authentication;
 
 import java.util.concurrent.CompletableFuture;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 
 import akka.http.javadsl.server.RequestContext;
 

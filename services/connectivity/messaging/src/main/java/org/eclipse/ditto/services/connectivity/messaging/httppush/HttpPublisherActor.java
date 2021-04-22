@@ -32,13 +32,13 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.common.HttpStatusCodeOutOfRangeException;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.base.entity.id.WithEntityId;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.common.HttpStatusCodeOutOfRangeException;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -58,9 +58,9 @@ import org.eclipse.ditto.services.utils.akka.controlflow.TimeMeasuringFlow;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.PreparedTimer;
-import org.eclipse.ditto.signals.acks.base.Acknowledgement;
-import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
@@ -346,7 +346,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 // No Acks declared as issued acks => Handle response either as live response or as acknowledgement
                 // or as fallback build a response for local diagnostics.
                 final boolean isDittoProtocolMessage = dittoHeaders.getDittoContentType()
-                        .filter(org.eclipse.ditto.model.base.headers.contenttype.ContentType::isDittoProtocol)
+                        .filter(org.eclipse.ditto.base.model.headers.contenttype.ContentType::isDittoProtocol)
                         .isPresent();
                 if (isDittoProtocolMessage && body.isObject()) {
                     final CommandResponse<?> parsedResponse = toCommandResponse(body.asObject());
@@ -459,7 +459,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             final HttpStatus status) {
 
         final boolean isDittoProtocolMessage = dittoHeaders.getDittoContentType()
-                .filter(org.eclipse.ditto.model.base.headers.contenttype.ContentType::isDittoProtocol)
+                .filter(org.eclipse.ditto.base.model.headers.contenttype.ContentType::isDittoProtocol)
                 .isPresent();
         if (isDittoProtocolMessage && jsonValue.isObject()) {
             final CommandResponse<?> commandResponse = toCommandResponse(jsonValue.asObject());
@@ -556,8 +556,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                             .map(HttpCharset::nioCharset)
                             .orElse(StandardCharsets.UTF_8);
                     final byte[] bytes = strictEntity.getData().toArray();
-                    final org.eclipse.ditto.model.base.headers.contenttype.ContentType dittoContentType =
-                            org.eclipse.ditto.model.base.headers.contenttype.ContentType.of(contentType.toString());
+                    final org.eclipse.ditto.base.model.headers.contenttype.ContentType dittoContentType =
+                            org.eclipse.ditto.base.model.headers.contenttype.ContentType.of(contentType.toString());
                     if (dittoContentType.isJson()) {
                         final String bodyString = new String(bytes, charset);
                         try {

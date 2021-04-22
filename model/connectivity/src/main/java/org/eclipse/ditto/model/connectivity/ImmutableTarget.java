@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -36,12 +36,12 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 /**
  * Immutable implementation of {@link Target}.

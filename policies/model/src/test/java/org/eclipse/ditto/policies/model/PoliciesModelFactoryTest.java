@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.entity.id.restriction.LengthRestrictionTestBase;
+import org.eclipse.ditto.base.model.entity.id.restriction.LengthRestrictionTestBase;
 import org.junit.Test;
 
 /**

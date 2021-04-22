@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.policies;
 
-import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
+import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
 import java.util.List;
 import java.util.Optional;
@@ -25,8 +25,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.services.models.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.policies.model.Label;
@@ -43,7 +43,7 @@ import org.eclipse.ditto.services.gateway.security.authentication.Authentication
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationResult;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
-import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.actions.DeactivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.actions.TopLevelPolicyActionCommand;

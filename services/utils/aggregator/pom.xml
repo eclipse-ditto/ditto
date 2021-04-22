@@ -27,7 +27,7 @@
     <dependencies>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-base</artifactId>
+            <artifactId>ditto-base-service</artifactId>
         </dependency>
 
         <dependency>
@@ -36,15 +36,11 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-model-base</artifactId>
+            <artifactId>ditto-base-model</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-things-model</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-commands-base</artifactId>
         </dependency>
 
         <dependency>

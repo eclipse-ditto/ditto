@@ -15,8 +15,8 @@ package org.eclipse.ditto.services.connectivity.messaging.internal.ssl;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;

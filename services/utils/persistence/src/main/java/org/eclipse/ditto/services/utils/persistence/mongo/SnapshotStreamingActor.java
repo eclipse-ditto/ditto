@@ -18,7 +18,7 @@ import java.util.function.Function;
 import org.bson.Document;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.services.models.streaming.StreamedSnapshot;
 import org.eclipse.ditto.services.models.streaming.SudoStreamSnapshots;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;

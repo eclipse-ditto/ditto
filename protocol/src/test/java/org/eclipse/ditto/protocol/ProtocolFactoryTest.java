@@ -14,7 +14,7 @@ package org.eclipse.ditto.protocol;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.eclipse.ditto.model.base.entity.id.AbstractNamespacedEntityId;
+import org.eclipse.ditto.base.model.entity.id.AbstractNamespacedEntityId;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;

@@ -12,10 +12,10 @@
  */
 package org.eclipse.ditto.policies.model;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty;
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotEmpty;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -33,9 +33,9 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.Validator;
-import org.eclipse.ditto.model.base.entity.validation.NoControlCharactersValidator;
-import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
+import org.eclipse.ditto.base.model.common.Validator;
+import org.eclipse.ditto.base.model.entity.validation.NoControlCharactersValidator;
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 
 /**
  * Factory that new {@link Policy} objects and other objects related to policies.
@@ -195,7 +195,7 @@ public final class PoliciesModelFactory {
      * @param jsonObject provides the initial values for the result.
      * @return the new Subject.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code jsonObject} cannot be parsed.
+     * @throws org.eclipse.ditto.base.model.exceptions.DittoJsonException if {@code jsonObject} cannot be parsed.
      * @throws SubjectExpiryInvalidException if the provided {@code expiry} could not be parsed as ISO-8601 timestamp.
      */
     public static Subject newSubject(final CharSequence subjectIssuerWithId, final JsonObject jsonObject) {
@@ -249,7 +249,7 @@ public final class PoliciesModelFactory {
      * @param jsonObject provides the initial values for the result.
      * @return the new Subjects.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code jsonObject} cannot be parsed.
+     * @throws org.eclipse.ditto.base.model.exceptions.DittoJsonException if {@code jsonObject} cannot be parsed.
      */
     public static Subjects newSubjects(final JsonObject jsonObject) {
         return ImmutableSubjects.fromJson(jsonObject);
@@ -414,7 +414,7 @@ public final class PoliciesModelFactory {
      * @param jsonObject provides the initial values for the result.
      * @return the new Resources.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code jsonObject} cannot be parsed.
+     * @throws org.eclipse.ditto.base.model.exceptions.DittoJsonException if {@code jsonObject} cannot be parsed.
      */
     public static Resources newResources(final JsonObject jsonObject) {
         return ImmutableResources.fromJson(jsonObject);
@@ -503,7 +503,7 @@ public final class PoliciesModelFactory {
      * @param jsonObject the JSON object representation of a PolicyEntry.
      * @return the new Policy entry.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code jsonObject} cannot be parsed.
+     * @throws org.eclipse.ditto.base.model.exceptions.DittoJsonException if {@code jsonObject} cannot be parsed.
      */
     public static PolicyEntry newPolicyEntry(final CharSequence label, final JsonObject jsonObject) {
         return ImmutablePolicyEntry.fromJson(label, jsonObject);
@@ -517,9 +517,9 @@ public final class PoliciesModelFactory {
      * @return the new Policy entry.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code label} is empty.
-     * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code jsonObject} cannot be parsed.
+     * @throws org.eclipse.ditto.base.model.exceptions.DittoJsonException if {@code jsonObject} cannot be parsed.
      * @throws PolicyIdInvalidException if the parsed policy ID did not comply to
-     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
+     * {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static PolicyEntry newPolicyEntry(final CharSequence label, final JsonValue jsonValue) {
         final JsonObject jsonObject = wrapJsonRuntimeException(jsonValue::asObject);
@@ -533,7 +533,7 @@ public final class PoliciesModelFactory {
      * @param jsonString the JSON object representation as String of a PolicyEntry.
      * @return the new Policy entry.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code jsonObject} cannot be parsed.
+     * @throws org.eclipse.ditto.base.model.exceptions.DittoJsonException if {@code jsonObject} cannot be parsed.
      */
     public static PolicyEntry newPolicyEntry(final CharSequence label, final String jsonString) {
         final JsonObject jsonObject = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
@@ -546,7 +546,7 @@ public final class PoliciesModelFactory {
      * @param jsonObject the JSON object representation of Policy entries.
      * @return the new initialised {@code Iterable} of {@code PolicyEntry}s.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code jsonObject} cannot be parsed to
+     * @throws org.eclipse.ditto.base.model.exceptions.DittoJsonException if {@code jsonObject} cannot be parsed to
      * {@link Iterable} of {@link PolicyEntry}s.
      */
     public static Iterable<PolicyEntry> newPolicyEntries(final JsonObject jsonObject) {
@@ -561,7 +561,7 @@ public final class PoliciesModelFactory {
      *
      * @param jsonString the JSON object representation as String of Policy entries.
      * @return the new initialised {@code Policy}.
-     * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code jsonObject} cannot be parsed to
+     * @throws org.eclipse.ditto.base.model.exceptions.DittoJsonException if {@code jsonObject} cannot be parsed to
      * {@link Iterable} of {@link PolicyEntry}s.
      */
     public static Iterable<PolicyEntry> newPolicyEntries(final String jsonString) {
@@ -651,7 +651,7 @@ public final class PoliciesModelFactory {
      * @param jsonObject the JSON object representation of a Policy.
      * @return the new initialised {@code Policy}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code jsonObject} cannot be parsed to
+     * @throws org.eclipse.ditto.base.model.exceptions.DittoJsonException if {@code jsonObject} cannot be parsed to
      * {@link Policy}.
      */
     public static Policy newPolicy(final JsonObject jsonObject) {
@@ -663,7 +663,7 @@ public final class PoliciesModelFactory {
      *
      * @param jsonString the JSON object representation as String of a Policy.
      * @return the new initialised {@code Policy}.
-     * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code jsonString} cannot be parsed to
+     * @throws org.eclipse.ditto.base.model.exceptions.DittoJsonException if {@code jsonString} cannot be parsed to
      * {@link Policy}.
      */
     public static Policy newPolicy(final String jsonString) {

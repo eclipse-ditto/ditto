@@ -14,14 +14,14 @@ package org.eclipse.ditto.services.gateway.endpoints.routes.sse;
 
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 
 import akka.http.javadsl.server.RequestContext;
 
 /**
  * Enforces authorization in order to establish a SSE connection.
  * If the authorization check is successful nothing will happen, else a
- * {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException DittoRuntimeException} is thrown.
+ * {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException DittoRuntimeException} is thrown.
  */
 public interface SseAuthorizationEnforcer {
 

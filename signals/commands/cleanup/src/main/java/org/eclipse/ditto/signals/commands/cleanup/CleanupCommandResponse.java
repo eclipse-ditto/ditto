@@ -15,12 +15,12 @@ package org.eclipse.ditto.signals.commands.cleanup;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.signals.base.SignalWithEntityId;
-import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 
 /**
  * Aggregates all possible responses relating to a given {@link CleanupCommand}.

@@ -26,10 +26,10 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.ConditionChecker;
-import org.eclipse.ditto.model.base.common.Validator;
-import org.eclipse.ditto.model.base.entity.validation.NoControlCharactersNoSlashesValidator;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.common.ConditionChecker;
+import org.eclipse.ditto.base.model.common.Validator;
+import org.eclipse.ditto.base.model.entity.validation.NoControlCharactersNoSlashesValidator;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 /**
  * Representation of one Feature within Ditto.
@@ -58,7 +58,7 @@ final class ImmutableFeature implements Feature {
      * @return the new Feature.
      * @throws NullPointerException if {@code featureId} is {@code null}.
      * @throws JsonKeyInvalidException if {@code featureId} was not valid according to pattern
-     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static ImmutableFeature of(final String featureId) {
         return of(featureId, null, null);
@@ -72,7 +72,7 @@ final class ImmutableFeature implements Feature {
      * @return the new Feature.
      * @throws NullPointerException if {@code featureId} is {@code null}.
      * @throws JsonKeyInvalidException if {@code featureId} was not valid according to pattern
-     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static ImmutableFeature of(final String featureId, @Nullable final FeatureProperties properties) {
         return of(featureId, null, properties);
@@ -87,7 +87,7 @@ final class ImmutableFeature implements Feature {
      * @return the new Feature.
      * @throws NullPointerException if {@code featureId} is {@code null}.
      * @throws JsonKeyInvalidException if {@code featureId} was not valid according to pattern
-     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static ImmutableFeature of(final String featureId, @Nullable final FeatureDefinition definition,
             @Nullable final FeatureProperties properties) {
@@ -104,7 +104,7 @@ final class ImmutableFeature implements Feature {
      * @return the new Feature.
      * @throws NullPointerException if {@code featureId} is {@code null}.
      * @throws JsonKeyInvalidException if {@code featureId} was not valid according to pattern
-     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      * @since 1.5.0
      */
     public static ImmutableFeature of(final CharSequence featureId,

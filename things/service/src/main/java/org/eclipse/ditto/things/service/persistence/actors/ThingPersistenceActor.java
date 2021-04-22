@@ -12,10 +12,10 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors;
 
-import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingBuilder;
 import org.eclipse.ditto.things.model.ThingConstants;
@@ -37,7 +37,7 @@ import org.eclipse.ditto.services.utils.persistentactors.commands.DefaultContext
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
-import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;

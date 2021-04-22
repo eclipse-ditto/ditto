@@ -20,9 +20,9 @@ import java.util.List;
 
 import org.bson.Document;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.base.entity.type.EntityType;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.type.EntityType;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.services.models.streaming.StreamedSnapshot;
 import org.eclipse.ditto.services.models.streaming.SudoStreamSnapshots;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;

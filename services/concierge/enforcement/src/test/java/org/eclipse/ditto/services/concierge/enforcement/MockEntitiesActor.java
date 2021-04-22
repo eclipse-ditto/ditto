@@ -17,8 +17,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.base.WithResource;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.WithResource;
 
 import akka.actor.AbstractActor;
 import akka.actor.Props;

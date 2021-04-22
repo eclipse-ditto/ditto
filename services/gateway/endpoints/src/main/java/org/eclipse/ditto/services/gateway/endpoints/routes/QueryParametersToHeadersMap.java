@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -22,7 +22,7 @@ import java.util.function.UnaryOperator;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.headers.HeaderDefinition;
+import org.eclipse.ditto.base.model.headers.HeaderDefinition;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 
 /**

@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.streaming.actors;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 
 /**
  * Provides the means to supervise a materialized stream.

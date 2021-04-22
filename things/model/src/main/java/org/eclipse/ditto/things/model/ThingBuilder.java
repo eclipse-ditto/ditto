@@ -21,7 +21,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.policies.model.PolicyId;
 
 /**
@@ -86,7 +86,7 @@ public interface ThingBuilder {
          *
          * @param attributesJsonString JSON string representation of the attributes to be set.
          * @return this builder to allow method chaining.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code attributesJsonString} is not a
+         * @throws org.eclipse.ditto.base.model.exceptions.DittoJsonException if {@code attributesJsonString} is not a
          * valid JSON
          * object.
          */
@@ -339,7 +339,7 @@ public interface ThingBuilder {
          * @param featuresJsonObject JSON object representation of the features to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code featuresJsonObject} is {@code null}.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code featuresJsonObject} cannot be
+         * @throws org.eclipse.ditto.base.model.exceptions.DittoJsonException if {@code featuresJsonObject} cannot be
          * parsed to
          * {@link Features}.
          */
@@ -350,7 +350,7 @@ public interface ThingBuilder {
          *
          * @param featuresJsonString JSON string providing the Features of the Thing.
          * @return this builder to allow method chaining.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code featuresJsonString} cannot be
+         * @throws org.eclipse.ditto.base.model.exceptions.DittoJsonException if {@code featuresJsonString} cannot be
          * parsed to
          * {@link Features}.
          */
@@ -535,7 +535,7 @@ public interface ThingBuilder {
          *
          * @param attributesJsonString JSON string representation of the attributes to be set.
          * @return this builder to allow method chaining.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code attributesJsonString} is not a
+         * @throws org.eclipse.ditto.base.model.exceptions.DittoJsonException if {@code attributesJsonString} is not a
          * valid JSON object.
          */
         default FromCopy setAttributes(final String attributesJsonString) {
@@ -551,7 +551,7 @@ public interface ThingBuilder {
          * @param attributesJsonString JSON string representation of the attributes to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code existingAttributesPredicate} is {@code null}.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code attributesJsonString} is not a
+         * @throws org.eclipse.ditto.base.model.exceptions.DittoJsonException if {@code attributesJsonString} is not a
          * valid JSON object.
          */
         FromCopy setAttributes(Predicate<Attributes> existingAttributesPredicate, String attributesJsonString);
@@ -1076,7 +1076,7 @@ public interface ThingBuilder {
          * @param featuresJsonObject JSON object representation of the features to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code featuresJsonObject} is {@code null}.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code featuresJsonObject} cannot be
+         * @throws org.eclipse.ditto.base.model.exceptions.DittoJsonException if {@code featuresJsonObject} cannot be
          * parsed to {@link Features}.
          */
         default FromCopy setFeatures(final JsonObject featuresJsonObject) {
@@ -1092,7 +1092,7 @@ public interface ThingBuilder {
          * @param featuresJsonObject JSON object representation of the features to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code featuresJsonObject} cannot be
+         * @throws org.eclipse.ditto.base.model.exceptions.DittoJsonException if {@code featuresJsonObject} cannot be
          * parsed to {@link Features}.
          */
         FromCopy setFeatures(Predicate<Features> existingFeaturesPredicate, JsonObject featuresJsonObject);
@@ -1103,7 +1103,7 @@ public interface ThingBuilder {
          * @param featuresJsonString JSON string providing the Features of the Thing.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code featuresJsonString} is {@code null}.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code featuresJsonString} cannot be
+         * @throws org.eclipse.ditto.base.model.exceptions.DittoJsonException if {@code featuresJsonString} cannot be
          * parsed to {@link Features}.
          */
         default FromCopy setFeatures(final String featuresJsonString) {
@@ -1118,7 +1118,7 @@ public interface ThingBuilder {
          * @param featuresJsonString JSON string providing the Features of the Thing.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code featuresJsonString} cannot be
+         * @throws org.eclipse.ditto.base.model.exceptions.DittoJsonException if {@code featuresJsonString} cannot be
          * parsed to {@link Features}.
          */
         FromCopy setFeatures(Predicate<Features> existingFeaturesPredicate, String featuresJsonString);

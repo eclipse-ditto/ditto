@@ -13,8 +13,8 @@
 package org.eclipse.ditto.services.models.thingsearch.commands.sudo;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 
 /**
  * Interface for all Sudo Search Commands.

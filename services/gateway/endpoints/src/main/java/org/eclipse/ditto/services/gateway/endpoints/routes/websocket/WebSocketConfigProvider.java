@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.gateway.endpoints.routes.websocket;
 
 import java.util.function.BiFunction;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.util.config.streaming.WebsocketConfig;
 
 /**

@@ -16,7 +16,7 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.model.query.expression.visitors.ExistsFieldExpressionVisitor;
 import org.eclipse.ditto.model.query.expression.visitors.FieldExpressionVisitor;
 

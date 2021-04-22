@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.models.acks;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
@@ -20,18 +20,18 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.signals.acks.base.Acknowledgement;
-import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingException;
-import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.acks.AcknowledgementCorrelationIdMissingException;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;

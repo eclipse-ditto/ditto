@@ -13,7 +13,7 @@
 package org.eclipse.ditto.services.connectivity.messaging.internal.ssl;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.junit.Test;
 

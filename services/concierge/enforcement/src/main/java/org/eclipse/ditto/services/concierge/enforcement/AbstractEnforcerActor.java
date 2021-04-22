@@ -16,7 +16,7 @@ import java.time.Duration;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.services.concierge.common.ConciergeConfig;
 import org.eclipse.ditto.services.concierge.common.DittoConciergeConfig;
@@ -33,8 +33,8 @@ import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.PreparedTimer;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
-import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 

@@ -15,8 +15,8 @@ package org.eclipse.ditto.services.gateway.endpoints.routes.things;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
-import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.protocol.HeaderTranslator;

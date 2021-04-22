@@ -20,16 +20,16 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.JsonParsableException;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 /**
  * This exception indicates that a {@link Thing}'s
- * {@link org.eclipse.ditto.model.base.json.JsonSchemaVersion} requires a policyId.
+ * {@link org.eclipse.ditto.base.model.json.JsonSchemaVersion} requires a policyId.
  */
 @Immutable
 @JsonParsableException(errorCode = PolicyIdMissingException.ERROR_CODE)
@@ -93,7 +93,7 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
      * from the given JSON object.
      *
      * @param jsonObject the JSON to read the
-     * {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
+     * {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new PolicyIdMissingException.
      * @throws NullPointerException if any argument is {@code null}.

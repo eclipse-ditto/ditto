@@ -18,13 +18,13 @@ import java.util.Optional;
 import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.entity.Revision;
+import org.eclipse.ditto.base.model.entity.Revision;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingLifecycle;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.services.base.persistence.PersistenceLifecycle;
-import org.eclipse.ditto.services.base.persistence.SnapshotTaken;
+import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
+import org.eclipse.ditto.base.api.persistence.SnapshotTaken;
 import org.eclipse.ditto.things.api.ThingSnapshotTaken;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.persistence.mongo.AbstractMongoSnapshotAdapter;

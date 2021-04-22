@@ -30,14 +30,14 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
-import org.eclipse.ditto.model.base.entity.metadata.Metadata;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.base.json.JsonParsableEvent;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableEvent;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.base.model.signals.events.Event;
 
 /**
  * Event to report out-of-sync things in the search index.

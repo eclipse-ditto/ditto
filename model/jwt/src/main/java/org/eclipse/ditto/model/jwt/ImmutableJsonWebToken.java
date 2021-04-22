@@ -12,9 +12,9 @@
  */
 package org.eclipse.ditto.model.jwt;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty;
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotEmpty;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collections;
 import java.util.List;

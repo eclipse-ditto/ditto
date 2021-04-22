@@ -21,12 +21,12 @@ import java.util.List;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.base.entity.type.EntityType;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.type.EntityType;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.base.model.signals.commands.GlobalCommandRegistry;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

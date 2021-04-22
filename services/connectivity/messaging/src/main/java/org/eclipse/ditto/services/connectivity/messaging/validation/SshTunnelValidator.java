@@ -14,8 +14,8 @@ package org.eclipse.ditto.services.connectivity.messaging.validation;
 
 import java.net.URI;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.CredentialsVisitor;

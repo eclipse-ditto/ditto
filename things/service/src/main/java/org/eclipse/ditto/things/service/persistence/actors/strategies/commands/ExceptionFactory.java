@@ -15,8 +15,8 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.AttributeNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.AttributesNotAccessibleException;

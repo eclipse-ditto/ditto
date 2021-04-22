@@ -22,11 +22,11 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.MappingContext;
-import org.eclipse.ditto.signals.events.base.Event;
-import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
+import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

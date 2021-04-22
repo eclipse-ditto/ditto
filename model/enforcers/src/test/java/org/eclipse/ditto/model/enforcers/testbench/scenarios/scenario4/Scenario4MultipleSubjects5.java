@@ -16,7 +16,7 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.function.Function;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.enforcers.testbench.algorithms.PolicyAlgorithm;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.Scenario;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.ScenarioSetup;

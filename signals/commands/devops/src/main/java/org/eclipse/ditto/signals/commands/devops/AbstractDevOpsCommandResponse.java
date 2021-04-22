@@ -21,10 +21,10 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
 
 /**
  * Abstract implementation of the {@link DevOpsCommandResponse} interface.

@@ -29,8 +29,8 @@ import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingBuilder;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 
 /**
  * Helpers and utils for converting {@link ThingEvent}s to {@link org.eclipse.ditto.things.model.Thing}s.

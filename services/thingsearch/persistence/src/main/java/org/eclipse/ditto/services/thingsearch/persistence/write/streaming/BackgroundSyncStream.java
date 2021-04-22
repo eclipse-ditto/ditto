@@ -18,7 +18,7 @@ import java.util.Comparator;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingConstants;

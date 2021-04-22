@@ -18,10 +18,10 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.entity.metadata.Metadata;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.signals.events.base.AbstractEventsourcedEvent;
+import org.eclipse.ditto.base.model.signals.events.AbstractEventsourcedEvent;
 
 /**
  * Abstract base class of a {@link PolicyEvent}.

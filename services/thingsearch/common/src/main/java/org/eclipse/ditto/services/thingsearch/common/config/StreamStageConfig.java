@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.thingsearch.common.config;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.base.config.supervision.ExponentialBackOffConfig;
+import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**

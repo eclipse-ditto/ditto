@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.policies.model.signals.commands.query;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -26,15 +26,15 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.base.json.JsonParsableCommand;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommand;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
-import org.eclipse.ditto.signals.commands.base.AbstractCommand;
-import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
+import org.eclipse.ditto.base.model.signals.commands.CommandJsonDeserializer;
 
 /**
  * Command which retrieves the Policy entry of a {@code Policy} based on the passed in Policy ID and Label.

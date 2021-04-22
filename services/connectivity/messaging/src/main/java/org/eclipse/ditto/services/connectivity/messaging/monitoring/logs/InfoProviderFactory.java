@@ -22,12 +22,12 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.entity.id.WithEntityId;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.base.model.signals.Signal;
 
 /**
  * Factory for creating instances of {@link org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor.InfoProvider}.

@@ -17,12 +17,12 @@ import static akka.http.javadsl.model.ContentTypes.APPLICATION_JSON;
 import java.util.List;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
-import org.eclipse.ditto.model.base.common.DittoDuration;
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.base.model.common.DittoDuration;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.SubjectAnnouncement;

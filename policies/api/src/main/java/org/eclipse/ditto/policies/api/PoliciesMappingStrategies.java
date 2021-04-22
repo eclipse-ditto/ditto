@@ -17,14 +17,14 @@ import java.util.Map;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.services.utils.cluster.GlobalMappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
-import org.eclipse.ditto.signals.base.JsonParsable;
+import org.eclipse.ditto.base.model.signals.JsonParsable;
 
 /**
  * {@link MappingStrategies} for the Policies service containing all {@link Jsonifiable} types known to Policies.

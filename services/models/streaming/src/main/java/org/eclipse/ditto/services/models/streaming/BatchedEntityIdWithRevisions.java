@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.models.streaming;
 
-import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_2;
+import static org.eclipse.ditto.base.model.json.JsonSchemaVersion.V_2;
 
 import java.util.List;
 import java.util.Objects;
@@ -27,9 +27,9 @@ import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.headers.WithManifest;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.base.model.headers.WithManifest;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 
 /**
  * A list of {@code EntityIdWithRevision} batched together.

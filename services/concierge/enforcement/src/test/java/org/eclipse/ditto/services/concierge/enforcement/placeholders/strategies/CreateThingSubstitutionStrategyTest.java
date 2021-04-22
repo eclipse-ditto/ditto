@@ -19,7 +19,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.util.Collections;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;

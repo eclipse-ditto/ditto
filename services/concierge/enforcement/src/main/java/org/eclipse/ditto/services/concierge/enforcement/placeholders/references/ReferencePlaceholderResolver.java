@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.concierge.enforcement.placeholders.references
 
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 
 /**
  * Responsible to resolve a field of a referenced entity.

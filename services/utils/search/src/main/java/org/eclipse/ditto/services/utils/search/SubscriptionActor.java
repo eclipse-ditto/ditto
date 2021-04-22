@@ -15,12 +15,12 @@ package org.eclipse.ditto.services.utils.search;
 import java.time.Duration;
 
 import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.services.utils.akka.actors.AbstractActorWithStashWithTimers;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.SubscriptionProtocolErrorException;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.SubscriptionTimeoutException;

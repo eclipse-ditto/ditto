@@ -13,18 +13,18 @@
 package org.eclipse.ditto.protocol.adapter;
 
 import static java.util.Objects.requireNonNull;
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Map;
 
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.EventsTopicPathBuilder;
 import org.eclipse.ditto.protocol.HeaderTranslator;
@@ -168,7 +168,7 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
     }
 
     /**
-     * Subclasses must implement the method to map from the given {@link org.eclipse.ditto.signals.base.Signal} to an
+     * Subclasses must implement the method to map from the given {@link org.eclipse.ditto.base.model.signals.Signal} to an
      * {@link Adaptable}.
      *
      * @param signal the signal to map.

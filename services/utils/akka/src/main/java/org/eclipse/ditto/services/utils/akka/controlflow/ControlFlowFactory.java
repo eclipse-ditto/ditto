@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.akka.controlflow;
 
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 
 import akka.actor.ActorRef;
 

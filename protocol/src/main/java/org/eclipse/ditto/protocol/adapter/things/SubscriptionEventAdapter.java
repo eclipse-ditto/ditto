@@ -13,7 +13,7 @@
 package org.eclipse.ditto.protocol.adapter.things;
 
 import static java.util.Objects.requireNonNull;
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collections;
 import java.util.EnumSet;
@@ -30,7 +30,7 @@ import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.UnknownEventException;
 import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
-import org.eclipse.ditto.signals.base.ErrorRegistry;
+import org.eclipse.ditto.base.model.signals.ErrorRegistry;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;

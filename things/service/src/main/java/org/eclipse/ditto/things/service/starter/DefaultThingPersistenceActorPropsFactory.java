@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.things.service.starter;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
 
 import javax.annotation.concurrent.Immutable;
 

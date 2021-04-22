@@ -22,10 +22,10 @@ import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.CharsetDeterminer;
-import org.eclipse.ditto.model.base.common.DittoConstants;
-import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.common.CharsetDeterminer;
+import org.eclipse.ditto.base.model.common.DittoConstants;
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;

@@ -22,9 +22,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.model.base.exceptions.TimeoutInvalidException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.base.model.exceptions.TimeoutInvalidException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.messages.MessageBuilder;
 import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaders;

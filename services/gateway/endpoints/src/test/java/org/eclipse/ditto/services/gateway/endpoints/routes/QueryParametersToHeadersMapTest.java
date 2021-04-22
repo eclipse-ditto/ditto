@@ -23,8 +23,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.junit.Test;
 import org.junit.runner.RunWith;

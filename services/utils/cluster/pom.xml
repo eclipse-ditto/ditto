@@ -51,30 +51,13 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-metrics</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-base</artifactId>
-        </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-things-model</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-commands-base</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-events-base</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-devops</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-announcements-base</artifactId>
         </dependency>
 
         <dependency>
@@ -99,7 +82,7 @@
         <!-- ### Testing ### -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-model-base</artifactId>
+            <artifactId>ditto-base-model</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>

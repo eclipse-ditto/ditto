@@ -17,7 +17,7 @@ import java.util.Map;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMappingStrategies;
 import org.eclipse.ditto.policies.api.PoliciesMappingStrategies;
 import org.eclipse.ditto.things.api.ThingsMappingStrategies;
@@ -26,7 +26,7 @@ import org.eclipse.ditto.services.utils.cache.InvalidateCacheEntry;
 import org.eclipse.ditto.services.utils.cluster.GlobalMappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
-import org.eclipse.ditto.signals.base.JsonParsable;
+import org.eclipse.ditto.base.model.signals.JsonParsable;
 
 /**
  * {@link MappingStrategies} for the concierge service.

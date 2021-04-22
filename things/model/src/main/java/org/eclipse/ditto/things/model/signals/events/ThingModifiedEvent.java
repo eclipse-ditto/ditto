@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.things.model.signals.events;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 
 /**
  * This interface describes an event which is emitted after a {@link org.eclipse.ditto.things.model.Thing} was modified.

@@ -20,12 +20,12 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.JsonParsableException;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonParsableException;
 import org.eclipse.ditto.model.connectivity.ConnectivityException;
 
 /**
@@ -78,12 +78,12 @@ public class ConnectivityConfigUnavailableException extends DittoRuntimeExceptio
      * the
      * given JSON object.
      *
-     * @param jsonObject the JSON to read the {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE}
+     * @param jsonObject the JSON to read the {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException.JsonFields#MESSAGE}
      * field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new ConnectivityConfigUnavailableException.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
-     * org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field.
+     * org.eclipse.ditto.base.model.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field.
      */
     public static ConnectivityConfigUnavailableException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {

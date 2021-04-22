@@ -25,7 +25,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
-import org.eclipse.ditto.model.base.acks.PubSubTerminatedException;
+import org.eclipse.ditto.base.model.acks.PubSubTerminatedException;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;

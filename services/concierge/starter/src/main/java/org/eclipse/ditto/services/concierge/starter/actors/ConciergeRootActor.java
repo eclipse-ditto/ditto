@@ -12,9 +12,9 @@
  */
 package org.eclipse.ditto.services.concierge.starter.actors;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import org.eclipse.ditto.services.base.actors.DittoRootActor;
+import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.services.concierge.actors.ShardRegions;
 import org.eclipse.ditto.services.concierge.actors.cleanup.EventSnapshotCleanupCoordinator;
 import org.eclipse.ditto.services.concierge.common.ConciergeConfig;

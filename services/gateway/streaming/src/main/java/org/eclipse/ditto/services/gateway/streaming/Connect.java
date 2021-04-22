@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.streaming;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -21,9 +21,9 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.services.gateway.streaming.actors.SessionedJsonifiable;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
 

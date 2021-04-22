@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Arrays;
 import java.util.Optional;
@@ -20,7 +20,7 @@ import java.util.Optional;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * An enumeration of status of connectivity resource.

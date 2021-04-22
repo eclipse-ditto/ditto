@@ -16,7 +16,7 @@ import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.CredentialsVisitor;
 import org.eclipse.ditto.model.connectivity.SshPublicKeyCredentials;
@@ -30,7 +30,7 @@ public final class PublicKeyAuthenticationFactory implements CredentialsVisitor<
     private final ExceptionMapper exceptionMapper;
 
     /**
-     * @return new instance with empty {@link org.eclipse.ditto.model.base.headers.DittoHeaders}
+     * @return new instance with empty {@link org.eclipse.ditto.base.model.headers.DittoHeaders}
      */
     public static PublicKeyAuthenticationFactory getInstance() {
         return getInstance(DittoHeaders.empty());

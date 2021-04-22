@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.net.URI;
 import java.net.URISyntaxException;

@@ -16,7 +16,7 @@ import java.util.EnumSet;
 import java.util.Set;
 
 import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 
 /**
  * An {@code Adapter} mixin for retrieve command responses.

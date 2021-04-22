@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.slf4j.Logger;

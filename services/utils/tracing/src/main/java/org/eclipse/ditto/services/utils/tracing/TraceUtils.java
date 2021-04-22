@@ -19,8 +19,8 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.PreparedTimer;
-import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 
 import akka.http.javadsl.model.HttpRequest;
 

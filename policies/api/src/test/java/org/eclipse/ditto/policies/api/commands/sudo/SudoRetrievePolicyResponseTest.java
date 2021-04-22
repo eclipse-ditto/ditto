@@ -19,14 +19,14 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.api.TestConstants;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
-import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.GlobalCommandResponseRegistry;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

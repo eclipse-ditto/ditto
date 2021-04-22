@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.persistentactors.events;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -20,7 +20,7 @@ import java.util.Map;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.base.model.signals.events.Event;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

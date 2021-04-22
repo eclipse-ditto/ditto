@@ -12,10 +12,10 @@
  */
 package org.eclipse.ditto.services.utils.persistentactors.results;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.events.Event;
 
 /**
  * Evaluator of results of command strategies.

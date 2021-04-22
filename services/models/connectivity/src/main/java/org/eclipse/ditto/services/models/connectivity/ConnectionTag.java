@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.models.connectivity;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import javax.annotation.concurrent.Immutable;
 

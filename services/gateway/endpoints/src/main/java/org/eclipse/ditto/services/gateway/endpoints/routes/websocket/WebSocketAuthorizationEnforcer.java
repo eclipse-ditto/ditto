@@ -14,12 +14,12 @@ package org.eclipse.ditto.services.gateway.endpoints.routes.websocket;
 
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 
 /**
  * Enforces authorization in order to establish a WebSocket connection.
  * If the authorization check is successful the headers are given back, possibly with new information, else a
- * {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException DittoRuntimeException} is thrown.
+ * {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException DittoRuntimeException} is thrown.
  */
 public interface WebSocketAuthorizationEnforcer {
 

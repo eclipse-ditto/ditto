@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.models.acks;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.models.acks.AcknowledgementForwarderActorStarter.isLiveSignal;
 
 import java.net.URLEncoder;
@@ -24,16 +24,16 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.eclipse.ditto.model.base.acks.AbstractCommandAckRequestSetter;
-import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
-import org.eclipse.ditto.model.base.entity.id.WithEntityId;
-import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.acks.AbstractCommandAckRequestSetter;
+import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;

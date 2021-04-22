@@ -18,8 +18,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.entity.metadata.Metadata;
-import org.eclipse.ditto.model.base.entity.metadata.MetadataBuilder;
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.entity.metadata.MetadataBuilder;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyBuilder;
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;

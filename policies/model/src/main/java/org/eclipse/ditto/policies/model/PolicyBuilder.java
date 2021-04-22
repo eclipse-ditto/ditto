@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.policies.model;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
 
@@ -20,7 +20,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 
 /**
  * A mutable builder for a {@link Policy} with a fluent API.

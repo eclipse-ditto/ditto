@@ -20,10 +20,10 @@ import java.time.temporal.ChronoUnit;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.bson.BsonDocument;
-import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.things.model.TestConstants;
 import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.services.base.persistence.PersistenceLifecycle;
+import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
 import org.eclipse.ditto.things.api.ThingSnapshotTaken;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.junit.After;

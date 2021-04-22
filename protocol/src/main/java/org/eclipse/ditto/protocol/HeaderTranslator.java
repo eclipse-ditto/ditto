@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.protocol;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -24,10 +24,10 @@ import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
-import org.eclipse.ditto.model.base.headers.HeaderDefinition;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.base.model.headers.HeaderDefinition;
 
 /**
  * Utility for translating Headers from external sources or to external sources.

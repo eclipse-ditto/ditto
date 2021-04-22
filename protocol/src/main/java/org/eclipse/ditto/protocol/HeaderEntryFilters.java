@@ -16,7 +16,7 @@ import java.util.Map;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.headers.HeaderDefinition;
+import org.eclipse.ditto.base.model.headers.HeaderDefinition;
 
 /**
  * This factory provides various {@link HeaderEntryFilter}s both atomic ones and composed ones.
@@ -34,7 +34,7 @@ final class HeaderEntryFilters {
      * <li>filter out header entries which should not be written to external headers as specified by
      * {@link HeaderDefinition#shouldWriteToExternalHeaders()} of the entry</li>
      * <li>discard {@code AcknowledgementRequest} header entries which are internal to Ditto as defined in
-     * {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel}</li>
+     * {@link org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel}</li>
      * </ul>
      *
      * @param headerDefinitionMap the header definitions for creating the filter used to determining whether a header

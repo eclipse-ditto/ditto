@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.services.connectivity.config.MqttConfig;

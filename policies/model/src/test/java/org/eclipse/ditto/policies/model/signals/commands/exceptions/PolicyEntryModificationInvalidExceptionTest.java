@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.policies.model.signals.commands.exceptions;
 
-import static org.eclipse.ditto.model.base.assertions.DittoBaseAssertions.assertThat;
+import static org.eclipse.ditto.base.model.assertions.DittoBaseAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -20,9 +20,9 @@ import java.net.URI;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.signals.GlobalErrorRegistry;
 import org.eclipse.ditto.policies.model.signals.commands.TestConstants;
 import org.junit.Test;
 

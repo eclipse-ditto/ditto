@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.signals.commands.messages;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
 import java.util.Objects;
@@ -24,12 +24,12 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.ThingIdInvalidException;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.signals.commands.base.AbstractCommand;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
 
 /**
  * Base class for {@link MessageCommand}s.

@@ -14,7 +14,7 @@ package org.eclipse.ditto.things.model;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.entity.type.EntityType;
+import org.eclipse.ditto.base.model.entity.type.EntityType;
 
 /**
  * Constants to support working with {@link Thing}.

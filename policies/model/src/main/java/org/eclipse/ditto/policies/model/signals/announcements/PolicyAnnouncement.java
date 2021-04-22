@@ -14,12 +14,12 @@ package org.eclipse.ditto.policies.model.signals.announcements;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.signals.announcements.base.Announcement;
-import org.eclipse.ditto.signals.base.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.announcements.Announcement;
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 
 /**
  * Announcements for policies.

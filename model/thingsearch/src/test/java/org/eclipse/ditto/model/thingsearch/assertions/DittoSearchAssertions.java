@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.model.thingsearch.assertions;
 
-import org.eclipse.ditto.model.base.assertions.DittoBaseAssertions;
+import org.eclipse.ditto.base.model.assertions.DittoBaseAssertions;
 import org.eclipse.ditto.model.thingsearch.LogicalSearchFilter;
 import org.eclipse.ditto.model.thingsearch.PropertySearchFilter;
 import org.eclipse.ditto.model.thingsearch.SearchQuery;

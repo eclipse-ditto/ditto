@@ -23,10 +23,10 @@ import java.util.function.Supplier;
 
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonRuntimeException;
-import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayMethodNotAllowedException;
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayMethodNotAllowedException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;

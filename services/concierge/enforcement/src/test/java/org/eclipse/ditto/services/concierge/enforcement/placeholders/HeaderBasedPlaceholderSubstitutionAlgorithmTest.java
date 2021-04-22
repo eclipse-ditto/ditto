@@ -23,9 +23,9 @@ import java.util.Map;
 import java.util.function.Function;
 
 import org.assertj.core.api.ThrowableAssert;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayPlaceholderNotResolvableException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayPlaceholderNotResolvableException;
 import org.junit.Before;
 import org.junit.Test;
 

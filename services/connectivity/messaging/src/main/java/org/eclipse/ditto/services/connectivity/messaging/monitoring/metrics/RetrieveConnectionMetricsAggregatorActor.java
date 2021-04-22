@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics;
 
 import java.time.Duration;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionTimeoutException;

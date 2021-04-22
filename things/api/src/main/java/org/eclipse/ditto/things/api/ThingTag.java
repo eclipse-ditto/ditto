@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.things.api;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import javax.annotation.concurrent.Immutable;
 

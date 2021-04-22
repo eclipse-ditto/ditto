@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
@@ -22,7 +22,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.model.connectivity.GenericTarget;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 
 /**
  * A dropped signal.

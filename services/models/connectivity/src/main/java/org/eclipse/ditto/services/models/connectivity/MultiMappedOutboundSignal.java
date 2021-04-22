@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.models.connectivity;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
 
 import java.util.List;
 import java.util.Objects;
@@ -25,9 +25,9 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.base.model.signals.Signal;
 
 import akka.actor.ActorRef;
 

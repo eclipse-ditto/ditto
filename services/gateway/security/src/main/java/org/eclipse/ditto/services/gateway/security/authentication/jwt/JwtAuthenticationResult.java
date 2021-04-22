@@ -12,12 +12,12 @@
  */
 package org.eclipse.ditto.services.gateway.security.authentication.jwt;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Optional;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
 

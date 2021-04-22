@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.security.authentication.jwt;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.List;
 import java.util.Objects;
@@ -22,13 +22,13 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.services.models.placeholders.ExpressionResolver;
 import org.eclipse.ditto.services.models.placeholders.PipelineElement;
 import org.eclipse.ditto.services.models.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.policies.model.SubjectId;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayJwtIssuerNotSupportedException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayJwtIssuerNotSupportedException;
 
 /**
  * Implementation of {@link JwtAuthorizationSubjectsProvider} for Google JWTs.

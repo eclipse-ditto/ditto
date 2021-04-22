@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.directives.auth;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.ArrayList;
 import java.util.Collection;

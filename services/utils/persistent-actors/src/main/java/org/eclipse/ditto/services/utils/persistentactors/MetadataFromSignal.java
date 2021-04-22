@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.persistentactors;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Optional;
 import java.util.SortedSet;
@@ -27,14 +27,14 @@ import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.entity.metadata.Metadata;
-import org.eclipse.ditto.model.base.entity.metadata.MetadataBuilder;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.metadata.MetadataHeader;
-import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaderKey;
-import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.base.WithOptionalEntity;
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.entity.metadata.MetadataBuilder;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.metadata.MetadataHeader;
+import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaderKey;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 
 /**
  * Creates or extends/modifies Metadata of an entity based on {@link MetadataHeader}s of an Signal's DittoHeaders.

@@ -18,11 +18,11 @@ import java.util.function.Function;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
-import org.eclipse.ditto.signals.base.WithOptionalEntity;
-import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
+import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 
 /**
  * Checks that commands that modify entities cause no harm downstream.

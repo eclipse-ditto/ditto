@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.connectivity.config;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.base.config.ServiceSpecificConfig;
+import org.eclipse.ditto.base.service.config.ServiceSpecificConfig;
 import org.eclipse.ditto.services.connectivity.config.mapping.MappingConfig;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentConfig;

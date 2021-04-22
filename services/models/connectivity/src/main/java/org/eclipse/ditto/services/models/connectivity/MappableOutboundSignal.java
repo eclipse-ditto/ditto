@@ -12,8 +12,8 @@ Copyright (c) 2019 Contributors to the Eclipse Foundation
  */
 package org.eclipse.ditto.services.models.connectivity;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkArgument;
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkArgument;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.List;
 import java.util.Objects;
@@ -23,10 +23,10 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.base.model.signals.Signal;
 
 /**
  * Represent an outbound signal that is ready to be mapped with the given {@link org.eclipse.ditto.model.connectivity.PayloadMapping}.

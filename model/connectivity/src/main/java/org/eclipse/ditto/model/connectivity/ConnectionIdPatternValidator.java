@@ -14,7 +14,7 @@ package org.eclipse.ditto.model.connectivity;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.entity.validation.AbstractPatternValidator;
+import org.eclipse.ditto.base.model.entity.validation.AbstractPatternValidator;
 
 /**
  * Validator capable of validating {@link ConnectionId connection IDs} via pattern {@link ConnectionId#ID_PATTERN}.

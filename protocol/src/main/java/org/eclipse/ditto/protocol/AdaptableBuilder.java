@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.protocol;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 
 /**
  * A builder to create {@link Adaptable} instances.

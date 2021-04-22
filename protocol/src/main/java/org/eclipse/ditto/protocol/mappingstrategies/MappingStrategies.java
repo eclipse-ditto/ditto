@@ -16,12 +16,12 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.protocol.JsonifiableMapper;
 
 /**
  * Container for strategies that map from {@link org.eclipse.ditto.protocol.Adaptable}s to
- * {@link org.eclipse.ditto.signals.base.Signal}s.
+ * {@link org.eclipse.ditto.base.model.signals.Signal}s.
  *
  * @param <T> the type of the mapped signals
  */

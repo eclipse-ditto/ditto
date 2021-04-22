@@ -16,9 +16,9 @@
 
  import javax.annotation.Nullable;
 
- import org.eclipse.ditto.model.base.headers.DittoHeaders;
- import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
- import org.eclipse.ditto.signals.commands.base.CommandResponse;
+ import org.eclipse.ditto.base.model.headers.DittoHeaders;
+ import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
+ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 
  /**
   * The result of a published message holding an optional command response (which also can be an acknowledgement).

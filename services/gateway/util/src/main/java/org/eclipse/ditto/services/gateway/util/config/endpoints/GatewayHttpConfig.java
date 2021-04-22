@@ -26,10 +26,10 @@ import java.util.regex.PatternSyntaxException;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.model.base.headers.HeaderDefinition;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.services.base.config.http.DefaultHttpConfig;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.headers.HeaderDefinition;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.service.config.http.DefaultHttpConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.config.DittoConfigError;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;

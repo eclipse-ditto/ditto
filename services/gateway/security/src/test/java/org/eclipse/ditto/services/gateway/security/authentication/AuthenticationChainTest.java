@@ -27,12 +27,12 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 import org.assertj.core.api.JUnitSoftAssertions;
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationFailedException;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;

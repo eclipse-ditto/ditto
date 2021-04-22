@@ -20,9 +20,9 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.signals.commands.base.assertions.AbstractCommandResponseAssert;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.commands.assertions.AbstractCommandResponseAssert;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommandResponse;
 
 /**

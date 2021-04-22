@@ -19,8 +19,8 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.base.config.supervision.DefaultSupervisorConfig;
-import org.eclipse.ditto.services.base.config.supervision.SupervisorConfig;
+import org.eclipse.ditto.base.service.config.supervision.DefaultSupervisorConfig;
+import org.eclipse.ditto.base.service.config.supervision.SupervisorConfig;
 import org.eclipse.ditto.services.models.acks.config.DefaultAcknowledgementConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;

@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.security.authentication.jwt;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import javax.annotation.Nullable;
 

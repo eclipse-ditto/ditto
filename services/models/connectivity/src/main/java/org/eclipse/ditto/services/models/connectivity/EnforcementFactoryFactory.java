@@ -15,12 +15,12 @@ package org.eclipse.ditto.services.models.connectivity;
 import java.util.Arrays;
 import java.util.List;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
 import org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.services.models.placeholders.Placeholder;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.base.model.signals.Signal;
 
 /**
  * Factory class that creates instances of {@link EnforcementFilterFactory}s.

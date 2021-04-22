@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.utils.akka.controlflow;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;

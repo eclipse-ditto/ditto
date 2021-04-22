@@ -22,13 +22,13 @@ import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationContextType;
-import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.auth.AuthorizationContextType;
+import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.services.gateway.security.authentication.DefaultAuthenticationResult;
@@ -36,7 +36,7 @@ import org.eclipse.ditto.services.gateway.security.authentication.TimeMeasuringA
 import org.eclipse.ditto.services.gateway.security.utils.HttpUtils;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 import akka.http.javadsl.model.HttpRequest;

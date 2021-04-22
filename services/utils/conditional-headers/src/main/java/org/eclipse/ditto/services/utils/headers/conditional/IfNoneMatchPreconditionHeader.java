@@ -17,10 +17,10 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
-import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
+import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 
 @Immutable
 public final class IfNoneMatchPreconditionHeader implements PreconditionHeader<EntityTag> {

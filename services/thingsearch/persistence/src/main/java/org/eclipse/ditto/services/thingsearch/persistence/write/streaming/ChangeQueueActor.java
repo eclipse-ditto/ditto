@@ -93,7 +93,7 @@ public final class ChangeQueueActor extends AbstractActor
      *
      * @param changeQueueActor reference to this actor
      * @param shouldAcknowledge defines whether for the created source the requested ack
-     * {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel#SEARCH_PERSISTED} was required or not.
+     * {@link org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel#SEARCH_PERSISTED} was required or not.
      * @param writeInterval minimum delays between cache dumps.
      * @return source of queue snapshots.
      */

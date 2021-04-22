@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.validation;
 
 import java.util.function.Supplier;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 
 /**
  * Validator for a specific config value.

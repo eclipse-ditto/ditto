@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
@@ -32,7 +32,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThingResponse;
-import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
+import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestWatcher;

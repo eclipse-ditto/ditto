@@ -18,8 +18,8 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
-import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.events.Event;
 
 /**
  * The CommandStrategy interface.

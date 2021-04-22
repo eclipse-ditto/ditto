@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.services.models.acks;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
 import java.time.Duration;
@@ -25,16 +25,16 @@ import java.util.Set;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
-import org.eclipse.ditto.model.base.entity.id.AbstractNamespacedEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
+import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
+import org.eclipse.ditto.base.model.entity.id.AbstractNamespacedEntityId;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.signals.acks.base.Acknowledgement;
-import org.eclipse.ditto.signals.acks.base.AcknowledgementRequestTimeoutException;
-import org.eclipse.ditto.signals.acks.base.Acknowledgements;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.acks.AcknowledgementRequestTimeoutException;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 
 /**
  * This class can be used to aggregate the required and actually received acknowledgements for a single request which

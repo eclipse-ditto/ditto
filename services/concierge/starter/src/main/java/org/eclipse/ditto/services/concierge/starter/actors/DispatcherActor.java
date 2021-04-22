@@ -23,8 +23,8 @@ import java.util.function.Consumer;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.concierge.common.DittoConciergeConfig;
 import org.eclipse.ditto.services.concierge.common.EnforcementConfig;
 import org.eclipse.ditto.services.concierge.enforcement.PreEnforcer;

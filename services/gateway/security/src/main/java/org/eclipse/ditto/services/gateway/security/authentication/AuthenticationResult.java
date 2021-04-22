@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.services.gateway.security.authentication;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 
 /**
  * The result of an authentication.

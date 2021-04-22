@@ -13,7 +13,7 @@
 package org.eclipse.ditto.services.concierge.enforcement;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_2;
+import static org.eclipse.ditto.base.model.json.JsonSchemaVersion.V_2;
 import static org.eclipse.ditto.policies.model.SubjectIssuer.GOOGLE;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.POLICY_SUDO;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.SUBJECT;
@@ -28,13 +28,13 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageBuilder;
 import org.eclipse.ditto.model.messages.MessageDirection;
@@ -62,7 +62,7 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccess
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeature;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.things.model.signals.events.AttributeModified;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.junit.After;

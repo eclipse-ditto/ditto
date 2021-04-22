@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.concierge.enforcement;
 
-import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_2;
+import static org.eclipse.ditto.base.model.json.JsonSchemaVersion.V_2;
 import static org.eclipse.ditto.policies.model.SubjectIssuer.GOOGLE;
 
 import java.time.Duration;
@@ -23,11 +23,11 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.ThingBuilder;
@@ -48,7 +48,7 @@ import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.services.utils.pubsub.LiveSignalPub;
 import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
-import org.eclipse.ditto.signals.base.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeature;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;

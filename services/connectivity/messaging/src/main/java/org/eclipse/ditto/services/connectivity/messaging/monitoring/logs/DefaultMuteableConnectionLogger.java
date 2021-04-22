@@ -20,7 +20,7 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.LogEntry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;

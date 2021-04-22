@@ -13,7 +13,7 @@
 package org.eclipse.ditto.services.models.connectivity;
 
 import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.base.model.signals.Signal;
 
 /**
  * Represents an inbound {@link ExternalMessage} i.e. a message that is received by Ditto. It contains the

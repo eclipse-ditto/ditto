@@ -13,7 +13,7 @@
 package org.eclipse.ditto.services.connectivity.config;
 
 import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.base.model.signals.events.Event;
 
 import akka.actor.AbstractActor;
 import akka.actor.Actor;

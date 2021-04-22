@@ -16,7 +16,7 @@ import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.concurrent.ThreadSafe;
 
-import org.eclipse.ditto.model.base.common.BinaryValidationResult;
+import org.eclipse.ditto.base.model.common.BinaryValidationResult;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
 
 /**
@@ -29,7 +29,7 @@ public interface JwtValidator {
      * Checks if this JSON web token is valid in terms of not expired, well formed and correctly signed.
      *
      * @param jsonWebToken the token to be validated.
-     * @return A Future resolving to a {@link org.eclipse.ditto.model.base.common.BinaryValidationResult}.
+     * @return A Future resolving to a {@link org.eclipse.ditto.base.model.common.BinaryValidationResult}.
      */
     CompletableFuture<BinaryValidationResult> validate(JsonWebToken jsonWebToken);
 

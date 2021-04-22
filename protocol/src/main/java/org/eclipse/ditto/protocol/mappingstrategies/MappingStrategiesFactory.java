@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.protocol.mappingstrategies;
 
-import org.eclipse.ditto.signals.base.ErrorRegistry;
+import org.eclipse.ditto.base.model.signals.ErrorRegistry;
 
 /**
  * Factory class to get instances of all {@link MappingStrategies}.

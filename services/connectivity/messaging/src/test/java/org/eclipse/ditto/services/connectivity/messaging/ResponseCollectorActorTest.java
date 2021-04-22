@@ -16,13 +16,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
 
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageBuilder;
 import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThingResponse;
 import org.junit.After;

@@ -18,7 +18,7 @@ import javax.annotation.Nullable;
 import javax.jms.JMSRuntimeException;
 import javax.naming.NamingException;
 
-import org.eclipse.ditto.services.base.actors.DittoRootActor;
+import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.services.connectivity.config.ConnectionIdsRetrievalConfig;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
@@ -45,7 +45,7 @@ import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.services.utils.persistentactors.PersistencePingActor;
 import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 
 import akka.actor.ActorRef;

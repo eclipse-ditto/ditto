@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.utils.persistentactors.results;
 
 import java.util.function.Function;
 
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.base.model.signals.events.Event;
 
 /**
  * Result without content.

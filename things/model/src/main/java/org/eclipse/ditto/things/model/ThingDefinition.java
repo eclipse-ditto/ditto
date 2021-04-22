@@ -13,7 +13,7 @@
 package org.eclipse.ditto.things.model;
 
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * A ThingDefinition represents a single fully qualified {@link DefinitionIdentifier}.

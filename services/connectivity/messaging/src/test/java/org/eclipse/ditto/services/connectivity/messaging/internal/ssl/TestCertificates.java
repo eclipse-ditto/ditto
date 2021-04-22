@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.connectivity.messaging.internal.ssl;
 import java.security.PublicKey;
 import java.security.cert.Certificate;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 
 /**
  * Implementation of KeyExtractor to load test certificates.

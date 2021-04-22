@@ -16,7 +16,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import org.eclipse.ditto.model.base.entity.type.EntityType;
+import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingConstants;

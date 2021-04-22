@@ -17,7 +17,7 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.base.config.ThrottlingConfig;
+import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 

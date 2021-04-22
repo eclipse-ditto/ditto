@@ -18,7 +18,7 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 
 import akka.actor.ActorRef;
 import akka.actor.Status;

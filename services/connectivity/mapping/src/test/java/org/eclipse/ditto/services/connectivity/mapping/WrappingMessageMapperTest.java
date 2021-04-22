@@ -24,7 +24,7 @@ import java.util.List;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;

@@ -19,8 +19,8 @@ import java.nio.file.Paths;
 
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 

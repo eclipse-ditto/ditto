@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.things.model.signals.commands.query;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.List;
 import java.util.Objects;
@@ -34,18 +34,18 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
-import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
-import org.eclipse.ditto.signals.commands.base.WithEntity;
-import org.eclipse.ditto.signals.commands.base.WithNamespace;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.base.model.signals.commands.WithEntity;
+import org.eclipse.ditto.base.model.signals.commands.WithNamespace;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 
 /**

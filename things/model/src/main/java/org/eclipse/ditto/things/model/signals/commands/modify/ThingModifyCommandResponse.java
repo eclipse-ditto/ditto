@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.things.model.signals.commands.modify;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.signals.base.WithOptionalEntity;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 
 /**

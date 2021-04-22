@@ -16,8 +16,8 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.function.Function;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 
 /**
  * Replaces the placeholder {@link #REPLACER_NAME} with the first AuthorizationSubject in the headers'

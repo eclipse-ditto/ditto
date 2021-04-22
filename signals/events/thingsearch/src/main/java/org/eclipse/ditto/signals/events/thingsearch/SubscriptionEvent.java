@@ -14,8 +14,8 @@ package org.eclipse.ditto.signals.events.thingsearch;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.events.Event;
 
 /**
  * Interface for all outgoing messages related to a subscription for search results..

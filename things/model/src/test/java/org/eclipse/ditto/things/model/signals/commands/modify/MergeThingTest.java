@@ -28,7 +28,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.AttributesModelFactory;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.Thing;

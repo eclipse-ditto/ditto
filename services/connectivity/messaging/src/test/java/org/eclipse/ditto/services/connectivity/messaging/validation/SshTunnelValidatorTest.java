@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.connectivity.messaging.validation;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Tunnel.VALID_SSH_TUNNEL;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.SshPublicKeyCredentials;

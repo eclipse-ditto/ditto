@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CorrelationIdEnsuringDirective.ensureCorrelationId;
 
 import java.util.Collection;
@@ -25,10 +25,10 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeadersSizeChecker;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.services.gateway.endpoints.directives.CorsEnablingDirective;
@@ -53,7 +53,7 @@ import org.eclipse.ditto.services.gateway.security.authentication.Authentication
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
-import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
+import org.eclipse.ditto.base.model.signals.commands.CommandNotSupportedException;
 
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpRequest;

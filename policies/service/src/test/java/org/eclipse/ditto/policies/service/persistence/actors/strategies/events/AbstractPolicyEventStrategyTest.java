@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
 
-import org.eclipse.ditto.model.base.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyRevision;
 import org.eclipse.ditto.policies.service.persistence.TestConstants;

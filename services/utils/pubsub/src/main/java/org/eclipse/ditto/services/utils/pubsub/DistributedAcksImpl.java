@@ -20,8 +20,8 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.services.utils.pubsub.actors.AckSupervisor;
 import org.eclipse.ditto.services.utils.pubsub.api.AckRequest;

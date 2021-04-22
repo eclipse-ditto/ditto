@@ -13,7 +13,7 @@
 package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
 import org.apache.kafka.clients.producer.Producer;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
 
 /**
  * Creates Kafka sinks.

@@ -19,7 +19,7 @@ import static org.eclipse.ditto.protocol.TopicPath.Channel.TWIN;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
@@ -81,7 +81,7 @@ public interface ProtocolAdapter {
 
     /**
      * Determine the channel of the processed {@link Signal}. First the DittoHeaders are checked for the
-     * {@link org.eclipse.ditto.model.base.headers.DittoHeaderDefinition#CHANNEL} header. If not given the default
+     * {@link org.eclipse.ditto.base.model.headers.DittoHeaderDefinition#CHANNEL} header. If not given the default
      * channel is determined by the type of the {@link Signal}.
      *
      * @param signal the processed signal

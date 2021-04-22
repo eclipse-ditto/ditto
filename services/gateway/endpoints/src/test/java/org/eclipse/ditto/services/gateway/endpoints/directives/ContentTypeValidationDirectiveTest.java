@@ -22,9 +22,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.exceptions.UnsupportedMediaTypeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.exceptions.UnsupportedMediaTypeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.junit.Test;
 
 import akka.http.javadsl.model.ContentType;

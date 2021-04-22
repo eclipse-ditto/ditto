@@ -22,7 +22,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Instant;
 import java.util.Base64;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

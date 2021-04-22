@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.utils.pubsub;
 
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
-import org.eclipse.ditto.signals.base.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 
 import akka.actor.ActorRef;
 

@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkArgument;
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkArgument;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -39,12 +39,12 @@ import javax.jms.MessageProducer;
 import javax.jms.Session;
 
 import org.apache.qpid.jms.message.JmsMessage;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.common.Placeholders;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.base.entity.id.WithEntityId;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.common.Placeholders;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -58,8 +58,8 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFail
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.signals.acks.base.Acknowledgement;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.Signal;
 
 import akka.Done;
 import akka.actor.ActorRef;

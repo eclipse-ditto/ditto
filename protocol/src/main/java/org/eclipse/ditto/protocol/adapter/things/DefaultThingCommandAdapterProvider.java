@@ -15,11 +15,11 @@ package org.eclipse.ditto.protocol.adapter.things;
 import java.util.Arrays;
 import java.util.List;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.protocol.adapter.Adapter;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.adapter.provider.ThingCommandAdapterProvider;
-import org.eclipse.ditto.signals.base.ErrorRegistry;
+import org.eclipse.ditto.base.model.signals.ErrorRegistry;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;

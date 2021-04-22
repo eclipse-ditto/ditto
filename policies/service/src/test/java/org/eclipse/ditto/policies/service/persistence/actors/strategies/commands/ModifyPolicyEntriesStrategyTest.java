@@ -22,7 +22,7 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.stream.StreamSupport;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.Subject;

@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Collections;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.AllowedReason;

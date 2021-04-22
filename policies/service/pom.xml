@@ -33,7 +33,7 @@
     <dependencies>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-base</artifactId>
+            <artifactId>ditto-base-service</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -132,14 +132,14 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-model-base</artifactId>
+            <artifactId>ditto-base-model</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-base</artifactId>
+            <artifactId>ditto-base-service</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>

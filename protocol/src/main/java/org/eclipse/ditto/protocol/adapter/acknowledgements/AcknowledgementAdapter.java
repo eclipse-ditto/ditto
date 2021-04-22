@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.protocol.adapter.acknowledgements;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
 import java.util.Collections;
@@ -25,12 +25,12 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabelExternalUseForbiddenException;
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
+import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabelExternalUseForbiddenException;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.protocol.AcknowledgementTopicPathBuilder;
 import org.eclipse.ditto.protocol.Adaptable;
@@ -40,7 +40,7 @@ import org.eclipse.ditto.protocol.Payload;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.TopicPathBuilder;
 import org.eclipse.ditto.protocol.adapter.UnknownTopicPathException;
-import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.things.model.signals.acks.ThingAcknowledgementFactory;
 
 /**

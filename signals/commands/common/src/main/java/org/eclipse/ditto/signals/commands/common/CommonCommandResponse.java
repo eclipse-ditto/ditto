@@ -13,9 +13,9 @@
 package org.eclipse.ditto.signals.commands.common;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
 
 /**
  * Abstract base implementation for responses to {@link CommonCommand}s.

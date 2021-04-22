@@ -16,7 +16,7 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThing;

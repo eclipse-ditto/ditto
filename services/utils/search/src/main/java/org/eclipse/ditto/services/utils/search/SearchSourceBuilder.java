@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.search;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -26,8 +26,8 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.rql.ParserException;
@@ -74,7 +74,7 @@ public final class SearchSourceBuilder {
      * @throws java.lang.NullPointerException if required fields are not set.
      * @throws org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException if the sort option is
      * invalid.
-     * @throws org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException if the filter expression is
+     * @throws org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException if the filter expression is
      * invalid.
      */
     public SearchSource build() {

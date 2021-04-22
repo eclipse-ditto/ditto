@@ -24,10 +24,10 @@ import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.ConditionChecker;
-import org.eclipse.ditto.model.base.common.Validator;
-import org.eclipse.ditto.model.base.entity.validation.NoControlCharactersNoSlashesValidator;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.common.ConditionChecker;
+import org.eclipse.ditto.base.model.common.Validator;
+import org.eclipse.ditto.base.model.entity.validation.NoControlCharactersNoSlashesValidator;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 
 /**

@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -23,7 +23,7 @@ import javax.annotation.concurrent.Immutable;
 import org.bson.BsonRegularExpression;
 import org.bson.BsonString;
 import org.bson.Document;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
 
 import akka.contrib.persistence.mongodb.JournallingFieldNames$;
 

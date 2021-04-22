@@ -14,8 +14,8 @@ package org.eclipse.ditto.services.gateway.util.config;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.base.config.DittoServiceConfig;
-import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
+import org.eclipse.ditto.base.service.config.DittoServiceConfig;
+import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.CloudEventsConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.DefaultClaimMessageConfig;

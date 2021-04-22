@@ -17,7 +17,7 @@ import java.util.concurrent.CompletableFuture;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
-import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;

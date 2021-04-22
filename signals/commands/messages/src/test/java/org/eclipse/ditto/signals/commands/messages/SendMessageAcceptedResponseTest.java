@@ -14,7 +14,7 @@ package org.eclipse.ditto.signals.commands.messages;
 
 import java.util.UUID;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.things.model.ThingId;

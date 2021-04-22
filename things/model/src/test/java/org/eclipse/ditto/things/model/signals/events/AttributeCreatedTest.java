@@ -21,9 +21,9 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.signals.events.base.Event;
-import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

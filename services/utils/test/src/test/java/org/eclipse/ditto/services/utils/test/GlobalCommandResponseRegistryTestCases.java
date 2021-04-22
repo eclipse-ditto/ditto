@@ -25,11 +25,11 @@ import javax.annotation.concurrent.Immutable;
 
 import org.atteo.classindex.ClassIndex;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.signals.acks.base.Acknowledgement;
-import org.eclipse.ditto.signals.acks.base.Acknowledgements;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.junit.Before;
 import org.junit.Test;
 import org.mutabilitydetector.internal.javassist.Modifier;

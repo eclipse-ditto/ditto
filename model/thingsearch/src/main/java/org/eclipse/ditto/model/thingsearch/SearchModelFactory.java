@@ -13,8 +13,8 @@
 package org.eclipse.ditto.model.thingsearch;
 
 import static java.util.Objects.requireNonNull;
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
 import java.util.Collections;
 import java.util.List;
@@ -81,7 +81,7 @@ public final class SearchModelFactory {
      *
      * @param jsonString provides the initial values of the result;
      * @return the new immutable initialised {@code SearchResult}.
-     * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code jsonString} cannot be parsed to {@code
+     * @throws org.eclipse.ditto.base.model.exceptions.DittoJsonException if {@code jsonString} cannot be parsed to {@code
      * SearchResult}.
      */
     public static SearchResult newSearchResult(final String jsonString) {

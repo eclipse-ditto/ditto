@@ -12,14 +12,14 @@
  */
 package org.eclipse.ditto.things.model;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * A FeatureDefinition is a list of fully qualified {@link DefinitionIdentifier}s.
@@ -54,7 +54,7 @@ public interface FeatureDefinition extends Iterable<DefinitionIdentifier>, Jsoni
      * @param jsonArrayAsString provides the initial values of the result.
      * @return the new immutable initialised {@code FeatureDefinition}.
      * @throws NullPointerException if {@code jsonArrayAsString} is {@code null}.
-     * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code jsonArrayAsString} cannot be parsed
+     * @throws org.eclipse.ditto.base.model.exceptions.DittoJsonException if {@code jsonArrayAsString} cannot be parsed
      * to {@code FeatureDefinition}.
      * @throws FeatureDefinitionEmptyException if the JSON array is empty.
      * @throws DefinitionIdentifierInvalidException if any Identifier of the JSON array is invalid.

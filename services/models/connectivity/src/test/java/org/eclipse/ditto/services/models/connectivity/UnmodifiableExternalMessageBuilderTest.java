@@ -18,7 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.junit.Test;
 import org.mockito.Mockito;

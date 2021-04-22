@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.things.model;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -38,7 +38,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.SerializationContext;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 /**
  * An immutable implementation of {@link FeatureProperties}.
@@ -70,7 +70,7 @@ final class ImmutableFeatureProperties implements FeatureProperties {
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws JsonKeyInvalidException if a property name in the passed {@code jsonObject} was not valid
      * according to pattern
-     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static FeatureProperties of(final JsonObject jsonObject) {
         checkNotNull(jsonObject, "JSON object");

@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.internal.ssl;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.security.KeyStore;
 import java.security.PrivateKey;
@@ -20,7 +20,7 @@ import java.security.cert.Certificate;
 
 import javax.net.ssl.KeyManagerFactory;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.CredentialsVisitor;
 import org.eclipse.ditto.model.connectivity.SshPublicKeyCredentials;

@@ -199,6 +199,7 @@
         <module>services</module>
         <module>policies</module>
         <module>things</module>
+        <module>base</module>
     </modules>
 
     <properties>

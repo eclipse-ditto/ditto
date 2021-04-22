@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.policies.model;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 import java.util.regex.Pattern;
@@ -21,9 +21,9 @@ import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.common.Placeholders;
-import org.eclipse.ditto.model.base.common.Validator;
-import org.eclipse.ditto.model.base.entity.validation.NoControlCharactersValidator;
+import org.eclipse.ditto.base.model.common.Placeholders;
+import org.eclipse.ditto.base.model.common.Validator;
+import org.eclipse.ditto.base.model.entity.validation.NoControlCharactersValidator;
 
 /**
  * An immutable implementation of {@link SubjectId}.

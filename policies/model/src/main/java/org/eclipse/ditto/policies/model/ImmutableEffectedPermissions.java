@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.policies.model;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -31,7 +31,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 /**
  * An immutable implementation of {@link EffectedPermissions}.
@@ -88,7 +88,7 @@ final class ImmutableEffectedPermissions implements EffectedPermissions {
      * @param jsonObject a JSON object which provides the data for the EffectedPermissions to be created.
      * @return a new EffectedPermissions which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if the passed in {@code jsonObject} was not in the expected 'EffectedPermissions'
+     * @throws org.eclipse.ditto.base.model.exceptions.DittoJsonException if the passed in {@code jsonObject} was not in the expected 'EffectedPermissions'
      * format.
      */
     public static EffectedPermissions fromJson(final JsonObject jsonObject) {

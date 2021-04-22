@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.cache;
 
-import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_2;
+import static org.eclipse.ditto.base.model.json.JsonSchemaVersion.V_2;
 
 import java.util.Objects;
 
@@ -21,7 +21,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * Concierge-service internal command signaling that the cache for a specific {@link CacheKey} should be invalidated.

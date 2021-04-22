@@ -12,14 +12,14 @@
  */
 package org.eclipse.ditto.protocol.mapper;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.Payload;
 import org.eclipse.ditto.protocol.PayloadBuilder;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.TopicPathBuilder;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.base.model.signals.Signal;
 
 /**
  * Base class for all {@link SignalMapper}s. Constructs an {@link Adaptable} with data common to all signals

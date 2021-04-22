@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.io.IOException;
 import java.net.URI;

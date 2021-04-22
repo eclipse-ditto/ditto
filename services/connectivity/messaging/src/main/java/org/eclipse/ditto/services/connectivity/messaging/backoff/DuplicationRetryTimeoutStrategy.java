@@ -13,7 +13,7 @@
 
 package org.eclipse.ditto.services.connectivity.messaging.backoff;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkArgument;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkArgument;
 
 import java.time.Duration;
 import java.util.function.Predicate;

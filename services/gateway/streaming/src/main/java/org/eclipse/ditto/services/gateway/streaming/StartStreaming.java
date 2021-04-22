@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.streaming;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -23,7 +23,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 
@@ -86,7 +86,7 @@ public final class StartStreaming implements StreamControlMessage {
     }
 
     /**
-     * @return the List of namespaces for which {@link org.eclipse.ditto.signals.base.Signal}s should be emitted to the
+     * @return the List of namespaces for which {@link org.eclipse.ditto.base.model.signals.Signal}s should be emitted to the
      * stream
      */
     public List<String> getNamespaces() {

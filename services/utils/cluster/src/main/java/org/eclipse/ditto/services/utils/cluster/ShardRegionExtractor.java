@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.cluster;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
 import java.util.Collection;
@@ -24,10 +24,10 @@ import java.util.stream.IntStream;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.entity.id.WithEntityId;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.signals.base.JsonParsable;
-import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.base.model.signals.JsonParsable;
+import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
 
 import akka.actor.ActorSystem;
 import akka.cluster.sharding.ShardRegion;

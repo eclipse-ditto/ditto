@@ -15,11 +15,11 @@ package org.eclipse.ditto.services.gateway.endpoints.actors;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.base.entity.type.EntityType;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.signals.base.SignalWithEntityId;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.junit.Test;
 
 import akka.http.javadsl.model.HttpMethods;

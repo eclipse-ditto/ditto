@@ -30,7 +30,7 @@
         <!-- ### Compile ### -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-model-base</artifactId>
+            <artifactId>ditto-base-model</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -53,7 +53,7 @@
         <!-- ### Testing ### -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-model-base</artifactId>
+            <artifactId>ditto-base-model</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>

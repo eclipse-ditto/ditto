@@ -17,7 +17,7 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 
 /**
  * Either a signal being sent represented by a future acknowledgement, or a dropped signal.

@@ -17,8 +17,8 @@ import java.util.function.Function;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.ConditionChecker;
-import org.eclipse.ditto.model.base.common.HttpStatus;
+import org.eclipse.ditto.base.model.common.ConditionChecker;
+import org.eclipse.ditto.base.model.common.HttpStatus;
 
 import akka.NotUsed;
 import akka.http.javadsl.model.ContentType;

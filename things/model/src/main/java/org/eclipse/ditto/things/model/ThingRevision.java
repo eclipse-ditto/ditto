@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.things.model;
 
-import org.eclipse.ditto.model.base.entity.Revision;
+import org.eclipse.ditto.base.model.entity.Revision;
 
 /**
  * Represents the current revision of a Thing.

@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.validation;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 
 /**
  * Validates the given host.

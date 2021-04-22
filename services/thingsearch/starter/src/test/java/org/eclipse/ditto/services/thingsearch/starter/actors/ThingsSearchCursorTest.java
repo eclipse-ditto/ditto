@@ -25,7 +25,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.thingsearch.SortOption;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;

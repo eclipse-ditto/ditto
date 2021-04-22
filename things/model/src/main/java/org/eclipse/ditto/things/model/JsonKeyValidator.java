@@ -18,8 +18,8 @@ import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.Validator;
-import org.eclipse.ditto.model.base.entity.validation.NoControlCharactersNoSlashesValidator;
+import org.eclipse.ditto.base.model.common.Validator;
+import org.eclipse.ditto.base.model.entity.validation.NoControlCharactersNoSlashesValidator;
 
 /**
  * Validates keys of {@link JsonObject}s or {@link JsonPointer}s.
@@ -36,7 +36,7 @@ final class JsonKeyValidator {
      * @param jsonObject the {@link JsonObject} that is validated
      * @return the same instance of {@link JsonObject} if validation was successful
      * @throws JsonKeyInvalidException if a property name in the passed {@code jsonObject} was not valid according to
-     * pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * pattern {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     static JsonObject validateJsonKeys(final JsonObject jsonObject) {
         for (final JsonField jsonField : jsonObject) {
@@ -56,7 +56,7 @@ final class JsonKeyValidator {
      * @param pointer the {@link JsonPointer} that is validated
      * @return the same {@link JsonPointer} if validation was successful
      * @throws JsonKeyInvalidException if a key in the passed {@code jsonPointer} was not valid according to
-     * pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * pattern {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     static JsonPointer validate(final JsonPointer pointer) {
         pointer.forEach(key -> {

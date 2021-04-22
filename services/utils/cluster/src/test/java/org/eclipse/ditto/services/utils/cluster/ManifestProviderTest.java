@@ -17,13 +17,13 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.commands.CommandNotSupportedException;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.junit.Before;

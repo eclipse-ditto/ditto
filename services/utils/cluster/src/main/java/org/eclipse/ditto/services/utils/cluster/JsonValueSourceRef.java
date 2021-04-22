@@ -18,7 +18,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;

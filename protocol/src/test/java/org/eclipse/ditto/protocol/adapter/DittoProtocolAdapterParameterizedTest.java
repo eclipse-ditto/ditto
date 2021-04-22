@@ -33,14 +33,14 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.UnknownChannelException;
 import org.eclipse.ditto.protocol.adapter.provider.AcknowledgementAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.provider.PolicyCommandAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.provider.ThingCommandAdapterProvider;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;

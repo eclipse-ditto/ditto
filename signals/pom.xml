@@ -27,9 +27,6 @@
     <name>Eclipse Ditto :: Signals</name>
 
     <modules>
-        <module>acks</module>
-        <module>announcements</module>
-        <module>base</module>
         <module>commands</module>
         <module>events</module>
     </modules>
@@ -47,7 +44,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-model-base</artifactId>
+            <artifactId>ditto-base-model</artifactId>
         </dependency>
 
         <!-- ### Provided ### -->
@@ -71,7 +68,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-model-base</artifactId>
+            <artifactId>ditto-base-model</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>

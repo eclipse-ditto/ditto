@@ -13,7 +13,7 @@
 package org.eclipse.ditto.protocol.adapter;
 
 import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.base.model.signals.Signal;
 
 /**
  * Resolves the matching {@link Adapter} for the given {@link org.eclipse.ditto.protocol.Adaptable}.

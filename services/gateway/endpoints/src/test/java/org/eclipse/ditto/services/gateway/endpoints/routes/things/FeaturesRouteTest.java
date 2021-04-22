@@ -17,7 +17,7 @@ import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.KNOWN_THING_ID;
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.UNKNOWN_PATH;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.FeatureDefinition;
 import org.eclipse.ditto.things.model.FeatureProperties;

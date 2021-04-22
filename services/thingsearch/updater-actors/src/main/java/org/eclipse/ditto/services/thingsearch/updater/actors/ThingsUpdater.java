@@ -22,9 +22,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.policies.api.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.streaming.IdentifiableStreamingMessage;
@@ -39,9 +39,9 @@ import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsRespons
 import org.eclipse.ditto.services.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.services.utils.pubsub.DistributedSub;
-import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
+import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.signals.events.thingsearch.ThingsOutOfSync;
 

@@ -12,10 +12,10 @@
  */
 package org.eclipse.ditto.signals.commands.connectivity.modify;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.WithConnectionId;
-import org.eclipse.ditto.signals.base.SignalWithEntityId;
-import org.eclipse.ditto.signals.base.WithOptionalEntity;
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
 
 /**

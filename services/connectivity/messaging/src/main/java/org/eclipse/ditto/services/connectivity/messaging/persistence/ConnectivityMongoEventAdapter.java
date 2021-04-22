@@ -19,10 +19,10 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.utils.persistence.mongo.AbstractMongoEventAdapter;
-import org.eclipse.ditto.signals.base.JsonParsable;
-import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
-import org.eclipse.ditto.signals.events.base.EventRegistry;
-import org.eclipse.ditto.signals.events.base.GlobalEventRegistry;
+import org.eclipse.ditto.base.model.signals.JsonParsable;
+import org.eclipse.ditto.base.model.signals.events.EventJsonDeserializer;
+import org.eclipse.ditto.base.model.signals.events.EventRegistry;
+import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionCreated;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionModified;
 import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;

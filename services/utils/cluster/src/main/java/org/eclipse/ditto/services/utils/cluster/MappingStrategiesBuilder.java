@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.cluster;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -22,8 +22,8 @@ import java.util.function.Function;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.services.utils.akka.PingCommand;
 import org.eclipse.ditto.services.utils.akka.PingCommandResponse;
@@ -31,13 +31,13 @@ import org.eclipse.ditto.services.utils.akka.SimpleCommand;
 import org.eclipse.ditto.services.utils.akka.SimpleCommandResponse;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
-import org.eclipse.ditto.signals.acks.base.Acknowledgement;
-import org.eclipse.ditto.signals.acks.base.Acknowledgements;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.things.model.signals.acks.ThingAcknowledgementFactory;
 import org.eclipse.ditto.things.model.signals.acks.ThingAcknowledgementsFactory;
-import org.eclipse.ditto.signals.base.JsonParsable;
-import org.eclipse.ditto.signals.base.JsonParsableRegistry;
-import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
+import org.eclipse.ditto.base.model.signals.JsonParsable;
+import org.eclipse.ditto.base.model.signals.JsonParsableRegistry;
+import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
 
 /**
  * A mutable builder with a fluent API for a Map containing mapping strategies. This builder mainly exists to eliminate

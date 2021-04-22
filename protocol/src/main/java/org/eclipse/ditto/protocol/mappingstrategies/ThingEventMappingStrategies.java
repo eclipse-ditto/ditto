@@ -19,7 +19,7 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonMissingFieldException;
-import org.eclipse.ditto.model.base.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableMapper;
 import org.eclipse.ditto.protocol.Payload;

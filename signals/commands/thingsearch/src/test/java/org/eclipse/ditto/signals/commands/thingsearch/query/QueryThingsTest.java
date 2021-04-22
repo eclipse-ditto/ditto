@@ -22,7 +22,7 @@ import java.util.Arrays;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.junit.Test;
 

@@ -14,11 +14,11 @@ package org.eclipse.ditto.services.concierge.enforcement;
 
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.enforcers.Enforcer;
-import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
-import org.eclipse.ditto.signals.commands.base.ErrorResponse;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
 
 import akka.actor.ActorRef;
 import akka.pattern.AskTimeoutException;

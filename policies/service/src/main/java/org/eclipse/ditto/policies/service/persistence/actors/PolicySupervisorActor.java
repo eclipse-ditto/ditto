@@ -17,11 +17,11 @@ import java.nio.charset.StandardCharsets;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.services.base.actors.ShutdownBehaviour;
-import org.eclipse.ditto.services.base.config.supervision.ExponentialBackOffConfig;
+import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
+import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.policies.service.common.config.DittoPoliciesConfig;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;

@@ -19,7 +19,7 @@ import java.time.Duration;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.connectivity.TestConstants;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.junit.Test;

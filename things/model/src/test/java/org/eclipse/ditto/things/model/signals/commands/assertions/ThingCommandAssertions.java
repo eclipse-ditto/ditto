@@ -12,9 +12,9 @@
  */
 package org.eclipse.ditto.things.model.signals.commands.assertions;
 
-import org.eclipse.ditto.model.base.assertions.DittoBaseAssertions;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
-import org.eclipse.ditto.signals.commands.base.assertions.CommandResponseAssert;
+import org.eclipse.ditto.base.model.assertions.DittoBaseAssertions;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.assertions.CommandResponseAssert;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommandResponse;
@@ -51,7 +51,7 @@ public class ThingCommandAssertions extends DittoBaseAssertions {
     }
 
     /**
-     * Returns an Assert for {@link org.eclipse.ditto.signals.commands.base.CommandResponse}s.
+     * Returns an Assert for {@link org.eclipse.ditto.base.model.signals.commands.CommandResponse}s.
      *
      * @param commandResponse the command response to be checked.
      * @return the Assert.

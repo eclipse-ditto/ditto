@@ -16,8 +16,7 @@ import java.util.EnumSet;
 import java.util.Set;
 
 import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.protocol.adapter.Adapter;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.base.model.signals.events.Event;
 
 /**
  * An {@code Adapter} maps objects of type {@link T} to an {@link org.eclipse.ditto.protocol.Adaptable} and vice versa.

@@ -15,12 +15,12 @@ package org.eclipse.ditto.policies.model.signals.commands.actions;
 import java.util.Set;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.SubjectId;
-import org.eclipse.ditto.signals.base.WithOptionalEntity;
+import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyActionFailedException;
 
@@ -63,7 +63,7 @@ public interface PolicyActionCommand<T extends PolicyActionCommand<T>> extends P
 
     /**
      * Get the exception for when a policy action command is not applicable (after having invoked
-     * {@link #isApplicable(org.eclipse.ditto.policies.model.PolicyEntry, org.eclipse.ditto.model.base.auth.AuthorizationContext)}) to the designated policy entry.
+     * {@link #isApplicable(org.eclipse.ditto.policies.model.PolicyEntry, org.eclipse.ditto.base.model.auth.AuthorizationContext)}) to the designated policy entry.
      *
      * @param dittoHeaders headers of the exception.
      * @return the exception for when a policy action command is not applicable.

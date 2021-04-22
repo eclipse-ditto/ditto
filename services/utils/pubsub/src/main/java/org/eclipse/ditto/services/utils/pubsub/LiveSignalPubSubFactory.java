@@ -19,8 +19,8 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.ReadSubjectExtractor;
-import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.base.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorRefFactory;

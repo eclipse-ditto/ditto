@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.protocol.Adaptable;

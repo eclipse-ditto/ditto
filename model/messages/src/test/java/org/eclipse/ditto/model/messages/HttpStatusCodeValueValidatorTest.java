@@ -19,10 +19,10 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
-import org.eclipse.ditto.model.base.common.HttpStatusCodeOutOfRangeException;
-import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
-import org.eclipse.ditto.model.base.headers.HeaderDefinition;
-import org.eclipse.ditto.model.base.headers.ValueValidator;
+import org.eclipse.ditto.base.model.common.HttpStatusCodeOutOfRangeException;
+import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
+import org.eclipse.ditto.base.model.headers.HeaderDefinition;
+import org.eclipse.ditto.base.model.headers.ValueValidator;
 import org.junit.Before;
 import org.junit.Test;
 

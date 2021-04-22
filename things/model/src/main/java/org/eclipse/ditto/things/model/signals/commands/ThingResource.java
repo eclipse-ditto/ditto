@@ -13,7 +13,7 @@
 package org.eclipse.ditto.things.model.signals.commands;
 
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Optional;
 
@@ -23,7 +23,7 @@ import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.signals.commands.base.ResourceMap;
+import org.eclipse.ditto.base.model.signals.commands.ResourceMap;
 
 /**
  * Defines all valid thing resources and provides a {@link #from(org.eclipse.ditto.json.JsonPointer)} method to

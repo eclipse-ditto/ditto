@@ -14,10 +14,10 @@ package org.eclipse.ditto.things.model.signals.commands.assertions;
 
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.signals.base.assertions.WithDittoHeadersChecker;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.assertions.WithDittoHeadersChecker;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 
 /**

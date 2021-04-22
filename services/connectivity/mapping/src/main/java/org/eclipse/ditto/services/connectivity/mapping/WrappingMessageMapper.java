@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collection;
 import java.util.List;
@@ -22,7 +22,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.services.connectivity.config.mapping.MapperLimitsConfig;

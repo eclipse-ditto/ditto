@@ -18,7 +18,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.MessagePath;

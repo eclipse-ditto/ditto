@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.concierge.starter.actors;
 
 import java.util.Optional;
 
-import org.eclipse.ditto.services.base.actors.AbstractDittoRootActorTest;
+import org.eclipse.ditto.base.service.actors.AbstractDittoRootActorTest;
 import org.eclipse.ditto.services.concierge.common.ConciergeConfig;
 import org.eclipse.ditto.services.concierge.common.DittoConciergeConfig;
 import org.eclipse.ditto.services.concierge.starter.proxy.DefaultEnforcerActorFactory;

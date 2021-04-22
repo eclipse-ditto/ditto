@@ -18,9 +18,9 @@ import java.time.Duration;
 import java.util.List;
 
 import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.SubscriptionTimeoutException;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;

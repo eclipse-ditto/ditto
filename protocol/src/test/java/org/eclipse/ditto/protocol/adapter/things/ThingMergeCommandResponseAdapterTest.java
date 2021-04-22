@@ -15,9 +15,9 @@ package org.eclipse.ditto.protocol.adapter.things;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocol.LiveTwinTest;

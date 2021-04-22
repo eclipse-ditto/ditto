@@ -21,7 +21,7 @@ import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.base.model.signals.Signal;
 
 import akka.actor.ActorRef;
 

@@ -16,9 +16,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.signals.base.WithFeatureId;
-import org.eclipse.ditto.signals.commands.base.AbstractCommandToExceptionRegistry;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.signals.WithFeatureId;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandToExceptionRegistry;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteAttribute;

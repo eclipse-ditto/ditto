@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.cluster;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collection;
 import java.util.Map;
@@ -23,9 +23,9 @@ import java.util.Set;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.services.utils.akka.AkkaClassLoader;
-import org.eclipse.ditto.signals.base.JsonParsable;
+import org.eclipse.ditto.base.model.signals.JsonParsable;
 
 import com.typesafe.config.Config;
 

@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.protocol;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -26,10 +26,10 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.DittoConstants;
-import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
+import org.eclipse.ditto.base.model.common.DittoConstants;
+import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.protocol.adapter.UnknownTopicPathException;

@@ -14,7 +14,7 @@ package org.eclipse.ditto.things.api;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.FeatureProperties;

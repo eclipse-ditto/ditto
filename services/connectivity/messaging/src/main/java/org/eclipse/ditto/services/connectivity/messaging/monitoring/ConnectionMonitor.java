@@ -22,13 +22,13 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.ConnectionMetricsCounter;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.base.model.signals.Signal;
 
 /**
  * An abstraction for connection monitoring that currently encapsulates metrics and logging into one interface.
@@ -361,12 +361,12 @@ public interface ConnectionMonitor {
 
     /**
      * Wraps the execution of {@code runnable} and uses the given callbacks to inform about success, failure (if a
-     * {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException} happened) or exception (any other {@link java.lang.Exception})
+     * {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException} happened) or exception (any other {@link java.lang.Exception})
      * occured during execution.
      *
      * @param runnable that will be executed.
      * @param onSuccess runnable that will be called if the execution succeeded without failure.
-     * @param onFailure consumer that will be called if a failure, caused by a {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException}, happened.
+     * @param onFailure consumer that will be called if a failure, caused by a {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException}, happened.
      * @param onException consumer that will be called if an exception, caused by any other {@link java.lang.Exception}, happened.
      */
     static void wrapExecution(final Runnable runnable,
@@ -387,12 +387,12 @@ public interface ConnectionMonitor {
 
     /**
      * Wraps the execution of {@code supplier} and uses the given callbacks to inform about success, failure (if a
-     * {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException} happened) or exception (any other {@link java.lang.Exception})
+     * {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException} happened) or exception (any other {@link java.lang.Exception})
      * occured during execution.
      *
      * @param supplier that will be executed.
      * @param onSuccess runnable that will be called if the execution succeeded without failure.
-     * @param onFailure consumer that will be called if a failure, caused by a {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException}, happened.
+     * @param onFailure consumer that will be called if a failure, caused by a {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException}, happened.
      * @param onException consumer that will be called if an exception, caused by any other {@link java.lang.Exception}, happened.
      * @param <T> type of value the supplier returns.
      * @return the value returned by {@code supplier}.
@@ -426,8 +426,8 @@ public interface ConnectionMonitor {
          * @param supplier the supplier that will be called.
          * @param <T> type of value that the supplier will return.
          * @return the value returned by {@code supplier}.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoRuntimeException if the execution of {@code supplier}
-         * throws a {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException}.
+         * @throws org.eclipse.ditto.base.model.exceptions.DittoRuntimeException if the execution of {@code supplier}
+         * throws a {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException}.
          * throws java.lang.Exception if the execution of {@code supplier} throws an {@link java.lang.Exception}.
          */
         <T> T execute(final Supplier<T> supplier);
@@ -437,8 +437,8 @@ public interface ConnectionMonitor {
          * will be rethrown.
          *
          * @param runnable the runnable that will be called.
-         * @throws org.eclipse.ditto.model.base.exceptions.DittoRuntimeException if the execution of {@code runnable}
-         * throws a {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException}.
+         * @throws org.eclipse.ditto.base.model.exceptions.DittoRuntimeException if the execution of {@code runnable}
+         * throws a {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException}.
          * throws java.lang.Exception if the execution of {@code runnable} throws an {@link java.lang.Exception}.
          */
         void execute(final Runnable runnable);

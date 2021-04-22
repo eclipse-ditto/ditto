@@ -25,7 +25,7 @@ public interface SignalMapper<T> {
     /**
      * Is called during the mapping from a signal to an {@link Adaptable}.
      *
-     * @param signal the source {@link org.eclipse.ditto.signals.base.Signal} from which to map an {@link Adaptable}
+     * @param signal the source {@link org.eclipse.ditto.base.model.signals.Signal} from which to map an {@link Adaptable}
      * @param channel the channel used to send the signal
      * @return an {@link Adaptable}
      */

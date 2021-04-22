@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;

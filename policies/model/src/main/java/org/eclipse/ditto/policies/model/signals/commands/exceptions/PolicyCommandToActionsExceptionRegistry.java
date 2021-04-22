@@ -16,9 +16,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.signals.commands.base.AbstractCommandToExceptionRegistry;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandToExceptionRegistry;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.actions.DeactivateTokenIntegration;

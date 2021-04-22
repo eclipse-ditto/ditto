@@ -18,10 +18,10 @@ import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.concurrent.ThreadSafe;
 
-import org.eclipse.ditto.model.base.common.BinaryValidationResult;
+import org.eclipse.ditto.base.model.common.BinaryValidationResult;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.services.utils.jwt.JjwtDeserializer;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationFailedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

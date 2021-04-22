@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.util.config.streaming;
 
-import org.eclipse.ditto.services.base.config.ThrottlingConfig;
+import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 
 /**
  * Provides configuration settings of SSE.

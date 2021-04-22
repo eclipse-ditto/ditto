@@ -17,7 +17,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
+import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 
 /**
  * Abstract base class for entity id placeholders.

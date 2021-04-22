@@ -16,7 +16,7 @@ import static java.util.Objects.requireNonNull;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 
 /**
  * An {@link AdaptableBuilder} for building instances of {@link ImmutableAdaptable}.

@@ -13,7 +13,7 @@
 package org.eclipse.ditto.signals.commands.connectivity.query;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
-import static org.eclipse.ditto.signals.commands.base.assertions.CommandAssertions.assertThat;
+import static org.eclipse.ditto.base.model.signals.commands.assertions.CommandAssertions.assertThat;
 import static org.eclipse.ditto.signals.commands.connectivity.TestConstants.ID;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -26,14 +26,14 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.TestConstants.Metrics;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse.JsonFields;

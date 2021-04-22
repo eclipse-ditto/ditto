@@ -22,9 +22,9 @@ import java.util.Map;
 
 import org.assertj.core.api.SoftAssertions;
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Before;
 import org.junit.Test;

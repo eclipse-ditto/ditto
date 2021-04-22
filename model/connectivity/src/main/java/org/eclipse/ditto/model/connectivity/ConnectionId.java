@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -20,8 +20,8 @@ import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.entity.id.AbstractEntityId;
-import org.eclipse.ditto.model.base.entity.id.TypedEntityId;
+import org.eclipse.ditto.base.model.entity.id.AbstractEntityId;
+import org.eclipse.ditto.base.model.entity.id.TypedEntityId;
 
 /**
  * Java representation of a connection ID.

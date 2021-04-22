@@ -21,7 +21,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.model.enforcers.TestConstants;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;

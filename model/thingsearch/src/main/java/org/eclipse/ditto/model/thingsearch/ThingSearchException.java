@@ -13,7 +13,7 @@
 package org.eclipse.ditto.model.thingsearch;
 
 /**
- * Aggregates all {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException}s which are thrown by the Search
+ * Aggregates all {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException}s which are thrown by the Search
  * service.
  */
 public interface ThingSearchException {

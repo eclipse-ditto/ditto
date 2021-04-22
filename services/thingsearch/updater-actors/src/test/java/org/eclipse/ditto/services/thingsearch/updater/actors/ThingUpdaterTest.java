@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.thingsearch.updater.actors;
 import java.time.Instant;
 
 import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;

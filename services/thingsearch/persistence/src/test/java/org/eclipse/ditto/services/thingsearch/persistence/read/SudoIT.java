@@ -28,7 +28,7 @@ import org.eclipse.ditto.model.query.expression.FieldExpressionFactory;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
+import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.models.streaming.LowerBound;
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceReportResult;
 import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;

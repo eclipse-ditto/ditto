@@ -17,9 +17,9 @@ import java.util.Set;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.thingsearch.ThingSearchConstants;
-import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 
 /**
  * Base Interface for all commands which are understood by the Search service. Is aware of a command name (e.g.:

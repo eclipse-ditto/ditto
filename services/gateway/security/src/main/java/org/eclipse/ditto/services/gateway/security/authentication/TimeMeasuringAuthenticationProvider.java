@@ -12,22 +12,22 @@
  */
 package org.eclipse.ditto.services.gateway.security.authentication;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContextType;
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.auth.AuthorizationContextType;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
 import org.eclipse.ditto.services.utils.tracing.TracingTags;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationProviderUnavailableException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationProviderUnavailableException;
 
 import akka.http.javadsl.server.RequestContext;
 
@@ -138,7 +138,7 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
      * {@link GatewayAuthenticationProviderUnavailableException} with the given throwable as cause (Unwrapped in case
      * the throwable is of type {@link CompletionException}).
      *
-     * @param throwable the throwable to convert to a {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException}.
+     * @param throwable the throwable to convert to a {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException}.
      * @param dittoHeaders the built DittoHeaders of the request that caused the given throwable.
      * @return the converted exception.
      */

@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.models.thingsearch.query.filter;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.List;
 import java.util.stream.Collectors;

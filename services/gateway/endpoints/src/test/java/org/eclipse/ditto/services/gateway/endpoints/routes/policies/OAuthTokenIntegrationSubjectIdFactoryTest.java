@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.Set;
 
 import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.services.models.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.services.gateway.util.config.security.DefaultOAuthConfig;

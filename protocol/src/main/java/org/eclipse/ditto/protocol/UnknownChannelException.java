@@ -19,15 +19,15 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.JsonParsableException;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonParsableException;
 
 /**
  * Thrown if a {@link org.eclipse.ditto.protocol.TopicPath.Channel} is not supported in combination with the
- * provided {@link org.eclipse.ditto.signals.base.Signal}.
+ * provided {@link org.eclipse.ditto.base.model.signals.Signal}.
  * @since 1.1.0
  */
 @JsonParsableException(errorCode = UnknownChannelException.ERROR_CODE)

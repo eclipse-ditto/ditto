@@ -22,7 +22,7 @@ import java.util.function.BiFunction;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyConstants;
@@ -31,7 +31,7 @@ import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.utils.cache.CacheKey;
 import org.eclipse.ditto.services.utils.cache.CacheLookupContext;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
-import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;

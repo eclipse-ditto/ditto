@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.read;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DELETE_AT;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ID;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_MODIFIED;
@@ -39,7 +39,7 @@ import org.bson.BsonDocument;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.model.query.SortOption;
@@ -58,7 +58,7 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
 import org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.services.utils.persistence.mongo.indices.IndexInitializer;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayQueryTimeExceededException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayQueryTimeExceededException;
 import org.reactivestreams.Publisher;
 
 import com.mongodb.MongoExecutionTimeoutException;

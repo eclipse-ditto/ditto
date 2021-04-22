@@ -17,9 +17,9 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.JsonParsableEvent;
-import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonParsableEvent;
+import org.eclipse.ditto.base.model.signals.events.EventJsonDeserializer;
 
 /**
  * This event is emitted after all pages of a search subscription are sent.

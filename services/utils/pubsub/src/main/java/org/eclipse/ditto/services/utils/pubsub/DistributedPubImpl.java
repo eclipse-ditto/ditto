@@ -14,11 +14,11 @@ package org.eclipse.ditto.services.utils.pubsub;
 
 import java.util.Set;
 
-import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.services.utils.pubsub.actors.Publisher;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
-import org.eclipse.ditto.signals.base.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 
 import akka.actor.ActorRef;
 

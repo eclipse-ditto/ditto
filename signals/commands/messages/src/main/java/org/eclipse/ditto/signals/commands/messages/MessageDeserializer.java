@@ -16,7 +16,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
+import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageBuilder;
 import org.eclipse.ditto.model.messages.MessageHeaders;

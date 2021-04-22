@@ -24,7 +24,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.apache.kafka.common.errors.InvalidTopicException;
 import org.apache.kafka.common.internals.Topic;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionType;

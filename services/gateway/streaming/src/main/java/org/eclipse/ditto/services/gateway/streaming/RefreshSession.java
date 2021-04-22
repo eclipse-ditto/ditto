@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.gateway.streaming;
 
 import java.time.Instant;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 
 /**
  * Simple event which signals that a websocket session should be refreshed.

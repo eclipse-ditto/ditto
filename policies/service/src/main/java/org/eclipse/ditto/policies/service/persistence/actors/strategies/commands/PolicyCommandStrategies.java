@@ -21,7 +21,7 @@ import org.eclipse.ditto.services.utils.persistentactors.commands.AbstractComman
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
-import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 

@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.things.model;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -62,7 +62,7 @@ public final class AttributesModelFactory {
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws JsonPointerInvalidException if an attribute name in the contained {@code jsonObject} was not valid
      * according to pattern
-     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static Attributes newAttributes(final JsonObject jsonObject) {
         checkNotNull(jsonObject, "JSON object for initialization");
@@ -80,7 +80,7 @@ public final class AttributesModelFactory {
      *
      * @param jsonString provides the initial values of the result;
      * @return the new immutable initialised {@code Attributes}.
-     * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code jsonString} cannot be parsed to {@code
+     * @throws org.eclipse.ditto.base.model.exceptions.DittoJsonException if {@code jsonString} cannot be parsed to {@code
      * Attributes}.
      */
     public static Attributes newAttributes(final String jsonString) {
@@ -114,7 +114,7 @@ public final class AttributesModelFactory {
      * @param jsonPointer {@code jsonPointer} that is validated
      * @return the same {@code jsonPointer} if validation was successful
      * @throws JsonKeyInvalidException if {@code jsonPointer} was not valid according to
-     * pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * pattern {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      * @since 1.2.0
      */
     public static JsonPointer validateAttributePointer(final JsonPointer jsonPointer) {
@@ -126,7 +126,7 @@ public final class AttributesModelFactory {
      *
      * @param jsonObject {@code jsonObject} that is validated
      * @throws JsonKeyInvalidException if {@code jsonObject} was not valid according to
-     * pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * pattern {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      * @since 1.3.0
      */
     public static void validateAttributeKeys(final JsonObject jsonObject) {

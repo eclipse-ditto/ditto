@@ -13,7 +13,7 @@
 package org.eclipse.ditto.protocol.adapter.provider;
 
 import org.eclipse.ditto.protocol.adapter.Adapter;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.base.model.signals.events.Event;
 
 /**
  * Interface providing the event adapter.

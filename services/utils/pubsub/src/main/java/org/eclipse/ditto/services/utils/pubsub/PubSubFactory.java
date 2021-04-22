@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.pubsub;
 
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.base.model.signals.Signal;
 
 /**
  * Interface for pub-sub factory.

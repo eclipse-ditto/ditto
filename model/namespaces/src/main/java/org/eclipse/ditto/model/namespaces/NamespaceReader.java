@@ -14,8 +14,8 @@ package org.eclipse.ditto.model.namespaces;
 
 import java.util.Optional;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 
 /**
  * A reader which provides functionality to parse namespaces.

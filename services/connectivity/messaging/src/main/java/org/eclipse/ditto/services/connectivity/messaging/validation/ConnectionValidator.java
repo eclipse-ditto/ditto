@@ -26,12 +26,12 @@ import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabelInvalidException;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
-import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
+import org.eclipse.ditto.base.model.acks.AcknowledgementLabelInvalidException;
+import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotUniqueException;
+import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
@@ -178,7 +178,7 @@ public final class ConnectionValidator {
      * @param connection the connection to validate.
      * @param dittoHeaders headers of the command that triggered the connection validation.
      * @param actorSystem the ActorSystem to use.
-     * @throws org.eclipse.ditto.model.base.exceptions.DittoRuntimeException if the connection has errors.
+     * @throws org.eclipse.ditto.base.model.exceptions.DittoRuntimeException if the connection has errors.
      * @throws java.lang.IllegalStateException if the connection type is not known.
      */
     void validate(final Connection connection, final DittoHeaders dittoHeaders, final ActorSystem actorSystem) {

@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.gateway.security.authentication;
 
 import java.util.List;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 
 /**
  * Responsible for aggregating the reasons for failure of multiple failed {@link AuthenticationResult}s to a single

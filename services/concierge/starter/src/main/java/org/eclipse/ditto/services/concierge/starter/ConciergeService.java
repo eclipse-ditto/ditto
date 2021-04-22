@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.concierge.starter;
 
-import org.eclipse.ditto.services.base.DittoService;
+import org.eclipse.ditto.base.service.DittoService;
 import org.eclipse.ditto.services.concierge.common.ConciergeConfig;
 import org.eclipse.ditto.services.concierge.common.DittoConciergeConfig;
 import org.eclipse.ditto.services.concierge.starter.actors.ConciergeRootActor;

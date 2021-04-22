@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.utils.cache;
 
 import java.util.Optional;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
 
 /**
  * Entity ID together with resource type.

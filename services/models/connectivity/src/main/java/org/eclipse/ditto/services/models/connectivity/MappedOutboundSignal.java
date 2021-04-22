@@ -18,10 +18,10 @@ import java.util.function.Predicate;
 
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.base.model.signals.Signal;
 
 /**
  * Represent an outbound signal that was mapped to an external message. It wraps the original signal, the mapped

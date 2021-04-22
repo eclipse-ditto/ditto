@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
 import java.util.HashMap;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 
 /**

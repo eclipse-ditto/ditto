@@ -17,8 +17,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 
-import org.eclipse.ditto.model.base.common.ByteBufferUtils;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.common.ByteBufferUtils;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.AbstractMqttClientActorTest;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;

@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.health;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 
@@ -23,7 +23,7 @@ import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * A StatusDetailMessage contains a {@link Level} (INFO, WARN or ERROR) associated with a {@code message}.

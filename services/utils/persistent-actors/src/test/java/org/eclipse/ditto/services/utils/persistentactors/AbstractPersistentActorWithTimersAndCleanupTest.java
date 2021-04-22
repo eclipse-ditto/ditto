@@ -21,10 +21,10 @@ import java.time.Duration;
 import java.util.UUID;
 import java.util.stream.IntStream;
 
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.base.entity.type.EntityType;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.type.EntityType;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupCommandResponse;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;

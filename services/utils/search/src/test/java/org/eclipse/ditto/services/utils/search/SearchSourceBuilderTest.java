@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.services.utils.search;
 
-import org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
 import org.junit.After;
 import org.junit.Test;

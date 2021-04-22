@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThingResponse;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.AbstractWriteModel;
@@ -30,7 +30,7 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.WriteResultAndErrors;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
-import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
+import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
 
 import com.mongodb.ErrorCategory;
 import com.mongodb.bulk.BulkWriteError;

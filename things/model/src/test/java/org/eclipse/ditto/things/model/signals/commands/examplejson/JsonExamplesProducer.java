@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.things.model.signals.commands.examplejson;
 
-import static org.eclipse.ditto.model.base.auth.AuthorizationModelFactory.newAuthSubject;
+import static org.eclipse.ditto.base.model.auth.AuthorizationModelFactory.newAuthSubject;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -26,11 +26,11 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;

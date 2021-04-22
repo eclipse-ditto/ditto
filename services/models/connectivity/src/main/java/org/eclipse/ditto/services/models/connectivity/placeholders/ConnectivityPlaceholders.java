@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.models.connectivity.placeholders;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.services.models.placeholders.Placeholder;
 
 public final class ConnectivityPlaceholders {

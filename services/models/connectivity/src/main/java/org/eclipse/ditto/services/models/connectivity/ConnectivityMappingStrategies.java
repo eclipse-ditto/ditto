@@ -17,7 +17,7 @@ import java.util.Map;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
@@ -27,11 +27,11 @@ import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.things.api.ThingsMappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
-import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
-import org.eclipse.ditto.signals.base.JsonParsable;
-import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
-import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
-import org.eclipse.ditto.signals.events.base.GlobalEventRegistry;
+import org.eclipse.ditto.base.model.signals.GlobalErrorRegistry;
+import org.eclipse.ditto.base.model.signals.JsonParsable;
+import org.eclipse.ditto.base.model.signals.commands.GlobalCommandRegistry;
+import org.eclipse.ditto.base.model.signals.commands.GlobalCommandResponseRegistry;
+import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
 
 /**
  * {@link MappingStrategies} for the Connectivity service containing all {@link Jsonifiable} types known to this

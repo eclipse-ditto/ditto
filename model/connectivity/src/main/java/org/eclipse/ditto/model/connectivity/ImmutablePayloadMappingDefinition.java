@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -25,7 +25,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 /**
  * Immutable implementation of a {@link PayloadMappingDefinition}.

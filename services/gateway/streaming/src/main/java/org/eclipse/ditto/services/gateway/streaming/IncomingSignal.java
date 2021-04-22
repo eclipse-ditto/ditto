@@ -16,7 +16,7 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.base.model.signals.Signal;
 
 /**
  * Envelope of a signal to mark it as incoming for {@code StreamingSessionActor}.

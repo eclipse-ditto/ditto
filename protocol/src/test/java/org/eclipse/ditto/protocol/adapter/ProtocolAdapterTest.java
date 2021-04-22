@@ -13,8 +13,8 @@
 package org.eclipse.ditto.protocol.adapter;
 
 import org.assertj.core.api.AbstractObjectAssert;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 
@@ -24,7 +24,7 @@ import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 public interface ProtocolAdapterTest {
 
     /**
-     * Make equality assertions on {@link org.eclipse.ditto.model.base.headers.WithDittoHeaders} comparing only
+     * Make equality assertions on {@link org.eclipse.ditto.base.model.headers.WithDittoHeaders} comparing only
      * the external headers.
      *
      * @param actual a signal.
@@ -36,7 +36,7 @@ public interface ProtocolAdapterTest {
     }
 
     /**
-     * Assert for {@link org.eclipse.ditto.model.base.headers.WithDittoHeaders} comparing only the external headers.
+     * Assert for {@link org.eclipse.ditto.base.model.headers.WithDittoHeaders} comparing only the external headers.
      */
     final class WithFilteredHeadersAssert
             extends AbstractObjectAssert<WithFilteredHeadersAssert, DittoHeadersSettable<?>> {

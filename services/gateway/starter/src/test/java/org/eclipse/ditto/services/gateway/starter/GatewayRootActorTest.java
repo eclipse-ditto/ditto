@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.gateway.starter;
 
 import java.util.Map;
 
-import org.eclipse.ditto.services.base.actors.AbstractDittoRootActorTest;
+import org.eclipse.ditto.base.service.actors.AbstractDittoRootActorTest;
 import org.eclipse.ditto.services.gateway.util.config.DittoGatewayConfig;
 import org.eclipse.ditto.services.gateway.util.config.GatewayConfig;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;

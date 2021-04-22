@@ -14,7 +14,7 @@
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -33,10 +33,10 @@ import javax.annotation.Nullable;
 
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.things.model.Thing;

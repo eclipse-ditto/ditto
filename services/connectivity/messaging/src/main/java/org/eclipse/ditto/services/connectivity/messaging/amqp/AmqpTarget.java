@@ -18,7 +18,7 @@ import javax.jms.Destination;
 
 import org.apache.qpid.jms.JmsQueue;
 import org.apache.qpid.jms.JmsTopic;
-import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.services.connectivity.messaging.PublishTarget;
 
 /**

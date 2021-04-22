@@ -19,9 +19,9 @@ import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.model.base.headers.HeaderDefinition;
+import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.headers.HeaderDefinition;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;

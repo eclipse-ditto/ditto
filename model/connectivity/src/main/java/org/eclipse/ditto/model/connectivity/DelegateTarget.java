@@ -15,8 +15,8 @@ package org.eclipse.ditto.model.connectivity;
 import java.util.Objects;
 import java.util.Set;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 
 /**
  * Abstract class that delegates to an existing {@link Target}. Used to extend the default fields of a {@link Target}

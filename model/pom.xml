@@ -27,7 +27,6 @@
     <name>Eclipse Ditto :: Model</name>
 
     <modules>
-        <module>base</module>
         <module>connectivity</module>
         <module>devops</module>
         <module>messages</module>

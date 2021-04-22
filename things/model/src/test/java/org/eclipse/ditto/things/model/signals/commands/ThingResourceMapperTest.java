@@ -17,9 +17,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.signals.commands.base.exceptions.PathUnknownException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.PathUnknownException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;

@@ -414,7 +414,7 @@
 
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-model-base</artifactId>
+                <artifactId>ditto-base-model</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -492,22 +492,6 @@
                 <artifactId>ditto-model-acks</artifactId>
                 <version>${project.version}</version>
             </dependency>
-
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-signals-base</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-signals-acks-base</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-signals-commands-base</artifactId>
-                <version>${project.version}</version>
-            </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-commands-connectivity</artifactId>
@@ -543,12 +527,6 @@
                 <artifactId>ditto-signals-commands-cleanup</artifactId>
                 <version>${project.version}</version>
             </dependency>
-
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-signals-events-base</artifactId>
-                <version>${project.version}</version>
-            </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-events-connectivity</artifactId>
@@ -562,19 +540,13 @@
 
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-signals-announcements-base</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-protocol</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-models-base</artifactId>
+                <artifactId>ditto-base-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -687,7 +659,7 @@
 
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-base</artifactId>
+                <artifactId>ditto-base-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -1037,7 +1009,7 @@
 
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-model-base</artifactId>
+                <artifactId>ditto-base-model</artifactId>
                 <type>test-jar</type>
                 <version>${project.version}</version>
                 <scope>test</scope>
@@ -1056,22 +1028,6 @@
                 <version>${project.version}</version>
                 <scope>test</scope>
             </dependency>
-
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-signals-base</artifactId>
-                <type>test-jar</type>
-                <version>${project.version}</version>
-                <scope>test</scope>
-            </dependency>
-
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-signals-commands-base</artifactId>
-                <type>test-jar</type>
-                <version>${project.version}</version>
-                <scope>test</scope>
-            </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-commands-policies</artifactId>
@@ -1082,15 +1038,7 @@
 
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-signals-events-base</artifactId>
-                <type>test-jar</type>
-                <version>${project.version}</version>
-                <scope>test</scope>
-            </dependency>
-
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-base</artifactId>
+                <artifactId>ditto-base-service</artifactId>
                 <type>test-jar</type>
                 <version>${project.version}</version>
                 <scope>test</scope>

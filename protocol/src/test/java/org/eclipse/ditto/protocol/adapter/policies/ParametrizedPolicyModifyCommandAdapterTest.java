@@ -15,7 +15,7 @@ package org.eclipse.ditto.protocol.adapter.policies;
 import java.util.Collection;
 
 import org.eclipse.ditto.json.JsonKey;
-import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.policies.model.Resources;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.adapter.ParametrizedCommandAdapterTest;

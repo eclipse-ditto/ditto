@@ -17,13 +17,13 @@ import java.util.Collection;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.signals.acks.base.Acknowledgement;
-import org.eclipse.ditto.signals.acks.base.Acknowledgements;
-import org.eclipse.ditto.signals.acks.base.AcknowledgementsJsonParser;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
+import org.eclipse.ditto.base.model.signals.acks.AcknowledgementsJsonParser;
 
 /**
  * This class provides factory methods for getting instances of {@link Acknowledgements} in the context of Thing entity.
@@ -59,7 +59,7 @@ public final class ThingAcknowledgementsFactory {
      * {@link Acknowledgement}s.
      * <p>
      * <em>Should only be used for deserializing from a JSON representation, as
-     * {@link #newAcknowledgements(java.util.Collection, org.eclipse.ditto.model.base.headers.DittoHeaders)} does e.g. the calculation of the correct
+     * {@link #newAcknowledgements(java.util.Collection, org.eclipse.ditto.base.model.headers.DittoHeaders)} does e.g. the calculation of the correct
      * {@code httpStatus}.</em>
      * </p>
      *

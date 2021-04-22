@@ -16,7 +16,7 @@ import org.eclipse.ditto.protocol.adapter.AbstractAdapter;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.PayloadPathMatcher;
 import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategies;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.base.model.signals.Signal;
 
 /**
  * Base class for {@link org.eclipse.ditto.protocol.adapter.Adapter}s that handle thing commands.
@@ -29,7 +29,7 @@ abstract class AbstractThingAdapter<T extends Signal<?>> extends AbstractAdapter
      * Constructor.
      *
      * @param mappingStrategies the mapping strategies used to convert from
-     * {@link org.eclipse.ditto.protocol.Adaptable}s to {@link org.eclipse.ditto.signals.base.Signal}s
+     * {@link org.eclipse.ditto.protocol.Adaptable}s to {@link org.eclipse.ditto.base.model.signals.Signal}s
      * @param headerTranslator the header translator used for the mapping
      */
     protected AbstractThingAdapter(final MappingStrategies<T> mappingStrategies,
@@ -41,7 +41,7 @@ abstract class AbstractThingAdapter<T extends Signal<?>> extends AbstractAdapter
      * Constructor.
      *
      * @param mappingStrategies the mapping strategies used to convert from
-     * {@link org.eclipse.ditto.protocol.Adaptable}s to {@link org.eclipse.ditto.signals.base.Signal}s
+     * {@link org.eclipse.ditto.protocol.Adaptable}s to {@link org.eclipse.ditto.base.model.signals.Signal}s
      * @param headerTranslator the header translator used for the mapping
      * @param pathMatcher the path matcher used for the mapping
      */

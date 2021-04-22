@@ -21,7 +21,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.DittoDuration;
+import org.eclipse.ditto.base.model.common.DittoDuration;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

@@ -20,9 +20,9 @@ import java.net.URI;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.signals.GlobalErrorRegistry;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
 import org.junit.Test;
 

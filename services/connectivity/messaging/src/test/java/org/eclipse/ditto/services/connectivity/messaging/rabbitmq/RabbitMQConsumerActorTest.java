@@ -23,10 +23,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
-import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
-import org.eclipse.ditto.model.base.common.DittoConstants;
-import org.eclipse.ditto.model.base.common.ResponseType;
+import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
+import org.eclipse.ditto.base.model.acks.FilteredAcknowledgementRequest;
+import org.eclipse.ditto.base.model.common.DittoConstants;
+import org.eclipse.ditto.base.model.common.ResponseType;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;

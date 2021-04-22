@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Arrays;
 import java.util.Optional;
@@ -46,7 +46,7 @@ public enum ConnectionType implements CharSequence {
      * Indicates an HTTP-connection with targets only.
      */
     HTTP_PUSH("http-push"),
-    
+
     /**
      * Indicates a MQTT 5 connection.
      */

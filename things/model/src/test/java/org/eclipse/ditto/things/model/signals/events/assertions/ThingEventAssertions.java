@@ -12,9 +12,9 @@
  */
 package org.eclipse.ditto.things.model.signals.events.assertions;
 
-import org.eclipse.ditto.model.base.assertions.DittoBaseAssertions;
-import org.eclipse.ditto.signals.events.base.Event;
-import org.eclipse.ditto.signals.events.base.assertions.EventAssert;
+import org.eclipse.ditto.base.model.assertions.DittoBaseAssertions;
+import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.base.model.signals.events.assertions.EventAssert;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
 
@@ -24,7 +24,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
 public class ThingEventAssertions extends DittoBaseAssertions {
 
     /**
-     * Returns an assert for an {@link org.eclipse.ditto.signals.events.base.Event}.
+     * Returns an assert for an {@link org.eclipse.ditto.base.model.signals.events.Event}.
      *
      * @param event the event to be checked.
      * @return the Assert.

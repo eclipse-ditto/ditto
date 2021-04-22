@@ -12,14 +12,14 @@
  */
 package org.eclipse.ditto.services.utils.protocol;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.headers.HeaderDefinition;
+import org.eclipse.ditto.base.model.headers.HeaderDefinition;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;

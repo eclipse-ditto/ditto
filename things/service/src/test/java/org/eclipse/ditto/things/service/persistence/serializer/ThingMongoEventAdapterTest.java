@@ -19,7 +19,7 @@ import java.time.Instant;
 import java.util.List;
 
 import org.bson.BsonDocument;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Thing;

@@ -13,8 +13,8 @@
 package org.eclipse.ditto.services.connectivity.messaging.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.model.base.auth.AuthorizationModelFactory.newAuthContext;
-import static org.eclipse.ditto.model.base.auth.AuthorizationModelFactory.newAuthSubject;
+import static org.eclipse.ditto.base.model.auth.AuthorizationModelFactory.newAuthContext;
+import static org.eclipse.ditto.base.model.auth.AuthorizationModelFactory.newAuthSubject;
 import static org.eclipse.ditto.model.connectivity.Topic.LIVE_EVENTS;
 import static org.eclipse.ditto.model.connectivity.Topic.TWIN_EVENTS;
 
@@ -25,9 +25,9 @@ import java.util.List;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;

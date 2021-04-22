@@ -17,7 +17,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingLifecycle;
 import org.eclipse.ditto.things.model.ThingsModelFactory;

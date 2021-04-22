@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.signals.commands.connectivity.query;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.signals.commands.base.WithEntity;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.commands.WithEntity;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
 
 /**

@@ -12,19 +12,19 @@
  */
 package org.eclipse.ditto.things.model.signals.commands.acks;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collections;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.acks.AbstractCommandAckRequestSetter;
-import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.base.model.acks.AbstractCommandAckRequestSetter;
+import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 
 /**
  * This UnaryOperator accepts a ThingModifyCommand and checks whether its DittoHeaders should be extended by an
- * {@link org.eclipse.ditto.model.base.acks.AcknowledgementRequest} for {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel#TWIN_PERSISTED}.
+ * {@link org.eclipse.ditto.base.model.acks.AcknowledgementRequest} for {@link org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel#TWIN_PERSISTED}.
  * <p>
  * If so, the result is a new command with extended headers, else the same command is returned.
  * </p>

@@ -15,7 +15,7 @@ package org.eclipse.ditto.things.service.persistence.actors;
 import java.util.function.BiFunction;
 import java.util.regex.Pattern;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.things.api.ThingTag;

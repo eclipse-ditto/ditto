@@ -17,7 +17,7 @@ import java.io.StringWriter;
 import java.net.ConnectException;
 import java.util.NoSuchElementException;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 
 import akka.actor.AbstractActor;

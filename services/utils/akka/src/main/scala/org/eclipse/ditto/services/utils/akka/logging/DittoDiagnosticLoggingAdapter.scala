@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.akka.logging
 
-import org.eclipse.ditto.model.base.headers.{DittoHeaders, WithDittoHeaders}
+import org.eclipse.ditto.base.model.headers.{DittoHeaders, WithDittoHeaders}
 
 import javax.annotation.Nullable
 import javax.annotation.concurrent.NotThreadSafe

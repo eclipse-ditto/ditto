@@ -14,8 +14,8 @@ package org.eclipse.ditto.services.gateway.proxy.actors;
 
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.utils.aggregator.ThingsAggregatorProxyActor;
-import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
@@ -25,7 +25,7 @@ import akka.actor.ActorSelection;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
- * Abstract implementation of {@link AbstractProxyActor} for all {@link org.eclipse.ditto.signals.commands.base.Command}s
+ * Abstract implementation of {@link AbstractProxyActor} for all {@link org.eclipse.ditto.base.model.signals.commands.Command}s
  * related to {@link org.eclipse.ditto.things.model.Thing}s.
  */
 public abstract class AbstractThingProxyActor extends AbstractProxyActor {

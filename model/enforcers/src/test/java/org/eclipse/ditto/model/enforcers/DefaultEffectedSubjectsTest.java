@@ -23,7 +23,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.util.Collection;
 import java.util.Set;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.junit.Test;
 import org.mockito.internal.util.collections.Sets;
 

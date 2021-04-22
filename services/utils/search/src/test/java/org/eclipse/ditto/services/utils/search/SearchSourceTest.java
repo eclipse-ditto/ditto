@@ -21,8 +21,8 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;

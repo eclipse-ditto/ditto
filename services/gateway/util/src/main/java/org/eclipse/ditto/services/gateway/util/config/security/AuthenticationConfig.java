@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.gateway.util.config.security;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.base.config.http.HttpProxyConfig;
+import org.eclipse.ditto.base.service.config.http.HttpProxyConfig;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**

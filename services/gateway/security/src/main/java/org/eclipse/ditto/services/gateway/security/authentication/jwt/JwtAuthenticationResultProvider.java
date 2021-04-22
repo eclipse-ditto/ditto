@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.security.authentication.jwt;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
 

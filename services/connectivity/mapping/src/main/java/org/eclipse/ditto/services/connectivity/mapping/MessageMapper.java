@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collection;
 import java.util.List;
@@ -68,7 +68,7 @@ public interface MessageMapper {
      * @param message the ExternalMessage to map
      * @return the mapped Adaptable or an empty List if the ExternalMessage should not be mapped after all
      * @throws org.eclipse.ditto.model.connectivity.MessageMappingFailedException if the given message can not be mapped
-     * @throws org.eclipse.ditto.model.base.exceptions.DittoRuntimeException if anything during Ditto Adaptable creation
+     * @throws org.eclipse.ditto.base.model.exceptions.DittoRuntimeException if anything during Ditto Adaptable creation
      * went wrong
      */
     List<Adaptable> map(ExternalMessage message);

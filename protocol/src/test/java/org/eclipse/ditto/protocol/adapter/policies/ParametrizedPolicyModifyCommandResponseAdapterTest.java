@@ -14,8 +14,8 @@ package org.eclipse.ditto.protocol.adapter.policies;
 
 import java.util.Collection;
 
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocol.adapter.ParametrizedCommandAdapterTest;

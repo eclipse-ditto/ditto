@@ -18,14 +18,14 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.utils.headers.conditional.ConditionalHeadersValidator;
 import org.eclipse.ditto.services.utils.persistentactors.MetadataFromSignal;
 import org.eclipse.ditto.services.utils.persistentactors.etags.AbstractConditionHeaderCheckingCommandStrategy;
-import org.eclipse.ditto.signals.base.WithOptionalEntity;
-import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 /**

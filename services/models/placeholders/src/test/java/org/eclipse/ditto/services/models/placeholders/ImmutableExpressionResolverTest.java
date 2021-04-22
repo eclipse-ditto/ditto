@@ -18,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import java.util.Collections;
 import java.util.Map;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.AllowedReason;

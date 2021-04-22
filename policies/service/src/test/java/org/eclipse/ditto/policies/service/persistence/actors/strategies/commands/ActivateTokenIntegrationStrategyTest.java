@@ -21,8 +21,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 
-import org.eclipse.ditto.model.base.common.DittoDuration;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.common.DittoDuration;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.services.models.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Policy;

@@ -14,9 +14,9 @@ package org.eclipse.ditto.policies.model.signals.commands;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.model.PolicyTooLargeException;
-import org.eclipse.ditto.signals.commands.base.AbstractCommandSizeValidator;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandSizeValidator;
 
 /**
  * Command size validator for policy commands

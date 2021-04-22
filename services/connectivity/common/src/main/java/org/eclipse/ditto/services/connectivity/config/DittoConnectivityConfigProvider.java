@@ -14,10 +14,10 @@ package org.eclipse.ditto.services.connectivity.config;
 
 import java.util.Optional;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.base.model.signals.events.Event;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;

@@ -12,12 +12,12 @@
  */
 package org.eclipse.ditto.signals.commands.connectivity.exceptions;
 
-import static org.eclipse.ditto.model.base.assertions.DittoBaseAssertions.assertThat;
+import static org.eclipse.ditto.base.model.assertions.DittoBaseAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.connectivity.TestConstants;
 import org.junit.Test;
 

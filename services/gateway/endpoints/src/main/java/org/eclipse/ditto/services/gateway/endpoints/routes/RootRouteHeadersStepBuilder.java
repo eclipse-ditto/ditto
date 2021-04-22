@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
 import java.util.Map;
@@ -23,12 +23,12 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
-import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.base.model.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayDuplicateHeaderException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayDuplicateHeaderException;
 
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpMessage;

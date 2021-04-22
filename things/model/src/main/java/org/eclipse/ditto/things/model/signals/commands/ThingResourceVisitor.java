@@ -15,7 +15,7 @@ package org.eclipse.ditto.things.model.signals.commands;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 
 /**
  * Defines methods where implementing classes can handle the different resources in the respective methods.
@@ -134,11 +134,11 @@ public interface ThingResourceVisitor<P, R> {
     R visitFeatureDesiredProperty(JsonPointer path, @Nullable P param);
 
     /**
-     * Returns a {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException} for the case when the given
+     * Returns a {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException} for the case when the given
      * path could not be matched against the valid paths.
      *
      * @param path the path that could not be matched.
-     * @return a {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException} indicating that the path was unknown
+     * @return a {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException} indicating that the path was unknown
      */
     DittoRuntimeException getUnknownPathException(JsonPointer path);
 

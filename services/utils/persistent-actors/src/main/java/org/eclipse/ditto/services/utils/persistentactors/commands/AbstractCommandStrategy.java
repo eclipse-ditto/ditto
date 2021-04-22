@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.persistentactors.commands;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
 import java.time.Instant;
@@ -22,10 +22,10 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
-import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.events.Event;
 
 /**
  * Abstract base implementation of {@code CommandStrategy}.

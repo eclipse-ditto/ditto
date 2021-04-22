@@ -20,14 +20,14 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
 import org.bson.Document;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectivityInternalErrorException;
 import org.eclipse.ditto.services.connectivity.config.ConnectionIdsRetrievalConfig;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceActor;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveAllConnectionIds;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveAllConnectionIdsResponse;

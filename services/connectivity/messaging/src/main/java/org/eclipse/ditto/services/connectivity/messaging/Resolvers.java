@@ -20,10 +20,10 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.base.entity.id.WithEntityId;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.TopicPath;
@@ -34,8 +34,8 @@ import org.eclipse.ditto.services.models.placeholders.ExpressionResolver;
 import org.eclipse.ditto.services.models.placeholders.Placeholder;
 import org.eclipse.ditto.services.models.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.models.placeholders.PlaceholderResolver;
-import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.base.WithFeatureId;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.WithFeatureId;
 
 /**
  * Creator of expression resolvers for incoming and outgoing messages.

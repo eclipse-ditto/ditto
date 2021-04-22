@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.starter;
 
-import org.eclipse.ditto.services.base.DittoService;
+import org.eclipse.ditto.base.service.DittoService;
 import org.eclipse.ditto.services.gateway.util.config.DittoGatewayConfig;
 import org.eclipse.ditto.services.gateway.util.config.GatewayConfig;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;

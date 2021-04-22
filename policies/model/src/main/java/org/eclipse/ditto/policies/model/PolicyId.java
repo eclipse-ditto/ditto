@@ -17,9 +17,9 @@ import java.util.function.Supplier;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.entity.id.AbstractNamespacedEntityId;
-import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
-import org.eclipse.ditto.model.base.entity.id.TypedEntityId;
+import org.eclipse.ditto.base.model.entity.id.AbstractNamespacedEntityId;
+import org.eclipse.ditto.base.model.entity.id.NamespacedEntityIdInvalidException;
+import org.eclipse.ditto.base.model.entity.id.TypedEntityId;
 
 /**
  * Java representation of a policy ID.

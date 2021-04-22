@@ -21,14 +21,14 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.entity.id.WithEntityId;
-import org.eclipse.ditto.model.base.exceptions.SignalEnrichmentFailedException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.exceptions.SignalEnrichmentFailedException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.base.model.signals.Signal;
 
 /**
  * Sessioned Jsonifiable that supports signal enrichment.

@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.gateway.endpoints.actors;
 import java.util.function.Supplier;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
 
 import akka.http.javadsl.model.HttpMethod;
 import akka.http.javadsl.model.HttpRequest;

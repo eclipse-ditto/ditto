@@ -26,25 +26,8 @@
     <name>Eclipse Ditto :: Signals :: Events</name>
 
     <modules>
-        <module>base</module>
         <module>connectivity</module>
         <module>thingsearch</module>
     </modules>
-
-    <dependencies>
-        <!-- ### Compile ### -->
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-base</artifactId>
-        </dependency>
-
-        <!-- ### Testing ### -->
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-base</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
 
 </project>

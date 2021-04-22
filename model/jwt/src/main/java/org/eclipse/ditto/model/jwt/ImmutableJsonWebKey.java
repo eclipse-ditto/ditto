@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.model.jwt;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
-import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotNull;
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;

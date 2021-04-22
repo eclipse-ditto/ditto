@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping.javascript;
 
-import static org.eclipse.ditto.model.base.common.DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE;
+import static org.eclipse.ditto.base.model.common.DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE;
 
 import java.util.Collections;
 import java.util.List;

@@ -18,12 +18,12 @@ import java.util.Objects;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.protocol.adapter.AbstractErrorResponseAdapter;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableMapper;
-import org.eclipse.ditto.signals.base.ErrorRegistry;
+import org.eclipse.ditto.base.model.signals.ErrorRegistry;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;

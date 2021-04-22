@@ -26,8 +26,8 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.services.gateway.streaming.Jwt;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;

@@ -18,7 +18,7 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 
 /**
  * Calculates the shard number for a particular entity ID based on the number of shards.

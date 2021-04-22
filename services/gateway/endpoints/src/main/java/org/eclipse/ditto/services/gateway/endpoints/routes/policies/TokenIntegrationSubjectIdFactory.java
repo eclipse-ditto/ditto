@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.gateway.endpoints.routes.policies;
 
 import java.util.Set;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.policies.model.SubjectId;
 

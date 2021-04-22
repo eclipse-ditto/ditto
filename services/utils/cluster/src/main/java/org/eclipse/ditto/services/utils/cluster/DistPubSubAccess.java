@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.utils.cluster;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 
 import akka.actor.ActorRef;
 import akka.cluster.pubsub.DistributedPubSubMediator;

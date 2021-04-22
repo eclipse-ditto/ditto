@@ -13,7 +13,7 @@
 package org.eclipse.ditto.model.query.expression;
 
 import static java.util.Objects.requireNonNull;
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collections;
 import java.util.HashMap;

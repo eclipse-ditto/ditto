@@ -18,7 +18,7 @@ import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategies;
 import org.eclipse.ditto.protocol.mapper.SignalMapper;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.base.model.signals.Signal;
 
 /**
  * Base class for {@link org.eclipse.ditto.protocol.adapter.Adapter}s that handle policy commands.
@@ -31,9 +31,9 @@ abstract class AbstractPolicyAdapter<T extends Signal<?>> extends AbstractAdapte
 
     /**
      * @param mappingStrategies the {@link MappingStrategies} used to convert {@link Adaptable}s to
-     * {@link org.eclipse.ditto.signals.base.Signal}s
+     * {@link org.eclipse.ditto.base.model.signals.Signal}s
      * @param signalMapper the {@link SignalMapper} used to convert from a
-     * {@link org.eclipse.ditto.signals.base.Signal} to an {@link Adaptable}
+     * {@link org.eclipse.ditto.base.model.signals.Signal} to an {@link Adaptable}
      * @param headerTranslator the header translator
      */
     protected AbstractPolicyAdapter(final MappingStrategies<T> mappingStrategies,

@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.utils.persistentactors.events;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.base.model.signals.events.Event;
 
 /**
  * This interface represents a strategy for handling events in a persistent actor.

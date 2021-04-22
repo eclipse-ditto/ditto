@@ -13,14 +13,14 @@
 package org.eclipse.ditto.services.gateway.endpoints.directives;
 
 import static akka.http.javadsl.server.Directives.extractRequestContext;
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.gateway.endpoints.utils.HttpUtils.getRawRequestUri;
 
 import java.time.Duration;
 import java.util.function.Supplier;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
@@ -28,7 +28,7 @@ import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StoppedTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
 import org.eclipse.ditto.services.utils.tracing.TracingTags;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceUnavailableException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayServiceUnavailableException;
 import org.slf4j.Logger;
 
 import akka.http.javadsl.model.ContentTypes;

@@ -18,11 +18,11 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.signals.commands.base.exceptions.PathUnknownException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.PathUnknownException;
 import org.eclipse.ditto.things.model.signals.commands.ThingResourceVisitor;
 
 /**

@@ -12,17 +12,17 @@
  */
 package org.eclipse.ditto.services.gateway.security.authentication.jwt;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContextType;
-import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.auth.AuthorizationContextType;
+import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.jwt.ImmutableJsonWebToken;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
@@ -32,7 +32,7 @@ import org.eclipse.ditto.services.gateway.security.authentication.TimeMeasuringA
 import org.eclipse.ditto.services.gateway.security.utils.HttpUtils;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationFailedException;
 
 import akka.http.javadsl.server.RequestContext;
 

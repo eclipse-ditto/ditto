@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.policies.model.signals.commands.modify;
 
-import org.eclipse.ditto.signals.base.WithOptionalEntity;
+import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
 
 /**

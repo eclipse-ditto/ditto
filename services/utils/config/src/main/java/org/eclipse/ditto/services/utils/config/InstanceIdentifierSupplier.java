@@ -24,7 +24,7 @@ import javax.annotation.concurrent.Immutable;
  * <li>as fallback the "HOSTNAME" environment variable is used.</li>
  * </ul>
  * <p>
- * If the instance identifier cannot be resolved a {@link org.eclipse.ditto.services.base.DittoServiceError} is thrown.
+ * If the instance identifier cannot be resolved a {@link org.eclipse.ditto.base.api.DittoServiceError} is thrown.
  * </p>
  */
 @Immutable

@@ -13,7 +13,7 @@
 package org.eclipse.ditto.signals.commands.thingsearch.query;
 
 
-import org.eclipse.ditto.signals.commands.base.WithEntity;
+import org.eclipse.ditto.base.model.signals.commands.WithEntity;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommandResponse;
 
 /**

@@ -16,8 +16,8 @@ import static org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory.g
 
 import org.eclipse.ditto.services.utils.aggregator.ThingsAggregatorProxyActor;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 
 import akka.actor.AbstractActor;

@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.policies.model;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.policies.model.PoliciesModelFactory.emptyResources;
 import static org.eclipse.ditto.policies.model.PoliciesModelFactory.newPolicyEntry;
 import static org.eclipse.ditto.policies.model.PoliciesModelFactory.newResources;
@@ -44,11 +44,11 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.entity.metadata.Metadata;
-import org.eclipse.ditto.model.base.entity.metadata.MetadataModelFactory;
-import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
-import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.entity.metadata.MetadataModelFactory;
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 /**
  * Immutable implementation of {@link Policy}.
@@ -121,7 +121,7 @@ final class ImmutablePolicy implements Policy {
      * @throws PolicyEntryInvalidException if an Policy entry does not contain any known permission which evaluates to
      * {@code true} or {@code false}.
      * @throws PolicyIdInvalidException if the parsed policy ID did not comply to
-     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
+     * {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static Policy fromJson(final JsonObject jsonObject) {
         final PolicyId policyId = jsonObject.getValue(JsonFields.ID).map(PolicyId::of).orElse(null);

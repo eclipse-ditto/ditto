@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.thingsearch.starter;
 
-import org.eclipse.ditto.services.base.DittoService;
+import org.eclipse.ditto.base.service.DittoService;
 import org.eclipse.ditto.services.thingsearch.common.config.DittoSearchConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.SearchConfig;
 import org.eclipse.ditto.services.thingsearch.starter.actors.SearchRootActor;

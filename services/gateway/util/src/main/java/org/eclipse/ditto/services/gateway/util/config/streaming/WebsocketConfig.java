@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.gateway.util.config.streaming;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.eclipse.ditto.services.base.config.ThrottlingConfig;
+import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 import com.typesafe.config.Config;

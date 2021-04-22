@@ -16,9 +16,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Set;
 
-import org.eclipse.ditto.model.base.common.ConditionChecker;
-import org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.common.ConditionChecker;
+import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;

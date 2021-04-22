@@ -14,13 +14,13 @@ package org.eclipse.ditto.protocol.mapper;
 
 import java.util.stream.Stream;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.protocol.CommandsTopicPathBuilder;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.TopicPathBuilder;
 import org.eclipse.ditto.protocol.UnknownCommandException;
 import org.eclipse.ditto.protocol.UnknownCommandResponseException;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.base.model.signals.Signal;
 
 /**
  * Base class of {@link SignalMapper}s for commands (e.g. query, modify commands).

@@ -17,7 +17,7 @@ import java.util.Optional;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 
 /**
  * Additional context provided for cache lookups using {@link CacheKey} as caching key.

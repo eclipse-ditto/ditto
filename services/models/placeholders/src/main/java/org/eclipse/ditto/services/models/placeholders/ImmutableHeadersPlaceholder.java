@@ -19,7 +19,7 @@ import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 
 /**
  * Placeholder implementation that replaces {@code header:*} from a headers map of {@code Map<String, String>}.

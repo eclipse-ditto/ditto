@@ -16,11 +16,11 @@ import java.util.Map;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.services.utils.cluster.GlobalMappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
-import org.eclipse.ditto.signals.base.JsonParsable;
+import org.eclipse.ditto.base.model.signals.JsonParsable;
 
 /**
  * Mapping strategies to serialize Ditto signals for tests.

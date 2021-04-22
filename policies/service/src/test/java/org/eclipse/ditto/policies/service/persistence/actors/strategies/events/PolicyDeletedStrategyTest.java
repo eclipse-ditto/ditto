@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyLifecycle;
 import org.eclipse.ditto.policies.model.signals.events.PolicyDeleted;

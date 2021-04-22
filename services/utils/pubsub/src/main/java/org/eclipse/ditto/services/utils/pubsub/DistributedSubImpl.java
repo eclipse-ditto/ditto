@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.pubsub;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotEmpty;
 
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;

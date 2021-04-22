@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.thingsearch.persistence.write.streaming;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Thing;

@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.utils.persistence.mongo.monitoring;
 
 import java.util.concurrent.TimeUnit;
 
-import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
 import org.slf4j.Logger;

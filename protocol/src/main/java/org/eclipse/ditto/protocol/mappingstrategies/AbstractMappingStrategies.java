@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.protocol.mappingstrategies;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Map;
 
@@ -21,9 +21,9 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableMapper;
@@ -31,7 +31,7 @@ import org.eclipse.ditto.protocol.TopicPath;
 
 /**
  * Abstract base class for implementations of {@link MappingStrategies}. It implements the {@link #find(String)}
- * functionality and provides methods to map from {@link Adaptable}s to {@link org.eclipse.ditto.signals.base.Signal}s
+ * functionality and provides methods to map from {@link Adaptable}s to {@link org.eclipse.ditto.base.model.signals.Signal}s
  * that are common to all types.
  *
  * @param <T> the type of the mapped signals

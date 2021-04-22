@@ -12,13 +12,13 @@
  */
 package org.eclipse.ditto.signals.commands.thingsearch.query;
 
-import static org.eclipse.ditto.signals.commands.base.assertions.CommandAssertions.assertThat;
+import static org.eclipse.ditto.base.model.signals.commands.assertions.CommandAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

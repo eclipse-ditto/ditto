@@ -24,7 +24,7 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 
 /**
- * Intercepts a {@link ConnectivityCommand}s and may throw a {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException}
+ * Intercepts a {@link ConnectivityCommand}s and may throw a {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException}
  * if the command is invalid.
  */
 public interface ConnectivityCommandInterceptor extends Consumer<ConnectivityCommand<?>>,

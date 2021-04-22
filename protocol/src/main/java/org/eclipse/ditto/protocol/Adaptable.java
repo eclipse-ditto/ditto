@@ -12,11 +12,11 @@
  */
 package org.eclipse.ditto.protocol;
 
-import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
+import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 
 /**
- * An {@code Adaptable} can be mapped to and from a {@link org.eclipse.ditto.signals.commands.base.Command}, {@link
- * org.eclipse.ditto.signals.commands.base.CommandResponse} or {@link org.eclipse.ditto.signals.events.base.Event}.
+ * An {@code Adaptable} can be mapped to and from a {@link org.eclipse.ditto.base.model.signals.commands.Command}, {@link
+ * org.eclipse.ditto.base.model.signals.commands.CommandResponse} or {@link org.eclipse.ditto.base.model.signals.events.Event}.
  */
 public interface Adaptable extends DittoHeadersSettable<Adaptable> {
 

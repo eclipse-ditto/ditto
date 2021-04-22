@@ -18,10 +18,10 @@ import java.nio.charset.StandardCharsets;
 import javax.annotation.Nullable;
 import javax.jms.JMSRuntimeException;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.services.base.actors.ShutdownBehaviour;
-import org.eclipse.ditto.services.base.config.supervision.ExponentialBackOffConfig;
+import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
+import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.services.connectivity.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;

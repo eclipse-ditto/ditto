@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.utils.persistence.operations;
 import java.util.Collection;
 import java.util.List;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
 
 import akka.NotUsed;
 import akka.stream.javadsl.Source;

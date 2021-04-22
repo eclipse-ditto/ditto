@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.concierge.enforcement.placeholders.strategies;
 
-import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
+import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.HeaderBasedPlaceholderSubstitutionAlgorithm;
 
 /**

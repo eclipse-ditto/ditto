@@ -26,9 +26,9 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.entity.id.WithEntityId;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.FilteredTopic;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -42,12 +42,12 @@ import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
-import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingEventToThingConverter;
 
@@ -87,7 +87,7 @@ public final class SignalFilter {
      *
      * @param signal the signal to filter / determine the {@link org.eclipse.ditto.model.connectivity.Target}s for
      * @return the determined Targets for the passed in {@code signal}
-     * @throws org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException if the optional filter string of a
+     * @throws org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException if the optional filter string of a
      * Target cannot be mapped to a valid criterion
      */
     @SuppressWarnings("squid:S3864")
@@ -163,7 +163,7 @@ public final class SignalFilter {
     }
 
     /**
-     * @throws org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException if the filter string cannot be
+     * @throws org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException if the filter string cannot be
      * mapped to a valid criterion
      */
     private static Criteria parseCriteria(final String filter, final DittoHeaders dittoHeaders) {

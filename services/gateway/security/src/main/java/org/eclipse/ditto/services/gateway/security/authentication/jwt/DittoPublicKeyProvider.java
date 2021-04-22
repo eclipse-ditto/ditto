@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.security.authentication.jwt;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotNull;
 
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
@@ -36,7 +36,7 @@ import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.jwt.ImmutableJsonWebKey;
 import org.eclipse.ditto.model.jwt.JsonWebKey;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
@@ -45,8 +45,8 @@ import org.eclipse.ditto.services.gateway.security.utils.HttpClientFacade;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
 import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationProviderUnavailableException;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayJwtIssuerNotSupportedException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationProviderUnavailableException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayJwtIssuerNotSupportedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

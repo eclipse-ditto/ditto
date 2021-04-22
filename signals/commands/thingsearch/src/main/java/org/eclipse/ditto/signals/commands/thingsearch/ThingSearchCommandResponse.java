@@ -13,8 +13,8 @@
 package org.eclipse.ditto.signals.commands.thingsearch;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 
 /**
  * Aggregates all possible responses relating to a given {@link ThingSearchCommand}.

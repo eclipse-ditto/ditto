@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.websocket;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamSupervisor;
 import org.eclipse.ditto.services.gateway.streaming.actors.SupervisedStream;
 

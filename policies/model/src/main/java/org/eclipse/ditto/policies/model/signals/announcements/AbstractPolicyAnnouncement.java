@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.policies.model.signals.announcements;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -20,9 +20,9 @@ import java.util.function.Predicate;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.signals.announcements.base.AbstractAnnouncement;
+import org.eclipse.ditto.base.model.signals.announcements.AbstractAnnouncement;
 
 /**
  * Abstract superclass of policy announcements.

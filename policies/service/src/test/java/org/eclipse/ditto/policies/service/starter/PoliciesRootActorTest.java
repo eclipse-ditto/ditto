@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.policies.service.starter;
 
-import org.eclipse.ditto.services.base.actors.AbstractDittoRootActorTest;
+import org.eclipse.ditto.base.service.actors.AbstractDittoRootActorTest;
 import org.eclipse.ditto.policies.service.common.config.DittoPoliciesConfig;
 import org.eclipse.ditto.policies.service.common.config.PoliciesConfig;
 import org.eclipse.ditto.policies.service.persistence.serializer.PolicyMongoSnapshotAdapter;

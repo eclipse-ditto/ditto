@@ -32,7 +32,7 @@ import org.eclipse.ditto.json.JsonNumber;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.policies.model.ResourceKey;

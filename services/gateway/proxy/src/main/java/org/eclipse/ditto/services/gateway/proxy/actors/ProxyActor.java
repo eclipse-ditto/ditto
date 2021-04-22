@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.proxy.actors;
 
-import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;

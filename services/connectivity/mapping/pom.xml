@@ -54,7 +54,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-base</artifactId>
+            <artifactId>ditto-base-service</artifactId>
         </dependency>
 
         <dependency>

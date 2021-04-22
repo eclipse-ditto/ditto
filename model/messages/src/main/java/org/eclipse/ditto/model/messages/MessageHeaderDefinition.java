@@ -21,9 +21,9 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.headers.HeaderDefinition;
-import org.eclipse.ditto.model.base.headers.HeaderValueValidators;
-import org.eclipse.ditto.model.base.headers.ValueValidator;
+import org.eclipse.ditto.base.model.headers.HeaderDefinition;
+import org.eclipse.ditto.base.model.headers.HeaderValueValidators;
+import org.eclipse.ditto.base.model.headers.ValueValidator;
 
 /**
  * Enumeration of definitions of well known message headers including their key and Java type.

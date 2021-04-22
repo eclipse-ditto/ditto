@@ -15,10 +15,10 @@ package org.eclipse.ditto.signals.commands.namespaces;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 
 /**
  * Response to {@link UnblockNamespace}.

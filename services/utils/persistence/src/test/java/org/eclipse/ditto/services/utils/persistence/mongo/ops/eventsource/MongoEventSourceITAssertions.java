@@ -23,9 +23,9 @@ import java.util.UUID;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.base.entity.type.EntityType;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.type.EntityType;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.services.utils.config.raw.RawConfigSupplier;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;

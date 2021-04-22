@@ -12,9 +12,9 @@
  */
 package org.eclipse.ditto.services.connectivity;
 
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabelInvalidException;
-import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
-import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
+import org.eclipse.ditto.base.model.acks.AcknowledgementLabelInvalidException;
+import org.eclipse.ditto.base.model.entity.id.NamespacedEntityIdInvalidException;
+import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.messages.AuthorizationSubjectBlockedException;
 import org.eclipse.ditto.model.namespaces.NamespaceBlockedException;
@@ -26,13 +26,13 @@ import org.eclipse.ditto.things.model.ThingIdInvalidException;
 import org.eclipse.ditto.protocol.UnknownCommandException;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigUnavailableException;
 import org.eclipse.ditto.services.utils.test.GlobalErrorRegistryTestCases;
-import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingException;
-import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
-import org.eclipse.ditto.signals.base.UnsupportedSchemaVersionException;
-import org.eclipse.ditto.signals.base.UnsupportedSignalException;
-import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
-import org.eclipse.ditto.signals.commands.base.exceptions.PathUnknownException;
+import org.eclipse.ditto.base.model.signals.acks.AcknowledgementCorrelationIdMissingException;
+import org.eclipse.ditto.base.model.signals.JsonTypeNotParsableException;
+import org.eclipse.ditto.base.model.signals.UnsupportedSchemaVersionException;
+import org.eclipse.ditto.base.model.signals.UnsupportedSignalException;
+import org.eclipse.ditto.base.model.signals.commands.CommandNotSupportedException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationFailedException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.PathUnknownException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionConflictException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionTimeoutException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyConflictException;

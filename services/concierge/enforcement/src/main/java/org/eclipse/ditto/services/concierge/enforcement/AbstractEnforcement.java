@@ -21,9 +21,9 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.policies.model.ResourceKey;
@@ -32,8 +32,8 @@ import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.cache.CacheKey;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
-import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
 
 import akka.actor.ActorRef;
 import akka.pattern.AskTimeoutException;
@@ -111,7 +111,7 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
 
     /**
      * Reports an error differently based on type of the error. If the error is of type
-     * {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException}, it is returned as is
+     * {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException}, it is returned as is
      * (without modification), otherwise it is wrapped inside a {@link GatewayInternalErrorException}.
      *
      * @param hint hint about the nature of the error.

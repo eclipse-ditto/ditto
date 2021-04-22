@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.gateway.endpoints.routes;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 
 import akka.http.javadsl.server.RequestContext;
 

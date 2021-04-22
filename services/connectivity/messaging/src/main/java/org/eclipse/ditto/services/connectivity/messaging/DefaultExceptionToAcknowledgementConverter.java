@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.common.HttpStatus;
+import org.eclipse.ditto.base.model.common.HttpStatus;
 
 /**
  * Default implementation of {@link ExceptionToAcknowledgementConverter} which uses

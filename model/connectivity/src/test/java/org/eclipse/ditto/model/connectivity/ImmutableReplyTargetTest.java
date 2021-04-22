@@ -20,7 +20,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.ResponseType;
+import org.eclipse.ditto.base.model.common.ResponseType;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

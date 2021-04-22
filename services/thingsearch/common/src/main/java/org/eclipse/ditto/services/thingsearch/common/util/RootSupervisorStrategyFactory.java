@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.thingsearch.common.util;
 import java.net.ConnectException;
 import java.util.NoSuchElementException;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 
 import akka.actor.ActorKilledException;
 import akka.actor.InvalidActorNameException;

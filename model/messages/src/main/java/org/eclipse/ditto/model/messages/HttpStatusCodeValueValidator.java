@@ -14,17 +14,17 @@ package org.eclipse.ditto.model.messages;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.common.HttpStatusCodeOutOfRangeException;
-import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
-import org.eclipse.ditto.model.base.headers.AbstractHeaderValueValidator;
-import org.eclipse.ditto.model.base.headers.HeaderDefinition;
-import org.eclipse.ditto.model.base.headers.HeaderValueValidators;
-import org.eclipse.ditto.model.base.headers.ValueValidator;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.common.HttpStatusCodeOutOfRangeException;
+import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
+import org.eclipse.ditto.base.model.headers.AbstractHeaderValueValidator;
+import org.eclipse.ditto.base.model.headers.HeaderDefinition;
+import org.eclipse.ditto.base.model.headers.HeaderValueValidators;
+import org.eclipse.ditto.base.model.headers.ValueValidator;
 
 /**
  * This validator parses a CharSequence to an integer value and checks if that int is a known {@link HttpStatus}.
- * If validation fails, a {@link org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException} is thrown.
+ * If validation fails, a {@link org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException} is thrown.
  */
 @Immutable
 final class HttpStatusCodeValueValidator extends AbstractHeaderValueValidator {

@@ -23,7 +23,7 @@ import org.eclipse.ditto.model.query.SortDirection;
 import org.eclipse.ditto.model.query.SortOption;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.expression.SimpleFieldExpression;
-import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
+import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.junit.Before;
 import org.junit.BeforeClass;

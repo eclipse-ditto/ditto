@@ -15,8 +15,8 @@ package org.eclipse.ditto.policies.model;
 import java.util.Set;
 
 import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * This Set is dedicated to hold permissions only. Additionally to the methods defined in {@link java.util.Set} this type also

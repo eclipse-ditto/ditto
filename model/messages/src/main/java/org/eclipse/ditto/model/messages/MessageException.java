@@ -13,7 +13,7 @@
 package org.eclipse.ditto.model.messages;
 
 /**
- * Aggregates all {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException}s which are related to a {@link
+ * Aggregates all {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException}s which are related to a {@link
  * Message}.
  */
 public interface MessageException {

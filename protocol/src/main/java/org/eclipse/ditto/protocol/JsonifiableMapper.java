@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.protocol;
 
-import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * Functional interface for mapping an {@link Adaptable} to {@link T}.

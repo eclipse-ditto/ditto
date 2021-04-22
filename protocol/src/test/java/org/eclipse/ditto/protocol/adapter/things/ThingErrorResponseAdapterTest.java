@@ -13,17 +13,17 @@
 package org.eclipse.ditto.protocol.adapter.things;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocol.Payload;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapterTest;
 import org.eclipse.ditto.protocol.TestConstants;
 import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.signals.base.ErrorRegistry;
-import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
+import org.eclipse.ditto.base.model.signals.ErrorRegistry;
+import org.eclipse.ditto.base.model.signals.GlobalErrorRegistry;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.junit.Before;

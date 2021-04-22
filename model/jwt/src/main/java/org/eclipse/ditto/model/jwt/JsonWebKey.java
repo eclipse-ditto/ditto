@@ -19,7 +19,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.base.model.json.FieldType;
 
 /**
  * Representation for a JSON Web Key.

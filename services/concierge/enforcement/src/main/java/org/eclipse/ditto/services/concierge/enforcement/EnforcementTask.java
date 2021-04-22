@@ -15,8 +15,8 @@ package org.eclipse.ditto.services.concierge.enforcement;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 
 /**
  * An enforcement task to be scheduled.

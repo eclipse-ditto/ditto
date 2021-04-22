@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.function.Function;
 
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.models.streaming.LowerBound;

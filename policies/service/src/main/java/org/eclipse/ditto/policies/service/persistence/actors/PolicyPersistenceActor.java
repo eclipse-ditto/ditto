@@ -28,11 +28,11 @@ import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
@@ -60,7 +60,7 @@ import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.policies.model.signals.announcements.SubjectDeletionAnnouncement;
-import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.eclipse.ditto.policies.model.signals.events.SubjectDeleted;

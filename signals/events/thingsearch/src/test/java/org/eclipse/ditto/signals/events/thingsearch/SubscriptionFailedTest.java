@@ -19,10 +19,10 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.util.UUID;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.GlobalErrorRegistry;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

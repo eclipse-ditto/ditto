@@ -24,7 +24,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.bson.Document;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectivityInternalErrorException;
 import org.eclipse.ditto.services.connectivity.config.ConnectionIdsRetrievalConfig;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceActor;

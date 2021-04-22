@@ -19,10 +19,10 @@ import static org.mockito.Mockito.when;
 import javax.annotation.Nullable;
 
 import org.assertj.core.api.AssertionsForClassTypes;
-import org.eclipse.ditto.model.base.auth.AuthorizationContextType;
-import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.auth.AuthorizationContextType;
+import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.PublicKeyProviderUnavailableException;
 import org.junit.Before;

@@ -21,7 +21,7 @@ import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.assertj.core.data.Percentage;
-import org.eclipse.ditto.services.base.config.ThrottlingConfig;
+import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.services.gateway.util.config.streaming.WebsocketConfig.WebsocketConfigValue;
 import org.junit.BeforeClass;
 import org.junit.Rule;

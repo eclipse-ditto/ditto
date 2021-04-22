@@ -27,7 +27,6 @@
 
     <modules>
         <module>acks</module>
-        <module>base</module>
         <module>concierge</module>
         <module>connectivity</module>
         <module>signalenrichment</module>
@@ -45,12 +44,7 @@
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-model-base</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-commands-base</artifactId>
+            <artifactId>ditto-base-model</artifactId>
         </dependency>
     </dependencies>
 </project>

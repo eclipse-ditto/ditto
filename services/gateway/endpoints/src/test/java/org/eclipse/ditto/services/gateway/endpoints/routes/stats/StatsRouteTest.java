@@ -17,7 +17,7 @@ import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants
 
 import java.util.Optional;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevOpsOAuth2AuthenticationDirective;

@@ -20,7 +20,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import org.eclipse.ditto.model.base.common.Validator;
+import org.eclipse.ditto.base.model.common.Validator;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.ResourceKey;

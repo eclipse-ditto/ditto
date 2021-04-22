@@ -15,7 +15,7 @@ package org.eclipse.ditto.protocol.adapter;
 import java.util.Collections;
 import java.util.Set;
 
-import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.TopicPath;
 

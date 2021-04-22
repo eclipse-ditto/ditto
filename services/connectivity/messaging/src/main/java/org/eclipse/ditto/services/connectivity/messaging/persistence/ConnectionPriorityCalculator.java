@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.persistence;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.time.Duration;
 import java.util.Optional;

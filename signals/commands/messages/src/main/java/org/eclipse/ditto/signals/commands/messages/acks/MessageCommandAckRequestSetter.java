@@ -12,13 +12,13 @@
  */
 package org.eclipse.ditto.signals.commands.messages.acks;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.acks.AbstractCommandAckRequestSetter;
-import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
-import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.base.model.acks.AbstractCommandAckRequestSetter;
+import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
+import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 
 /**

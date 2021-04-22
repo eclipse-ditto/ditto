@@ -26,7 +26,6 @@
     <name>Eclipse Ditto :: Signals :: Commands</name>
 
     <modules>
-        <module>base</module>
         <module>common</module>
         <module>connectivity</module>
         <module>devops</module>
@@ -35,21 +34,5 @@
         <module>thingsearch</module>
         <module>cleanup</module>
     </modules>
-
-    <dependencies>
-        <!-- ### Compile ### -->
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-base</artifactId>
-        </dependency>
-
-        <!-- ### Testing ### -->
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-base</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
 
 </project>

@@ -24,8 +24,8 @@ import java.util.Map;
 import java.util.function.Predicate;
 
 import org.assertj.core.util.Maps;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.model.base.headers.HeaderDefinition;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.headers.HeaderDefinition;
 import org.junit.Test;
 import org.mockito.Mockito;
 

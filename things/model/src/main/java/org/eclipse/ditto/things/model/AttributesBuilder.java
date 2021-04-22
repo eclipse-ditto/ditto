@@ -295,7 +295,7 @@ public interface AttributesBuilder extends JsonObjectBuilder {
      * @return the new {@code Attributes} object.
      * @throws org.eclipse.ditto.json.JsonPointerInvalidException if an attribute name in the passed {@code jsonObject} was not valid
      * according to pattern
-     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     @Override
     Attributes build();

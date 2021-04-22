@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.services.gateway.security.authentication;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -25,7 +25,7 @@ import java.util.concurrent.Executor;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
 
@@ -61,7 +61,7 @@ public final class AuthenticationChain {
      *
      * @param authenticationProviders the list of authentication providers that should be used in the given order.
      * @param authenticationFailureAggregator aggregates multiple failed authentication results to a single
-     * {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException ditto runtime exception } in case multiple
+     * {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException ditto runtime exception } in case multiple
      * {@link AuthenticationProvider authentication providers} in the given collection of authentication providers were
      * applicable to a request and all of them failed.
      * @param authenticationDispatcher dispatcher used for blocking calls.

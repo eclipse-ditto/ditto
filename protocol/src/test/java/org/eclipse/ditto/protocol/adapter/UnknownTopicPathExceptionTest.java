@@ -18,7 +18,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.protocol.MessagePath;
 import org.eclipse.ditto.protocol.Payload;

@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.read;
 
-import static org.eclipse.ditto.model.base.assertions.DittoBaseAssertions.assertThat;
+import static org.eclipse.ditto.base.model.assertions.DittoBaseAssertions.assertThat;
 
 import java.util.Arrays;
 import java.util.Collection;

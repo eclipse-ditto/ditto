@@ -18,7 +18,7 @@ import static org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.
 import java.time.Instant;
 import java.util.Map;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.junit.Test;

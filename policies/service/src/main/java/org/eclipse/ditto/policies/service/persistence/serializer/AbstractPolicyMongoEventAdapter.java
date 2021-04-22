@@ -18,10 +18,10 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.services.utils.persistence.mongo.AbstractMongoEventAdapter;
-import org.eclipse.ditto.signals.events.base.GlobalEventRegistry;
+import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 
 import akka.actor.ExtendedActorSystem;

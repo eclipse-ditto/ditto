@@ -14,15 +14,15 @@ package org.eclipse.ditto.model.messages;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
-import org.eclipse.ditto.model.base.headers.AbstractHeaderValueValidator;
-import org.eclipse.ditto.model.base.headers.HeaderDefinition;
+import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
+import org.eclipse.ditto.base.model.headers.AbstractHeaderValueValidator;
+import org.eclipse.ditto.base.model.headers.HeaderDefinition;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
 
 /**
  * This validator checks if a CharSequence is a valid {@link ThingId}.
- * If validation fails, a {@link org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException} is thrown.
+ * If validation fails, a {@link org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException} is thrown.
  */
 @Immutable
 final class DittoMessageThingIdValueValidator extends AbstractHeaderValueValidator {

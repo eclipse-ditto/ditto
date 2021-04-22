@@ -19,7 +19,7 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.base.DittoServiceError;
+import org.eclipse.ditto.base.api.DittoServiceError;
 
 /**
  * Returns the host name determined from the environment variable {@value #ENV_HOSTNAME}.

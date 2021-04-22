@@ -31,7 +31,7 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 
 /**
  * Helper class to load certificates, private and public keys.

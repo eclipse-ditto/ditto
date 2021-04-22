@@ -29,9 +29,9 @@ import javax.annotation.Nullable;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.services.base.config.http.HttpProxyConfig;
+import org.eclipse.ditto.base.service.config.http.HttpProxyConfig;
 import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.config.HttpPushConfig;
 import org.eclipse.ditto.services.connectivity.config.MonitoringLoggerConfig;

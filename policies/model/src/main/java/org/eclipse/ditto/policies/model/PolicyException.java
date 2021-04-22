@@ -14,7 +14,7 @@ package org.eclipse.ditto.policies.model;
 
 
 /**
- * Aggregates all {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException}s which are related to a
+ * Aggregates all {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException}s which are related to a
  * {@link Policy}.
  */
 public interface PolicyException {

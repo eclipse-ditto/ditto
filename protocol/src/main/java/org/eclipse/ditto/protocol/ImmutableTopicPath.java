@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.protocol;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkArgument;
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkArgument;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
 import java.util.Objects;

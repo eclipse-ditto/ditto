@@ -17,7 +17,7 @@ import java.util.Set;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.enforcers.DefaultEffectedSubjects;
 import org.eclipse.ditto.model.enforcers.EffectedSubjects;
 

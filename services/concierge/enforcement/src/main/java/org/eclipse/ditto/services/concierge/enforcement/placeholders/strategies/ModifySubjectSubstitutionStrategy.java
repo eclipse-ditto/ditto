@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.concierge.enforcement.placeholders.strategies
 
 import static java.util.Objects.requireNonNull;
 
-import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
+import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.HeaderBasedPlaceholderSubstitutionAlgorithm;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubject;

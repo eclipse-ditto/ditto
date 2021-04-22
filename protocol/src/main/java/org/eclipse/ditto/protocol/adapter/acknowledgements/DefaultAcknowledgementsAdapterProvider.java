@@ -15,13 +15,13 @@ package org.eclipse.ditto.protocol.adapter.acknowledgements;
 import java.util.Arrays;
 import java.util.List;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.protocol.adapter.Adapter;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.adapter.provider.AcknowledgementAdapterProvider;
-import org.eclipse.ditto.signals.acks.base.Acknowledgement;
-import org.eclipse.ditto.signals.acks.base.Acknowledgements;
-import org.eclipse.ditto.signals.base.ErrorRegistry;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
+import org.eclipse.ditto.base.model.signals.ErrorRegistry;
 
 /**
  * Instantiates and provides {@link Adapter}s used to process Acknowledgements.

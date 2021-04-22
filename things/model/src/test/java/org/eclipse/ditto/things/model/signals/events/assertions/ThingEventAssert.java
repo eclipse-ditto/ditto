@@ -14,7 +14,7 @@ package org.eclipse.ditto.things.model.signals.events.assertions;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.signals.events.base.assertions.AbstractEventAssert;
+import org.eclipse.ditto.base.model.signals.events.assertions.AbstractEventAssert;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 /**

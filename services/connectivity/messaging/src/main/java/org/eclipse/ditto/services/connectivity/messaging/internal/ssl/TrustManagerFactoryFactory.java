@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.internal.ssl;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
@@ -36,7 +36,7 @@ import javax.net.ssl.CertPathTrustManagerParameters;
 import javax.net.ssl.TrustManagerFactory;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;

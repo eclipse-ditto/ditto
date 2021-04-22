@@ -19,11 +19,11 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
-import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 
 
 /**
@@ -99,12 +99,12 @@ public final class ConditionalHeadersValidator {
      * Checks if the in the given {@code command} contained
      * {@link org.eclipse.ditto.services.utils.headers.conditional.PreconditionHeader precondition headers} meet their
      * condition for the given entity tag. Throws an instance of
-     * {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException} as defined in {@link ValidationSettings}.
+     * {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException} as defined in {@link ValidationSettings}.
      * when a condition fails.
      *
      * @param command The command that contains the headers.
      * @param currentETagValue the entity-tag of the entity targeted by the given {@code command}.
-     * @throws org.eclipse.ditto.model.base.exceptions.DittoRuntimeException when a condition fails (the concrete
+     * @throws org.eclipse.ditto.base.model.exceptions.DittoRuntimeException when a condition fails (the concrete
      * subclass is defined by {@link ValidationSettings}).
      */
     public void checkConditionalHeaders(final Command<?> command,

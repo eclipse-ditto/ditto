@@ -23,7 +23,7 @@ import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.things.model.signals.events.ThingEventToThingConverter;
 
 import akka.actor.ActorRef;

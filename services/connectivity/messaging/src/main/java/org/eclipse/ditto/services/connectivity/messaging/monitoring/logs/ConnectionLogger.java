@@ -17,12 +17,12 @@ import java.util.Collection;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.LogEntry;
 import org.eclipse.ditto.services.connectivity.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.base.model.signals.Signal;
 
 /**
  * Logger for connections that provides log messages for end users.

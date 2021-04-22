@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.protocol;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -26,7 +26,7 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.headers.HeaderDefinition;
+import org.eclipse.ditto.base.model.headers.HeaderDefinition;
 
 /**
  * This {@link org.eclipse.ditto.protocol.HeaderEntryFilter} reads headers which are of {@code serializationType}

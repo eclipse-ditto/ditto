@@ -15,7 +15,7 @@ package org.eclipse.ditto.policies.service.persistence.actors;
 import java.util.Arrays;
 import java.util.Collections;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;

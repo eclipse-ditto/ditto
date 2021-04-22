@@ -13,7 +13,7 @@
 package org.eclipse.ditto.model.connectivity;
 
 /**
- * Aggregates all {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException}s which are thrown by the
+ * Aggregates all {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException}s which are thrown by the
  * Connectivity service.
  */
 public interface ConnectivityException {

@@ -13,18 +13,18 @@
 package org.eclipse.ditto.services.gateway.endpoints.directives.auth;
 
 import static akka.http.javadsl.server.Directives.extractRequestContext;
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationProvider;
 import org.eclipse.ditto.services.gateway.util.config.security.DevOpsConfig;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationFailedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

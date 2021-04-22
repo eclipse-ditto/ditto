@@ -12,15 +12,15 @@
  */
 package org.eclipse.ditto.policies.model;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
 
 import java.util.Objects;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.common.Validator;
-import org.eclipse.ditto.model.base.entity.validation.NoControlCharactersNoSlashesValidator;
+import org.eclipse.ditto.base.model.common.Validator;
+import org.eclipse.ditto.base.model.entity.validation.NoControlCharactersNoSlashesValidator;
 
 /**
  * An immutable implementation of {@link Label}.

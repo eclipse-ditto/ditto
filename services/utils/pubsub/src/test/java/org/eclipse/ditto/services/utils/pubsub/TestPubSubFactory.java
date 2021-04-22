@@ -25,7 +25,7 @@ import org.eclipse.ditto.services.utils.pubsub.ddata.DDataReader;
 import org.eclipse.ditto.services.utils.pubsub.ddata.Hashes;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
-import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;

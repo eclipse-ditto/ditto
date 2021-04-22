@@ -14,7 +14,7 @@
 package org.eclipse.ditto.services.models.connectivity;
 
 import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.AllowedReason;
 import org.mutabilitydetector.unittesting.MutabilityAssert;

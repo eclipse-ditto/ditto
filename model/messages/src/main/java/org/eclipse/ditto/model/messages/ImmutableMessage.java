@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.model.messages;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.nio.ByteBuffer;
 import java.time.Duration;
@@ -24,9 +24,9 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.common.ByteBufferUtils;
-import org.eclipse.ditto.model.base.common.HttpStatus;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.common.ByteBufferUtils;
+import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.things.model.ThingId;
 
 /**

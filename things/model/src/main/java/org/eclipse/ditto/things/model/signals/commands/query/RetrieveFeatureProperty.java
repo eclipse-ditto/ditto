@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.things.model.signals.commands.query;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -26,15 +26,15 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.base.json.JsonParsableCommand;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommand;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.signals.base.WithFeatureId;
-import org.eclipse.ditto.signals.commands.base.AbstractCommand;
-import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.base.model.signals.WithFeatureId;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
+import org.eclipse.ditto.base.model.signals.commands.CommandJsonDeserializer;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 
 /**
@@ -93,7 +93,7 @@ public final class RetrieveFeatureProperty extends AbstractCommand<RetrieveFeatu
      * @return a Command for retrieving the Property at the specified Pointer.
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code propertyJsonPointer} are not valid
-     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * according to pattern {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static RetrieveFeatureProperty of(final ThingId thingId,
             final String featureId,
@@ -114,9 +114,9 @@ public final class RetrieveFeatureProperty extends AbstractCommand<RetrieveFeatu
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
      * @throws org.eclipse.ditto.things.model.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
+     * org.eclipse.ditto.base.model.entity.id.RegexPatterns#ID_REGEX}.
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of property pointer are not valid
-     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * according to pattern {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static RetrieveFeatureProperty fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -132,9 +132,9 @@ public final class RetrieveFeatureProperty extends AbstractCommand<RetrieveFeatu
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      * @throws org.eclipse.ditto.things.model.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
+     * org.eclipse.ditto.base.model.entity.id.RegexPatterns#ID_REGEX}.
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of property pointer are not valid
-     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * according to pattern {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static RetrieveFeatureProperty fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveFeatureProperty>(TYPE, jsonObject).deserialize(() -> {

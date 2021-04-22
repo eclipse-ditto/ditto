@@ -14,7 +14,7 @@ package org.eclipse.ditto.model.enforcers;
 
 import java.util.Set;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 
 /**
  * Contains "granted" and "revoked" AuthorizationSubjects in the scope of a specific

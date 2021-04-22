@@ -16,7 +16,7 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.services.base.config.http.HttpProxyConfig;
+import org.eclipse.ditto.base.service.config.http.HttpProxyConfig;
 
 import akka.actor.ActorSystem;
 import akka.http.javadsl.Http;

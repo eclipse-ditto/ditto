@@ -14,8 +14,8 @@ package org.eclipse.ditto.protocol.adapter.things;
 
 import static java.util.Objects.requireNonNull;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.protocol.adapter.AbstractErrorResponseAdapter;
 import org.eclipse.ditto.protocol.Adaptable;
@@ -23,7 +23,7 @@ import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.TopicPathBuilder;
-import org.eclipse.ditto.signals.base.ErrorRegistry;
+import org.eclipse.ditto.base.model.signals.ErrorRegistry;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 
 /**

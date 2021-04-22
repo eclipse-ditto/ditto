@@ -31,11 +31,11 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-model-base</artifactId>
+            <artifactId>ditto-base-model</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-models-base</artifactId>
+            <artifactId>ditto-base-api</artifactId>
         </dependency>
 
         <dependency>

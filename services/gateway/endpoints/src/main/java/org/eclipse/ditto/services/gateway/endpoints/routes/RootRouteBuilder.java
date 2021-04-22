@@ -14,8 +14,8 @@ package org.eclipse.ditto.services.gateway.endpoints.routes;
 
 import java.util.Collection;
 
-import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.headers.DittoHeadersSizeChecker;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthenticationDirective;
 import org.eclipse.ditto.services.gateway.endpoints.routes.cloudevents.CloudEventsRoute;

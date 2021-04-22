@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
@@ -32,8 +32,8 @@ import org.eclipse.ditto.services.utils.pubsub.ddata.SubscriptionsReader;
 import org.eclipse.ditto.services.utils.pubsub.ddata.ack.GroupedSnapshot;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
-import org.eclipse.ditto.signals.acks.base.Acknowledgements;
-import org.eclipse.ditto.signals.base.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;

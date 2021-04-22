@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.policies.model;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
 import java.util.Collection;
@@ -25,7 +25,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.model.base.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 
 /**
  * A mutable builder for a {@link ImmutablePolicy} with a fluent API.
@@ -70,7 +70,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
      * @param id the ID of the new Policy.
      * @return the new builder.
      * @throws PolicyIdInvalidException if {@code policyId} did not comply to
-     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
+     * {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static ImmutablePolicyBuilder of(final PolicyId id) {
         return new ImmutablePolicyBuilder().setId(id);
@@ -85,7 +85,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
      * @return the new builder.
      * @throws NullPointerException if {@code policyEntries} is null;
      * @throws PolicyIdInvalidException if {@code policyId} did not comply to
-     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
+     * {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static PolicyBuilder of(final PolicyId id, final Iterable<PolicyEntry> policyEntries) {
         checkNotNull(policyEntries, "initial Policy entries");
@@ -104,7 +104,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
      * @return the new builder.
      * @throws NullPointerException if {@code existingPolicy} is {@code null}.
      * @throws PolicyIdInvalidException if {@code policyId} did not comply to
-     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
+     * {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static PolicyBuilder of(final Policy existingPolicy) {
         checkNotNull(existingPolicy, "existing Policy");

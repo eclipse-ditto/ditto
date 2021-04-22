@@ -21,7 +21,7 @@ import static org.eclipse.ditto.policies.service.persistence.TestConstants.Polic
 
 import java.time.Instant;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;

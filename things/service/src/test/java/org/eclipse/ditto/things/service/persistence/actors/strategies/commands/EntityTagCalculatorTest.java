@@ -19,7 +19,7 @@ import static org.eclipse.ditto.things.model.TestConstants.Feature.FLUX_CAPACITO
 import static org.eclipse.ditto.things.model.TestConstants.Thing.LOCATION_ATTRIBUTE;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
+import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.things.model.TestConstants;
 import org.eclipse.ditto.things.model.Thing;
 import org.junit.jupiter.api.BeforeEach;

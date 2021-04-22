@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.thingsearch.persistence.query;
 
 import java.util.Set;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.model.query.QueryBuilder;
 import org.eclipse.ditto.model.query.QueryBuilderFactory;

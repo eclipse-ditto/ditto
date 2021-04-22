@@ -25,7 +25,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
-import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;

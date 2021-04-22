@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.things.model.assertions;
 
-import org.eclipse.ditto.model.base.assertions.DittoBaseAssertions;
+import org.eclipse.ditto.base.model.assertions.DittoBaseAssertions;
 import org.eclipse.ditto.things.model.Thing;
 
 /**

@@ -23,7 +23,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.services.base.persistence.PersistenceLifecycle;
+import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
 import org.eclipse.ditto.services.concierge.actors.ShardRegions;
 import org.eclipse.ditto.services.concierge.actors.cleanup.messages.CreditDecision;
 import org.eclipse.ditto.services.concierge.common.PersistenceCleanupConfig;

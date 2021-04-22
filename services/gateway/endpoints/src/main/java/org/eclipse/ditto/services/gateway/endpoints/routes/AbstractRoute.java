@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -33,11 +33,11 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.services.base.config.ThrottlingConfig;
+import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.services.gateway.endpoints.actors.AbstractHttpRequestActor;
 import org.eclipse.ditto.services.gateway.endpoints.actors.HttpRequestActorPropsFactory;
 import org.eclipse.ditto.services.gateway.endpoints.directives.ContentTypeValidationDirective;
@@ -46,9 +46,9 @@ import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.services.utils.akka.AkkaClassLoader;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayTimeoutInvalidException;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.commands.CommandNotSupportedException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayTimeoutInvalidException;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;

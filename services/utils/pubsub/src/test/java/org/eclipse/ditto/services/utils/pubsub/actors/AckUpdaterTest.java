@@ -17,7 +17,7 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
+import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.services.utils.pubsub.LiteralDDataProvider;
 import org.eclipse.ditto.services.utils.pubsub.api.AcksDeclared;
 import org.eclipse.ditto.services.utils.pubsub.api.DeclareAcks;

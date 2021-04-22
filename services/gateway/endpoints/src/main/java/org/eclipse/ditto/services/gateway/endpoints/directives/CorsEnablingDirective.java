@@ -17,7 +17,7 @@ import static akka.http.javadsl.server.Directives.concat;
 import static akka.http.javadsl.server.Directives.extractRequest;
 import static akka.http.javadsl.server.Directives.options;
 import static akka.http.javadsl.server.Directives.respondWithHeaders;
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.ArrayList;
 import java.util.List;

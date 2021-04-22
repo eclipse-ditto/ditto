@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
+import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.junit.Test;
 
 public final class DittoMessageDirectionValueValidatorTest {

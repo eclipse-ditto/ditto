@@ -26,8 +26,8 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
-import org.eclipse.ditto.model.base.acks.PubSubTerminatedException;
+import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotUniqueException;
+import org.eclipse.ditto.base.model.acks.PubSubTerminatedException;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;

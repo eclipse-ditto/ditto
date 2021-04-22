@@ -39,10 +39,10 @@ import java.util.concurrent.TimeUnit;
 
 import org.assertj.core.api.Assertions;
 import org.awaitility.Awaitility;
-import org.eclipse.ditto.model.base.common.DittoDuration;
-import org.eclipse.ditto.model.base.entity.Revision;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.common.DittoDuration;
+import org.eclipse.ditto.base.model.entity.Revision;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;

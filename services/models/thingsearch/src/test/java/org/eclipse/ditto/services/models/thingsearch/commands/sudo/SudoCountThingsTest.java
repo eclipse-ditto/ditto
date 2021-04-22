@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.models.thingsearch.commands.sudo;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;

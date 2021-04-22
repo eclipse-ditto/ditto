@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.utils.pubsub;
 import java.util.Arrays;
 import java.util.Optional;
 
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 

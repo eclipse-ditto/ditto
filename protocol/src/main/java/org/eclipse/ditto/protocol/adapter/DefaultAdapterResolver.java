@@ -29,7 +29,7 @@ import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.provider.AcknowledgementAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.provider.PolicyCommandAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.provider.ThingCommandAdapterProvider;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.base.model.signals.Signal;
 
 /**
  * Implements the logic to select the correct {@link org.eclipse.ditto.protocol.adapter.Adapter} from a given {@link org.eclipse.ditto.protocol.Adaptable}.

@@ -18,7 +18,7 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 
-import org.eclipse.ditto.model.base.common.Placeholders;
+import org.eclipse.ditto.base.model.common.Placeholders;
 
 /**
  * The ExpressionResolver is able to:

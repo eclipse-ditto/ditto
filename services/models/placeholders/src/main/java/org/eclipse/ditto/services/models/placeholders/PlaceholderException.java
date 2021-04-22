@@ -13,7 +13,7 @@
 package org.eclipse.ditto.services.models.placeholders;
 
 /**
- * Aggregates all {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException}s which are thrown in scope
+ * Aggregates all {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException}s which are thrown in scope
  * of placeholders.
  */
 public interface PlaceholderException {

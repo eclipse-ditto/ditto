@@ -13,7 +13,7 @@
 package org.eclipse.ditto.protocol.adapter.provider;
 
 import org.eclipse.ditto.protocol.adapter.Adapter;
-import org.eclipse.ditto.signals.commands.base.ErrorResponse;
+import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
 
 /**
  * Interface providing the error response adapter.

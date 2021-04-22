@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.models.connectivity;
 import java.util.Objects;
 
 import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.base.model.signals.Signal;
 
 /**
  * Represent an inbound {@link Signal} that was mapped from an {@link ExternalMessage}.

@@ -18,8 +18,8 @@ import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 
 /**
  * Registry containing all of the required instances of {@link SubstitutionStrategy}.

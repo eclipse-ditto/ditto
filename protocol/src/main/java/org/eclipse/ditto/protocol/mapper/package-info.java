@@ -12,7 +12,7 @@
  */
 
 /**
- * This package provides interfaces and classes to convert from {@link org.eclipse.ditto.signals.base.Signal}s to
+ * This package provides interfaces and classes to convert from {@link org.eclipse.ditto.base.model.signals.Signal}s to
  * {@link org.eclipse.ditto.protocol.Adaptable}s.
  */
 @org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault

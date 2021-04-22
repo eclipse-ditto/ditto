@@ -21,11 +21,11 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
-import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
+import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.services.base.actors.ShutdownBehaviour;
+import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.policies.api.PolicyReferenceTag;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.services.models.streaming.IdentifiableStreamingMessage;

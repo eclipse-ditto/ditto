@@ -16,7 +16,7 @@ import java.util.EnumSet;
 import java.util.Set;
 
 import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 
 /**
  * An {@code Adapter} mixin for query commands.

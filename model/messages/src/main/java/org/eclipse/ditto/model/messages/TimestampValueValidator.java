@@ -17,13 +17,13 @@ import java.time.format.DateTimeParseException;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
-import org.eclipse.ditto.model.base.headers.AbstractHeaderValueValidator;
-import org.eclipse.ditto.model.base.headers.HeaderDefinition;
+import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
+import org.eclipse.ditto.base.model.headers.AbstractHeaderValueValidator;
+import org.eclipse.ditto.base.model.headers.HeaderDefinition;
 
 /**
  * This validator parses a CharSequence to a {@link java.time.OffsetDateTime}.
- * If parsing fails, a {@link org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException} is thrown.
+ * If parsing fails, a {@link org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException} is thrown.
  */
 @Immutable
 final class TimestampValueValidator extends AbstractHeaderValueValidator {

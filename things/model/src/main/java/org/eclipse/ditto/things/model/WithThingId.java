@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.things.model;
 
-import org.eclipse.ditto.model.base.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 
 /**
  * Implementations of this interface are associated to a {@code Thing} identified by the value

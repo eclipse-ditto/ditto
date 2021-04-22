@@ -19,10 +19,10 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
-import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.events.Event;
 
 /**
  * This <em>Singleton</em> delegates a {@code Command} to a dedicated strategy - if one is available - to be handled.

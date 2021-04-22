@@ -17,8 +17,8 @@ import java.time.Instant;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.policies.model.PolicyId;
 
 /**
@@ -192,7 +192,7 @@ public final class TestConstants {
         /**
          * Known Metadata of a Thing.
          */
-        public static final org.eclipse.ditto.model.base.entity.metadata.Metadata METADATA =
+        public static final org.eclipse.ditto.base.model.entity.metadata.Metadata METADATA =
                 ThingsModelFactory.newMetadataBuilder()
                         .set("issuedAt", 0L)
                         .build();

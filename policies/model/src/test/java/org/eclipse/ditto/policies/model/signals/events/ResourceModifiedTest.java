@@ -12,18 +12,18 @@
  */
 package org.eclipse.ditto.policies.model.signals.events;
 
-import static org.eclipse.ditto.model.base.assertions.DittoBaseAssertions.assertThat;
+import static org.eclipse.ditto.base.model.assertions.DittoBaseAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Resource;
-import org.eclipse.ditto.signals.events.base.Event;
-import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
+import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

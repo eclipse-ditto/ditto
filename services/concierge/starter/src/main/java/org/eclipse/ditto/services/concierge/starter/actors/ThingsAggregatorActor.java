@@ -20,8 +20,8 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.services.concierge.common.DittoConciergeConfig;
 import org.eclipse.ditto.services.concierge.common.ThingsAggregatorConfig;
@@ -31,8 +31,8 @@ import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.signals.base.SignalWithEntityId;
-import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 

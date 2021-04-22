@@ -35,11 +35,11 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabelInvalidException;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
+import org.eclipse.ditto.base.model.acks.AcknowledgementLabelInvalidException;
+import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotUniqueException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;

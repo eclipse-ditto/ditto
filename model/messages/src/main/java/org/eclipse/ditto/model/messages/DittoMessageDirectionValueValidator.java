@@ -14,14 +14,14 @@ package org.eclipse.ditto.model.messages;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
-import org.eclipse.ditto.model.base.headers.AbstractHeaderValueValidator;
-import org.eclipse.ditto.model.base.headers.HeaderDefinition;
+import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
+import org.eclipse.ditto.base.model.headers.AbstractHeaderValueValidator;
+import org.eclipse.ditto.base.model.headers.HeaderDefinition;
 
 /**
  * This validator checks if a CharSequence is a valid message direction that matches either
  * {@link MessageDirection#TO} or {@link MessageDirection#FROM}.
- * If validation fails, a {@link org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException} is thrown.
+ * If validation fails, a {@link org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException} is thrown.
  */
 @Immutable
 final class DittoMessageDirectionValueValidator extends AbstractHeaderValueValidator {

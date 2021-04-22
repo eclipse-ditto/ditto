@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.things.model.signals.commands.query;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -28,16 +28,16 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.things.model.FeatureDefinition;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
-import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 
 /**
@@ -131,7 +131,7 @@ public final class RetrieveFeatureDefinitionResponse extends AbstractCommandResp
      *     <li>{@link #JSON_DEFINITION}.</li>
      * </ul>
      * @throws org.eclipse.ditto.things.model.ThingIdInvalidException if the parsed thing ID did not comply to
-     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
+     * {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static RetrieveFeatureDefinitionResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -154,7 +154,7 @@ public final class RetrieveFeatureDefinitionResponse extends AbstractCommandResp
      *     <li>{@link #JSON_DEFINITION}.</li>
      * </ul>
      * @throws org.eclipse.ditto.things.model.ThingIdInvalidException if the parsed thing ID did not comply to
-     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
+     * {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static RetrieveFeatureDefinitionResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {

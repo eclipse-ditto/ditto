@@ -13,16 +13,16 @@
 package org.eclipse.ditto.services.utils.headers.conditional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers.fromCommaSeparatedString;
+import static org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers.fromCommaSeparatedString;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Optional;
 
 import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
-import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
+import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 import org.junit.Test;
 
 /**

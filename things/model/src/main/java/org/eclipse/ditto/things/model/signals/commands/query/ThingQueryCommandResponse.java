@@ -13,8 +13,8 @@
 package org.eclipse.ditto.things.model.signals.commands.query;
 
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.signals.commands.base.WithEntity;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.commands.WithEntity;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 
 /**

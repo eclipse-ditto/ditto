@@ -15,7 +15,7 @@ package org.eclipse.ditto.model.connectivity;
 import java.util.List;
 
 import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * References multiple mappings from a {@link PayloadMappingDefinition} in a {@link Source} or a {@link Target}.
