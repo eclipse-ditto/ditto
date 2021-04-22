@@ -315,6 +315,10 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
     @Test
     public void manageConnectionWith2Clients() throws Exception {
+        final EnableConnectionLogs enableConnectionLogs = EnableConnectionLogs.of(connectionId, DittoHeaders.empty());
+        final EnableConnectionLogsResponse enableConnectionLogsResponse =
+                EnableConnectionLogsResponse.of(connectionId, enableConnectionLogs.getDittoHeaders());
+
         startSecondActorSystemAndJoinCluster();
         new TestKit(actorSystem) {{
             final TestProbe gossipProbe = TestProbe.apply("gossip", actorSystem);
@@ -335,6 +339,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             underTest.tell(gossipProbe.expectMsgClass(ActorRef.class), ActorRef.noSender());
             // one client actor receives the command
             probe.expectMsg(openConnection);
+            probe.expectMsg(enableConnectionLogs);
+            expectMsg(enableConnectionLogsResponse);
             expectMsgClass(OpenConnectionResponse.class);
 
             // forward signal once
@@ -960,6 +966,10 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 now.plusSeconds(123),
                 DittoHeaders.empty());
 
+        final EnableConnectionLogs enableConnectionLogs = EnableConnectionLogs.of(connectionId, DittoHeaders.empty());
+        final EnableConnectionLogsResponse enableConnectionLogsResponse =
+                EnableConnectionLogsResponse.of(connectionId, enableConnectionLogs.getDittoHeaders());
+
         new TestKit(actorSystem) {{
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
@@ -971,6 +981,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             // create connection
             underTest.tell(createConnection, getRef());
             probe.expectMsg(openConnection);
+            probe.expectMsg(enableConnectionLogs);
+            expectMsg(enableConnectionLogsResponse);
             expectMsg(createConnectionResponse);
 
             // retrieve logs
@@ -1053,6 +1065,9 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
     @Test
     public void disabledConnectionLogsAreNotEnabledAfterModify() {
+        final EnableConnectionLogs enableConnectionLogs = EnableConnectionLogs.of(connectionId, DittoHeaders.empty());
+        final EnableConnectionLogsResponse enableConnectionLogsResponse =
+                EnableConnectionLogsResponse.of(connectionId, enableConnectionLogs.getDittoHeaders());
         new TestKit(actorSystem) {{
 
             final TestProbe probe = TestProbe.apply(actorSystem);
@@ -1065,6 +1080,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             // create connection
             underTest.tell(createConnection, getRef());
             probe.expectMsg(openConnection);
+            probe.expectMsg(enableConnectionLogs);
+            expectMsg(enableConnectionLogsResponse);
             expectMsg(createConnectionResponse);
 
             // modify connection

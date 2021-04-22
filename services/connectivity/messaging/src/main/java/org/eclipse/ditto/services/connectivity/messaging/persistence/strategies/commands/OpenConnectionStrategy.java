@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.persistence.strategies.commands;
 
+import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.ENABLE_LOGGING;
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.OPEN_CONNECTION;
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.PERSIST_AND_APPLY_EVENT;
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.SEND_RESPONSE;
@@ -63,7 +64,8 @@ final class OpenConnectionStrategy extends AbstractConnectivityCommandStrategy<O
             final WithDittoHeaders response =
                     OpenConnectionResponse.of(context.getState().id(), command.getDittoHeaders());
             final List<ConnectionAction> actions =
-                    Arrays.asList(PERSIST_AND_APPLY_EVENT, OPEN_CONNECTION, UPDATE_SUBSCRIPTIONS, SEND_RESPONSE);
+                    Arrays.asList(ENABLE_LOGGING, PERSIST_AND_APPLY_EVENT, OPEN_CONNECTION, UPDATE_SUBSCRIPTIONS,
+                            SEND_RESPONSE);
             return newMutationResult(StagedCommand.of(command, event, response, actions), event, response);
         }
     }

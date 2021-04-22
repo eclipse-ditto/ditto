@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.persistence.strategies
 
 import static org.eclipse.ditto.model.connectivity.ConnectionLifecycle.ACTIVE;
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.BECOME_CREATED;
+import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.ENABLE_LOGGING;
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.OPEN_CONNECTION_IGNORE_ERRORS;
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.PERSIST_AND_APPLY_EVENT;
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.SEND_RESPONSE;
@@ -69,7 +70,8 @@ final class CreateConnectionStrategy extends AbstractConnectivityCommandStrategy
                     .debug("Connection <{}> has status <{}> and will therefore be opened.",
                             connection.getId(), connection.getConnectionStatus());
             final List<ConnectionAction> actions = List.of(
-                    PERSIST_AND_APPLY_EVENT, BECOME_CREATED, UPDATE_SUBSCRIPTIONS, SEND_RESPONSE, OPEN_CONNECTION_IGNORE_ERRORS);
+                    ENABLE_LOGGING, PERSIST_AND_APPLY_EVENT, BECOME_CREATED, UPDATE_SUBSCRIPTIONS, SEND_RESPONSE,
+                    OPEN_CONNECTION_IGNORE_ERRORS);
             return newMutationResult(StagedCommand.of(command, event, response, actions), event, response);
         } else {
             return newMutationResult(command, event, response, true, false);
