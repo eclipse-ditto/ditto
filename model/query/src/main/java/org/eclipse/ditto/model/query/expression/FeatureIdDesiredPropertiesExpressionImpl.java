@@ -14,25 +14,21 @@ package org.eclipse.ditto.model.query.expression;
 
 import java.util.Objects;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.query.expression.visitors.ExistsFieldExpressionVisitor;
 import org.eclipse.ditto.model.query.expression.visitors.FieldExpressionVisitor;
 
 /**
- * Field expression for feature desired properties.
- *
- * @since 1.5.0
+ * Immutable implementation of {@link FeatureIdDesiredPropertiesExpression}.
  */
-public final class FeatureIdDesiredPropertiesExpressionImpl implements ExistsFieldExpression {
+@Immutable
+final class FeatureIdDesiredPropertiesExpressionImpl implements FeatureIdDesiredPropertiesExpression {
 
     private final String featureId;
 
-    /**
-     * Constructor.
-     *
-     * @param featureId the feature ID.
-     */
-    public FeatureIdDesiredPropertiesExpressionImpl(final String featureId) {
+    FeatureIdDesiredPropertiesExpressionImpl(final String featureId) {
         this.featureId = ConditionChecker.checkNotNull(featureId, "featureId");
     }
 
@@ -46,9 +42,7 @@ public final class FeatureIdDesiredPropertiesExpressionImpl implements ExistsFie
         return visitor.visitFeatureDesiredProperties(featureId);
     }
 
-    /**
-     * @return the feature ID.
-     */
+    @Override
     public String getFeatureId() {
         return featureId;
     }
@@ -72,7 +66,8 @@ public final class FeatureIdDesiredPropertiesExpressionImpl implements ExistsFie
 
     @Override
     public String toString() {
-        return "FeatureIdDesiredPropertiesExpression [featureId=" + featureId + "]";
+        return getClass().getSimpleName() + " [" +
+                "featureId=" + featureId +
+                "]";
     }
-
 }

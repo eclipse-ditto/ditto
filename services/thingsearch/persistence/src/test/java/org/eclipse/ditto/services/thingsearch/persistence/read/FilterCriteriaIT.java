@@ -19,9 +19,7 @@ import java.util.Collections;
 
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
-import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
@@ -64,8 +62,8 @@ public final class FilterCriteriaIT extends AbstractReadPersistenceITBase {
     private static final String THING3_KNOWN_STR_REGEX_VALUE = "Teststring nummer drei"; // wildcard
     private static final String THING4_KNOWN_STR_REGEX_VALUE = "Der vierte und letzte Teststring"; // ends with
 
-    private final CriteriaFactory cf = new CriteriaFactoryImpl();
-    private final ThingsFieldExpressionFactory ef = new ThingsFieldExpressionFactoryImpl();
+    private final CriteriaFactory cf = CriteriaFactory.getInstance();
+    private final ThingsFieldExpressionFactory ef = ThingsFieldExpressionFactory.of(SIMPLE_FIELD_MAPPINGS);
 
     @Before
     public void createTestData() {

@@ -36,6 +36,7 @@ import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.namespaces.NamespaceReader;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.model.rqlparser.RqlPredicateParser;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
@@ -166,7 +167,8 @@ public final class SignalFilter {
      * mapped to a valid criterion
      */
     private static Criteria parseCriteria(final String filter, final DittoHeaders dittoHeaders) {
-        return QueryFilterCriteriaFactory.modelBased().filterCriteria(filter, dittoHeaders);
+        return QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance())
+                .filterCriteria(filter, dittoHeaders);
     }
 
     private static Optional<Topic> topicFromSignal(final Signal<?> signal) {

@@ -16,30 +16,26 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.model.query.expression.visitors.ExistsFieldExpressionVisitor;
 import org.eclipse.ditto.model.query.expression.visitors.FieldExpressionVisitor;
 import org.eclipse.ditto.model.query.expression.visitors.FilterFieldExpressionVisitor;
 import org.eclipse.ditto.model.query.expression.visitors.SortFieldExpressionVisitor;
 
 /**
- * Expression for an attribute.
+ * Immutable implementation of {@link AttributeExpression}.
  */
-public class AttributeExpressionImpl implements FilterFieldExpression, SortFieldExpression, ExistsFieldExpression {
+@Immutable
+final class AttributeExpressionImpl implements AttributeExpression {
 
     private final String key;
 
-    /**
-     * Constructor.
-     *
-     * @param key the attribute key
-     */
-    public AttributeExpressionImpl(final String key) {
+    AttributeExpressionImpl(final String key) {
         this.key = requireNonNull(key);
     }
 
-    /**
-     * @return the key
-     */
+    @Override
     public String getKey() {
         return key;
     }
@@ -65,35 +61,26 @@ public class AttributeExpressionImpl implements FilterFieldExpression, SortField
     }
 
     @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final AttributeExpressionImpl that = (AttributeExpressionImpl) o;
+        return Objects.equals(key, that.key);
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hash(key);
     }
 
-    @SuppressWarnings("squid:MethodCyclomaticComplexity")
-    @Override
-    public boolean equals(final Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final AttributeExpressionImpl other = (AttributeExpressionImpl) obj;
-        if (key == null) {
-            if (other.key != null) {
-                return false;
-            }
-        } else if (!key.equals(other.key)) {
-            return false;
-        }
-        return true;
-    }
-
     @Override
     public String toString() {
-        return "AttributeExpression [key=" + key + "]";
+        return getClass().getSimpleName() + " [" +
+                "key=" + key +
+                "]";
     }
 }

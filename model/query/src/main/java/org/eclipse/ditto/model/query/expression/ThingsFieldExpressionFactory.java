@@ -12,11 +12,24 @@
  */
 package org.eclipse.ditto.model.query.expression;
 
+import java.util.Map;
+
 /**
  * Factory for creating {@link FieldExpression}s for thing search.
  * The only relevant method is {@code filterByNamespace}; all others are only for tests.
  */
 public interface ThingsFieldExpressionFactory extends FieldExpressionFactory {
+
+    /**
+     * Creates a ThingsFieldExpressionFactory with custom field mappings.
+     *
+     * @param simpleFieldMappings the field mappings to apply.
+     * @return the created ThingsFieldExpressionFactory
+     * @since 2.0.0
+     */
+    static ThingsFieldExpressionFactory of(final Map<String, String> simpleFieldMappings) {
+        return new ThingsFieldExpressionFactoryImpl(simpleFieldMappings);
+    }
 
     /**
      * @return a filter expression for the given namespace

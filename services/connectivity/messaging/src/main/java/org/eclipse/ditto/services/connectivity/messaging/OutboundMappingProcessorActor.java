@@ -56,6 +56,7 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
+import org.eclipse.ditto.model.rqlparser.RqlPredicateParser;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
@@ -637,7 +638,7 @@ public final class OutboundMappingProcessorActor
             // evaluate filter criteria again if signal enrichment is involved.
             final Signal<?> signal = outboundSignalWithExtra.getSource();
             final DittoHeaders dittoHeaders = signal.getDittoHeaders();
-            final Criteria criteria = QueryFilterCriteriaFactory.modelBased()
+            final Criteria criteria = QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance())
                     .filterCriteria(filter.get(), dittoHeaders);
             return outboundSignalWithExtra.getExtra()
                     .flatMap(extra -> ThingEventToThingConverter

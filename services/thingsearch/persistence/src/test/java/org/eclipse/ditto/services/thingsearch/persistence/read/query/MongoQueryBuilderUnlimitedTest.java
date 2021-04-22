@@ -23,7 +23,7 @@ import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.model.query.SortDirection;
 import org.eclipse.ditto.model.query.SortOption;
 import org.eclipse.ditto.model.query.criteria.Criteria;
-import org.eclipse.ditto.model.query.expression.SimpleFieldExpressionImpl;
+import org.eclipse.ditto.model.query.expression.SimpleFieldExpression;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -33,7 +33,7 @@ import org.junit.Test;
 public final class MongoQueryBuilderUnlimitedTest {
 
     private static final SortOption KNOWN_SORT_OPTION =
-            new SortOption(new SimpleFieldExpressionImpl(FIELD_ID), SortDirection.DESC);
+            new SortOption(SimpleFieldExpression.of(FIELD_ID), SortDirection.DESC);
 
     private Criteria criteria;
     private MongoQueryBuilder underTest;

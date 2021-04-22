@@ -26,5 +26,5 @@ public interface Predicate {
      * @param <T> The result type.
      * @return The result of evaluation.
      */
-    <T> T accept(final PredicateVisitor<T> visitor);
+    <T> T accept(PredicateVisitor<T> visitor);
 }

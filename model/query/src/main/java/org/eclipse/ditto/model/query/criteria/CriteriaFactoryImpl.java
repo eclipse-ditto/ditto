@@ -23,7 +23,22 @@ import org.eclipse.ditto.model.query.expression.FilterFieldExpression;
 /**
  * Class for creating queries.
  */
-public final class CriteriaFactoryImpl implements CriteriaFactory {
+final class CriteriaFactoryImpl implements CriteriaFactory {
+
+    private static final CriteriaFactoryImpl INSTANCE = new CriteriaFactoryImpl();
+
+    private CriteriaFactoryImpl() {
+        // private
+    }
+
+    /**
+     * Returns the CriteriaFactoryImpl instance.
+     *
+     * @return the CriteriaFactoryImpl instance.
+     */
+    static CriteriaFactoryImpl getInstance() {
+       return INSTANCE;
+    }
 
     @Override
     public Criteria any() {

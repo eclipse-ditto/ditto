@@ -25,7 +25,7 @@ import org.junit.Test;
 
 public class RqlPredicateParserTest {
 
-    private final PredicateParser parser = new RqlPredicateParser();
+    private final PredicateParser parser = RqlPredicateParser.getInstance();
 
     @Test
     public void testComparisonEqualsWithNumberValue() throws ParserException {

@@ -22,7 +22,7 @@ import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.model.query.SortDirection;
 import org.eclipse.ditto.model.query.SortOption;
 import org.eclipse.ditto.model.query.criteria.Criteria;
-import org.eclipse.ditto.model.query.expression.SimpleFieldExpressionImpl;
+import org.eclipse.ditto.model.query.expression.SimpleFieldExpression;
 import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.junit.Before;
@@ -39,7 +39,7 @@ import com.typesafe.config.ConfigFactory;
 public final class MongoQueryBuilderLimitedTest {
 
     private static final SortOption KNOWN_SORT_OPTION =
-            new SortOption(new SimpleFieldExpressionImpl(FIELD_ID), SortDirection.DESC);
+            new SortOption(SimpleFieldExpression.of(FIELD_ID), SortDirection.DESC);
 
     private static DefaultLimitsConfig limitsConfig;
 
@@ -85,7 +85,7 @@ public final class MongoQueryBuilderLimitedTest {
     @Test
     public void appendDefaultSortOption() {
         final SortOption defaultSortOption =
-                new SortOption(new SimpleFieldExpressionImpl(FIELD_ID), SortDirection.ASC);
+                new SortOption(SimpleFieldExpression.of(FIELD_ID), SortDirection.ASC);
         final List<SortOption> sortOptions = Collections.singletonList(Mockito.mock(SortOption.class));
         final Query query = underTest.sort(sortOptions).build();
 
