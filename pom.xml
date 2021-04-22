@@ -201,6 +201,7 @@
         <module>things</module>
         <module>base</module>
         <module>concierge</module>
+        <module>gateway</module>
     </modules>
 
     <properties>

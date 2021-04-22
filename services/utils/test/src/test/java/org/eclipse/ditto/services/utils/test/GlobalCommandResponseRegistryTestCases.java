@@ -38,6 +38,7 @@ import org.mutabilitydetector.internal.javassist.Modifier;
 public abstract class GlobalCommandResponseRegistryTestCases {
 
     private final List<Class<?>> samples;
+    private final List<String> knownNotAnnotatedClassnames;
     private List<Class<?>> jsonParsableCommandResponses;
 
     /**
@@ -48,10 +49,11 @@ public abstract class GlobalCommandResponseRegistryTestCases {
      * @param sample a class that is annotated with {@link JsonParsableCommandResponse}.
      * @param furtherSamples further classes that are annotated with {@link JsonParsableCommandResponse}.
      */
-    protected GlobalCommandResponseRegistryTestCases(final Class<?> sample, final Class<?> ... furtherSamples) {
+    protected GlobalCommandResponseRegistryTestCases(final Class<?> sample, final Class<?>... furtherSamples) {
         samples = new ArrayList<>(1 + furtherSamples.length);
         samples.add(sample);
         Collections.addAll(samples, furtherSamples);
+        knownNotAnnotatedClassnames = new ArrayList<>();
     }
 
     @Before
@@ -60,6 +62,10 @@ public abstract class GlobalCommandResponseRegistryTestCases {
                 StreamSupport.stream(ClassIndex.getAnnotated(JsonParsableCommandResponse.class).spliterator(), true)
                         .filter(c -> !"TestCommandResponse".equals(c.getSimpleName()))
                         .collect(Collectors.toList());
+    }
+
+    protected void excludeKnownNotAnnotatedClass(String className) {
+        knownNotAnnotatedClassnames.add(className);
     }
 
     /**
@@ -98,6 +104,7 @@ public abstract class GlobalCommandResponseRegistryTestCases {
                 })
                 .filter(c -> !Acknowledgements.class.isAssignableFrom(c)) // exclude implementations of this very special CommandResponse -> it is registered differently
                 .filter(c -> !Acknowledgement.class.isAssignableFrom(c)) // exclude implementations of this very special CommandResponse -> it is registered differently
+                .filter(c -> !knownNotAnnotatedClassnames.contains(c.getName()))
                 .forEach(c -> assertThat(c.isAnnotationPresent(JsonParsableCommandResponse.class))
                         .as("Check that '%s' is annotated with JsonParsableCommandResponse.", c.getName())
                         .isTrue());
