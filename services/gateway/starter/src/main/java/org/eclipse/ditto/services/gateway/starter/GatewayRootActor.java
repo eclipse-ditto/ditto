@@ -57,8 +57,8 @@ import org.eclipse.ditto.services.gateway.util.config.security.AuthenticationCon
 import org.eclipse.ditto.services.gateway.util.config.security.OAuthConfig;
 import org.eclipse.ditto.services.gateway.util.config.streaming.GatewaySignalEnrichmentConfig;
 import org.eclipse.ditto.services.gateway.util.config.streaming.StreamingConfig;
-import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
-import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
+import org.eclipse.ditto.concierge.api.actors.ConciergeEnforcerClusterRouterFactory;
+import org.eclipse.ditto.concierge.api.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;

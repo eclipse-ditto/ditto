@@ -24,6 +24,11 @@
     <artifactId>ditto-things-service</artifactId>
     <name>Eclipse Ditto :: Things :: Service</name>
 
+    <properties>
+        <the.build.timestamp>${maven.build.timestamp}</the.build.timestamp>
+        <maven.build.timestamp.format>yyyy-MM-dd HH:mm</maven.build.timestamp.format>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>

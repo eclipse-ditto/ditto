@@ -29,8 +29,8 @@ import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionP
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPriorityProviderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionSupervisorActor;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.UsageBasedPriorityProvider;
-import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
-import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
+import org.eclipse.ditto.concierge.api.actors.ConciergeEnforcerClusterRouterFactory;
+import org.eclipse.ditto.concierge.api.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;

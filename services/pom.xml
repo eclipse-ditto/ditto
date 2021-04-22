@@ -27,7 +27,6 @@
     <name>Eclipse Ditto :: Services</name>
 
     <modules>
-        <module>concierge</module>
         <module>connectivity</module>
         <module>gateway</module>
         <module>models</module>

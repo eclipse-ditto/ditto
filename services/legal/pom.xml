@@ -42,7 +42,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-concierge-starter</artifactId>
+            <artifactId>ditto-concierge-service</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>

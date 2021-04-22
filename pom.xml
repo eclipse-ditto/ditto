@@ -200,6 +200,7 @@
         <module>policies</module>
         <module>things</module>
         <module>base</module>
+        <module>concierge</module>
     </modules>
 
     <properties>
