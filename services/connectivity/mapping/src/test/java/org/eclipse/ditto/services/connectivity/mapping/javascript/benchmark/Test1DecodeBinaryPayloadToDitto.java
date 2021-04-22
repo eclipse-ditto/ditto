@@ -46,7 +46,7 @@ public class Test1DecodeBinaryPayloadToDitto implements MapToDittoProtocolScenar
                     "       return parseInt(byteBuf.toHex(), 16);\n" +
                     "    };\n" +
                     "    let namespace = \"org.eclipse.ditto\";\n" +
-                    "    let id = \"jmh-test\";\n" +
+                    "    let name = \"jmh-test\";\n" +
                     "    let group = \"things\";\n" +
                     "    let channel = \"twin\";\n" +
                     "    let criterion = \"commands\";\n" +
@@ -64,7 +64,7 @@ public class Test1DecodeBinaryPayloadToDitto implements MapToDittoProtocolScenar
                     "\n" +
                     "    return Ditto.buildDittoProtocolMsg(\n" +
                     "        namespace,\n" +
-                    "        id,\n" +
+                    "        name,\n" +
                     "        group,\n" +
                     "        channel,\n" +
                     "        criterion,\n" +
