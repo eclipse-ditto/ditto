@@ -84,11 +84,12 @@ abstract class AbstractDevOpsCommand<T extends AbstractDevOpsCommand<T>> extends
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final AbstractDevOpsCommand that = (AbstractDevOpsCommand) o;
+        final AbstractDevOpsCommand<?> that = (AbstractDevOpsCommand<?>) o;
         return that.canEqual(this) && Objects.equals(serviceName, that.serviceName)
                 && Objects.equals(instance, that.instance) && super.equals(that);
     }
 
+    @Override
     protected boolean canEqual(@Nullable final Object other) {
         return other instanceof AbstractDevOpsCommand;
     }

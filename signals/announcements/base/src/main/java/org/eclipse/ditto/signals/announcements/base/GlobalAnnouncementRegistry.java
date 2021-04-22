@@ -68,11 +68,6 @@ public final class GlobalAnnouncementRegistry
         private AnnouncementParsingStrategyFactory() {}
 
         @Override
-        protected String getV1FallbackKeyFor(final JsonParsableAnnouncement annotation) {
-            return getKeyFor(annotation);
-        }
-
-        @Override
         protected String getKeyFor(final JsonParsableAnnouncement annotation) {
             return annotation.type();
         }

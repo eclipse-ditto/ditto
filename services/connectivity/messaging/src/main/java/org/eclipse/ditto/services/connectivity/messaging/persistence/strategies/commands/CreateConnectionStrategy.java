@@ -58,8 +58,8 @@ final class CreateConnectionStrategy extends AbstractConnectivityCommandStrategy
 
         final Connection connection = command.getConnection().toBuilder().lifecycle(ACTIVE).build();
         final ConnectivityEvent<?> event =
-                ConnectionCreated.of(connection, getEventTimestamp(), command.getDittoHeaders());
-        final WithDittoHeaders<?> response =
+                ConnectionCreated.of(connection, nextRevision, getEventTimestamp(), command.getDittoHeaders(), metadata);
+        final WithDittoHeaders response =
                 CreateConnectionResponse.of(connection, command.getDittoHeaders());
         final Optional<DittoRuntimeException> validationError = validate(context, command);
         if (validationError.isPresent()) {

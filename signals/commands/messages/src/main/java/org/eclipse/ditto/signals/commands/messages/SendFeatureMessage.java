@@ -43,7 +43,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * @param <T> the type of the message's payload.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = SendFeatureMessage.TYPE_PREFIX, name = SendFeatureMessage.NAME)
+@JsonParsableCommand(typePrefix = MessageCommand.TYPE_PREFIX, name = SendFeatureMessage.NAME)
 public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendFeatureMessage<T>>
         implements WithFeatureId {
 
@@ -58,7 +58,7 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<String> JSON_FEATURE_ID =
-            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final String featureId;
@@ -92,29 +92,6 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
                     .dittoHeaders(dittoHeaders)
                     .build();
         }
-    }
-
-    /**
-     * Creates a new instance of {@code SendFeatureMessage}.
-     *
-     * @param thingId the ID of the Thing to which the Feature belongs
-     * @param featureId the ID of the Feature to send the message to
-     * @param message the message to send to the Feature
-     * @param dittoHeaders the DittoHeaders of this message.
-     * @param <T> the type of the message's payload.
-     * @return new instance of {@code SendFeatureMessage}.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.messages.Message, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static <T> SendFeatureMessage<T> of(final String thingId,
-            final String featureId,
-            final Message<T> message,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), featureId, message, dittoHeaders);
     }
 
     /**
@@ -190,8 +167,8 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
     }
 
     @Override
-    public SendFeatureMessage setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), featureId, getMessage(), dittoHeaders);
+    public SendFeatureMessage<T> setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return of(getEntityId(), featureId, getMessage(), dittoHeaders);
     }
 
     @Override
@@ -203,7 +180,7 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
         jsonObjectBuilder.remove(MessageCommand.JsonFields.JSON_THING_ID);
         final JsonObject superBuild = jsonObjectBuilder.build();
         jsonObjectBuilder.removeAll();
-        jsonObjectBuilder.set(MessageCommand.JsonFields.JSON_THING_ID, getThingEntityId().toString());
+        jsonObjectBuilder.set(MessageCommand.JsonFields.JSON_THING_ID, getEntityId().toString());
         jsonObjectBuilder.set(JSON_FEATURE_ID, getFeatureId());
         jsonObjectBuilder.setAll(superBuild);
     }

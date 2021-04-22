@@ -45,7 +45,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a Feature's {@link FeatureDefinition} was modified.
  */
 @Immutable
-@JsonParsableEvent(name = FeatureDefinitionModified.NAME, typePrefix = FeatureDefinitionModified.TYPE_PREFIX)
+@JsonParsableEvent(name = FeatureDefinitionModified.NAME, typePrefix = ThingEvent.TYPE_PREFIX)
 public final class FeatureDefinitionModified extends AbstractThingEvent<FeatureDefinitionModified>
         implements ThingModifiedEvent<FeatureDefinitionModified>, WithFeatureId {
 
@@ -60,7 +60,7 @@ public final class FeatureDefinitionModified extends AbstractThingEvent<FeatureD
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<JsonArray> JSON_DEFINITION =
-            JsonFactory.newJsonArrayFieldDefinition("definition", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonArrayFieldDefinition("definition", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final String featureId;
@@ -77,104 +77,6 @@ public final class FeatureDefinitionModified extends AbstractThingEvent<FeatureD
         super(TYPE, thingId, revision, timestamp, dittoHeaders, metadata);
         this.featureId = checkNotNull(featureId, "Feature ID");
         this.definition = checkNotNull(definition, "Feature Definition");
-    }
-
-    /**
-     * Constructs a new {@code FeatureDefinitionModified} object.
-     *
-     * @param thingId the ID of the Thing whose Feature's Definition was modified.
-     * @param featureId the ID of the Feature whose Definition was modified.
-     * @param definition the modified {@link FeatureDefinition}.
-     * @param revision the revision of the Thing.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the FeatureDefinitionModified created.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.things.FeatureDefinition, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
-     * instead.
-     */
-    @Deprecated
-    public static FeatureDefinitionModified of(final String thingId,
-            final String featureId,
-            final FeatureDefinition definition,
-            final long revision,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), featureId, definition, revision, null, dittoHeaders, null);
-    }
-
-    /**
-     * Constructs a new {@code FeatureDefinitionModified} object.
-     *
-     * @param thingId the ID of the Thing whose Feature's Definition was modified.
-     * @param featureId the ID of the Feature whose Definition was modified.
-     * @param definition the modified {@link FeatureDefinition}.
-     * @param revision the revision of the Thing.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the FeatureDefinitionModified created.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.things.FeatureDefinition, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
-     * instead.
-     */
-    @Deprecated
-    public static FeatureDefinitionModified of(final ThingId thingId,
-            final String featureId,
-            final FeatureDefinition definition,
-            final long revision,
-            final DittoHeaders dittoHeaders) {
-
-        return of(thingId, featureId, definition, revision, null, dittoHeaders, null);
-    }
-
-    /**
-     * Constructs a new {@code FeatureDefinitionModified} object.
-     *
-     * @param thingId the ID of the Thing whose Feature's Definition was modified.
-     * @param featureId the ID of the Feature whose Definition was modified.
-     * @param definition the modified {@link FeatureDefinition}.
-     * @param revision the revision of the Thing.
-     * @param timestamp the timestamp of this event.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the FeatureDefinitionModified created.
-     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.things.FeatureDefinition, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
-     * instead.
-     */
-    @Deprecated
-    public static FeatureDefinitionModified of(final String thingId,
-            final String featureId,
-            final FeatureDefinition definition,
-            final long revision,
-            @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), featureId, definition, revision, timestamp, dittoHeaders, null);
-    }
-
-    /**
-     * Constructs a new {@code FeatureDefinitionModified} object.
-     *
-     * @param thingId the ID of the Thing whose Feature's Definition was modified.
-     * @param featureId the ID of the Feature whose Definition was modified.
-     * @param definition the modified {@link FeatureDefinition}.
-     * @param revision the revision of the Thing.
-     * @param timestamp the timestamp of this event.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the FeatureDefinitionModified created.
-     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
-     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.things.FeatureDefinition, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
-     * instead.
-     */
-    @Deprecated
-    public static FeatureDefinitionModified of(final ThingId thingId,
-            final String featureId,
-            final FeatureDefinition definition,
-            final long revision,
-            @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
-
-        return of(thingId, featureId, definition, revision, timestamp, dittoHeaders, null);
     }
 
     /**
@@ -231,9 +133,9 @@ public final class FeatureDefinitionModified extends AbstractThingEvent<FeatureD
     public static FeatureDefinitionModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<FeatureDefinitionModified>(TYPE, jsonObject)
                 .deserialize((revision, timestamp, metadata) -> {
-                    final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+                    final String extractedThingId = jsonObject.getValueOrThrow(ThingEvent.JsonFields.THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
-                    final String extractedFeatureId = jsonObject.getValueOrThrow(JsonFields.FEATURE_ID);
+                    final String extractedFeatureId = jsonObject.getValueOrThrow(ThingEvent.JsonFields.FEATURE_ID);
                     final JsonArray definitionJsonArray = jsonObject.getValueOrThrow(JSON_DEFINITION);
 
                     final FeatureDefinition extractedDefinition =
@@ -270,13 +172,13 @@ public final class FeatureDefinitionModified extends AbstractThingEvent<FeatureD
 
     @Override
     public FeatureDefinitionModified setRevision(final long revision) {
-        return of(getThingEntityId(), featureId, definition, revision, getTimestamp().orElse(null), getDittoHeaders(),
+        return of(getEntityId(), featureId, definition, revision, getTimestamp().orElse(null), getDittoHeaders(),
                 getMetadata().orElse(null));
     }
 
     @Override
     public FeatureDefinitionModified setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), featureId, definition, getRevision(), getTimestamp().orElse(null), dittoHeaders,
+        return of(getEntityId(), featureId, definition, getRevision(), getTimestamp().orElse(null), dittoHeaders,
                 getMetadata().orElse(null));
     }
 
@@ -285,7 +187,7 @@ public final class FeatureDefinitionModified extends AbstractThingEvent<FeatureD
             final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(JsonFields.FEATURE_ID, featureId, predicate);
+        jsonObjectBuilder.set(ThingEvent.JsonFields.FEATURE_ID, featureId, predicate);
         jsonObjectBuilder.set(JSON_DEFINITION, definition.toJson(), predicate);
     }
 

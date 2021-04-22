@@ -42,7 +42,7 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
  * Command that will enable logging in a {@link org.eclipse.ditto.model.connectivity.Connection}.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = CheckConnectionLogsActive.TYPE_PREFIX, name = CheckConnectionLogsActive.NAME)
+@JsonParsableCommand(typePrefix = ConnectivityCommand.TYPE_PREFIX, name = CheckConnectionLogsActive.NAME)
 public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnectionLogsActive>
         implements ConnectivityModifyCommand<CheckConnectionLogsActive> {
 
@@ -57,7 +57,7 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     protected static final JsonFieldDefinition<String> JSON_TIMESTAMP =
-            JsonFactory.newStringFieldDefinition("timestamp", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("timestamp", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final ConnectionId connectionId;
@@ -173,7 +173,7 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
     }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return connectionId;
     }
 

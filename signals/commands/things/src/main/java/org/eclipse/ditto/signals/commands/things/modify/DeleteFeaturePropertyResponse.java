@@ -51,11 +51,11 @@ public final class DeleteFeaturePropertyResponse extends AbstractCommandResponse
     public static final String TYPE = TYPE_PREFIX + DeleteFeatureProperty.NAME;
 
     static final JsonFieldDefinition<String> JSON_FEATURE_ID =
-            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<String> JSON_PROPERTY =
-            JsonFactory.newStringFieldDefinition("property", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("property", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final ThingId thingId;
@@ -76,31 +76,6 @@ public final class DeleteFeaturePropertyResponse extends AbstractCommandResponse
     private static JsonPointer checkPropertyPointer(final JsonPointer propertyPointer) {
         checkNotNull(propertyPointer, "Property JsonPointer");
         return ThingsModelFactory.validateFeaturePropertyPointer(propertyPointer);
-    }
-
-    /**
-     * Creates a response to a {@link DeleteFeatureProperty} command.
-     *
-     * @param thingId the Thing ID of the deleted feature property.
-     * @param featureId the {@code Feature}'s ID whose Property was deleted.
-     * @param propertyPointer the JSON pointer of the deleted Property.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code propertyPointer} are not valid
-     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.json.JsonPointer,
-     * org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static DeleteFeaturePropertyResponse of(final String thingId,
-            final String featureId,
-            final JsonPointer propertyPointer,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), featureId, propertyPointer, dittoHeaders);
     }
 
     /**
@@ -167,7 +142,7 @@ public final class DeleteFeaturePropertyResponse extends AbstractCommandResponse
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

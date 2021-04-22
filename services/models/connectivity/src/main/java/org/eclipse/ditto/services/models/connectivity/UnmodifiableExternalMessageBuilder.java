@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.signals.base.Signal;
 
 /**
  * Mutable builder for building new instances of ExternalMessage.
@@ -41,7 +42,7 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     @Nullable private ByteBuffer bytePayload;
     @Nullable private AuthorizationContext authorizationContext;
     @Nullable private TopicPath topicPath;
-    @Nullable private EnforcementFilter<CharSequence> enforcementFilter;
+    @Nullable private EnforcementFilter<Signal<?>> enforcementFilter;
     @Nullable private HeaderMapping headerMapping;
     @Nullable private PayloadMapping payloadMapping;
     @Nullable private String sourceAddress;
@@ -155,7 +156,7 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     }
 
     @Override
-    public <F extends EnforcementFilter<CharSequence>> ExternalMessageBuilder withEnforcement(
+    public <F extends EnforcementFilter<Signal<?>>> ExternalMessageBuilder withEnforcement(
             @Nullable final F enforcementFilter) {
         this.enforcementFilter = enforcementFilter;
         return this;

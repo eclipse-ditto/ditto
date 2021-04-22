@@ -58,7 +58,7 @@ public final class DeleteThingDefinitionStrategyTest extends AbstractCommandStra
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final DeleteThingDefinition command = DeleteThingDefinition.of(context.getState(), DittoHeaders.empty());
         final ThingDefinitionNotAccessibleException expectedException =
-                ThingDefinitionNotAccessibleException.newBuilder(command.getThingEntityId())
+                ThingDefinitionNotAccessibleException.newBuilder(command.getEntityId())
                         .dittoHeaders(command.getDittoHeaders())
                         .build();
 

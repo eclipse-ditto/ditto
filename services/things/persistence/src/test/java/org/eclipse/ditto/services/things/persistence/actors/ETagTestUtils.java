@@ -19,8 +19,6 @@ import org.eclipse.ditto.model.base.entity.Revision;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.things.AccessControlList;
-import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureDefinition;
@@ -32,8 +30,6 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.MergeThingResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntryResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyAclResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinitionResponse;
@@ -46,8 +42,6 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyIdResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntryResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveAclResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributesResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinitionResponse;
@@ -219,7 +213,8 @@ public final class ETagTestUtils {
         }
     }
 
-    public static RetrieveFeatureDesiredPropertiesResponse retrieveFeatureDesiredPropertiesResponse(final ThingId thingId,
+    public static RetrieveFeatureDesiredPropertiesResponse retrieveFeatureDesiredPropertiesResponse(
+            final ThingId thingId,
             final String featureId, final FeatureProperties featureProperties,
             final DittoHeaders dittoHeaders) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(featureProperties, dittoHeaders);
@@ -227,7 +222,8 @@ public final class ETagTestUtils {
                 dittoHeadersWithETag);
     }
 
-    public static RetrieveFeatureDesiredPropertiesResponse retrieveFeatureDesiredPropertiesResponse(final ThingId thingId,
+    public static RetrieveFeatureDesiredPropertiesResponse retrieveFeatureDesiredPropertiesResponse(
+            final ThingId thingId,
             final String featureId, final FeatureProperties featureProperties,
             final FeatureProperties expectedFeatureProperties,
             final DittoHeaders dittoHeaders) {
@@ -268,7 +264,8 @@ public final class ETagTestUtils {
             return ModifyFeatureDesiredPropertyResponse.created(thingId, featureId, propertyPointer, propertyValue,
                     dittoHeadersWithETag);
         } else {
-            return ModifyFeatureDesiredPropertyResponse.modified(thingId, featureId, propertyPointer, dittoHeadersWithETag);
+            return ModifyFeatureDesiredPropertyResponse.modified(thingId, featureId, propertyPointer,
+                    dittoHeadersWithETag);
         }
     }
 
@@ -317,43 +314,6 @@ public final class ETagTestUtils {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(attributeValue, dittoHeaders);
         return RetrieveAttributeResponse.of(thingId, attributePointer, attributeValue, dittoHeadersWithETag);
     }
-
-    // Acl
-
-    public static ModifyAclResponse modifyAclResponse(final ThingId thingId, final AccessControlList expectedAcl,
-            final DittoHeaders dittoHeaders, final boolean created) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedAcl, dittoHeaders);
-        if (created) {
-            return ModifyAclResponse.created(thingId, expectedAcl, dittoHeadersWithETag);
-        } else {
-            return ModifyAclResponse.modified(thingId, expectedAcl, dittoHeadersWithETag);
-        }
-    }
-
-    public static RetrieveAclResponse retrieveAclResponse(final ThingId thingId, final AccessControlList expectedAcl,
-            final JsonObject expectedAclJsonRepresentation, final DittoHeaders dittoHeaders) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedAcl, dittoHeaders);
-        return RetrieveAclResponse.of(thingId, expectedAclJsonRepresentation, dittoHeadersWithETag);
-    }
-
-    // AclEntry
-
-    public static ModifyAclEntryResponse modifyAclEntryResponse(final ThingId thingId, final AclEntry expectedAclEntry,
-            final DittoHeaders dittoHeaders, final boolean created) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedAclEntry, dittoHeaders);
-        if (created) {
-            return ModifyAclEntryResponse.created(thingId, expectedAclEntry, dittoHeadersWithETag);
-        } else {
-            return ModifyAclEntryResponse.modified(thingId, expectedAclEntry, dittoHeadersWithETag);
-        }
-    }
-
-    public static RetrieveAclEntryResponse retrieveAclEntryResponse(final ThingId thingId,
-            final AclEntry expectedAclEntry, final DittoHeaders dittoHeaders) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedAclEntry, dittoHeaders);
-        return RetrieveAclEntryResponse.of(thingId, expectedAclEntry, dittoHeadersWithETag);
-    }
-
 
     // PolicyId
 

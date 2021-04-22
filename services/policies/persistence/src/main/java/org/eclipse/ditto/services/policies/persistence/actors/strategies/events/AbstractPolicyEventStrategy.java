@@ -12,9 +12,14 @@
  */
 package org.eclipse.ditto.services.policies.persistence.actors.strategies.events;
 
+import java.util.Optional;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
+import org.eclipse.ditto.model.base.entity.metadata.MetadataBuilder;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyBuilder;
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
@@ -48,11 +53,31 @@ abstract class AbstractPolicyEventStrategy<T extends PolicyEvent<T>> implements 
         if (null != policy) {
             PolicyBuilder policyBuilder = policy.toBuilder()
                     .setRevision(revision)
-                    .setModified(event.getTimestamp().orElse(null));
+                    .setModified(event.getTimestamp().orElse(null))
+                    .setMetadata(mergeMetadata(policy, event));
             policyBuilder = applyEvent(event, policy, policyBuilder);
             return policyBuilder.build();
         }
         return null;
+    }
+
+    @Nullable
+    private Metadata mergeMetadata(@Nullable final Policy policy, final T event) {
+
+        final JsonPointer eventMetadataResourcePath = event.getResourcePath();
+        final Optional<Metadata> eventMetadataOpt = event.getMetadata();
+        final Optional<Metadata> policyMetadata = Optional.ofNullable(policy).flatMap(Policy::getMetadata);
+        if (eventMetadataResourcePath.isEmpty() && eventMetadataOpt.isPresent()) {
+            return eventMetadataOpt.get();
+        } else if (eventMetadataOpt.isPresent()) {
+            final Metadata eventMetadata = eventMetadataOpt.get();
+            final MetadataBuilder metadataBuilder =
+                    policyMetadata.map(Metadata::toBuilder).orElseGet(Metadata::newBuilder);
+            metadataBuilder.set(eventMetadataResourcePath, eventMetadata.toJson());
+            return metadataBuilder.build();
+        } else {
+            return policyMetadata.orElse(null);
+        }
     }
 
     /**

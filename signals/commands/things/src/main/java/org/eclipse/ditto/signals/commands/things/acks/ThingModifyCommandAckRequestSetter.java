@@ -21,7 +21,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.acks.AbstractCommandAckRequestSetter;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 
 /**
@@ -52,21 +51,6 @@ public final class ThingModifyCommandAckRequestSetter extends AbstractCommandAck
         return INSTANCE;
     }
 
-    /**
-     * @param command the command that will be checked for adding an {@link AcknowledgementRequest}
-     * for {@link DittoAcknowledgementLabel#TWIN_PERSISTED}.
-     * @return the command with the correct headers.
-     * @deprecated as of 1.2.0: use {@link AbstractCommandAckRequestSetter#apply} instead.
-     */
-    @Deprecated
-    public Command<?> apply(final Command<?> command) {
-        Command<?> result = checkNotNull(command, "command");
-        if (command instanceof ThingModifyCommand) {
-            result = apply((ThingModifyCommand<?>) command);
-        }
-        return result;
-    }
-
     @Override
     public boolean isApplicable(final ThingModifyCommand<?> command) {
         checkNotNull(command, "command");
@@ -74,7 +58,7 @@ public final class ThingModifyCommandAckRequestSetter extends AbstractCommandAck
     }
 
     @Override
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
     public Class<ThingModifyCommand<?>> getMatchedClass() {
         return (Class) ThingModifyCommand.class;
     }

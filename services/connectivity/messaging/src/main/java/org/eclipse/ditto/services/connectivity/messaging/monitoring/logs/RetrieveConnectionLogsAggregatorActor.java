@@ -137,7 +137,7 @@ public final class RetrieveConnectionLogsAggregatorActor extends AbstractActor {
 
     // needed so that the logs fit into the max cluster message size
     private RetrieveConnectionLogsResponse restrictMaxLogEntriesLength() {
-        final ConnectionId connectionId = theResponse.getConnectionEntityId();
+        final ConnectionId connectionId = theResponse.getEntityId();
         final List<LogEntry> originalLogEntries = theResponse.getConnectionLogs().stream()
                 .sorted(Comparator.comparing(LogEntry::getTimestamp).reversed())
                 .collect(Collectors.toList());

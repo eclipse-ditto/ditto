@@ -15,10 +15,14 @@ package org.eclipse.ditto.model.enforcers.testbench.scenarios.scenario2;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.enforcers.testbench.algorithms.PolicyAlgorithm;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.Scenario;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.ScenarioSetup;
+import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
@@ -40,14 +44,12 @@ public class Scenario2Nested1 implements Scenario2Nested {
                 Scenario.newAuthorizationContext(SUBJECT_ATTRIBUTES_ALL_GRANTED), //
                 "/", //
                 new HashSet<>(),
-                policyAlgorithm -> policyAlgorithm.getSubjectIdsWithPartialPermission(
-                        PoliciesResourceType.thingResource("/"), "READ")
-                        .containsAll(Arrays.asList(
-                                SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ATTRIBUTES_ALL_GRANTED)
-                                        .toString(),
+                policyAlgorithm -> policyAlgorithm.getSubjectsWithPartialPermission(
+                        PoliciesResourceType.thingResource("/"), Permissions.newInstance("READ"))
+                        .containsAll(Stream.of(
+                                SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ATTRIBUTES_ALL_GRANTED),
                                 SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_FEATURES_READ_GRANTED)
-                                        .toString()
-                                )
+                                ).map(AuthorizationSubject::newInstance).collect(Collectors.toList())
                         ),
                 "READ");
     }

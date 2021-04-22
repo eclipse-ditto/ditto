@@ -35,13 +35,14 @@ public final class AttributeModifiedStrategyTest extends AbstractStrategyTest {
     public void appliesEventCorrectly() {
         final AttributeModifiedStrategy strategy = new AttributeModifiedStrategy();
         final AttributeModified event = AttributeModified.of(THING_ID, ATTRIBUTE_POINTER, ATTRIBUTE_VALUE, REVISION,
-                DittoHeaders.empty());
+                TIMESTAMP, DittoHeaders.empty(), null);
 
         final Thing thingWithEventApplied = strategy.handle(event, THING, NEXT_REVISION);
 
         final Thing expected = THING.toBuilder()
                 .setAttribute(ATTRIBUTE_POINTER, ATTRIBUTE_VALUE)
                 .setRevision(NEXT_REVISION)
+                .setModified(TIMESTAMP)
                 .build();
         assertThat(thingWithEventApplied).isEqualTo(expected);
     }

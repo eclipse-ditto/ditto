@@ -18,7 +18,6 @@ import java.nio.charset.StandardCharsets;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.base.actors.ShutdownBehaviour;
@@ -101,7 +100,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
         if (entityId != null) {
             return ThingUnavailableException.newBuilder(entityId);
         } else {
-            return ThingUnavailableException.newBuilder(ThingId.of(DefaultNamespacedEntityId.dummy()));
+            return ThingUnavailableException.newBuilder(ThingId.of("UNKNOWN:ID"));
         }
     }
 

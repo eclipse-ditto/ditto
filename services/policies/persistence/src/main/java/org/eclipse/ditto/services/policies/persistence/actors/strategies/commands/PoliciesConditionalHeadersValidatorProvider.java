@@ -40,7 +40,7 @@ final class PoliciesConditionalHeadersValidatorProvider {
          * @return the builder.
          */
         @Override
-        public DittoRuntimeExceptionBuilder createPreconditionFailedExceptionBuilder(final String conditionalHeaderName,
+        public DittoRuntimeExceptionBuilder<?> createPreconditionFailedExceptionBuilder(final String conditionalHeaderName,
                 final String expected, final String actual) {
             return PolicyPreconditionFailedException.newBuilder(conditionalHeaderName, expected, actual);
         }
@@ -52,7 +52,7 @@ final class PoliciesConditionalHeadersValidatorProvider {
          * @return the builder.
          */
         @Override
-        public DittoRuntimeExceptionBuilder createPreconditionNotModifiedExceptionBuilder(
+        public DittoRuntimeExceptionBuilder<?> createPreconditionNotModifiedExceptionBuilder(
                 final String expectedNotToMatch, final String matched) {
             return PolicyPreconditionNotModifiedException.newBuilder(expectedNotToMatch, matched);
         }

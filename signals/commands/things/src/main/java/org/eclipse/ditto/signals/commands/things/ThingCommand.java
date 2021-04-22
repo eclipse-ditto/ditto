@@ -21,8 +21,8 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingConstants;
-import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.WithThingId;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 /**
@@ -30,7 +30,8 @@ import org.eclipse.ditto.signals.commands.base.Command;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ThingCommand<T extends ThingCommand<T>> extends Command<T>, WithThingId, WithEntityType {
+public interface ThingCommand<T extends ThingCommand<T>> extends Command<T>, WithThingId, WithEntityType,
+        SignalWithEntityId<T> {
 
     /**
      * Type Prefix of Thing commands.
@@ -45,11 +46,6 @@ public interface ThingCommand<T extends ThingCommand<T>> extends Command<T>, Wit
     @Override
     default String getTypePrefix() {
         return TYPE_PREFIX;
-    }
-
-    @Override
-    default ThingId getEntityId() {
-        return getThingEntityId();
     }
 
     @Override
@@ -81,7 +77,7 @@ public interface ThingCommand<T extends ThingCommand<T>> extends Command<T>, Wit
          * JSON field containing the ThingCommand's thingId.
          */
         public static final JsonFieldDefinition<String> JSON_THING_ID =
-                JsonFactory.newStringFieldDefinition("thingId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("thingId", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
     }

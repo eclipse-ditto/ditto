@@ -21,7 +21,7 @@ import java.util.Optional;
 import java.util.function.Predicate;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -96,7 +96,7 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
                 .build();
     }
 
-    private void forwardCommandResponse(final WithDittoHeaders<?> acknowledgement) {
+    private void forwardCommandResponse(final WithDittoHeaders acknowledgement) {
         log.withCorrelationId(acknowledgement)
                 .debug("Received Acknowledgement / live CommandResponse, forwarding to original requester: " +
                         "<{}>", acknowledgement);
@@ -128,7 +128,7 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
     }
 
     static Optional<ActorRef> startAcknowledgementForwarderForTest(final akka.actor.ActorContext context,
-            final EntityIdWithType entityId,
+            final EntityId entityId,
             final Signal<?> signal,
             final AcknowledgementConfig acknowledgementConfig) {
 
@@ -154,7 +154,7 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static Signal<?> startAcknowledgementForwarder(final akka.actor.ActorContext context,
-            final EntityIdWithType entityId,
+            final EntityId entityId,
             final Signal<?> signal,
             final AcknowledgementConfig acknowledgementConfig,
             final Predicate<AcknowledgementLabel> isAckLabelAllowed) {

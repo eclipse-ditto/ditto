@@ -14,28 +14,21 @@ package org.eclipse.ditto.signals.events.things;
 
 
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.List;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.AccessControlList;
-import org.eclipse.ditto.model.things.AclEntry;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
-import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.ThingDefinition;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingLifecycle;
@@ -79,79 +72,8 @@ final class TestConstants {
             .set("creator", "The epic Ditto team")
             .build();
 
-    /**
-     * Known JSON parse options.
-     */
-    public static final JsonParseOptions JSON_PARSE_OPTIONS = JsonFactory.newParseOptionsBuilder()
-            .withoutUrlDecoding()
-            .build();
-
-    /**
-     * A known JSON field selector.
-     */
-    public static final JsonFieldSelector JSON_FIELD_SELECTOR_ATTRIBUTES =
-            JsonFactory.newFieldSelector("attributes(location,maker)", JSON_PARSE_OPTIONS);
-
-    /**
-     * A known JSON field selector.
-     */
-    public static final JsonFieldSelector JSON_FIELD_SELECTOR_ATTRIBUTES_WITH_THING_ID =
-            JsonFactory.newFieldSelector("thingId,attributes(location,maker)", JSON_PARSE_OPTIONS);
-
-    /**
-     * A known JSON field selector.
-     */
-    public static final JsonFieldSelector JSON_FIELD_SELECTOR_FEATURE_PROPERTIES =
-            JsonFactory.newFieldSelector("properties/target_year_1", JSON_PARSE_OPTIONS);
-
     private TestConstants() {
         throw new AssertionError();
-    }
-
-    /**
-     * Authorization-related test constants.
-     */
-    public static final class Authorization {
-
-        /**
-         * A known Authorization Subject for testing.
-         */
-        public static final AuthorizationSubject AUTH_SUBJECT_OLDMAN =
-                AuthorizationModelFactory.newAuthSubject("JohnOldman");
-
-        /**
-         * Another known AuthorizationSubject for testing.
-         */
-        public static final AuthorizationSubject AUTH_SUBJECT_GRIMES =
-                AuthorizationModelFactory.newAuthSubject("FrankGrimes");
-
-        /**
-         * An Authorization Context which contains all known Authorization Subjects.
-         */
-        public static final AuthorizationContext AUTH_CONTEXT =
-                AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
-                        AUTH_SUBJECT_OLDMAN, AUTH_SUBJECT_GRIMES);
-
-        public static final List<AuthorizationSubject> authorizationSubjects =
-                Arrays.asList(AUTH_SUBJECT_OLDMAN, AUTH_SUBJECT_GRIMES);
-
-        /**
-         * The known ACL entry of John Oldman.
-         */
-        public static final AclEntry ACL_ENTRY_OLDMAN =
-                ThingsModelFactory.newAclEntry(Authorization.AUTH_SUBJECT_OLDMAN, Permission.READ, Permission.WRITE,
-                        Permission.ADMINISTRATE);
-
-        /**
-         * The known ACL entry of Frank Grimes.
-         */
-        public static final AclEntry ACL_ENTRY_GRIMES =
-                ThingsModelFactory.newAclEntry(Authorization.AUTH_SUBJECT_GRIMES, Permission.READ);
-
-        private Authorization() {
-            throw new AssertionError();
-        }
-
     }
 
 
@@ -165,7 +87,7 @@ final class TestConstants {
          */
         public static final ThingId THING_ID = ThingId.of("example.com", "testThing");
 
-        public static final String POLICY_ID = "example.com:testPolicy";
+        public static final PolicyId POLICY_ID = PolicyId.of("example.com:testPolicy");
 
         public static final ThingDefinition DEFINITION = ThingsModelFactory.newDefinition("example:test" +
                 ":definition");
@@ -174,12 +96,6 @@ final class TestConstants {
          * A known lifecycle of a Thing.
          */
         public static final ThingLifecycle LIFECYCLE = ThingLifecycle.ACTIVE;
-
-        /**
-         * A known Access Control List of a Thing.
-         */
-        public static final AccessControlList ACL =
-                ThingsModelFactory.newAcl(Authorization.ACL_ENTRY_OLDMAN, Authorization.ACL_ENTRY_GRIMES);
 
         public static final JsonPointer LOCATION_ATTRIBUTE_POINTER = JsonFactory.newPointer("location");
         public static final JsonPointer ABSOLUTE_LOCATION_ATTRIBUTE_POINTER =

@@ -26,9 +26,11 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.model.base.acks.AbstractCommandAckRequestSetter;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.signals.base.Signal;
@@ -105,8 +107,9 @@ public final class AcknowledgementAggregatorActorStarter {
 
         return preprocess(signal,
                 (s, shouldStart) -> {
-                    if (shouldStart) {
-                        return doStart(s, responseSignalConsumer::apply,
+                    final Optional<ThingId> thingIdOptional = WithEntityId.getEntityIdOfType(ThingId.class, s);
+                    if (shouldStart && thingIdOptional.isPresent()) {
+                        return doStart(thingIdOptional.get(), s.getDittoHeaders(), responseSignalConsumer::apply,
                                 ackregator -> ackregatorStartedFunction.apply(s, ackregator));
                     } else {
                         return ackregatorNotStartedFunction.apply(s);
@@ -138,35 +141,37 @@ public final class AcknowledgementAggregatorActorStarter {
     /**
      * Start an acknowledgement aggregator actor for a signal with acknowledgement requests.
      *
-     * @param signalToForward the signal. Must have nonempty acknowledgement requests.
+     * @param thingId the ThingId of the originating signal signal.
+     * @param dittoHeaders The headers of the originating signal. Must have nonempty acknowledgement requests.
      * @param responseSignalConsumer consumer of the aggregated response or error.
      * @param forwarderStartedFunction what to do after the aggregator actor started.
      * @param <T> type of results.
      * @return the result.
      */
-    public <T> T doStart(final Signal<?> signalToForward,
+    public <T> T doStart(final ThingId thingId,
+            final DittoHeaders dittoHeaders,
             final Consumer<Object> responseSignalConsumer,
             final Function<ActorRef, T> forwarderStartedFunction) {
-        return forwarderStartedFunction.apply(startAckAggregatorActor(signalToForward, responseSignalConsumer));
+        return forwarderStartedFunction.apply(startAckAggregatorActor(thingId, dittoHeaders, responseSignalConsumer));
     }
 
-    private ActorRef startAckAggregatorActor(final Signal<?> signal,
+    private ActorRef startAckAggregatorActor(final ThingId thingId, final DittoHeaders dittoHeaders,
             final Consumer<Object> responseSignalConsumer) {
-        final Props props = AcknowledgementAggregatorActor.props(signal, acknowledgementConfig, headerTranslator,
+        final Props props = AcknowledgementAggregatorActor.props(thingId, dittoHeaders, acknowledgementConfig, headerTranslator,
                 responseSignalConsumer);
-        final String actorName = getNextActorName(signal);
+        final String actorName = getNextActorName(dittoHeaders);
         return actorContext.actorOf(props, actorName);
     }
 
-    private String getNextActorName(final Signal<?> signal) {
-        final String correlationId = signal.getDittoHeaders()
+    private String getNextActorName(final DittoHeaders dittoHeaders) {
+        final String correlationId = dittoHeaders
                 .getCorrelationId()
                 .map(cid -> URLEncoder.encode(cid, StandardCharsets.UTF_8))
                 .orElse("_");
         return String.format("ackr%x-%s", childCounter++, correlationId);
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
     private static PartialFunction<Signal<?>, Signal<?>> buildAckRequestSetter(
             final AbstractCommandAckRequestSetter<?>... ackRequestSetters) {
         PFBuilder<Signal<?>, Signal<?>> pfBuilder = new PFBuilder<>();

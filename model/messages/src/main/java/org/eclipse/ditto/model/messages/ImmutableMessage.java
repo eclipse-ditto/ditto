@@ -41,19 +41,16 @@ final class ImmutableMessage<T> implements Message<T> {
     @Nullable private final ByteBuffer rawPayload;
     @Nullable private final T payload;
     @Nullable private final JsonObject extra;
-    @Nullable private final MessageResponseConsumer<?> responseConsumer;
 
     private ImmutableMessage(final MessageHeaders headers,
             @Nullable final ByteBuffer rawPayload,
             @Nullable final T payload,
-            @Nullable final JsonObject extra,
-            @Nullable final MessageResponseConsumer<?> responseConsumer) {
+            @Nullable final JsonObject extra) {
 
         this.headers = checkNotNull(headers, "headers");
         this.rawPayload = rawPayload != null ? ByteBufferUtils.clone(rawPayload) : null;
         this.payload = payload;
         this.extra = extra;
-        this.responseConsumer = responseConsumer;
     }
 
     /**
@@ -73,29 +70,7 @@ final class ImmutableMessage<T> implements Message<T> {
             @Nullable final T payload,
             @Nullable final JsonObject extra) {
 
-        return of(headers, rawPayload, payload, extra, null);
-    }
-
-    /**
-     * Creates a new Message defining a {@code responseConsumer} which is invoked with a potential response message.
-     *
-     * @param <T> the type of the payload.
-     * @param headers the headers of this message containing defined headers as well as custom headers.
-     * @param rawPayload the raw payload of the message as provided by the message sender (maybe {@code null} if the
-     * sender has provided no payload)
-     * @param payload the payload of the message as provided by the message sender (maybe {@code null} if the sender has
-     * provided no payload)
-     * @param extra the extra (enriched) data of the message.
-     * @param responseConsumer MessageResponseConsumer which is stored together with the message but never serialized.
-     * @throws NullPointerException if {@code headers} is {@code null}.
-     */
-    public static <T> Message<T> of(final MessageHeaders headers,
-            @Nullable final ByteBuffer rawPayload,
-            @Nullable final T payload,
-            @Nullable final JsonObject extra,
-            @Nullable final MessageResponseConsumer<?> responseConsumer) {
-
-        return new ImmutableMessage<>(headers, rawPayload, payload, extra, responseConsumer);
+        return new ImmutableMessage<>(headers, rawPayload, payload, extra);
     }
 
     @Override
@@ -123,18 +98,13 @@ final class ImmutableMessage<T> implements Message<T> {
     }
 
     @Override
-    public Optional<MessageResponseConsumer<?>> getResponseConsumer() {
-        return Optional.ofNullable(responseConsumer);
-    }
-
-    @Override
     public MessageDirection getDirection() {
         return headers.getDirection();
     }
 
     @Override
-    public ThingId getThingEntityId() {
-        return headers.getThingEntityId();
+    public ThingId getEntityId() {
+        return headers.getEntityId();
     }
 
     @Override

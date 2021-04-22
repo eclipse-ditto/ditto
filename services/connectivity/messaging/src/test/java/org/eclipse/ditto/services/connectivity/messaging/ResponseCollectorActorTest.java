@@ -39,7 +39,8 @@ import akka.testkit.javadsl.TestKit;
  */
 public final class ResponseCollectorActorTest {
 
-    private static final CommandResponse<?> RESPONSE = DeleteThingResponse.of(ThingId.dummy(), DittoHeaders.empty());
+    private static final CommandResponse<?> RESPONSE = DeleteThingResponse.of(ThingId.of("test:thingid"),
+            DittoHeaders.empty());
 
     private ActorSystem actorSystem;
 

@@ -56,6 +56,7 @@ public final class MultiComparisonNode extends ComparisonNode<MultiComparisonNod
     /**
      * {@inheritDoc}
      */
+    @Override
     public void accept(final PredicateVisitor predicateVisitor) {
         predicateVisitor.visit(this);
     }

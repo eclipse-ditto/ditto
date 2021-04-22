@@ -6,7 +6,7 @@ permalink: basic-messages.html
 ---
 
 Messages *do not affect* the state of a digital twin or an actual device.
-Therefore Ditto does not handle messages like [commands](basic-signals-command.html): there are no responses which are
+Therefore, Ditto does not handle messages like [commands](basic-signals-command.html): there are no responses which are
 produced by Ditto and no events which are emitted for messages.
 
   {%
@@ -85,8 +85,7 @@ Messages can, however, be received only via the [WebSocket API](httpapi-protocol
 
 To be able to receive Messages for a Thing, you need to have `READ` access on that Thing.
 When a Message is sent to or from a Thing, **every** connected WebSocket or 
-[connection target](basic-connections.html#targets) with the correct
-access rights will receive the Message.
+[connection target](basic-connections.html#targets) with the correct access rights will receive the Message.
 
 If there is more than one response to a message received by multiple consumers, only the
 first response will be routed back to the initial issuer of a Message.
@@ -110,18 +109,9 @@ any receiver can reply by using the same correlation-id `random-aa98s`.
 
 ## Permissions
 
-### API version 1
-
-Permissions in API version 1 are simple for the Message API. If you want to receive Messages of a Thing,
-you need `READ` access on the Thing. To be able to send Messages to or from a Thing
-you need to have `WRITE` permissions.
-
-There is one sole exception, which are [Claim Messages](#claim-messages). You do
-not need the access rights for sending them.
-
 ### API version 2
 
-Permissions in API version 2 can be more fine grained. In order to be able to receive all Messages of a Thing,
+Permissions in API version 2 can be defined fine-grained. In order to be able to receive all Messages of a Thing,
 you need `READ` permission for the `message:/` resource in the used [Policy](basic-policy.html#message).<br/>
 There can however be specified that you may only receive specific Messages (with a defined subject), also
 expressed via [Policy entry](basic-policy.html#message).<br/>

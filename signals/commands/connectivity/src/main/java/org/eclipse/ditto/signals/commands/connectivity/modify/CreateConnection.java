@@ -34,12 +34,13 @@ import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 
 /**
  * Command which creates a {@link Connection}.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = CreateConnection.TYPE_PREFIX, name = CreateConnection.NAME)
+@JsonParsableCommand(typePrefix = ConnectivityCommand.TYPE_PREFIX, name = CreateConnection.NAME)
 public final class CreateConnection extends AbstractCommand<CreateConnection>
         implements ConnectivityModifyCommand<CreateConnection> {
 
@@ -54,7 +55,7 @@ public final class CreateConnection extends AbstractCommand<CreateConnection>
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<JsonObject> JSON_CONNECTION =
-            JsonFactory.newJsonObjectFieldDefinition("connection", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonObjectFieldDefinition("connection", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final Connection connection;
@@ -125,7 +126,7 @@ public final class CreateConnection extends AbstractCommand<CreateConnection>
     }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return connection.getId();
     }
 

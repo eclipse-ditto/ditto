@@ -52,7 +52,7 @@ public final class DeleteAttributeResponse extends AbstractCommandResponse<Delet
     public static final String TYPE = TYPE_PREFIX + DeleteAttribute.NAME;
 
     static final JsonFieldDefinition<String> JSON_ATTRIBUTE =
-            JsonFactory.newStringFieldDefinition("attribute", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("attribute", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final ThingId thingId;
@@ -76,30 +76,6 @@ public final class DeleteAttributeResponse extends AbstractCommandResponse<Delet
                     .build();
         }
         return AttributesModelFactory.validateAttributePointer(attributePointer);
-    }
-
-    /**
-     * Creates a response to a {@link DeleteAttribute} command.
-     *
-     * @param thingId the Thing ID of the deleted attribute.
-     * @param attributePointer the JSON pointer of the deleted attribute.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @throws org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException if
-     * {@code attributePointer} is empty.
-     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributePointer} are not valid
-     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer,
-     * org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static DeleteAttributeResponse of(final String thingId, final JsonPointer attributePointer,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), attributePointer, dittoHeaders);
     }
 
     /**
@@ -164,7 +140,7 @@ public final class DeleteAttributeResponse extends AbstractCommandResponse<Delet
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

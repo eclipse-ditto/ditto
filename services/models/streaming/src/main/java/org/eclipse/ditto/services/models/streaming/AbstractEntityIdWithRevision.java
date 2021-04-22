@@ -49,7 +49,8 @@ public abstract class AbstractEntityIdWithRevision<I extends EntityId> implement
     @Override
     public JsonObject toJson() {
         return JsonFactory.newObjectBuilder()
-                .set(JsonFields.ID, String.valueOf(id))
+                .set(JsonFields.ENTITY_TYPE, id.getEntityType().toString())
+                .set(JsonFields.ENTITY_ID, String.valueOf(id))
                 .set(JsonFields.REVISION, revision)
                 .build();
     }
@@ -68,7 +69,7 @@ public abstract class AbstractEntityIdWithRevision<I extends EntityId> implement
         if (obj == null || getClass() != obj.getClass()) {
             return false;
         }
-        final AbstractEntityIdWithRevision that = (AbstractEntityIdWithRevision) obj;
+        final AbstractEntityIdWithRevision<?> that = (AbstractEntityIdWithRevision<?>) obj;
         return Objects.equals(id, that.id) && Objects.equals(revision, that.revision);
     }
 

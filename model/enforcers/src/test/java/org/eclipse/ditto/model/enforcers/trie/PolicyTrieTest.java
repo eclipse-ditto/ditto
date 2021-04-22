@@ -56,7 +56,6 @@ public final class PolicyTrieTest {
 
     private PolicyTrie underTest = null;
 
-    /** */
     @BeforeClass
     public static void initTestConstants() {
         subjectId = TestConstants.Policy.SUBJECT_ID.toString();
@@ -96,13 +95,11 @@ public final class PolicyTrieTest {
                 .build();
     }
 
-    /** */
     @Before
     public void initTestVariables() {
         underTest = PolicyTrie.fromPolicy(policy);
     }
 
-    /** */
     @SuppressWarnings("ConstantConditions")
     @Test
     public void tryToCreateInstanceFromNullPolicy() {
@@ -112,7 +109,6 @@ public final class PolicyTrieTest {
                 .withNoCause();
     }
 
-    /** */
     @Test
     public void getJsonKeyIteratorReturnsExpected() {
         final JsonPointer barResourcePath = barResourceKey.getResourcePath();
@@ -125,7 +121,6 @@ public final class PolicyTrieTest {
         assertThat(jsonKeyIterator).toIterable().containsExactlyElementsOf(expectedJsonKeys);
     }
 
-    /** */
     @Test
     public void getGrandRevokeIndexOnRootReturnsEmptyIndex() {
         final GrantRevokeIndex expectedGrantRevokeIndex = new GrantRevokeIndex();
@@ -135,7 +130,6 @@ public final class PolicyTrieTest {
         assertThat(grantRevokeIndex).isEqualTo(expectedGrantRevokeIndex);
     }
 
-    /** */
     @Test
     public void policyTrieHasChildThing() {
         final JsonKey child = JsonFactory.newKey("thing");
@@ -144,7 +138,6 @@ public final class PolicyTrieTest {
         assertThat(hasChild).as("Has child '%s'", child).isTrue();
     }
 
-    /** */
     @Test
     public void seekToLeastAncestorOfBarResourcePath() {
         final JsonPointer barResourcePath = barResourceKey.getResourcePath();
@@ -164,7 +157,6 @@ public final class PolicyTrieTest {
         assertThat(grantRevokeIndex).isEqualTo(expectedGrantRevokeIndex);
     }
 
-    /** */
     @Test
     public void seekToExactNodeReturnsExpected() {
         final PermissionSubjectsMap grantMap = new PermissionSubjectsMap();
@@ -180,7 +172,6 @@ public final class PolicyTrieTest {
         assertThat(getGrantRevokeIndex(exactNodeOptional)).isEqualTo(expectedGrantRevokeIndex);
     }
 
-    /** */
     @Test
     public void getTransitiveClosureReturnsExpected() {
 

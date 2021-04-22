@@ -12,9 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
-import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newHeadersPlaceholder;
-import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newThingPlaceholder;
-import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newTopicPathPlaceholder;
+import static org.eclipse.ditto.services.models.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -30,8 +28,8 @@ import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidExcept
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
+import org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders;
 
 import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpMethod;
@@ -90,9 +88,10 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
     @Override
     protected void validateTarget(final Target target, final DittoHeaders dittoHeaders,
             final Supplier<String> targetDescription) {
-        target.getHeaderMapping().ifPresent(mapping -> validateHeaderMapping(mapping, dittoHeaders));
-        validateTemplate(target.getAddress(), dittoHeaders, newThingPlaceholder(), newTopicPathPlaceholder(),
-                newHeadersPlaceholder(), PlaceholderFactory.newFeaturePlaceholder());
+        validateHeaderMapping(target.getHeaderMapping(), dittoHeaders);
+        validateTemplate(target.getAddress(), dittoHeaders, ConnectivityPlaceholders.newThingPlaceholder(),
+                ConnectivityPlaceholders.newTopicPathPlaceholder(),
+                newHeadersPlaceholder(), ConnectivityPlaceholders.newFeaturePlaceholder());
         validateTargetAddress(target.getAddress(), dittoHeaders, targetDescription);
     }
 
@@ -116,7 +115,7 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
     private void validateHttpMethod(final String methodName, final DittoHeaders dittoHeaders,
             final Supplier<String> targetDescriptor) {
         final Optional<HttpMethod> method = HttpMethods.lookup(methodName);
-        if (!method.isPresent() || !SUPPORTED_METHODS.contains(method.get())) {
+        if (method.isEmpty() || !SUPPORTED_METHODS.contains(method.get())) {
             final String errorMessage = String.format(
                     "%s: The method '%s' is not supported", targetDescriptor.get(), methodName);
             throw ConnectionConfigurationInvalidException.newBuilder(errorMessage)

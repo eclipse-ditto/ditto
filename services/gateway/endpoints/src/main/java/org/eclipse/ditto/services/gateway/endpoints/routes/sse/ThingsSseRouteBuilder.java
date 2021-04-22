@@ -246,7 +246,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                 signalEnrichmentProvider == null ? null : signalEnrichmentProvider.getFacade(ctx.getRequest());
 
         final CompletionStage<Source<ServerSentEvent, NotUsed>> sseSourceStage = dittoHeadersStage.thenCompose(
-                dittoHeaders -> sseAuthorizationEnforcer.checkAuthorization(ctx, dittoHeaders).thenApply(_void -> {
+                dittoHeaders -> sseAuthorizationEnforcer.checkAuthorization(ctx, dittoHeaders).thenApply(unused -> {
                     if (filterString != null) {
                         // will throw an InvalidRqlExpressionException if the RQL expression was not valid:
                         queryFilterCriteriaFactory.filterCriteria(filterString, dittoHeaders);

@@ -73,25 +73,6 @@ public final class ConnectionFailedException extends DittoRuntimeException imple
      * @param description error description, may be @{@code null}.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new ConnectionFailedException.
-     * @deprecated use {@code #fromMessage} instead.
-     */
-    @Deprecated
-    public static ConnectionFailedException from(final String message, @Nullable final String description,
-            final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .description(description)
-                .build();
-    }
-
-    /**
-     * Constructs a new {@code ConnectionFailedException} object with given message.
-     *
-     * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
-     * @param description error description, may be @{@code null}.
-     * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new ConnectionFailedException.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
     public static ConnectionFailedException fromMessage(@Nullable final String message,

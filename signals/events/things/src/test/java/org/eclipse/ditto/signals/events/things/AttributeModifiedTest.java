@@ -22,9 +22,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -41,8 +40,8 @@ public final class AttributeModifiedTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, AttributeModified.TYPE)
-            .set(Event.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
             .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
+            .set(EventsourcedEvent.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
             .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(AttributeModified.JSON_ATTRIBUTE, KNOWN_ATTRIBUTE_POINTER.toString())
             .set(AttributeModified.JSON_VALUE, NEW_ATTRIBUTE_VALUE)
@@ -65,25 +64,19 @@ public final class AttributeModifiedTest {
                 .verify();
     }
 
-    @Test(expected = ThingIdInvalidException.class)
-    public void tryToCreateInstanceWithNullThingIdString() {
-        AttributeModified.of((String) null, KNOWN_ATTRIBUTE_POINTER, NEW_ATTRIBUTE_VALUE,
-                TestConstants.Thing.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS);
-    }
-
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        AttributeModified.of((ThingId) null, KNOWN_ATTRIBUTE_POINTER, NEW_ATTRIBUTE_VALUE,
-                TestConstants.Thing.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS);
+        AttributeModified.of(null, KNOWN_ATTRIBUTE_POINTER, NEW_ATTRIBUTE_VALUE,
+                TestConstants.Thing.REVISION_NUMBER, TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS,
+                TestConstants.METADATA);
     }
 
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullAttributeKey() {
         AttributeModified.of(TestConstants.Thing.THING_ID, null, NEW_ATTRIBUTE_VALUE,
-                TestConstants.Thing.REVISION_NUMBER,
-                TestConstants.EMPTY_DITTO_HEADERS);
+                TestConstants.Thing.REVISION_NUMBER, TestConstants.TIMESTAMP,
+                TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
     }
 
 

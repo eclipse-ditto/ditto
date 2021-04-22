@@ -33,7 +33,7 @@ public class PolicyDeletedStrategyTest extends AbstractPolicyEventStrategyTest<P
 
     @Override
     PolicyDeleted getPolicyEvent(final Instant instant, final Policy policy) {
-        return PolicyDeleted.of(policy.getEntityId().orElseThrow(), 0, instant, DittoHeaders.empty());
+        return PolicyDeleted.of(policy.getEntityId().orElseThrow(), 0, instant, DittoHeaders.empty(), METADATA);
     }
 
     @Override

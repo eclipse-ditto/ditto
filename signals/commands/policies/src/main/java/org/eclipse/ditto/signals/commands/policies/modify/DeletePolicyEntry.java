@@ -33,12 +33,13 @@ import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 
 /**
  * This command deletes a {@link org.eclipse.ditto.model.policies.PolicyEntry}.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = DeletePolicyEntry.TYPE_PREFIX, name = DeletePolicyEntry.NAME)
+@JsonParsableCommand(typePrefix = PolicyCommand.TYPE_PREFIX, name = DeletePolicyEntry.NAME)
 public final class DeletePolicyEntry extends AbstractCommand<DeletePolicyEntry>
         implements PolicyModifyCommand<DeletePolicyEntry> {
 
@@ -62,23 +63,6 @@ public final class DeletePolicyEntry extends AbstractCommand<DeletePolicyEntry>
         super(TYPE, dittoHeaders);
         this.policyId = policyId;
         this.label = label;
-    }
-
-    /**
-     * Creates a command for deleting a {@code PolicyEntry}.
-     *
-     * @param policyId the identifier of the Policy.
-     * @param label the Label of the PolicyEntry to delete.
-     * @param dittoHeaders the headers of the command.
-     * @return the command.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static DeletePolicyEntry of(final String policyId, final Label label, final DittoHeaders dittoHeaders) {
-        return of(PolicyId.of(policyId), label, dittoHeaders);
     }
 
     /**
@@ -123,7 +107,7 @@ public final class DeletePolicyEntry extends AbstractCommand<DeletePolicyEntry>
      */
     public static DeletePolicyEntry fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<DeletePolicyEntry>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyCommand.JsonFields.JSON_POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final String stringLabel = jsonObject.getValueOrThrow(JSON_LABEL);
             final Label label = PoliciesModelFactory.newLabel(stringLabel);
@@ -162,7 +146,7 @@ public final class DeletePolicyEntry extends AbstractCommand<DeletePolicyEntry>
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
+        jsonObjectBuilder.set(PolicyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
     }
 

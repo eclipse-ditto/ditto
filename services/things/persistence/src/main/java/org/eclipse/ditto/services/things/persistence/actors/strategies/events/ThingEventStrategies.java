@@ -16,10 +16,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.utils.persistentactors.events.AbstractEventStrategies;
-import org.eclipse.ditto.signals.events.things.AclEntryCreated;
-import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
-import org.eclipse.ditto.signals.events.things.AclEntryModified;
-import org.eclipse.ditto.signals.events.things.AclModified;
 import org.eclipse.ditto.signals.events.things.AttributeCreated;
 import org.eclipse.ditto.signals.events.things.AttributeDeleted;
 import org.eclipse.ditto.signals.events.things.AttributeModified;
@@ -47,7 +43,6 @@ import org.eclipse.ditto.signals.events.things.FeaturePropertyModified;
 import org.eclipse.ditto.signals.events.things.FeaturesCreated;
 import org.eclipse.ditto.signals.events.things.FeaturesDeleted;
 import org.eclipse.ditto.signals.events.things.FeaturesModified;
-import org.eclipse.ditto.signals.events.things.PolicyIdCreated;
 import org.eclipse.ditto.signals.events.things.PolicyIdModified;
 import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingDefinitionCreated;
@@ -80,7 +75,6 @@ public final class ThingEventStrategies extends AbstractEventStrategies<ThingEve
      */
     private ThingEventStrategies() {
         addThingStrategies();
-        addAclStrategies();
         addAttributesStrategies();
         addDefinitionStrategies();
         addFeaturesStrategies();
@@ -92,13 +86,6 @@ public final class ThingEventStrategies extends AbstractEventStrategies<ThingEve
         addStrategy(ThingModified.class, new ThingModifiedStrategy());
         addStrategy(ThingDeleted.class, new ThingDeletedStrategy());
         addStrategy(ThingMerged.class, new ThingMergedStrategy());
-    }
-
-    private void addAclStrategies() {
-        addStrategy(AclModified.class, new AclModifiedStrategy());
-        addStrategy(AclEntryCreated.class, new AclEntryCreatedStrategy());
-        addStrategy(AclEntryModified.class, new AclEntryModifiedStrategy());
-        addStrategy(AclEntryDeleted.class, new AclEntryDeletedStrategy());
     }
 
     private void addAttributesStrategies() {
@@ -148,7 +135,6 @@ public final class ThingEventStrategies extends AbstractEventStrategies<ThingEve
     }
 
     private void addPolicyIdStrategies() {
-        addStrategy(PolicyIdCreated.class, new PolicyIdCreatedStrategy());
         addStrategy(PolicyIdModified.class, new PolicyIdModifiedStrategy());
     }
 }

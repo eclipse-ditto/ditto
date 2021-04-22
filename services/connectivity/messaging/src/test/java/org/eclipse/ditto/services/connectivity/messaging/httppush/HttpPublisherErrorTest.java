@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -187,7 +188,7 @@ public final class HttpPublisherErrorTest {
                         })
                         .mapMaterializedValue(killSwitch -> {
                             Objects.requireNonNull(killSwitchTrigger.peek())
-                                    .thenAccept(_void -> killSwitch.shutdown());
+                                    .thenAccept(unused -> killSwitch.shutdown());
                             return NotUsed.getInstance();
                         });
         binding = Http.get(actorSystem).bindAndHandle(handler, ConnectHttp.toHost("127.0.0.1", port), mat)
@@ -196,7 +197,8 @@ public final class HttpPublisherErrorTest {
     }
 
     private OutboundSignal.MultiMapped multiMapped(final ActorRef sender) {
-        final Signal<?> source = ThingDeleted.of(TestConstants.Things.THING_ID, 99L, DittoHeaders.empty());
+        final Signal<?> source = ThingDeleted.of(TestConstants.Things.THING_ID, 99L, Instant.now(),
+                DittoHeaders.empty(), null);
         final OutboundSignal outboundSignal =
                 OutboundSignalFactory.newOutboundSignal(source, List.of(TestConstants.Targets.TWIN_TARGET));
         final ExternalMessage externalMessage =

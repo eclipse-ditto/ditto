@@ -5,7 +5,7 @@ tags: [model]
 permalink: basic-policy.html
 ---
 
-A Policy enables developers to configure fine-grained access control for Things and other entities in an easy way.
+A Policy enables developers to configure fine-grained access control for Things and other entities easily.
 
 {% include note.html content="The policy concept is only supported for Ditto **HTTP API version 2**. <br/>
   Find the HTTP API reference at [Policies resources](http-api-doc.html?urls.primaryName=api2#/Policies)." %}
@@ -15,10 +15,10 @@ A Policy enables developers to configure fine-grained access control for Things 
 
 A specific policy provides someone (called subject), permission to read and/or write a given resource.
  
-{% include tip.html content="The write permission at the policy root resource (i.e. `policy:/`) allows to manage the
+{% include tip.html content="Write permission at the policy root resource (i.e. `policy:/`) allows to manage the
   policy itself.<br/>Find an [example](#example) at the end of the page." %}
 
-Please note, that in most cases it makes sense to grant read permission in addition to a write permission, because
+Please note, that in most cases it makes sense to grant read permission in addition to write permission, because
 *write does not imply read.*
 
 ## Model specification
@@ -228,7 +228,8 @@ Find a [Things example at the end of the page.](basic-policy.html#example)
 
 The Message resource (addressable as `message:/`) defines the access control for Messages.
 
-The access control definitions defined in a Policy's Message resource will be applied to all Messages sent to or from Things referencing this Policy.
+The access control definitions defined in a Policy's Message resource will be applied to all Messages sent to or from 
+Things referencing this Policy.
 
 * For sending messages to a Thing or its Features write permission is required
 * For receiving messages from a Thing or its Features read permission is required.
@@ -372,6 +373,7 @@ The Policy can be found:
 * Via GET request at `/api/2/policies/<policyId>`, and
 * Via GET request at `/api/2/things/{thingId}/policyId`
 * At any Thing itself in its JSON representation. 
-  It is however not included by default, but can be retrieved by specifying the `/api/2/things/<thingId>?fields=_policy` query parameter.
+  It is however not included by default, but can be retrieved by specifying the `/api/2/things/<thingId>?fields=_policy` 
+  query parameter.
   
 {% include tip.html content="As soon as a sophisticated policy is described, you will only need to add a further **subject** entry to have for example a new group of users equally empowered as the initial one." %}

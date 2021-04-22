@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.models.streaming;
 
 import static org.eclipse.ditto.model.base.json.FieldType.REGULAR;
-import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_1;
 import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_2;
 
 import java.util.Objects;
@@ -28,11 +27,11 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
@@ -41,9 +40,8 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
  */
 @Immutable
 @AllValuesAreNonnullByDefault
-@JsonParsableCommand(typePrefix = SudoStreamPids.TYPE_PREFIX, name = SudoStreamPids.NAME)
-public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
-        implements StartStreamRequest, WithIdButActuallyNot {
+@JsonParsableCommand(typePrefix = StreamingMessage.TYPE_PREFIX, name = SudoStreamPids.NAME)
+public final class SudoStreamPids extends AbstractCommand<SudoStreamPids> implements StartStreamRequest {
 
     static final String NAME = "SudoStreamPids";
 
@@ -53,13 +51,13 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<Integer> JSON_BURST =
-            JsonFactory.newIntFieldDefinition("payload/burst", REGULAR, V_1, V_2);
+            JsonFactory.newIntFieldDefinition("payload/burst", REGULAR, V_2);
 
     static final JsonFieldDefinition<Long> JSON_TIMEOUT_MILLIS =
-            JsonFactory.newLongFieldDefinition("payload/timeoutMillis", REGULAR, V_1, V_2);
+            JsonFactory.newLongFieldDefinition("payload/timeoutMillis", REGULAR, V_2);
 
     static final JsonFieldDefinition<JsonObject> JSON_LOWER_BOUND =
-            JsonFactory.newJsonObjectFieldDefinition("payload/lowerBound", REGULAR, V_1, V_2);
+            JsonFactory.newJsonObjectFieldDefinition("payload/lowerBound", REGULAR, V_2);
 
     private final int burst;
 
@@ -67,7 +65,7 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
 
     private final EntityIdWithRevision<?> lowerBound;
 
-    private SudoStreamPids(final Integer burst, final Long timeoutMillis, final EntityIdWithRevision lowerBound,
+    private SudoStreamPids(final Integer burst, final Long timeoutMillis, final EntityIdWithRevision<?> lowerBound,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, dittoHeaders);
@@ -83,13 +81,14 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
      * @param burst the amount of elements to be collected per message
      * @param timeoutMillis maximum time to wait for acknowledgement of each stream element.
      * @param dittoHeaders the command headers of the request.
+     * @param entityType the type of the entity which should be streamed
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static SudoStreamPids of(final Integer burst, final Long timeoutMillis,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders, final EntityType entityType) {
 
-        return new SudoStreamPids(burst, timeoutMillis, new LowerBound(), dittoHeaders);
+        return new SudoStreamPids(burst, timeoutMillis, LowerBound.empty(entityType), dittoHeaders);
     }
 
     /**
@@ -106,8 +105,8 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
 
         final int burst = jsonObject.getValueOrThrow(JSON_BURST);
         final long timeoutMillis = jsonObject.getValueOrThrow(JSON_TIMEOUT_MILLIS);
-        final EntityIdWithRevision lowerBound =
-                jsonObject.getValue(JSON_LOWER_BOUND).map(LowerBound::new).orElseGet(LowerBound::new);
+        final EntityIdWithRevision<EntityId> lowerBound =
+                LowerBound.fromJson(jsonObject.getValueOrThrow(JSON_LOWER_BOUND));
         return new SudoStreamPids(burst, timeoutMillis, lowerBound, dittoHeaders);
     }
 
@@ -118,7 +117,7 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
      * @param lowerBound the lower bound.
      * @return a copy of this command with lower-bound set.
      */
-    public SudoStreamPids withLowerBound(final EntityIdWithRevision lowerBound) {
+    public SudoStreamPids withLowerBound(final EntityIdWithRevision<?> lowerBound) {
         return new SudoStreamPids(burst, timeoutMillis, lowerBound, getDittoHeaders());
     }
 
@@ -127,6 +126,7 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
      *
      * @return the lower-bound PID.
      */
+    @SuppressWarnings({"rawtypes", "java:S3740"})
     public EntityIdWithRevision getLowerBound() {
         return lowerBound;
     }
@@ -137,7 +137,7 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
      * @return whether the command has a non-empty lower bound.
      */
     public boolean hasNonEmptyLowerBound() {
-        return !lowerBound.getEntityId().isDummy();
+        return !lowerBound.getEntityId().equals(LowerBound.emptyEntityId(lowerBound.getEntityId().getEntityType()));
     }
 
     @Override
@@ -214,15 +214,4 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
         return TYPE;
     }
 
-    static final class LowerBound extends AbstractEntityIdWithRevision {
-
-        private LowerBound() {
-            super(DefaultEntityId.dummy(), 0L);
-        }
-
-        LowerBound(final JsonObject jsonObject) {
-            super(DefaultEntityId.of(jsonObject.getValueOrThrow(JsonFields.ID)),
-                    jsonObject.getValueOrThrow(JsonFields.REVISION));
-        }
-    }
 }

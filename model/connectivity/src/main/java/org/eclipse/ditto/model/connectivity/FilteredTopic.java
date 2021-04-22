@@ -39,15 +39,6 @@ public interface FilteredTopic extends CharSequence {
     Optional<String> getFilter();
 
     /**
-     * @return whether this FilteredTopic has a filter to apply or not
-     * @deprecated please work with the result of {@link #getFilter()} directly.
-     */
-    @Deprecated
-    default boolean hasFilter() {
-        return getFilter().isPresent();
-    }
-
-    /**
      * Returns the selector for the extra fields and their values to enrich outgoing signals with.
      *
      * @return the selector or an empty Optional if signals should not be enriched.

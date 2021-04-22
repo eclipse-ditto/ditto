@@ -12,28 +12,18 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-
 /**
- * The {@link EnforcementFilter} can be used to match the given input against the input which was provided to the
- * {@link EnforcementFilter} instance at creation time. Typically this is specific to a connection type (mqtt, amqp,
- * ...) and is done where message are received. That's why this step is separated from the actual match, which is
- * usually done later, after mapping the message to ditto message, in the processing chain of an incoming message.
+ * Validate a given input of type <code>M</code>.
  *
- * @param <M> the type that is used to resolve the value for the match, e.g. for a {@code HeadersPlaceholder} this
- * would be a {@code Map<String, String>}.
+ * @param <M> the type of elements that can be validated by this filter.
  */
 public interface EnforcementFilter<M> {
 
     /**
-     * Matches the input (which must already be known to the {@link EnforcementFilter}) against the values that are
-     * resolved from the filterInput using the configured placeholder. A match in this context is successful if the
-     * resolved input is equal to one of the resolved filters.
+     * Validates the given input. Throws an exception if the input is not valid.
      *
-     * @param filterInput the source from which the the placeholders in the filters are resolved
-     * @param dittoHeaders the ditto headers, required if an exception is thrown
-     * @throws org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException if none of the
-     * configured filters was equal to the input
+     * @param filterInput the input that should be validated.
+     * @throws org.eclipse.ditto.model.base.exceptions.DittoRuntimeException if input was invalid.
      */
-    void match(M filterInput, DittoHeaders dittoHeaders);
+    void match(M filterInput);
 }

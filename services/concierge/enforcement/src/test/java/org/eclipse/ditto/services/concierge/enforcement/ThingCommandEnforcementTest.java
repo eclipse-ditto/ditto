@@ -13,12 +13,8 @@
 package org.eclipse.ditto.services.concierge.enforcement;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_1;
 import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_2;
 import static org.eclipse.ditto.model.policies.SubjectIssuer.GOOGLE;
-import static org.eclipse.ditto.model.things.Permission.ADMINISTRATE;
-import static org.eclipse.ditto.model.things.Permission.READ;
-import static org.eclipse.ditto.model.things.Permission.WRITE;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.POLICY_SUDO;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.SUBJECT;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.SUBJECT_ID;
@@ -46,19 +42,19 @@ import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatcher;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
-import org.eclipse.ditto.model.things.AccessControlList;
-import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
+import org.eclipse.ditto.services.models.things.Permission;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
@@ -122,27 +118,6 @@ public final class ThingCommandEnforcementTest {
         if (system != null) {
             TestKit.shutdownActorSystem(system);
         }
-    }
-
-    @Test
-    public void rejectByAcl() {
-        final JsonObject thingWithEmptyAcl = newThing()
-                .setPermissions(AccessControlList.newBuilder().build())
-                .build()
-                .toJson(V_1, FieldType.all());
-        final SudoRetrieveThingResponse response =
-                SudoRetrieveThingResponse.of(thingWithEmptyAcl, DittoHeaders.empty());
-
-        new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(THING_SUDO, response);
-
-            final ActorRef underTest = newEnforcerActor(getRef());
-            underTest.tell(getReadCommand(), getRef());
-            fishForMsgClass(this, ThingNotAccessibleException.class);
-
-            underTest.tell(getModifyCommand(), getRef());
-            expectMsgClass(FeatureNotModifiableException.class);
-        }};
     }
 
     @Test
@@ -235,31 +210,13 @@ public final class ThingCommandEnforcementTest {
     }
 
     @Test
-    public void rejectCreateByOwnAcl() {
-        final AclEntry aclEntry =
-                AclEntry.newInstance(AuthorizationSubject.newInstance("not-subject"), READ, WRITE, ADMINISTRATE);
-
-        final Thing thingWithEmptyAcl = newThing()
-                .setPermissions(aclEntry)
-                .build();
-
-        new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(THING_SUDO, ThingNotAccessibleException.newBuilder(THING_ID).build());
-
-            final ActorRef underTest = newEnforcerActor(getRef());
-            final CreateThing createThing = CreateThing.of(thingWithEmptyAcl, null, headers(V_1));
-            underTest.tell(createThing, getRef());
-            fishForMsgClass(this, ThingNotModifiableException.class);
-        }};
-    }
-
-    @Test
     public void rejectCreateByOwnPolicy() {
         final PolicyId policyId = PolicyId.of("empty:policy");
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .forLabel("dummy")
                 .setSubject(GOOGLE, "not-subject")
-                .setGrantedPermissions(PoliciesResourceType.policyResource("/"), READ.name(), WRITE.name())
+                .setGrantedPermissions(PoliciesResourceType.policyResource("/"),
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
                 .build();
         final Thing thing = newThing().build();
 
@@ -276,32 +233,6 @@ public final class ThingCommandEnforcementTest {
     }
 
     @Test
-    public void acceptByAcl() {
-        final JsonObject thingWithAcl = newThing()
-                .setPermissions(AclEntry.newInstance(SUBJECT, READ, WRITE, ADMINISTRATE))
-                .build()
-                .toJson(V_1, FieldType.all());
-        final SudoRetrieveThingResponse response = SudoRetrieveThingResponse.of(thingWithAcl, DittoHeaders.empty());
-
-        new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(THING_SUDO, response);
-
-            final ActorRef underTest = newEnforcerActor(getRef());
-            final ThingCommand read = getReadCommand();
-            mockEntitiesActorInstance.setReply(read);
-            underTest.tell(read, getRef());
-            assertThat((CharSequence) fishForMsgClass(this, read.getClass()).getEntityId())
-                    .isEqualTo(read.getEntityId());
-
-            final ThingCommand write = getModifyCommand();
-            mockEntitiesActorInstance.setReply(write);
-            underTest.tell(write, getRef());
-            assertThat((CharSequence) expectMsgClass(write.getClass()).getEntityId()).isEqualTo(write.getEntityId());
-        }};
-
-    }
-
-    @Test
     public void acceptByPolicy() {
         final PolicyId policyId = PolicyId.of("policy:id");
         final JsonObject thingWithPolicy = newThingWithPolicyId(policyId);
@@ -310,8 +241,7 @@ public final class ThingCommandEnforcementTest {
                 .forLabel("authorize-self")
                 .setSubject(GOOGLE, SUBJECT_ID)
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
-                        READ.name(),
-                        WRITE.name())
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
                 .build()
                 .toJson(FieldType.all());
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
@@ -351,10 +281,9 @@ public final class ThingCommandEnforcementTest {
                 .forLabel("authorize-self")
                 .setSubject(GOOGLE, SUBJECT_ID)
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
-                        READ.name(),
-                        WRITE.name())
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
                 .setRevokedPermissions(PoliciesResourceType.thingResource(attributePointer),
-                        READ.name())
+                        Permissions.newInstance(Permission.READ))
                 .build()
                 .toJson(FieldType.all());
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
@@ -394,32 +323,15 @@ public final class ThingCommandEnforcementTest {
     }
 
     @Test
-    public void acceptCreateByOwnAcl() {
-        final Thing thing = newThing()
-                .setPermissions(AclEntry.newInstance(SUBJECT, READ, WRITE, ADMINISTRATE))
-                .build();
-        final CreateThing createThing = CreateThing.of(thing, null, headers(V_1));
-
-        new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(THING_SUDO,
-                    ThingNotAccessibleException.newBuilder(THING_ID).build());
-
-            final ActorRef underTest = newEnforcerActor(getRef());
-            mockEntitiesActorInstance.setReply(createThing);
-            underTest.tell(createThing, getRef());
-            final CreateThing filteredCreateThing = fishForMsgClass(this, CreateThing.class);
-            assertThat(filteredCreateThing.getThing()).isEqualTo(thing);
-        }};
-    }
-
-    @Test
     public void acceptCreateByInlinePolicy() {
         final PolicyId policyId = PolicyId.of(THING_ID);
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .forLabel("authorize-self")
                 .setSubject(GOOGLE, SUBJECT_ID)
-                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()), WRITE.name())
-                .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()), WRITE.name())
+                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.WRITE))
+                .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.WRITE))
                 .build();
         final Thing thing = newThing().build();
 
@@ -481,9 +393,9 @@ public final class ThingCommandEnforcementTest {
                 .forLabel("authorize-self")
                 .setSubject(GOOGLE, SUBJECT_ID)
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
-                        READ.name(), WRITE.name())
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
                 .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()),
-                        READ.name(), WRITE.name())
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
                 .build();
         final CreatePolicyResponse createPolicyResponse = CreatePolicyResponse.of(policyId, policy, headers(V_2));
         final ThingNotAccessibleException thingNotAccessibleException =
@@ -590,8 +502,10 @@ public final class ThingCommandEnforcementTest {
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .forLabel("authorize-self")
                 .setSubject(GOOGLE, SUBJECT_ID)
-                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()), WRITE.name())
-                .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()), WRITE.name())
+                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.WRITE))
+                .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.WRITE))
                 .build();
         final Thing thing = newThing().build();
 
@@ -638,11 +552,13 @@ public final class ThingCommandEnforcementTest {
                 .forLabel("authorize-self")
                 .setSubject(GOOGLE, SUBJECT_ID)
                 // authorized subject has WRITE on thing:/ resource
-                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()), WRITE.name())
+                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.WRITE))
                 .forLabel("admin")
                 .setSubject(GOOGLE, "admin")
                 // some other subject has WRITE on policy:/ resource
-                .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()), WRITE.name())
+                .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.WRITE))
                 .build();
         final Thing thing = newThing().build();
 
@@ -676,8 +592,10 @@ public final class ThingCommandEnforcementTest {
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .forLabel("authorize-self")
                 .setSubject(GOOGLE, SUBJECT_ID)
-                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()), WRITE.name())
-                .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()), WRITE.name())
+                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.WRITE))
+                .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.WRITE))
                 .build();
         final JsonObject invalidPolicyJson = policy.toJson()
                 .setValue("policyId", "invalid-policy-id");
@@ -705,8 +623,10 @@ public final class ThingCommandEnforcementTest {
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .forLabel("authorize-self")
                 .setSubject(GOOGLE, SUBJECT_ID)
-                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()), WRITE.name())
-                .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()), WRITE.name())
+                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.WRITE))
+                .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.WRITE))
                 .setModified(Instant.now())
                 .build();
         final JsonObject invalidPolicyJson = policy.toJson()
@@ -736,11 +656,15 @@ public final class ThingCommandEnforcementTest {
 
         new TestKit(system) {{
             final ActorRef underTest = TestSetup.newEnforcerActor(system, getRef(), getRef());
-            final ModifyThing modifyThing = ModifyThing.of(THING_ID, thingInPayload, null, headers(V_1));
+            final ModifyThing modifyThing = ModifyThing.of(THING_ID, thingInPayload, null, headers(V_2));
             underTest.tell(modifyThing, getRef());
 
             fishForMsgClass(this, SudoRetrieveThing.class);
             reply(ThingNotAccessibleException.newBuilder(THING_ID).build());
+
+            final CreatePolicy createPolicy = fishForMsgClass(this, CreatePolicy.class);
+            reply(CreatePolicyResponse.of(createPolicy.getEntityId(), createPolicy.getPolicy(),
+                    createPolicy.getDittoHeaders()));
 
             fishForMsgClass(this, CreateThing.class);
         }};

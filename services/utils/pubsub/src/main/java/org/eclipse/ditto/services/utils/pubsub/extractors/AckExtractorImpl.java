@@ -19,7 +19,7 @@ import java.util.function.Function;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 /**
@@ -31,10 +31,10 @@ final class AckExtractorImpl<T> implements AckExtractor<T> {
 
     static final List<AcknowledgementLabel> BUILT_IN_LABELS = List.of(DittoAcknowledgementLabel.values());
 
-    private final Function<T, EntityIdWithType> getEntityId;
+    private final Function<T, EntityId> getEntityId;
     private final Function<T, DittoHeaders> getDittoHeaders;
 
-    AckExtractorImpl(final Function<T, EntityIdWithType> getEntityId,
+    AckExtractorImpl(final Function<T, EntityId> getEntityId,
             final Function<T, DittoHeaders> getDittoHeaders) {
         this.getEntityId = getEntityId;
         this.getDittoHeaders = getDittoHeaders;
@@ -46,7 +46,7 @@ final class AckExtractorImpl<T> implements AckExtractor<T> {
     }
 
     @Override
-    public EntityIdWithType getEntityId(final T message) {
+    public EntityId getEntityId(final T message) {
         return getEntityId.apply(message);
     }
 

@@ -67,18 +67,6 @@ class ThingResourceMapperTest {
         }
 
         @Override
-        public ThingResource visitAcl(final JsonPointer path, @Nullable final ThingId param) {
-            assertThat((Object) param).isSameAs(THING_ID);
-            return ThingResource.ACL;
-        }
-
-        @Override
-        public ThingResource visitAclEntry(final JsonPointer path, @Nullable final ThingId param) {
-            assertThat((Object) param).isSameAs(THING_ID);
-            return ThingResource.ACL_ENTRY;
-        }
-
-        @Override
         public ThingResource visitAttributes(final JsonPointer path, @Nullable final ThingId param) {
             assertThat((Object) param).isSameAs(THING_ID);
             return ThingResource.ATTRIBUTES;

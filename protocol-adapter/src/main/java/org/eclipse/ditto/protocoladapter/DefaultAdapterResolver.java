@@ -53,7 +53,7 @@ final class DefaultAdapterResolver implements AdapterResolver {
     }
 
     private static boolean isResponse(final Adaptable adaptable) {
-        return adaptable.getPayload().getStatus().isPresent();
+        return adaptable.getPayload().getHttpStatus().isPresent();
     }
 
     private static <T> List<T> filter(final List<T> list, final Predicate<T> predicate) {
@@ -226,8 +226,9 @@ final class DefaultAdapterResolver implements AdapterResolver {
                         new ForEnum<>(Bool.class, Bool.values(), Bool.composeAsSet(Adapter::isForResponses),
                                 Bool.compose(DefaultAdapterResolver::isResponse)),
                         new ForEnum<>(Bool.class, Bool.values(), Bool.composeAsSet(Adapter::requiresSubject),
-                                Bool.compose(adaptable -> adaptable.getTopicPath().getSubject().isPresent())
-                        )
+                                Bool.compose(adaptable -> adaptable.getTopicPath().getSubject().isPresent())),
+                        new ForEnum<>(Bool.class, Bool.values(), Bool.composeAsSet(Adapter::supportsWildcardTopics),
+                                Bool.compose(adaptable -> adaptable.getTopicPath().isWildcardTopic()))
                 ));
     }
 

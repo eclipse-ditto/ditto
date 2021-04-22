@@ -353,7 +353,7 @@ public final class HttpStatus implements Serializable {
      *
      * @deprecated Do not use in Ditto for exceptions as Ditto reserves 502 as code when gracefully shutting down HTTP.
      */
-    @Deprecated
+    @Deprecated(/*forRemoval = false*/) // not to be deleted, just marked as "do not use"
     public static final HttpStatus BAD_GATEWAY = assign(502);
 
     /**

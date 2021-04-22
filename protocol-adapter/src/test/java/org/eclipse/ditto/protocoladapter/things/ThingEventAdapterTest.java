@@ -39,10 +39,7 @@ import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.protocoladapter.TopicPathBuilder;
 import org.eclipse.ditto.protocoladapter.UnknownEventException;
 import org.eclipse.ditto.signals.events.base.Event;
-import org.eclipse.ditto.signals.events.things.AclEntryCreated;
-import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
-import org.eclipse.ditto.signals.events.things.AclEntryModified;
-import org.eclipse.ditto.signals.events.things.AclModified;
+import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 import org.eclipse.ditto.signals.events.things.AttributeCreated;
 import org.eclipse.ditto.signals.events.things.AttributeDeleted;
 import org.eclipse.ditto.signals.events.things.AttributeModified;
@@ -70,7 +67,6 @@ import org.eclipse.ditto.signals.events.things.FeaturePropertyModified;
 import org.eclipse.ditto.signals.events.things.FeaturesCreated;
 import org.eclipse.ditto.signals.events.things.FeaturesDeleted;
 import org.eclipse.ditto.signals.events.things.FeaturesModified;
-import org.eclipse.ditto.signals.events.things.PolicyIdCreated;
 import org.eclipse.ditto.signals.events.things.PolicyIdModified;
 import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingDefinitionCreated;
@@ -79,6 +75,7 @@ import org.eclipse.ditto.signals.events.things.ThingDefinitionModified;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
+import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -104,7 +101,7 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
         final Instant now = Instant.now();
         final ThingCreated expected =
                 ThingCreated.of(TestConstants.THING, TestConstants.REVISION, now,
-                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
+                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2), TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.empty();
 
@@ -113,6 +110,7 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                         .withValue(TestConstants.THING.toJson(FieldType.regularOrSpecial()))
                         .withRevision(TestConstants.REVISION)
                         .withTimestamp(now)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -137,7 +135,7 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
 
         final ThingCreated thingCreated =
                 ThingCreated.of(TestConstants.THING, TestConstants.REVISION, now,
-                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(thingCreated, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -146,8 +144,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     @Test
     public void thingModifiedFromAdaptable() {
         final ThingModified expected =
-                ThingModified.of(TestConstants.THING, TestConstants.REVISION,
-                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
+                ThingModified.of(TestConstants.THING, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2), TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.empty();
 
@@ -155,6 +153,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.THING.toJson(FieldType.regularOrSpecial()))
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -171,13 +171,14 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final ThingModified thingModified =
-                ThingModified.of(TestConstants.THING, TestConstants.REVISION,
-                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+                ThingModified.of(TestConstants.THING, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(thingModified, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -186,14 +187,16 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     @Test
     public void thingDeletedFromAdaptable() {
         final ThingDeleted expected =
-                ThingDeleted.of(TestConstants.THING_ID, TestConstants.REVISION,
-                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
+                ThingDeleted.of(TestConstants.THING_ID, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2), TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.empty();
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -209,166 +212,15 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
         final Adaptable expected = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final ThingDeleted thingDeleted =
-                ThingDeleted.of(TestConstants.THING_ID, TestConstants.REVISION,
-                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+                ThingDeleted.of(TestConstants.THING_ID, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(thingDeleted, channel);
-
-        assertWithExternalHeadersThat(actual).isEqualTo(expected);
-    }
-
-    @Test
-    public void aclModifiedFromAdaptable() {
-        final AclModified expected = AclModified.of(TestConstants.THING_ID, TestConstants.ACL, TestConstants.REVISION,
-                setChannelHeader(TestConstants.DITTO_HEADERS_V_1));
-
-        final JsonPointer path = JsonPointer.of("/acl");
-
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified())
-                .withPayload(Payload.newBuilder(path)
-                        .withValue(TestConstants.ACL.toJson(FieldType.notHidden()))
-                        .withRevision(TestConstants.REVISION)
-                        .build())
-                .withHeaders(TestConstants.HEADERS_V_1)
-                .build();
-        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
-
-        assertWithExternalHeadersThat(actual).isEqualTo(expected);
-    }
-
-    @Test
-    public void aclModifiedToAdaptable() {
-        final JsonPointer path = JsonPointer.of("/acl");
-
-        final Adaptable expected = Adaptable.newBuilder(topicPathModified())
-                .withPayload(Payload.newBuilder(path)
-                        .withValue(TestConstants.ACL.toJson(FieldType.notHidden()))
-                        .withRevision(TestConstants.REVISION)
-                        .build())
-                .withHeaders(TestConstants.HEADERS_V_1)
-                .build();
-
-        final AclModified aclModified =
-                AclModified.of(TestConstants.THING_ID, TestConstants.ACL, TestConstants.REVISION,
-                        setChannelHeader(TestConstants.HEADERS_V_1_NO_CONTENT_TYPE));
-        final Adaptable actual = underTest.toAdaptable(aclModified, channel);
-
-        assertWithExternalHeadersThat(actual).isEqualTo(expected);
-    }
-
-    @Test
-    public void aclEntryCreatedFromAdaptable() {
-        final AclEntryCreated expected = AclEntryCreated.of(TestConstants.THING_ID, TestConstants.ACL_ENTRY,
-                TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_1));
-
-        final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
-
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated())
-                .withPayload(Payload.newBuilder(path)
-                        .withValue(TestConstants.ACL_ENTRY.getPermissions().toJson())
-                        .withRevision(TestConstants.REVISION)
-                        .build())
-                .withHeaders(TestConstants.HEADERS_V_1)
-                .build();
-        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
-
-        assertWithExternalHeadersThat(actual).isEqualTo(expected);
-    }
-
-    @Test
-    public void aclEntryCreatedToAdaptable() {
-        final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
-
-        final Adaptable expected = Adaptable.newBuilder(topicPathCreated())
-                .withPayload(Payload.newBuilder(path)
-                        .withValue(TestConstants.ACL_ENTRY.toJson())
-                        .withRevision(TestConstants.REVISION)
-                        .build())
-                .withHeaders(TestConstants.HEADERS_V_1)
-                .build();
-
-        final AclEntryCreated aclEntryCreated = AclEntryCreated.of(TestConstants.THING_ID, TestConstants.ACL_ENTRY,
-                TestConstants.REVISION, setChannelHeader(TestConstants.HEADERS_V_1_NO_CONTENT_TYPE));
-        final Adaptable actual = underTest.toAdaptable(aclEntryCreated, channel);
-
-        assertWithExternalHeadersThat(actual).isEqualTo(expected);
-    }
-
-    @Test
-    public void aclEntryModifiedFromAdaptable() {
-        final AclEntryModified expected = AclEntryModified.of(TestConstants.THING_ID, TestConstants.ACL_ENTRY,
-                TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_1));
-
-        final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
-
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified())
-                .withPayload(Payload.newBuilder(path)
-                        .withValue(TestConstants.ACL_ENTRY.getPermissions().toJson())
-                        .withRevision(TestConstants.REVISION)
-                        .build())
-                .withHeaders(TestConstants.HEADERS_V_1)
-                .build();
-        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
-
-        assertWithExternalHeadersThat(actual).isEqualTo(expected);
-    }
-
-    @Test
-    public void aclEntryModifiedToAdaptable() {
-        final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
-
-        final Adaptable expected = Adaptable.newBuilder(topicPathModified())
-                .withPayload(Payload.newBuilder(path)
-                        .withValue(TestConstants.ACL_ENTRY.toJson())
-                        .withRevision(TestConstants.REVISION)
-                        .build())
-                .withHeaders(TestConstants.HEADERS_V_1)
-                .build();
-
-        final AclEntryModified aclEntryModified = AclEntryModified.of(TestConstants.THING_ID, TestConstants.ACL_ENTRY,
-                TestConstants.REVISION, setChannelHeader(TestConstants.HEADERS_V_1_NO_CONTENT_TYPE));
-        final Adaptable actual = underTest.toAdaptable(aclEntryModified, channel);
-
-        assertWithExternalHeadersThat(actual).isEqualTo(expected);
-    }
-
-    @Test
-    public void aclEntryDeletedFromAdaptable() {
-        final AclEntryDeleted expected = AclEntryDeleted.of(TestConstants.THING_ID, TestConstants.AUTHORIZATION_SUBJECT,
-                TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_1));
-
-        final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
-
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted())
-                .withPayload(Payload.newBuilder(path)
-                        .withRevision(TestConstants.REVISION)
-                        .build())
-                .withHeaders(TestConstants.HEADERS_V_1)
-                .build();
-        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
-
-        assertWithExternalHeadersThat(actual).isEqualTo(expected);
-    }
-
-    @Test
-    public void aclEntryDeletedToAdaptable() {
-        final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
-
-        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted())
-                .withPayload(Payload.newBuilder(path)
-                        .withRevision(TestConstants.REVISION)
-                        .build())
-                .withHeaders(TestConstants.HEADERS_V_1)
-                .build();
-
-        final AclEntryDeleted aclEntryDeleted = AclEntryDeleted.of(TestConstants.THING_ID,
-                TestConstants.AUTHORIZATION_SUBJECT, TestConstants.REVISION,
-                setChannelHeader(TestConstants.HEADERS_V_1_NO_CONTENT_TYPE));
-        final Adaptable actual = underTest.toAdaptable(aclEntryDeleted, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -376,7 +228,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     @Test
     public void attributesCreatedFromAdaptable() {
         final AttributesCreated expected = AttributesCreated.of(TestConstants.THING_ID, TestConstants.ATTRIBUTES,
-                TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
+                TestConstants.REVISION, TestConstants.TIMESTAMP, setChannelHeader(TestConstants.DITTO_HEADERS_V_2),
+                TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.of("/attributes");
 
@@ -384,6 +237,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ATTRIBUTES.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -400,13 +255,15 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ATTRIBUTES.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final AttributesCreated attributesCreated =
                 AttributesCreated.of(TestConstants.THING_ID, TestConstants.ATTRIBUTES,
-                        TestConstants.REVISION, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+                        TestConstants.REVISION, TestConstants.TIMESTAMP,
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(attributesCreated, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -415,7 +272,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     @Test
     public void attributesModifiedFromAdaptable() {
         final AttributesModified expected = AttributesModified.of(TestConstants.THING_ID, TestConstants.ATTRIBUTES,
-                TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
+                TestConstants.REVISION, TestConstants.TIMESTAMP, setChannelHeader(TestConstants.DITTO_HEADERS_V_2),
+                TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.of("/attributes");
 
@@ -423,6 +281,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ATTRIBUTES.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -439,13 +299,14 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ATTRIBUTES.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final AttributesModified attributesModified = AttributesModified.of(TestConstants.THING_ID,
-                TestConstants.ATTRIBUTES, TestConstants.REVISION,
-                setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+                TestConstants.ATTRIBUTES, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(attributesModified, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -454,14 +315,16 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     @Test
     public void attributesDeletedFromAdaptable() {
         final AttributesDeleted expected =
-                AttributesDeleted.of(TestConstants.THING_ID, TestConstants.REVISION,
-                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
+                AttributesDeleted.of(TestConstants.THING_ID, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2), TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.of("/attributes");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -477,13 +340,14 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
         final Adaptable expected = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final AttributesDeleted attributesDeleted =
-                AttributesDeleted.of(TestConstants.THING_ID, TestConstants.REVISION,
-                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+                AttributesDeleted.of(TestConstants.THING_ID, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(attributesDeleted, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -492,8 +356,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     @Test
     public void attributeCreatedFromAdaptable() {
         final AttributeCreated expected = AttributeCreated.of(TestConstants.THING_ID, TestConstants.ATTRIBUTE_POINTER,
-                TestConstants.ATTRIBUTE_VALUE, TestConstants.REVISION,
-                setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
+                TestConstants.ATTRIBUTE_VALUE, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                setChannelHeader(TestConstants.DITTO_HEADERS_V_2), TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
@@ -501,6 +365,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ATTRIBUTE_VALUE)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -517,14 +383,15 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ATTRIBUTE_VALUE)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final AttributeCreated attributeCreated =
                 AttributeCreated.of(TestConstants.THING_ID, TestConstants.ATTRIBUTE_POINTER,
-                        TestConstants.ATTRIBUTE_VALUE,
-                        TestConstants.REVISION, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+                        TestConstants.ATTRIBUTE_VALUE, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(attributeCreated, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -533,8 +400,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     @Test
     public void attributeModifiedFromAdaptable() {
         final AttributeModified expected = AttributeModified.of(TestConstants.THING_ID, TestConstants.ATTRIBUTE_POINTER,
-                TestConstants.ATTRIBUTE_VALUE, TestConstants.REVISION,
-                setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
+                TestConstants.ATTRIBUTE_VALUE, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                setChannelHeader(TestConstants.DITTO_HEADERS_V_2), TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
@@ -542,6 +409,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ATTRIBUTE_VALUE)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -558,14 +427,15 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.ATTRIBUTE_VALUE)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final AttributeModified attributeModified =
                 AttributeModified.of(TestConstants.THING_ID, TestConstants.ATTRIBUTE_POINTER,
-                        TestConstants.ATTRIBUTE_VALUE,
-                        TestConstants.REVISION, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+                        TestConstants.ATTRIBUTE_VALUE, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(attributeModified, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -574,13 +444,16 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     @Test
     public void attributeDeletedFromAdaptable() {
         final AttributeDeleted expected = AttributeDeleted.of(TestConstants.THING_ID, TestConstants.ATTRIBUTE_POINTER,
-                TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
+                TestConstants.REVISION, TestConstants.TIMESTAMP, setChannelHeader(TestConstants.DITTO_HEADERS_V_2),
+                TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.of("/attributes" + TestConstants.ATTRIBUTE_POINTER);
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -596,13 +469,14 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
         final Adaptable expected = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final AttributeDeleted attributeDeleted = AttributeDeleted.of(TestConstants.THING_ID,
-                TestConstants.ATTRIBUTE_POINTER, TestConstants.REVISION,
-                setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+                TestConstants.ATTRIBUTE_POINTER, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(attributeDeleted, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -611,8 +485,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     @Test
     public void definitionCreatedFromAdaptable() {
         final ThingDefinitionCreated expected = ThingDefinitionCreated.of(TestConstants.THING_ID,
-                TestConstants.THING_DEFINITION,
-                TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
+                TestConstants.THING_DEFINITION, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                setChannelHeader(TestConstants.DITTO_HEADERS_V_2), TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.of("/definition");
 
@@ -620,6 +494,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(JsonValue.of(TestConstants.THING_DEFINITION))
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -636,14 +512,15 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(JsonValue.of(TestConstants.THING_DEFINITION))
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final ThingDefinitionCreated thingDefintionCreated =
                 ThingDefinitionCreated.of(TestConstants.THING_ID, TestConstants.THING_DEFINITION,
-                        TestConstants.REVISION,
-                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+                        TestConstants.REVISION, TestConstants.TIMESTAMP,
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(thingDefintionCreated, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -652,8 +529,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     @Test
     public void definitionModifiedFromAdaptable() {
         final ThingDefinitionModified expected = ThingDefinitionModified.of(TestConstants.THING_ID,
-                TestConstants.THING_DEFINITION,
-                TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
+                TestConstants.THING_DEFINITION, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                setChannelHeader(TestConstants.DITTO_HEADERS_V_2), TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.of("/definition");
 
@@ -661,6 +538,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(JsonValue.of(TestConstants.THING_DEFINITION))
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -677,13 +556,14 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(JsonValue.of(TestConstants.THING_DEFINITION))
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final ThingDefinitionModified definitionModified = ThingDefinitionModified.of(TestConstants.THING_ID,
-                TestConstants.THING_DEFINITION, TestConstants.REVISION,
-                setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+                TestConstants.THING_DEFINITION, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(definitionModified, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -692,14 +572,16 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     @Test
     public void definitionDeletedFromAdaptable() {
         final ThingDefinitionDeleted expected =
-                ThingDefinitionDeleted.of(TestConstants.THING_ID, TestConstants.REVISION,
-                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
+                ThingDefinitionDeleted.of(TestConstants.THING_ID, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2), TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.of("/definition");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -715,13 +597,14 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
         final Adaptable expected = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final ThingDefinitionDeleted definitionDeleted =
-                ThingDefinitionDeleted.of(TestConstants.THING_ID, TestConstants.REVISION,
-                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+                ThingDefinitionDeleted.of(TestConstants.THING_ID, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(definitionDeleted, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -730,7 +613,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     @Test
     public void featuresCreatedFromAdaptable() {
         final FeaturesCreated expected = FeaturesCreated.of(TestConstants.THING_ID, TestConstants.FEATURES,
-                TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
+                TestConstants.REVISION, TestConstants.TIMESTAMP, setChannelHeader(TestConstants.DITTO_HEADERS_V_2),
+                TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.of("/features");
 
@@ -738,6 +622,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURES.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -754,12 +640,14 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURES.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final FeaturesCreated featuresCreated = FeaturesCreated.of(TestConstants.THING_ID, TestConstants.FEATURES,
-                TestConstants.REVISION, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+                TestConstants.REVISION, TestConstants.TIMESTAMP,
+                setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(featuresCreated, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -768,7 +656,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     @Test
     public void featuresModifiedFromAdaptable() {
         final FeaturesModified expected = FeaturesModified.of(TestConstants.THING_ID, TestConstants.FEATURES,
-                TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
+                TestConstants.REVISION, TestConstants.TIMESTAMP, setChannelHeader(TestConstants.DITTO_HEADERS_V_2),
+                TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.of("/features");
 
@@ -776,6 +665,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURES.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -792,12 +683,14 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURES.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final FeaturesModified featuresModified = FeaturesModified.of(TestConstants.THING_ID, TestConstants.FEATURES,
-                TestConstants.REVISION, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+                TestConstants.REVISION, TestConstants.TIMESTAMP,
+                setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(featuresModified, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -806,14 +699,16 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     @Test
     public void featuresDeletedFromAdaptable() {
         final FeaturesDeleted expected =
-                FeaturesDeleted.of(TestConstants.THING_ID, TestConstants.REVISION,
-                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
+                FeaturesDeleted.of(TestConstants.THING_ID, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2), TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.of("/features");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -829,13 +724,14 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
         final Adaptable expected = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final FeaturesDeleted featuresDeleted =
-                FeaturesDeleted.of(TestConstants.THING_ID, TestConstants.REVISION,
-                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+                FeaturesDeleted.of(TestConstants.THING_ID, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(featuresDeleted, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -844,7 +740,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     @Test
     public void featureCreatedFromAdaptable() {
         final FeatureCreated expected = FeatureCreated.of(TestConstants.THING_ID, TestConstants.FEATURE,
-                TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
+                TestConstants.REVISION, TestConstants.TIMESTAMP, setChannelHeader(TestConstants.DITTO_HEADERS_V_2),
+                TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
@@ -852,6 +749,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -868,12 +767,14 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final FeatureCreated featureCreated = FeatureCreated.of(TestConstants.THING_ID, TestConstants.FEATURE,
-                TestConstants.REVISION, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+                TestConstants.REVISION, TestConstants.TIMESTAMP,
+                setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(featureCreated, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -882,7 +783,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     @Test
     public void featureModifiedFromAdaptable() {
         final FeatureModified expected = FeatureModified.of(TestConstants.THING_ID, TestConstants.FEATURE,
-                TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
+                TestConstants.REVISION, TestConstants.TIMESTAMP, setChannelHeader(TestConstants.DITTO_HEADERS_V_2),
+                TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
@@ -890,6 +792,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -906,12 +810,14 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final FeatureModified featureModified = FeatureModified.of(TestConstants.THING_ID, TestConstants.FEATURE,
-                TestConstants.REVISION, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+                TestConstants.REVISION, TestConstants.TIMESTAMP,
+                setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(featureModified, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -920,13 +826,16 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     @Test
     public void featureDeletedFromAdaptable() {
         final FeatureDeleted expected = FeatureDeleted.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
+                TestConstants.REVISION, TestConstants.TIMESTAMP,
+                setChannelHeader(TestConstants.DITTO_HEADERS_V_2), TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID);
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -942,12 +851,14 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
         final Adaptable expected = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final FeatureDeleted featureDeleted = FeatureDeleted.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                TestConstants.REVISION, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+                TestConstants.REVISION, TestConstants.TIMESTAMP,
+                setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(featureDeleted, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -957,8 +868,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     public void featurePropertiesCreatedFromAdaptable() {
         final FeaturePropertiesCreated expected =
                 FeaturePropertiesCreated.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                        TestConstants.FEATURE_PROPERTIES, TestConstants.REVISION,
-                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
+                        TestConstants.FEATURE_PROPERTIES, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2), TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
@@ -966,6 +877,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_PROPERTIES_JSON)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -982,6 +895,7 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_PROPERTIES_JSON)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -989,7 +903,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
         final FeaturePropertiesCreated featurePropertiesCreated =
                 FeaturePropertiesCreated.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
                         TestConstants.FEATURE_PROPERTIES,
-                        TestConstants.REVISION, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+                        TestConstants.REVISION, TestConstants.TIMESTAMP,
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(featurePropertiesCreated, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -999,8 +914,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     public void featurePropertiesModifiedFromAdaptable() {
         final FeaturePropertiesModified expected =
                 FeaturePropertiesModified.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                        TestConstants.FEATURE_PROPERTIES, TestConstants.REVISION,
-                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
+                        TestConstants.FEATURE_PROPERTIES, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2), TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
@@ -1008,6 +923,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_PROPERTIES_JSON)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1024,14 +941,15 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_PROPERTIES_JSON)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final FeaturePropertiesModified featurePropertiesModified =
                 FeaturePropertiesModified.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                        TestConstants.FEATURE_PROPERTIES, TestConstants.REVISION,
-                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+                        TestConstants.FEATURE_PROPERTIES, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(featurePropertiesModified, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -1040,13 +958,16 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     @Test
     public void featurePropertiesDeletedFromAdaptable() {
         final FeaturePropertiesDeleted expected = FeaturePropertiesDeleted.of(TestConstants.THING_ID,
-                TestConstants.FEATURE_ID, TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
+                TestConstants.FEATURE_ID, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                setChannelHeader(TestConstants.DITTO_HEADERS_V_2), TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/properties");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1062,13 +983,14 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
         final Adaptable expected = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final FeaturePropertiesDeleted featurePropertiesDeleted = FeaturePropertiesDeleted.of(TestConstants.THING_ID,
-                TestConstants.FEATURE_ID, TestConstants.REVISION,
-                setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+                TestConstants.FEATURE_ID, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(featurePropertiesDeleted, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -1078,7 +1000,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     public void featurePropertyCreatedFromAdaptable() {
         final FeaturePropertyCreated expected = FeaturePropertyCreated.of(TestConstants.THING_ID,
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_PROPERTY_POINTER, TestConstants.FEATURE_PROPERTY_VALUE,
-                TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
+                TestConstants.REVISION, TestConstants.TIMESTAMP, setChannelHeader(TestConstants.DITTO_HEADERS_V_2),
+                TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.of(
                 "/features/" + TestConstants.FEATURE_ID + "/properties" + TestConstants.FEATURE_PROPERTY_POINTER);
@@ -1087,6 +1010,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_PROPERTY_VALUE)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1104,13 +1029,15 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_PROPERTY_VALUE)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final FeaturePropertyCreated featurePropertyCreated = FeaturePropertyCreated.of(TestConstants.THING_ID,
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_PROPERTY_POINTER, TestConstants.FEATURE_PROPERTY_VALUE,
-                TestConstants.REVISION, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+                TestConstants.REVISION, TestConstants.TIMESTAMP,
+                setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(featurePropertyCreated, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -1120,7 +1047,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     public void featurePropertyModifiedFromAdaptable() {
         final FeaturePropertyModified expected = FeaturePropertyModified.of(TestConstants.THING_ID,
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_PROPERTY_POINTER, TestConstants.FEATURE_PROPERTY_VALUE,
-                TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
+                TestConstants.REVISION, TestConstants.TIMESTAMP, setChannelHeader(TestConstants.DITTO_HEADERS_V_2),
+                TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.of(
                 "/features/" + TestConstants.FEATURE_ID + "/properties" + TestConstants.FEATURE_PROPERTY_POINTER);
@@ -1129,6 +1057,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_PROPERTY_VALUE)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1146,13 +1076,15 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_PROPERTY_VALUE)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final FeaturePropertyModified featurePropertyModified = FeaturePropertyModified.of(TestConstants.THING_ID,
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_PROPERTY_POINTER, TestConstants.FEATURE_PROPERTY_VALUE,
-                TestConstants.REVISION, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+                TestConstants.REVISION, TestConstants.TIMESTAMP,
+                setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(featurePropertyModified, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -1162,8 +1094,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     public void featurePropertyDeletedFromAdaptable() {
         final FeaturePropertyDeleted expected =
                 FeaturePropertyDeleted.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                        TestConstants.FEATURE_PROPERTY_POINTER, TestConstants.REVISION,
-                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
+                        TestConstants.FEATURE_PROPERTY_POINTER, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2), TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.of(
                 "/features/" + TestConstants.FEATURE_ID + "/properties" + TestConstants.FEATURE_PROPERTY_POINTER);
@@ -1171,6 +1103,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
         final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1187,13 +1121,15 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
         final Adaptable expected = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final FeaturePropertyDeleted featurePropertyDeleted = FeaturePropertyDeleted.of(TestConstants.THING_ID,
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_PROPERTY_POINTER, TestConstants.REVISION,
-                setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+                TestConstants.TIMESTAMP, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE),
+                TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(featurePropertyDeleted, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -1203,7 +1139,7 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     public void featureDesiredPropertiesCreatedFromAdaptable() {
         final FeatureDesiredPropertiesCreated expected =
                 FeatureDesiredPropertiesCreated.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                        TestConstants.FEATURE_DESIRED_PROPERTIES, TestConstants.REVISION, null,
+                        TestConstants.FEATURE_DESIRED_PROPERTIES, TestConstants.REVISION, TestConstants.TIMESTAMP,
                         setChannelHeader(TestConstants.DITTO_HEADERS_V_2), null);
 
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/desiredProperties");
@@ -1212,6 +1148,7 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_DESIRED_PROPERTIES_JSON)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1228,6 +1165,7 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_DESIRED_PROPERTIES_JSON)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1235,8 +1173,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
         final FeatureDesiredPropertiesCreated featureDesiredPropertiesCreated =
                 FeatureDesiredPropertiesCreated.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
                         TestConstants.FEATURE_DESIRED_PROPERTIES,
-                        TestConstants.REVISION, null, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE),
-                        null);
+                        TestConstants.REVISION, TestConstants.TIMESTAMP,
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(featureDesiredPropertiesCreated, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -1246,8 +1184,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     public void featureDesiredPropertiesModifiedFromAdaptable() {
         final FeatureDesiredPropertiesModified expected =
                 FeatureDesiredPropertiesModified.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                        TestConstants.FEATURE_DESIRED_PROPERTIES, TestConstants.REVISION, null,
-                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2), null);
+                        TestConstants.FEATURE_DESIRED_PROPERTIES, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2), TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/desiredProperties");
 
@@ -1255,6 +1193,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_DESIRED_PROPERTIES_JSON)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1271,14 +1211,15 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_DESIRED_PROPERTIES_JSON)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final FeatureDesiredPropertiesModified featureDesiredPropertiesModified =
                 FeatureDesiredPropertiesModified.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                        TestConstants.FEATURE_DESIRED_PROPERTIES, TestConstants.REVISION, null,
-                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), null);
+                        TestConstants.FEATURE_DESIRED_PROPERTIES, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(featureDesiredPropertiesModified, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -1287,14 +1228,16 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     @Test
     public void featureDesiredPropertiesDeletedFromAdaptable() {
         final FeatureDesiredPropertiesDeleted expected = FeatureDesiredPropertiesDeleted.of(TestConstants.THING_ID,
-                TestConstants.FEATURE_ID, TestConstants.REVISION, null,
-                setChannelHeader(TestConstants.DITTO_HEADERS_V_2), null);
+                TestConstants.FEATURE_ID, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                setChannelHeader(TestConstants.DITTO_HEADERS_V_2), TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/desiredProperties");
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1310,14 +1253,15 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
         final Adaptable expected = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final FeatureDesiredPropertiesDeleted featureDesiredPropertiesDeleted =
                 FeatureDesiredPropertiesDeleted.of(TestConstants.THING_ID,
-                        TestConstants.FEATURE_ID, TestConstants.REVISION, null,
-                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), null);
+                        TestConstants.FEATURE_ID, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(featureDesiredPropertiesDeleted, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -1328,7 +1272,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
         final FeatureDesiredPropertyCreated expected = FeatureDesiredPropertyCreated.of(TestConstants.THING_ID,
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_DESIRED_PROPERTY_POINTER,
                 TestConstants.FEATURE_DESIRED_PROPERTY_VALUE,
-                TestConstants.REVISION, null, setChannelHeader(TestConstants.DITTO_HEADERS_V_2), null);
+                TestConstants.REVISION, TestConstants.TIMESTAMP, setChannelHeader(TestConstants.DITTO_HEADERS_V_2),
+                null);
 
         final JsonPointer path = JsonPointer.of(
                 "/features/" + TestConstants.FEATURE_ID + "/desiredProperties" +
@@ -1338,6 +1283,7 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_DESIRED_PROPERTY_VALUE)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1356,6 +1302,7 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_DESIRED_PROPERTY_VALUE)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1364,8 +1311,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 FeatureDesiredPropertyCreated.of(TestConstants.THING_ID,
                         TestConstants.FEATURE_ID, TestConstants.FEATURE_DESIRED_PROPERTY_POINTER,
                         TestConstants.FEATURE_DESIRED_PROPERTY_VALUE,
-                        TestConstants.REVISION, null, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE),
-                        null);
+                        TestConstants.REVISION, TestConstants.TIMESTAMP,
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(featureDesiredPropertyCreated, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -1376,7 +1323,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
         final FeatureDesiredPropertyModified expected = FeatureDesiredPropertyModified.of(TestConstants.THING_ID,
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_DESIRED_PROPERTY_POINTER,
                 TestConstants.FEATURE_DESIRED_PROPERTY_VALUE,
-                TestConstants.REVISION, null, setChannelHeader(TestConstants.DITTO_HEADERS_V_2), null);
+                TestConstants.REVISION, TestConstants.TIMESTAMP, setChannelHeader(TestConstants.DITTO_HEADERS_V_2),
+                TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.of(
                 "/features/" + TestConstants.FEATURE_ID + "/desiredProperties" +
@@ -1386,6 +1334,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_DESIRED_PROPERTY_VALUE)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1404,6 +1354,7 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_DESIRED_PROPERTY_VALUE)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1412,8 +1363,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 FeatureDesiredPropertyModified.of(TestConstants.THING_ID,
                         TestConstants.FEATURE_ID, TestConstants.FEATURE_DESIRED_PROPERTY_POINTER,
                         TestConstants.FEATURE_DESIRED_PROPERTY_VALUE,
-                        TestConstants.REVISION, null,
-                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), null);
+                        TestConstants.REVISION, TestConstants.TIMESTAMP,
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(featureDesiredPropertyModified, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -1423,8 +1374,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     public void featureDesiredPropertyDeletedFromAdaptable() {
         final FeatureDesiredPropertyDeleted expected =
                 FeatureDesiredPropertyDeleted.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                        TestConstants.FEATURE_DESIRED_PROPERTY_POINTER, TestConstants.REVISION, null,
-                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2), null);
+                        TestConstants.FEATURE_DESIRED_PROPERTY_POINTER, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2), TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.of(
                 "/features/" + TestConstants.FEATURE_ID + "/desiredProperties" +
@@ -1433,6 +1384,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
         final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1450,6 +1403,7 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
         final Adaptable expected = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1457,8 +1411,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
         final FeatureDesiredPropertyDeleted featureDesiredPropertyDeleted =
                 FeatureDesiredPropertyDeleted.of(TestConstants.THING_ID,
                         TestConstants.FEATURE_ID, TestConstants.FEATURE_DESIRED_PROPERTY_POINTER,
-                        TestConstants.REVISION, null,
-                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), null);
+                        TestConstants.REVISION, TestConstants.TIMESTAMP,
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(featureDesiredPropertyDeleted, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -1468,7 +1422,7 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     public void featureDefinitionCreatedFromAdaptable() {
         final FeatureDefinitionCreated expected = FeatureDefinitionCreated.of(TestConstants.THING_ID,
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_DEFINITION, TestConstants.REVISION,
-                setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
+                TestConstants.TIMESTAMP, setChannelHeader(TestConstants.DITTO_HEADERS_V_2), TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/definition");
 
@@ -1476,6 +1430,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_DEFINITION_JSON)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1492,13 +1448,15 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_DEFINITION_JSON)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final FeatureDefinitionCreated featureDefinitionCreated = FeatureDefinitionCreated.of(TestConstants.THING_ID,
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_DEFINITION, TestConstants.REVISION,
-                setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+                TestConstants.TIMESTAMP, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE),
+                TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(featureDefinitionCreated, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -1508,7 +1466,7 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     public void featureDefinitionModifiedFromAdaptable() {
         final FeatureDefinitionModified expected = FeatureDefinitionModified.of(TestConstants.THING_ID,
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_DEFINITION, TestConstants.REVISION,
-                setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
+                TestConstants.TIMESTAMP, setChannelHeader(TestConstants.DITTO_HEADERS_V_2), TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/definition");
 
@@ -1516,6 +1474,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_DEFINITION_JSON)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1532,13 +1492,15 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_DEFINITION_JSON)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final FeatureDefinitionModified featureDefinitionModified = FeatureDefinitionModified.of(TestConstants.THING_ID,
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_DEFINITION, TestConstants.REVISION,
-                setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+                TestConstants.TIMESTAMP, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE),
+                TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(featureDefinitionModified, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -1547,7 +1509,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     @Test
     public void featureDefinitionDeletedFromAdaptable() {
         final FeatureDefinitionDeleted expected = FeatureDefinitionDeleted.of(TestConstants.THING_ID,
-                TestConstants.FEATURE_ID, TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
+                TestConstants.FEATURE_ID, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                setChannelHeader(TestConstants.DITTO_HEADERS_V_2), TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/definition");
 
@@ -1555,6 +1518,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.FEATURE_DEFINITION_JSON)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1570,54 +1535,15 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
         final Adaptable expected = Adaptable.newBuilder(topicPathDeleted())
                 .withPayload(Payload.newBuilder(path)
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final FeatureDefinitionDeleted featureDefinitionDeleted = FeatureDefinitionDeleted.of(TestConstants.THING_ID,
-                TestConstants.FEATURE_ID, TestConstants.REVISION,
-                setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+                TestConstants.FEATURE_ID, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(featureDefinitionDeleted, channel);
-
-        assertWithExternalHeadersThat(actual).isEqualTo(expected);
-    }
-
-    @Test
-    public void policyIdCreatedFromAdaptable() {
-        final PolicyIdCreated expected =
-                PolicyIdCreated.of(TestConstants.THING_ID, TestConstants.Policies.POLICY_ID,
-                        TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
-
-        final JsonPointer path = JsonPointer.of("/policyId");
-
-        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated())
-                .withPayload(Payload.newBuilder(path)
-                        .withValue(JsonValue.of(TestConstants.Policies.POLICY_ID))
-                        .withRevision(TestConstants.REVISION)
-                        .build())
-                .withHeaders(TestConstants.HEADERS_V_2)
-                .build();
-        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
-
-        assertWithExternalHeadersThat(actual).isEqualTo(expected);
-    }
-
-    @Test
-    public void policyIdCreatedToAdaptable() {
-        final PolicyIdCreated policyIdCreated =
-                PolicyIdCreated.of(TestConstants.THING_ID, TestConstants.Policies.POLICY_ID,
-                        TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
-
-        final JsonPointer path = JsonPointer.of("/policyId");
-
-        final Adaptable expected = Adaptable.newBuilder(topicPathCreated())
-                .withPayload(Payload.newBuilder(path)
-                        .withValue(JsonValue.of(TestConstants.Policies.POLICY_ID))
-                        .withRevision(TestConstants.REVISION)
-                        .build())
-                .withHeaders(TestConstants.HEADERS_V_2)
-                .build();
-        final Adaptable actual = underTest.toAdaptable(policyIdCreated, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
@@ -1626,7 +1552,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     public void policyIdModifiedFromAdaptable() {
         final PolicyIdModified expected =
                 PolicyIdModified.of(TestConstants.THING_ID, TestConstants.Policies.POLICY_ID,
-                        TestConstants.REVISION, setChannelHeader(TestConstants.DITTO_HEADERS_V_2));
+                        TestConstants.REVISION, TestConstants.TIMESTAMP,
+                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2), TestConstants.METADATA);
 
         final JsonPointer path = JsonPointer.of("/policyId");
 
@@ -1634,6 +1561,8 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(JsonValue.of(TestConstants.Policies.POLICY_ID))
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
+                        .withMetadata(TestConstants.METADATA)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1650,38 +1579,31 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
                 .withPayload(Payload.newBuilder(path)
                         .withValue(JsonValue.of(TestConstants.Policies.POLICY_ID))
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(TestConstants.TIMESTAMP)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final PolicyIdModified policyIdModified =
                 PolicyIdModified.of(TestConstants.THING_ID, TestConstants.Policies.POLICY_ID,
-                        TestConstants.REVISION, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE));
+                        TestConstants.REVISION, TestConstants.TIMESTAMP,
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), TestConstants.METADATA);
         final Adaptable actual = underTest.toAdaptable(policyIdModified, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
+    @AllValuesAreNonnullByDefault
     private static final class UnknownThingEvent implements ThingEvent<UnknownThingEvent> {
 
         @Override
-        public ThingId getThingEntityId() {
-            return TestConstants.THING_ID;
-        }
-
-        @Override
         public String getType() {
-            return "things.events:aclDeleted";
+            return "things.events:policyIdDeleted";
         }
 
         @Override
         public long getRevision() {
             return TestConstants.REVISION;
-        }
-
-        @Override
-        public UnknownThingEvent setRevision(final long revision) {
-            return this;
         }
 
         @Override
@@ -1696,21 +1618,21 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
 
         @Override
         public DittoHeaders getDittoHeaders() {
-            return TestConstants.DITTO_HEADERS_V_1;
+            return TestConstants.DITTO_HEADERS_V_2;
         }
 
         @Override
         public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate predicate) {
             return JsonObject.newBuilder()
                     .set(Event.JsonFields.TYPE, getType())
-                    .set(Event.JsonFields.REVISION, getRevision())
-                    .set(JsonFields.THING_ID, getThingEntityId().toString())
+                    .set(EventsourcedEvent.JsonFields.REVISION, getRevision())
+                    .set(JsonFields.THING_ID, getEntityId().toString())
                     .build();
         }
 
         @Override
         public JsonPointer getResourcePath() {
-            return JsonPointer.of("/acl");
+            return JsonPointer.of("/policyId");
         }
 
         @Override
@@ -1724,6 +1646,10 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
             return getType();
         }
 
+        @Override
+        public ThingId getEntityId() {
+            return TestConstants.THING_ID;
+        }
     }
 
     private DittoHeaders setChannelHeader(final DittoHeaders dittoHeaders) {

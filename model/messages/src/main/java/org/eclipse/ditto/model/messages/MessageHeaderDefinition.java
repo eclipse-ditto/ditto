@@ -64,17 +64,6 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
     FEATURE_ID("ditto-message-feature-id", String.class, false, true, HeaderValueValidators.getNoOpValidator()),
 
     /**
-     * Header definition for the timeout in seconds of a message.
-     * <p>
-     * Key: {@code "timeout"}, Java type: {@code long}.
-     * </p>
-     *
-     * @deprecated since 1.1.0: replaced by {@link org.eclipse.ditto.model.base.headers.DittoHeaderDefinition#TIMEOUT}
-     */
-    @Deprecated
-    TIMEOUT("timeout", long.class, true, true, MessageHeaderTimeoutValueValidator.getInstance()),
-
-    /**
      * Header containing the timestamp of the message as ISO 8601 string.
      * <p>
      * Key: {@code "timestamp"}, Java type: String.
@@ -109,7 +98,7 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
      * @param readFromExternalHeaders whether Ditto reads this header from headers sent by externals.
      * @param writeToExternalHeaders whether Ditto publishes this header to externals.
      */
-    private MessageHeaderDefinition(final String theKey,
+    MessageHeaderDefinition(final String theKey,
             final Class<?> theType,
             final boolean readFromExternalHeaders,
             final boolean writeToExternalHeaders,
@@ -125,7 +114,7 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
      * @param readFromExternalHeaders whether Ditto reads this header from headers sent by externals.
      * @param writeToExternalHeaders whether Ditto publishes this header to externals.
      */
-    private MessageHeaderDefinition(final String theKey,
+    MessageHeaderDefinition(final String theKey,
             final Class<?> theType,
             final Class<?> serializationType,
             final boolean readFromExternalHeaders,
@@ -156,12 +145,12 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
     }
 
     @Override
-    public Class getJavaType() {
+    public Class<?> getJavaType() {
         return type;
     }
 
     @Override
-    public Class getSerializationType() {
+    public Class<?> getSerializationType() {
         return serializationType;
     }
 

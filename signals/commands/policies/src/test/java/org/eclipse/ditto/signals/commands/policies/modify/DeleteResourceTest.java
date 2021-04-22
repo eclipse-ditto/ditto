@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.signals.commands.policies.modify;
 
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -23,10 +22,9 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.ResourceKey;
-import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.TestConstants;
 import org.junit.Test;
@@ -65,23 +63,8 @@ public class DeleteResourceTest {
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
-        DeleteResource.of((PolicyId) null, TestConstants.Policy.LABEL,
+        DeleteResource.of(null, TestConstants.Policy.LABEL,
                 TestConstants.Policy.RESOURCE_KEY, TestConstants.EMPTY_DITTO_HEADERS);
-    }
-
-
-    @Test(expected = PolicyIdInvalidException.class)
-    public void tryToCreateInstanceWithNullPolicyIdString() {
-        DeleteResource.of((String) null, TestConstants.Policy.LABEL,
-                TestConstants.Policy.RESOURCE_KEY, TestConstants.EMPTY_DITTO_HEADERS);
-    }
-
-
-    @Test
-    public void tryToCreateInstanceWithInvalidPolicyId() {
-        assertThatExceptionOfType(PolicyIdInvalidException.class)
-                .isThrownBy(() -> DeleteResource.of("undefined", TestConstants.Policy.LABEL,
-                        TestConstants.Policy.RESOURCE_KEY, TestConstants.EMPTY_DITTO_HEADERS));
     }
 
 

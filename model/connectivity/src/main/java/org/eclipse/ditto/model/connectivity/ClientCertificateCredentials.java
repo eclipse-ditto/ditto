@@ -92,7 +92,7 @@ public final class ClientCertificateCredentials implements Credentials {
     @Override
     public JsonObject toJson() {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
-        jsonObjectBuilder.set(JsonFields.TYPE, TYPE);
+        jsonObjectBuilder.set(Credentials.JsonFields.TYPE, TYPE);
         jsonObjectBuilder.set(JsonFields.CLIENT_CERTIFICATE, clientCertificate, Objects::nonNull);
         jsonObjectBuilder.set(JsonFields.CLIENT_KEY, clientKey, Objects::nonNull);
         return jsonObjectBuilder.build();

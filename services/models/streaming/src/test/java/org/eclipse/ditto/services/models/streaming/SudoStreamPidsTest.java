@@ -19,6 +19,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -35,8 +36,9 @@ public final class SudoStreamPidsTest {
 
     private static final int KNOWN_BURST = 1234;
     private static final long KNOWN_TIMEOUT = 60_000L;
+    private static final EntityType THING_TYPE = EntityType.of("thing");
     private static final EntityIdWithRevision<?> KNOWN_LOWER_BOUND =
-            new SudoStreamPids.LowerBound(JsonFactory.newObject("{\"id\":\"myId\",\"revision\":5}"));
+            LowerBound.fromJson(JsonFactory.newObject("{\"type\":\"thing\",\"id\":\"myId\",\"revision\":5}"));
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(Command.JsonFields.TYPE, SudoStreamPids.TYPE)
@@ -61,8 +63,8 @@ public final class SudoStreamPidsTest {
 
     @Test
     public void toJsonReturnsExpected() {
-        final SudoStreamPids underTest =
-                SudoStreamPids.of(KNOWN_BURST, KNOWN_TIMEOUT, EMPTY_DITTO_HEADERS).withLowerBound(KNOWN_LOWER_BOUND);
+        final SudoStreamPids underTest = SudoStreamPids.of(KNOWN_BURST, KNOWN_TIMEOUT, EMPTY_DITTO_HEADERS, THING_TYPE)
+                .withLowerBound(KNOWN_LOWER_BOUND);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
@@ -74,7 +76,8 @@ public final class SudoStreamPidsTest {
                 SudoStreamPids.fromJson(KNOWN_JSON, EMPTY_DITTO_HEADERS);
 
         final SudoStreamPids expectedCommand =
-                SudoStreamPids.of(KNOWN_BURST, KNOWN_TIMEOUT, EMPTY_DITTO_HEADERS).withLowerBound(KNOWN_LOWER_BOUND);
+                SudoStreamPids.of(KNOWN_BURST, KNOWN_TIMEOUT, EMPTY_DITTO_HEADERS, THING_TYPE)
+                        .withLowerBound(KNOWN_LOWER_BOUND);
 
         assertThat(underTest).isNotNull();
         assertThat(underTest).isEqualTo(expectedCommand);

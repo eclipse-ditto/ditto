@@ -52,7 +52,7 @@ public final class RetrieveAttributeStrategyTest extends AbstractCommandStrategy
         final RetrieveAttribute command =
                 RetrieveAttribute.of(context.getState(), attributePointer, DittoHeaders.empty());
         final RetrieveAttributeResponse expectedResponse =
-                retrieveAttributeResponse(command.getThingEntityId(), command.getAttributePointer(),
+                retrieveAttributeResponse(command.getEntityId(), command.getAttributePointer(),
                         JsonFactory.newValue(44.673856), command.getDittoHeaders());
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
@@ -65,7 +65,7 @@ public final class RetrieveAttributeStrategyTest extends AbstractCommandStrategy
                 RetrieveAttribute.of(context.getState(), JsonFactory.newPointer("location/latitude"),
                         DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.attributesNotFound(command.getThingEntityId(), command.getDittoHeaders());
+                ExceptionFactory.attributesNotFound(command.getEntityId(), command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.removeAttributes(), command, expectedException);
     }
@@ -77,7 +77,7 @@ public final class RetrieveAttributeStrategyTest extends AbstractCommandStrategy
                 RetrieveAttribute.of(context.getState(), JsonFactory.newPointer("location/bar"),
                         DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.attributeNotFound(command.getThingEntityId(), command.getAttributePointer(),
+                ExceptionFactory.attributeNotFound(command.getEntityId(), command.getAttributePointer(),
                         command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2, command, expectedException);

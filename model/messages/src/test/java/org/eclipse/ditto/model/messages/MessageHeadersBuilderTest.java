@@ -23,7 +23,6 @@ import java.util.Map;
 import org.assertj.core.api.SoftAssertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.things.ThingId;
@@ -139,24 +138,6 @@ public final class MessageHeadersBuilderTest {
                 .isThrownBy(() -> underTest.featureId(""))
                 .withMessage("The %s must not be empty!", MessageHeaderDefinition.FEATURE_ID.getKey())
                 .withNoCause();
-    }
-
-    @Test
-    public void tryToSetUnknownStatusCode() {
-        final int unknownCode = 42;
-
-        assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> underTest.statusCode(unknownCode))
-                .withCauseInstanceOf(HttpStatusCodeOutOfRangeException.class);
-    }
-
-    @Test
-    public void setStatusCodeAsIntWorksAsExpected() {
-        final HttpStatus knownStatus = HttpStatus.NOT_FOUND;
-
-        final MessageHeaders messageHeaders = underTest.statusCode(knownStatus.getCode()).build();
-
-        assertThat(messageHeaders.getHttpStatus()).contains(knownStatus);
     }
 
     @Test

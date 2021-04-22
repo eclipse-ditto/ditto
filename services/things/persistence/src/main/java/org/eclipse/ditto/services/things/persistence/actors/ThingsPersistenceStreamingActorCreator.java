@@ -81,7 +81,7 @@ public final class ThingsPersistenceStreamingActorCreator {
         return ThingTag.of(pid2EntityId(pidWithSeqNr.getPersistenceId()), pidWithSeqNr.getSequenceNr());
     }
 
-    private static PidWithSeqNr createPidWithSeqNr(final EntityIdWithRevision thingTag) {
+    private static PidWithSeqNr createPidWithSeqNr(final EntityIdWithRevision<?> thingTag) {
         return new PidWithSeqNr(entityId2Pid(thingTag.getEntityId()), thingTag.getRevision());
     }
 

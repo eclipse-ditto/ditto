@@ -31,12 +31,13 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 /**
  * Command which retrieves the Policy ID of a {@code Thing} based on the passed in ID.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = RetrievePolicyId.TYPE_PREFIX, name = RetrievePolicyId.NAME)
+@JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = RetrievePolicyId.NAME)
 public final class RetrievePolicyId extends AbstractCommand<RetrievePolicyId>
         implements ThingQueryCommand<RetrievePolicyId> {
 
@@ -60,24 +61,7 @@ public final class RetrievePolicyId extends AbstractCommand<RetrievePolicyId>
     /**
      * Returns a command for retrieving the Policy ID of a Thing with the given ID.
      *
-     * @param thingId the ID of a single Thing whose Policy ID entry will be retrieved by this command.
-     * @param dittoHeaders the headers of the command.
-     * @return a Command for retrieving the Policy ID of the Thing with the {@code thingId} as its ID which is readable
-     * from the passed authorization context.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrievePolicyId of(final String thingId, final DittoHeaders dittoHeaders) {
-        return of(ThingId.of(thingId), dittoHeaders);
-    }
-
-    /**
-     * Returns a command for retrieving the Policy ID of a Thing with the given ID.
-     *
-     * @param thingId the ID of a single Thing whose ACL entry will be retrieved by this command.
+     * @param thingId the ID of a single Thing whose Policy ID will be retrieved by this command.
      * @param dittoHeaders the headers of the command.
      * @return a Command for retrieving the Policy ID of the Thing with the {@code thingId} as its ID which is readable
      * from the passed authorization context.
@@ -118,7 +102,7 @@ public final class RetrievePolicyId extends AbstractCommand<RetrievePolicyId>
      */
     public static RetrievePolicyId fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrievePolicyId>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
             return of(thingId, dittoHeaders);
         });
@@ -135,7 +119,7 @@ public final class RetrievePolicyId extends AbstractCommand<RetrievePolicyId>
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 
@@ -149,7 +133,7 @@ public final class RetrievePolicyId extends AbstractCommand<RetrievePolicyId>
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
     }
 
     @Override
@@ -176,7 +160,7 @@ public final class RetrievePolicyId extends AbstractCommand<RetrievePolicyId>
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
+    protected boolean canEqual(@Nullable final Object other) {
         return (other instanceof RetrievePolicyId);
     }
 

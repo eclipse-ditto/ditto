@@ -58,8 +58,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  */
 @Immutable
 @SuppressWarnings("squid:S2160")
-// TODO for 2.0: Do not extend AbstractMap<String, String>, but rather implement Map<String, String>.
-public abstract class AbstractDittoHeaders extends AbstractMap<String, String> implements DittoHeaders {
+public abstract class AbstractDittoHeaders implements DittoHeaders {
 
     private static final String ISSUER_DIVIDER = ":";
 
@@ -103,6 +102,16 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
             caseSensitiveMap.put(header.getKey(), header.getValue());
         }
         return caseSensitiveMap;
+    }
+
+    @Override
+    public Set<String> keySet() {
+        return headers.keySet();
+    }
+
+    @Override
+    public Collection<String> values() {
+        return headers.values().stream().map(Header::getValue).collect(Collectors.toList());
     }
 
     @Override
@@ -217,48 +226,8 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     @Override
-    @Deprecated
-    public List<String> getAuthorizationSubjects() {
-        return getAuthorizationContext().getAuthorizationSubjectIds();
-    }
-
-    @Override
     public AuthorizationContext getAuthorizationContext() {
-        /*
-         * TODO: remove this duplication when removing {@link JsonSchemaVersion#V_1}.
-         */
-        return duplicateSubjectsByStrippingIssuerPrefix(AuthorizationModelFactory.newAuthContext(
-                getAuthorizationContextAsJson(headers)));
-    }
-
-    private static AuthorizationContext duplicateSubjectsByStrippingIssuerPrefix(
-            final AuthorizationContext authContextWithPrefixedSubjects) {
-
-        final List<AuthorizationSubject> prefixedSubjects = authContextWithPrefixedSubjects.getAuthorizationSubjects();
-        final Set<AuthorizationSubject> mergedSubjects = new LinkedHashSet<>(prefixedSubjects);
-        prefixedSubjects.stream()
-                .map(AbstractDittoHeaders::getSubjectWithoutIssuer)
-                .forEach(mergedSubjects::add);
-
-        return AuthorizationModelFactory.newAuthContext(authContextWithPrefixedSubjects.getType(), mergedSubjects);
-    }
-
-    private static AuthorizationSubject getSubjectWithoutIssuer(final AuthorizationSubject authorizationSubject) {
-        final String authorizationSubjectId = authorizationSubject.getId();
-        final String[] splitInIssuerAndSubject = authorizationSubjectId.split(ISSUER_DIVIDER, 2);
-        if (2 == splitInIssuerAndSubject.length) {
-            return AuthorizationSubject.newInstance(splitInIssuerAndSubject[1]);
-        } else {
-            return authorizationSubject;
-        }
-    }
-
-    @Override
-    public Set<String> getReadSubjects() {
-        final JsonArray jsonValueArray = getJsonArrayForDefinition(DittoHeaderDefinition.READ_SUBJECTS);
-        return jsonValueArray.stream()
-                .map(JsonValue::asString)
-                .collect(Collectors.toSet());
+        return AuthorizationModelFactory.newAuthContext(getAuthorizationContextAsJson(headers));
     }
 
     protected JsonArray getJsonArrayForDefinition(final HeaderDefinition definition) {
@@ -329,21 +298,6 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
      * @return Header definition of the specific header.
      */
     protected abstract Optional<HeaderDefinition> getSpecificDefinitionByKey(CharSequence key);
-
-    /**
-     * Resolves the passed in {@code definition} to a boolean.
-     *
-     * @param definition the definition to get boolean for.
-     * @return the optionally resolved boolean.
-     * @deprecated as of 1.1.0 please use {@link #isExpectedBoolean(HeaderDefinition, Boolean)} instead.
-     */
-    @Deprecated
-    protected Optional<Boolean> getBooleanForDefinition(final HeaderDefinition definition) {
-        return getStringForDefinition(definition)
-                .map(JsonFactory::readFrom)
-                .filter(JsonValue::isBoolean)
-                .map(JsonValue::asBoolean);
-    }
 
     @Override
     public boolean isDryRun() {

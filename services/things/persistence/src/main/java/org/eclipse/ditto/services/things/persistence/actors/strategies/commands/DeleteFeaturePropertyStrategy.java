@@ -80,7 +80,7 @@ final class DeleteFeaturePropertyStrategy extends AbstractThingCommandStrategy<D
                     final ThingEvent<?> event =
                             FeaturePropertyDeleted.of(thingId, featureId, propertyPointer, nextRevision,
                                     getEventTimestamp(), dittoHeaders, metadata);
-                    final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
+                    final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                             DeleteFeaturePropertyResponse.of(thingId, featureId, propertyPointer, dittoHeaders), thing);
                     return ResultFactory.<ThingEvent<?>>newMutationResult(command, event, response);
                 })

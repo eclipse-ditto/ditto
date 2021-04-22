@@ -21,16 +21,19 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.model.placeholders.ExpressionResolver;
-import org.eclipse.ditto.model.placeholders.Placeholder;
-import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
-import org.eclipse.ditto.model.placeholders.PlaceholderResolver;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+import org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders;
+import org.eclipse.ditto.services.models.placeholders.ExpressionResolver;
+import org.eclipse.ditto.services.models.placeholders.Placeholder;
+import org.eclipse.ditto.services.models.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.services.models.placeholders.PlaceholderResolver;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 
@@ -49,26 +52,21 @@ public final class Resolvers {
     private static final List<ResolverCreator<?>> RESOLVER_CREATORS = Arrays.asList(
             // For incoming messages, header mapping injects headers of external messages into Ditto headers.
             ResolverCreator.of(PlaceholderFactory.newHeadersPlaceholder(), (e, s, t, a, c) -> e),
-            ResolverCreator.of(PlaceholderFactory.newThingPlaceholder(), (e, s, t, a, c) -> {
-                if (s != null) {
-                    return s.getEntityId();
-                } else {
-                    return null;
-                }
-            }),
-            ResolverCreator.of(PlaceholderFactory.newFeaturePlaceholder(), (e, s, t, a, c) -> {
+            ResolverCreator.of(ConnectivityPlaceholders.newThingPlaceholder(),
+                    (e, s, t, a, c) -> WithEntityId.getEntityIdOfType(EntityId.class, s).orElse(null)),
+            ResolverCreator.of(ConnectivityPlaceholders.newFeaturePlaceholder(), (e, s, t, a, c) -> {
                 if (s instanceof WithFeatureId) {
                     return ((WithFeatureId) s).getFeatureId();
                 } else {
                     return null;
                 }
             }),
-            ResolverCreator.of(PlaceholderFactory.newTopicPathPlaceholder(), (e, s, t, a, c) -> t),
-            ResolverCreator.of(PlaceholderFactory.newRequestPlaceholder(), (e, s, t, a, c) -> a),
-            ResolverCreator.of(PlaceholderFactory.newConnectionIdPlaceholder(), (e, s, t, a, c) -> c)
+            ResolverCreator.of(ConnectivityPlaceholders.newTopicPathPlaceholder(), (e, s, t, a, c) -> t),
+            ResolverCreator.of(ConnectivityPlaceholders.newRequestPlaceholder(), (e, s, t, a, c) -> a),
+            ResolverCreator.of(ConnectivityPlaceholders.newConnectionIdPlaceholder(), (e, s, t, a, c) -> c)
     );
 
-    private static final List<Placeholder> PLACEHOLDERS = Collections.unmodifiableList(
+    private static final List<Placeholder<?>> PLACEHOLDERS = Collections.unmodifiableList(
             RESOLVER_CREATORS.stream()
                     .map(ResolverCreator::getPlaceholder)
                     .collect(Collectors.toList())
@@ -77,6 +75,7 @@ public final class Resolvers {
     /**
      * @return Array of all placeholders for target address and source/target header mappings.
      */
+    @SuppressWarnings({"rawtypes", "java:S3740"})
     public static Placeholder[] getPlaceholders() {
         return PLACEHOLDERS.toArray(new Placeholder[0]);
     }
@@ -202,7 +201,7 @@ public final class Resolvers {
     private interface ResolverDataExtractor<T> {
 
         @Nullable
-        T extract(Map<String, String> inputHeaders, @Nullable Signal signal, @Nullable TopicPath topicPath,
+        T extract(Map<String, String> inputHeaders, @Nullable Signal<?> signal, @Nullable TopicPath topicPath,
                 @Nullable AuthorizationContext authorizationContext, @Nullable final ConnectionId connectionId);
     }
 
@@ -228,7 +227,7 @@ public final class Resolvers {
             return new ResolverCreator<>(placeholder, dataExtractor);
         }
 
-        private PlaceholderResolver<T> create(final Map<String, String> inputHeaders, @Nullable final Signal signal,
+        private PlaceholderResolver<T> create(final Map<String, String> inputHeaders, @Nullable final Signal<?> signal,
                 @Nullable final TopicPath topicPath, @Nullable final AuthorizationContext authorizationContext,
                 @Nullable ConnectionId connectionId) {
             return PlaceholderFactory.newPlaceholderResolver(placeholder,

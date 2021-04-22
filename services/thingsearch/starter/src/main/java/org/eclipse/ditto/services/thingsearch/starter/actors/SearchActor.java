@@ -281,7 +281,7 @@ public final class SearchActor extends AbstractActor {
     }
 
     private <T> Flow<T, Object, NotUsed> stopTimerAndHandleError(final StartedTimer searchTimer,
-            final WithDittoHeaders<?> command) {
+            final WithDittoHeaders command) {
         return Flow.<T, Object>fromFunction(
                 element -> {
                     stopTimer(searchTimer);

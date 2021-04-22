@@ -18,13 +18,13 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
+import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
 /**
@@ -34,7 +34,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * @since 1.1.0
  */
 @Immutable
-@JsonParsableEvent(name = SubscriptionFailed.NAME, typePrefix = SubscriptionFailed.TYPE_PREFIX)
+@JsonParsableEvent(name = SubscriptionFailed.NAME, typePrefix = SubscriptionEvent.TYPE_PREFIX)
 public final class SubscriptionFailed extends AbstractSubscriptionEvent<SubscriptionFailed> {
 
     /**
@@ -84,11 +84,10 @@ public final class SubscriptionFailed extends AbstractSubscriptionEvent<Subscrip
         return new EventJsonDeserializer<SubscriptionFailed>(TYPE, jsonObject)
                 .deserialize((revision, timestamp, metadata) -> {
                     final String subscriptionId =
-                            jsonObject.getValueOrThrow(AbstractSubscriptionEvent.JsonFields.SUBSCRIPTION_ID);
+                            jsonObject.getValueOrThrow(SubscriptionEvent.JsonFields.SUBSCRIPTION_ID);
                     final JsonObject errorJson = jsonObject.getValueOrThrow(JsonFields.ERROR);
                     final DittoRuntimeException error =
-                            DittoRuntimeException.fromUnknownErrorJson(errorJson, dittoHeaders)
-                                    .orElseThrow(() -> new JsonMissingFieldException(JsonFields.ERROR));
+                            GlobalErrorRegistry.getInstance().parse(errorJson, dittoHeaders);
                     return new SubscriptionFailed(subscriptionId, error, dittoHeaders);
                 });
     }
@@ -150,6 +149,11 @@ public final class SubscriptionFailed extends AbstractSubscriptionEvent<Subscrip
         /**
          * Json fields for a JSON representation of the error.
          */
-        public static final JsonFieldDefinition<JsonObject> ERROR = JsonFactory.newJsonObjectFieldDefinition("error");
+        public static final JsonFieldDefinition<JsonObject> ERROR =
+                JsonFactory.newJsonObjectFieldDefinition("error");
+
+        JsonFields() {
+            throw new AssertionError();
+        }
     }
 }

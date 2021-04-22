@@ -41,8 +41,8 @@ import org.eclipse.ditto.model.messages.MessageFormatInvalidException;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.messages.MessagesModelFactory;
-import org.eclipse.ditto.model.placeholders.ExpressionResolver;
-import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.services.models.placeholders.ExpressionResolver;
+import org.eclipse.ditto.services.models.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -120,10 +120,10 @@ public final class RawMessageMapper extends AbstractMessageMapper {
     /**
      * The context representing this mapper.
      */
-    public static final MappingContext CONTEXT = ConnectivityModelFactory.newMappingContext(
+    public static final MappingContext CONTEXT = ConnectivityModelFactory.newMappingContextBuilder(
             RawMessageMapper.class.getCanonicalName(),
             DEFAULT_CONFIG
-    );
+    ).build();
 
     @Override
     public List<Adaptable> map(final ExternalMessage externalMessage) {
@@ -287,7 +287,7 @@ public final class RawMessageMapper extends AbstractMessageMapper {
     }
 
     private static TopicPath toTopicPath(final MessageHeaders messageHeaders) {
-        return ProtocolFactory.newTopicPathBuilder(messageHeaders.getThingEntityId())
+        return ProtocolFactory.newTopicPathBuilder(messageHeaders.getEntityId())
                 .live()
                 .messages()
                 .subject(messageHeaders.getSubject())

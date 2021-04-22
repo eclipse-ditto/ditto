@@ -19,13 +19,14 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyConstants;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.announcements.base.Announcement;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 
 /**
  * Announcements for policies.
  *
  * @since 2.0.0
  */
-public interface PolicyAnnouncement<T extends PolicyAnnouncement<T>> extends Announcement<T> {
+public interface PolicyAnnouncement<T extends PolicyAnnouncement<T>> extends Announcement<T>, SignalWithEntityId<T> {
 
     /**
      * Type prefix of policy announcements.
@@ -36,6 +37,7 @@ public interface PolicyAnnouncement<T extends PolicyAnnouncement<T>> extends Ann
      * Policy resource type.
      */
     String RESOURCE_TYPE = PolicyConstants.ENTITY_TYPE.toString();
+
 
 
     @Override

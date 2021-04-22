@@ -17,6 +17,7 @@ import java.util.stream.Stream;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.Scenario;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.ScenarioSetup;
 import org.eclipse.ditto.model.policies.SubjectId;
@@ -54,10 +55,12 @@ public class JsonViewScenario11 implements JsonViewScenario {
                         .map(JsonValue::asObject)
                         .orElseThrow(NullPointerException::new),
                 Stream.of(
-                        SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ALL_GRANTED).toString(),
-                        SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_FEATURES_READ_GRANTED).toString(),
-                        SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ALL_GRANTED_ATTRIBUTES_REVOKED)
-                                .toString())
+                        AuthorizationSubject.newInstance(
+                                SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ALL_GRANTED)),
+                        AuthorizationSubject.newInstance(
+                                SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_FEATURES_READ_GRANTED)),
+                        AuthorizationSubject.newInstance(
+                                SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ALL_GRANTED_ATTRIBUTES_REVOKED)))
                         .collect(Collectors.toSet()),
                 "READ");
     }

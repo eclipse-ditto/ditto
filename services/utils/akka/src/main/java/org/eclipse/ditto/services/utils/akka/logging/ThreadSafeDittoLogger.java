@@ -87,7 +87,7 @@ public interface ThreadSafeDittoLogger extends Logger, WithMdcEntry<ThreadSafeDi
      * @throws NullPointerException if {@code withDittoHeaders} is {@code null}.
      * @see #withCorrelationId(DittoHeaders)
      */
-    ThreadSafeDittoLogger withCorrelationId(WithDittoHeaders<?> withDittoHeaders);
+    ThreadSafeDittoLogger withCorrelationId(WithDittoHeaders withDittoHeaders);
 
     /**
      * Obtains the correlation ID from the given DittoHeaders for log operations on the returned logger.

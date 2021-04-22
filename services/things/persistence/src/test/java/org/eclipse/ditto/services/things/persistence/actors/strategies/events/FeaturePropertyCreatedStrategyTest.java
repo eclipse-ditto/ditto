@@ -35,13 +35,14 @@ public final class FeaturePropertyCreatedStrategyTest extends AbstractStrategyTe
     public void appliesEventCorrectly() {
         final FeaturePropertyCreatedStrategy strategy = new FeaturePropertyCreatedStrategy();
         final FeaturePropertyCreated event = FeaturePropertyCreated.of(THING_ID, FEATURE_ID, FEATURE_PROPERTY_POINTER,
-                FEATURE_PROPERTY_VALUE, REVISION, DittoHeaders.empty());
+                FEATURE_PROPERTY_VALUE, REVISION, TIMESTAMP, DittoHeaders.empty(), null);
 
         final Thing thingWithEventApplied = strategy.handle(event, THING, NEXT_REVISION);
 
         final Thing expected = THING.toBuilder()
                 .setFeatureProperty(FEATURE_ID, FEATURE_PROPERTY_POINTER, FEATURE_PROPERTY_VALUE)
                 .setRevision(NEXT_REVISION)
+                .setModified(TIMESTAMP)
                 .build();
 
         assertThat(thingWithEventApplied).isEqualTo(expected);

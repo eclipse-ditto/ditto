@@ -34,13 +34,6 @@ public enum HttpHeader {
     X_CORRELATION_ID("x-correlation-id"),
 
     /**
-     * HTTP header for dummy authentication (for dev purposes).
-     * @deprecated as of 1.1.0, please use {@link #X_DITTO_PRE_AUTH} instead.
-     */
-    @Deprecated
-    X_DITTO_DUMMY_AUTH("x-ditto-dummy-auth"),
-
-    /**
      * HTTP header for authentication already done by e.g. a reverse proxy in front of Ditto (e.g. a nginx).
      */
     X_DITTO_PRE_AUTH("x-ditto-pre-authenticated");

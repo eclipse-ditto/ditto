@@ -18,10 +18,10 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.model.namespaces.NamespaceBlockedException;
 import org.eclipse.ditto.model.namespaces.NamespaceReader;
-import org.eclipse.ditto.signals.base.WithId;
 
 /**
  * Behavior that blocks messages directed toward entities in a cached namespace.
@@ -52,9 +52,9 @@ public final class BlockNamespaceBehavior {
      * @return a completion stage which either completes successfully with the given {@code signal} or exceptionally
      * with a {@code NamespaceBlockedException}.
      */
-    public CompletionStage<WithDittoHeaders<?>> block(final WithDittoHeaders<?> signal) {
-        if (signal instanceof WithId) {
-            final Optional<String> namespaceOptional = NamespaceReader.fromEntityId(((WithId) signal).getEntityId());
+    public CompletionStage<DittoHeadersSettable<?>> block(final DittoHeadersSettable<?> signal) {
+        if (signal instanceof WithEntityId) {
+            final Optional<String> namespaceOptional = NamespaceReader.fromEntityId(((WithEntityId) signal).getEntityId());
             if (namespaceOptional.isPresent()) {
                 final String namespace = namespaceOptional.get();
                 return blockedNamespaces.contains(namespace)

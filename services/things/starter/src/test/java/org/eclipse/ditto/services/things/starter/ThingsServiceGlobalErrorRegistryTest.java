@@ -19,7 +19,6 @@ import org.eclipse.ditto.model.messages.AuthorizationSubjectBlockedException;
 import org.eclipse.ditto.model.namespaces.NamespaceBlockedException;
 import org.eclipse.ditto.model.policies.PolicyEntryInvalidException;
 import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
-import org.eclipse.ditto.model.things.AclEntryInvalidException;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.services.utils.test.GlobalErrorRegistryTestCases;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingException;
@@ -30,20 +29,19 @@ import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.PathUnknownException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyConflictException;
-import org.eclipse.ditto.signals.commands.things.exceptions.AclModificationInvalidException;
+import org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException;
 
 public final class ThingsServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
 
     public ThingsServiceGlobalErrorRegistryTest() {
         super(DittoHeaderInvalidException.class,
                 PolicyEntryInvalidException.class,
-                AclEntryInvalidException.class,
+                AttributePointerInvalidException.class,
                 CommandNotSupportedException.class,
                 UnsupportedSchemaVersionException.class,
                 UnsupportedSignalException.class,
                 GatewayAuthenticationFailedException.class,
                 PolicyConflictException.class,
-                AclModificationInvalidException.class,
                 AuthorizationSubjectBlockedException.class,
                 JsonTypeNotParsableException.class,
                 NamespaceBlockedException.class,

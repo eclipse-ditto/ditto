@@ -32,31 +32,12 @@ import akka.actor.ExtendedActorSystem;
  */
 public abstract class AbstractPolicyMongoEventAdapter extends AbstractMongoEventAdapter<PolicyEvent<?>> {
 
-    // JSON field containing the event's payload.
-    private static final JsonFieldDefinition<JsonObject> PAYLOAD =
-            JsonFactory.newJsonObjectFieldDefinition("payload", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                    JsonSchemaVersion.V_2);
-
     protected static final JsonFieldDefinition<JsonObject> POLICY_ENTRIES =
-            JsonFactory.newJsonObjectFieldDefinition("policy/entries", FieldType.SPECIAL, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonObjectFieldDefinition("policy/entries", FieldType.SPECIAL,
                     JsonSchemaVersion.V_2);
 
     protected AbstractPolicyMongoEventAdapter(@Nullable final ExtendedActorSystem system) {
         super(system, GlobalEventRegistry.getInstance());
-    }
-
-    /**
-     * A "payload" object was wrapping the events payload until the introduction of "cr-commands 1.0.0". This field has
-     * to be used as fallback for already persisted events with "things-model" &lt; 3.0.0. Removing this workaround is
-     * possible if we are sure that no "old" events are ever loaded again!
-     *
-     * @param jsonObject the jsonObject to be migrated.
-     * @return the migrated jsonObject.
-     */
-    protected static JsonObject migratePayload(final JsonObject jsonObject) {
-        return jsonObject.getValue(PAYLOAD)
-                .map(obj -> jsonObject.remove(PAYLOAD.getPointer()).setAll(obj))
-                .orElse(jsonObject);
     }
 
 }

@@ -63,11 +63,6 @@ public class SubscriptionNotFoundException extends DittoRuntimeException impleme
                 .build();
     }
 
-    @Override
-    protected DittoRuntimeExceptionBuilder<? extends DittoRuntimeException> getEmptyBuilder() {
-        return new Builder();
-    }
-
     /**
      * Constructs a new {@code SubscriptionNotFoundException} object with the exception message extracted from the
      * given JSON object.

@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 
+import static org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders.newSourceAddressPlaceholder;
+
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,7 +32,6 @@ import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.Source;
-import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.BaseConsumerActor;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
@@ -39,6 +40,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.signals.base.Signal;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 
@@ -57,7 +59,7 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
 
     protected final ThreadSafeDittoLoggingAdapter logger;
     protected final boolean dryRun;
-    @Nullable protected final EnforcementFilterFactory<String, CharSequence> topicEnforcementFilterFactory;
+    @Nullable protected final EnforcementFilterFactory<String, Signal<?>> topicEnforcementFilterFactory;
     protected final PayloadMapping payloadMapping;
     protected final boolean reconnectForRedelivery;
 
@@ -73,7 +75,7 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
         this.reconnectForRedelivery = reconnectForRedelivery;
         topicEnforcementFilterFactory = source.getEnforcement()
                 .map(enforcement -> EnforcementFactoryFactory
-                        .newEnforcementFilterFactory(enforcement, PlaceholderFactory.newSourceAddressPlaceholder()))
+                        .newEnforcementFilterFactory(enforcement, newSourceAddressPlaceholder()))
                 .orElse(null);
     }
 
@@ -140,7 +142,7 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
     protected abstract void sendPubAck(P message);
 
     @Nullable
-    abstract EnforcementFilter<CharSequence> getEnforcementFilter(Map<String, String> headers, String topic);
+    abstract EnforcementFilter<Signal<?>> getEnforcementFilter(Map<String, String> headers, String topic);
 
     @Override
     public Receive createReceive() {
@@ -191,8 +193,8 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
                     MQTT_RETAIN_HEADER, getHeaderPlaceholder(MQTT_RETAIN_HEADER)
             );
 
-            final Optional<HeaderMapping> sourceHeaderMapping = source.getHeaderMapping();
-            sourceHeaderMapping.ifPresent(headerMapping -> headerMappingMap.putAll(headerMapping.getMapping()));
+            final HeaderMapping sourceHeaderMapping = source.getHeaderMapping();
+            headerMappingMap.putAll(sourceHeaderMapping.getMapping());
             headerMappingMap.putAll(mqttMappings);
 
             final HeaderMapping mqttTopicHeaderMapping = ConnectivityModelFactory.newHeaderMapping(headerMappingMap);

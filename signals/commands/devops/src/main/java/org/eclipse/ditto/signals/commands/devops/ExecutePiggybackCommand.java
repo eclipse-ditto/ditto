@@ -50,7 +50,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * </pre>
  */
 @Immutable
-@JsonParsableCommand(typePrefix = ExecutePiggybackCommand.TYPE_PREFIX, name = ExecutePiggybackCommand.NAME)
+@JsonParsableCommand(typePrefix = DevOpsCommand.TYPE_PREFIX, name = ExecutePiggybackCommand.NAME)
 public final class ExecutePiggybackCommand extends AbstractDevOpsCommand<ExecutePiggybackCommand> {
 
     /**
@@ -64,10 +64,10 @@ public final class ExecutePiggybackCommand extends AbstractDevOpsCommand<Execute
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     public static final JsonFieldDefinition<String> JSON_TARGET_ACTORSELECTION =
-            JsonFactory.newStringFieldDefinition("targetActorSelection", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("targetActorSelection", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
     public static final JsonFieldDefinition<JsonObject> JSON_PIGGYBACK_COMMAND =
-            JsonFactory.newJsonObjectFieldDefinition("piggybackCommand", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonObjectFieldDefinition("piggybackCommand", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final String targetActorSelection;

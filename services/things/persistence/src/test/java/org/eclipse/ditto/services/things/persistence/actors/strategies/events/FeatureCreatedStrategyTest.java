@@ -34,13 +34,15 @@ public final class FeatureCreatedStrategyTest extends AbstractStrategyTest {
     @Test
     public void appliesEventCorrectly() {
         final FeatureCreatedStrategy strategy = new FeatureCreatedStrategy();
-        final FeatureCreated event = FeatureCreated.of(THING_ID, FEATURE, REVISION, DittoHeaders.empty());
+        final FeatureCreated event = FeatureCreated.of(THING_ID, FEATURE, REVISION, TIMESTAMP, DittoHeaders.empty(),
+                null);
 
         final Thing thingWithEventApplied = strategy.handle(event, THING, NEXT_REVISION);
 
         final Thing expected = THING.toBuilder()
                 .setFeature(FEATURE)
                 .setRevision(NEXT_REVISION)
+                .setModified(TIMESTAMP)
                 .build();
         assertThat(thingWithEventApplied).isEqualTo(expected);
     }

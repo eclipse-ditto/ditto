@@ -83,28 +83,6 @@ public final class DeleteResourceResponse extends AbstractCommandResponse<Delete
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.ResourceKey, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static DeleteResourceResponse of(final String policyId,
-            final Label label,
-            final ResourceKey resourceKey,
-            final DittoHeaders dittoHeaders) {
-
-        return of(PolicyId.of(policyId), label, resourceKey, dittoHeaders);
-    }
-
-    /**
-     * Creates a response to a {@code DeleteResource} command.
-     *
-     * @param policyId the Policy ID of the deleted resource.
-     * @param label the Label of the PolicyEntry.
-     * @param resourceKey the ResourceKey of the deleted Resource.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
      */
     public static DeleteResourceResponse of(final PolicyId policyId,
             final Label label,

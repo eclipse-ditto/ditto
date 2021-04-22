@@ -215,7 +215,7 @@ public final class PolicyPersistenceActor
     }
 
     @Override
-    public void onMutation(final Command<?> command, final PolicyEvent<?> event, final WithDittoHeaders<?> response,
+    public void onMutation(final Command<?> command, final PolicyEvent<?> event, final WithDittoHeaders response,
             final boolean becomeCreated, final boolean becomeDeleted) {
 
         final Policy previousEntity = entity;
@@ -392,7 +392,8 @@ public final class PolicyPersistenceActor
                             pair.second().getId(),
                             getRevisionNumber() + 1L,
                             eventTimestamp,
-                            eventDittoHeaders
+                            eventDittoHeaders,
+                            null
                     );
                 });
     }

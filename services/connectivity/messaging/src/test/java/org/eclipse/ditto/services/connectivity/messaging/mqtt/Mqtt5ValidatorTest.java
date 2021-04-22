@@ -12,55 +12,45 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
-import static java.util.Collections.singletonList;
 import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newEnforcement;
 import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newSourceAddressEnforcement;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
+import static org.mockito.Mockito.when;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.util.Arrays;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
+import java.util.Map;
 
 import org.assertj.core.api.Assertions;
+import org.assertj.core.api.ThrowableAssertAlternative;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectionUriInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Source;
-import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.services.connectivity.config.MqttConfig;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
-
-import akka.actor.ActorSystem;
-import akka.testkit.javadsl.TestKit;
+import org.mockito.Mockito;
 
 /**
  * Tests {@link Mqtt5Validator}.
  */
-public final class Mqtt5ValidatorTest {
+public final class Mqtt5ValidatorTest extends AbstractMqttValidatorTest {
 
-    private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
+    private MqttConfig mqttConfig;
 
-    private static ActorSystem actorSystem;
-
-    @BeforeClass
-    public static void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
-    }
-
-    @AfterClass
-    public static void tearDown() {
-        if (actorSystem != null) {
-            TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS),
-                    false);
-        }
+    @Before
+    public void setup() {
+        mqttConfig = Mockito.mock(MqttConfig.class);
+        when(mqttConfig.shouldReconnectForRedelivery()).thenReturn(false);
+        when(mqttConfig.shouldUseSeparatePublisherClient()).thenReturn(false);
+        when(mqttConfig.getReconnectForRedeliveryDelay()).thenReturn(Duration.ofSeconds(2));
     }
 
     @Test
@@ -70,11 +60,12 @@ public final class Mqtt5ValidatorTest {
 
     @Test
     public void testValidSourceAddress() {
-        Mqtt5Validator.newInstance().validate(connectionWithSource("ditto/topic/+/123"), DittoHeaders.empty(),
+        Mqtt5Validator.newInstance(mqttConfig).validate(connectionWithSource("ditto/topic/+/123"), DittoHeaders.empty(),
                 actorSystem);
-        Mqtt5Validator.newInstance().validate(connectionWithSource("ditto/#"), DittoHeaders.empty(), actorSystem);
-        Mqtt5Validator.newInstance().validate(connectionWithSource("#"), DittoHeaders.empty(), actorSystem);
-        Mqtt5Validator.newInstance().validate(connectionWithSource("+"), DittoHeaders.empty(), actorSystem);
+        Mqtt5Validator.newInstance(mqttConfig)
+                .validate(connectionWithSource("ditto/#"), DittoHeaders.empty(), actorSystem);
+        Mqtt5Validator.newInstance(mqttConfig).validate(connectionWithSource("#"), DittoHeaders.empty(), actorSystem);
+        Mqtt5Validator.newInstance(mqttConfig).validate(connectionWithSource("+"), DittoHeaders.empty(), actorSystem);
     }
 
     @Test
@@ -89,7 +80,7 @@ public final class Mqtt5ValidatorTest {
     public void testClientCountGreaterOneIsPossible() {
         final Connection connectionWithClientCount2 =
                 connectionWithSource("valid").toBuilder().clientCount(2).build();
-        Mqtt5Validator.newInstance().validate(connectionWithClientCount2, DittoHeaders.empty(), actorSystem);
+        Mqtt5Validator.newInstance(mqttConfig).validate(connectionWithClientCount2, DittoHeaders.empty(), actorSystem);
     }
 
     @Test
@@ -103,7 +94,8 @@ public final class Mqtt5ValidatorTest {
                         .build();
         final Connection connectionWithConsumerCount2 =
                 connectionWithSource(sourceWithInvalidConsumerCount).toBuilder().clientCount(2).build();
-        Mqtt5Validator.newInstance().validate(connectionWithConsumerCount2, DittoHeaders.empty(), actorSystem);
+        Mqtt5Validator.newInstance(mqttConfig)
+                .validate(connectionWithConsumerCount2, DittoHeaders.empty(), actorSystem);
     }
 
     @Test
@@ -112,22 +104,26 @@ public final class Mqtt5ValidatorTest {
                 connectionWithSource("eclipse").toBuilder().trustedCertificates("123").build();
 
         Assertions.assertThatExceptionOfType(ConnectionUriInvalidException.class)
-                .isThrownBy(() -> Mqtt5Validator.newInstance()
+                .isThrownBy(() -> Mqtt5Validator.newInstance(mqttConfig)
                         .validate(connectionWithInsecureProtocolAndTrustedCertificates, DittoHeaders.empty(),
                                 actorSystem));
     }
 
     @Test
     public void testValidTargetAddress() {
-        Mqtt5Validator.newInstance().validate(connectionWithTarget("ditto/mqtt/topic"), DittoHeaders.empty(),
+        Mqtt5Validator.newInstance(mqttConfig).validate(connectionWithTarget("ditto/mqtt/topic"), DittoHeaders.empty(),
                 actorSystem);
-        Mqtt5Validator.newInstance().validate(connectionWithTarget("ditto"), DittoHeaders.empty(), actorSystem);
-        Mqtt5Validator.newInstance().validate(connectionWithTarget("ditto/{{thing:id}}"), DittoHeaders.empty(),
-                actorSystem);
-        Mqtt5Validator.newInstance().validate(connectionWithTarget("ditto/{{topic:full}}"), DittoHeaders.empty(),
-                actorSystem);
-        Mqtt5Validator.newInstance().validate(connectionWithTarget("ditto/{{header:x}}"), DittoHeaders.empty(),
-                actorSystem);
+        Mqtt5Validator.newInstance(mqttConfig)
+                .validate(connectionWithTarget("ditto"), DittoHeaders.empty(), actorSystem);
+        Mqtt5Validator.newInstance(mqttConfig)
+                .validate(connectionWithTarget("ditto/{{thing:id}}"), DittoHeaders.empty(),
+                        actorSystem);
+        Mqtt5Validator.newInstance(mqttConfig)
+                .validate(connectionWithTarget("ditto/{{topic:full}}"), DittoHeaders.empty(),
+                        actorSystem);
+        Mqtt5Validator.newInstance(mqttConfig)
+                .validate(connectionWithTarget("ditto/{{header:x}}"), DittoHeaders.empty(),
+                        actorSystem);
     }
 
     @Test
@@ -139,10 +135,11 @@ public final class Mqtt5ValidatorTest {
 
     @Test
     public void testWithDefaultSource() {
-        final Connection connection = ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.MQTT_5,
-                ConnectivityStatus.OPEN, "tcp://localhost:1883")
-                .sources(TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT)
-                .build();
+        final Connection connection =
+                ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.MQTT_5,
+                        ConnectivityStatus.OPEN, "tcp://localhost:1883")
+                        .sources(TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT)
+                        .build();
         verifyConnectionConfigurationInvalidExceptionIsThrown(connection);
     }
 
@@ -180,44 +177,49 @@ public final class Mqtt5ValidatorTest {
         testInvalidSourceTopicFilters(mqttSourceWithInvalidFilter);
     }
 
-    private void testInvalidSourceTopicFilters(final Source... sources) {
-        final Connection connection = ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.MQTT_5,
-                ConnectivityStatus.OPEN, "tcp://localhost:1883")
-                .sources(Arrays.asList(sources))
+
+    @Test
+    public void testValidLastWill() {
+        final Connection connection = connectionWithSource("ditto/#").toBuilder()
+                .specificConfig(Map.of(
+                        MqttSpecificConfig.LAST_WILL_TOPIC, "last/will",
+                        MqttSpecificConfig.LAST_WILL_QOS, "1",
+                        MqttSpecificConfig.LAST_WILL_RETAIN, "false",
+                        MqttSpecificConfig.LAST_WILL_MESSAGE, "the message"
+                ))
                 .build();
-        verifyConnectionConfigurationInvalidExceptionIsThrown(connection);
+
+        Mqtt3Validator.newInstance(mqttConfig).validate(connection, DittoHeaders.empty(), actorSystem);
     }
 
-    private Connection connectionWithSource(final String source) {
-        final Source mqttSource =
-                ConnectivityModelFactory.newSourceBuilder()
-                        .authorizationContext(AUTHORIZATION_CONTEXT)
-                        .enforcement(ConnectivityModelFactory.newSourceAddressEnforcement(
-                                TestConstants.asSet("things/{{ thing:id }}")))
-                        .address(source)
-                        .qos(1)
-                        .build();
-
-        return connectionWithSource(mqttSource);
-    }
-
-    private Connection connectionWithSource(final Source mqttSource) {
-        return ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.MQTT_5,
-                ConnectivityStatus.OPEN, "tcp://localhost:1883")
-                .sources(singletonList(mqttSource))
+    @Test
+    public void testInvalidLastWillTopic() {
+        final String invalidTopic = "last/will/#";
+        final Connection connection = connectionWithSource("ditto/#").toBuilder()
+                .specificConfig(Map.of(MqttSpecificConfig.LAST_WILL_TOPIC, invalidTopic))
                 .build();
+
+        verifyConnectionConfigurationInvalidExceptionIsThrown(connection)
+                .withMessageContaining(invalidTopic);
     }
 
-    private Connection connectionWithTarget(final String target) {
-        return ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.MQTT_5,
-                ConnectivityStatus.OPEN, "tcp://localhost:1883")
-                .targets(singletonList(
-                        ConnectivityModelFactory.newTarget(target, AUTHORIZATION_CONTEXT, null, 1, Topic.LIVE_EVENTS)))
+    @Test
+    public void testInvalidLastWillQos() {
+        final Connection connection = connectionWithSource("ditto/#").toBuilder()
+                .specificConfig(Map.of(
+                        MqttSpecificConfig.LAST_WILL_TOPIC, "topic",
+                        MqttSpecificConfig.LAST_WILL_QOS, "5"
+                ))
                 .build();
+
+        verifyConnectionConfigurationInvalidExceptionIsThrown(connection)
+                .withMessageContaining(MqttSpecificConfig.LAST_WILL_QOS);
     }
 
-    private void verifyConnectionConfigurationInvalidExceptionIsThrown(final Connection connection) {
-        Assertions.assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
-                .isThrownBy(() -> Mqtt5Validator.newInstance().validate(connection, DittoHeaders.empty(), actorSystem));
+    protected ThrowableAssertAlternative<ConnectionConfigurationInvalidException>
+    verifyConnectionConfigurationInvalidExceptionIsThrown(final Connection connection) {
+        return Assertions.assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> Mqtt5Validator.newInstance(mqttConfig)
+                        .validate(connection, DittoHeaders.empty(), actorSystem));
     }
 }

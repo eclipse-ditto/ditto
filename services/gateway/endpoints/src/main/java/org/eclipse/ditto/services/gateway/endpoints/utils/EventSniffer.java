@@ -45,7 +45,7 @@ public interface EventSniffer<T> {
         return Flow.<T>create().wireTap(
                 Flow.<T>create()
                         .async()
-                        .to(Sink.lazyInitAsync(() -> CompletableFuture.completedFuture(
+                        .to(Sink.lazyCompletionStageSink(() -> CompletableFuture.completedFuture(
                                 createSink(request)))));
     }
 

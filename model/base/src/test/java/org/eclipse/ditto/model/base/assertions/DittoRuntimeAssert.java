@@ -19,7 +19,6 @@ import java.util.Optional;
 
 import org.assertj.core.api.AbstractAssert;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
@@ -47,15 +46,6 @@ public final class DittoRuntimeAssert extends AbstractAssert<DittoRuntimeAssert,
                 .isEqualTo(expectedErrorCode);
 
         return this;
-    }
-
-    /**
-     * @deprecated as of 2.0.0 please use {@link #hasStatus(HttpStatus)} instead.
-     */
-    @Deprecated
-    public DittoRuntimeAssert hasStatusCode(final HttpStatusCode expectedStatusCode) {
-        isNotNull();
-        return hasStatus(expectedStatusCode.getAsHttpStatus());
     }
 
     /**

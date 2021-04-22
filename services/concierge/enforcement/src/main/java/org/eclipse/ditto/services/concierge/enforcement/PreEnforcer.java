@@ -17,7 +17,7 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
@@ -45,7 +45,7 @@ public interface PreEnforcer {
      * @param signal the signal.
      * @return future result of the pre-enforcement.
      */
-    CompletionStage<WithDittoHeaders<?>> apply(WithDittoHeaders<?> signal);
+    CompletionStage<DittoHeadersSettable<?>> apply(DittoHeadersSettable<?> signal);
 
     /**
      * Perform pre-enforcement with error handling.
@@ -57,14 +57,15 @@ public interface PreEnforcer {
      * @param <T> future value type returned by {@code andThen}.
      * @return result of the pre-enforcement.
      */
-    @SuppressWarnings("unchecked") // due to cast to (S)
-    default <S extends WithSender<?>, T> CompletionStage<T> withErrorHandlingAsync(final S withSender,
+    @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
+    default <S extends WithSender<? extends DittoHeadersSettable<?>>, T> CompletionStage<T> withErrorHandlingAsync(
+            final S withSender,
             final T onError, final Function<S, CompletionStage<T>> andThen) {
 
-        final WithDittoHeaders<?> message = withSender.getMessage();
+        final DittoHeadersSettable<?> message = withSender.getMessage();
         return apply(message)
-                // the cast to (S) is safe if the post-condition of this.apply(WithDittoHeaders) holds.
-                .thenCompose(msg -> andThen.apply((S) withSender.withMessage(msg)))
+                // the cast to (S) is safe if the post-condition of this.apply(DittoHeadersSettable<?>) holds.
+                .thenCompose(msg -> andThen.apply((S) ((WithSender) withSender).withMessage(msg)))
                 .exceptionally(error -> {
                     final ActorRef sender = withSender.getSender();
                     final DittoHeaders dittoHeaders = message.getDittoHeaders();

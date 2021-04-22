@@ -12,6 +12,11 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
+import static org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders.newEntityPlaceholder;
+import static org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders.newFeaturePlaceholder;
+import static org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders.newPolicyPlaceholder;
+import static org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders.newThingPlaceholder;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -24,7 +29,7 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.services.models.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.Resolvers;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
 
@@ -56,17 +61,16 @@ public final class RabbitMQValidator extends AbstractProtocolValidator {
         source.getEnforcement().ifPresent(enforcement -> {
             validateTemplate(enforcement.getInput(), dittoHeaders, PlaceholderFactory.newHeadersPlaceholder());
             enforcement.getFilters().forEach(filterTemplate ->
-                    validateTemplate(filterTemplate, dittoHeaders, PlaceholderFactory.newThingPlaceholder(),
-                            PlaceholderFactory.newPolicyPlaceholder(), PlaceholderFactory.newEntityPlaceholder(),
-                            PlaceholderFactory.newFeaturePlaceholder()));
+                    validateTemplate(filterTemplate, dittoHeaders, newThingPlaceholder(),
+                            newPolicyPlaceholder(), newEntityPlaceholder(), newFeaturePlaceholder()));
         });
-        source.getHeaderMapping().ifPresent(mapping -> validateHeaderMapping(mapping, dittoHeaders));
+        validateHeaderMapping(source.getHeaderMapping(), dittoHeaders);
     }
 
     @Override
     protected void validateTarget(final Target target, final DittoHeaders dittoHeaders,
             final Supplier<String> targetDescription) {
-        target.getHeaderMapping().ifPresent(mapping -> validateHeaderMapping(mapping, dittoHeaders));
+        validateHeaderMapping(target.getHeaderMapping(), dittoHeaders);
         validateTemplate(target.getAddress(), dittoHeaders, Resolvers.getPlaceholders());
     }
 

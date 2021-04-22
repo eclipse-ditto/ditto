@@ -263,7 +263,7 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
      * @throws NullPointerException if {@code fieldDefinition} is {@code null}.
      * @see #get(JsonPointer)
      */
-    JsonObject get(JsonFieldDefinition fieldDefinition);
+    JsonObject get(JsonFieldDefinition<?> fieldDefinition);
 
     /**
      * Returns a new JSON object which is composed from parts of this object. The parts to use are defined by the given

@@ -41,7 +41,7 @@ import org.mockito.Mockito;
 /**
  * Unit test for {@link ThingConflictStrategy}.
  */
-@SuppressWarnings("rawtypes")
+@SuppressWarnings({"rawtypes", "java:S3740"})
 public final class ThingConflictStrategyTest {
 
     @Test
@@ -88,13 +88,13 @@ public final class ThingConflictStrategyTest {
         }
 
         @Override
-        public void onMutation(final Command<?> command, final ThingEvent<?> event, final WithDittoHeaders<?> response,
+        public void onMutation(final Command<?> command, final ThingEvent<?> event, final WithDittoHeaders response,
                 final boolean becomeCreated, final boolean becomeDeleted) {
             throw new AssertionError("Expect error, got mutation: " + event);
         }
 
         @Override
-        public void onQuery(final Command<?> command, final WithDittoHeaders<?> response) {
+        public void onQuery(final Command<?> command, final WithDittoHeaders response) {
             throw new AssertionError("Expect error, got query: " + response);
         }
 

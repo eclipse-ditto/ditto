@@ -21,9 +21,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.FeatureProperties;
-import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -36,8 +35,8 @@ public final class FeatureDesiredPropertiesCreatedTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, FeatureDesiredPropertiesCreated.TYPE)
-            .set(Event.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
             .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
+            .set(EventsourcedEvent.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
             .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ThingEvent.JsonFields.FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(FeatureDesiredPropertiesCreated.JSON_DESIRED_PROPERTIES,
@@ -57,13 +56,6 @@ public final class FeatureDesiredPropertiesCreatedTest {
         EqualsVerifier.forClass(FeatureDesiredPropertiesCreated.class)
                 .withRedefinedSuperclass()
                 .verify();
-    }
-
-    @Test(expected = ThingIdInvalidException.class)
-    public void tryToCreateInstanceWithNullThingIdString() {
-        FeatureDesiredPropertiesCreated.of(ThingId.of(null), TestConstants.Feature.FLUX_CAPACITOR_ID,
-                TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES,
-                TestConstants.Thing.REVISION_NUMBER, null, TestConstants.EMPTY_DITTO_HEADERS, null);
     }
 
     @Test(expected = NullPointerException.class)
@@ -108,7 +100,7 @@ public final class FeatureDesiredPropertiesCreatedTest {
                 FeatureDesiredPropertiesCreated.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat((CharSequence) underTest.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
         assertThat(underTest.getDesiredProperties()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
     }

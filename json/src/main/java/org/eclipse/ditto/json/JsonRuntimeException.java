@@ -64,7 +64,7 @@ public class JsonRuntimeException extends RuntimeException implements JsonExcept
      * @throws NullPointerException if {@code errorCode} is {@code null}.
      * @throws IllegalArgumentException if {@code errorCode} is empty.
      */
-    public static JsonExceptionBuilder newBuilder(final String errorCode) {
+    public static JsonExceptionBuilder<JsonRuntimeException> newBuilder(final String errorCode) {
         checkErrorCode(errorCode);
         return new Builder(errorCode);
     }

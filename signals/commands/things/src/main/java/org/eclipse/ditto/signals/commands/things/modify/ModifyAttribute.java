@@ -36,6 +36,7 @@ import org.eclipse.ditto.model.things.AttributesModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException;
 
@@ -43,7 +44,7 @@ import org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInva
  * This command modifies an attribute.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = ModifyAttribute.TYPE_PREFIX, name = ModifyAttribute.NAME)
+@JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = ModifyAttribute.NAME)
 public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
         implements ThingModifyCommand<ModifyAttribute> {
 
@@ -58,11 +59,11 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<String> JSON_ATTRIBUTE =
-            JsonFactory.newStringFieldDefinition("attribute", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("attribute", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<JsonValue> JSON_ATTRIBUTE_VALUE =
-            JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final ThingId thingId;
@@ -97,33 +98,6 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
             AttributesModelFactory.validateAttributeKeys(value.asObject());
         }
         return value;
-    }
-
-    /**
-     * Returns a command for modifying an attribute which is passed as argument.
-     *
-     * @param thingId the ID of the thing on which to modify the attribute.
-     * @param attributeJsonPointer the JSON pointer of the attribute key to modify.
-     * @param newAttributeValue the value of the attribute to modify.
-     * @param dittoHeaders the headers of the command.
-     * @return a command for modifying the provided new attribute.
-     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
-     * @throws org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException if
-     * {@code attributeJsonPointer} is empty.
-     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributeJsonPointer} are not valid
-     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer,
-     * org.eclipse.ditto.json.JsonValue, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifyAttribute of(final String thingId,
-            final JsonPointer attributeJsonPointer,
-            final JsonValue newAttributeValue,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), attributeJsonPointer, newAttributeValue, dittoHeaders);
     }
 
     /**
@@ -187,7 +161,7 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
      */
     public static ModifyAttribute fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifyAttribute>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
             final String pointerString = jsonObject.getValueOrThrow(JSON_ATTRIBUTE);
             final JsonPointer extractedPointer = JsonFactory.newPointer(pointerString);
@@ -216,7 +190,7 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 
@@ -235,7 +209,7 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_ATTRIBUTE, attributePointer.toString(), predicate);
         jsonObjectBuilder.set(JSON_ATTRIBUTE_VALUE, attributeValue, predicate);
     }

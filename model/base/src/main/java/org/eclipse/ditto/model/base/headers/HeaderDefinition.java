@@ -35,6 +35,7 @@ public interface HeaderDefinition {
      * @return the Java type.
      * @see #getKey()
      */
+    @SuppressWarnings({"rawtypes", "java:S3740"})
     Class getJavaType();
 
     /**
@@ -42,6 +43,7 @@ public interface HeaderDefinition {
      *
      * @return the serialization type
      */
+    @SuppressWarnings({"rawtypes", "java:S3740"})
     Class getSerializationType();
 
     /**

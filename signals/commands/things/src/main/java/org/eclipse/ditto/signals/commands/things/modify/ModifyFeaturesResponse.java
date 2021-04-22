@@ -54,7 +54,7 @@ public final class ModifyFeaturesResponse extends AbstractCommandResponse<Modify
     public static final String TYPE = TYPE_PREFIX + ModifyFeatures.NAME;
 
     static final JsonFieldDefinition<JsonObject> JSON_FEATURES =
-            JsonFactory.newJsonObjectFieldDefinition("features", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonObjectFieldDefinition("features", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final ThingId thingId;
@@ -79,49 +79,12 @@ public final class ModifyFeaturesResponse extends AbstractCommandResponse<Modify
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a created Feature.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #created(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.Features, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifyFeaturesResponse created(final String thingId, final Features features,
-            final DittoHeaders dittoHeaders) {
-
-        return created(ThingId.of(thingId), features, dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code ModifyFeaturesResponse} for a created Feature. This corresponds to the HTTP status
-     * {@link HttpStatus#CREATED}.
-     *
-     * @param thingId the Thing ID of the created features.
-     * @param features the created Features.
-     * @param dittoHeaders the headers of the ThingCommand which caused the new response.
-     * @return a command response for a created Feature.
-     * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyFeaturesResponse created(final ThingId thingId, final Features features,
             final DittoHeaders dittoHeaders) {
 
         checkNotNull(features, "created Features");
         return new ModifyFeaturesResponse(thingId, HttpStatus.CREATED, features, dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code ModifyFeaturesResponse} for a modified Feature. This corresponds to the HTTP status
-     * {@link HttpStatus#NO_CONTENT}.
-     *
-     * @param thingId the Thing ID of the modified features.
-     * @param dittoHeaders the headers of the ThingCommand which caused the new response.
-     * @return a command response for a modified Feature.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #modified(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifyFeaturesResponse modified(final String thingId, final DittoHeaders dittoHeaders) {
-        return modified(ThingId.of(thingId), dittoHeaders);
     }
 
     /**
@@ -173,7 +136,7 @@ public final class ModifyFeaturesResponse extends AbstractCommandResponse<Modify
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

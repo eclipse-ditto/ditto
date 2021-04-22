@@ -17,8 +17,8 @@ import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 /**
  * An Assert for {@link ThingModifyCommand}s.
  */
-public class ThingModifyCommandAssert extends AbstractThingModifyCommandAssert<ThingModifyCommandAssert,
-        ThingModifyCommand> {
+public class ThingModifyCommandAssert
+        extends AbstractThingModifyCommandAssert<ThingModifyCommandAssert, ThingModifyCommand<?>> {
 
     /**
      * Constructs a new {@code ThingModifyCommandAssert} object.

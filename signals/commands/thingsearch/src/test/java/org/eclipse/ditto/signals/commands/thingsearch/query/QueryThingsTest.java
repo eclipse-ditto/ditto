@@ -23,8 +23,6 @@ import java.util.Arrays;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.junit.Test;
 
@@ -51,26 +49,8 @@ public final class QueryThingsTest {
             .build()
             .toString();
 
-    private static final String JSON_ALL_FIELDS_V1 = JsonFactory.newObjectBuilder()
-            .set(ThingSearchCommand.JsonFields.ID, QueryThings.NAME)
-            .set(QueryThings.JSON_FILTER, TestConstants.KNOWN_FILTER_STR)
-            .set(QueryThings.JSON_OPTIONS, JsonFactory.newArrayBuilder()
-                    .add(TestConstants.KNOWN_OPT_1)
-                    .add(TestConstants.KNOWN_OPT_2)
-                    .build())
-            .set(QueryThings.JSON_FIELDS, KNOWN_FIELDS)
-            .set(QueryThings.JSON_NAMESPACES, JsonFactory.newArrayBuilder()
-                    .add(TestConstants.KNOWN_NAMESPACE)
-                    .build())
-            .build()
-            .toString();
-
     private static final String JSON_MINIMAL_V2 = JsonFactory.newObjectBuilder()
             .set(ThingSearchCommand.JsonFields.TYPE, QueryThings.TYPE)
-            .build().toString();
-
-    private static final String JSON_MINIMAL_V1 = JsonFactory.newObjectBuilder()
-            .set(ThingSearchCommand.JsonFields.ID, QueryThings.NAME)
             .build().toString();
 
     @Test
@@ -101,38 +81,12 @@ public final class QueryThingsTest {
     }
 
     @Test
-    public void toJsonWithAllFieldsSetV1() {
-        final QueryThings command = QueryThings.of(TestConstants.KNOWN_FILTER_STR,
-                Arrays.asList(TestConstants.KNOWN_OPT_1, TestConstants.KNOWN_OPT_2),
-                JsonFactory.newFieldSelector(KNOWN_FIELDS, TestConstants.JSON_PARSE_OPTIONS),
-                TestConstants.KNOWN_NAMESPACES_SET,
-                DittoHeaders.empty());
-
-        final String json = command.toJsonString(JsonSchemaVersion.V_1, FieldType.regularOrSpecial());
-        assertThat(json).isEqualTo(JSON_ALL_FIELDS_V1);
-    }
-
-    @Test
-    public void toJsonWithOnlyRequiredFieldsSetV1() {
-        final QueryThings command = QueryThings.of(DittoHeaders.empty());
-
-        final String json = command.toJsonString(JsonSchemaVersion.V_1, FieldType.regularOrSpecial());
-
-        assertThat(json).isEqualTo(JSON_MINIMAL_V1);
-    }
-
-    @Test
     public void toJsonWithOnlyRequiredFieldsSetV2() {
         final QueryThings command = QueryThings.of(DittoHeaders.empty());
 
         final String json = command.toJsonString();
 
         assertThat(json).isEqualTo(JSON_MINIMAL_V2);
-    }
-
-    @Test
-    public void fromJsonWithAllFieldsSetV1() {
-        assertAllFieldsSet(QueryThings.fromJson(JSON_ALL_FIELDS_V1, DittoHeaders.empty()));
     }
 
     @Test
@@ -147,11 +101,6 @@ public final class QueryThingsTest {
                 Arrays.asList(TestConstants.KNOWN_OPT_1, TestConstants.KNOWN_OPT_2));
         assertThat(command.getFields()).contains(
                 JsonFactory.newFieldSelector(KNOWN_FIELDS, TestConstants.JSON_PARSE_OPTIONS));
-    }
-
-    @Test
-    public void fromJsonWithOnlyRequiredFieldsSetV1() {
-        assertMinimal(QueryThings.fromJson(JSON_MINIMAL_V1, DittoHeaders.empty()));
     }
 
     @Test

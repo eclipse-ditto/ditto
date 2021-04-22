@@ -53,7 +53,7 @@ final class ImmutableJsonInt extends AbstractJsonNumber<Integer> {
             return true;
         }
         if (o instanceof AbstractJsonNumber) {
-            final AbstractJsonNumber that = (AbstractJsonNumber) o;
+            final AbstractJsonNumber<?> that = (AbstractJsonNumber<?>) o;
             if (that.isInt()) {
                 return Objects.equals(getValue(), that.asInt());
             }

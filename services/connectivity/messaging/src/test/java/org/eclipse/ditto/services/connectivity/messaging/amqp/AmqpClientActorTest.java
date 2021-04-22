@@ -94,6 +94,7 @@ import org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authoriza
 import org.eclipse.ditto.services.models.connectivity.BaseClientState;
 import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.utils.test.Retry;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
@@ -513,8 +514,8 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     @Test
     public void testConsumeMessageAndExpectForwardToProxyActor() throws JMSException {
         testConsumeMessageAndExpectForwardToProxyActor(connection, 1,
-                c -> assertThat(c.getDittoHeaders().getAuthorizationContext()).isEqualTo(
-                        TestConstants.Authorization.withUnprefixedSubjects(Authorization.SOURCE_SPECIFIC_CONTEXT)));
+                c -> assertThat(c.getDittoHeaders().getAuthorizationContext())
+                        .isEqualTo(Authorization.SOURCE_SPECIFIC_CONTEXT));
     }
 
     @Test
@@ -530,14 +531,12 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                 c -> {
                     if (c.getDittoHeaders()
                             .getAuthorizationContext()
-                            .equals(TestConstants.Authorization.withUnprefixedSubjects(
-                                    Authorization.SOURCE_SPECIFIC_CONTEXT))) {
+                            .equals(Authorization.SOURCE_SPECIFIC_CONTEXT)) {
                         messageReceivedForSourceContext.set(true);
                     }
                     if (c.getDittoHeaders()
                             .getAuthorizationContext()
-                            .equals(TestConstants.Authorization.withUnprefixedSubjects(
-                                    Authorization.SOURCE_SPECIFIC_CONTEXT))) {
+                            .equals(Authorization.SOURCE_SPECIFIC_CONTEXT)) {
                         messageReceivedForGlobalContext.set(true);
                     }
                 });
@@ -552,8 +551,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                         TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT);
         testConsumeMessageAndExpectForwardToProxyActor(connection, 1,
                 c -> assertThat(c.getDittoHeaders().getAuthorizationContext())
-                        .isEqualTo(TestConstants.Authorization.withUnprefixedSubjects(
-                                Authorization.SOURCE_SPECIFIC_CONTEXT)));
+                        .isEqualTo(Authorization.SOURCE_SPECIFIC_CONTEXT));
     }
 
     private void testConsumeMessageAndExpectForwardToProxyActor(final Connection connection,
@@ -581,8 +579,9 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             }
 
             for (int i = 0; i < consumers; i++) {
-                final Command command = expectMsgClass(Command.class);
-                assertThat((CharSequence) command.getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
+                final Command<?> command = expectMsgClass(Command.class);
+                assertThat(command).isInstanceOf(SignalWithEntityId.class);
+                assertThat((CharSequence) ((SignalWithEntityId<?>) command).getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
                 assertThat(command.getDittoHeaders().getCorrelationId()).contains(TestConstants.CORRELATION_ID);
                 commandConsumer.accept(command);
             }
@@ -976,7 +975,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                         .authorizationContext(defaultSource.getAuthorizationContext())
                         .consumerCount(1)
                         .enforcement(defaultSource.getEnforcement().orElse(null))
-                        .headerMapping(defaultSource.getHeaderMapping().orElse(null))
+                        .headerMapping(defaultSource.getHeaderMapping())
                         .index(0)
                         .build()))
                 .build();

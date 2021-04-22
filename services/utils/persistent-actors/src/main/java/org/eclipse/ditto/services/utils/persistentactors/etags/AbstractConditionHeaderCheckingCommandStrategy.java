@@ -21,6 +21,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.entity.Entity;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.services.utils.headers.conditional.ConditionalHeadersValidator;
@@ -100,7 +102,16 @@ public abstract class AbstractConditionHeaderCheckingCommandStrategy<
 
         return Optional.ofNullable(entity)
                 .flatMap(Entity::getEntityId)
-                .filter(thingId -> Objects.equals(thingId, command.getEntityId()))
+                .filter(entityId -> commandHasEntityIdAndIsEqual(entityId, command))
                 .isPresent();
+    }
+
+    private static <C extends Command<?>> boolean commandHasEntityIdAndIsEqual(EntityId entityId, C command) {
+        if (command instanceof WithEntityId) {
+            final WithEntityId commandWithEntityId = (WithEntityId) command;
+            return Objects.equals(entityId, commandWithEntityId.getEntityId());
+        } else {
+            return false;
+        }
     }
 }

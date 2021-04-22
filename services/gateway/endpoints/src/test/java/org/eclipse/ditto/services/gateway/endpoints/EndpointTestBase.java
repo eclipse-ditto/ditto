@@ -186,7 +186,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
     protected Route handleExceptions(final Supplier<Route> inner) {
         return handleExceptions(
                 RootRouteExceptionHandler.getInstance(exception ->
-                        HttpResponse.create().withStatus(exception.getStatusCode().toInt())
+                        HttpResponse.create().withStatus(exception.getHttpStatus().getCode())
                                 .withEntity(HttpEntities.create(APPLICATION_JSON, exception.toJsonString()))
                 ),
                 inner);
@@ -238,7 +238,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         private static Optional<Object> echo(final Object m) {
             final DittoHeaders dittoHeaders;
             if (m instanceof WithDittoHeaders) {
-                dittoHeaders = ((WithDittoHeaders<?>) m).getDittoHeaders();
+                dittoHeaders = ((WithDittoHeaders) m).getDittoHeaders();
             } else {
                 dittoHeaders = DittoHeaders.empty();
             }
@@ -277,12 +277,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         }
 
         @Override
-        public String getId() {
-            return null;
-        }
-
-        @Override
-        public ThingId getThingEntityId() {
+        public ThingId getEntityId() {
             return EndpointTestConstants.KNOWN_THING_ID;
         }
 

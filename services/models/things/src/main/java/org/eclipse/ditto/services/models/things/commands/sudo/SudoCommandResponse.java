@@ -19,7 +19,6 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.WithEntity;
 
@@ -28,8 +27,7 @@ import org.eclipse.ditto.signals.commands.base.WithEntity;
  *
  * @param <T> the type of the implementing class.
  */
-public interface SudoCommandResponse<T extends SudoCommandResponse<T>> extends CommandResponse<T>, WithEntity<T>,
-        WithIdButActuallyNot {
+public interface SudoCommandResponse<T extends SudoCommandResponse<T>> extends CommandResponse<T>, WithEntity<T>{
 
     /**
      * Type Prefix of Sudo commands.
@@ -63,7 +61,7 @@ public interface SudoCommandResponse<T extends SudoCommandResponse<T>> extends C
          * JSON field containing the Thing ID.
          */
         public static final JsonFieldDefinition<String> JSON_THING_ID =
-                JsonFactory.newStringFieldDefinition("payload/thingId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("payload/thingId", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

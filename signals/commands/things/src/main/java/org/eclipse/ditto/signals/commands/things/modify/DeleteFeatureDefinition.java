@@ -34,12 +34,13 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 /**
  * This command deletes a {@link org.eclipse.ditto.model.things.Feature}'s Definition.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = DeleteFeatureDefinition.TYPE_PREFIX, name = DeleteFeatureDefinition.NAME)
+@JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = DeleteFeatureDefinition.NAME)
 public final class DeleteFeatureDefinition extends AbstractCommand<DeleteFeatureDefinition>
         implements ThingModifyCommand<DeleteFeatureDefinition>, WithFeatureId {
 
@@ -54,7 +55,7 @@ public final class DeleteFeatureDefinition extends AbstractCommand<DeleteFeature
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<String> JSON_FEATURE_ID =
-            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final ThingId thingId;
@@ -64,25 +65,6 @@ public final class DeleteFeatureDefinition extends AbstractCommand<DeleteFeature
         super(TYPE, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
         this.featureId = checkNotNull(featureId, "Feature ID");
-    }
-
-    /**
-     * Returns a Command for deleting a Feature's Definition on a Thing.
-     *
-     * @param thingId the {@code Thing}'s ID whose {@code Feature}'s Definition to delete.
-     * @param featureId the {@code Feature}'s ID whose Definition to delete.
-     * @param dittoHeaders the headers of the command.
-     * @return a Command for deleting the provided Definition.
-     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static DeleteFeatureDefinition of(final String thingId, final String featureId,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), featureId, dittoHeaders);
     }
 
     /**
@@ -131,7 +113,7 @@ public final class DeleteFeatureDefinition extends AbstractCommand<DeleteFeature
      */
     public static DeleteFeatureDefinition fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<DeleteFeatureDefinition>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
             final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
 
@@ -140,7 +122,7 @@ public final class DeleteFeatureDefinition extends AbstractCommand<DeleteFeature
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 
@@ -160,7 +142,7 @@ public final class DeleteFeatureDefinition extends AbstractCommand<DeleteFeature
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
     }
 

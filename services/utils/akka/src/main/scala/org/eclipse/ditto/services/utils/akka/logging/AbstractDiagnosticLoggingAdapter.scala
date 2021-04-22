@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.utils.akka.logging
 
 import akka.event.DiagnosticLoggingAdapter
+
 import javax.annotation.Nullable
 import javax.annotation.concurrent.NotThreadSafe
 

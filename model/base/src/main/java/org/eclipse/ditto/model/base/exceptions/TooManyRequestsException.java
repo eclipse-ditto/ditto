@@ -52,11 +52,6 @@ public final class TooManyRequestsException extends DittoRuntimeException {
         super(ERROR_CODE, STATUS_CODE, dittoHeaders, message, description, cause, href);
     }
 
-    @Override
-    protected DittoRuntimeExceptionBuilder<TooManyRequestsException> getEmptyBuilder() {
-        return new Builder();
-    }
-
     /**
      * A mutable builder for a {@code TooManyRequestsException}.
      *

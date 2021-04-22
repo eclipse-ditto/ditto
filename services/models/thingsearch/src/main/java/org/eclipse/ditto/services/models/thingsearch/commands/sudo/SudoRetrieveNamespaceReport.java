@@ -34,7 +34,7 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
  */
 @Immutable
 @AllValuesAreNonnullByDefault
-@JsonParsableCommand(typePrefix = SudoRetrieveNamespaceReport.TYPE_PREFIX, name = SudoRetrieveNamespaceReport.NAME)
+@JsonParsableCommand(typePrefix = ThingSearchSudoCommand.TYPE_PREFIX, name = SudoRetrieveNamespaceReport.NAME)
 public final class SudoRetrieveNamespaceReport extends AbstractCommand<SudoRetrieveNamespaceReport>
         implements ThingSearchSudoCommand<SudoRetrieveNamespaceReport> {
 
@@ -128,8 +128,8 @@ public final class SudoRetrieveNamespaceReport extends AbstractCommand<SudoRetri
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof SudoRetrieveNamespaceReport);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof SudoRetrieveNamespaceReport;
     }
 
     @Override

@@ -31,13 +31,14 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 
 
 /**
  * Command which retrieves one {@link org.eclipse.ditto.model.policies.Policy} based on the the passed in Policy ID.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = RetrievePolicy.TYPE_PREFIX, name = RetrievePolicy.NAME)
+@JsonParsableCommand(typePrefix = PolicyCommand.TYPE_PREFIX, name = RetrievePolicy.NAME)
 public final class RetrievePolicy extends AbstractCommand<RetrievePolicy>
         implements PolicyQueryCommand<RetrievePolicy> {
 
@@ -56,23 +57,6 @@ public final class RetrievePolicy extends AbstractCommand<RetrievePolicy>
     private RetrievePolicy(final PolicyId policyId, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.policyId = checkNotNull(policyId, "policy ID");
-    }
-
-    /**
-     * Returns a Command for retrieving the Policy with the given ID.
-     *
-     * @param policyId the ID of a single Policy to be retrieved by this command.
-     * @param dittoHeaders the optional command headers of the request.
-     * @return a Command for retrieving the Policy with the {@code policyId} as its ID which is readable from the passed
-     * authorization context.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrievePolicy of(final String policyId, final DittoHeaders dittoHeaders) {
-        return of(PolicyId.of(policyId), dittoHeaders);
     }
 
     /**
@@ -115,7 +99,7 @@ public final class RetrievePolicy extends AbstractCommand<RetrievePolicy>
      */
     public static RetrievePolicy fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrievePolicy>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
+            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyCommand.JsonFields.JSON_POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
 
             return of(policyId, dittoHeaders);
@@ -142,7 +126,7 @@ public final class RetrievePolicy extends AbstractCommand<RetrievePolicy>
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyQueryCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
+        jsonObjectBuilder.set(PolicyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
     }
 
     @Override

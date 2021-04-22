@@ -35,7 +35,8 @@ public final class FeatureDeletedStrategyTest extends AbstractStrategyTest {
     @Test
     public void appliesEventCorrectly() {
         final FeatureDeletedStrategy strategy = new FeatureDeletedStrategy();
-        final FeatureDeleted event = FeatureDeleted.of(THING_ID, FEATURE_ID, REVISION, DittoHeaders.empty());
+        final FeatureDeleted event = FeatureDeleted.of(THING_ID, FEATURE_ID, REVISION,
+                TIMESTAMP, DittoHeaders.empty(), null);
 
         final Thing thingWithFeature = THING.toBuilder().setFeature(FEATURE).build();
         final Thing thingWithEventApplied = strategy.handle(event, thingWithFeature, NEXT_REVISION);
@@ -43,6 +44,7 @@ public final class FeatureDeletedStrategyTest extends AbstractStrategyTest {
         final Thing expected = THING.toBuilder()
                 .setFeatures(Features.newBuilder().build())
                 .setRevision(NEXT_REVISION)
+                .setModified(TIMESTAMP)
                 .build();
         assertThat(thingWithEventApplied).isEqualTo(expected);
     }

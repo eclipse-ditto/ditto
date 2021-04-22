@@ -39,14 +39,13 @@ public final class CacheFactory {
     }
 
     /**
-     * Create a new entity ID from the given  {@code resourceType} and {@code id}.
+     * Create a new cache key from the given {@code id}.
      *
-     * @param resourceType the resource type.
      * @param id the entity ID.
      * @return the entity ID with resource type object.
      */
-    public static EntityIdWithResourceType newEntityId(final String resourceType, final EntityId id) {
-        return ImmutableEntityIdWithResourceType.of(resourceType, id);
+    public static CacheKey newCacheKey(final EntityId id) {
+        return ImmutableCacheKey.of(id);
     }
 
     /**
@@ -57,32 +56,30 @@ public final class CacheFactory {
      * @return the created context.
      */
     public static CacheLookupContext newCacheLookupContext(
-            @Nullable final DittoHeaders dittoHeaders, @Nullable  final JsonFieldSelector jsonFieldSelector) {
+            @Nullable final DittoHeaders dittoHeaders, @Nullable final JsonFieldSelector jsonFieldSelector) {
         return ImmutableCacheLookupContext.of(dittoHeaders, jsonFieldSelector);
     }
 
     /**
-     * Create a new entity ID from the given  {@code resourceType} and {@code id}.
+     * Create a new cache key from the given  {@code resourceType} and {@code id}.
      *
-     * @param resourceType the resource type.
      * @param id the entity ID.
      * @param cacheLookupContext additional context information to use for the cache lookup.
      * @return the entity ID with resource type object.
      */
-    public static EntityIdWithResourceType newEntityId(final String resourceType, final EntityId id,
-            final CacheLookupContext cacheLookupContext) {
-        return ImmutableEntityIdWithResourceType.of(resourceType, id, cacheLookupContext);
+    public static CacheKey newCacheKey(final EntityId id, final CacheLookupContext cacheLookupContext) {
+        return ImmutableCacheKey.of(id, cacheLookupContext);
     }
 
     /**
-     * Deserialize entity ID with resource type from a string.
+     * Deserialize cache key with resource type from a string.
      *
      * @param string the string.
-     * @return the entity ID with resource type.
+     * @return the cache key.
      * @throws IllegalArgumentException if the string does not have the expected format.
      */
-    public static EntityIdWithResourceType readEntityIdFrom(final String string) {
-        return ImmutableEntityIdWithResourceType.readFrom(string);
+    public static CacheKey readEntityIdFrom(final String string) {
+        return ImmutableCacheKey.readFrom(string);
     }
 
     /**

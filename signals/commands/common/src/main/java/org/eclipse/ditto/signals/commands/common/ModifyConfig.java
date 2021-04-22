@@ -27,7 +27,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 /**
  * Command to modify an actor's config.
  */
-@JsonParsableCommand(typePrefix = ModifyConfig.TYPE_PREFIX, name = ModifyConfig.NAME)
+@JsonParsableCommand(typePrefix = CommonCommand.TYPE_PREFIX, name = ModifyConfig.NAME)
 public final class ModifyConfig extends CommonCommand<ModifyConfig> {
 
     /**

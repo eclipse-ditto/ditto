@@ -28,7 +28,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * @since 1.1.0
  */
 @Immutable
-@JsonParsableEvent(name = SubscriptionComplete.NAME, typePrefix = SubscriptionComplete.TYPE_PREFIX)
+@JsonParsableEvent(name = SubscriptionComplete.NAME, typePrefix = SubscriptionEvent.TYPE_PREFIX)
 public final class SubscriptionComplete extends AbstractSubscriptionEvent<SubscriptionComplete> {
 
     /**

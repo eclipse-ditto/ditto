@@ -23,7 +23,6 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException;
 
 import com.mongodb.client.model.Filters;
 
@@ -61,35 +60,10 @@ public abstract class AbstractFieldBsonCreator {
                 ));
     }
 
-    /**
-     * Deprecate ACL expressions.
-     *
-     * @return nothing
-     * @throws InvalidRqlExpressionException always
-     */
-    public final Bson visitAcl() {
-        throw invalidRql("Unsupported path 'acl'");
-    }
-
-    /**
-     * Deprecate global-reads expressions.
-     *
-     * @return nothing
-     * @throws InvalidRqlExpressionException always
-     */
-    public final Bson visitGlobalReads() {
-        throw invalidRql("Unsupported path 'gr'");
-    }
-
     public final Bson visitSimple(final String fieldName) {
         return fieldName.startsWith(SLASH)
                 ? visitPointer(fieldName)
                 : visitRootLevelField(fieldName);
     }
 
-    private static InvalidRqlExpressionException invalidRql(final String message) {
-        return InvalidRqlExpressionException.newBuilder()
-                .message(message)
-                .build();
-    }
 }

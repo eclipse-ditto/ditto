@@ -14,7 +14,7 @@ package org.eclipse.ditto.protocoladapter;
 
 import org.assertj.core.api.AbstractObjectAssert;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 
 /**
  * Super class of protocol adapter tests.
@@ -28,19 +28,21 @@ public interface ProtocolAdapterTest {
      * @param actual a signal.
      * @return an Assert object for the signal.
      */
-    default AbstractObjectAssert<?, WithDittoHeaders> assertWithExternalHeadersThat(final WithDittoHeaders actual) {
+    default AbstractObjectAssert<?, DittoHeadersSettable<?>> assertWithExternalHeadersThat(
+            final DittoHeadersSettable<?> actual) {
         return new WithFilteredHeadersAssert(actual, DittoProtocolAdapter.getHeaderTranslator(), true);
     }
 
     /**
      * Assert for {@link org.eclipse.ditto.model.base.headers.WithDittoHeaders} comparing only the external headers.
      */
-    final class WithFilteredHeadersAssert extends AbstractObjectAssert<WithFilteredHeadersAssert, WithDittoHeaders> {
+    final class WithFilteredHeadersAssert
+            extends AbstractObjectAssert<WithFilteredHeadersAssert, DittoHeadersSettable<?>> {
 
         private final HeaderTranslator headerTranslator;
         private final boolean filterSelf;
 
-        private WithFilteredHeadersAssert(final WithDittoHeaders withDittoHeaders,
+        private WithFilteredHeadersAssert(final DittoHeadersSettable<?> withDittoHeaders,
                 final HeaderTranslator headerTranslator, final boolean filterSelf) {
             super(withDittoHeaders, WithFilteredHeadersAssert.class);
             this.headerTranslator = headerTranslator;
@@ -49,15 +51,15 @@ public interface ProtocolAdapterTest {
 
         @Override
         public WithFilteredHeadersAssert isEqualTo(final Object that) {
-            if (that instanceof WithDittoHeaders) {
+            if (that instanceof DittoHeadersSettable<?>) {
                 if (filterSelf) {
                     final DittoHeaders filteredHeaders =
                             DittoHeaders.of(headerTranslator.toExternalHeaders(actual.getDittoHeaders()));
-                    final WithDittoHeaders actualWithFilteredHeaders = actual.setDittoHeaders(filteredHeaders);
+                    final DittoHeadersSettable<?> actualWithFilteredHeaders = actual.setDittoHeaders(filteredHeaders);
                     return new WithFilteredHeadersAssert(actualWithFilteredHeaders, headerTranslator, false)
                             .isEqualTo(that);
                 } else {
-                    final WithDittoHeaders expected = (WithDittoHeaders) that;
+                    final DittoHeadersSettable<?> expected = (DittoHeadersSettable<?>) that;
                     final DittoHeaders filteredHeaders =
                             DittoHeaders.of(headerTranslator.toExternalHeaders(actual.getDittoHeaders()));
                     return super.isEqualTo(expected.setDittoHeaders(filteredHeaders));

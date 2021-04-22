@@ -54,7 +54,7 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
     public static final String TYPE = TYPE_PREFIX + RetrieveLoggerConfig.NAME;
 
     public static final JsonFieldDefinition<JsonArray> JSON_LOGGER_CONFIGS =
-            JsonFactory.newJsonArrayFieldDefinition("loggerConfigs", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonArrayFieldDefinition("loggerConfigs", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final List<LoggerConfig> loggerConfigs;

@@ -48,7 +48,7 @@ final class DeletePolicyStrategy extends AbstractPolicyCommandStrategy<DeletePol
 
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final PolicyDeleted policyDeleted =
-                PolicyDeleted.of(context.getState(), nextRevision, getEventTimestamp(), dittoHeaders);
+                PolicyDeleted.of(context.getState(), nextRevision, getEventTimestamp(), dittoHeaders, metadata);
         final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                 DeletePolicyResponse.of(context.getState(), dittoHeaders), entity);
         context.getLog().withCorrelationId(command)

@@ -101,7 +101,7 @@ public final class SshPublicKeyCredentials implements Credentials {
     @Override
     public JsonObject toJson() {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
-        jsonObjectBuilder.set(JsonFields.TYPE, TYPE);
+        jsonObjectBuilder.set(Credentials.JsonFields.TYPE, TYPE);
         jsonObjectBuilder.set(JsonFields.USERNAME, username);
         jsonObjectBuilder.set(JsonFields.PUBLIC_KEY, publicKey);
         jsonObjectBuilder.set(JsonFields.PRIVATE_KEY, privateKey);

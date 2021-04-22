@@ -310,7 +310,7 @@ public interface ConnectionMonitor {
      * @return a wrapped monitor that can execute runnable code.
      */
     static WrappedConnectionMonitor wrapExecution(final Collection<ConnectionMonitor> monitors,
-            final Signal signal) {
+            final Signal<?> signal) {
         return wrapExecution(monitors, InfoProviderFactory.forSignal(signal));
     }
 

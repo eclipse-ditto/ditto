@@ -143,10 +143,10 @@ final class PersistenceStatusStage {
 
     private static Optional<List<StatusInfo>> safeCastAsStatusInfoList(final Object object) {
         if (object instanceof List) {
-            final List<?> list = (List) object;
+            final List<?> list = (List<?>) object;
             if (list.stream().allMatch(x -> x instanceof StatusInfo)) {
                 return Optional.of(list.stream()
-                        .map(x -> (StatusInfo) x)
+                        .map(StatusInfo.class::cast)
                         .collect(Collectors.toList()));
             }
         }

@@ -105,7 +105,7 @@ public final class UsageBasedPriorityProviderTest {
             final RetrieveConnectionMetrics retrieveConnectionMetrics =
                     connectionPersistenceActorProbe.expectMsgClass(RetrieveConnectionMetrics.class);
             connectionPersistenceActorProbe.reply(
-                    RetrieveConnectionMetricsResponse.of(retrieveConnectionMetrics.getConnectionEntityId(),
+                    RetrieveConnectionMetricsResponse.of(retrieveConnectionMetrics.getEntityId(),
                             JsonObject.newBuilder().set("connectionMetrics", connectionMetrics.toJson()).build(),
                             retrieveConnectionMetrics.getDittoHeaders()));
         }};

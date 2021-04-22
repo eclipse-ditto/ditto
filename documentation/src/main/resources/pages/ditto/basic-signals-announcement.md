@@ -11,5 +11,5 @@ the event will happen soon.
 
 Announcements have the following characteristics:
 * they are **not** persisted/appended into any data store
-* they are published to interested and authorized parties via the [WebSocket API](httpapi-protocol-bindings-websocket.html) as
-  well as [connection targets](basic-connections.html#targets) via [change notifications](basic-changenotifications.html).
+* they are published to interested and authorized parties via the [WebSocket API](httpapi-protocol-bindings-websocket.html) 
+  as well as [connection targets](basic-connections.html#targets) via [change notifications](basic-changenotifications.html).

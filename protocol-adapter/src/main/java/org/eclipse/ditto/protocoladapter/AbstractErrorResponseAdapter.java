@@ -19,7 +19,6 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.base.ErrorRegistry;
-import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 
@@ -50,14 +49,9 @@ public abstract class AbstractErrorResponseAdapter<T extends ErrorResponse<T>> i
      * @since 1.1.0
      */
     public static DittoRuntimeException parseWithErrorRegistry(final JsonObject errorJson,
-            final DittoHeaders dittoHeaders,
-            final ErrorRegistry<?> errorRegistry) {
-        try {
-            return errorRegistry.parse(errorJson, dittoHeaders);
-        } catch (final JsonTypeNotParsableException e) {
-            return DittoRuntimeException.fromUnknownErrorJson(errorJson, dittoHeaders)
-                    .orElseThrow(() -> e);
-        }
+            final DittoHeaders dittoHeaders, final ErrorRegistry<?> errorRegistry) {
+
+        return errorRegistry.parse(errorJson, dittoHeaders);
     }
 
     @Override

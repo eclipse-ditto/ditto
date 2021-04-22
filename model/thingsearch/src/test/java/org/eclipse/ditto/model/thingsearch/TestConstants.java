@@ -16,16 +16,10 @@ package org.eclipse.ditto.model.thingsearch;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
-import org.eclipse.ditto.model.things.AccessControlList;
-import org.eclipse.ditto.model.things.AclEntry;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
-import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingRevision;
@@ -38,48 +32,6 @@ public final class TestConstants {
 
     private TestConstants() {
         throw new AssertionError();
-    }
-
-    /**
-     * Authorization-related test constants.
-     */
-    public static final class SearchAuthorization {
-
-        /**
-         * A known Authorization Subject for testing.
-         */
-        public static final AuthorizationSubject AUTH_SUBJECT_OLDMAN =
-                AuthorizationModelFactory.newAuthSubject("JohnOldman");
-
-        /**
-         * Another known AuthorizationSubject for testing.
-         */
-        public static final AuthorizationSubject AUTH_SUBJECT_GRIMES =
-                AuthorizationModelFactory.newAuthSubject("FrankGrimes");
-
-        /**
-         * An Authorization Context which contains all known Authorization Subjects.
-         */
-        public static final AuthorizationContext AUTH_CONTEXT =
-                AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
-                        AUTH_SUBJECT_OLDMAN, AUTH_SUBJECT_GRIMES);
-
-        /**
-         * The known ACL entry of John Oldman.
-         */
-        public static final AclEntry ACL_ENTRY_OLDMAN =
-                ThingsModelFactory.newAclEntry(SearchAuthorization.AUTH_SUBJECT_OLDMAN, Permission.READ,
-                        Permission.WRITE, Permission.ADMINISTRATE);
-
-        /**
-         * The known ACL entry of Frank Grimes.
-         */
-        public static final AclEntry ACL_ENTRY_GRIMES =
-                ThingsModelFactory.newAclEntry(SearchAuthorization.AUTH_SUBJECT_GRIMES, Permission.READ);
-
-        private SearchAuthorization() {
-            throw new AssertionError();
-        }
     }
 
     /**
@@ -136,10 +88,9 @@ public final class TestConstants {
         public static final ThingLifecycle LIFECYCLE = ThingLifecycle.ACTIVE;
 
         /**
-         * A known Access Control List of a Thing.
+         * A known Policy ID.
          */
-        public static final AccessControlList ACL =
-                ThingsModelFactory.newAcl(SearchAuthorization.ACL_ENTRY_OLDMAN, SearchAuthorization.ACL_ENTRY_GRIMES);
+        public static final PolicyId POLICY_ID = PolicyId.of(THING_ID);
 
         /**
          * A known path to the attribute with the key "manufacturer" within a Thing.
@@ -179,7 +130,7 @@ public final class TestConstants {
                 .setAttributes(ATTRIBUTES) //
                 .setFeatures(SearchFeature.FEATURES) //
                 .setLifecycle(LIFECYCLE) //
-                .setPermissions(ACL) //
+                .setPolicyId(POLICY_ID) //
                 .setId(THING_ID) //
                 .build();
 

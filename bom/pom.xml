@@ -41,7 +41,7 @@
         <akka-persistence-mongo.version>3.0.6</akka-persistence-mongo.version>
         <akka-http-bom.version>10.2.4</akka-http-bom.version>
         <akka-management.version>1.0.10</akka-management.version>
-        <hivemq-mqtt-client.version>1.2.1</hivemq-mqtt-client.version>
+        <hivemq-mqtt-client.version>1.2.2</hivemq-mqtt-client.version>
         <kafka-clients.version>2.5.1</kafka-clients.version>
         <sshd.version>2.6.0</sshd.version>
         <eddsa.version>0.3.0</eddsa.version>
@@ -356,6 +356,11 @@
                 <artifactId>jcl-over-slf4j</artifactId>
                 <version>${slf4j.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>jul-to-slf4j</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>ch.qos.logback</groupId>
@@ -454,7 +459,7 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-model-placeholders</artifactId>
+                <artifactId>ditto-services-models-placeholders</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -506,11 +511,6 @@
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-commands-base</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-signals-commands-live</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

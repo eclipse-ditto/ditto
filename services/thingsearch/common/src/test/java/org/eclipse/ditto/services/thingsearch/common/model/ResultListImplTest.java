@@ -31,8 +31,7 @@ public final class ResultListImplTest {
     }
 
     // We cannot guarantee immutability for ResultListImpl, because its elements might not be immutable
-    // /** */
-    // @Test
+    // // @Test
     // public void immutability()
     // {
     // assertInstancesOf(ResultListImpl.class, areImmutable());

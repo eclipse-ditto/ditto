@@ -19,6 +19,10 @@ import org.eclipse.ditto.signals.base.ErrorRegistry;
  */
 public final class MappingStrategiesFactory {
 
+    private MappingStrategiesFactory() {
+        throw new AssertionError();
+    }
+
     public static PolicyModifyCommandMappingStrategies getPolicyModifyCommandMappingStrategies() {
         return PolicyModifyCommandMappingStrategies.getInstance();
     }
@@ -49,6 +53,14 @@ public final class MappingStrategiesFactory {
 
     public static ThingQueryCommandMappingStrategies getThingQueryCommandMappingStrategies() {
         return ThingQueryCommandMappingStrategies.getInstance();
+    }
+
+    public static RetrieveThingsCommandMappingStrategies getRetrieveThingsCommandMappingStrategies() {
+        return RetrieveThingsCommandMappingStrategies.getInstance();
+    }
+
+    public static RetrieveThingsCommandResponseMappingStrategies getRetrieveThingsCommandResponseMappingStrategies() {
+        return RetrieveThingsCommandResponseMappingStrategies.getInstance();
     }
 
     public static ThingModifyCommandResponseMappingStrategies getThingModifyCommandResponseMappingStrategies() {

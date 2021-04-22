@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -54,7 +55,8 @@ public final class SubjectsModifiedPartiallyTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, SubjectsModifiedPartially.TYPE)
-            .set(Event.JsonFields.REVISION, TestConstants.Policy.REVISION_NUMBER)
+            .set(EventsourcedEvent.JsonFields.REVISION, TestConstants.Policy.REVISION_NUMBER)
+            .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
             .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(SubjectsModifiedPartially.JSON_MODIFIED_SUBJECTS, MODIFIED_SUBJECTS_JSON)
             .build();
@@ -77,21 +79,21 @@ public final class SubjectsModifiedPartiallyTest {
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
         SubjectsModifiedPartially.of(null, MODIFIED_SUBJECTS, TestConstants.Policy.REVISION_NUMBER,
-                TestConstants.EMPTY_DITTO_HEADERS);
+                TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullActivatedSubjects() {
         SubjectsModifiedPartially.of(TestConstants.Policy.POLICY_ID, null, TestConstants.Policy.REVISION_NUMBER,
-                TestConstants.EMPTY_DITTO_HEADERS);
+                TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
     }
 
     @Test
     public void toJsonReturnsExpected() {
         final SubjectsModifiedPartially underTest =
                 SubjectsModifiedPartially.of(TestConstants.Policy.POLICY_ID, MODIFIED_SUBJECTS,
-                        TestConstants.Policy.REVISION_NUMBER, TestConstants.TIMESTAMP,
-                        TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.Policy.REVISION_NUMBER,
+                        TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);

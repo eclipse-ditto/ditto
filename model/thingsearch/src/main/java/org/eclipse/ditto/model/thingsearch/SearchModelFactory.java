@@ -19,7 +19,6 @@ import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJso
 import java.util.Collections;
 import java.util.List;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -240,20 +239,6 @@ public final class SearchModelFactory {
 
         final SortOptionEntry entry = ImmutableSortOptionEntry.of(propertyPath, sortOrder);
         return ImmutableSortOption.of(Collections.singletonList(entry));
-    }
-
-    /**
-     * Creates a new {@link SortOptionEntry} for the provided {@code order} and {@code propertyPath}.
-     *
-     * @param sortOrder the {@code order} of the SortOptionEntry to create
-     * @param propertyPath the {@code propertyPath} of the SortOptionEntry to create
-     * @return the created SortOption.
-     * @deprecated Please use {@link #newSortOptionEntry(CharSequence, SortOptionEntry.SortOrder)} instead.
-     */
-    @Deprecated
-    public static SortOptionEntry newSortOptionEntry(final SortOptionEntry.SortOrder sortOrder,
-            final CharSequence propertyPath) {
-        return newSortOptionEntry(propertyPath, sortOrder);
     }
 
     /**

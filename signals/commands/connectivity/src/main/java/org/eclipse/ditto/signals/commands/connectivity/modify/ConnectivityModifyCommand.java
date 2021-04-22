@@ -13,6 +13,8 @@
 package org.eclipse.ditto.signals.commands.connectivity.modify;
 
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.WithConnectionId;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 
@@ -22,5 +24,5 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
  * @param <T> the type of the implementing class.
  */
 public interface ConnectivityModifyCommand<T extends ConnectivityModifyCommand<T>>
-        extends ConnectivityCommand<T>, WithOptionalEntity {
+        extends ConnectivityCommand<T>, WithOptionalEntity, WithConnectionId, SignalWithEntityId<T> {
 }

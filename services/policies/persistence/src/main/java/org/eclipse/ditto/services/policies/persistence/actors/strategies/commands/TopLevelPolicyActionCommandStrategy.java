@@ -174,7 +174,7 @@ final class TopLevelPolicyActionCommandStrategy
 
         @Override
         public void onMutation(final Command<?> command, final PolicyActionEvent<?> event,
-                final WithDittoHeaders<?> response, final boolean becomeCreated, final boolean becomeDeleted) {
+                final WithDittoHeaders response, final boolean becomeCreated, final boolean becomeDeleted) {
             if (firstEvent == null) {
                 firstEvent = event;
             } else {
@@ -183,7 +183,7 @@ final class TopLevelPolicyActionCommandStrategy
         }
 
         @Override
-        public void onQuery(final Command<?> command, final WithDittoHeaders<?> response) {
+        public void onQuery(final Command<?> command, final WithDittoHeaders response) {
             // do nothing
         }
 

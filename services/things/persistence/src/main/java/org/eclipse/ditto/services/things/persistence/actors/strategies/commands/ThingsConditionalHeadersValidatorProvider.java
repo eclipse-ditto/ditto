@@ -51,7 +51,7 @@ final class ThingsConditionalHeadersValidatorProvider {
          * @return the builder.
          */
         @Override
-        public DittoRuntimeExceptionBuilder createPreconditionFailedExceptionBuilder(final String conditionalHeaderName,
+        public DittoRuntimeExceptionBuilder<?> createPreconditionFailedExceptionBuilder(final String conditionalHeaderName,
                 final String expected, final String actual) {
             return ThingPreconditionFailedException.newBuilder(conditionalHeaderName, expected, actual);
         }
@@ -64,7 +64,7 @@ final class ThingsConditionalHeadersValidatorProvider {
          * @return the builder.
          */
         @Override
-        public DittoRuntimeExceptionBuilder createPreconditionNotModifiedExceptionBuilder(
+        public DittoRuntimeExceptionBuilder<?> createPreconditionNotModifiedExceptionBuilder(
                 final String expectedNotToMatch, final String matched) {
             return ThingPreconditionNotModifiedException.newBuilder(expectedNotToMatch, matched);
         }

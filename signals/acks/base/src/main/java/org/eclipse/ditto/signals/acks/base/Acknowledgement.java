@@ -14,7 +14,6 @@ package org.eclipse.ditto.signals.acks.base;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.text.MessageFormat;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -26,15 +25,15 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.common.ResponseType;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.entity.type.WithEntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
@@ -48,7 +47,8 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
  *
  * @since 1.1.0
  */
-public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithOptionalEntity, WithEntityType {
+public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithOptionalEntity, WithEntityType,
+        SignalWithEntityId<Acknowledgement> {
 
     /**
      * Returns the type of an Acknowledgement for the context of the given entity type.
@@ -66,29 +66,6 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
      *
      * @param label the label of the new Acknowledgement.
      * @param entityId the ID of the affected entity being acknowledged.
-     * @param statusCode the status code (HTTP semantics) of the Acknowledgement.
-     * @param dittoHeaders the DittoHeaders.
-     * @param payload the optional payload of the Acknowledgement.
-     * @return the ImmutableAcknowledgement.
-     * @throws NullPointerException if one of the required parameters was {@code null}.
-     * @deprecated as of 2.0.0 please use
-     * {@link #of(AcknowledgementLabel, EntityIdWithType, HttpStatus, DittoHeaders, JsonValue)} instead.
-     */
-    @Deprecated
-    static Acknowledgement of(final AcknowledgementLabel label,
-            final EntityIdWithType entityId,
-            final HttpStatusCode statusCode,
-            final DittoHeaders dittoHeaders,
-            @Nullable final JsonValue payload) {
-
-        return of(label, entityId, statusCode.getAsHttpStatus(), dittoHeaders, payload);
-    }
-
-    /**
-     * Returns a new {@code Acknowledgement} for the specified parameters.
-     *
-     * @param label the label of the new Acknowledgement.
-     * @param entityId the ID of the affected entity being acknowledged.
      * @param httpStatus the HTTP status of the Acknowledgement.
      * @param dittoHeaders the DittoHeaders.
      * @param payload the optional payload of the Acknowledgement.
@@ -97,7 +74,7 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
      * @since 2.0.0
      */
     static Acknowledgement of(final AcknowledgementLabel label,
-            final EntityIdWithType entityId,
+            final EntityId entityId,
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders,
             @Nullable final JsonValue payload) {
@@ -117,7 +94,7 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
      * @since 1.5.0
      */
     static Acknowledgement weak(final AcknowledgementLabel label,
-            final EntityIdWithType entityId,
+            final EntityId entityId,
             final DittoHeaders dittoHeaders,
             @Nullable final JsonValue payload) {
 
@@ -132,27 +109,6 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
      *
      * @param label the label of the new Acknowledgement.
      * @param entityId the ID of the affected entity being acknowledged.
-     * @param statusCode the status code (HTTP semantics) of the Acknowledgement.
-     * @param dittoHeaders the DittoHeaders.
-     * @return the ImmutableAcknowledgement.
-     * @throws NullPointerException if one of the required parameters was {@code null}.
-     * @deprecated as of 2.0.0 please use {@link #of(AcknowledgementLabel, EntityIdWithType, HttpStatus, DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    static Acknowledgement of(final AcknowledgementLabel label,
-            final EntityIdWithType entityId,
-            final HttpStatusCode statusCode,
-            final DittoHeaders dittoHeaders) {
-
-        return of(label, entityId, statusCode.getAsHttpStatus(), dittoHeaders);
-    }
-
-    /**
-     * Returns a new {@code Acknowledgement} for the specified parameters.
-     *
-     * @param label the label of the new Acknowledgement.
-     * @param entityId the ID of the affected entity being acknowledged.
      * @param httpStatus the HTTP status of the Acknowledgement.
      * @param dittoHeaders the DittoHeaders.
      * @return the ImmutableAcknowledgement.
@@ -160,7 +116,7 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
      * @since 2.0.0
      */
     static Acknowledgement of(final AcknowledgementLabel label,
-            final EntityIdWithType entityId,
+            final EntityId entityId,
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
@@ -206,26 +162,6 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
         } else {
             return ResponseType.NACK;
         }
-    }
-
-    /**
-     * Returns the status code of the Acknowledgement specifying whether it was a successful {@code ACK} or a
-     * {@code NACK} where the status code is something else than {@code 2xx}.
-     *
-     * @return the status code of the Acknowledgement.
-     * @deprecated as of 2.0.0 please use {@link #getHttpStatus()} instead.
-     */
-    @Override
-    @Deprecated
-    default HttpStatusCode getStatusCode() {
-        final HttpStatus httpStatus = getHttpStatus();
-        return HttpStatusCode.forInt(httpStatus.getCode()).orElseThrow(() -> {
-
-            // This might happen at runtime when httpStatus has a code which is
-            // not reflected as constant in HttpStatusCode.
-            final String msgPattern = "Found no HttpStatusCode for int <{0}>!";
-            return new IllegalStateException(MessageFormat.format(msgPattern, httpStatus.getCode()));
-        });
     }
 
     /**
@@ -280,7 +216,7 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
     }
 
     @Override
-    EntityIdWithType getEntityId();
+    EntityId getEntityId();
 
     /**
      * Definition of fields of the JSON representation of an {@link Acknowledgement}.
@@ -295,42 +231,42 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
          * Definition of the JSON field for the Acknowledgement's label.
          */
         public static final JsonFieldDefinition<String> LABEL =
-                JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * Definition of the JSON field for the Acknowledgement's entity ID.
          */
         public static final JsonFieldDefinition<String> ENTITY_ID =
-                JsonFactory.newStringFieldDefinition("entityId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("entityId", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * Definition of the JSON field for the Acknowledgement's entity type.
          */
         public static final JsonFieldDefinition<String> ENTITY_TYPE =
-                JsonFactory.newStringFieldDefinition("entityType", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("entityType", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * Definition of the JSON field for the Acknowledgement's status code.
          */
         public static final JsonFieldDefinition<Integer> STATUS_CODE =
-                JsonFactory.newIntFieldDefinition("status", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newIntFieldDefinition("status", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * Definition of the JSON field for the optional Acknowledgement's payload.
          */
         public static final JsonFieldDefinition<JsonValue> PAYLOAD =
-                JsonFactory.newJsonValueFieldDefinition("payload", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonValueFieldDefinition("payload", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * Definition of the JSON field for the Acknowledgement's DittoHeaders.
          */
         public static final JsonFieldDefinition<JsonObject> DITTO_HEADERS =
-                JsonFactory.newJsonObjectFieldDefinition("headers", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonObjectFieldDefinition("headers", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
     }

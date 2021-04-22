@@ -56,10 +56,6 @@ public class ThingResourceMapper<P, R> {
         switch (resource) {
             case THING:
                 return visitor.visitThing(path, param);
-            case ACL:
-                return visitor.visitAcl(path, param);
-            case ACL_ENTRY:
-                return visitor.visitAclEntry(path, param);
             case POLICY_ID:
                 return visitor.visitPolicyId(path, param);
             case ATTRIBUTES:

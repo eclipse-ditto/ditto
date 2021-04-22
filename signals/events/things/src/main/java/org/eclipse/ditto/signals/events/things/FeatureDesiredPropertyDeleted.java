@@ -42,7 +42,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * @since 1.5.0
  */
 @Immutable
-@JsonParsableEvent(name = FeatureDesiredPropertyDeleted.NAME, typePrefix = FeatureDesiredPropertyDeleted.TYPE_PREFIX)
+@JsonParsableEvent(name = FeatureDesiredPropertyDeleted.NAME, typePrefix = ThingEvent.TYPE_PREFIX)
 public final class FeatureDesiredPropertyDeleted extends AbstractThingEvent<FeatureDesiredPropertyDeleted> implements
         ThingModifiedEvent<FeatureDesiredPropertyDeleted>, WithFeatureId {
 
@@ -129,9 +129,9 @@ public final class FeatureDesiredPropertyDeleted extends AbstractThingEvent<Feat
     public static FeatureDesiredPropertyDeleted fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<FeatureDesiredPropertyDeleted>(TYPE, jsonObject)
                 .deserialize((revision, timestamp, metadata) -> {
-                    final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+                    final String extractedThingId = jsonObject.getValueOrThrow(ThingEvent.JsonFields.THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
-                    final String extractedFeatureId = jsonObject.getValueOrThrow(JsonFields.FEATURE_ID);
+                    final String extractedFeatureId = jsonObject.getValueOrThrow(ThingEvent.JsonFields.FEATURE_ID);
                     final JsonPointer extractedPointer =
                             JsonFactory.newPointer(jsonObject.getValueOrThrow(JSON_DESIRED_PROPERTY));
 
@@ -162,13 +162,13 @@ public final class FeatureDesiredPropertyDeleted extends AbstractThingEvent<Feat
 
     @Override
     public FeatureDesiredPropertyDeleted setRevision(final long revision) {
-        return of(getThingEntityId(), featureId, desiredPropertyPointer, revision, getTimestamp().orElse(null),
+        return of(getEntityId(), featureId, desiredPropertyPointer, revision, getTimestamp().orElse(null),
                 getDittoHeaders(), getMetadata().orElse(null));
     }
 
     @Override
     public FeatureDesiredPropertyDeleted setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), featureId, desiredPropertyPointer, getRevision(), getTimestamp().orElse(null),
+        return of(getEntityId(), featureId, desiredPropertyPointer, getRevision(), getTimestamp().orElse(null),
                 dittoHeaders, getMetadata().orElse(null));
     }
 
@@ -177,7 +177,7 @@ public final class FeatureDesiredPropertyDeleted extends AbstractThingEvent<Feat
             final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(JsonFields.FEATURE_ID, featureId, predicate);
+        jsonObjectBuilder.set(ThingEvent.JsonFields.FEATURE_ID, featureId, predicate);
         jsonObjectBuilder.set(JSON_DESIRED_PROPERTY, desiredPropertyPointer.toString(), predicate);
     }
 

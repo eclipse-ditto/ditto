@@ -34,7 +34,7 @@ public class PolicyCreatedStrategyTest extends AbstractPolicyEventStrategyTest<P
 
     @Override
     PolicyCreated getPolicyEvent(final Instant instant, final Policy policy) {
-        return PolicyCreated.of(policy, 0, instant, DittoHeaders.empty());
+        return PolicyCreated.of(policy, 0, instant, DittoHeaders.empty(), METADATA);
     }
 
     @Override

@@ -26,7 +26,6 @@ import nl.jqno.equalsverifier.Warning;
  */
 public class SingleComparisonNodeTest {
 
-    /** */
     @Test
     public void hashcodeAndEquals() {
         EqualsVerifier.forClass(SingleComparisonNode.class)
@@ -35,13 +34,11 @@ public class SingleComparisonNodeTest {
                 .verify();
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void typeConstructorWithNullAsFilterProperty() {
         new SingleComparisonNode(SingleComparisonNode.Type.EQ, null, "test");
     }
 
-    /** */
     @Test
     public void typeConstructorSuccess() {
         final SingleComparisonNode singleComparisonNode =
@@ -53,7 +50,6 @@ public class SingleComparisonNodeTest {
         assertThat(singleComparisonNode.getComparisonValue()).isEqualTo("propertyValue");
     }
 
-    /** */
     @Test
     public void typeConstructorWithNullAsValue() {
         final SingleComparisonNode singleComparisonNode = new SingleComparisonNode(

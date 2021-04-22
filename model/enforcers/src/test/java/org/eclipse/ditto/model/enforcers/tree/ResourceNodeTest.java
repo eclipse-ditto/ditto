@@ -38,7 +38,6 @@ public final class ResourceNodeTest {
     @Mock
     private static PolicyTreeNode knownParent;
 
-    /** */
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ResourceNode.class)
@@ -48,19 +47,16 @@ public final class ResourceNodeTest {
                 .verify();
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullParent() {
         ResourceNode.of(null, KNOWN_NAME, KNOWN_PERMISSIONS);
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullName() {
         ResourceNode.of(knownParent, null, KNOWN_PERMISSIONS);
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPermissions() {
         ResourceNode.of(knownParent, KNOWN_NAME, null);

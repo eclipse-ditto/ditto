@@ -29,7 +29,7 @@ import javax.annotation.concurrent.Immutable;
  * This factory is capable of parsing a (complex) JSON field selector string in order to create an instance of
  * {@link ImmutableJsonFieldSelector}. For example, the field selector string
  * <p>
- * {@code "thingId,attributes(acceleration,someData(foo,bar/baz)),acl,features/key"}
+ * {@code "thingId,attributes(acceleration,someData(foo,bar/baz)),features/key"}
  * </p>
  * would lead to a JSON field selector which consists of the following JSON pointers:
  * <ul>
@@ -37,7 +37,6 @@ import javax.annotation.concurrent.Immutable;
  * <li>{@code "attributes/acceleration"},</li>
  * <li>{@code "attributes/someData/foo"},</li>
  * <li>{@code "attributes/someData/bar/baz"},</li>
- * <li>{@code "acl"} and</li>
  * <li>{@code "features/key"}.</li>
  * </ul>
  */
@@ -105,10 +104,10 @@ final class ImmutableJsonFieldSelectorFactory {
      *
      * Example Strings and how they are split:
      * <pre>
-     *    "thingId,attributes,acl"                               List [ "thingId", "attributes", "acl" ]
-     *    "thingId,attributes(someAttr),acl"                     List [ "thingId", "attributes", "acl" ]
-     *    "thingId,attributes(someAttr,someOther,another),acl"   List [ "thingId", "attributes", "acl" ]
-     *    "thingId,attributes(someAttr/subel,foo),acl"           List [ "thingId", "attributes", "acl" ]
+     *    "thingId,attributes"                               List [ "thingId", "attributes" ]
+     *    "thingId,attributes(someAttr)"                     List [ "thingId", "attributes" ]
+     *    "thingId,attributes(someAttr,someOther,another)"   List [ "thingId", "attributes" ]
+     *    "thingId,attributes(someAttr/subel,foo)"           List [ "thingId", "attributes" ]
      * </pre>
      *
      * @return a List of the single split parts.

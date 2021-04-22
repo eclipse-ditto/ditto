@@ -248,7 +248,7 @@ public final class RetrieveConnectionLogsAggregatorActorTest {
         final RetrieveConnectionLogsResponse firstResponse = clientResponses.stream().findFirst()
                 .orElseThrow(() -> new IllegalStateException("collection should contain at least one response"));
 
-        return RetrieveConnectionLogsResponse.of(firstResponse.getConnectionEntityId(),
+        return RetrieveConnectionLogsResponse.of(firstResponse.getEntityId(),
                 mergedLogEntries,
                 firstResponse.getEnabledSince().orElse(null),
                 firstResponse.getEnabledUntil().orElse(null),

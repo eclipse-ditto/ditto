@@ -55,7 +55,7 @@ public final class CreateThingResponse extends AbstractCommandResponse<CreateThi
     public static final String TYPE = TYPE_PREFIX + CreateThing.NAME;
 
     static final JsonFieldDefinition<JsonValue> JSON_THING =
-            JsonFactory.newJsonValueFieldDefinition("thing", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonValueFieldDefinition("thing", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final Thing createdThing;
@@ -126,7 +126,7 @@ public final class CreateThingResponse extends AbstractCommandResponse<CreateThi
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return createdThing.getEntityId()
                 .orElseThrow(() -> new IllegalStateException("Thing ID was not present in created Thing"));
     }

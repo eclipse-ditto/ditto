@@ -23,7 +23,6 @@ import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.thingsearch.SearchModelFactory;
@@ -209,7 +208,7 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                 .map(ThingId::of)
                 .collect(Collectors.toSet());
 
-        final Collection<NamespacedEntityId> outOfSyncThingIds = queryThingsResponseThingIds.stream()
+        final Collection<ThingId> outOfSyncThingIds = queryThingsResponseThingIds.stream()
                 .filter(thingId -> !retrievedThingIds.contains(thingId))
                 .collect(Collectors.toList());
 

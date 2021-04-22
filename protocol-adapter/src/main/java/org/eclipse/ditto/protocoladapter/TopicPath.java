@@ -16,7 +16,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import org.eclipse.ditto.model.base.entity.type.EntityType;
+import org.eclipse.ditto.model.policies.PolicyConstants;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
@@ -39,19 +42,6 @@ public interface TopicPath {
 
     String ID_PLACEHOLDER = "_";
     String PATH_DELIMITER = "/";
-
-    /**
-     * Returns a mutable builder to create immutable {@code TopicPath} instances for a given {@code thingId}.
-     *
-     * @param thingId the identifier of the {@code Thing}.
-     * @return the builder.
-     * @throws NullPointerException if {@code thingId} is {@code null}.
-     * @deprecated Thing ID is now typed. Use {@link #newBuilder(org.eclipse.ditto.model.things.ThingId)} instead.
-     */
-    @Deprecated
-    static TopicPathBuilder newBuilder(final String thingId) {
-        return newBuilder(ThingId.of(thingId));
-    }
 
     /**
      * Returns a mutable builder to create immutable {@code TopicPath} instances for a given {@code thingId}.
@@ -136,15 +126,6 @@ public interface TopicPath {
     Optional<String> getSubject();
 
     /**
-     * Returns the id part of this {@code TopicPath}.
-     *
-     * @return the id.
-     * @deprecated Since 1.4.0. Use {@link #getEntityName()} instead.
-     */
-    @Deprecated
-    String getId();
-
-    /**
      * Returns the entity name part of this {@code TopicPath}.
      *
      * @return the entity name.
@@ -159,7 +140,7 @@ public interface TopicPath {
     String getPath();
 
     default boolean isWildcardTopic() {
-        return ID_PLACEHOLDER.equals(getId());
+        return ID_PLACEHOLDER.equals(getEntityName());
     }
 
     /**
@@ -167,14 +148,16 @@ public interface TopicPath {
      */
     enum Group {
 
-        POLICIES("policies"),
+        POLICIES("policies", PolicyConstants.ENTITY_TYPE),
 
-        THINGS("things");
+        THINGS("things", ThingConstants.ENTITY_TYPE);
 
         private final String name;
+        private final EntityType entityType;
 
-        Group(final String name) {
+        Group(final String name, final EntityType entityType) {
             this.name = name;
+            this.entityType = entityType;
         }
 
         /**
@@ -196,6 +179,10 @@ public interface TopicPath {
          */
         public String getName() {
             return name;
+        }
+
+        EntityType getEntityType() {
+            return entityType;
         }
 
         @Override

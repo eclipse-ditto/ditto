@@ -29,14 +29,6 @@ import org.eclipse.ditto.json.JsonKey;
 public enum JsonSchemaVersion implements JsonFieldMarker, Predicate<JsonField> {
 
     /**
-     * Version 1 of JSON schema.
-     *
-     * @deprecated deprecated API version 1. Use API version 2 instead.
-     */
-    @Deprecated
-    V_1(1),
-
-    /**
      * Version 2 of JSON schema.
      */
     V_2(2);

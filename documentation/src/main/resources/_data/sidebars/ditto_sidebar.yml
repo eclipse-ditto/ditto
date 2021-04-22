@@ -139,9 +139,6 @@ entries:
                   - title: Thing
                     url: /basic-thing.html
                     output: web
-                  - title: Access Control List (ACL)
-                    url: /basic-acl.html
-                    output: web
                   - title: Feature
                     url: /basic-feature.html
                     output: web

@@ -16,6 +16,7 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -24,8 +25,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayPlaceholderReferenceNotSupportedException;
 
 /**
@@ -74,7 +75,7 @@ public final class ReferencePlaceholder {
         final Matcher matcher = referencePlaceholderPattern.matcher(input);
         if (matcher.find()) {
             final ReferencedEntityType referencedEntityType = ReferencedEntityType.fromString(matcher.group(1));
-            final EntityId entityId = DefaultEntityId.of(matcher.group(2));
+            final EntityId entityId = referencedEntityType.toEntityId(matcher.group(2));
             final JsonPointer referencedField = JsonPointer.of(matcher.group(3));
             return Optional.of(new ReferencePlaceholder(referencedEntityType, entityId, referencedField));
         }
@@ -125,7 +126,13 @@ public final class ReferencePlaceholder {
 
     public enum ReferencedEntityType {
 
-        THINGS;
+        THINGS(ThingId::of);
+
+        private final Function<? super CharSequence, ? extends EntityId> entityIdFactory;
+
+        <I extends EntityId> ReferencedEntityType(final Function<? super CharSequence, I> entityIdFactory) {
+            this.entityIdFactory = entityIdFactory;
+        }
 
         public static ReferencedEntityType fromString(final String referencedEntityTypeString) {
             if ("things".equalsIgnoreCase(referencedEntityTypeString)) {
@@ -139,6 +146,11 @@ public final class ReferencePlaceholder {
                         .build();
             }
         }
+
+        private EntityId toEntityId(final CharSequence entityId) {
+            return entityIdFactory.apply(entityId);
+        }
+
     }
 
 }

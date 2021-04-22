@@ -15,7 +15,6 @@ package org.eclipse.ditto.protocoladapter;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -135,22 +134,6 @@ public final class HeaderTranslator {
         final HeaderEntryFilter headerEntryFilter = HeaderEntryFilters
                 .existsAsHeaderDefinitionAndExternal(headerDefinitions);
         return filterHeaders(dittoHeaders, headerEntryFilter);
-    }
-
-    /**
-     * Build a copy of this header translator without knowledge of certain headers.
-     *
-     * @param headerKeys header keys to forget.
-     * @return a new header translator with less knowledge.
-     * @throws NullPointerException if {@code headerKeys} is {@code null}.
-     * @deprecated this method will be removed in version 2.0.
-     */
-    @Deprecated
-    public HeaderTranslator forgetHeaderKeys(final Collection<String> headerKeys) {
-        checkNotNull(headerKeys, "headerKeys");
-        final Map<String, HeaderDefinition> newHeaderDefinitions = new LinkedHashMap<>(headerDefinitions);
-        headerKeys.forEach(newHeaderDefinitions::remove);
-        return new HeaderTranslator(newHeaderDefinitions);
     }
 
     private static Map<String, String> filterHeaders(final Map<String, String> headersToFilter,

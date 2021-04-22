@@ -23,14 +23,15 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 
-import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.services.utils.cache.Cache;
-import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
+import org.eclipse.ditto.services.utils.cache.CacheKey;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -41,9 +42,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class EnforcerRetrieverTest {
 
     @Mock
-    private Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> idCache;
+    private Cache<CacheKey, Entry<CacheKey>> idCache;
     @Mock
-    private Cache<EntityIdWithResourceType, Entry<Enforcer>> enforcerCache;
+    private Cache<CacheKey, Entry<Enforcer>> enforcerCache;
 
     private EnforcerRetriever<Enforcer> retriever;
 
@@ -54,14 +55,12 @@ public class EnforcerRetrieverTest {
 
     @Test
     public void verifyLookupRevealsInnerException() throws ExecutionException, InterruptedException {
-        final DittoRuntimeException expectedException =
-                DittoRuntimeException.newBuilder("this should be happening", HttpStatus.HTTPVERSION_NOT_SUPPORTED)
-                        .build();
-        final EntityIdWithResourceType entityId = EntityIdWithResourceType.of("any", DefaultEntityId.of("id"));
-        when(idCache.get(any(EntityIdWithResourceType.class))).thenReturn(
+        final DittoRuntimeException expectedException = GatewayInternalErrorException.newBuilder().build();
+        final CacheKey entityId = CacheKey.of(EntityId.of(EntityType.of("any"), "id"));
+        when(idCache.get(any(CacheKey.class))).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(Entry.nonexistent())));
 
-        final CompletionStage<Contextual<WithDittoHeaders<?>>> result =
+        final CompletionStage<Contextual<WithDittoHeaders>> result =
                 retriever.retrieve(entityId, (entityIdEntry, enforcerEntry) -> {
                     throw expectedException;
                 });
@@ -73,17 +72,14 @@ public class EnforcerRetrieverTest {
 
     @Test
     public void verifyLookupRevealsInnermostException() throws ExecutionException, InterruptedException {
-        final DittoRuntimeException expectedException =
-                DittoRuntimeException.newBuilder("this should be happening", HttpStatus.HTTPVERSION_NOT_SUPPORTED)
-                        .build();
-        final EntityIdWithResourceType entityId = EntityIdWithResourceType.of("any", DefaultEntityId.of("id"));
-        final EntityIdWithResourceType innerEntityId =
-                EntityIdWithResourceType.of("other", DefaultEntityId.of("randomId"));
-        when(idCache.get(any(EntityIdWithResourceType.class))).thenReturn(
+        final DittoRuntimeException expectedException = GatewayInternalErrorException.newBuilder().build();
+        final CacheKey entityId = CacheKey.of(EntityId.of(EntityType.of("any"), "id"));
+        final CacheKey innerEntityId = CacheKey.of(EntityId.of(EntityType.of("other"), "randomId"));
+        when(idCache.get(any(CacheKey.class))).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(Entry.permanent(innerEntityId))));
-        when(enforcerCache.get(any(EntityIdWithResourceType.class))).thenReturn(
+        when(enforcerCache.get(any(CacheKey.class))).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(Entry.nonexistent())));
-        final CompletionStage<Contextual<WithDittoHeaders<?>>> result =
+        final CompletionStage<Contextual<WithDittoHeaders>> result =
                 retriever.retrieve(entityId, (entityIdEntry, enforcerEntry) -> {
                     throw expectedException;
                 });
@@ -95,14 +91,12 @@ public class EnforcerRetrieverTest {
 
     @Test
     public void verifyLookupEnforcerRevealsException() throws ExecutionException, InterruptedException {
-        final DittoRuntimeException expectedException =
-                DittoRuntimeException.newBuilder("this should be happening", HttpStatus.HTTPVERSION_NOT_SUPPORTED)
-                        .build();
-        final EntityIdWithResourceType entityId = EntityIdWithResourceType.of("any", DefaultEntityId.of("id"));
-        when(enforcerCache.get(any(EntityIdWithResourceType.class))).thenReturn(
+        final DittoRuntimeException expectedException = GatewayInternalErrorException.newBuilder().build();
+        final CacheKey entityId = CacheKey.of(EntityId.of(EntityType.of("any"), "id"));
+        when(enforcerCache.get(any(CacheKey.class))).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(Entry.nonexistent())));
 
-        final CompletionStage<Contextual<WithDittoHeaders<?>>> result =
+        final CompletionStage<Contextual<WithDittoHeaders>> result =
                 retriever.retrieveByEnforcerKey(entityId, enforcerEntry -> {
                     throw expectedException;
                 });
@@ -111,9 +105,9 @@ public class EnforcerRetrieverTest {
         verifyException(result, expectedException);
     }
 
-    private static void verifyException(final CompletionStage<Contextual<WithDittoHeaders<?>>> completionStage,
+    private static void verifyException(final CompletionStage<Contextual<WithDittoHeaders>> completionStage,
             final Throwable expectedException) throws ExecutionException, InterruptedException {
-        assertThat(completionStage.thenApply(_void -> new RuntimeException("this should not be happening"))
+        assertThat(completionStage.thenApply(unused -> new RuntimeException("this should not be happening"))
                 .exceptionally(executionException -> (RuntimeException) executionException.getCause())
                 .toCompletableFuture()
                 .get())

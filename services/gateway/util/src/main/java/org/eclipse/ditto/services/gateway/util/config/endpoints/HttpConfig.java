@@ -112,7 +112,7 @@ public interface HttpConfig extends org.eclipse.ditto.services.base.config.http.
         /**
          * The schema versions the API Gateway should support.
          */
-        SCHEMA_VERSIONS("http.schema-versions", List.of(1, 2)),
+        SCHEMA_VERSIONS("http.schema-versions", List.of(2)),
 
         /**
          * Determines whether transport encryption via HTTPS should be enforced.

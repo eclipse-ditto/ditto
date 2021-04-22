@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_ID;
-import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_V2;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
 import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.retrieveFeatureResponse;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -52,7 +51,7 @@ public final class RetrieveFeatureStrategyTest extends AbstractCommandStrategyTe
         final RetrieveFeature command =
                 RetrieveFeature.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
         final RetrieveFeatureResponse expectedResponse =
-                retrieveFeatureResponse(command.getThingEntityId(), FLUX_CAPACITOR_V2, FLUX_CAPACITOR_V2.toJson(),
+                retrieveFeatureResponse(command.getEntityId(), FLUX_CAPACITOR, FLUX_CAPACITOR.toJson(),
                         command.getDittoHeaders());
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
@@ -64,7 +63,7 @@ public final class RetrieveFeatureStrategyTest extends AbstractCommandStrategyTe
         final RetrieveFeature command =
                 RetrieveFeature.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featureNotFound(command.getThingEntityId(), command.getFeatureId(),
+                ExceptionFactory.featureNotFound(command.getEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.removeFeatures(), command, expectedException);
@@ -76,7 +75,7 @@ public final class RetrieveFeatureStrategyTest extends AbstractCommandStrategyTe
         final RetrieveFeature command =
                 RetrieveFeature.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featureNotFound(command.getThingEntityId(), command.getFeatureId(),
+                ExceptionFactory.featureNotFound(command.getEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.removeFeature(FLUX_CAPACITOR_ID), command, expectedException);

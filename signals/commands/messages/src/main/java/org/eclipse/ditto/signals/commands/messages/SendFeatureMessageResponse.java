@@ -26,7 +26,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -58,7 +57,7 @@ public final class SendFeatureMessageResponse<T>
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     private static final JsonFieldDefinition<String> JSON_FEATURE_ID =
-            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final String featureId;
@@ -75,55 +74,8 @@ public final class SendFeatureMessageResponse<T>
     }
 
     @Override
-    public SendFeatureMessageResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), getFeatureId(), getMessage(), getHttpStatus(), dittoHeaders);
-    }
-
-    /**
-     * Creates a new instance of {@code SendFeatureMessageResponse}.
-     *
-     * @param thingId the ID of the Thing to send the message from.
-     * @param featureId the ID of the Feature to send the message from.
-     * @param message the response message to send from the Thing.
-     * @param responseStatusCode the optional status code of this response.
-     * @param dittoHeaders the DittoHeaders of this message.
-     * @param <T> the type of the message's payload.
-     * @return new instance of {@code SendFeatureMessageResponse}.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Thing ID is now typed. Use {@link #of(ThingId, String, Message, HttpStatus, DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static <T> SendFeatureMessageResponse<T> of(final String thingId,
-            final String featureId,
-            final Message<T> message,
-            final HttpStatusCode responseStatusCode,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), featureId, message, responseStatusCode.getAsHttpStatus(), dittoHeaders);
-    }
-
-    /**
-     * Creates a new instance of {@code SendFeatureMessageResponse}.
-     *
-     * @param thingId the ID of the Thing to send the message from.
-     * @param featureId the ID of the Feature to send the message from.
-     * @param message the response message to send from the Thing.
-     * @param responseStatusCode the optional status code of this response.
-     * @param dittoHeaders the DittoHeaders of this message.
-     * @param <T> the type of the message's payload.
-     * @return new instance of {@code SendFeatureMessageResponse}.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated as of 2.0.0 please use {@link #of(ThingId, String, Message, HttpStatus, DittoHeaders)} instead.
-     */
-    @Deprecated
-    public static <T> SendFeatureMessageResponse<T> of(final ThingId thingId,
-            final String featureId,
-            final Message<T> message,
-            final HttpStatusCode responseStatusCode,
-            final DittoHeaders dittoHeaders) {
-
-        return of(thingId, featureId, message, responseStatusCode.getAsHttpStatus(), dittoHeaders);
+    public SendFeatureMessageResponse<T> setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return of(getEntityId(), getFeatureId(), getMessage(), getHttpStatus(), dittoHeaders);
     }
 
     /**
@@ -218,7 +170,7 @@ public final class SendFeatureMessageResponse<T>
         jsonObjectBuilder.remove(MessageCommand.JsonFields.JSON_THING_ID);
         final JsonObject superBuild = jsonObjectBuilder.build();
         jsonObjectBuilder.removeAll();
-        jsonObjectBuilder.set(MessageCommand.JsonFields.JSON_THING_ID, getThingEntityId().toString());
+        jsonObjectBuilder.set(MessageCommand.JsonFields.JSON_THING_ID, getEntityId().toString());
         jsonObjectBuilder.set(JSON_FEATURE_ID, getFeatureId());
         jsonObjectBuilder.setAll(superBuild);
     }

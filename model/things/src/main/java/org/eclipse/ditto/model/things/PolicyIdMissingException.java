@@ -44,23 +44,11 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
             "The schema version of the Thing with ID ''{0}'' does not allow an update on schema version ''{1}'' " +
                     "without providing a policy id";
 
-    private static final String DEFAULT_DESCRIPTION_UPDATE =
-            "When updating a schema version 1 Thing using a higher schema version API, you need to add a policyId. " +
-                    "Be aware that this will convert the Thing to the higher schema version, thus removing all ACL " +
-                    "information from it.";
+    private static final String DEFAULT_DESCRIPTION = "Please provide a valid Policy ID.";
 
     private static final String MESSAGE_TEMPLATE_CREATE =
             "The schema version of the Thing with ID ''{0}'' (''{1}'') does not allow creation without " +
                     "providing a policy id";
-
-    private static final String DEFAULT_DESCRIPTION_CREATE =
-            "You need to specify a policy id.";
-
-    private static final String DEFAULT_DESCRIPTION_GENERIC =
-            "Either you need to specific a PolicyId or when updating " +
-                    "a schema version 1 Thing using a higher schema version API, you need to add a policyId. " +
-                    "Be aware that this will convert the Thing to the higher schema version, thus removing all ACL " +
-                    "information from it.";
 
     private static final long serialVersionUID = -2640894758584381867L;
 
@@ -81,7 +69,7 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
      */
     public static PolicyIdMissingException fromThingIdOnUpdate(final ThingId thingId, final DittoHeaders dittoHeaders) {
         final JsonSchemaVersion schemaVersion = dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST);
-        return new Builder(thingId, schemaVersion, MESSAGE_TEMPLATE_UPDATE, DEFAULT_DESCRIPTION_UPDATE)
+        return new Builder(thingId, schemaVersion, MESSAGE_TEMPLATE_UPDATE, DEFAULT_DESCRIPTION)
                 .dittoHeaders(dittoHeaders)
                 .build();
     }
@@ -95,7 +83,7 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
      */
     public static PolicyIdMissingException fromThingIdOnCreate(final ThingId thingId, final DittoHeaders dittoHeaders) {
         final JsonSchemaVersion schemaVersion = dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST);
-        return new Builder(thingId, schemaVersion, MESSAGE_TEMPLATE_CREATE, DEFAULT_DESCRIPTION_CREATE)
+        return new Builder(thingId, schemaVersion, MESSAGE_TEMPLATE_CREATE, DEFAULT_DESCRIPTION)
                 .dittoHeaders(dittoHeaders)
                 .build();
     }
@@ -118,11 +106,6 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
     }
 
     @Override
-    public JsonSchemaVersion[] getSupportedSchemaVersions() {
-        return new JsonSchemaVersion[]{JsonSchemaVersion.V_1};
-    }
-
-    @Override
     public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new Builder()
                 .message(getMessage())
@@ -140,7 +123,7 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
     public static final class Builder extends DittoRuntimeExceptionBuilder<PolicyIdMissingException> {
 
         private Builder() {
-            description(DEFAULT_DESCRIPTION_GENERIC);
+            description(DEFAULT_DESCRIPTION);
         }
 
         private Builder(final ThingId thingId, final JsonSchemaVersion version, final String messageTemplate,

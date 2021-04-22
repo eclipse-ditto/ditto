@@ -119,7 +119,7 @@ final class ImmutableAttributesBuilder implements AttributesBuilder {
     }
 
     @Override
-    public AttributesBuilder remove(final JsonFieldDefinition fieldDefinition) {
+    public AttributesBuilder remove(final JsonFieldDefinition<?> fieldDefinition) {
         jsonObjectBuilder.remove(fieldDefinition);
         return this;
     }

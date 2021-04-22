@@ -129,7 +129,7 @@ public class ConnectivityCounterRegistryTest {
                 ConnectivityCounterRegistry.mergeRetrieveConnectionMetricsResponse(
                         TestConstants.Metrics.METRICS_RESPONSE1, TestConstants.Metrics.METRICS_RESPONSE2);
 
-        assertThat((CharSequence) merged.getConnectionEntityId()).isEqualTo(TestConstants.Metrics.ID);
+        assertThat((CharSequence) merged.getEntityId()).isEqualTo(TestConstants.Metrics.ID);
 
         // check overall sum of connection metrics
         assertThat(merged.getConnectionMetrics().getInboundMetrics().getMeasurements())

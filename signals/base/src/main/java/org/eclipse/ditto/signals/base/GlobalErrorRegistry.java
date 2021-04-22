@@ -66,6 +66,34 @@ public final class GlobalErrorRegistry
                         .build());
     }
 
+    @Override
+    public DittoRuntimeException parse(final String jsonString, final DittoHeaders dittoHeaders) {
+        try {
+            return super.parse(jsonString, dittoHeaders);
+        } catch (final JsonTypeNotParsableException e) {
+            return UnknownDittoRuntimeException.fromJson(JsonObject.of(jsonString), dittoHeaders);
+        }
+    }
+
+    @Override
+    public DittoRuntimeException parse(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        try {
+            return super.parse(jsonObject, dittoHeaders);
+        } catch (final JsonTypeNotParsableException e) {
+            return UnknownDittoRuntimeException.fromJson(jsonObject, dittoHeaders);
+        }
+    }
+
+    @Override
+    public DittoRuntimeException parse(final JsonObject jsonObject, final DittoHeaders dittoHeaders,
+            final ParseInnerJson parseInnerJson) {
+        try {
+            return super.parse(jsonObject, dittoHeaders, parseInnerJson);
+        } catch (final JsonTypeNotParsableException e) {
+            return UnknownDittoRuntimeException.fromJson(jsonObject, dittoHeaders);
+        }
+    }
+
     /**
      * Contains all strategies to deserialize {@link DittoJsonException} from a combination of
      * {@link JsonObject} and {@link DittoHeaders}.
@@ -117,12 +145,12 @@ public final class GlobalErrorRegistry
 
         @Nullable
         private static String getMessage(final JsonObject jsonObject) {
-            return jsonObject.getValue(DittoJsonException.JsonFields.MESSAGE).orElse(null);
+            return jsonObject.getValue(DittoRuntimeException.JsonFields.MESSAGE).orElse(null);
         }
 
         @Nullable
         private static String getDescription(final JsonObject jsonObject) {
-            return jsonObject.getValue(DittoJsonException.JsonFields.DESCRIPTION).orElse(null);
+            return jsonObject.getValue(DittoRuntimeException.JsonFields.DESCRIPTION).orElse(null);
         }
 
         private Map<String, JsonParsable<DittoRuntimeException>> getDittoJsonParseRegistries() {
@@ -139,12 +167,6 @@ public final class GlobalErrorRegistry
             extends AbstractAnnotationBasedJsonParsableFactory<DittoRuntimeException, JsonParsableException> {
 
         private ExceptionParsingStrategyFactory() {}
-
-        @Override
-        @Deprecated
-        protected String getV1FallbackKeyFor(final JsonParsableException annotation) {
-            return annotation.errorCode();
-        }
 
         @Override
         protected String getKeyFor(final JsonParsableException annotation) {

@@ -33,7 +33,7 @@ import org.eclipse.ditto.services.utils.pubsub.ddata.ack.GroupedSnapshot;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
@@ -47,7 +47,7 @@ import akka.japi.pf.ReceiveBuilder;
  *
  * @param <T> type of messages.
  */
-public final class Subscriber<T extends Signal<?>> extends AbstractActorWithTimers {
+public final class Subscriber<T extends SignalWithEntityId<?>> extends AbstractActorWithTimers {
 
     /**
      * Prefix of this actor's name.

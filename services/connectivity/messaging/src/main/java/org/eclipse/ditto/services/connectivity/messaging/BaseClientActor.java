@@ -49,6 +49,8 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.FatalPubSubException;
 import org.eclipse.ditto.model.base.acks.PubSubTerminatedException;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -1087,8 +1089,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final CompletionStage<Status.Status> consumersReady = startConsumerActors(clientConnected);
         final CompletionStage<Void> pubsubReady = subscribeAndDeclareAcknowledgementLabels();
 
-        return publisherReady.thenCompose(_void -> consumersReady)
-                .thenCompose(_void -> pubsubReady)
+        return publisherReady.thenCompose(unused -> consumersReady)
+                .thenCompose(unused -> pubsubReady)
                 .thenApply(unused -> InitializationResult.success())
                 .exceptionally(InitializationResult::failed);
     }
@@ -1250,7 +1252,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         logger.withCorrelationId(command)
                 .debug("Received RetrieveConnectionStatus for connection <{}> message from <{}>." +
-                                " Forwarding to consumers and publishers.", command.getConnectionEntityId(),
+                                " Forwarding to consumers and publishers.", command.getEntityId(),
                         getSender());
 
         // send to all children (consumers, publishers, except mapping actor)
@@ -1282,7 +1284,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         logger.withCorrelationId(command)
                 .debug("Received RetrieveConnectionMetrics message for connection <{}>. Gathering metrics.",
-                        command.getConnectionEntityId());
+                        command.getEntityId());
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         final SourceMetrics sourceMetrics = connectionCounterRegistry.aggregateSourceMetrics(connectionId());
@@ -1307,14 +1309,14 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         logger.withCorrelationId(command)
                 .debug("Received ResetConnectionMetrics message for connection <{}>. Resetting metrics.",
-                        command.getConnectionEntityId());
+                        command.getEntityId());
         connectionCounterRegistry.resetForConnection(data.getConnection());
 
         return stay();
     }
 
     private FSM.State<BaseClientState, BaseClientData> enableConnectionLogs(final EnableConnectionLogs command) {
-        final ConnectionId connectionId = command.getConnectionEntityId();
+        final ConnectionId connectionId = command.getEntityId();
         logger.withCorrelationId(command)
                 .debug("Received EnableConnectionLogs message for connection <{}>. Enabling logs.", connectionId);
 
@@ -1324,7 +1326,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     private FSM.State<BaseClientState, BaseClientData> checkLoggingActive(final CheckConnectionLogsActive command) {
-        final ConnectionId connectionId = command.getConnectionEntityId();
+        final ConnectionId connectionId = command.getEntityId();
         logger.withCorrelationId(command)
                 .debug("Received checkLoggingActive message for connection <{}>." +
                         " Checking if logging for connection is expired.", connectionId);
@@ -1340,7 +1342,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private FSM.State<BaseClientState, BaseClientData> retrieveConnectionLogs(final RetrieveConnectionLogs command) {
         logger.withCorrelationId(command)
                 .debug("Received RetrieveConnectionLogs message for connection <{}>. Gathering metrics.",
-                        command.getConnectionEntityId());
+                        command.getEntityId());
 
         final ConnectionLoggerRegistry.ConnectionLogs connectionLogs =
                 connectionLoggerRegistry.aggregateLogs(connectionId());
@@ -1378,7 +1380,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private DittoRuntimeException unhandledExceptionForSignalInState(final Object signal,
             final BaseClientState state) {
         final DittoHeaders headers = signal instanceof WithDittoHeaders
-                ? ((WithDittoHeaders<?>) signal).getDittoHeaders()
+                ? ((WithDittoHeaders) signal).getDittoHeaders()
                 : DittoHeaders.empty();
         switch (state) {
             case CONNECTING:
@@ -1446,7 +1448,9 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         if (signal instanceof WithSubscriptionId<?>) {
             dispatchSearchCommand((WithSubscriptionId<?>) signal);
         } else {
-            final ActorRef recipient = clientActorRefs.lookup(signal.getEntityId()).orElseThrow();
+            final ActorRef recipient = tryExtractEntityId(signal)
+                    .flatMap(clientActorRefs::lookup)
+                    .orElseThrow();
             if (getSelf().equals(recipient)) {
                 outboundDispatchingActor.tell(inboundSignal, getSender());
             } else {
@@ -1454,6 +1458,15 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             }
         }
         return stay();
+    }
+
+    private static Optional<EntityId> tryExtractEntityId(Signal<?> signal){
+        if (signal instanceof WithEntityId) {
+            final WithEntityId withEntityId = (WithEntityId) signal;
+            return Optional.of(withEntityId.getEntityId());
+        } else {
+            return Optional.empty();
+        }
     }
 
     private void dispatchSearchCommand(final WithSubscriptionId<?> searchCommand) {
@@ -1752,7 +1765,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     dittoProtocolSub.subscribe(getUniqueStreamingTypes(), getTargetAuthSubjects(), getSelf(), group);
             final CompletionStage<Void> declare =
                     dittoProtocolSub.declareAcknowledgementLabels(getDeclaredAcks(), getSelf(), group);
-            return declare.thenCompose(_void -> subscribe);
+            return declare.thenCompose(unused -> subscribe);
         }
     }
 

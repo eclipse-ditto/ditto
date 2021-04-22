@@ -50,7 +50,7 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
     public static final String TYPE = TYPE_PREFIX + DeleteFeatureDefinition.NAME;
 
     static final JsonFieldDefinition<String> JSON_FEATURE_ID =
-            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final ThingId thingId;
@@ -62,25 +62,6 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
         super(TYPE, HttpStatus.NO_CONTENT, dittoHeaders);
         this.thingId = thingId;
         this.featureId = checkNotNull(featureId, "Feature ID");
-    }
-
-    /**
-     * Creates a response to a {@link DeleteFeatureDefinition} command.
-     *
-     * @param thingId the Thing ID of the deleted Feature Definition.
-     * @param featureId the {@code Feature}'s ID whose Definition were deleted.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static DeleteFeatureDefinitionResponse of(final String thingId, final String featureId,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), featureId, dittoHeaders);
     }
 
     /**
@@ -154,7 +135,7 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

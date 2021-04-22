@@ -41,8 +41,6 @@ import org.eclipse.ditto.model.connectivity.Credentials;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.model.placeholders.ExpressionResolver;
-import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
@@ -54,6 +52,9 @@ import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigProvider
 import org.eclipse.ditto.services.connectivity.config.mapping.MapperLimitsConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders;
+import org.eclipse.ditto.services.models.placeholders.ExpressionResolver;
+import org.eclipse.ditto.services.models.placeholders.PlaceholderFactory;
 
 import akka.actor.ActorSystem;
 import akka.event.LoggingAdapter;
@@ -128,7 +129,7 @@ public final class ConnectionValidator {
             final ConnectionId connectionId,
             final Collection<Source> sources) {
         final ExpressionResolver connectionIdResolver = PlaceholderFactory.newExpressionResolver(
-                PlaceholderFactory.newConnectionIdPlaceholder(), connectionId);
+                ConnectivityPlaceholders.newConnectionIdPlaceholder(), connectionId);
         return sources.stream()
                 .flatMap(source -> source.getDeclaredAcknowledgementLabels().stream())
                 .map(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel))
@@ -148,7 +149,7 @@ public final class ConnectionValidator {
             final Collection<Target> targets) {
 
         final ExpressionResolver connectionIdResolver = PlaceholderFactory.newExpressionResolver(
-                PlaceholderFactory.newConnectionIdPlaceholder(), connectionId);
+                ConnectivityPlaceholders.newConnectionIdPlaceholder(), connectionId);
         return targets.stream()
                 .map(Target::getIssuedAcknowledgementLabel)
                 .flatMap(Optional::stream)
@@ -322,10 +323,10 @@ public final class ConnectionValidator {
                 final String location = String.format("Targets of connection <%s>", connection.getId());
                 throw emptyAddressesError(location, dittoHeaders);
             }
-            target.getTopics().forEach(topic -> topic.getFilter().ifPresent(filter -> {
+            target.getTopics().forEach(topic -> topic.getFilter().ifPresent(filter ->
                 // will throw an InvalidRqlExpressionException if the RQL expression was not valid:
-                queryFilterCriteriaFactory.filterCriteria(filter, dittoHeaders);
-            }));
+                queryFilterCriteriaFactory.filterCriteria(filter, dittoHeaders)
+            ));
         });
     }
 

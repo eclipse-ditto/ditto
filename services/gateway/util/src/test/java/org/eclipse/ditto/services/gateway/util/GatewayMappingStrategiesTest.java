@@ -28,12 +28,13 @@ import org.eclipse.ditto.model.messages.MessageFormatInvalidException;
 import org.eclipse.ditto.model.messages.MessageSendNotAllowedException;
 import org.eclipse.ditto.model.messages.MessageTimeoutException;
 import org.eclipse.ditto.model.messages.SubjectInvalidException;
-import org.eclipse.ditto.model.messages.TimeoutInvalidException;
+import org.eclipse.ditto.model.messages.ThingIdInvalidException;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.services.models.policies.PoliciesMappingStrategies;
 import org.eclipse.ditto.services.models.things.ThingsMappingStrategies;
 import org.eclipse.ditto.services.models.thingsearch.ThingSearchMappingStrategies;
+import org.eclipse.ditto.signals.announcements.policies.SubjectDeletionAnnouncement;
 import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.commands.devops.ChangeLogLevel;
 import org.eclipse.ditto.signals.commands.devops.ChangeLogLevelResponse;
@@ -49,7 +50,6 @@ import org.eclipse.ditto.signals.commands.messages.SendFeatureMessageResponse;
 import org.eclipse.ditto.signals.commands.messages.SendMessageAcceptedResponse;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
-import org.eclipse.ditto.signals.announcements.policies.SubjectDeletionAnnouncement;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -95,7 +95,7 @@ public final class GatewayMappingStrategiesTest {
                 .knows(MessageSendNotAllowedException.ERROR_CODE)
                 .knows(MessageTimeoutException.ERROR_CODE)
                 .knows(SubjectInvalidException.ERROR_CODE)
-                .knows(TimeoutInvalidException.ERROR_CODE);
+                .knows(ThingIdInvalidException.ERROR_CODE);
     }
 
     @Test

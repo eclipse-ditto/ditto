@@ -16,7 +16,6 @@ import org.eclipse.ditto.services.utils.persistentactors.EmptyEvent;
 import org.eclipse.ditto.services.utils.test.GlobalEventRegistryTestCases;
 import org.eclipse.ditto.signals.events.policies.ResourceDeleted;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
 
 public final class PoliciesServiceGlobalEventRegistryTest extends GlobalEventRegistryTestCases {
 
@@ -24,7 +23,6 @@ public final class PoliciesServiceGlobalEventRegistryTest extends GlobalEventReg
         super(ResourceDeleted.class,
 
                 // added due to ditto-model-placeholders
-                SubscriptionComplete.class,
                 ThingDeleted.class,
                 EmptyEvent.class
         );

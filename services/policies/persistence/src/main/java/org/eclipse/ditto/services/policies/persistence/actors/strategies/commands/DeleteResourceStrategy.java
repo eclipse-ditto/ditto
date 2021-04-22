@@ -69,7 +69,7 @@ final class DeleteResourceStrategy extends AbstractPolicyCommandStrategy<DeleteR
                 if (validator.isValid()) {
                     final ResourceDeleted resourceDeleted =
                             ResourceDeleted.of(policyId, label, resourceKey, nextRevision, getEventTimestamp(),
-                                    headers);
+                                    headers, metadata);
                     final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                             DeleteResourceResponse.of(policyId, label, resourceKey, headers), nonNullPolicy);
                     return ResultFactory.newMutationResult(command, resourceDeleted, response);

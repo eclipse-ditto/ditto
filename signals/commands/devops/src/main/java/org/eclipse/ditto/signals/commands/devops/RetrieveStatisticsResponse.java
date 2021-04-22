@@ -46,7 +46,7 @@ public final class RetrieveStatisticsResponse extends AbstractDevOpsCommandRespo
     public static final String TYPE = TYPE_PREFIX + RetrieveStatistics.NAME;
 
     private static final JsonFieldDefinition<JsonObject> JSON_STATISTICS =
-            JsonFactory.newJsonObjectFieldDefinition("statistics", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonObjectFieldDefinition("statistics", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final JsonObject statistics;

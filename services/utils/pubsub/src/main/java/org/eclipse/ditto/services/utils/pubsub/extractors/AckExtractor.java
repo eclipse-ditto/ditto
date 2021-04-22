@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
@@ -77,7 +77,7 @@ public interface AckExtractor<T> {
      * @param message the message.
      * @return the entity ID.
      */
-    EntityIdWithType getEntityId(final T message);
+    EntityId getEntityId(final T message);
 
     /**
      * Get the Ditto headers of a message.
@@ -96,7 +96,7 @@ public interface AckExtractor<T> {
      */
     default Acknowledgements toWeakAcknowledgements(final T message,
             final Collection<AcknowledgementLabel> ackLabels) {
-        final EntityIdWithType entityId = getEntityId(message);
+        final EntityId entityId = getEntityId(message);
         final DittoHeaders dittoHeaders = getDittoHeaders(message);
         return Acknowledgements.of(ackLabels.stream()
                         .map(ackLabel -> weakAck(ackLabel, entityId, dittoHeaders))
@@ -113,7 +113,7 @@ public interface AckExtractor<T> {
      * @param <T> the type of messages.
      * @return the AckExtractor.
      */
-    static <T> AckExtractor<T> of(final Function<T, EntityIdWithType> getEntityId,
+    static <T> AckExtractor<T> of(final Function<T, EntityId> getEntityId,
             final Function<T, DittoHeaders> getDittoHeaders) {
 
         return new AckExtractorImpl<>(getEntityId, getDittoHeaders);
@@ -130,7 +130,7 @@ public interface AckExtractor<T> {
      * @throws NullPointerException if one of the required parameters was {@code null}.
      */
     static Acknowledgement weakAck(final AcknowledgementLabel label,
-            final EntityIdWithType entityId,
+            final EntityId entityId,
             final DittoHeaders dittoHeaders) {
         final JsonValue payload = JsonValue.of("Acknowledgement was issued automatically as weak ack, " +
                 "because the signal is not relevant for the subscriber. Possible reasons are: " +

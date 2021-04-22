@@ -38,7 +38,7 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
  * Command that will reset logging for a {@link org.eclipse.ditto.model.connectivity.Connection}.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = ResetConnectionLogs.TYPE_PREFIX, name = ResetConnectionLogs.NAME)
+@JsonParsableCommand(typePrefix = ConnectivityCommand.TYPE_PREFIX, name = ResetConnectionLogs.NAME)
 public final class ResetConnectionLogs extends AbstractCommand<ResetConnectionLogs>
     implements ConnectivityModifyCommand<ResetConnectionLogs> {
 
@@ -113,7 +113,7 @@ public final class ResetConnectionLogs extends AbstractCommand<ResetConnectionLo
     }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return connectionId;
     }
 

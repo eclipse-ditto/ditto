@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -43,7 +44,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 @Immutable
 @JsonParsableCommandResponse(type = SudoRetrievePolicyResponse.TYPE)
 public final class SudoRetrievePolicyResponse extends AbstractCommandResponse<SudoRetrievePolicyResponse>
-        implements SudoCommandResponse<SudoRetrievePolicyResponse> {
+        implements SudoCommandResponse<SudoRetrievePolicyResponse>, SignalWithEntityId<SudoRetrievePolicyResponse> {
 
     /**
      * Type of this response.

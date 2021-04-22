@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 /**
  * This command deletes a thing. Contains the thingId of the {@link org.eclipse.ditto.model.things.Thing}.
@@ -38,7 +39,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * system, a response with status code {@code 404} (Not found) will be generated.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = DeleteThing.TYPE_PREFIX, name = DeleteThing.NAME)
+@JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = DeleteThing.NAME)
 public final class DeleteThing extends AbstractCommand<DeleteThing> implements ThingModifyCommand<DeleteThing> {
 
     /**
@@ -56,22 +57,6 @@ public final class DeleteThing extends AbstractCommand<DeleteThing> implements T
     private DeleteThing(final ThingId thingId, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
-    }
-
-    /**
-     * Returns a command for deleting a Thing. Its ID is passed as argument.
-     *
-     * @param thingId the ID of a Thing to be deleted by this command.
-     * @param dittoHeaders the headers of the command.
-     * @return a command for deleting the Thing.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static DeleteThing of(final String thingId, final DittoHeaders dittoHeaders) {
-        return of(ThingId.of(thingId), dittoHeaders);
     }
 
     /**
@@ -117,14 +102,14 @@ public final class DeleteThing extends AbstractCommand<DeleteThing> implements T
      */
     public static DeleteThing fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<DeleteThing>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
             return of(thingId, dittoHeaders);
         });
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 
@@ -137,7 +122,7 @@ public final class DeleteThing extends AbstractCommand<DeleteThing> implements T
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
     }
 
     @Override

@@ -111,7 +111,7 @@ public final class ResetConnectionLogsResponse extends AbstractCommandResponse<R
     }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return connectionId;
     }
 

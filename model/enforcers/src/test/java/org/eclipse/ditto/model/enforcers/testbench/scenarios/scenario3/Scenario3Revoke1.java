@@ -14,8 +14,10 @@ package org.eclipse.ditto.model.enforcers.testbench.scenarios.scenario3;
 
 import java.util.Collections;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.Scenario;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.ScenarioSetup;
+import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
@@ -39,8 +41,9 @@ public class Scenario3Revoke1 implements Scenario3Revoke {
                 Scenario.newAuthorizationContext(SUBJECT_ALL_GRANTED_ATTRIBUTES_REVOKED),
                 "/",
                 Collections.emptySet(),
-                policyAlgorithm -> policyAlgorithm.getSubjectIdsWithPartialPermission(
-                        PoliciesResourceType.thingResource("/"), "READ").contains(EXPECTED_GRANTED_SUBJECT),
+                policyAlgorithm -> policyAlgorithm.getSubjectsWithPartialPermission(
+                        PoliciesResourceType.thingResource("/"), Permissions.newInstance("READ"))
+                        .contains(AuthorizationSubject.newInstance(EXPECTED_GRANTED_SUBJECT)),
                 "READ", "WRITE");
     }
 

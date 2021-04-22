@@ -54,7 +54,7 @@ public final class ThingTag extends AbstractEntityIdWithRevision<ThingId> {
      */
     public static ThingTag fromJson(final JsonObject jsonObject) {
         checkNotNull(jsonObject, "JSON object");
-        final ThingId thingId = ThingId.of(jsonObject.getValueOrThrow(JsonFields.ID));
+        final ThingId thingId = ThingId.of(jsonObject.getValueOrThrow(JsonFields.ENTITY_ID));
         final Long revision = jsonObject.getValueOrThrow(JsonFields.REVISION);
 
         return new ThingTag(thingId, revision);

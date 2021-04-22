@@ -25,9 +25,6 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.things.AccessControlList;
-import org.eclipse.ditto.model.things.AccessControlListModelFactory;
-import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureDefinition;
@@ -82,22 +79,6 @@ abstract class AbstractThingMappingStrategies<T extends Jsonifiable.WithPredicat
         return adaptable.getPayload().getValue()
                 .map(JsonValue::asObject)
                 .map(ThingsModelFactory::newThing)
-                .orElseThrow(() -> JsonParseException.newBuilder().build());
-    }
-
-    protected static AccessControlList aclFrom(final Adaptable adaptable) {
-        return adaptable.getPayload()
-                .getValue()
-                .map(JsonValue::asObject)
-                .map(AccessControlListModelFactory::newAcl)
-                .orElseThrow(() -> JsonParseException.newBuilder().build());
-    }
-
-    protected static AclEntry aclEntryFrom(final Adaptable adaptable) {
-        return adaptable.getPayload()
-                .getValue()
-                .map(permissions -> AccessControlListModelFactory
-                        .newAclEntry(leafValue(adaptable.getPayload().getPath()), permissions))
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 

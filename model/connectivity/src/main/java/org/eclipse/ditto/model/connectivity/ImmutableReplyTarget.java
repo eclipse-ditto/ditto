@@ -54,7 +54,7 @@ final class ImmutableReplyTarget implements ReplyTarget {
     }
 
     private final String address;
-    @Nullable private final HeaderMapping headerMapping;
+    private final HeaderMapping headerMapping;
     private final Set<ResponseType> expectedResponseTypes;
 
     private ImmutableReplyTarget(final Builder builder) {
@@ -69,8 +69,8 @@ final class ImmutableReplyTarget implements ReplyTarget {
     }
 
     @Override
-    public Optional<HeaderMapping> getHeaderMapping() {
-        return Optional.ofNullable(headerMapping);
+    public HeaderMapping getHeaderMapping() {
+        return headerMapping;
     }
 
     @Override
@@ -89,10 +89,8 @@ final class ImmutableReplyTarget implements ReplyTarget {
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> predicate) {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
         jsonObjectBuilder.set(JsonFields.ADDRESS, address);
-        if (headerMapping != null) {
-            jsonObjectBuilder.set(JsonFields.HEADER_MAPPING, headerMapping.toJson(schemaVersion, predicate),
-                    predicate);
-        }
+        jsonObjectBuilder.set(JsonFields.HEADER_MAPPING, headerMapping.toJson(schemaVersion, predicate),
+                predicate);
         jsonObjectBuilder.set(JsonFields.EXPECTED_RESPONSE_TYPES, expectedResponseTypes.stream()
                 .map(ResponseType::getName)
                 .map(JsonFactory::newValue)
@@ -157,7 +155,7 @@ final class ImmutableReplyTarget implements ReplyTarget {
     static final class Builder implements ReplyTarget.Builder {
 
         @Nullable private String address;
-        @Nullable private HeaderMapping headerMapping;
+        private HeaderMapping headerMapping = ConnectivityModelFactory.emptyHeaderMapping();
         private final Collection<ResponseType> expectedResponseTypes = new HashSet<>(DEFAULT_EXPECTED_RESPONSE_TYPES);
 
         @Override
@@ -173,7 +171,7 @@ final class ImmutableReplyTarget implements ReplyTarget {
 
         @Override
         public Builder headerMapping(@Nullable final HeaderMapping headerMapping) {
-            this.headerMapping = headerMapping;
+            this.headerMapping = headerMapping == null ? ConnectivityModelFactory.emptyHeaderMapping() : headerMapping;
             return this;
         }
 

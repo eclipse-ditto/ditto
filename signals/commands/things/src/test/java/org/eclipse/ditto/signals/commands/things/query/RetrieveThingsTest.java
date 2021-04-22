@@ -133,7 +133,7 @@ public final class RetrieveThingsTest {
                 RetrieveThings.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getThingEntityIds()).isEqualTo(getThingIds());
+        assertThat(underTest.getEntityIds()).isEqualTo(getThingIds());
         assertThat(underTest.getSelectedFields()).isEmpty();
         assertThat(underTest.getNamespace()).isEmpty();
     }
@@ -145,7 +145,7 @@ public final class RetrieveThingsTest {
                         TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getThingEntityIds()).isEqualTo(
+        assertThat(underTest.getEntityIds()).isEqualTo(
                 THING_IDS_WITH_DISTINCT_NAMESPACE.stream()
                         .map(JsonValue::asString)
                         .map(ThingId::of)
@@ -170,7 +170,7 @@ public final class RetrieveThingsTest {
                         TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getThingEntityIds()).isEqualTo(getThingIds());
+        assertThat(underTest.getEntityIds()).isEqualTo(getThingIds());
         assertThat(underTest.getSelectedFields()).contains(getJsonFieldSelector());
     }
 
@@ -200,11 +200,6 @@ public final class RetrieveThingsTest {
     }
 
     @Test(expected = NullPointerException.class)
-    public void initializationWithNullForThingIdsStringArrayThrowsNullPointerException(){
-        RetrieveThings.getBuilder((String[]) null).build();
-    }
-
-    @Test(expected = NullPointerException.class)
     public void initializationWithNullForThingIdsListThrowsNullPointerException(){
         RetrieveThings.getBuilder((List<ThingId>) null).build();
     }
@@ -227,7 +222,7 @@ public final class RetrieveThingsTest {
                 TestConstants.Thing.THING_ID, TestConstants.DITTO_HEADERS);
         final JsonObject jsonObject = command.toJson(FieldType.regularOrSpecial());
 
-        final Command parsedCommand = commandRegistry.parse(jsonObject, TestConstants.DITTO_HEADERS);
+        final Command<?> parsedCommand = commandRegistry.parse(jsonObject, TestConstants.DITTO_HEADERS);
 
         assertThat(parsedCommand).isEqualTo(command);
     }

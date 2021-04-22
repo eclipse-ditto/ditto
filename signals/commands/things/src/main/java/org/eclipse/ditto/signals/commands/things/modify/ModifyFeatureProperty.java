@@ -37,13 +37,14 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 
 /**
  * This command modifies a single Property of a {@link org.eclipse.ditto.model.things.Feature}'s properties.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = ModifyFeatureProperty.TYPE_PREFIX, name = ModifyFeatureProperty.NAME)
+@JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = ModifyFeatureProperty.NAME)
 public final class ModifyFeatureProperty extends AbstractCommand<ModifyFeatureProperty> implements
         ThingModifyCommand<ModifyFeatureProperty>, WithFeatureId {
 
@@ -58,15 +59,15 @@ public final class ModifyFeatureProperty extends AbstractCommand<ModifyFeaturePr
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<String> JSON_FEATURE_ID =
-            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<String> JSON_PROPERTY =
-            JsonFactory.newStringFieldDefinition("property", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("property", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<JsonValue> JSON_PROPERTY_VALUE =
-            JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final ThingId thingId;
@@ -98,30 +99,6 @@ public final class ModifyFeatureProperty extends AbstractCommand<ModifyFeaturePr
             ThingsModelFactory.validateJsonKeys(value.asObject());
         }
         return value;
-    }
-
-    /**
-     * Returns a Command for modifying a Feature's Property on a Thing.
-     *
-     * @param thingId the {@code Thing}'s ID whose {@code Feature}'s Property to modify.
-     * @param featureId the {@code Feature}'s ID whose Property to modify.
-     * @param propertyJsonPointer the JSON pointer of the Property key to modify.
-     * @param propertyValue the value of the Property to modify.
-     * @param dittoHeaders the headers of the command.
-     * @return a Command for modifying the provided Property.
-     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code propertyJsonPointer} are not valid
-     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.json.JsonPointer,
-     * org.eclipse.ditto.json.JsonValue, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static ModifyFeatureProperty of(final String thingId, final String featureId,
-            final JsonPointer propertyJsonPointer, final JsonValue propertyValue, final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), featureId, propertyJsonPointer, propertyValue, dittoHeaders);
     }
 
     /**
@@ -178,7 +155,7 @@ public final class ModifyFeatureProperty extends AbstractCommand<ModifyFeaturePr
      */
     public static ModifyFeatureProperty fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifyFeatureProperty>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
             final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
             final String pointerString = jsonObject.getValueOrThrow(JSON_PROPERTY);
@@ -208,7 +185,7 @@ public final class ModifyFeatureProperty extends AbstractCommand<ModifyFeaturePr
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 
@@ -232,7 +209,7 @@ public final class ModifyFeatureProperty extends AbstractCommand<ModifyFeaturePr
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
         jsonObjectBuilder.set(JSON_PROPERTY, propertyPointer.toString(), predicate);
         jsonObjectBuilder.set(JSON_PROPERTY_VALUE, propertyValue, predicate);

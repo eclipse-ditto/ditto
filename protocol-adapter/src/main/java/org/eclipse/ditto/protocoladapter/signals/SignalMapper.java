@@ -14,14 +14,13 @@ package org.eclipse.ditto.protocoladapter.signals;
 
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.signals.base.WithId;
 
 /**
  * Implementations of this interface handle different type of signals (e.g. thing or policy signal).
  *
  * @param <T> the type of the source signal
  */
-public interface SignalMapper<T extends WithId> {
+public interface SignalMapper<T> {
 
     /**
      * Is called during the mapping from a signal to an {@link Adaptable}.

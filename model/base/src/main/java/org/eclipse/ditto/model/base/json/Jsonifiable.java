@@ -48,7 +48,7 @@ public interface Jsonifiable<J extends JsonValue> {
      * @return all supported JsonSchemaVersions the implementing class supports.
      */
     default JsonSchemaVersion[] getSupportedSchemaVersions() {
-        return new JsonSchemaVersion[]{JsonSchemaVersion.V_1, JsonSchemaVersion.V_2};
+        return new JsonSchemaVersion[]{JsonSchemaVersion.V_2};
     }
 
     /**
@@ -112,14 +112,14 @@ public interface Jsonifiable<J extends JsonValue> {
      *       ...
      *    }
      * </pre>
-     *
+     * <p>
      * Then the method invocation for creating a JSON object of a particular JSON schema version.
      *
      * <pre>
      *    final MyObject myObject = ...;
      *    final JsonValue myObjectJson = myObject.toJson(JsonSchemaVersion.V_1);
      * </pre>
-     *
+     * <p>
      * This works because {@code JsonSchemaVersion} implements {@code Predicate<JsonField>}.
      *
      * @param <J> the type of the JSON result.
@@ -242,7 +242,6 @@ public interface Jsonifiable<J extends JsonValue> {
     /**
      * Represents a {@code Jsonifiable} where additionally a {@code JsonFieldSelector} can be specified to determine the
      * content of the result JSON.
-     *
      */
     interface WithFieldSelector extends Jsonifiable<JsonObject>, WithPointer<JsonObject> {
 

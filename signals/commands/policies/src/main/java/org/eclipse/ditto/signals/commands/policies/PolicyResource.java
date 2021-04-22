@@ -24,8 +24,8 @@ import org.eclipse.ditto.signals.commands.base.ResourceMap;
 /**
  * Defines all valid policy resources and provides the method {@link #from(org.eclipse.ditto.json.JsonPointer)} to
  * resolve the policy resource from a given path.
- * <p>
- * TODO adapt @since annotaion @since 1.6.0
+ *
+ * @since 2.0.0
  */
 public enum PolicyResource {
 

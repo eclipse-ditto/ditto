@@ -115,7 +115,7 @@ public final class BackOffActor extends AbstractActorWithTimers {
         this.getTimers().startSingleTimer(InternalTimers.RESET_BACK_OFF, RESET_BACK_OFF, resetBackOffTimeout);
     }
 
-    private void afterBackOff(final BackOffWithSender backOffWithSender) {
+    private void afterBackOff(final BackOffWithSender<?> backOffWithSender) {
         log.debug("BackOff finished, sending answer: <{}>", backOffWithSender.getAnswer());
         backOffWithSender.getSender().tell(backOffWithSender.getAnswer(), getSelf());
     }

@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.base.EventRegistry;
+import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +46,7 @@ public abstract class AbstractMongoEventAdapter<T extends Event<?>> implements E
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractMongoEventAdapter.class);
 
     private static final Predicate<JsonField> IS_REVISION = field -> field.getDefinition()
-            .filter(Event.JsonFields.REVISION::equals)
+            .filter(EventsourcedEvent.JsonFields.REVISION::equals)
             .isPresent();
 
     @Nullable protected final ExtendedActorSystem system;
@@ -89,7 +90,7 @@ public abstract class AbstractMongoEventAdapter<T extends Event<?>> implements E
             final JsonValue jsonValue = DittoBsonJson.getInstance().serialize((BsonValue) event);
             try {
                 final JsonObject jsonObject = jsonValue.asObject()
-                        .setValue(Event.JsonFields.REVISION.getPointer(), Event.DEFAULT_REVISION);
+                        .setValue(EventsourcedEvent.JsonFields.REVISION.getPointer(), Event.DEFAULT_REVISION);
                 final T result =
                         eventRegistry.parse(performFromJournalMigration(jsonObject), DittoHeaders.empty());
                 return EventSeq.single(result);

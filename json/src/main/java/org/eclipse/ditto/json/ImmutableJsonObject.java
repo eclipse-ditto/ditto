@@ -144,11 +144,11 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
     public JsonObject setValue(final CharSequence key, final JsonValue value) {
         final JsonPointer pointer = JsonFactory.getNonEmptyPointer(key);
         final JsonKey leafKey = pointer.getLeaf().orElse(ROOT_KEY);
-        final Optional<JsonFieldDefinition> keyDefinition = getDefinitionForKey(leafKey);
-
-        return setFieldInHierarchy(this, pointer, JsonField.newInstance(leafKey, value, keyDefinition.orElse(null)));
+        return setFieldInHierarchy(this, pointer, JsonField.newInstance(leafKey, value,
+                getDefinitionForKey(leafKey).orElse(null)));
     }
 
+    @SuppressWarnings({"rawtypes", "java:S3740"})
     private Optional<JsonFieldDefinition> getDefinitionForKey(final CharSequence key) {
         return getField(key).flatMap(JsonField::getDefinition);
     }
@@ -284,7 +284,7 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         return getValueForPointer(fieldDefinition.getPointer()).map(fieldDefinition::mapValue);
     }
 
-    private static void checkFieldDefinition(final JsonFieldDefinition fieldDefinition) {
+    private static void checkFieldDefinition(final JsonFieldDefinition<?> fieldDefinition) {
         requireNonNull(fieldDefinition, "The JSON field definition which supplies the pointer must not be null!");
     }
 
@@ -345,7 +345,7 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
     }
 
     @Override
-    public JsonObject get(final JsonFieldDefinition fieldDefinition) {
+    public JsonObject get(final JsonFieldDefinition<?> fieldDefinition) {
         checkFieldDefinition(fieldDefinition);
         return get(fieldDefinition.getPointer());
     }
@@ -370,7 +370,7 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         }
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"rawtypes", "java:S3740"})
     private static JsonObject filterByTrie(final JsonObject self, final JsonFieldSelectorTrie trie) {
         if (trie.isEmpty()) {
             return self;
@@ -406,7 +406,6 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         final JsonObject result;
 
         final JsonKey rootKey = pointer.getRoot().orElse(ROOT_KEY);
-        final Optional<JsonFieldDefinition> rootKeyDefinition = getDefinitionForKey(rootKey);
         if (pointer.isEmpty()) {
             result = this;
         } else if (1 == pointer.getLevelCount()) {
@@ -423,7 +422,7 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
                     .map(JsonValue::asObject)
                     .filter(containsNextLevelRootKey)
                     .map(jsonObject -> jsonObject.remove(nextPointerLevel)) // Recursion
-                    .map(withoutValue -> JsonField.newInstance(rootKey, withoutValue, rootKeyDefinition.orElse(null)))
+                    .map(withoutValue -> JsonField.newInstance(rootKey, withoutValue, getDefinitionForKey(rootKey).orElse(null)))
                     .map(this::set)
                     .orElse(this);
         }

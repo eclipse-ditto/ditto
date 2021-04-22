@@ -75,15 +75,9 @@ final class EnforcementScheduler extends AbstractActor {
 
     private void scheduleEnforcement(final EnforcementTask task) {
         futuresMap.compute(task.getEntityId(), (entityId, cachedFutures) -> {
-            if (entityId.isDummy()) {
-                // This should not happen: Refuse to perform enforcement task for messages without ID.
-                log.error("EnforcementTaskWithoutEntityId <{}>", task);
-                return null;
-            } else {
-                log.debug("Scheduling <{}> at <{}>", task, cachedFutures);
-                final Futures previousFutures = cachedFutures != null ? cachedFutures : Futures.initial();
-                return scheduleTaskAfter(previousFutures, task);
-            }
+            log.debug("Scheduling <{}> at <{}>", task, cachedFutures);
+            final Futures previousFutures = cachedFutures != null ? cachedFutures : Futures.initial();
+            return scheduleTaskAfter(previousFutures, task);
         });
         scheduledEnforcementTasks.increment();
     }
@@ -101,7 +95,7 @@ final class EnforcementScheduler extends AbstractActor {
     private Void dispatchEnforcedMessage(final Contextual<?> enforcementResult) {
         final Optional<? extends WithDittoHeaders> messageOpt = enforcementResult.getMessageOptional();
         if (messageOpt.isPresent()) {
-            final WithDittoHeaders<?> message = messageOpt.get();
+            final WithDittoHeaders message = messageOpt.get();
             final ThreadSafeDittoLoggingAdapter logger = enforcementResult.getLog().withCorrelationId(message);
             final Optional<ActorRef> receiverOpt = enforcementResult.getReceiver();
             final Optional<Supplier<CompletionStage<Object>>> askFutureOpt = enforcementResult.getAskFuture();

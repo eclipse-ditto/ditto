@@ -35,12 +35,13 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 /**
  * This command retrieves a {@link org.eclipse.ditto.model.things.Feature}'s property.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = RetrieveFeatureProperty.TYPE_PREFIX, name = RetrieveFeatureProperty.NAME)
+@JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = RetrieveFeatureProperty.NAME)
 public final class RetrieveFeatureProperty extends AbstractCommand<RetrieveFeatureProperty> implements
         ThingQueryCommand<RetrieveFeatureProperty>, WithFeatureId {
 
@@ -55,11 +56,11 @@ public final class RetrieveFeatureProperty extends AbstractCommand<RetrieveFeatu
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<String> JSON_FEATURE_ID =
-            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<String> JSON_PROPERTY_JSON_POINTER =
-            JsonFactory.newStringFieldDefinition("property", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("property", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final ThingId thingId;
@@ -80,31 +81,6 @@ public final class RetrieveFeatureProperty extends AbstractCommand<RetrieveFeatu
     private JsonPointer checkPropertyPointer(final JsonPointer propertyPointer) {
         checkNotNull(propertyPointer, "propertyPointer");
         return ThingsModelFactory.validateFeaturePropertyPointer(propertyPointer);
-    }
-
-    /**
-     * Returns a Command for retrieving a Feature's Property on a Thing.
-     *
-     * @param thingId the {@code Thing}'s ID whose {@code Feature}'s Property to retrieve.
-     * @param featureId the {@code Feature}'s ID whose Property to retrieve.
-     * @param propertyJsonPointer the JSON pointer of the Property key to retrieve.
-     * @param dittoHeaders the headers of the command.
-     * @return a Command for retrieving the Property at the specified Pointer.
-     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code propertyJsonPointer} are not valid
-     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.json.JsonPointer,
-     * org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrieveFeatureProperty of(final String thingId,
-            final String featureId,
-            final JsonPointer propertyJsonPointer,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), featureId, propertyJsonPointer, dittoHeaders);
     }
 
     /**
@@ -162,7 +138,7 @@ public final class RetrieveFeatureProperty extends AbstractCommand<RetrieveFeatu
      */
     public static RetrieveFeatureProperty fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveFeatureProperty>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
             final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
             final String extractedPointerString = jsonObject.getValueOrThrow(JSON_PROPERTY_JSON_POINTER);
@@ -182,7 +158,7 @@ public final class RetrieveFeatureProperty extends AbstractCommand<RetrieveFeatu
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 
@@ -202,7 +178,7 @@ public final class RetrieveFeatureProperty extends AbstractCommand<RetrieveFeatu
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
         jsonObjectBuilder.set(JSON_PROPERTY_JSON_POINTER, propertyPointer.toString(), predicate);
     }

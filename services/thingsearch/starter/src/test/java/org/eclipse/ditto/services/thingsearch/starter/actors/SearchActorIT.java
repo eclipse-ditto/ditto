@@ -16,8 +16,11 @@ import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -31,7 +34,17 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.Permission;
+import org.eclipse.ditto.model.enforcers.Enforcer;
+import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
+import org.eclipse.ditto.model.policies.EffectedPermissions;
+import org.eclipse.ditto.model.policies.PoliciesModelFactory;
+import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyEntry;
+import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.Resource;
+import org.eclipse.ditto.model.policies.ResourceKey;
+import org.eclipse.ditto.model.policies.Subject;
+import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
@@ -73,8 +86,10 @@ public final class SearchActorIT {
                     AuthorizationSubject.newInstance("ditto:ditto"));
 
     private static QueryParser queryParser;
+    private static final PolicyId POLICY_ID = PolicyId.of("default", "policy");
     @ClassRule
     public static final MongoDbResource MONGO_RESOURCE = new MongoDbResource();
+    private static Enforcer policyEnforcer;
     private static DittoMongoClient mongoClient;
 
     private MongoThingsSearchPersistence readPersistence;
@@ -88,6 +103,7 @@ public final class SearchActorIT {
         queryParser = SearchRootActor.getQueryParser(DefaultLimitsConfig.of(ConfigFactory.empty()),
                 ActorSystem.create("test-system", ConfigFactory.load("actors-test.conf")));
         mongoClient = provideClientWrapper();
+        policyEnforcer = PolicyEnforcers.defaultEvaluator(createPolicy());
     }
 
     @Before
@@ -239,22 +255,36 @@ public final class SearchActorIT {
         final Thing baseThing = ThingsModelFactory.newThingBuilder()
                 .setId(ThingId.of("thing", "00"))
                 .setRevision(1234L)
-                .setPermissions(AUTH_CONTEXT.getFirstAuthorizationSubject().orElseThrow(AssertionError::new),
-                        Permission.READ)
                 .setAttribute(JsonPointer.of("x"), JsonValue.of(5))
                 .build();
 
         final Thing irrelevantThing = baseThing.toBuilder().removeAllAttributes().build();
 
-        writePersistence.writeThingWithAcl(template(baseThing, 0, "a"))
-                .concat(writePersistence.writeThingWithAcl(template(baseThing, 1, "b")))
-                .concat(writePersistence.writeThingWithAcl(template(baseThing, 2, "a")))
-                .concat(writePersistence.writeThingWithAcl(template(baseThing, 3, "b")))
-                .concat(writePersistence.writeThingWithAcl(template(baseThing, 4, "c")))
-                .concat(writePersistence.writeThingWithAcl(template(irrelevantThing, 5, "c")))
+        writePersistence.write(template(baseThing, 0, "a"), policyEnforcer, 0L)
+                .concat(writePersistence.write(template(baseThing, 1, "b"), policyEnforcer, 0L))
+                .concat(writePersistence.write(template(baseThing, 2, "a"), policyEnforcer, 0L))
+                .concat(writePersistence.write(template(baseThing, 3, "b"), policyEnforcer, 0L))
+                .concat(writePersistence.write(template(baseThing, 4, "c"), policyEnforcer, 0L))
+                .concat(writePersistence.write(template(irrelevantThing, 5, "c"), policyEnforcer, 0L))
                 .runWith(Sink.ignore(), actorSystem)
                 .toCompletableFuture()
                 .join();
+    }
+
+    private static Policy createPolicy() {
+        final Collection<Subject> subjects =
+                AUTH_CONTEXT.getAuthorizationSubjectIds().stream()
+                        .map(subjectId -> Subject.newInstance(subjectId, SubjectType.GENERATED))
+                        .collect(Collectors.toList());
+        final Collection<Resource> resources = Collections.singletonList(Resource.newInstance(
+                ResourceKey.newInstance("thing:/"),
+                EffectedPermissions.newInstance(Collections.singletonList("READ"), Collections.emptyList())
+        ));
+        final PolicyEntry policyEntry = PolicyEntry.newInstance("viewer", subjects, resources);
+        return PoliciesModelFactory.newPolicyBuilder(POLICY_ID)
+                .set(policyEntry)
+                .setRevision(1L)
+                .build();
     }
 
     private static JsonArray expectedIds(final int... thingOrdinals) {

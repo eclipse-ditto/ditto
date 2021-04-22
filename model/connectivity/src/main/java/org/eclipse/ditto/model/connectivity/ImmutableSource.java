@@ -148,8 +148,8 @@ final class ImmutableSource implements Source {
     }
 
     @Override
-    public Optional<HeaderMapping> getHeaderMapping() {
-        return Optional.of(headerMapping);
+    public HeaderMapping getHeaderMapping() {
+        return headerMapping;
     }
 
     @Override
@@ -361,13 +361,9 @@ final class ImmutableSource implements Source {
     }
 
     private static Source migrateReplyTargetWithHeaders(final Source source) {
-        final HeaderMapping mapping = source.getHeaderMapping()
-                .map(sourceHeaderMapping -> {
-                    final Map<String, String> mergedMapping = new HashMap<>(DEFAULT_SOURCE_HEADER_MAPPING.getMapping());
-                    mergedMapping.putAll(sourceHeaderMapping.getMapping());
-                    return ConnectivityModelFactory.newHeaderMapping(mergedMapping);
-                })
-                .orElse(DEFAULT_SOURCE_HEADER_MAPPING);
+        final Map<String, String> mergedMapping = new HashMap<>(DEFAULT_SOURCE_HEADER_MAPPING.getMapping());
+        mergedMapping.putAll(source.getHeaderMapping().getMapping());
+        final HeaderMapping mapping = ConnectivityModelFactory.newHeaderMapping(mergedMapping);
 
         return ConnectivityModelFactory.newSourceBuilder(source)
                 .headerMapping(mapping)
@@ -421,7 +417,7 @@ final class ImmutableSource implements Source {
             addresses(source.getAddresses())
                     .authorizationContext(source.getAuthorizationContext())
                     .enforcement(source.getEnforcement().orElse(null))
-                    .headerMapping(source.getHeaderMapping().orElse(null))
+                    .headerMapping(source.getHeaderMapping())
                     .qos(source.getQos().orElse(null))
                     .acknowledgementRequests(source.getAcknowledgementRequests().orElse(null))
                     .replyTarget(source.getReplyTarget().orElse(null))

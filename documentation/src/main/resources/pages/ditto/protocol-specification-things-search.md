@@ -5,8 +5,8 @@ tags: [protocol, search]
 permalink: protocol-specification-things-search.html
 ---
 
-The [search aspect](basic-search.html) of the Ditto protocol consists of 3 commands and 4 events that together implement
-the [reactive-streams](https://reactive-streams.org) protocol over any duplex transport layer.
+The [search aspect](basic-search.html) of the Ditto protocol consists of 3 commands and 4 events that together 
+implement the [reactive-streams](https://reactive-streams.org) protocol over any duplex transport layer.
 For each search request, Ditto acts as the reactive-streams publisher of pages of search results,
 and the client acts as the subscriber.
 By reactive-streams means, the client controls how fast pages are delivered to it and may cancel
@@ -58,8 +58,8 @@ Ditto will send 0 or more events to the client according to the following protoc
 created next* (complete | failed)?
 ```
 A ["created"](#created) event bearing the subscription ID is always sent.
-0 or more ["next"](#next) events are sent according to the amount of search results and the number of pages requested by
-the client. A ["complete"](#complete) or ["failed"](#failed) event comes at the
+0 or more ["next"](#next) events are sent according to the amount of search results and the number of pages requested 
+by the client. A ["complete"](#complete) or ["failed"](#failed) event comes at the
 end unless the client sends a ["cancel"](#cancel) command before the search results are exhausted.
 
 There is no special event in response to a ["cancel"](#cancel) command.

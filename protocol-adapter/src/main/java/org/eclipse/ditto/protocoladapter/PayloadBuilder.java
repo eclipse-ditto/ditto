@@ -20,7 +20,6 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 
 /**
@@ -50,32 +49,9 @@ public interface PayloadBuilder {
      *
      * @param status the status to set.
      * @return this builder to allow method chaining.
-     * @deprecated as of 2.0.0 please use {@link #withStatus(HttpStatus)} instead.
-     */
-    @Deprecated
-    default PayloadBuilder withStatus(@Nullable final HttpStatusCode status) {
-        return withStatus(null != status ? status.getAsHttpStatus() : null);
-    }
-
-    /**
-     * Sets the given {@code status} to this builder. A previously set status is replaced.
-     *
-     * @param status the status to set.
-     * @return this builder to allow method chaining.
      * @since 2.0.0
      */
     PayloadBuilder withStatus(@Nullable HttpStatus status);
-
-    /**
-     * Sets the given {@code status} to this builder. A previously set status is replaced.
-     *
-     * @param status the status to set.
-     * @return this builder to allow method chaining.
-     * @throws IllegalArgumentException if {@code status} is not supported.
-     * @deprecated as of 2.0.0 please use {@link #withStatus(HttpStatus)} instead.
-     */
-    @Deprecated
-    PayloadBuilder withStatus(int status);
 
     /**
      * Sets the given {@code revision} to this builder. A previously set revision is replaced.

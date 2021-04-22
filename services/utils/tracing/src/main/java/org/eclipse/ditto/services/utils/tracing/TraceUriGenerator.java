@@ -51,7 +51,7 @@ public final class TraceUriGenerator implements Function<String, TraceInformatio
 
     private static final String SLASH = "/";
 
-    private static final int FIRST_API_VERSION = JsonSchemaVersion.V_1.toInt();
+    private static final int FIRST_API_VERSION = JsonSchemaVersion.V_2.toInt();
     private static final int LATEST_API_VERSION = JsonSchemaVersion.LATEST.toInt();
     private static final String API_VERSION_GROUP = "apiVersion";
     private static final String API_VERSIONS =

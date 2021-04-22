@@ -26,7 +26,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -47,21 +46,16 @@ import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotDeletable
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingIdNotExplicitlySettableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingMergeInvalidException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
-import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingDefinition;
 import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyAcl;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyId;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingDefinition;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveAcl;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntry;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributes;
 import org.eclipse.ditto.signals.commands.things.query.RetrievePolicyId;
@@ -85,7 +79,6 @@ public final class ThingsRoute extends AbstractRoute {
     private static final String PATH_POLICY_ID = "policyId";
     private static final String PATH_ATTRIBUTES = "attributes";
     private static final String PATH_THING_DEFINITION = "definition";
-    private static final String PATH_ACL = "acl";
 
     private final FeaturesRoute featuresRoute;
     private final MessagesRoute messagesRoute;
@@ -170,8 +163,6 @@ public final class ThingsRoute extends AbstractRoute {
         return concat(
                 thingsEntry(ctx, dittoHeaders, thingId),
                 thingsEntryPolicyId(ctx, dittoHeaders, thingId),
-                thingsEntryAcl(ctx, dittoHeaders, thingId),
-                thingsEntryAclEntry(ctx, dittoHeaders, thingId),
                 thingsEntryAttributes(ctx, dittoHeaders, thingId),
                 thingsEntryAttributesEntry(ctx, dittoHeaders, thingId),
                 thingsEntryDefinition(ctx, dittoHeaders, thingId),
@@ -315,69 +306,6 @@ public final class ThingsRoute extends AbstractRoute {
                 .filter(JsonValue::isString)
                 .map(JsonValue::asString)
                 .orElse(policyIdJson));
-    }
-
-    /*
-     * Describes {@code /things/<thingId>/acl} route.
-     *
-     * @return {@code /things/<thingId>/acl} route.
-     */
-    private Route thingsEntryAcl(final RequestContext ctx, final DittoHeaders dittoHeaders, final ThingId thingId) {
-        // /things/<thingId>/acl
-        return rawPathPrefix(PathMatchers.slash().concat(PATH_ACL), () ->
-                pathEndOrSingleSlash(() ->
-                        concat(
-                                // GET /things/<thingId>/acl
-                                get(() -> handlePerRequest(ctx, RetrieveAcl.of(thingId, dittoHeaders))),
-                                // PUT /things/<thingId>/acl
-                                put(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
-                                        payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource, aclJson ->
-                                                ModifyAcl.of(thingId, ThingsModelFactory.newAcl(aclJson), dittoHeaders))
-                                        )
-                                )
-                        )
-                )
-        );
-    }
-
-    /*
-     * Describes {@code /things/<thingId>/acl/<authorizationSubject>} route.
-     *
-     * @return {@code /things/<thingId>/acl/<authorizationSubject>} route.
-     */
-    private Route thingsEntryAclEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final ThingId thingId) {
-        return rawPathPrefix(PathMatchers.slash().concat(PATH_ACL), () ->
-                rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), subject ->
-                        pathEndOrSingleSlash(() ->
-                                concat(
-                                        // GET /things/<thingId>/acl/<authorizationSubject>?fields=<fieldsString>
-                                        get(() -> parameterOptional(ThingsParameter.FIELDS.toString(),
-                                                fieldsString -> handlePerRequest(ctx, RetrieveAclEntry.of(thingId,
-                                                        AuthorizationModelFactory.newAuthSubject(subject),
-                                                        calculateSelectedFields(fieldsString).orElse(null),
-                                                        dittoHeaders))
-                                                )
-                                        ),
-                                        // PUT /things/<thingId>/acl/<authorizationSubject>
-                                        put(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx,
-                                                dittoHeaders, payloadSource ->
-                                                        handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                                aclEntryJson -> ModifyAclEntry.of(thingId,
-                                                                        ThingsModelFactory.newAclEntry(subject,
-                                                                                JsonFactory.readFrom(aclEntryJson)),
-                                                                        dittoHeaders))
-                                                )
-                                        ),
-                                        // DELETE /things/<thingId>/acl/<authorizationSubject>
-                                        delete(() -> handlePerRequest(ctx, DeleteAclEntry.of(thingId,
-                                                AuthorizationModelFactory.newAuthSubject(subject),
-                                                dittoHeaders))
-                                        )
-                                )
-                        )
-                )
-        );
     }
 
     /*

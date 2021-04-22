@@ -44,7 +44,6 @@ final class ThingModifiedStrategy extends AbstractThingEventStrategy<ThingModifi
 
         final Thing thingWithModifications = event.getThing();
         thingWithModifications.getPolicyEntityId().ifPresent(thingBuilder::setPolicyId);
-        thingWithModifications.getAccessControlList().ifPresent(thingBuilder::setPermissions);
         thingWithModifications.getAttributes().ifPresent(thingBuilder::setAttributes);
         thingWithModifications.getDefinition().ifPresent(thingBuilder::setDefinition);
         thingWithModifications.getFeatures().ifPresent(thingBuilder::setFeatures);

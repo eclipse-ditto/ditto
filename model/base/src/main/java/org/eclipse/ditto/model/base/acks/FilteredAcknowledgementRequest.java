@@ -94,7 +94,7 @@ public interface FilteredAcknowledgementRequest extends Jsonifiable.WithFieldSel
          * JSON field containing the included acknowledgement-requests.
          */
         public static final JsonFieldDefinition<JsonArray> INCLUDES =
-                JsonFactory.newJsonArrayFieldDefinition("includes", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonArrayFieldDefinition("includes", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
@@ -102,7 +102,7 @@ public interface FilteredAcknowledgementRequest extends Jsonifiable.WithFieldSel
          */
         public static final JsonFieldDefinition<String> FILTER =
                 JsonFactory.newStringFieldDefinition("filter", FieldType.REGULAR,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         JsonFields() {
             throw new AssertionError();

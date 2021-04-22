@@ -14,8 +14,9 @@ package org.eclipse.ditto.protocoladapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
+import org.eclipse.ditto.model.base.entity.id.AbstractNamespacedEntityId;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.model.things.ThingId;
 import org.junit.Test;
 
@@ -77,7 +78,7 @@ public class ProtocolFactoryTest {
         final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(ThingId.of(NAMESPACE, ID));
         final TopicPath topicPath = topicPathBuilder.twin().commands().modify().build();
         assertThat(topicPath.getNamespace()).isEqualTo(NAMESPACE);
-        assertThat(topicPath.getId()).isEqualTo(ID);
+        assertThat(topicPath.getEntityName()).isEqualTo(ID);
         assertThat(topicPath.getChannel()).isEqualTo(TopicPath.Channel.TWIN);
         assertThat(topicPath.getGroup()).isEqualTo(TopicPath.Group.THINGS);
         assertThat(topicPath.getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);
@@ -87,10 +88,11 @@ public class ProtocolFactoryTest {
     @Test
     public void testNewTopicPathBuilderFromNamespacedEntityId() {
         final TopicPathBuilder topicPathBuilder =
-                ProtocolFactory.newTopicPathBuilder(DefaultNamespacedEntityId.of(NAMESPACE, ID));
+                ProtocolFactory.newTopicPathBuilder(
+                        new AbstractNamespacedEntityId(ThingConstants.ENTITY_TYPE, NAMESPACE, ID, true) {});
         final TopicPath topicPath = topicPathBuilder.twin().commands().modify().build();
         assertThat(topicPath.getNamespace()).isEqualTo(NAMESPACE);
-        assertThat(topicPath.getId()).isEqualTo(ID);
+        assertThat(topicPath.getEntityName()).isEqualTo(ID);
         assertThat(topicPath.getChannel()).isEqualTo(TopicPath.Channel.TWIN);
         assertThat(topicPath.getGroup()).isEqualTo(TopicPath.Group.THINGS);
         assertThat(topicPath.getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);
@@ -102,7 +104,7 @@ public class ProtocolFactoryTest {
         final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(PolicyId.of(NAMESPACE, ID));
         final TopicPath topicPath = topicPathBuilder.none().commands().modify().build();
         assertThat(topicPath.getNamespace()).isEqualTo(NAMESPACE);
-        assertThat(topicPath.getId()).isEqualTo(ID);
+        assertThat(topicPath.getEntityName()).isEqualTo(ID);
         assertThat(topicPath.getChannel()).isEqualTo(TopicPath.Channel.NONE);
         assertThat(topicPath.getGroup()).isEqualTo(TopicPath.Group.POLICIES);
         assertThat(topicPath.getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);
@@ -114,7 +116,7 @@ public class ProtocolFactoryTest {
         final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilderFromNamespace(NAMESPACE);
         final TopicPath topicPath = topicPathBuilder.twin().commands().modify().build();
         assertThat(topicPath.getNamespace()).isEqualTo(NAMESPACE);
-        assertThat(topicPath.getId()).isEqualTo(TopicPath.ID_PLACEHOLDER);
+        assertThat(topicPath.getEntityName()).isEqualTo(TopicPath.ID_PLACEHOLDER);
         assertThat(topicPath.getChannel()).isEqualTo(TopicPath.Channel.TWIN);
         assertThat(topicPath.getGroup()).isEqualTo(TopicPath.Group.THINGS);
         assertThat(topicPath.getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);

@@ -51,7 +51,7 @@ public final class ModifyConnectionResponse extends AbstractCommandResponse<Modi
     public static final String TYPE = TYPE_PREFIX + ModifyConnection.NAME;
 
     static final JsonFieldDefinition<JsonObject> JSON_CONNECTION =
-            JsonFactory.newJsonObjectFieldDefinition("connection", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonObjectFieldDefinition("connection", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final ConnectionId connectionId;
@@ -119,7 +119,7 @@ public final class ModifyConnectionResponse extends AbstractCommandResponse<Modi
     }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return connectionId;
     }
 

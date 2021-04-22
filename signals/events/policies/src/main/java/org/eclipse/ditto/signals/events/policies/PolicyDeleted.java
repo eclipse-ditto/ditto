@@ -25,6 +25,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -35,7 +36,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a {@link org.eclipse.ditto.model.policies.Policy} was deleted.
  */
 @Immutable
-@JsonParsableEvent(name = PolicyDeleted.NAME, typePrefix= PolicyDeleted.TYPE_PREFIX)
+@JsonParsableEvent(name = PolicyDeleted.NAME, typePrefix= PolicyEvent.TYPE_PREFIX)
 public final class PolicyDeleted extends AbstractPolicyEvent<PolicyDeleted> implements PolicyEvent<PolicyDeleted> {
 
     /**
@@ -51,39 +52,10 @@ public final class PolicyDeleted extends AbstractPolicyEvent<PolicyDeleted> impl
     private PolicyDeleted(final PolicyId policyId,
             final long revision,
             @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
 
-        super(TYPE, checkNotNull(policyId, "Policy identifier"), revision, timestamp, dittoHeaders);
-    }
-
-    /**
-     * Constructs a new {@code PolicyDeleted} object.
-     *
-     * @param policyId the ID of the deleted {@link org.eclipse.ditto.model.policies.Policy}.
-     * @param revision the revision of the Policy.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return a event object indicating the deletion of the Policy
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, long, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static PolicyDeleted of(final String policyId, final long revision, final DittoHeaders dittoHeaders) {
-        return of(PolicyId.of(policyId), revision, dittoHeaders);
-    }
-
-    /**
-     * Constructs a new {@code PolicyDeleted} object.
-     *
-     * @param policyId the ID of the deleted {@link org.eclipse.ditto.model.policies.Policy}.
-     * @param revision the revision of the Policy.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return a event object indicating the deletion of the Policy
-     * @throws NullPointerException if any argument is {@code null}.
-     */
-    public static PolicyDeleted of(final PolicyId policyId, final long revision, final DittoHeaders dittoHeaders) {
-        return of(policyId, revision, null, dittoHeaders);
+        super(TYPE, checkNotNull(policyId, "Policy identifier"), revision, timestamp, dittoHeaders, metadata);
     }
 
     /**
@@ -93,37 +65,17 @@ public final class PolicyDeleted extends AbstractPolicyEvent<PolicyDeleted> impl
      * @param revision the revision of the Policy.
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return a event object indicating the deletion of the Policy
-     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
-     * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static PolicyDeleted of(final String policyId,
-            final long revision,
-            @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
-
-        return of(PolicyId.of(policyId), revision, timestamp, dittoHeaders);
-    }
-
-    /**
-     * Constructs a new {@code PolicyDeleted} object.
-     *
-     * @param policyId the ID of the deleted {@link org.eclipse.ditto.model.policies.Policy}.
-     * @param revision the revision of the Policy.
-     * @param timestamp the timestamp of this event.
-     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @param metadata the metadata to apply for the event.
      * @return a event object indicating the deletion of the Policy
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
     public static PolicyDeleted of(final PolicyId policyId,
             final long revision,
             @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
 
-        return new PolicyDeleted(policyId, revision, timestamp, dittoHeaders);
+        return new PolicyDeleted(policyId, revision, timestamp, dittoHeaders, metadata);
     }
 
     /**
@@ -153,8 +105,8 @@ public final class PolicyDeleted extends AbstractPolicyEvent<PolicyDeleted> impl
     public static PolicyDeleted fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<PolicyDeleted>(TYPE, jsonObject)
                 .deserialize((revision, timestamp, metadata) -> {
-                    final PolicyId policyId = PolicyId.of(jsonObject.getValueOrThrow(JsonFields.POLICY_ID));
-                    return of(policyId, revision, timestamp, dittoHeaders);
+                    final PolicyId policyId = PolicyId.of(jsonObject.getValueOrThrow(PolicyEvent.JsonFields.POLICY_ID));
+                    return of(policyId, revision, timestamp, dittoHeaders, metadata);
                 });
     }
 
@@ -165,16 +117,18 @@ public final class PolicyDeleted extends AbstractPolicyEvent<PolicyDeleted> impl
 
     @Override
     public PolicyDeleted setRevision(final long revision) {
-        return of(getPolicyEntityId(), revision, getTimestamp().orElse(null), getDittoHeaders());
+        return of(getPolicyEntityId(), revision, getTimestamp().orElse(null), getDittoHeaders(),
+                getMetadata().orElse(null));
     }
 
     @Override
     public PolicyDeleted setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getPolicyEntityId(), getRevision(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getPolicyEntityId(), getRevision(), getTimestamp().orElse(null), dittoHeaders,
+                getMetadata().orElse(null));
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayloadAndBuild(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicate) {
         // no-op
     }

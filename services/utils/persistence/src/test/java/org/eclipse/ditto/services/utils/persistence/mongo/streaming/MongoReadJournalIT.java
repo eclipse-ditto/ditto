@@ -17,8 +17,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import org.bson.BsonArray;
+import org.bson.BsonDocument;
+import org.bson.BsonInt64;
+import org.bson.BsonString;
 import org.bson.Document;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
@@ -223,10 +229,10 @@ public final class MongoReadJournalIT {
 
     @Test
     public void extractJournalPidsFromEventsAndNotSnapshots() {
-        insert("test_journal", new Document().append("pid", "pid3").append("to", 2L));
-        insert("test_journal", new Document().append("pid", "pid4").append("to", 2L));
-        insert("test_journal", new Document().append("pid", "pid1").append("to", 1L));
-        insert("test_journal", new Document().append("pid", "pid2").append("to", 1L));
+        insert("test_journal", new JournalEntry("pid3").withSn(2L).getDocument());
+        insert("test_journal", new JournalEntry("pid4").withSn(2L).getDocument());
+        insert("test_journal", new JournalEntry("pid1").withSn(1L).getDocument());
+        insert("test_journal", new JournalEntry("pid2").withSn(1L).getDocument());
         insert("test_snaps", new Document().append("pid", "pid5").append("sn", 3L));
         insert("test_snaps", new Document().append("pid", "pid6").append("sn", 4L));
 
@@ -239,13 +245,40 @@ public final class MongoReadJournalIT {
     }
 
     @Test
+    public void extractJournalPidsFromEventsOfEntitiesWhichAreNotDeleted() {
+        /*
+         * The insertion order of pid3 is not natural but should ensure that the ordering by the sequence number happens
+         * correctly. Without this ordering there would be issues in the batching mechanism.
+         */
+        insert("test_journal", new JournalEntry("pid3").withSn(1L).withManifest("createdEvent").getDocument());
+        insert("test_journal", new JournalEntry("pid3").withSn(2L).withManifest("updatedEvent").getDocument());
+        insert("test_journal", new JournalEntry("pid3").withSn(3L).withManifest("deletedEvent").getDocument());
+
+        insert("test_journal", new JournalEntry("pid4").withSn(2L).withManifest("updatedEvent").getDocument());
+        insert("test_journal", new JournalEntry("pid1").withSn(1L).withManifest("createdEvent").getDocument());
+        insert("test_journal", new JournalEntry("pid2").withSn(1L).withManifest("createdEvent").getDocument());
+
+        final List<String> pids =
+                readJournal.getLatestJournalEntries(2, Duration.ZERO, materializer)
+                        .filter(document -> Optional.ofNullable(
+                                document.getString(MongoReadJournal.J_EVENT_MANIFEST))
+                                .map(manifest -> !"deletedEvent".equals(manifest))
+                                .orElse(false))
+                        .map(document -> document.getString(MongoReadJournal.J_EVENT_PID))
+                        .runWith(Sink.seq(), materializer)
+                        .toCompletableFuture().join();
+
+        assertThat(pids).containsExactly("pid1", "pid2", "pid4");
+    }
+
+    @Test
     public void extractJournalPidsWithSpecificTag() {
         final Set<String> tagged = Set.of("always-live", "awesome");
         final Set<String> alwaysLiveTagged = Set.of("always-live");
-        insert("test_journal", new Document().append("pid", "pid1").append("to", 1L).append("_tg", tagged));
-        insert("test_journal", new Document().append("pid", "pid2").append("to", 1L));
-        insert("test_journal", new Document().append("pid", "pid3").append("to", 2L).append("_tg", alwaysLiveTagged));
-        insert("test_journal", new Document().append("pid", "pid4").append("to", 2L).append("_tg", tagged));
+        insert("test_journal", new JournalEntry("pid1").withSn(1L).withTags(tagged).getDocument());
+        insert("test_journal", new JournalEntry("pid2").withSn(1L).getDocument());
+        insert("test_journal", new JournalEntry("pid3").withSn(2L).withTags(alwaysLiveTagged).getDocument());
+        insert("test_journal", new JournalEntry("pid4").withSn(2L).withTags(tagged).getDocument());
 
         final List<String> pids =
                 readJournal.getJournalPidsWithTag("always-live", 2, Duration.ZERO, materializer)
@@ -257,22 +290,14 @@ public final class MongoReadJournalIT {
 
     @Test
     public void extractJournalPidsInOrderOfTags() {
-        insert("test_journal", new Document()
-                .append("pid", "pid1")
-                .append("_tg", Set.of("always-alive", "priority-10"))
-                .append("to", 1L));
-        insert("test_journal", new Document()
-                .append("pid", "pid2")
-                .append("_tg", Set.of("always-alive", "priority-2"))
-                .append("to", 1L));
-        insert("test_journal", new Document()
-                .append("pid", "pid3")
-                .append("_tg", Set.of("always-alive", "priority-3"))
-                .append("to", 2L));
-        insert("test_journal", new Document()
-                .append("pid", "pid4")
-                .append("_tg", Set.of("always-alive", "priority-4"))
-                .append("to", 2L));
+        insert("test_journal",
+                new JournalEntry("pid1").withSn(1L).withTags(Set.of("always-alive", "priority-10")).getDocument());
+        insert("test_journal",
+                new JournalEntry("pid2").withSn(1L).withTags(Set.of("always-alive", "priority-2")).getDocument());
+        insert("test_journal",
+                new JournalEntry("pid3").withSn(2L).withTags(Set.of("always-alive", "priority-3")).getDocument());
+        insert("test_journal",
+                new JournalEntry("pid4").withSn(2L).withTags(Set.of("always-alive", "priority-4")).getDocument());
 
         final List<String> pids =
                 readJournal.getJournalPidsWithTagOrderedByPriorityTag("always-alive", Duration.ZERO)
@@ -284,26 +309,16 @@ public final class MongoReadJournalIT {
 
     @Test
     public void extractJournalPidsInOrderOfTagsOfNewestEvent() {
-        insert("test_journal", new Document()
-                .append("pid", "pid1")
-                .append("_tg", Set.of("always-alive", "priority-99"))
-                .append("to", 1L));
-        insert("test_journal", new Document()
-                .append("pid", "pid1")
-                .append("_tg", Set.of("always-alive", "priority-1"))
-                .append("to", 2L));
-        insert("test_journal", new Document()
-                .append("pid", "pid2")
-                .append("_tg", Set.of("always-alive", "priority-2"))
-                .append("to", 1L));
-        insert("test_journal", new Document()
-                .append("pid", "pid3")
-                .append("_tg", Set.of("always-alive", "priority-3"))
-                .append("to", 2L));
-        insert("test_journal", new Document()
-                .append("pid", "pid4")
-                .append("_tg", Set.of("always-alive", "priority-4"))
-                .append("to", 2L));
+        insert("test_journal",
+                new JournalEntry("pid1").withSn(1L).withTags(Set.of("always-alive", "priority-99")).getDocument());
+        insert("test_journal",
+                new JournalEntry("pid1").withSn(2L).withTags(Set.of("always-alive", "priority-1")).getDocument());
+        insert("test_journal",
+                new JournalEntry("pid2").withSn(1L).withTags(Set.of("always-alive", "priority-2")).getDocument());
+        insert("test_journal",
+                new JournalEntry("pid3").withSn(2L).withTags(Set.of("always-alive", "priority-3")).getDocument());
+        insert("test_journal",
+                new JournalEntry("pid4").withSn(2L).withTags(Set.of("always-alive", "priority-4")).getDocument());
 
         final List<String> pids =
                 readJournal.getJournalPidsWithTagOrderedByPriorityTag("always-alive", Duration.ZERO)
@@ -315,49 +330,36 @@ public final class MongoReadJournalIT {
 
     @Test
     public void extractJournalPidsInOrderOfTagsIgnoresOtherTags() {
-        insert("test_journal", new Document()
-                .append("pid", "pid1")
-                .append("_tg", Set.of("always-alive", "priority-99"))
-                .append("to", 1L));
-        insert("test_journal", new Document()
-                .append("pid", "pid2")
-                .append("_tg", Set.of("always-alive", "priority-2"))
-                .append("to", 1L));
-        insert("test_journal", new Document()
-                .append("pid", "pid3")
-                .append("_tg", Set.of("always-alive", "z-tag", "priority-3"))
-                .append("to", 2L));
-        insert("test_journal", new Document()
-                .append("pid", "pid4")
-                .append("_tg", Set.of("always-alive", "priority-4"))
-                .append("to", 2L));
+        insert("test_journal", new JournalEntry("pid1")
+                .withSn(1L)
+                .withTags(Set.of("always-alive", "priority-99"))
+                .getDocument());
+        insert("test_journal", new JournalEntry("pid2")
+                .withSn(1L)
+                .withTags(Set.of("always-alive", "priority-2"))
+                .getDocument());
+        insert("test_journal", new JournalEntry("pid3")
+                .withSn(2L)
+                .withTags(Set.of("always-alive", "z-tag", "priority-3"))
+                .getDocument());
+        insert("test_journal", new JournalEntry("pid4")
+                .withSn(2L)
+                .withTags(Set.of("always-alive", "priority-4"))
+                .getDocument());
 
-        final List<String> pids =
-                readJournal.getJournalPidsWithTagOrderedByPriorityTag("always-alive", Duration.ZERO)
-                        .runWith(Sink.seq(), materializer)
-                        .toCompletableFuture().join();
+        final List<String> pids = readJournal.getJournalPidsWithTagOrderedByPriorityTag("always-alive", Duration.ZERO)
+                .runWith(Sink.seq(), materializer)
+                .toCompletableFuture().join();
 
         assertThat(pids).containsExactly("pid1", "pid4", "pid3", "pid2");
     }
 
     @Test
     public void extractJournalPidsWithTagOrderedByPriorityTagWhenPriorityTagMissing() {
-        insert("test_journal", new Document()
-                .append("pid", "pid1")
-                .append("_tg", Set.of("always-alive"))
-                .append("to", 1L));
-        insert("test_journal", new Document()
-                .append("pid", "pid2")
-                .append("_tg", Set.of("always-alive"))
-                .append("to", 1L));
-        insert("test_journal", new Document()
-                .append("pid", "pid3")
-                .append("_tg", Set.of("always-alive"))
-                .append("to", 2L));
-        insert("test_journal", new Document()
-                .append("pid", "pid4")
-                .append("_tg", Set.of("always-alive"))
-                .append("to", 2L));
+        insert("test_journal", new JournalEntry("pid1").withSn(1L).withTags(Set.of("always-alive")).getDocument());
+        insert("test_journal", new JournalEntry("pid2").withSn(1L).withTags(Set.of("always-alive")).getDocument());
+        insert("test_journal", new JournalEntry("pid3").withSn(1L).withTags(Set.of("always-alive")).getDocument());
+        insert("test_journal", new JournalEntry("pid4").withSn(1L).withTags(Set.of("always-alive")).getDocument());
 
         final List<String> pids =
                 readJournal.getJournalPidsWithTagOrderedByPriorityTag("always-alive", Duration.ZERO)
@@ -369,10 +371,10 @@ public final class MongoReadJournalIT {
 
     @Test
     public void extractJournalPidsAboveALowerBound() {
-        insert("test_journal", new Document().append("pid", "pid1").append("to", 1L));
-        insert("test_journal", new Document().append("pid", "pid2").append("to", 1L));
-        insert("test_journal", new Document().append("pid", "pid3").append("to", 2L));
-        insert("test_journal", new Document().append("pid", "pid4").append("to", 2L));
+        insert("test_journal", new JournalEntry("pid1").withSn(1L).getDocument());
+        insert("test_journal", new JournalEntry("pid2").withSn(1L).getDocument());
+        insert("test_journal", new JournalEntry("pid3").withSn(2L).getDocument());
+        insert("test_journal", new JournalEntry("pid4").withSn(2L).getDocument());
 
         final List<String> pids =
                 readJournal.getJournalPidsAbove("pid2", 2, materializer)
@@ -385,12 +387,12 @@ public final class MongoReadJournalIT {
     @Test
     public void extractJournalPidsAboveALowerBoundWithSpecificTag() {
         final Set<String> tagged = Set.of("always-live");
-        insert("test_journal", new Document().append("pid", "pid1").append("to", 1L).append("_tg", tagged));
-        insert("test_journal", new Document().append("pid", "pid2").append("to", 1L));
-        insert("test_journal", new Document().append("pid", "pid3").append("to", 2L).append("_tg", tagged));
-        insert("test_journal", new Document().append("pid", "pid4").append("to", 2L).append("_tg", tagged));
-        insert("test_journal", new Document().append("pid", "pid5").append("to", 3L));
-        insert("test_journal", new Document().append("pid", "pid6").append("to", 3L).append("_tg", tagged));
+        insert("test_journal", new JournalEntry("pid1").withSn(1L).withTags(tagged).getDocument());
+        insert("test_journal", new JournalEntry("pid2").withSn(1L).getDocument());
+        insert("test_journal", new JournalEntry("pid3").withSn(2L).withTags(tagged).getDocument());
+        insert("test_journal", new JournalEntry("pid4").withSn(2L).withTags(tagged).getDocument());
+        insert("test_journal", new JournalEntry("pid5").withSn(3L).getDocument());
+        insert("test_journal", new JournalEntry("pid6").withSn(3L).withTags(tagged).getDocument());
 
         final List<String> pids =
                 readJournal.getJournalPidsAboveWithTag("pid2", "always-live", 2, materializer)
@@ -406,4 +408,44 @@ public final class MongoReadJournalIT {
                 .toCompletableFuture()
                 .join();
     }
+
+    private static class JournalEntry {
+
+        private final Document document;
+
+        private JournalEntry(final String pid) {
+            this.document = new Document().append("pid", pid)
+                    .append("events", new BsonArray(List.of(BsonDocument.parse(new Document()
+                            .append("pid", pid)
+                            .toJson())
+                    )));
+        }
+
+        private JournalEntry withSn(final Long sn) {
+            document.append("to", sn);
+            final BsonDocument event = (BsonDocument) document.get("events", List.class).get(0);
+            event.append("sn", new BsonInt64(sn));
+            return this;
+        }
+
+        private JournalEntry withManifest(final String manifest) {
+            final BsonDocument event = (BsonDocument) document.get("events", List.class).get(0);
+            event.append("manifest", new BsonString(manifest));
+            return this;
+        }
+
+        private JournalEntry withTags(final Set<String> tags) {
+            final BsonArray bsonTags = new BsonArray(tags.stream().map(BsonString::new).collect(Collectors.toList()));
+            document.append("_tg", bsonTags);
+            final BsonDocument event = (BsonDocument) document.get("events", List.class).get(0);
+            event.append("_tg", bsonTags);
+            return this;
+        }
+
+        private Document getDocument() {
+            return document;
+        }
+
+    }
+
 }

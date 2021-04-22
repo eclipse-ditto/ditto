@@ -57,7 +57,7 @@ final class PolicyErrorResponseAdapter extends AbstractErrorResponseAdapter<Poli
     @Override
     public PolicyErrorResponse buildErrorResponse(final TopicPath topicPath, final DittoRuntimeException exception,
             final DittoHeaders dittoHeaders) {
-        return PolicyErrorResponse.of(PolicyId.of(topicPath.getNamespace(), topicPath.getId()), exception,
+        return PolicyErrorResponse.of(PolicyId.of(topicPath.getNamespace(), topicPath.getEntityName()), exception,
                 dittoHeaders);
     }
 }

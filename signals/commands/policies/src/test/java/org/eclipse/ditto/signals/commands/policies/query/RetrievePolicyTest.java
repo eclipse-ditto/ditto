@@ -24,7 +24,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
@@ -64,24 +63,9 @@ public final class RetrievePolicyTest {
     @Test
     public void tryToCreateInstanceWithNullPolicyId() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> RetrievePolicy.of((PolicyId) null, EMPTY_DITTO_HEADERS))
+                .isThrownBy(() -> RetrievePolicy.of(null, EMPTY_DITTO_HEADERS))
                 .withNoCause();
     }
-
-
-    @Test
-    public void tryToCreateInstanceWithNullPolicyIdString() {
-        assertThatExceptionOfType(PolicyIdInvalidException.class)
-                .isThrownBy(() -> RetrievePolicy.of((String) null, EMPTY_DITTO_HEADERS));
-    }
-
-
-    @Test
-    public void tryToCreateInstanceWithInvalidPolicyId() {
-        assertThatExceptionOfType(PolicyIdInvalidException.class)
-                .isThrownBy(() -> RetrievePolicy.of("undefined", EMPTY_DITTO_HEADERS));
-    }
-
 
     @Test
     public void toJsonReturnsExpected() {

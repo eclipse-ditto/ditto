@@ -23,7 +23,6 @@ import java.util.Map;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -67,7 +66,8 @@ abstract class AbstractMessageMappingStrategies<T extends Jsonifiable.WithPredic
      * @throws org.eclipse.ditto.model.messages.MessagePayloadSizeTooLargeException if the message's payload is too
      * large
      */
-    protected static Message<?> messageFrom(final Adaptable adaptable) {
+    @SuppressWarnings({"rawtypes", "java:S3740"})
+    protected static Message messageFrom(final Adaptable adaptable) {
         final MessageHeaders messageHeaders = messageHeadersFrom(adaptable);
 
         // also validates message size
@@ -102,7 +102,7 @@ abstract class AbstractMessageMappingStrategies<T extends Jsonifiable.WithPredic
 
         // these headers are used to store message attributes of Message that are not fields.
         // their content comes from elsewhere; overwrite message headers of the same names.
-        dittoHeadersBuilder.putHeader(THING_ID.getKey(), topicPath.getNamespace() + ":" + topicPath.getId());
+        dittoHeadersBuilder.putHeader(THING_ID.getKey(), topicPath.getNamespace() + ":" + topicPath.getEntityName());
         dittoHeadersBuilder.putHeader(SUBJECT.getKey(), topicPath.getSubject().orElse(""));
         final Payload payload = adaptable.getPayload();
         final MessagePath payloadPath = payload.getPath();
@@ -116,19 +116,6 @@ abstract class AbstractMessageMappingStrategies<T extends Jsonifiable.WithPredic
         final DittoHeaders newDittoHeaders = dittoHeadersBuilder.build();
 
         return MessagesModelFactory.newHeadersBuilder(newDittoHeaders).build();
-    }
-
-    /**
-     * Get the status code from the adaptable payload.
-     *
-     * @throws NullPointerException if the Adaptable payload does not contain a status.
-     * @deprecated as of 2.0.0 please use {@link #getHttpStatus(Adaptable)} instead.
-     */
-    @Deprecated
-    protected static HttpStatusCode statusCodeFrom(final Adaptable adaptable) {
-        return adaptable.getPayload()
-                .getStatus()
-                .orElseThrow(() -> new NullPointerException("The message did not contain a status code."));
     }
 
     /**

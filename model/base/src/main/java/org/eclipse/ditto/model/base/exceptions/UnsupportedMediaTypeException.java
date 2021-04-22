@@ -39,8 +39,9 @@
 
      private static final String DEFAULT_MESSAGE = "The Media-Type is not supported.";
      private static final String MESSAGE_PATTERN = "The Media-Type <{0}> is not supported for this resource.";
-     private static final String MESSAGE_PATTERN_EMPTY_CONTENT_TYPE = "The Content-Type header was empty or not present. " +
-             "Please set Content-Type header to \"application/merge-patch+json\" for this resource";
+     private static final String MESSAGE_PATTERN_EMPTY_CONTENT_TYPE =
+             "The Content-Type header was empty or not present. " +
+                     "Please set Content-Type header to \"application/merge-patch+json\" for this resource";
 
      private static final String DESCRIPTION_ALLOWED_TYPES_PATTERN = "Allowed Media-Types are: <{0}>.";
      private static final String DESCRIPTION_ALLOWED_TYPE_PATTERN = "Allowed Media-Type is: <{0}>.";
@@ -63,10 +64,10 @@
       * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
       */
      private UnsupportedMediaTypeException(final DittoHeaders dittoHeaders,
-                                           @Nullable final String message,
-                                           @Nullable final String description,
-                                           @Nullable final Throwable cause,
-                                           @Nullable final URI href) {
+             @Nullable final String message,
+             @Nullable final String description,
+             @Nullable final Throwable cause,
+             @Nullable final URI href) {
          super(ERROR_CODE, STATUS_CODE, dittoHeaders, message, description, cause, href);
      }
 
@@ -104,7 +105,7 @@
 
          final String msgPattern = MessageFormat.format(MESSAGE_PATTERN, callersMediaType);
          final String descriptionPattern = MessageFormat.format(DESCRIPTION_ALLOWED_TYPE_PATTERN,
-                         mediaTypeSupportedByCalledResource);
+                 mediaTypeSupportedByCalledResource);
          final URI rfcURI = URI.create(RFC_7396);
 
          return new Builder().message(msgPattern).description(descriptionPattern).href(rfcURI);
@@ -139,7 +140,8 @@
       * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
       * format.
       */
-     public static UnsupportedMediaTypeException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+     public static UnsupportedMediaTypeException fromJson(final JsonObject jsonObject,
+             final DittoHeaders dittoHeaders) {
          return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
      }
 

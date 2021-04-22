@@ -59,10 +59,10 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.common.ResponseType;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
@@ -225,6 +225,9 @@ public final class TestConstants {
     }
 
     public static final Instant INSTANT = Instant.now();
+    public static final Metadata METADATA = Metadata.newBuilder()
+            .set("creator", "The epic Ditto team")
+            .build();
 
     public static DittoProtocolSub dummyDittoProtocolSub(final ActorRef pubSubMediator) {
         return dummyDittoProtocolSub(pubSubMediator, null);
@@ -319,18 +322,6 @@ public final class TestConstants {
                 DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION, SOURCE_SUBJECT);
         private static final AuthorizationContext UNAUTHORIZED_AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
                 DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION, UNAUTHORIZED_SUBJECT);
-
-
-        public static AuthorizationContext withUnprefixedSubjects(final AuthorizationContext authorizationContext) {
-            final List<AuthorizationSubject> mergedSubjects =
-                    new ArrayList<>(authorizationContext.getAuthorizationSubjects());
-            authorizationContext.getAuthorizationSubjectIds().stream()
-                    .map(subject -> subject.split(":", 2)[1])
-                    .map(AuthorizationSubject::newInstance)
-                    .forEach(mergedSubjects::add);
-
-            return AuthorizationModelFactory.newAuthContext(authorizationContext.getType(), mergedSubjects);
-        }
 
     }
 
@@ -969,25 +960,26 @@ public final class TestConstants {
 
     }
 
-    public static ThingModifiedEvent thingModified(final Collection<AuthorizationSubject> readSubjects) {
+    public static ThingModifiedEvent<?> thingModified(final Collection<AuthorizationSubject> readSubjects) {
         return thingModified(readSubjects, Attributes.newBuilder().build());
     }
 
-    public static ThingModifiedEvent thingModifiedWithCor(final Collection<AuthorizationSubject> readSubjects) {
+    public static ThingModifiedEvent<?> thingModifiedWithCor(final Collection<AuthorizationSubject> readSubjects) {
         final DittoHeaders dittoHeaders =
                 DittoHeaders.newBuilder().readGrantedSubjects(readSubjects).correlationId("testCor").build();
         return ThingModified.of(Things.THING.toBuilder().setAttributes(Attributes.newBuilder().build()).build(), 1,
-                dittoHeaders);
+                TestConstants.INSTANT, dittoHeaders, TestConstants.METADATA);
     }
 
-    public static ThingModifiedEvent thingModified(final Collection<AuthorizationSubject> readSubjects,
+    public static ThingModifiedEvent<?> thingModified(final Collection<AuthorizationSubject> readSubjects,
             final Attributes attributes) {
 
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().readGrantedSubjects(readSubjects).build();
-        return ThingModified.of(Things.THING.toBuilder().setAttributes(attributes).build(), 1, dittoHeaders);
+        return ThingModified.of(Things.THING.toBuilder().setAttributes(attributes).build(), 1,
+                TestConstants.INSTANT, dittoHeaders, TestConstants.METADATA);
     }
 
-    public static MessageCommand sendThingMessage(final Collection<AuthorizationSubject> readSubjects) {
+    public static MessageCommand<?, ?> sendThingMessage(final Collection<AuthorizationSubject> readSubjects) {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .readGrantedSubjects(readSubjects)
                 .channel(TopicPath.Channel.LIVE.getName())

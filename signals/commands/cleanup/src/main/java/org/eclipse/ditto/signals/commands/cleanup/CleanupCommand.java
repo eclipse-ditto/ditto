@@ -18,6 +18,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 /**
@@ -25,7 +26,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  *
  * @param <T> the type of the implementing class.
  */
-public interface CleanupCommand<T extends CleanupCommand<T>> extends Command<T> {
+public interface CleanupCommand<T extends CleanupCommand<T>> extends Command<T>, SignalWithEntityId<T> {
 
     /**
      * Type Prefix of Thing commands.
@@ -69,11 +70,17 @@ public interface CleanupCommand<T extends CleanupCommand<T>> extends Command<T> 
     class JsonFields extends Command.JsonFields {
 
         /**
+         * JSON field containing the CleanupCommand's entity type.
+         */
+        public static final JsonFieldDefinition<String> ENTITY_TYPE =
+                JsonFactory.newStringFieldDefinition("entityType", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+
+        /**
          * JSON field containing the CleanupCommand's entityId.
          */
         public static final JsonFieldDefinition<String> ENTITY_ID =
-                JsonFactory.newStringFieldDefinition("entityId", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newStringFieldDefinition("entityId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     }
 }

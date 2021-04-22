@@ -32,7 +32,7 @@ public interface ValueValidator {
      * @throws NullPointerException if {@code definition} is {@code null}.
      * @throws org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException if the value is invalid.
      */
-    void accept(HeaderDefinition definition, CharSequence value);
+    void accept(HeaderDefinition definition, @Nullable CharSequence value);
 
     /**
      * Indicates whether this validator can validate values of the given type.

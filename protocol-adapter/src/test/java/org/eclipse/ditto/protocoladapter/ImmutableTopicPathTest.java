@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -40,7 +41,7 @@ public final class ImmutableTopicPathTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ImmutableTopicPath.class, areImmutable());
+        assertInstancesOf(ImmutableTopicPath.class, areImmutable(), provided(TopicPath.Group.class).isAlsoImmutable());
     }
 
     @Test(expected = NullPointerException.class)

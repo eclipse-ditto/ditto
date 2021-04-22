@@ -8,24 +8,6 @@ permalink: protocol-examples-errorresponses.html
 {% capture thingerrorresponse %}{% include_relative generated/exceptions/thingerrorresponse.md %}{% endcapture %}
 {{ thingerrorresponse | markdownify }}
 
-{% capture things_acl_entry_invalid %}{% include_relative generated/exceptions/things_acl_entry_invalid.md %}{% endcapture %}
-{{ things_acl_entry_invalid | markdownify }}
-
-{% capture things_acl_invalid %}{% include_relative generated/exceptions/things_acl_invalid.md %}{% endcapture %}
-{{ things_acl_invalid | markdownify }}
-
-{% capture things_acl_modificationinvalid %}{% include_relative generated/exceptions/things_acl_modificationinvalid.md %}{% endcapture %}
-{{ things_acl_modificationinvalid | markdownify }}
-
-{% capture things_acl_not_allowed %}{% include_relative generated/exceptions/things_acl_not_allowed.md %}{% endcapture %}
-{{ things_acl_not_allowed | markdownify }}
-
-{% capture things_acl_notfound %}{% include_relative generated/exceptions/things_acl_notfound.md %}{% endcapture %}
-{{ things_acl_notfound | markdownify }}
-
-{% capture things_acl_notmodifiable %}{% include_relative generated/exceptions/things_acl_notmodifiable.md %}{% endcapture %}
-{{ things_acl_notmodifiable | markdownify }}
-
 {% capture things_attribute_notmodifiable %}{% include_relative generated/exceptions/things_attribute_notmodifiable.md %}{% endcapture %}
 {{ things_attribute_notmodifiable | markdownify }}
 

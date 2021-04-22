@@ -14,7 +14,7 @@ package org.eclipse.ditto.signals.base;
 
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.model.base.headers.WithManifest;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
@@ -24,7 +24,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
  * @param <T> the type of the implementing class.
  */
 public interface Signal<T extends Signal<T>> extends Jsonifiable.WithPredicate<JsonObject, JsonField>,
-        WithDittoHeaders<T>, WithManifest, WithType, WithId, WithName, WithResource {
+        DittoHeadersSettable<T>, WithManifest, WithType, WithName, WithResource {
 
     /**
      * Returns the name of the signal. This is gathered by the type of the signal by default.

@@ -49,8 +49,8 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
 
     private ConnectionBasedJmsConnectionFactory(final Map<String, String> defaultConfig,
             final Supplier<SshTunnelState> sshTunnelConfigSupplier) {
-        this.defaultConfig = checkNotNull(defaultConfig, "defaultConfig");;
-        this.sshTunnelConfigSupplier = checkNotNull(sshTunnelConfigSupplier, "sshTunnelConfigSupplier");;
+        this.defaultConfig = checkNotNull(defaultConfig, "defaultConfig");
+        this.sshTunnelConfigSupplier = checkNotNull(sshTunnelConfigSupplier, "sshTunnelConfigSupplier");
     }
 
     /**

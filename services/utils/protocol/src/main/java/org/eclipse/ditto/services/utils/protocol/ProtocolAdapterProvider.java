@@ -112,12 +112,12 @@ public abstract class ProtocolAdapterProvider {
         }
 
         @Override
-        public Class getJavaType() {
+        public Class<?> getJavaType() {
             return Object.class;
         }
 
         @Override
-        public Class getSerializationType() {
+        public Class<?> getSerializationType() {
             return getJavaType();
         }
 

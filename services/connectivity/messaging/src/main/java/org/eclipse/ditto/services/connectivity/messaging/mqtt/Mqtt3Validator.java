@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
-import java.util.Optional;
 import java.util.function.Supplier;
 
 import javax.annotation.concurrent.Immutable;
@@ -24,8 +23,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
-
-import com.hivemq.client.internal.util.UnsignedDataTypes;
+import org.eclipse.ditto.services.connectivity.config.MqttConfig;
 
 import akka.actor.ActorSystem;
 
@@ -35,13 +33,18 @@ import akka.actor.ActorSystem;
 @Immutable
 public final class Mqtt3Validator extends AbstractMqttValidator {
 
+    private Mqtt3Validator(final MqttConfig mqttConfig) {
+        super(mqttConfig);
+    }
+
     /**
      * Create a new {@code Mqtt3Validator}.
      *
+     * @param mqttConfig used to create the fallback specific config
      * @return a new instance.
      */
-    public static Mqtt3Validator newInstance() {
-        return new Mqtt3Validator();
+    public static Mqtt3Validator newInstance(final MqttConfig mqttConfig) {
+        return new Mqtt3Validator(mqttConfig);
     }
 
     @Override
@@ -96,8 +99,8 @@ public final class Mqtt3Validator extends AbstractMqttValidator {
         }
     }
 
-    private static boolean containsMappings(final Optional<HeaderMapping> headerMappingOptional) {
-        return headerMappingOptional.map(HeaderMapping::getMapping).filter(mappings -> !mappings.isEmpty()).isPresent();
+    private static boolean containsMappings(final HeaderMapping headerMapping) {
+        return !headerMapping.getMapping().isEmpty();
     }
 
     private static void validateConsumerCount(final Source source, final DittoHeaders dittoHeaders) {

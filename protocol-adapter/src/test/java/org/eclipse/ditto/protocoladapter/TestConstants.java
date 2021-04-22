@@ -31,8 +31,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.common.HttpStatus;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -51,9 +51,6 @@ import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.model.policies.Subjects;
-import org.eclipse.ditto.model.things.AccessControlList;
-import org.eclipse.ditto.model.things.AccessControlListModelFactory;
-import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureDefinition;
@@ -62,6 +59,7 @@ import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingDefinition;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 
@@ -80,10 +78,15 @@ public final class TestConstants {
     public static final String CORRELATION_ID = "dittoCorrelationId";
 
     public static final long REVISION = 1337;
+    public static final Instant TIMESTAMP = Instant.EPOCH;
+    public static final Metadata METADATA = Metadata.newBuilder()
+            .set("creator", "The epic Ditto team")
+            .build();
 
     public static final Instant CREATED = Instant.now().minus(Duration.ofDays(100));
     public static final Instant MODIFIED = Instant.now().minus(Duration.ofDays(50));
 
+    public static final String THING_PREFIX = "thing:";
     public static final ThingId THING_ID = ThingId.of(NAMESPACE, NAME);
     public static final ThingId THING_ID2 = ThingId.of(NAMESPACE, NAME2);
 
@@ -91,11 +94,6 @@ public final class TestConstants {
     public static final PolicyId POLICY_ID = PolicyId.of(NAMESPACE, POLICY_NAME);
 
     public static final AuthorizationSubject AUTHORIZATION_SUBJECT = AuthorizationSubject.newInstance("sid");
-
-    public static final AclEntry ACL_ENTRY =
-            AclEntry.newInstance(AUTHORIZATION_SUBJECT, AccessControlListModelFactory.allPermissions());
-
-    public static final AccessControlList ACL = AccessControlListModelFactory.newAcl(ACL_ENTRY);
 
     public static final JsonValue ATTRIBUTE_VALUE = JsonValue.of("bar");
 
@@ -180,11 +178,6 @@ public final class TestConstants {
 
     public static final Thing THING2 = Thing.newBuilder().setId(THING_ID2).build();
 
-    public static final DittoHeaders DITTO_HEADERS_V_1 = DittoHeaders.newBuilder()
-            .correlationId(CORRELATION_ID)
-            .schemaVersion(JsonSchemaVersion.V_1)
-            .build();
-
     public static final DittoHeaders DITTO_HEADERS_V_2 = DittoHeaders.newBuilder()
             .correlationId(CORRELATION_ID)
             .schemaVersion(JsonSchemaVersion.V_2)
@@ -196,18 +189,10 @@ public final class TestConstants {
             .schemaVersion(JsonSchemaVersion.V_2)
             .build();
 
-    public static final DittoHeaders HEADERS_V_1 = ProtocolFactory.newHeadersWithJsonContentType(DITTO_HEADERS_V_1);
-
-    public static final DittoHeaders HEADERS_V_1_FOR_MERGE_COMMANDS =
-            ProtocolFactory.newHeadersWithJsonMergePatchContentType(DITTO_HEADERS_V_1);
-
-    public static final DittoHeaders HEADERS_V_2 = ProtocolFactory.newHeadersWithJsonContentType(DITTO_HEADERS_V_2);
+    public static final DittoHeaders HEADERS_V_2 = ProtocolFactory.newHeadersWithDittoContentType(DITTO_HEADERS_V_2);
 
     public static final DittoHeaders HEADERS_V_2_FOR_MERGE_COMMANDS =
             ProtocolFactory.newHeadersWithJsonMergePatchContentType(DITTO_HEADERS_V_2);
-
-    public static final DittoHeaders HEADERS_V_1_NO_CONTENT_TYPE = DittoHeaders.newBuilder(HEADERS_V_1).removeHeader(
-            DittoHeaderDefinition.CONTENT_TYPE.getKey()).build();
 
     public static final DittoHeaders HEADERS_V_2_NO_CONTENT_TYPE = DittoHeaders.newBuilder(HEADERS_V_2).removeHeader(
             DittoHeaderDefinition.CONTENT_TYPE.getKey()).build();
@@ -254,9 +239,9 @@ public final class TestConstants {
         }
 
         if (topicPath.getAction().filter(topicPath1 -> topicPath1.equals(TopicPath.Action.MERGE)).isPresent()) {
-           dittoHeaders  = TestConstants.HEADERS_V_2_FOR_MERGE_COMMANDS;
+            dittoHeaders = TestConstants.HEADERS_V_2_FOR_MERGE_COMMANDS;
         } else {
-            dittoHeaders  = TestConstants.HEADERS_V_2;
+            dittoHeaders = TestConstants.HEADERS_V_2;
         }
 
         return Adaptable.newBuilder(topicPath)
@@ -279,7 +264,7 @@ public final class TestConstants {
             JsonArray.of(THING.toJson(), THING2.toJson());
 
     public static final DittoRuntimeException EXCEPTION =
-            DittoRuntimeException.newBuilder("TestException", HttpStatus.BAD_REQUEST).build();
+            ThingIdInvalidException.newBuilder("TestException").build();
 
     public static class Policies {
 

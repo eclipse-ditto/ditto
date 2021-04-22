@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -37,6 +38,9 @@ public final class ConnectionModifiedTest {
 
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(Event.JsonFields.TYPE, ConnectionModified.TYPE)
+            .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
+            .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
+            .set(EventsourcedEvent.JsonFields.REVISION, TestConstants.REVISION)
             .set(ConnectivityEvent.JsonFields.CONNECTION_ID, TestConstants.ID.toString())
             .set(ConnectivityEvent.JsonFields.CONNECTION, TestConstants.CONNECTION.toJson())
             .build();
@@ -57,7 +61,8 @@ public final class ConnectionModifiedTest {
     @Test
     public void createInstanceWithNullConnection() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ConnectionModified.of(null, null, DittoHeaders.empty()))
+                .isThrownBy(() -> ConnectionModified.of(null, TestConstants.REVISION,
+                        TestConstants.TIMESTAMP, TestConstants.HEADERS, TestConstants.METADATA))
                 .withMessage("The %s must not be null!", "Connection")
                 .withNoCause();
     }
@@ -65,7 +70,8 @@ public final class ConnectionModifiedTest {
     @Test
     public void fromJsonReturnsExpected() {
         final ConnectionModified expected =
-                ConnectionModified.of(TestConstants.CONNECTION, null, DittoHeaders.empty());
+                ConnectionModified.of(TestConstants.CONNECTION, TestConstants.REVISION,
+                        TestConstants.TIMESTAMP, TestConstants.HEADERS, TestConstants.METADATA);
 
         final ConnectionModified actual =
                 ConnectionModified.fromJson(KNOWN_JSON, DittoHeaders.empty());
@@ -76,7 +82,8 @@ public final class ConnectionModifiedTest {
     @Test
     public void toJsonReturnsExpected() {
         final JsonObject actual =
-                ConnectionModified.of(TestConstants.CONNECTION, null, DittoHeaders.empty()).toJson();
+                ConnectionModified.of(TestConstants.CONNECTION, TestConstants.REVISION,
+                        TestConstants.TIMESTAMP, TestConstants.HEADERS, TestConstants.METADATA).toJson();
 
         assertThat(actual).isEqualTo(KNOWN_JSON);
     }
@@ -86,7 +93,8 @@ public final class ConnectionModifiedTest {
         final JsonPointer expectedResourcePath = JsonFactory.emptyPointer();
 
         final ConnectionModified underTest =
-                ConnectionModified.of(TestConstants.CONNECTION, DittoHeaders.empty());
+                ConnectionModified.of(TestConstants.CONNECTION, TestConstants.REVISION,
+                        TestConstants.TIMESTAMP, TestConstants.HEADERS, TestConstants.METADATA);
 
         DittoJsonAssertions.assertThat(underTest.getResourcePath()).isEqualTo(expectedResourcePath);
     }

@@ -5,8 +5,8 @@ tags: [model]
 permalink: basic-namespaces-and-names.html
 ---
 
-Ditto uses namespaces and names for the IDs of important entity types like Things or Policies. Due to the fact that those
-IDs often need to be set in the path of HTTP requests, we have restricted the set of allowed characters.
+Ditto uses namespaces and names for the IDs of important entity types like Things or Policies. Due to the fact that 
+those IDs often need to be set in the path of HTTP requests, we have restricted the set of allowed characters.
 
 ## Namespace
 
@@ -66,5 +66,6 @@ Examples for valid IDs:
 
 ## Encoding and decoding
 
-If hex encoded characters or spaces are used in the Thing name, the protocol dependent de- or encoding must be taken into account. If a Thing is created with the ID `eclipse.ditto:foo bar` and is to be queried via the HTTP API, the space must be encoded accordingly:
-`GET /things/eclipse.ditto:foo%20bar`.
+If hex encoded characters or spaces are used in the Thing name, the protocol dependent de- or encoding must be 
+taken into account. If a Thing is created with the ID `eclipse.ditto:foo bar` and is to be queried via the HTTP API, 
+the space must be encoded accordingly: `GET /things/eclipse.ditto:foo%20bar`.

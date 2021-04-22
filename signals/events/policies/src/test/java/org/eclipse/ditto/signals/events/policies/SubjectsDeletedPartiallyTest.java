@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -55,7 +56,8 @@ public final class SubjectsDeletedPartiallyTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, SubjectsDeletedPartially.TYPE)
-            .set(Event.JsonFields.REVISION, TestConstants.Policy.REVISION_NUMBER)
+            .set(EventsourcedEvent.JsonFields.REVISION, TestConstants.Policy.REVISION_NUMBER)
+            .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
             .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(SubjectsDeletedPartially.JSON_DELETED_SUBJECT_IDS, DELETED_SUBJECT_IDS_JSON)
             .build();
@@ -78,21 +80,21 @@ public final class SubjectsDeletedPartiallyTest {
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
         SubjectsDeletedPartially.of(null, DELETED_SUBJECT_IDS, TestConstants.Policy.REVISION_NUMBER,
-                TestConstants.EMPTY_DITTO_HEADERS);
+                TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullDeactivatedSubjects() {
         SubjectsDeletedPartially.of(TestConstants.Policy.POLICY_ID, null, TestConstants.Policy.REVISION_NUMBER,
-                TestConstants.EMPTY_DITTO_HEADERS);
+                TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
     }
 
     @Test
     public void toJsonReturnsExpected() {
         final SubjectsDeletedPartially underTest =
                 SubjectsDeletedPartially.of(TestConstants.Policy.POLICY_ID, DELETED_SUBJECT_IDS,
-                        TestConstants.Policy.REVISION_NUMBER, TestConstants.TIMESTAMP,
-                        TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.Policy.REVISION_NUMBER,
+                        TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);

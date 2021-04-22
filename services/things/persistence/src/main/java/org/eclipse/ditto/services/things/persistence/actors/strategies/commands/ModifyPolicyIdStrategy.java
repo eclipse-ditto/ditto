@@ -28,7 +28,6 @@ import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyId;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyIdResponse;
-import org.eclipse.ditto.signals.events.things.PolicyIdCreated;
 import org.eclipse.ditto.signals.events.things.PolicyIdModified;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
@@ -52,9 +51,7 @@ final class ModifyPolicyIdStrategy extends AbstractThingCommandStrategy<ModifyPo
             final ModifyPolicyId command,
             @Nullable final Metadata metadata) {
 
-        return extractPolicyId(thing)
-                .map(policyId -> getModifyResult(context, nextRevision, command, thing, metadata))
-                .orElseGet(() -> getCreateResult(context, nextRevision, command, thing, metadata));
+        return getModifyResult(context, nextRevision, command, thing, metadata);
     }
 
     private Optional<PolicyId> extractPolicyId(final @Nullable Thing thing) {
@@ -70,23 +67,8 @@ final class ModifyPolicyIdStrategy extends AbstractThingCommandStrategy<ModifyPo
         final ThingEvent<?> event =
                 PolicyIdModified.of(thingId, command.getPolicyEntityId(), nextRevision, getEventTimestamp(),
                         dittoHeaders, metadata);
-        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
+        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                 ModifyPolicyIdResponse.modified(thingId, dittoHeaders), thing);
-
-        return ResultFactory.newMutationResult(command, event, response);
-    }
-
-    private Result<ThingEvent<?>> getCreateResult(final Context<ThingId> context, final long nextRevision,
-            final ModifyPolicyId command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
-
-        final ThingId thingId = context.getState();
-        final PolicyId policyId = command.getPolicyEntityId();
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
-
-        final ThingEvent<?> event =
-                PolicyIdCreated.of(thingId, policyId, nextRevision, getEventTimestamp(), dittoHeaders, metadata);
-        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
-                ModifyPolicyIdResponse.created(thingId, policyId, dittoHeaders), thing);
 
         return ResultFactory.newMutationResult(command, event, response);
     }

@@ -35,7 +35,8 @@ public final class AttributeDeletedStrategyTest extends AbstractStrategyTest {
     @Test
     public void appliesEventCorrectly() {
         final AttributeDeletedStrategy strategy = new AttributeDeletedStrategy();
-        final AttributeDeleted event = AttributeDeleted.of(THING_ID, ATTRIBUTE_POINTER, REVISION, DittoHeaders.empty());
+        final AttributeDeleted event = AttributeDeleted.of(THING_ID, ATTRIBUTE_POINTER, REVISION, TIMESTAMP,
+                DittoHeaders.empty(), null);
 
         final Thing thingWithAttribute = THING.toBuilder()
                 .setAttribute(ATTRIBUTE_POINTER, ATTRIBUTE_VALUE)
@@ -45,6 +46,7 @@ public final class AttributeDeletedStrategyTest extends AbstractStrategyTest {
         final Thing expected = THING.toBuilder()
                 .setAttributes(Attributes.newBuilder().build())
                 .setRevision(NEXT_REVISION)
+                .setModified(TIMESTAMP)
                 .build();
         assertThat(thingWithEventApplied).isEqualTo(expected);
     }

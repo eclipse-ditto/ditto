@@ -32,17 +32,11 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.things.AccessControlList;
-import org.eclipse.ditto.model.things.AclEntry;
-import org.eclipse.ditto.model.things.AclEntryInvalidException;
-import org.eclipse.ditto.model.things.AclInvalidException;
-import org.eclipse.ditto.model.things.AclNotAllowedException;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
-import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
@@ -52,9 +46,6 @@ import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
-import org.eclipse.ditto.signals.commands.things.exceptions.AclModificationInvalidException;
-import org.eclipse.ditto.signals.commands.things.exceptions.AclNotAccessibleException;
-import org.eclipse.ditto.signals.commands.things.exceptions.AclNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributeNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributeNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributesNotAccessibleException;
@@ -82,7 +73,6 @@ import org.eclipse.ditto.signals.commands.things.exceptions.ThingTooManyModifyin
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingUnavailableException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
-import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributes;
@@ -99,8 +89,6 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatures;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeaturesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyAcl;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributes;
@@ -119,10 +107,6 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyId;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyIdResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveAcl;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntry;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntryResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveAclResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributes;
@@ -155,14 +139,7 @@ public class JsonExamplesProducer {
     private static final ThingId THING_ID = ThingId.of(NAMESPACE, "xdk_53");
     private static final PolicyId POLICY_ID = PolicyId.of(NAMESPACE, "policy0815");
     private static final ThingLifecycle LIFECYCLE = ThingLifecycle.ACTIVE;
-    private static final AuthorizationSubject AUTH_SUBJECT_1 =
-            newAuthSubject("the_auth_subject");
-    private static final AclEntry ACL_ENTRY_1 =
-            ThingsModelFactory.newAclEntry(AUTH_SUBJECT_1, Permission.READ, Permission.WRITE, Permission.ADMINISTRATE);
-    private static final AuthorizationSubject AUTH_SUBJECT_2 =
-            newAuthSubject("the_auth_subject_2");
-    private static final AclEntry ACL_ENTRY_2 = ThingsModelFactory.newAclEntry(AUTH_SUBJECT_2, Permission.READ);
-    private static final AccessControlList ACL = ThingsModelFactory.newAcl(ACL_ENTRY_1, ACL_ENTRY_2);
+    private static final AuthorizationSubject AUTH_SUBJECT_1 = newAuthSubject("the_auth_subject");
     private static final JsonObject ATTRIBUTE_VALUE = JsonFactory.newObjectBuilder()
             .set("latitude", 44.673856)
             .set("longitude", 8.261719)
@@ -274,12 +251,6 @@ public class JsonExamplesProducer {
                 RetrieveAttribute.of(THING_ID, ATTRIBUTE_POINTER, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("retrieveAttribute.json")), retrieveAttributeWithJsonPointer);
 
-        final RetrieveAcl retrieveAcl = RetrieveAcl.of(THING_ID, DITTO_HEADERS);
-        writeJson(commandsDir.resolve(Paths.get("retrieveAcl.json")), retrieveAcl, JsonSchemaVersion.V_1);
-
-        final RetrieveAclEntry retrieveAclEntry = RetrieveAclEntry.of(THING_ID, AUTH_SUBJECT_1, DITTO_HEADERS);
-        writeJson(commandsDir.resolve(Paths.get("retrieveAclEntry.json")), retrieveAclEntry, JsonSchemaVersion.V_1);
-
         final RetrievePolicyId retrievePolicyId = RetrievePolicyId.of(THING_ID, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("retrievePolicyId.json")), retrievePolicyId);
 
@@ -312,26 +283,17 @@ public class JsonExamplesProducer {
                         DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("retrieveThingsResponse.json")), retrieveThingsResponse);
 
-        final RetrieveThingResponse retrieveThingResponse = RetrieveThingResponse.of(THING_ID, THING, DITTO_HEADERS);
+        final RetrieveThingResponse retrieveThingResponse = RetrieveThingResponse.of(THING_ID, THING, null, null, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("retrieveThingResponse.json")), retrieveThingResponse);
 
         final RetrieveAttributesResponse retrieveAttributesResponse =
                 RetrieveAttributesResponse.of(THING_ID, ATTRIBUTES,
-                DITTO_HEADERS);
+                        DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("retrieveAttributesResponse.json")), retrieveAttributesResponse);
 
         final RetrieveAttributeResponse retrieveAttributeResponse =
                 RetrieveAttributeResponse.of(THING_ID, ATTRIBUTE_POINTER, ATTRIBUTE_VALUE, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("retrieveAttributeResponse.json")), retrieveAttributeResponse);
-
-        final RetrieveAclResponse retrieveAclResponse = RetrieveAclResponse.of(THING_ID, ACL, DITTO_HEADERS);
-        writeJson(commandsDir.resolve(Paths.get("retrieveAclResponse.json")), retrieveAclResponse,
-                JsonSchemaVersion.V_1);
-
-        final RetrieveAclEntryResponse retrieveAclEntryResponse = RetrieveAclEntryResponse.of(THING_ID, ACL_ENTRY_1,
-                DITTO_HEADERS);
-        writeJson(commandsDir.resolve(Paths.get("retrieveAclEntryResponse.json")), retrieveAclEntryResponse,
-                JsonSchemaVersion.V_1);
 
         final RetrievePolicyIdResponse retrievePolicyIdResponse = RetrievePolicyIdResponse.of(THING_ID, POLICY_ID,
                 DITTO_HEADERS);
@@ -374,15 +336,6 @@ public class JsonExamplesProducer {
 
         final DeleteThing deleteThing = DeleteThing.of(THING_ID, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("deleteThing.json")), deleteThing);
-
-        final ModifyAclEntry modifyAclEntry = ModifyAclEntry.of(THING_ID, ACL_ENTRY_1, DITTO_HEADERS);
-        writeJson(commandsDir.resolve(Paths.get("modifyAclEntry.json")), modifyAclEntry, JsonSchemaVersion.V_1);
-
-        final ModifyAcl modifyAcl = ModifyAcl.of(THING_ID, ACL, DITTO_HEADERS);
-        writeJson(commandsDir.resolve(Paths.get("modifyAcl.json")), modifyAcl, JsonSchemaVersion.V_1);
-
-        final DeleteAclEntry deleteAclEntry = DeleteAclEntry.of(THING_ID, AUTH_SUBJECT_1, DITTO_HEADERS);
-        writeJson(commandsDir.resolve(Paths.get("deleteAclEntry.json")), deleteAclEntry, JsonSchemaVersion.V_1);
 
         final ModifyPolicyId modifyPolicyId = ModifyPolicyId.of(THING_ID, POLICY_ID, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("modifyPolicyId.json")), modifyPolicyId);
@@ -468,7 +421,7 @@ public class JsonExamplesProducer {
 
         final ModifyAttributesResponse modifyAttributesResponseCreated =
                 ModifyAttributesResponse.created(THING_ID, ATTRIBUTES,
-                DITTO_HEADERS);
+                        DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("modifyAttributesResponseCreated.json")),
                 modifyAttributesResponseCreated);
 
@@ -478,7 +431,7 @@ public class JsonExamplesProducer {
 
         final ModifyAttributeResponse modifyAttributeResponse =
                 ModifyAttributeResponse.modified(THING_ID, ATTRIBUTE_POINTER,
-                DITTO_HEADERS);
+                        DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("modifyAttributeResponse.json")), modifyAttributeResponse);
 
         final ModifyAttributeResponse modifyAttributeResponseCreated =
@@ -507,7 +460,7 @@ public class JsonExamplesProducer {
 
         final ModifyFeatureResponse modifyFeatureResponseCreated =
                 ModifyFeatureResponse.created(THING_ID, FLUX_CAPACITOR,
-                DITTO_HEADERS);
+                        DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("modifyFeatureResponseCreated.json")), modifyFeatureResponseCreated);
 
         final DeleteFeatureResponse deleteFeatureResponse =
@@ -699,41 +652,6 @@ public class JsonExamplesProducer {
         final ThingNotDeletableException thingNotDeletableException =
                 ThingNotDeletableException.newBuilder(THING_ID).dittoHeaders(DITTO_HEADERS).build();
         writeJson(exceptionsDir.resolve(Paths.get("thingNotDeletableException.json")), thingNotDeletableException);
-
-        final AclInvalidException aclInvalidException =
-                AclInvalidException.newBuilder(THING_ID).dittoHeaders(DITTO_HEADERS).build();
-        writeJson(exceptionsDir.resolve(Paths.get("aclInvalidException.json")), aclInvalidException,
-                JsonSchemaVersion.V_1);
-
-        final AclEntryInvalidException aclEntryInvalidException = AclEntryInvalidException.newBuilder()
-                .dittoHeaders(DITTO_HEADERS)
-                .build();
-        writeJson(exceptionsDir.resolve(Paths.get("aclEntryInvalidException.json")), aclEntryInvalidException,
-                JsonSchemaVersion.V_1);
-
-        final AclNotAllowedException aclNotAllowedException = AclNotAllowedException.newBuilder(THING_ID)
-                .dittoHeaders(DITTO_HEADERS)
-                .build();
-        writeJson(exceptionsDir.resolve(Paths.get("aclNotAllowedException.json")), aclNotAllowedException,
-                JsonSchemaVersion.V_1);
-
-        final AclModificationInvalidException aclModificationInvalidException =
-                AclModificationInvalidException.newBuilder(THING_ID)
-                        .dittoHeaders(DITTO_HEADERS)
-                        .build();
-        writeJson(exceptionsDir.resolve(Paths.get("aclModificationInvalidException.json")),
-                aclModificationInvalidException, JsonSchemaVersion.V_1);
-
-        final AuthorizationSubject authorizationSubject = newAuthSubject("the_acl_subject");
-        final AclNotAccessibleException aclNotAccessibleException = AclNotAccessibleException
-                .newBuilder(THING_ID, authorizationSubject).dittoHeaders(DITTO_HEADERS).build();
-        writeJson(exceptionsDir.resolve(Paths.get("aclNotAccessibleException.json")), aclNotAccessibleException,
-                JsonSchemaVersion.V_1);
-
-        final AclNotModifiableException aclNotModifiableException =
-                AclNotModifiableException.newBuilder(THING_ID).dittoHeaders(DITTO_HEADERS).build();
-        writeJson(exceptionsDir.resolve(Paths.get("aclNotModifiableException.json")), aclNotModifiableException,
-                JsonSchemaVersion.V_1);
 
         final ThingTooManyModifyingRequestsException thingTooManyModifyingRequestsException =
                 ThingTooManyModifyingRequestsException.newBuilder(THING_ID)

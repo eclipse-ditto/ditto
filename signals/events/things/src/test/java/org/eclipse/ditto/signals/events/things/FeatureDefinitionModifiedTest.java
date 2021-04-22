@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.signals.events.things;
 
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
@@ -25,10 +24,9 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.FeatureDefinition;
-import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -41,8 +39,8 @@ public final class FeatureDefinitionModifiedTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, FeatureDefinitionModified.TYPE)
-            .set(Event.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
             .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
+            .set(EventsourcedEvent.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
             .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ThingEvent.JsonFields.FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(FeatureDefinitionModified.JSON_DEFINITION,
@@ -65,21 +63,12 @@ public final class FeatureDefinitionModifiedTest {
     }
 
     @Test
-    public void tryToCreateInstanceWithNullThingIdString() {
-        assertThatExceptionOfType(ThingIdInvalidException.class)
-                .isThrownBy(() -> FeatureDefinitionModified.of((String) null, TestConstants.Feature.FLUX_CAPACITOR_ID,
-                        TestConstants.Feature.FLUX_CAPACITOR_DEFINITION, TestConstants.Thing.REVISION_NUMBER,
-                        TestConstants.EMPTY_DITTO_HEADERS))
-                .withMessage("Thing ID 'null' is not valid!");
-    }
-
-    @Test
     public void tryToCreateInstanceWithNullThingId() {
         assertThatNullPointerException()
-                .isThrownBy(() -> FeatureDefinitionModified.of((ThingId) null, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                .isThrownBy(() -> FeatureDefinitionModified.of(null, TestConstants.Feature.FLUX_CAPACITOR_ID,
                         TestConstants.Feature.FLUX_CAPACITOR_DEFINITION, TestConstants.Thing.REVISION_NUMBER,
-                        TestConstants.EMPTY_DITTO_HEADERS))
-                .withMessage("The %s must not be null!", "Thing identifier")
+                        TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA))
+                .withMessage("The %s must not be null!", "entityId")
                 .withNoCause();
     }
 
@@ -88,7 +77,7 @@ public final class FeatureDefinitionModifiedTest {
         assertThatNullPointerException()
                 .isThrownBy(() -> FeatureDefinitionModified.of(TestConstants.Thing.THING_ID, null,
                         TestConstants.Feature.FLUX_CAPACITOR_DEFINITION, TestConstants.Thing.REVISION_NUMBER,
-                        TestConstants.EMPTY_DITTO_HEADERS))
+                        TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA))
                 .withMessage("The %s must not be null!", "Feature ID")
                 .withNoCause();
     }
@@ -98,7 +87,7 @@ public final class FeatureDefinitionModifiedTest {
         assertThatNullPointerException()
                 .isThrownBy(() -> FeatureDefinitionModified.of(TestConstants.Thing.THING_ID,
                         TestConstants.Feature.FLUX_CAPACITOR_ID, null, TestConstants.Thing.REVISION_NUMBER,
-                        TestConstants.EMPTY_DITTO_HEADERS))
+                        TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA))
                 .withMessage("The %s must not be null!", "Feature Definition")
                 .withNoCause();
     }
@@ -121,7 +110,7 @@ public final class FeatureDefinitionModifiedTest {
                 FeatureDefinitionModified.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat((CharSequence) underTest.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
         assertThat(underTest.getDefinition()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_DEFINITION);
     }

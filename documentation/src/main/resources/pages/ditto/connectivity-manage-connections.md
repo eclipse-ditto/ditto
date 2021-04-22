@@ -6,8 +6,8 @@ permalink: connectivity-manage-connections.html
 ---
 
 In order to manage (CRUD) connections in Ditto [DevOps commands](installation-operating.html#devops-commands)
-have to be used. There is no separate HTTP API for managing the connections, as this is not a task for a developer using
-the digital twin APIs but more for a "DevOps engineer" creating new connections to external systems.
+have to be used. There is no separate HTTP API for managing the connections, as this is not a task for a developer 
+using the digital twin APIs but more for a "DevOps engineer" creating new connections to external systems.
 
 All connection related piggyback commands use the following HTTP endpoint:
 
@@ -147,8 +147,8 @@ The only parameter necessary for deleting a connection is the `connectionId`.
 
 The following commands are available to help creating connections and retrieving the status of existing connections:
 
-* [test](#test-connection)
-* [Retrieve ids of all connections](#retrieve-ids-of-all-connections)
+* [test connection](#test-connection)
+* [retrieve ids of all connections](#retrieve-ids-of-all-connections)
 * [retrieve connection status](#retrieve-connection-status)
 * [retrieve connection metrics](#retrieve-connection-metrics)
 * [reset connection metrics](#reset-connection-metrics)

@@ -14,8 +14,10 @@ package org.eclipse.ditto.model.enforcers.testbench.scenarios.scenario3;
 
 import java.util.Collections;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.Scenario;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.ScenarioSetup;
+import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
@@ -26,8 +28,8 @@ import org.openjdk.jmh.annotations.State;
 @State(Scope.Benchmark)
 public class Scenario3Revoke18 implements Scenario3Revoke {
 
-    private static final String EXPECTED_GRANTED_SUBJECT = SubjectId.newInstance(SubjectIssuer.GOOGLE,
-            SUBJECT_FEATURE_FOO_ALL_GRANTED_SPECIAL_PROPERTY_REVOKED).toString();
+    private static final AuthorizationSubject EXPECTED_GRANTED_SUBJECT = AuthorizationSubject.newInstance(
+            SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_FEATURE_FOO_ALL_GRANTED_SPECIAL_PROPERTY_REVOKED));
 
     private final ScenarioSetup setup;
 
@@ -42,8 +44,8 @@ public class Scenario3Revoke18 implements Scenario3Revoke {
                 resource,
                 Collections.singleton(EXPECTED_GRANTED_SUBJECT),
                 policyAlgorithm -> // the subject shall be able to write "/features/foo/properties/some" partially
-                        policyAlgorithm.getSubjectIdsWithPartialPermission(
-                                PoliciesResourceType.thingResource(resource), "WRITE")
+                        policyAlgorithm.getSubjectsWithPartialPermission(
+                                PoliciesResourceType.thingResource(resource), Permissions.newInstance("WRITE"))
                                 .contains(EXPECTED_GRANTED_SUBJECT),
                 "WRITE");
     }

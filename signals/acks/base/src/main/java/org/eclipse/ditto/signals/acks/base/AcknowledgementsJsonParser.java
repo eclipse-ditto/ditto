@@ -31,7 +31,7 @@ import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.HttpStatusCodeOutOfRangeException;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -44,7 +44,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  * @since 1.1.0
  */
 @Immutable
-public final class AcknowledgementsJsonParser<I extends EntityIdWithType>
+public final class AcknowledgementsJsonParser<I extends EntityId>
         implements Function<JsonObject, Acknowledgements> {
 
     private final AcknowledgementJsonParser<I> acknowledgementJsonParser;
@@ -61,7 +61,7 @@ public final class AcknowledgementsJsonParser<I extends EntityIdWithType>
      * @return the instance.
      * @throws NullPointerException if {@code acknowledgementJsonParser} is {@code null}.
      */
-    public static <I extends EntityIdWithType> AcknowledgementsJsonParser<I> getInstance(
+    public static <I extends EntityId> AcknowledgementsJsonParser<I> getInstance(
             final AcknowledgementJsonParser<I> acknowledgementJsonParser) {
 
         return new AcknowledgementsJsonParser<>(acknowledgementJsonParser);
@@ -152,7 +152,7 @@ public final class AcknowledgementsJsonParser<I extends EntityIdWithType>
     }
 
     private void validateEntityId(final Acknowledgement acknowledgement, final I expected) {
-        final EntityIdWithType actual = acknowledgement.getEntityId();
+        final EntityId actual = acknowledgement.getEntityId();
         if (!actual.equals(expected)) {
             final String mPtrn = "The entity ID <{0}> of parsed acknowledgement <{1}> differs from the expected <{2}>!";
             throw new JsonParseException(MessageFormat.format(mPtrn, actual, acknowledgement, expected));

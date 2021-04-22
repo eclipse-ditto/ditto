@@ -16,13 +16,10 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.enforcers.AclEnforcer;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.services.thingsearch.common.config.DefaultPersistenceStreamConfig;
 import org.eclipse.ditto.services.thingsearch.persistence.write.mapping.EnforcedThingMapper;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.AbstractWriteModel;
@@ -77,19 +74,6 @@ public final class TestSearchUpdaterStream {
 
         return Source.single(Source.single(writeModel))
                 .via(mongoSearchUpdaterFlow.start(false, 1, 1));
-    }
-
-    /**
-     * Write a thing with ACL into the updater stream.
-     *
-     * @param thingWithAcl the thing with ACL.
-     * @return source of write result.
-     */
-    public Source<WriteResultAndErrors, NotUsed> writeThingWithAcl(final Thing thingWithAcl) {
-        final AccessControlList emptyAcl = AccessControlList.newBuilder().build();
-        final Enforcer enforcer = AclEnforcer.of(thingWithAcl.getAccessControlList().orElse(emptyAcl));
-        final long policyRevision = thingWithAcl.getRevision().orElse(ThingRevision.newInstance(-1L)).toLong();
-        return write(thingWithAcl, enforcer, policyRevision);
     }
 
     /**

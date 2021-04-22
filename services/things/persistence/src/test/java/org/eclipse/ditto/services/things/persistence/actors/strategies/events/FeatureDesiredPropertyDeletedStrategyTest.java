@@ -89,6 +89,7 @@ public final class FeatureDesiredPropertyDeletedStrategyTest extends AbstractStr
         final Thing expected = THING.toBuilder()
                 .setFeatureDesiredProperties(FEATURE_ID, FeatureProperties.newBuilder().build())
                 .setRevision(NEXT_REVISION)
+                .setMetadata(METADATA)
                 .setModified(timestamp)
                 .setMetadata(expectedMetadata)
                 .build();

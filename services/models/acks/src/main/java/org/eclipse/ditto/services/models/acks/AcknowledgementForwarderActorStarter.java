@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
@@ -54,14 +54,14 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
     private static final String PREFIX_COUNTER_SEPARATOR = "#";
 
     private final ActorContext actorContext;
-    private final EntityIdWithType entityId;
+    private final EntityId entityId;
     private final Signal<?> signal;
     private final DittoHeaders dittoHeaders;
     private final AcknowledgementConfig acknowledgementConfig;
     private final Set<AcknowledgementRequest> acknowledgementRequests;
 
     private AcknowledgementForwarderActorStarter(final ActorContext context,
-            final EntityIdWithType entityId,
+            final EntityId entityId,
             final Signal<?> signal,
             final AcknowledgementConfig acknowledgementConfig,
             final Predicate<AcknowledgementLabel> isAckLabelAllowed) {
@@ -91,7 +91,7 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
      * @throws NullPointerException if any argument is {@code null}.
      */
     static AcknowledgementForwarderActorStarter getInstance(final ActorContext context,
-            final EntityIdWithType entityId,
+            final EntityId entityId,
             final Signal<?> signal,
             final AcknowledgementConfig acknowledgementConfig,
             final Predicate<AcknowledgementLabel> isAckLabelAllowed) {

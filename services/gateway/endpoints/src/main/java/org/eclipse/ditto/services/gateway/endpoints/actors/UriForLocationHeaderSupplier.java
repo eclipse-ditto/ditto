@@ -14,8 +14,8 @@ package org.eclipse.ditto.services.gateway.endpoints.actors;
 
 import java.util.function.Supplier;
 
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 import akka.http.javadsl.model.HttpMethod;
 import akka.http.javadsl.model.HttpRequest;
@@ -28,11 +28,13 @@ import akka.http.javadsl.model.Uri;
 final class UriForLocationHeaderSupplier implements Supplier<Uri> {
 
     private final HttpRequest httpRequest;
-    private final CommandResponse<?> commandResponse;
+    private final EntityId entityId;
+    private final JsonPointer resourcePath;
 
-    UriForLocationHeaderSupplier(final HttpRequest httpRequest, final CommandResponse<?> commandResponse) {
+    UriForLocationHeaderSupplier(final HttpRequest httpRequest, final EntityId entityId, final JsonPointer resourcePath) {
         this.httpRequest = httpRequest;
-        this.commandResponse = commandResponse;
+        this.entityId = entityId;
+        this.resourcePath = resourcePath;
     }
 
     @Override
@@ -59,7 +61,6 @@ final class UriForLocationHeaderSupplier implements Supplier<Uri> {
     }
 
     private int getIndexOfEntityId(final String requestUri) {
-        final EntityId entityId = commandResponse.getEntityId();
         return requestUri.indexOf(entityId.toString());
     }
 
@@ -71,7 +72,7 @@ final class UriForLocationHeaderSupplier implements Supplier<Uri> {
     }
 
     private String getLocationUriString(final String requestUri) {
-        return requestUri + "/" + commandResponse.getEntityId() + commandResponse.getResourcePath();
+        return requestUri + "/" + entityId + resourcePath;
     }
 
 }

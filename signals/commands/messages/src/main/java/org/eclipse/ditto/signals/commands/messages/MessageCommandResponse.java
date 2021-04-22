@@ -24,7 +24,7 @@ import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.WithThingId;
-import org.eclipse.ditto.signals.base.WithId;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
@@ -35,7 +35,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
  * @param <C> the type of the MessageCommandResponse.
  */
 public interface MessageCommandResponse<P, C extends MessageCommandResponse<P, C>>
-        extends CommandResponse<C>, WithId, WithThingId, WithMessage<P> {
+        extends CommandResponse<C>, SignalWithEntityId<C>, WithThingId, WithMessage<P> {
 
     /**
      * Type Prefix of Message commands.
@@ -54,7 +54,7 @@ public interface MessageCommandResponse<P, C extends MessageCommandResponse<P, C
 
     @Override
     default ThingId getEntityId() {
-        return getThingEntityId();
+        return getEntityId();
     }
 
     @Override
@@ -94,28 +94,28 @@ public interface MessageCommandResponse<P, C extends MessageCommandResponse<P, C
          * JSON field containing the MessageCommandResponse's thingId.
          */
         public static final JsonFieldDefinition<String> JSON_THING_ID =
-                JsonFactory.newStringFieldDefinition("thingId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("thingId", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the MessageCommandResponse's Message.
          */
         public static final JsonFieldDefinition<JsonObject> JSON_MESSAGE =
-                JsonFactory.newJsonObjectFieldDefinition("message", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonObjectFieldDefinition("message", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the MessageCommandResponse's Message headers.
          */
         public static final JsonFieldDefinition<JsonObject> JSON_MESSAGE_HEADERS =
-                JsonFactory.newJsonObjectFieldDefinition("headers", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonObjectFieldDefinition("headers", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the MessageCommandResponse's Message payload.
          */
         public static final JsonFieldDefinition<String> JSON_MESSAGE_PAYLOAD =
-                JsonFactory.newStringFieldDefinition("payload", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("payload", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
     }

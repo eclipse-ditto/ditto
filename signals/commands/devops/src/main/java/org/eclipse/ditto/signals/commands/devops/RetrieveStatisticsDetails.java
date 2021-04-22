@@ -15,9 +15,11 @@ package org.eclipse.ditto.signals.commands.devops;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -37,7 +39,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * Command which retrieves publicly available statistics about the stored Things currently present.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = RetrieveStatisticsDetails.TYPE_PREFIX, name = RetrieveStatisticsDetails.NAME)
+@JsonParsableCommand(typePrefix = DevOpsCommand.TYPE_PREFIX, name = RetrieveStatisticsDetails.NAME)
 public final class RetrieveStatisticsDetails extends AbstractDevOpsCommand<RetrieveStatisticsDetails> {
 
     /**
@@ -162,6 +164,31 @@ public final class RetrieveStatisticsDetails extends AbstractDevOpsCommand<Retri
     @Override
     public RetrieveStatisticsDetails setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(dittoHeaders);
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final RetrieveStatisticsDetails that = (RetrieveStatisticsDetails) o;
+        return that.canEqual(this) &&
+                shardRegions.equals(that.shardRegions) &&
+                namespaces.equals(that.namespaces) &&
+                super.equals(that);
+    }
+
+    @Override
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof RetrieveStatisticsDetails;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), shardRegions, namespaces);
     }
 
     @Override

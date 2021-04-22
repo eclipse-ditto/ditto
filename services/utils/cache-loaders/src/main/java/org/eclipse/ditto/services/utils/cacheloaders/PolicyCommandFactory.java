@@ -22,15 +22,11 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.utils.cache.CacheLookupContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Creates commands to access the Policies service.
  */
 final class PolicyCommandFactory {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(PolicyCommandFactory.class);
 
     private PolicyCommandFactory() {
         throw new AssertionError();

@@ -31,7 +31,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.HttpStatusCodeOutOfRangeException;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
@@ -96,8 +96,8 @@ public final class AcknowledgementsJsonParserTest {
     public void parseJsonWithSeveralAcksOfSameLabel() {
         final AcknowledgementLabel label = AcknowledgementLabel.of("same-label");
         final Acknowledgements acks = Acknowledgements.of(Arrays.asList(
-                Acknowledgement.of(label, ThingId.dummy(), HttpStatus.OK, DittoHeaders.empty()),
-                Acknowledgement.of(label, ThingId.dummy(), HttpStatus.FORBIDDEN, DittoHeaders.empty())
+                Acknowledgement.of(label, ThingId.of("test:thing-id"), HttpStatus.OK, DittoHeaders.empty()),
+                Acknowledgement.of(label, ThingId.of("test:thing-id"), HttpStatus.FORBIDDEN, DittoHeaders.empty())
         ), DittoHeaders.empty());
 
         final Acknowledgements parsedAcknowledgements = underTest.apply(acks.toJson());
@@ -116,7 +116,7 @@ public final class AcknowledgementsJsonParserTest {
 
     @Test
     public void parseValidJsonRepresentationOfEmptyAcknowledgements() {
-        final EntityIdWithType entityId = knownAcknowledgements.getEntityId();
+        final EntityId entityId = knownAcknowledgements.getEntityId();
         final Acknowledgements acknowledgements = Acknowledgements.empty(entityId, dittoHeaders);
 
         final Acknowledgements parsedAcknowledgements = underTest.apply(acknowledgements.toJson());

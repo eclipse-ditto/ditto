@@ -34,23 +34,20 @@ final class AnnotationBasedJsonParsable<T> implements JsonParsable<T> {
     private static final Class<?> PARSE_INNER_JSON_PARAMETER = ParseInnerJson.class;
 
     private final String key;
-    private final String v1FallbackKey;
     private final Method parseMethod;
 
     /**
      * Creates a new instance.
      *
      * @param key the API v2 key for this strategy.
-     * @param v1FallbackKey the API v1 key for this strategy.
      * @param parsedClass the class that should be deserialized.
      * @param parsingMethodName the name of the method that should be called on the given class in order to
      * deserialize.
      */
-    AnnotationBasedJsonParsable(final String key, final String v1FallbackKey,
+    AnnotationBasedJsonParsable(final String key,
             final Class<? extends T> parsedClass,
             final String parsingMethodName) {
         this.key = key;
-        this.v1FallbackKey = v1FallbackKey;
         try {
             this.parseMethod = getParseMethod(parsedClass, parsingMethodName);
             final Class<?> returnType = parseMethod.getReturnType();
@@ -71,17 +68,6 @@ final class AnnotationBasedJsonParsable<T> implements JsonParsable<T> {
      */
     public String getKey() {
         return key;
-    }
-
-    /**
-     * The API v1 key for this strategy.
-     *
-     * @return the API v1 key for this strategy.
-     * @deprecated Part of deprecated API 1. Use API 2 {@link #getKey()}}
-     */
-    @Deprecated
-    public String getV1FallbackKey() {
-        return v1FallbackKey;
     }
 
 

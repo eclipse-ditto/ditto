@@ -101,11 +101,6 @@ public final class ShutdownTest {
     }
 
     @Test
-    public void getIdReturnsDummyId() {
-        assertThat(underTest.getEntityId().isDummy()).isTrue();
-    }
-
-    @Test
     public void getResourceTypeReturnsCommonCommandResourceType() {
         assertThat(underTest.getResourceType()).isEqualTo(CommonCommand.RESOURCE_TYPE);
     }

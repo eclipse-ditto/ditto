@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.models.streaming;
 
-import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_1;
 import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_2;
 
 import java.util.List;
@@ -42,7 +41,7 @@ public final class BatchedEntityIdWithRevisions<E extends EntityIdWithRevision<?
     static final JsonFieldDefinition<String> JSON_TYPE = Command.JsonFields.TYPE;
 
     static final JsonFieldDefinition<JsonArray> JSON_ELEMENTS =
-            JsonFactory.newJsonArrayFieldDefinition("elements", V_1, V_2);
+            JsonFactory.newJsonArrayFieldDefinition("elements", V_2);
 
     private final String type;
     private final List<E> elements;

@@ -29,13 +29,8 @@ public final class ConnectivityConstants {
     }
 
     /**
-     * The entity type of connectivity.
-     */
-    public static final EntityType ENTITY_TYPE = EntityType.of("connectivity");
-
-    /**
      * The entity type of a {@link Connection}.
      */
-    public static final EntityType CONNECTION_ENTITY_TYPE = EntityType.of("connection");
+    public static final EntityType ENTITY_TYPE = EntityType.of("connection");
 
 }

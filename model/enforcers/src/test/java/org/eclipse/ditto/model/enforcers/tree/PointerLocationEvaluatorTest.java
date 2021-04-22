@@ -31,13 +31,11 @@ public final class PointerLocationEvaluatorTest {
 
     private PointerLocationEvaluator underTest;
 
-    /** */
     @Before
     public void setUp() {
         underTest = new PointerLocationEvaluator(REFERENCE_POINTER);
     }
 
-    /** */
     @Test
     public void assertImmutability() {
         assertInstancesOf(PointerLocationEvaluator.class,
@@ -45,7 +43,6 @@ public final class PointerLocationEvaluatorTest {
                 provided(JsonPointer.class).isAlsoImmutable());
     }
 
-    /** */
     @Test
     public void evaluationPointerIsDifferent() {
         final JsonPointer evaluationPointer = JsonFactory.newPointer("john/titor");
@@ -55,7 +52,6 @@ public final class PointerLocationEvaluatorTest {
         assertThat(pointerLocation).isSameAs(PointerLocation.DIFFERENT);
     }
 
-    /** */
     @Test
     public void evaluationPointerIsAbove() {
         final JsonPointer evaluationPointer = JsonFactory.newPointer("foo/bar/baz");
@@ -65,7 +61,6 @@ public final class PointerLocationEvaluatorTest {
         assertThat(pointerLocation).isSameAs(PointerLocation.ABOVE);
     }
 
-    /** */
     @Test
     public void evaluationPointerIsSame() {
         final JsonPointer evaluationPointer = JsonFactory.newPointer(REFERENCE_POINTER.toString());
@@ -75,7 +70,6 @@ public final class PointerLocationEvaluatorTest {
         assertThat(pointerLocation).isSameAs(PointerLocation.SAME);
     }
 
-    /** */
     @Test
     public void evaluationPointerIsBelow() {
         final JsonPointer evaluationPointer = REFERENCE_POINTER.addLeaf(JsonFactory.newKey("peng"));

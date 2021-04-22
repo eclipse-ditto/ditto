@@ -19,6 +19,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.JUnitSoftAssertions;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.junit.Rule;
 import org.junit.Test;
@@ -43,8 +44,27 @@ public final class ThingIdTest {
     @Test
     public void testEqualsAndHashcode() {
         EqualsVerifier.forClass(ThingId.class)
+                .withRedefinedSuperclass()
                 .usingGetClass()
+                //already contained in string representation which is compared in base class
+                .withIgnoredFields("name", "namespace")
                 .verify();
+    }
+
+    @Test
+    public void instantiationFromEntityTypeCreatesThingId() {
+        final NamespacedEntityId namespacedEntityId =
+                NamespacedEntityId.of(ThingConstants.ENTITY_TYPE, "namespace:name");
+        final EntityId entityId = EntityId.of(ThingConstants.ENTITY_TYPE, "namespace:name");
+
+        assertThat((CharSequence) namespacedEntityId).isInstanceOf(ThingId.class);
+        assertThat((CharSequence) entityId).isInstanceOf(ThingId.class);
+    }
+
+    @Test
+    public void fromNameHasEmptyNamespace() {
+        final NamespacedEntityId namespacedEntityId = ThingId.inDefaultNamespace("validName");
+        assertThat(namespacedEntityId.getNamespace()).isEmpty();
     }
 
     @Test
@@ -66,23 +86,6 @@ public final class ThingIdTest {
 
         assertThatExceptionOfType(ThingIdInvalidException.class)
                 .isThrownBy(() -> ThingId.of("validNamespace:§inValidName"));
-    }
-
-    @Test
-    public void dummyIsDummy() {
-        assertThat(ThingId.dummy().isDummy()).isTrue();
-    }
-
-    @Test
-    public void manuallyCreatedDummyIsDummy() {
-        softly.assertThat(ThingId.of("", "_").isDummy()).isTrue();
-        softly.assertThat(ThingId.of(":_").isDummy()).isTrue();
-    }
-
-    @Test
-    public void validThingIdIsNoDummy() {
-        softly.assertThat(ThingId.of("namespace", "name").isDummy()).isFalse();
-        softly.assertThat(ThingId.of("namespace:name").isDummy()).isFalse();
     }
 
     @Test

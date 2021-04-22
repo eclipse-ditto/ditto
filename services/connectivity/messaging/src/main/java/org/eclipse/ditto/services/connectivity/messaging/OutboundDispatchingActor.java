@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -22,11 +23,11 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotDeclaredException;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.models.acks.AcknowledgementForwarderActor;
 import org.eclipse.ditto.services.models.connectivity.InboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -103,10 +104,10 @@ final class OutboundDispatchingActor extends AbstractActor {
             return;
         }
 
+        final Optional<ThingId> thingIdOptional = WithEntityId.getEntityIdOfType(ThingId.class, signal);
         final Signal<?> signalToForward;
-        if (signal instanceof WithThingId) {
-            final WithThingId thingEvent = (WithThingId) signal;
-            signalToForward = adjustSignalAndStartAckForwarder(signal, thingEvent.getThingEntityId());
+        if (thingIdOptional.isPresent()) {
+            signalToForward = adjustSignalAndStartAckForwarder(signal, thingIdOptional.get());
         } else {
             signalToForward = signal;
         }
@@ -120,7 +121,7 @@ final class OutboundDispatchingActor extends AbstractActor {
         outboundMappingProcessorActor.tell(outbound, getSender());
     }
 
-    private void logDroppedSignal(final WithDittoHeaders<?> withDittoHeaders, final String type, final String reason) {
+    private void logDroppedSignal(final WithDittoHeaders withDittoHeaders, final String type, final String reason) {
         logger.withCorrelationId(withDittoHeaders).debug("Signal ({}) dropped: {}", type, reason);
     }
 
@@ -171,7 +172,7 @@ final class OutboundDispatchingActor extends AbstractActor {
         }
     }
 
-    private void handleInboundResponseOrAcknowledgement(final WithDittoHeaders<?> responseOrAck) {
+    private void handleInboundResponseOrAcknowledgement(final WithDittoHeaders responseOrAck) {
         if (responseOrAck instanceof Acknowledgement) {
             final Acknowledgement ack = (Acknowledgement) responseOrAck;
             if (isNotSourceDeclaredAck(ack)) {

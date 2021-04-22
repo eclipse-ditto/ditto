@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.signals.events.connectivity;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -19,6 +20,8 @@ import java.util.List;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
@@ -34,6 +37,12 @@ import org.eclipse.ditto.model.connectivity.Topic;
 public final class TestConstants {
 
     public static final ConnectionId ID = ConnectionId.of("myConnectionId");
+    public static final long REVISION = 1L;
+    public static final Instant TIMESTAMP = Instant.EPOCH;
+    public static final DittoHeaders HEADERS = DittoHeaders.empty();
+    public static final Metadata METADATA = Metadata.newBuilder()
+            .set("creator", "The epic Ditto team")
+            .build();
 
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
     public static final ConnectivityStatus STATUS = ConnectivityStatus.OPEN;

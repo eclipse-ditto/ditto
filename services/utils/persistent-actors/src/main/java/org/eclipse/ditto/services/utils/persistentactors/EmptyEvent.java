@@ -26,9 +26,10 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
@@ -42,7 +43,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  */
 @Immutable
 @JsonParsableEvent(name = EmptyEvent.NAME, typePrefix = EmptyEvent.TYPE_PREFIX)
-public final class EmptyEvent implements Event<EmptyEvent> {
+public final class EmptyEvent implements Event<EmptyEvent>, WithEntityId {
 
     /**
      * Known effect of the "empty event" which shall keep an persistence actor always alive.
@@ -59,6 +60,9 @@ public final class EmptyEvent implements Event<EmptyEvent> {
     static final String NAME = "empty-event";
 
     static final String TYPE = TYPE_PREFIX + NAME;
+
+    private static final JsonFieldDefinition<String> JSON_ENTITY_TYPE =
+            JsonFactory.newStringFieldDefinition("entityType", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private static final JsonFieldDefinition<String> JSON_ENTITY_ID =
             JsonFactory.newStringFieldDefinition("entityId", FieldType.REGULAR, JsonSchemaVersion.V_2);
@@ -93,7 +97,9 @@ public final class EmptyEvent implements Event<EmptyEvent> {
     public static EmptyEvent fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<EmptyEvent>(TYPE, jsonObject)
                 .deserialize((revision, timestamp, metadata) -> {
-                    final EntityId readEntityId = DefaultEntityId.of(jsonObject.getValueOrThrow(JSON_ENTITY_ID));
+                    final EntityType entityType = EntityType.of(jsonObject.getValueOrThrow(JSON_ENTITY_TYPE));
+                    final EntityId readEntityId =
+                            EntityId.of(entityType, jsonObject.getValueOrThrow(JSON_ENTITY_ID));
                     final JsonValue readEffect = jsonObject.getValueOrThrow(JSON_EFFECT);
                     return new EmptyEvent(readEntityId, readEffect, revision, dittoHeaders);
                 });
@@ -133,6 +139,7 @@ public final class EmptyEvent implements Event<EmptyEvent> {
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder()
                 .set(JsonFields.TYPE, getType())
+                .set(JSON_ENTITY_TYPE, entityId.getEntityType().toString())
                 .set(JSON_ENTITY_ID, entityId.toString())
                 .set(JSON_EFFECT, effect);
         return jsonObjectBuilder.build();
@@ -151,16 +158,6 @@ public final class EmptyEvent implements Event<EmptyEvent> {
     @Override
     public String getResourceType() {
         return "empty";
-    }
-
-    @Override
-    public long getRevision() {
-        return revision;
-    }
-
-    @Override
-    public EmptyEvent setRevision(final long revision) {
-        return new EmptyEvent(entityId, effect, revision, dittoHeaders);
     }
 
     @Override

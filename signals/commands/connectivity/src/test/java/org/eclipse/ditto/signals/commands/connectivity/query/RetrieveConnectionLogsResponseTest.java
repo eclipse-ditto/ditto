@@ -170,7 +170,7 @@ public class RetrieveConnectionLogsResponseTest {
         final Collection<LogEntry> expectedEntries = new ArrayList<>(TestConstants.Logs.ENTRIES);
         expectedEntries.addAll(secondLogEntries);
 
-        assertThat((CharSequence) merged.getConnectionEntityId()).isEqualTo(ID);
+        assertThat((CharSequence) merged.getEntityId()).isEqualTo(ID);
         assertThat(merged.getEnabledSince()).contains(ENABLED_SINCE);
         assertThat(merged.getEnabledUntil()).contains(ENABLED_UNTIL);
         assertThat(merged.getConnectionLogs()).containsOnlyElementsOf(expectedEntries);

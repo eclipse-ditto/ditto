@@ -67,12 +67,6 @@ public final class InvalidRqlExpressionExceptionTest {
     }
 
     @Test
-    public void copy() {
-        final DittoRuntimeException copy = DittoRuntimeException.newBuilder(INVALID_FILTER_EXCEPTION).build();
-        assertThat(copy).isEqualTo(INVALID_FILTER_EXCEPTION);
-    }
-
-    @Test
     public void checkGetters() {
         assertThat(INVALID_FILTER_EXCEPTION.getMessage()).isEqualTo(EXPECTED_MESSAGE);
         assertThat(INVALID_FILTER_EXCEPTION.getHttpStatus()).isEqualTo(InvalidRqlExpressionException.HTTP_STATUS);

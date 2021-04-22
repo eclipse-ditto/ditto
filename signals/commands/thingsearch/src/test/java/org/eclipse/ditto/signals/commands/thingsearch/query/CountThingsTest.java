@@ -18,8 +18,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.junit.Test;
 
@@ -38,20 +36,8 @@ public final class CountThingsTest {
                     .build())
             .build().toString();
 
-    private static final String JSON_ALL_FIELDS_V1 = JsonFactory.newObjectBuilder()
-            .set(ThingSearchCommand.JsonFields.ID, CountThings.NAME)
-            .set(CountThings.JSON_FILTER, TestConstants.KNOWN_FILTER_STR)
-            .set(CountThings.JSON_NAMESPACES, JsonFactory.newArrayBuilder()
-                    .add(TestConstants.KNOWN_NAMESPACE)
-                    .build())
-            .build().toString();
-
     private static final String JSON_MINIMAL_V2 = JsonFactory.newObjectBuilder()
             .set(ThingSearchCommand.JsonFields.TYPE, CountThings.TYPE)
-            .build().toString();
-
-    private static final String JSON_MINIMAL_V1 = JsonFactory.newObjectBuilder()
-            .set(ThingSearchCommand.JsonFields.ID, CountThings.NAME)
             .build().toString();
 
 
@@ -78,27 +64,6 @@ public final class CountThingsTest {
         assertThat(json).isEqualTo(JSON_ALL_FIELDS_V2);
     }
 
-
-    @Test
-    public void toJsonWithAllFieldsSetV1() {
-        final CountThings command = CountThings.of(TestConstants.KNOWN_FILTER_STR,
-                TestConstants.KNOWN_NAMESPACES_SET, DittoHeaders.empty());
-
-        final String json = command.toJsonString(JsonSchemaVersion.V_1, FieldType.regularOrSpecial());
-        assertThat(json).isEqualTo(JSON_ALL_FIELDS_V1);
-    }
-
-
-    @Test
-    public void toJsonWithOnlyRequiredFieldsSetV1() {
-        final CountThings command = CountThings.of(DittoHeaders.empty());
-
-        final String json = command.toJsonString(JsonSchemaVersion.V_1, FieldType.regularOrSpecial());
-
-        assertThat(json).isEqualTo(JSON_MINIMAL_V1);
-    }
-
-
     @Test
     public void toJsonWithOnlyRequiredFieldsSetV2() {
         final CountThings command = CountThings.of(DittoHeaders.empty());
@@ -108,13 +73,6 @@ public final class CountThingsTest {
         assertThat(json).isEqualTo(JSON_MINIMAL_V2);
     }
 
-
-    @Test
-    public void fromJsonWithAllFieldsSetV1() {
-        assertAllFieldsSet(CountThings.fromJson(JSON_ALL_FIELDS_V1, DittoHeaders.empty()));
-    }
-
-
     @Test
     public void fromJsonWithAllFieldsSetV2() {
         assertAllFieldsSet(CountThings.fromJson(JSON_ALL_FIELDS_V2, DittoHeaders.empty()));
@@ -123,12 +81,6 @@ public final class CountThingsTest {
     public void assertAllFieldsSet(final CountThings command) {
         assertThat(command).isNotNull();
         assertThat(command.getFilter()).contains(TestConstants.KNOWN_FILTER_STR);
-    }
-
-
-    @Test
-    public void fromJsonWithOnlyRequiredFieldsSetV1() {
-        assertMinimal(CountThings.fromJson(JSON_MINIMAL_V1, DittoHeaders.empty()));
     }
 
 

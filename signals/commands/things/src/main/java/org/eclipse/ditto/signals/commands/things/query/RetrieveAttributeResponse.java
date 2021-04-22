@@ -52,11 +52,11 @@ public final class RetrieveAttributeResponse extends AbstractCommandResponse<Ret
     public static final String TYPE = TYPE_PREFIX + RetrieveAttribute.NAME;
 
     static final JsonFieldDefinition<String> JSON_ATTRIBUTE =
-            JsonFactory.newStringFieldDefinition("attribute", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("attribute", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<JsonValue> JSON_VALUE =
-            JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final ThingId thingId;
@@ -78,31 +78,6 @@ public final class RetrieveAttributeResponse extends AbstractCommandResponse<Ret
     private static JsonPointer checkAttributePointer(final JsonPointer attributePointer) {
         checkNotNull(attributePointer, "The JSON pointer which attribute to retrieve must not be null!");
         return AttributesModelFactory.validateAttributePointer(attributePointer);
-    }
-
-    /**
-     * Creates a response to a {@link RetrieveAttribute} command.
-     *
-     * @param thingId the Thing ID of the retrieved attribute.
-     * @param attributePointer the JSON pointer of the attribute to retrieve.
-     * @param attributeValue the retrieved Attribute value.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributePointer} are not valid
-     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer,
-     * org.eclipse.ditto.json.JsonValue, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static RetrieveAttributeResponse of(final String thingId,
-            final JsonPointer attributePointer,
-            final JsonValue attributeValue,
-            final DittoHeaders dittoHeaders) {
-
-        return of(ThingId.of(thingId), attributePointer, attributeValue, dittoHeaders);
     }
 
     /**
@@ -169,7 +144,7 @@ public final class RetrieveAttributeResponse extends AbstractCommandResponse<Ret
     }
 
     @Override
-    public ThingId getThingEntityId() {
+    public ThingId getEntityId() {
         return thingId;
     }
 

@@ -37,7 +37,7 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
  * Command that will enable logging in a {@link org.eclipse.ditto.model.connectivity.Connection}.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = LoggingExpired.TYPE_PREFIX, name = LoggingExpired.NAME)
+@JsonParsableCommand(typePrefix = ConnectivityCommand.TYPE_PREFIX, name = LoggingExpired.NAME)
 public final class LoggingExpired extends AbstractCommand<LoggingExpired>
         implements ConnectivityModifyCommand<LoggingExpired> {
 
@@ -129,7 +129,7 @@ public final class LoggingExpired extends AbstractCommand<LoggingExpired>
     }
 
     @Override
-    public ConnectionId getConnectionEntityId() {
+    public ConnectionId getEntityId() {
         return connectionId;
     }
 

@@ -41,9 +41,9 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 public final class SearchNamespaceReportResult implements Jsonifiable.WithPredicate<JsonObject, JsonField> {
 
     private static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
-            JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, JsonSchemaVersion.V_1);
+            JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<JsonArray> NAMESPACES =
-            JsonFactory.newJsonArrayFieldDefinition("namespaces", FieldType.REGULAR, JsonSchemaVersion.V_1);
+            JsonFactory.newJsonArrayFieldDefinition("namespaces", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final Map<String, SearchNamespaceResultEntry> searchNamespaceResultEntries;
 
@@ -103,20 +103,6 @@ public final class SearchNamespaceReportResult implements Jsonifiable.WithPredic
      */
     public SearchNamespaceResultEntry getNamespaceEntry(final String namespace) {
         return searchNamespaceResultEntries.get(namespace);
-    }
-
-    @Override
-    public JsonObject toJson(final Predicate<JsonField> predicate) {
-        final JsonSchemaVersion jsonSchemaVersion = JsonSchemaVersion.V_1;
-
-        final JsonArrayBuilder jsonArrayBuilder = JsonFactory.newArrayBuilder();
-        searchNamespaceResultEntries.forEach((id, entry) -> jsonArrayBuilder.add(entry.toJson()));
-        final JsonArray jsonArray = jsonArrayBuilder.build();
-
-        return JsonFactory.newObjectBuilder()
-                .set(SCHEMA_VERSION, jsonSchemaVersion.toInt(), predicate)
-                .set(NAMESPACES, jsonArray, predicate)
-                .build();
     }
 
     @Override

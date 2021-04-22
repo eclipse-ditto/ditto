@@ -33,7 +33,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
@@ -103,7 +103,7 @@ public final class ImmutableAcknowledgementsTest {
 
         EqualsVerifier.forClass(ImmutableAcknowledgements.class)
                 .usingGetClass()
-                .withPrefabValues(EntityIdWithType.class, red, black)
+                .withPrefabValues(EntityId.class, red, black)
                 .verify();
     }
 
@@ -114,7 +114,7 @@ public final class ImmutableAcknowledgementsTest {
                 provided(Acknowledgement.class,
                         AcknowledgementLabel.class,
                         DittoHeaders.class,
-                        EntityIdWithType.class,
+                        EntityId.class,
                         HttpStatus.class).isAlsoImmutable());
     }
 

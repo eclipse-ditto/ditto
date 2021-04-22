@@ -20,7 +20,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -163,7 +162,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
     @Test
     public void plainStringMappingTest() {
         new TestKit(actorSystem) {{
-            final MappingContext mappingContext = ConnectivityModelFactory.newMappingContext(
+            final MappingContext mappingContext = ConnectivityModelFactory.newMappingContextBuilder(
                     "JavaScript",
                     JavaScriptMessageMapperFactory.createJavaScriptMessageMapperConfigurationBuilder(
                             "plainStringMapping", Collections.emptyMap())
@@ -171,7 +170,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
                             .outgoingScript(TestConstants.Mapping.OUTGOING_MAPPING_SCRIPT)
                             .build()
                             .getPropertiesAsJson()
-            );
+            ).build();
 
             final ActorRef processor = setupActor(getRef(), mappingContext);
 
@@ -199,7 +198,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
     @Test
     public void plainStringMappingMultipleTest() {
         new TestKit(actorSystem) {{
-            final MappingContext mappingContext = ConnectivityModelFactory.newMappingContext(
+            final MappingContext mappingContext = ConnectivityModelFactory.newMappingContextBuilder(
                     "JavaScript",
                     JavaScriptMessageMapperFactory.createJavaScriptMessageMapperConfigurationBuilder(
                             "plainStringMultiMapping", Collections.emptyMap())
@@ -209,7 +208,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
                             .outgoingScript(TestConstants.Mapping.OUTGOING_MAPPING_SCRIPT)
                             .build()
                             .getPropertiesAsJson()
-            );
+            ).build();
 
             final ActorRef processor = setupActor(getRef(), mappingContext);
 
@@ -313,9 +312,9 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
             Mockito.when(source.getAuthorizationContext())
                     .thenReturn(TestConstants.Authorization.AUTHORIZATION_CONTEXT);
             Mockito.when(source.getHeaderMapping())
-                    .thenReturn(Optional.of(ConnectivityModelFactory.newHeaderMapping(
+                    .thenReturn(ConnectivityModelFactory.newHeaderMapping(
                             Collections.singletonMap("correlation-id", "{{ header:correlation-id }}")
-                    )));
+                    ));
             final ActorRef underTest = actorSystem.actorOf(
                     AmqpConsumerActor.props(CONNECTION,
                             consumerData("foo123", Mockito.mock(MessageConsumer.class), source), processor,

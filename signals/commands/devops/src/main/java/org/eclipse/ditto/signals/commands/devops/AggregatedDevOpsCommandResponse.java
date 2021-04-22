@@ -26,7 +26,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -50,10 +49,10 @@ public final class AggregatedDevOpsCommandResponse
     public static final String TYPE = TYPE_PREFIX + "aggregatedResponse";
 
     private static final JsonFieldDefinition<String> JSON_RESPONSES_TYPE =
-            JsonFactory.newStringFieldDefinition("responsesType", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("responsesType", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<JsonObject> JSON_AGGREGATED_RESPONSES =
-            JsonFactory.newJsonObjectFieldDefinition("responses", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonObjectFieldDefinition("responses", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final JsonObject aggregatedResponses;
@@ -74,25 +73,6 @@ public final class AggregatedDevOpsCommandResponse
      *
      * @param commandResponses the aggregated {@link DevOpsCommandResponse}s.
      * @param responsesType the responses type of the responses to expect.
-     * @param httpStatusCode the {@link HttpStatusCode} to send back as response status.
-     * @param dittoHeaders the headers of the request.
-     * @return the new RetrieveLoggerConfigResponse response.
-     * @deprecated as of 2.0.0 please use {@link #of(List, String, HttpStatus, DittoHeaders)} instead.
-     */
-    @Deprecated
-    public static AggregatedDevOpsCommandResponse of(final List<CommandResponse<?>> commandResponses,
-            final String responsesType,
-            final HttpStatusCode httpStatusCode,
-            final DittoHeaders dittoHeaders) {
-
-        return of(commandResponses, responsesType, httpStatusCode.getAsHttpStatus(), dittoHeaders);
-    }
-
-    /**
-     * Returns a new instance of {@code AggregatedDevOpsCommandResponse}.
-     *
-     * @param commandResponses the aggregated {@link DevOpsCommandResponse}s.
-     * @param responsesType the responses type of the responses to expect.
      * @param httpStatus the HTTP status to send back as response status.
      * @param dittoHeaders the headers of the request.
      * @return the new RetrieveLoggerConfigResponse response.
@@ -105,25 +85,6 @@ public final class AggregatedDevOpsCommandResponse
 
         final JsonObject jsonRepresentation = buildJsonRepresentation(commandResponses, dittoHeaders);
         return new AggregatedDevOpsCommandResponse(jsonRepresentation, responsesType, httpStatus, dittoHeaders);
-    }
-
-    /**
-     * Returns a new instance of {@code AggregatedDevOpsCommandResponse}.
-     *
-     * @param aggregatedResponses the aggregated {@link DevOpsCommandResponse}s as a JsonObject.
-     * @param responsesType the responses type of the responses to expect.
-     * @param httpStatusCode the {@link HttpStatusCode} to send back as response status.
-     * @param dittoHeaders the headers of the request.
-     * @return the new RetrieveLoggerConfigResponse response.
-     * @deprecated as of 2.0.0 please use {@link #of(JsonObject, String, HttpStatus, DittoHeaders)} instead.
-     */
-    @Deprecated
-    public static AggregatedDevOpsCommandResponse of(final JsonObject aggregatedResponses,
-            final String responsesType,
-            final HttpStatusCode httpStatusCode,
-            final DittoHeaders dittoHeaders) {
-
-        return of(aggregatedResponses, responsesType, httpStatusCode.getAsHttpStatus(), dittoHeaders);
     }
 
     /**

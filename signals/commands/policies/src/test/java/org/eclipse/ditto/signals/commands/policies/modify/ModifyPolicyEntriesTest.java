@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.signals.commands.policies.modify;
 
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -26,7 +25,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.TestConstants;
 import org.junit.Test;
@@ -68,22 +66,8 @@ public class ModifyPolicyEntriesTest {
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
-        ModifyPolicyEntries.of((PolicyId) null, TestConstants.Policy.POLICY_ENTRIES,
+        ModifyPolicyEntries.of(null, TestConstants.Policy.POLICY_ENTRIES,
                 TestConstants.EMPTY_DITTO_HEADERS);
-    }
-
-    @Test(expected = PolicyIdInvalidException.class)
-    public void tryToCreateInstanceWithNullPolicyIdString() {
-        ModifyPolicyEntries.of((String) null, TestConstants.Policy.POLICY_ENTRIES,
-                TestConstants.EMPTY_DITTO_HEADERS);
-    }
-
-
-    @Test
-    public void tryToCreateInstanceWithInvalidPolicyId() {
-        assertThatExceptionOfType(PolicyIdInvalidException.class)
-                .isThrownBy(() -> ModifyPolicyEntries.of("undefined", TestConstants.Policy.POLICY_ENTRIES,
-                        TestConstants.EMPTY_DITTO_HEADERS));
     }
 
 

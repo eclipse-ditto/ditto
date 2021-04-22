@@ -26,15 +26,21 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.DittoTrustManagerFactory;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.KeyManagerFactoryFactory;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttSpecificConfig;
 import org.eclipse.ditto.services.connectivity.messaging.tunnel.SshTunnelState;
 
 import com.hivemq.client.mqtt.MqttClientBuilderBase;
 import com.hivemq.client.mqtt.MqttClientSslConfig;
 import com.hivemq.client.mqtt.MqttClientSslConfigBuilder;
+import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.lifecycle.MqttClientConnectedListener;
 import com.hivemq.client.mqtt.lifecycle.MqttClientDisconnectedListener;
+import com.hivemq.client.mqtt.mqtt3.Mqtt3ClientBuilder;
 import com.hivemq.client.mqtt.mqtt3.message.auth.Mqtt3SimpleAuthBuilder;
+import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3WillPublishBuilder;
+import com.hivemq.client.mqtt.mqtt5.Mqtt5ClientBuilder;
 import com.hivemq.client.mqtt.mqtt5.message.auth.Mqtt5SimpleAuthBuilder;
+import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5WillPublishBuilder;
 
 /**
  * Common code between MQTT3 and MQTT5 client factories.
@@ -72,6 +78,36 @@ abstract class AbstractHiveMqttClientFactory {
                     .password(possiblePassword.get().getBytes(StandardCharsets.UTF_8))
                     .applySimpleAuth();
         }
+    }
+
+    @SuppressWarnings("Duplicates")
+    void configureWillPublish(final Mqtt3ClientBuilder clientBuilder, final MqttSpecificConfig mqttSpecificConfig) {
+        // since topic is required, the other last will parameters will only be applied if the topic is set
+        mqttSpecificConfig.getMqttWillTopic()
+                .map(topic -> clientBuilder.willPublish().topic(topic))
+                .map(step -> step.retain(mqttSpecificConfig.getMqttWillRetain()))
+                .map(step -> Optional.ofNullable(MqttQos.fromCode(mqttSpecificConfig.getMqttWillQos()))
+                        .map(step::qos)
+                        .orElse(step))
+                .map(step -> mqttSpecificConfig.getMqttWillMessage()
+                        .map(msg -> step.payload(msg.getBytes(StandardCharsets.UTF_8)))
+                        .orElse(step))
+                .map(Mqtt3WillPublishBuilder.Nested.Complete::applyWillPublish);
+    }
+
+    @SuppressWarnings("Duplicates")
+    void configureWillPublish(final Mqtt5ClientBuilder clientBuilder, final MqttSpecificConfig mqttSpecificConfig) {
+        // since topic is required, the other last will parameters will only be applied if the topic is set
+        mqttSpecificConfig.getMqttWillTopic()
+                .map(topic -> clientBuilder.willPublish().topic(topic))
+                .map(step -> step.retain(mqttSpecificConfig.getMqttWillRetain()))
+                .map(step -> Optional.ofNullable(MqttQos.fromCode(mqttSpecificConfig.getMqttWillQos()))
+                        .map(step::qos)
+                        .orElse(step))
+                .map(step -> mqttSpecificConfig.getMqttWillMessage()
+                        .map(msg -> step.payload(msg.getBytes(StandardCharsets.UTF_8)))
+                        .orElse(step))
+                .map(Mqtt5WillPublishBuilder.Nested.Complete::applyWillPublish);
     }
 
     <T extends MqttClientBuilderBase<T>> T configureClientBuilder(

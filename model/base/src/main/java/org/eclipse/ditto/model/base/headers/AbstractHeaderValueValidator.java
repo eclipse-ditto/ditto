@@ -42,7 +42,7 @@ public abstract class AbstractHeaderValueValidator implements ValueValidator {
     }
 
     @Override
-    public void accept(final HeaderDefinition definition, final CharSequence value) {
+    public void accept(final HeaderDefinition definition, @Nullable final CharSequence value) {
         checkNotNull(definition, "definition");
         if (isThisValidatorResponsible(definition)) {
             assertValueNotNull(definition, value);
@@ -83,7 +83,7 @@ public abstract class AbstractHeaderValueValidator implements ValueValidator {
 
         return new AbstractHeaderValueValidator(valueType -> true) {
             @Override
-            public void accept(final HeaderDefinition definition, final CharSequence value) {
+            public void accept(final HeaderDefinition definition, @Nullable final CharSequence value) {
                 AbstractHeaderValueValidator.this.accept(definition, value);
                 after.accept(definition, value);
             }

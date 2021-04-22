@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.models.thingsearch.commands.sudo;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.WithEntity;
 
@@ -25,7 +24,7 @@ import org.eclipse.ditto.signals.commands.base.WithEntity;
  * @param <T> the type of the implementing class.
  */
 public interface ThingSearchSudoCommandResponse<T extends ThingSearchSudoCommandResponse<T>> extends CommandResponse<T>,
-        WithEntity<T>, WithIdButActuallyNot {
+        WithEntity<T> {
 
     /**
      * Type Prefix of Sudo commands.

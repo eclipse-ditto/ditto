@@ -16,14 +16,11 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEm
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
-import java.util.Optional;
 import java.util.function.Supplier;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
@@ -32,8 +29,10 @@ import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
  * This class helps to deserialize JSON to a sub-class of {@link Command}. Hereby this class extracts the values
  * which are common for all commands. All remaining required values have to be extracted in a user provided Supplier.
  * There the actual command object is created, too.
+ *
+ * This is not replaced by a simple type check in order to be equal to {@code CommandResponseJsonDeserializer} and
+ * {@code EventJsonDeserializer}.
  */
-// TODO Replace with simple type check.
 @Immutable
 public final class CommandJsonDeserializer<T extends Command> {
 
@@ -96,16 +95,7 @@ public final class CommandJsonDeserializer<T extends Command> {
     }
 
     private void validateCommandType() {
-        final JsonFieldDefinition<String> typeFieldDefinition = Command.JsonFields.TYPE;
-
-        final Optional<String> actualCommandTypeOptional = jsonObject.getValue(typeFieldDefinition);
-        final String actualCommandType = actualCommandTypeOptional.orElseGet(() -> {
-            // "type" was introduced in V2, if not present, take "command" instead.
-            final String commandTypePrefix = expectedCommandType.split(":")[0];
-            return jsonObject.getValue(Command.JsonFields.ID)
-                    .map(id -> commandTypePrefix + ':' + id)
-                    .orElseThrow(() -> new JsonMissingFieldException(typeFieldDefinition));
-        });
+        final String actualCommandType = jsonObject.getValueOrThrow(Command.JsonFields.TYPE);
 
         if (!expectedCommandType.equals(actualCommandType)) {
             final String msgPattern = "Command JSON was not a <{0}> command but a <{1}>!";

@@ -78,7 +78,12 @@ public interface Measurement extends Jsonifiable.WithFieldSelectorAndPredicate<J
          * JSON field containing the timestamp when the last message was consumed/published.
          */
         public static final JsonFieldDefinition<String> LAST_MESSAGE_AT =
-                JsonFactory.newStringFieldDefinition("lastMessageAt", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("lastMessageAt", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
+
+        JsonFields() {
+            throw new AssertionError();
+        }
     }
+
 }

@@ -29,7 +29,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * Command which retrieves publicly available statistics about the stored Things currently present.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = RetrieveStatistics.TYPE_PREFIX, name = RetrieveStatistics.NAME)
+@JsonParsableCommand(typePrefix = DevOpsCommand.TYPE_PREFIX, name = RetrieveStatistics.NAME)
 public final class RetrieveStatistics extends AbstractDevOpsCommand<RetrieveStatistics> {
 
     /**

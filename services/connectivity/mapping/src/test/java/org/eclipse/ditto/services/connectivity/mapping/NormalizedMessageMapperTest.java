@@ -400,8 +400,9 @@ public final class NormalizedMessageMapperTest {
                 Instant.ofEpochSecond(3L), DittoHeaders.empty(), null));
         assertNotMapped(FeaturePropertyDeleted.of(ThingId.of("thing:id"), "featureId",
                 JsonPointer.of("jumps/over/the/lazy/dog"), 4L, Instant.ofEpochSecond(4L), DittoHeaders.empty(), null));
-        assertNotMapped(FeatureDeleted.of(ThingId.of("thing:id"), "featureId", 5L, DittoHeaders.empty()));
-        assertNotMapped(ThingDeleted.of(ThingId.of("thing:id"), 6L, DittoHeaders.empty()));
+        assertNotMapped(FeatureDeleted.of(ThingId.of("thing:id"), "featureId", 5L, Instant.EPOCH,
+                DittoHeaders.empty(), null));
+        assertNotMapped(ThingDeleted.of(ThingId.of("thing:id"), 6L, Instant.EPOCH, DittoHeaders.empty(), null));
     }
 
     @Test

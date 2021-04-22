@@ -55,7 +55,7 @@ public final class ThingLiveCommandAckRequestSetter extends AbstractCommandAckRe
     }
 
     @Override
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
     public Class<ThingCommand<?>> getMatchedClass() {
         return (Class) ThingCommand.class;
     }

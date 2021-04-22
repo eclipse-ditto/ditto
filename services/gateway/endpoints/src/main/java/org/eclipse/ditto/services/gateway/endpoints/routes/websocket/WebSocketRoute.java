@@ -48,7 +48,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.SignalEnrichmentFailedException;
@@ -675,21 +675,20 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable =
                     sessionedJsonifiable.getJsonifiable();
             final ActorRef streamingSessionActor = session.getStreamingSessionActor();
-            if (jsonifiable instanceof Signal<?>) {
-                final EntityId entityId = ((Signal<?>) jsonifiable).getEntityId();
-                if (entityId instanceof EntityIdWithType) {
+            WithEntityId.getEntityIdOfType(EntityId.class, jsonifiable).ifPresent(entityId -> {
+                if (entityId instanceof EntityId) {
                     dittoHeaders.getAcknowledgementRequests()
                             .stream()
-                            .map(request -> weakAck(request.getLabel(), (EntityIdWithType) entityId, dittoHeaders))
+                            .map(request -> weakAck(request.getLabel(), entityId, dittoHeaders))
                             .map(IncomingSignal::of)
                             .forEach(weakAck -> streamingSessionActor.tell(weakAck, ActorRef.noSender()));
                 }
-            }
+            });
         });
     }
 
     private static Acknowledgement weakAck(final AcknowledgementLabel label,
-            final EntityIdWithType entityId,
+            final EntityId entityId,
             final DittoHeaders dittoHeaders) {
         final JsonValue payload = JsonValue.of("Acknowledgement was issued automatically as weak ack, " +
                 "because the signal is not relevant for the subscriber. Possible reasons are: " +
@@ -718,7 +717,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         final JsonifiableAdaptable errorAdaptable =
                 ProtocolFactory.wrapAsJsonifiableAdaptable(adapter.toAdaptable((Signal<?>)
                         ThingErrorResponse.of(
-                                ThingId.of(adaptable.getTopicPath().getNamespace(), adaptable.getTopicPath().getId()),
+                                ThingId.of(adaptable.getTopicPath().getNamespace(), adaptable.getTopicPath().getEntityName()),
                                 errorToReport,
                                 adaptable.getDittoHeaders()
                         )
@@ -807,9 +806,10 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private static PolicyErrorResponse buildPolicyErrorResponse(final DittoRuntimeException dittoRuntimeException) {
         final DittoHeaders dittoHeaders = dittoRuntimeException.getDittoHeaders();
         final String nullableEntityId = dittoHeaders.get(DittoHeaderDefinition.ENTITY_ID.getKey());
-        return nullableEntityId != null
-                ? PolicyErrorResponse.of(PolicyId.of(nullableEntityId), dittoRuntimeException, dittoHeaders)
-                : PolicyErrorResponse.of(dittoRuntimeException, dittoHeaders);
+        return Optional.ofNullable(nullableEntityId)
+                .map(entityId -> entityId.substring(entityId.indexOf(':')))
+                .map(entityId -> PolicyErrorResponse.of(PolicyId.of(entityId), dittoRuntimeException, dittoHeaders))
+                .orElseGet(() -> PolicyErrorResponse.of(dittoRuntimeException, dittoHeaders));
     }
 
     private static SearchErrorResponse buildSearchErrorResponse(final DittoRuntimeException dittoRuntimeException) {

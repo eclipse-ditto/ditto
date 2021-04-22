@@ -19,10 +19,11 @@ import java.util.Objects;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.id.WithEntityId;
+import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
@@ -30,12 +31,18 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
  * message (message) which should be delivered to the PersistenceActor.
  */
 public final class ShardedMessageEnvelope
-        implements Jsonifiable<JsonObject>, WithDittoHeaders<ShardedMessageEnvelope>, WithId {
+        implements Jsonifiable<JsonObject>, DittoHeadersSettable<ShardedMessageEnvelope>, WithEntityId {
 
     /**
      * JSON field containing the identifier of a {@code ShardedMessageEnvelope}.
      */
     public static final JsonFieldDefinition<String> JSON_ID = JsonFactory.newStringFieldDefinition("id");
+
+
+    /**
+     * JSON field containing the type of the entity the id identifies.
+     */
+    public static final JsonFieldDefinition<String> JSON_ID_TYPE = JsonFactory.newStringFieldDefinition("entityType");
 
     /**
      * JSON field containing the type of the message of a {@code ShardedMessageEnvelope}.
@@ -94,8 +101,9 @@ public final class ShardedMessageEnvelope
      * @return the ShardedMessageEnvelope.
      */
     public static ShardedMessageEnvelope fromJson(final JsonObject jsonObject) {
+        final EntityType entityType = EntityType.of(jsonObject.getValueOrThrow(JSON_ID_TYPE));
         final String extractedId = jsonObject.getValueOrThrow(JSON_ID);
-        final EntityId entityId = DefaultEntityId.of(extractedId);
+        final EntityId entityId = EntityId.of(entityType, extractedId);
         final String extractedType = jsonObject.getValueOrThrow(JSON_TYPE);
         final JsonObject extractedMessage = jsonObject.getValueOrThrow(JSON_MESSAGE);
         final JsonObject jsonDittoHeaders = jsonObject.getValueOrThrow(JSON_DITTO_HEADERS);
@@ -144,6 +152,7 @@ public final class ShardedMessageEnvelope
     @Override
     public JsonObject toJson() {
         return JsonObject.newBuilder()
+                .set(JSON_ID_TYPE, id.getEntityType().toString())
                 .set(JSON_ID, String.valueOf(id))
                 .set(JSON_TYPE, type)
                 .set(JSON_MESSAGE, message)

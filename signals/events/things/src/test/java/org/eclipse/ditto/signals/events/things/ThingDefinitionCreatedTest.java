@@ -22,8 +22,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.ThingDefinition;
-import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.EventsourcedEvent;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -36,8 +36,8 @@ public final class ThingDefinitionCreatedTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, ThingDefinitionCreated.TYPE)
-            .set(Event.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
             .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
+            .set(EventsourcedEvent.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
             .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ThingDefinitionCreated.JSON_DEFINITION, JsonValue.of(TestConstants.Thing.DEFINITION.toString()))
             .build();
@@ -61,8 +61,8 @@ public final class ThingDefinitionCreatedTest {
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        ThingDefinitionCreated.of((ThingId) null, TestConstants.Thing.DEFINITION, TestConstants.Thing.REVISION_NUMBER,
-                TestConstants.EMPTY_DITTO_HEADERS);
+        ThingDefinitionCreated.of(null, TestConstants.Thing.DEFINITION, TestConstants.Thing.REVISION_NUMBER,
+                TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
     }
 
 

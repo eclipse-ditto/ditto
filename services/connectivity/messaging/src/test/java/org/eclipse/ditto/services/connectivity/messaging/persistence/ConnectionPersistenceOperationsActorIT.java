@@ -13,13 +13,11 @@
 package org.eclipse.ditto.services.connectivity.messaging.persistence;
 
 import java.util.Collections;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -70,7 +68,7 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
     }
 
     @Override
-    protected ConnectionId toEntityId(final EntityId entityId) {
+    protected ConnectionId toEntityId(final CharSequence entityId) {
         return ConnectionId.of(entityId);
     }
 

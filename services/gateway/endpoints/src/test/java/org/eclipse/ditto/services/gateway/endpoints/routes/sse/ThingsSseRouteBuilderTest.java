@@ -204,6 +204,8 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
         final Thing thing = Thing.newBuilder().setId(ThingId.of(lastEventId)).build();
         proxyActor.reply(RetrieveThingResponse.of(ThingId.of(lastEventId),
                 thing,
+                null,
+                null,
                 retrieveThing.getDittoHeaders()
         ));
         final StreamThings streamThings = proxyActor.expectMsgClass(StreamThings.class);

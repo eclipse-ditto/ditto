@@ -24,8 +24,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
@@ -76,19 +74,6 @@ abstract class AbstractNamespaceCommand<T extends AbstractNamespaceCommand<T>> e
     @Override
     public String getTypePrefix() {
         return TYPE_PREFIX;
-    }
-
-    /**
-     * Same as {@link #getNamespace()}.
-     */
-    @Override
-    public String getId() {
-        return getNamespace();
-    }
-
-    @Override
-    public EntityId getEntityId() {
-        return DefaultEntityId.of(getNamespace());
     }
 
     @Override

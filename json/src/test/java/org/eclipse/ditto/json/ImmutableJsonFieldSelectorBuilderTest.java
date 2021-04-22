@@ -95,7 +95,7 @@ public final class ImmutableJsonFieldSelectorBuilderTest {
     @Test
     public void addPointersAsNullIterable() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> underTest.addPointers((Iterable<JsonPointer>) null))
+                .isThrownBy(() -> underTest.addPointers(null))
                 .withMessage("The %s must not be null!", "JSON pointers to be added")
                 .withNoCause();
     }
@@ -129,7 +129,7 @@ public final class ImmutableJsonFieldSelectorBuilderTest {
     @Test
     public void addPointerStringsAsNullIterable() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> underTest.addPointerStrings((Iterable<String>) null))
+                .isThrownBy(() -> underTest.addPointerStrings(null))
                 .withMessage("The %s must not be null!", "JSON pointer strings to be added")
                 .withNoCause();
     }
@@ -149,7 +149,7 @@ public final class ImmutableJsonFieldSelectorBuilderTest {
     @Test
     public void addFieldDefinitionsAsNullVarArgs() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> underTest.addFieldDefinition(fieldDefinitionA, (JsonFieldDefinition[]) null))
+                .isThrownBy(() -> underTest.addFieldDefinition(fieldDefinitionA, (JsonFieldDefinition<?>[]) null))
                 .withMessage("The %s must not be null!", "further JSON field definitions to be added")
                 .withNoCause();
     }
@@ -166,7 +166,7 @@ public final class ImmutableJsonFieldSelectorBuilderTest {
     @Test
     public void addFieldDefinitionsAsNullIterable() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> underTest.addFieldDefinitions((Iterable<JsonFieldDefinition>) null))
+                .isThrownBy(() -> underTest.addFieldDefinitions(null))
                 .withMessage("The %s must not be null!", "JSON field definitions")
                 .withNoCause();
     }

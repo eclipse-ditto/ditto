@@ -28,8 +28,6 @@ import org.eclipse.ditto.signals.commands.policies.query.RetrieveResourceRespons
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertyResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
-import org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse;
-import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThingsResponse;
 
 public final class PoliciesServiceGlobalCommandResponseRegistryTest extends GlobalCommandResponseRegistryTestCases {
 
@@ -49,11 +47,7 @@ public final class PoliciesServiceGlobalCommandResponseRegistryTest extends Glob
                 CleanupPersistenceResponse.class,
                 RetrieveConfigResponse.class,
                 RetrieveHealthResponse.class,
-                PurgeEntitiesResponse.class,
-
-                // added due to ditto-model-placeholders
-                QueryThingsResponse.class,
-                SearchErrorResponse.class
+                PurgeEntitiesResponse.class
         );
     }
 

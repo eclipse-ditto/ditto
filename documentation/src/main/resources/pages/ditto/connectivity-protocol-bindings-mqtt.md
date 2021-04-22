@@ -129,7 +129,8 @@ The default value is `0` (at-most-once).
 
 #### Target header mapping
 
-As MQTT 3.1.1 does not support headers in its protocol, a [header mapping](connectivity-header-mapping.html) is not possible to configure here.
+As MQTT 3.1.1 does not support headers in its protocol, a [header mapping](connectivity-header-mapping.html) is not 
+possible to configure here.
 
 #### Target acknowledgement handling
 
@@ -165,7 +166,11 @@ Overall example JSON of the MQTT `"specificConfig"`:
     "cleanSession": false,
     "separatePublisherClient": true,
     "publisherId": "my-awesome-mqtt-publisher-client-id",
-    "reconnectForRedeliveryDelay": "5s"
+    "reconnectForRedeliveryDelay": "5s",
+    "lastWillTopic": "my/last/will/topic",
+    "lastWillQos": 1,
+    "lastWillRetain": false,
+    "lastWillMessage": "my last will message"
   },
   "sources": ["..."],
   "targets": ["..."]
@@ -204,9 +209,9 @@ Default: the negation of `"reconnectForRedelivery"`
 #### separatePublisherClient
 
 Configures whether to create a separate physical client and connection to the MQTT broker for publishing messages, or not. 
-By default (configured true), a single Ditto connection would open 2 MQTT connections/sessions: one for subscribing and one for publishing.
-If configured to `false`, the same MQTT connection/session is used both: for subscribing to messages, and for
-publishing messages.
+By default (configured true), a single Ditto connection would open 2 MQTT connections/sessions: one for subscribing 
+and one for publishing. If configured to `false`, the same MQTT connection/session is used both: for subscribing to 
+messages, and for publishing messages.
 
 Default: `true`
 
@@ -224,6 +229,50 @@ Configures how long to wait before reconnecting a consumer client for redelivery
 and `separatePublisherClient` are both enabled. The minimum value is `1s`.
 
 Default: `2s`
+
+#### keepAlive
+
+Configures the keep alive time interval (in seconds) in which the client sends a ping to the broker 
+if no other MQTT packets are sent during this period of time. It is used to determine if the connection is still up.
+
+Default: `60s` [see here](https://hivemq.github.io/hivemq-mqtt-client/docs/mqtt-operations/connect/#keep-alive)
+
+#### lastWillTopic
+
+Configures the topic which should be used on Last Will. This field is mandatory when Last Will should be enabled.
+
+#### lastWillQos
+
+Configures the QoS which should be used on Last Will:
+- `0` = QoS 0 (“at most once”)
+- `1` = QoS 1 (“at least once”)
+- `2` = QoS 2 (“exactly once”)
+
+Default: `0`
+
+#### lastWillRetain
+
+Configures if clients which are newly subscribed to the topic chosen in [Last Will topic](#lastwilltopic) will 
+receive this message immediately after they subscribe.
+
+Default: `false`
+
+#### lastWillMessage
+
+Configures the message which should be published when the connection is disconnected ungracefully from the broker. 
+The message will be published as UTF8-encoded text on the topic chosen in [Last Will topic](#lastwilltopic).
+
+Default: empty string
+
+### Configure Last Will message
+
+To notify other clients when the connection is disconnected ungracefully the [Last Will feature](http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html#_Toc398718028) 
+can be used. The message which will be published, is specified in the connection and stored 
+in the broker when it connects. The message contains a topic, retained message flag, QoS, and the text payload to be 
+published. These can be configured in the [Specific Configuration](#specificconfiguration) of the connection. 
+The last will message is sent as text payload using UTF8 encoding. 
+
+{% include note.html content="This feature is enabled if the _last will topic_ is set." %}
 
 ## Establishing a connection to an MQTT 3.1.1 endpoint
 

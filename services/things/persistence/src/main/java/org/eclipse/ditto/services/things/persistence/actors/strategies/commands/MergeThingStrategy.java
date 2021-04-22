@@ -29,14 +29,11 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
-import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.ThingResourceMapper;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingMergeInvalidException;
@@ -76,11 +73,7 @@ final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> 
     private Result<ThingEvent<?>> handleMergeExisting(final Context<ThingId> context, final Thing thing,
             final Instant eventTs, final long nextRevision, final MergeThing command,
             @Nullable final Metadata metadata) {
-        if (JsonSchemaVersion.V_1.equals(thing.getImplementedSchemaVersion())) {
-            return getV1UnsupportedResult(command);
-        } else {
-            return handleMergeExistingV2WithV2Command(context, thing, eventTs, nextRevision, command, metadata);
-        }
+        return handleMergeExistingV2WithV2Command(context, thing, eventTs, nextRevision, command, metadata);
     }
 
     /**
@@ -105,11 +98,11 @@ final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> 
         final Thing mergedThing = wrapException(() -> mergeThing(context, command, thing, eventTs, nextRevision),
                 command.getDittoHeaders());
         final ThingEvent<?> event =
-                ThingMerged.of(command.getThingEntityId(), path, value, nextRevision, eventTs, dittoHeaders, metadata);
+                ThingMerged.of(command.getEntityId(), path, value, nextRevision, eventTs, dittoHeaders, metadata);
         final MergeThingResponse mergeThingResponse =
-                MergeThingResponse.of(command.getThingEntityId(), path, dittoHeaders);
+                MergeThingResponse.of(command.getEntityId(), path, dittoHeaders);
 
-        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command, mergeThingResponse, mergedThing);
+        final WithDittoHeaders response = appendETagHeaderIfProvided(command, mergeThingResponse, mergedThing);
         return ResultFactory.newMutationResult(command, event, response);
     }
 
@@ -140,12 +133,6 @@ final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> 
     @Override
     public Optional<EntityTag> nextEntityTag(final MergeThing thingCommand, @Nullable final Thing newEntity) {
         return ENTITY_TAG_MAPPER.map(thingCommand.getPath(), getEntityOrThrow(newEntity));
-    }
-
-    private Result<ThingEvent<?>> getV1UnsupportedResult(final Command<?> command) {
-        return ResultFactory.newErrorResult(CommandNotSupportedException.newBuilder(JsonSchemaVersion.V_1.toInt())
-                .dittoHeaders(command.getDittoHeaders())
-                .build(), command);
     }
 
     private static <T> T wrapException(final Supplier<T> supplier, final DittoHeaders dittoHeaders) {

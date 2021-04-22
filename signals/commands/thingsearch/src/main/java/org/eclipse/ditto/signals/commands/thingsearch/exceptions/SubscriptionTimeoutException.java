@@ -63,11 +63,6 @@ public class SubscriptionTimeoutException extends DittoRuntimeException implemen
                 .build();
     }
 
-    @Override
-    protected DittoRuntimeExceptionBuilder<? extends DittoRuntimeException> getEmptyBuilder() {
-        return new Builder();
-    }
-
     /**
      * Constructs a new {@code SubscriptionTimeoutException} object with the exception message extracted from the
      * given JSON object.

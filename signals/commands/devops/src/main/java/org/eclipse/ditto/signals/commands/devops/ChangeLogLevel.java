@@ -38,7 +38,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * LoggerConfig}.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = ChangeLogLevel.TYPE_PREFIX, name = ChangeLogLevel.NAME)
+@JsonParsableCommand(typePrefix = DevOpsCommand.TYPE_PREFIX, name = ChangeLogLevel.NAME)
 public final class ChangeLogLevel extends AbstractDevOpsCommand<ChangeLogLevel> {
 
     /**
@@ -52,7 +52,7 @@ public final class ChangeLogLevel extends AbstractDevOpsCommand<ChangeLogLevel> 
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     public static final JsonFieldDefinition<JsonObject> JSON_LOGGER_CONFIG =
-            JsonFactory.newJsonObjectFieldDefinition("loggerConfig", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonObjectFieldDefinition("loggerConfig", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final LoggerConfig loggerConfig;

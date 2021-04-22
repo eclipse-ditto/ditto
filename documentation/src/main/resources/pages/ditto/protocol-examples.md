@@ -9,7 +9,8 @@ The structure of the examples in this section is as follows:
 
 ## Command
 
-Each example always starts with a command message that initiates an operation at Ditto (e.g. create a thing, retrieve a thing).
+Each example always starts with a command message that initiates an operation at Ditto 
+(e.g. create a thing, retrieve a thing).
 
 ```json
 {
@@ -25,7 +26,8 @@ Each example always starts with a command message that initiates an operation at
 
 ## Response
 
-A command always has a response which either reports the success or the failure. The example contains the success response.
+A command always has a response which either reports the success or the failure. 
+The example contains the success response.
 See Thing Error responses for examples of messages that will be returned in case of an error.
 
 ```json
@@ -43,7 +45,8 @@ See Thing Error responses for examples of messages that will be returned in case
 
 ## Event
 
-If Ditto triggers an event (e.g. Thing created, Attribute modified) as a result of the executed command, an example of such an event is also demonstrated.
+If Ditto triggers an event (e.g. Thing created, Attribute modified) as a result of the executed command, 
+an example of such an event is also demonstrated.
 
 ```json
 {

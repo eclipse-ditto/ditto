@@ -24,13 +24,11 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public class PublicKeyIdWithIssuerTest {
 
-    /** */
     @Test
     public void assertImmutability() {
         assertInstancesOf(PublicKeyIdWithIssuer.class, areImmutable());
     }
 
-    /** */
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(PublicKeyIdWithIssuer.class).verify();
