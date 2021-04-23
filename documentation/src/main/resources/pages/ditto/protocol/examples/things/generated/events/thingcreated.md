@@ -2,12 +2,14 @@
 
 ```json
 {
-  "topic": "com.acme/xdk_53/things/twin/events/created",
-  "headers": {},
+  "topic": "org.eclipse.ditto/fancy-thing/things/twin/events/created",
+  "headers": {
+    "correlation-id": "<preserved-command-correlation-id>"
+  },
   "path": "/",
   "value": {
-    "thingId": "com.acme:xdk_53",
-    "policyId": "com.acme:the_policy_id",
+    "thingId": "org.eclipse.ditto:fancy-thing_53",
+    "policyId": "org.eclipse.ditto:the_policy_id",
     "attributes": {
       "location": {
         "latitude": 44.673856,

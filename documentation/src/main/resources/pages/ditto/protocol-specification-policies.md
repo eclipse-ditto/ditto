@@ -34,25 +34,29 @@ The representation of a `Policy` is specified as follows:
 
 {% include docson.html schema="jsonschema/policy.json" %}
 
-## Common error responses for Policies
 
-These error responses can occur independent of the command that was sent:
+## Commands
 
-| status | error                   | message                   |
-|--------|-------------------------|---------------------------|
-| `400`  | `policies:id.invalid`     | The Policy ID `<policyId>` is not valid! |
-| `429`  | `policies:policy.toomanymodifyingrequests`     | Too many modifying requests are already outstanding to the Policy with ID `<policyId>`. |
-| `503`  | `policies:policy.unavailable` | The Policy with the given ID is not available, please try again later. |
+The following Policy commands are available:
+* [create/modify commands](protocol-specification-policies-create-or-modify.html)
+* [retrieve commands](protocol-specification-policies-retrieve.html)
+* [delete commands](protocol-specification-policies-delete.html)
 
+### Common errors to commands
 
-## Common errors
+Each Policy command could also result in an [error](protocol-specification-errors.html) response.  
+The `"topic"` of such errors differ from the command `"topic"` - correlation is however possible via the
+`"correlation-id"` header which is preserved in the error message.
+
+The following table contains common error codes for Policy commands:
 
 | **status** | Value                    |
 |------------|--------------------------|
 |    `400`   | Bad Format - The request could not be completed due to malformed request syntax. |
 |    `401`   | Unauthorized - The request could not be completed due to missing authentication.       |
-|    `403`   | Forbidden - The Policy could not be modified as the requester had insufficient permissions ('WRITE' is required).          |
+|    `403`   | Forbidden - The Policy could not be modified/deleted/retrieved as the requester had insufficient permissions.          |
 |    `404`   | Not Found - The request could not be completed. The Policy with the given ID was not found in the context of the authenticated user.  |
-|    `412`   | Precondition Failed - A precondition for reading or writing the (sub-)resource failed. This will happen for write requests, if you specified an If-Match or If-None-Match header, which fails the precondition check against the current ETag of the (sub-)resource.  |
-|    `413`   | Request Entity Too Large - The created or modified entity is larger than the accepted limit of 100 kB.  |
-|            | See [Policy Error Responses](protocol-examples-policies-errorresponses.html) for examples of other error responses. |
+|    `412`   | Precondition Failed - A precondition for reading or writing the (sub-)resource failed. This will happen for write requests, if you specified an `If-Match` or `If-None-Match` header, which fails the precondition check against the current ETag of the (sub-)resource.  |
+|    `413`   | Request Entity Too Large - The created or modified Policy is larger than the configured limit (defaults to 100 kB).  |
+|    `429`   | Too many modifying requests are already outstanding to a specific Policy. |
+

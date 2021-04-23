@@ -2,11 +2,13 @@
 
 ```json
 {
-  "topic": "com.acme/xdk_53/things/twin/commands/retrieve",
-  "headers": {},
+  "topic": "org.eclipse.ditto/fancy-thing/things/twin/commands/retrieve",
+  "headers": {
+    "correlation-id": "<preserved-command-correlation-id>"
+  },
   "path": "/features/accelerometer/definition",
   "value": [
-    "com.acme:accelerometer:1.0.0"
+    "org.eclipse.ditto:accelerometer:1.0.0"
   ],
   "status": 200
 }

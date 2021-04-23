@@ -7,17 +7,19 @@ will be ignored.
 
 ### ModifyThing with copied Policy by Policy ID
 
-If no Thing with ID ``com.acme:xdk_53`` exists, this command will create a new Thing with ID ``com.acme:xdk_53`` with a
-Policy copied from the Policy with ID ``com.acme:the_policy_id_to_copy``.
+If no Thing with ID ``org.eclipse.ditto:fancy-thing_53`` exists, this command will create a new Thing with ID ``org.eclipse.ditto:fancy-thing_53`` with a
+Policy copied from the Policy with ID ``org.eclipse.ditto:the_policy_id_to_copy``.
 
 ```json
 {
-  "topic": "com.acme/xdk_53/things/twin/commands/modify",
-  "headers": {},
+  "topic": "org.eclipse.ditto/fancy-thing/things/twin/commands/modify",
+  "headers": {
+    "correlation-id": "<command-correlation-id>"
+  },
   "path": "/",
   "value": {
-    "thingId": "com.acme:xdk_53",
-    "policyId": "com.acme:the_policy_id",
+    "thingId": "org.eclipse.ditto:fancy-thing_53",
+    "policyId": "org.eclipse.ditto:the_policy_id",
     "_copyPolicyFrom": "com:acme:the_policy_id_to_copy"
   }
 }
@@ -25,18 +27,20 @@ Policy copied from the Policy with ID ``com.acme:the_policy_id_to_copy``.
 
 ### ModifyThing with copied Policy by Thing reference
 
-If no Thing with ID ``com.acme:xdk_53`` exists, this command will create a new Thing with ID ``com.acme:xdk_53`` with a
-Policy copied from a Thing with ID ``com.acme:xdk_52``.
+If no Thing with ID ``org.eclipse.ditto:fancy-thing_53`` exists, this command will create a new Thing with ID ``org.eclipse.ditto:fancy-thing_53`` with a
+Policy copied from a Thing with ID ``org.eclipse.ditto:fancy-thing_52``.
 
 ```json
 {
-  "topic": "com.acme/xdk_53/things/twin/commands/modify",
-  "headers": {},
+  "topic": "org.eclipse.ditto/fancy-thing/things/twin/commands/modify",
+  "headers": {
+    "correlation-id": "<command-correlation-id>"
+  },
   "path": "/",
   "value": {
-    "thingId": "com.acme:xdk_53",
-    "policyId": "com.acme:the_policy_id",
-    "_copyPolicyFrom": "{% raw %}{{ ref:things/com:acme:xdk_52/policyId }}{% endraw %}"
+    "thingId": "org.eclipse.ditto:fancy-thing_53",
+    "policyId": "org.eclipse.ditto:the_policy_id",
+    "_copyPolicyFrom": "{% raw %}{{ ref:things/com:acme:fancy-thing_52/policyId }}{% endraw %}"
   }
 }
 ```

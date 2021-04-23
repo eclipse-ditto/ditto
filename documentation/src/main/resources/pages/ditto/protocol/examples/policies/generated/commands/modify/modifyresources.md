@@ -2,9 +2,9 @@
 
 ```json
 {
-  "topic": "com.acme/the_policy_id/policies/commands/modify",
+  "topic": "org.eclipse.ditto/the_policy_id/policies/commands/modify",
   "headers": {
-    "content-type": "application/json"
+    "correlation-id": "<command-correlation-id>"
   },
   "path": "/entries/the_label/resources",
   "value": {

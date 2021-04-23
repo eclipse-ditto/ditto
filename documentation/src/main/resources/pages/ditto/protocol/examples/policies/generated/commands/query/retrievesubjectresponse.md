@@ -2,9 +2,9 @@
 
 ```json
 {
-  "topic": "com.acme/the_policy_id/policies/commands/retrieve",
+  "topic": "org.eclipse.ditto/the_policy_id/policies/commands/retrieve",
   "headers": {
-    "content-type": "application/json"
+    "correlation-id": "<preserved-command-correlation-id>"
   },
   "path": "/entries/the_label/subjects/google:the_subjectid",
   "value": {

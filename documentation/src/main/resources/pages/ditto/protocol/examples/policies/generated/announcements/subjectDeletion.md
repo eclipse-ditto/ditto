@@ -2,10 +2,9 @@
 
 ```json
 {
-  "topic": "com.acme/the_policy_id/policies/announcements/subjectDeletion",
+  "topic": "org.eclipse.ditto/the_policy_id/policies/announcements/subjectDeletion",
   "headers": {
-    "correlation-id": "2cef2741-a503-4e54-ac19-ee7fc8504c92",
-    "content-type": "application/json"
+    "correlation-id": "<some-correlation-id>"
   },
   "path": "/",
   "value": {
