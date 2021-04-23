@@ -18,12 +18,12 @@ import java.util.List;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.rql.ParserException;
-import org.eclipse.ditto.model.thingsearch.CursorOption;
-import org.eclipse.ditto.model.thingsearch.LimitOption;
-import org.eclipse.ditto.model.thingsearch.Option;
-import org.eclipse.ditto.model.thingsearch.SizeOption;
-import org.eclipse.ditto.model.thingsearch.SortOption;
-import org.eclipse.ditto.model.thingsearch.SortOptionEntry;
+import org.eclipse.ditto.thingsearch.model.CursorOption;
+import org.eclipse.ditto.thingsearch.model.LimitOption;
+import org.eclipse.ditto.thingsearch.model.Option;
+import org.eclipse.ditto.thingsearch.model.SizeOption;
+import org.eclipse.ditto.thingsearch.model.SortOption;
+import org.eclipse.ditto.thingsearch.model.SortOptionEntry;
 import org.eclipse.ditto.model.thingsearchparser.OptionParser;
 import org.eclipse.ditto.model.thingsearchparser.RqlOptionParser;
 import org.junit.Test;

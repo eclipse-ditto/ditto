@@ -14,7 +14,7 @@ package org.eclipse.ditto.model.thingsearchparser;
 
 import java.util.List;
 
-import org.eclipse.ditto.model.thingsearch.Option;
+import org.eclipse.ditto.thingsearch.model.Option;
 
 /**
  * Interface a option parser has to implement.

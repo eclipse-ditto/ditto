@@ -75,9 +75,9 @@ import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.acks.MessageCommandAckRequestSetter;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingLiveCommandAckRequestSetter;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingModifyCommandAckRequestSetter;
-import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
+import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.base.model.signals.events.Event;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 
 import akka.Done;
 import akka.actor.AbstractActorWithTimers;

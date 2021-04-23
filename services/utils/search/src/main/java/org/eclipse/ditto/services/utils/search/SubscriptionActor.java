@@ -21,15 +21,15 @@ import org.eclipse.ditto.services.utils.akka.actors.AbstractActorWithStashWithTi
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
-import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
-import org.eclipse.ditto.signals.commands.thingsearch.exceptions.SubscriptionProtocolErrorException;
-import org.eclipse.ditto.signals.commands.thingsearch.exceptions.SubscriptionTimeoutException;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionFailed;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionHasNextPage;
+import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
+import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.SubscriptionProtocolErrorException;
+import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.SubscriptionTimeoutException;
+import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CancelSubscription;
+import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.RequestFromSubscription;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionComplete;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionCreated;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionFailed;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionHasNextPage;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 

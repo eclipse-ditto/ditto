@@ -52,20 +52,11 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-model-thingsearch</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-commands-thingsearch</artifactId>
+            <artifactId>ditto-thingsearch-model</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-messages</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-events-thingsearch</artifactId>
         </dependency>
 
         <!-- ### Provided ### -->

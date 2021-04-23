@@ -24,11 +24,11 @@ import org.eclipse.ditto.protocol.adapter.AbstractErrorResponseAdapter;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableMapper;
 import org.eclipse.ditto.base.model.signals.ErrorRegistry;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionFailed;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionHasNextPage;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionComplete;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionCreated;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionFailed;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionHasNextPage;
 
 /**
  * Defines mapping strategies (map from signal type to JsonifiableMapper) for thing events.

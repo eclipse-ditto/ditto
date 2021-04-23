@@ -25,10 +25,10 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableMapper;
-import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
+import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
+import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CancelSubscription;
+import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
+import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.RequestFromSubscription;
 
 /**
  * Defines mapping strategies (map from signal type to JsonifiableMapper) for thing search commands.

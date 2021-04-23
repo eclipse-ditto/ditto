@@ -21,7 +21,7 @@ import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.connectivity.api.ConnectivityMappingStrategies;
 import org.eclipse.ditto.policies.api.PoliciesMappingStrategies;
 import org.eclipse.ditto.things.api.ThingsMappingStrategies;
-import org.eclipse.ditto.services.models.thingsearch.ThingSearchMappingStrategies;
+import org.eclipse.ditto.thingsearch.api.ThingSearchMappingStrategies;
 import org.eclipse.ditto.services.utils.cache.InvalidateCacheEntry;
 import org.eclipse.ditto.services.utils.cluster.GlobalMappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategies;

@@ -82,8 +82,8 @@ import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingLiveCommandAckRequestSetter;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingModifyCommandAckRequestSetter;
-import org.eclipse.ditto.signals.commands.thingsearch.WithSubscriptionId;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
+import org.eclipse.ditto.thingsearch.model.signals.commands.WithSubscriptionId;
+import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;

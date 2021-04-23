@@ -68,13 +68,13 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
-import org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse;
-import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
+import org.eclipse.ditto.thingsearch.model.signals.commands.SearchErrorResponse;
+import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
+import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingModified;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionCreated;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 import org.junit.Before;
 import org.junit.Test;
 

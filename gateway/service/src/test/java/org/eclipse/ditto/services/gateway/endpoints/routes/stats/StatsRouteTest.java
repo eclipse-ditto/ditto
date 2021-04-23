@@ -25,7 +25,7 @@ import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthent
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationProvider;
 import org.eclipse.ditto.services.gateway.util.config.security.DevOpsConfig;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
-import org.eclipse.ditto.signals.commands.thingsearch.query.CountThingsResponse;
+import org.eclipse.ditto.thingsearch.model.signals.commands.query.CountThingsResponse;
 import org.junit.Before;
 import org.junit.Test;
 

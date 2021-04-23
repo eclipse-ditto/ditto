@@ -63,7 +63,7 @@ import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.policies.model.PolicyException;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.model.thingsearch.ThingSearchException;
+import org.eclipse.ditto.thingsearch.model.ThingSearchException;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.JsonifiableAdaptable;
@@ -97,7 +97,7 @@ import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayWebsocket
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
-import org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse;
+import org.eclipse.ditto.thingsearch.model.signals.commands.SearchErrorResponse;
 import org.slf4j.Logger;
 
 import akka.NotUsed;

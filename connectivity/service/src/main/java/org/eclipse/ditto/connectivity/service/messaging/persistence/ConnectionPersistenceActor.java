@@ -103,7 +103,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConne
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionStatusResponse;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
+import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionClosed;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionCreated;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionDeleted;

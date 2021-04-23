@@ -21,13 +21,13 @@ import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionFailed;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionHasNextPage;
+import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CancelSubscription;
+import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
+import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.RequestFromSubscription;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionComplete;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionCreated;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionFailed;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionHasNextPage;
 
 /**
  * Represents the path of a topic for the Ditto Protocol.

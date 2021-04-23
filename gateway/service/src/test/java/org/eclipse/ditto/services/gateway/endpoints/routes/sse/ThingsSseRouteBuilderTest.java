@@ -40,7 +40,7 @@ import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayServiceUnavailableException;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
-import org.eclipse.ditto.signals.commands.thingsearch.query.StreamThings;
+import org.eclipse.ditto.thingsearch.model.signals.commands.query.StreamThings;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;

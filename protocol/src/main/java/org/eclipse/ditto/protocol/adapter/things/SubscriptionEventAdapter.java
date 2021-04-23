@@ -31,14 +31,14 @@ import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.UnknownEventException;
 import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
 import org.eclipse.ditto.base.model.signals.ErrorRegistry;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionFailed;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionHasNextPage;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionComplete;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionCreated;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionFailed;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionHasNextPage;
 
 /**
- * Adapter for mapping a {@link org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent} to and from an {@link Adaptable}.
+ * Adapter for mapping a {@link org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent} to and from an {@link Adaptable}.
  */
 final class SubscriptionEventAdapter extends AbstractThingAdapter<SubscriptionEvent<?>> {
 

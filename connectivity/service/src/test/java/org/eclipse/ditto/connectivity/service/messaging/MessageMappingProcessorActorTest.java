@@ -76,7 +76,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributeRes
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
+import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
 import org.eclipse.ditto.base.model.signals.events.AbstractEventsourcedEvent;
 import org.junit.Test;
 

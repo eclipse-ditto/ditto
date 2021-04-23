@@ -27,7 +27,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingsResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
-import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
+import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 
 /**
  * Factory class that instantiates all available {@link SignalMapper}s.

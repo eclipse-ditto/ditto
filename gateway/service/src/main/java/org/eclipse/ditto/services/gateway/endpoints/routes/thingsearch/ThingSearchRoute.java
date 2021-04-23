@@ -30,8 +30,8 @@ import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
-import org.eclipse.ditto.signals.commands.thingsearch.query.CountThings;
-import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
+import org.eclipse.ditto.thingsearch.model.signals.commands.query.CountThings;
+import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;

@@ -30,7 +30,6 @@
         <module>devops</module>
         <module>messages</module>
         <module>namespaces</module>
-        <module>thingsearch</module>
         <module>cleanup</module>
     </modules>
 

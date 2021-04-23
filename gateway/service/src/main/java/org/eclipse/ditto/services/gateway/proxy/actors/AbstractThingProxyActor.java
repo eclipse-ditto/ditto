@@ -18,7 +18,7 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
-import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
+import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;

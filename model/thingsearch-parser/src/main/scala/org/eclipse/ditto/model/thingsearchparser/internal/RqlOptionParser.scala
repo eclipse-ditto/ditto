@@ -15,9 +15,9 @@ package org.eclipse.ditto.model.thingsearchparser.internal
 import akka.parboiled2._
 import org.eclipse.ditto.model.rql.ParserException
 import org.eclipse.ditto.model.rqlparser.internal.RqlParserBase
-import org.eclipse.ditto.model.thingsearch
-import org.eclipse.ditto.model.thingsearch.{LimitOption, Option, SearchModelFactory, SortOption, SortOptionEntry}
 import org.eclipse.ditto.model.thingsearchparser.OptionParser
+import org.eclipse.ditto.thingsearch.model
+import org.eclipse.ditto.thingsearch.model.{LimitOption, SearchModelFactory, SortOption, SortOptionEntry}
 
 import java.util
 import scala.collection.JavaConverters
@@ -39,21 +39,21 @@ private class RqlOptionParser(override val input: ParserInput) extends RqlParser
   /**
     * @return the root for parsing RQL Options.
     */
-  def OptionsRoot: Rule1[Seq[thingsearch.Option]] = rule {
+  def OptionsRoot: Rule1[Seq[model.Option]] = rule {
     WhiteSpace ~ Options ~ EOI
   }
 
   /**
     * Options                    = Option, { ',', Option }
     */
-  private def Options: Rule1[Seq[thingsearch.Option]] = rule {
+  private def Options: Rule1[Seq[model.Option]] = rule {
     oneOrMore(Option).separatedBy(',')
   }
 
   /**
     * Option                     = Sort | Limit | Cursor | Size
     */
-  private def Option: Rule1[thingsearch.Option] = rule {
+  private def Option: Rule1[model.Option] = rule {
     Sort | Limit | Cursor | Size
   }
 
@@ -129,9 +129,9 @@ object RqlOptionParser extends OptionParser {
     * @throws NullPointerException if input is null.
     * @throws ParserException      if input could not be parsed.
     */
-  override def parse(input: String): util.List[Option] = parseOptions(input)
+  override def parse(input: String): util.List[model.Option] = parseOptions(input)
 
-  private def parseOptions(string: String): util.List[Option] = {
+  private def parseOptions(string: String): util.List[model.Option] = {
     val parser = rqlOptionsParser(string)
     parser.OptionsRoot.run() match {
       case Success(o) => JavaConverters.seqAsJavaList(o)

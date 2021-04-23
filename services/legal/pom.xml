@@ -38,7 +38,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-thingsearch-starter</artifactId>
+            <artifactId>ditto-thingsearch-service</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>

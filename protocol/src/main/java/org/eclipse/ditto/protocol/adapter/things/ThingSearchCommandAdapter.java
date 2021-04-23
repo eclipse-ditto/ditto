@@ -24,10 +24,10 @@ import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
 import org.eclipse.ditto.protocol.mapper.SignalMapper;
 import org.eclipse.ditto.protocol.mapper.SignalMapperFactory;
-import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
+import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 
 /**
- * Adapter for mapping a {@link org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand} to and from
+ * Adapter for mapping a {@link org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand} to and from
  * an {@link org.eclipse.ditto.protocol.Adaptable}.
  *
  * @since 1.2.0

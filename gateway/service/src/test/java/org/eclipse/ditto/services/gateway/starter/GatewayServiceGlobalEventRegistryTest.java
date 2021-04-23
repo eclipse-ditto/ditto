@@ -17,7 +17,7 @@ import org.eclipse.ditto.services.utils.test.GlobalEventRegistryTestCases;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionCreated;
 import org.eclipse.ditto.policies.model.signals.events.ResourceDeleted;
 import org.eclipse.ditto.things.model.signals.events.FeatureDeleted;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionCreated;
 
 public final class GatewayServiceGlobalEventRegistryTest extends GlobalEventRegistryTestCases {
 

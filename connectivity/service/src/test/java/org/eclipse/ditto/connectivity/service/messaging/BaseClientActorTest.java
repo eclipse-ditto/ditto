@@ -44,7 +44,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.Connecti
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
+import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CancelSubscription;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;

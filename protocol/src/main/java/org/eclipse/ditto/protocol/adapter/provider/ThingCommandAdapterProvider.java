@@ -19,9 +19,9 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingsResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
-import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
+import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 
 /**
  * Provider for all thing command adapters. This interface only defines the generic type arguments.

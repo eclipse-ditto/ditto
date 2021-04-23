@@ -32,10 +32,10 @@ import org.eclipse.ditto.protocol.adapter.ProtocolAdapterTest;
 import org.eclipse.ditto.protocol.TestConstants;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.UnknownCommandException;
-import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
+import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
+import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CancelSubscription;
+import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
+import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.RequestFromSubscription;
 import org.junit.Before;
 import org.junit.Test;
 

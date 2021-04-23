@@ -27,7 +27,7 @@ import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade
 import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 
 /**
  * Jsonifiable with information from the streaming session.
@@ -99,10 +99,10 @@ public interface SessionedJsonifiable {
     }
 
     /**
-     * Create a sessioned Jsonifiable for a {@link org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent}
+     * Create a sessioned Jsonifiable for a {@link org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent}
      * as response.
      *
-     * @param subscriptionEvent the {@link org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent} as response.
+     * @param subscriptionEvent the {@link org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent} as response.
      * @return the sessioned Jsonifiable.
      */
     static SessionedJsonifiable subscription(final SubscriptionEvent<?> subscriptionEvent) {

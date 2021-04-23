@@ -39,8 +39,8 @@ import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalE
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
-import org.eclipse.ditto.signals.commands.thingsearch.query.StreamThings;
-import org.eclipse.ditto.signals.events.thingsearch.ThingsOutOfSync;
+import org.eclipse.ditto.thingsearch.model.signals.commands.query.StreamThings;
+import org.eclipse.ditto.thingsearch.model.signals.events.ThingsOutOfSync;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;

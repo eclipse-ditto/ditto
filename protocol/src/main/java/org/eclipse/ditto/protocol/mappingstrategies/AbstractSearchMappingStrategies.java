@@ -24,7 +24,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableMapper;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 
 /**
  * Provides helper methods to map from {@link Adaptable}s to search commands and events.

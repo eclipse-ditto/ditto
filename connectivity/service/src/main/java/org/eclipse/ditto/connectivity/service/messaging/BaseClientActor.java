@@ -121,8 +121,8 @@ import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConne
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetrics;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionStatus;
-import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
-import org.eclipse.ditto.signals.commands.thingsearch.WithSubscriptionId;
+import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
+import org.eclipse.ditto.thingsearch.model.signals.commands.WithSubscriptionId;
 
 import akka.Done;
 import akka.actor.AbstractFSMWithStash;

@@ -33,13 +33,13 @@ import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFacto
 import org.eclipse.ditto.model.rql.ParserException;
 import org.eclipse.ditto.model.rqlparser.RqlPredicateParser;
 import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.model.thingsearch.Option;
-import org.eclipse.ditto.model.thingsearch.SizeOption;
-import org.eclipse.ditto.model.thingsearch.SortOption;
-import org.eclipse.ditto.model.thingsearch.SortOptionEntry;
+import org.eclipse.ditto.thingsearch.model.Option;
+import org.eclipse.ditto.thingsearch.model.SizeOption;
+import org.eclipse.ditto.thingsearch.model.SortOption;
+import org.eclipse.ditto.thingsearch.model.SortOptionEntry;
 import org.eclipse.ditto.model.thingsearchparser.RqlOptionParser;
-import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
-import org.eclipse.ditto.signals.commands.thingsearch.query.StreamThings;
+import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidOptionException;
+import org.eclipse.ditto.thingsearch.model.signals.commands.query.StreamThings;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
@@ -72,7 +72,7 @@ public final class SearchSourceBuilder {
      *
      * @return the search-source.
      * @throws java.lang.NullPointerException if required fields are not set.
-     * @throws org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException if the sort option is
+     * @throws org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidOptionException if the sort option is
      * invalid.
      * @throws org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException if the filter expression is
      * invalid.

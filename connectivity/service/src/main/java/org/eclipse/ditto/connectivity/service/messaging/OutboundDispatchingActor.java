@@ -37,7 +37,7 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;

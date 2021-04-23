@@ -13,7 +13,7 @@
 package org.eclipse.ditto.concierge.service.starter.actors;
 
 import static org.eclipse.ditto.concierge.api.ConciergeMessagingConstants.DISPATCHER_ACTOR_PATH;
-import static org.eclipse.ditto.services.models.thingsearch.ThingsSearchConstants.SEARCH_ACTOR_PATH;
+import static org.eclipse.ditto.thingsearch.api.ThingsSearchConstants.SEARCH_ACTOR_PATH;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -29,14 +29,14 @@ import org.eclipse.ditto.concierge.service.common.DittoConciergeConfig;
 import org.eclipse.ditto.concierge.service.common.EnforcementConfig;
 import org.eclipse.ditto.concierge.service.enforcement.PreEnforcer;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
-import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommand;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.ThingSearchSudoCommand;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
-import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
+import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 
 import akka.Done;
 import akka.NotUsed;

@@ -39,11 +39,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-models-thingsearch</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-events-thingsearch</artifactId>
+            <artifactId>ditto-thingsearch-api</artifactId>
         </dependency>
         <!-- for testing purpose -->
         <dependency>

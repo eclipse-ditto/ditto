@@ -35,7 +35,7 @@ import org.eclipse.ditto.base.model.signals.commands.exceptions.PathUnknownExcep
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionConflictException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyConflictException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.AttributePointerInvalidException;
-import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidNamespacesException;
+import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidNamespacesException;
 
 public final class ConciergeServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
 

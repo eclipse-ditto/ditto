@@ -29,7 +29,6 @@
         <module>acks</module>
         <module>signalenrichment</module>
         <module>streaming</module>
-        <module>thingsearch</module>
         <module>placeholders</module>
     </modules>
 

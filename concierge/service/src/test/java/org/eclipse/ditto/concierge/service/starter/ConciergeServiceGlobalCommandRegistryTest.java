@@ -15,7 +15,7 @@ package org.eclipse.ditto.concierge.service.starter;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.streaming.SudoStreamPids;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
-import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.services.utils.health.RetrieveHealth;
 import org.eclipse.ditto.services.utils.pubsub.api.PublishSignal;
 import org.eclipse.ditto.services.utils.test.GlobalCommandRegistryTestCases;
@@ -32,8 +32,8 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubject;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResource;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature;
-import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
+import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
+import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
 
 public final class ConciergeServiceGlobalCommandRegistryTest extends GlobalCommandRegistryTestCases {
 

@@ -14,7 +14,7 @@ package org.eclipse.ditto.connectivity.service;
 
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
-import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoRetrieveNamespaceReportResponse;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoRetrieveNamespaceReportResponse;
 import org.eclipse.ditto.services.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.services.utils.test.GlobalCommandResponseRegistryTestCases;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistenceResponse;
@@ -33,8 +33,8 @@ import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResourceR
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeaturePropertyResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureResponse;
-import org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse;
-import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThingsResponse;
+import org.eclipse.ditto.thingsearch.model.signals.commands.SearchErrorResponse;
+import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThingsResponse;
 
 public final class ConnectivityServiceGlobalCommandResponseRegistryTest extends GlobalCommandResponseRegistryTestCases {
 

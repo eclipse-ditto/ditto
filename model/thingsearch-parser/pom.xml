@@ -34,7 +34,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-model-thingsearch</artifactId>
+            <artifactId>ditto-thingsearch-model</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>

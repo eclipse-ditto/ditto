@@ -28,7 +28,6 @@
 
     <modules>
         <module>models</module>
-        <module>thingsearch</module>
         <module>utils</module>
         <module>legal</module>
     </modules>

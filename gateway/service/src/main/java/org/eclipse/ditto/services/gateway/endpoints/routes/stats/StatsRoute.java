@@ -27,7 +27,7 @@ import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevopsAuthen
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
-import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatistics;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;

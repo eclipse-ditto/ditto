@@ -27,10 +27,10 @@ import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.TopicPathBuilder;
 import org.eclipse.ditto.protocol.UnknownCommandException;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
+import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
+import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CancelSubscription;
+import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
+import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.RequestFromSubscription;
 
 /**
  * Base class of {@link SignalMapper}s for search (e.g. start, request, cancel stream).

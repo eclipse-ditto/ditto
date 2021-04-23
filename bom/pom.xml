@@ -14,9 +14,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <modules>
-        <module>../connectivity</module>
-    </modules>
 
     <parent>
         <groupId>org.eclipse.ditto</groupId>
@@ -452,7 +449,7 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-model-thingsearch</artifactId>
+                <artifactId>ditto-thingsearch-model</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -512,22 +509,12 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-signals-commands-thingsearch</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-commands-messages</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-commands-cleanup</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-signals-events-thingsearch</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -677,7 +664,7 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-models-thingsearch</artifactId>
+                <artifactId>ditto-thingsearch-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -735,27 +722,7 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-thingsearch-config</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-thingsearch-common</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-thingsearch-persistence</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-thingsearch-updater-actors</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-thingsearch-starter</artifactId>
+                <artifactId>ditto-thingsearch-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
