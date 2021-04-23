@@ -27,7 +27,6 @@
     <name>Eclipse Ditto :: Services</name>
 
     <modules>
-        <module>connectivity</module>
         <module>models</module>
         <module>thingsearch</module>
         <module>utils</module>

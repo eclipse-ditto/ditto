@@ -50,7 +50,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-connectivity-starter</artifactId>
+            <artifactId>ditto-connectivity-service</artifactId>
         </dependency>
     </dependencies>
 

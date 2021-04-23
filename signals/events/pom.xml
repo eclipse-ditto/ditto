@@ -26,7 +26,6 @@
     <name>Eclipse Ditto :: Signals :: Events</name>
 
     <modules>
-        <module>connectivity</module>
         <module>thingsearch</module>
     </modules>
 

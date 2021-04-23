@@ -14,7 +14,7 @@ package org.eclipse.ditto.concierge.service.actors;
 
 import java.util.Optional;
 
-import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
+import org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;

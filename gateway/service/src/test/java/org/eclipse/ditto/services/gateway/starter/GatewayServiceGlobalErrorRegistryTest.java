@@ -18,7 +18,7 @@ import org.eclipse.ditto.base.model.exceptions.CloudEventMissingPayloadException
 import org.eclipse.ditto.base.model.exceptions.CloudEventNotParsableException;
 import org.eclipse.ditto.base.model.exceptions.CloudEventUnsupportedDataSchemaException;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
-import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
+import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.jwt.JwtAudienceInvalidException;
 import org.eclipse.ditto.model.messages.AuthorizationSubjectBlockedException;
 import org.eclipse.ditto.model.namespaces.NamespaceBlockedException;
@@ -37,7 +37,7 @@ import org.eclipse.ditto.base.model.signals.UnsupportedSignalException;
 import org.eclipse.ditto.base.model.signals.commands.CommandNotSupportedException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.PathUnknownException;
-import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionConflictException;
+import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionConflictException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyConflictException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.AttributePointerInvalidException;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidNamespacesException;

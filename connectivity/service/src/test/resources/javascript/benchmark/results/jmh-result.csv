@@ -1,0 +1,7 @@
+"Benchmark","Mode","Threads","Samples","Score","Score Error (99.9%)","Unit"
+"org.eclipse.ditto.connectivity.service.mapping.javascript.benchmark.JavaScriptMessageMapperRhinoBenchmark.simpleMapTextPayload","thrpt",1,100,1965.2122092642132,105.64962858651438,"ops/s"
+"org.eclipse.ditto.connectivity.service.mapping.javascript.benchmark.JavaScriptMessageMapperRhinoBenchmark.test1DecodeBinaryPayloadToDitto","thrpt",1,100,1856.7052825651012,80.79087810689371,"ops/s"
+"org.eclipse.ditto.connectivity.service.mapping.javascript.benchmark.JavaScriptMessageMapperRhinoBenchmark.test2ParseJsonPayloadToDitto","thrpt",1,100,1775.0404985890302,87.54402083683485,"ops/s"
+"org.eclipse.ditto.connectivity.service.mapping.javascript.benchmark.JavaScriptMessageMapperRhinoBenchmark.test3FormatJsonPayloadToDitto","thrpt",1,100,1679.771726088344,84.40448203473446,"ops/s"
+"org.eclipse.ditto.connectivity.service.mapping.javascript.benchmark.JavaScriptMessageMapperRhinoBenchmark.test4ConstructJsonPayloadToDitto","thrpt",1,100,1972.3458510343844,75.58256566178571,"ops/s"
+"org.eclipse.ditto.connectivity.service.mapping.javascript.benchmark.JavaScriptMessageMapperRhinoBenchmark.test5MustacheTemplatePayloadToDitto","thrpt",1,100,490.11659335171385,21.279044561984268,"ops/s"

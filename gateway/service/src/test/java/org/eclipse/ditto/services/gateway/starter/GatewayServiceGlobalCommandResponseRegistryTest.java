@@ -12,11 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.starter;
 
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
-import org.atteo.classindex.ClassIndex;
-import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.services.gateway.endpoints.routes.whoami.WhoamiResponse;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
@@ -27,9 +22,9 @@ import org.eclipse.ditto.services.utils.test.GlobalCommandResponseRegistryTestCa
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistenceResponse;
 import org.eclipse.ditto.signals.commands.common.RetrieveConfigResponse;
 import org.eclipse.ditto.signals.commands.common.purge.PurgeEntitiesResponse;
-import org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorResponse;
-import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnectionResponse;
-import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionResponse;
+import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityErrorResponse;
+import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnectionResponse;
+import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionResponse;
 import org.eclipse.ditto.signals.commands.devops.RetrieveLoggerConfigResponse;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessageResponse;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespaceResponse;
@@ -42,7 +37,6 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeaturePrope
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThingsResponse;
-import org.junit.Before;
 
 public final class GatewayServiceGlobalCommandResponseRegistryTest extends GlobalCommandResponseRegistryTestCases {
 
