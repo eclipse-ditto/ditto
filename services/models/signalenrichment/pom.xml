@@ -41,7 +41,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-cache-loaders</artifactId>
+            <artifactId>ditto-services-utils-akka</artifactId>
         </dependency>
 
         <!-- test-only -->
