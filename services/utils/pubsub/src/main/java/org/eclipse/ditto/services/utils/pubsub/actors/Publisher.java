@@ -165,6 +165,9 @@ public final class Publisher extends AbstractActor {
 
         final List<Pair<ActorRef, PublishSignal>> subscribers =
                 publisherIndex.assignGroupsToSubscribers(signal, hashes);
+        log.withCorrelationId(signal).info("Publishing PublishSignal to subscribers: <{}>", subscribers.stream()
+                .map(Pair::first)
+                .collect(Collectors.toList()));
         subscribers.forEach(pair -> pair.first().tell(pair.second(), sender));
         return subscribers;
     }

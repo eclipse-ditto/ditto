@@ -55,15 +55,13 @@ public final class ImmutableMessageHeadersTest {
     private static final ThingId THING_ID = ThingId.of("test.ns", "theThingId");
     private static final String SUBJECT = KnownMessageSubjects.CLAIM_SUBJECT;
 
-    private static final Collection<String>
-            AUTH_SUBJECTS_WITHOUT_DUPLICATES = Arrays.asList("test:JohnOldman", "test:FrankGrimes");
+    private static final Collection<String> AUTH_SUBJECTS = Arrays.asList("test:JohnOldman", "test:FrankGrimes");
     private static final AuthorizationContext AUTH_CONTEXT_WITHOUT_DUPLICATES =
             AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
-                    AUTH_SUBJECTS_WITHOUT_DUPLICATES.stream()
+                    AUTH_SUBJECTS.stream()
                             .map(AuthorizationSubject::newInstance)
                             .collect(Collectors.toList()));
-    private static final Collection<String> AUTH_SUBJECTS =
-            Arrays.asList("test:JohnOldman", "test:FrankGrimes", "JohnOldman", "FrankGrimes");
+
     private static final AuthorizationContext AUTH_CONTEXT =
             AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
                     AUTH_SUBJECTS.stream()
