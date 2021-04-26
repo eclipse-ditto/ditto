@@ -20,7 +20,6 @@ import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.services.utils.health.RetrieveHealth;
 import org.eclipse.ditto.services.utils.pubsub.api.PublishSignal;
 import org.eclipse.ditto.services.utils.test.GlobalCommandRegistryTestCases;
-import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
 import org.eclipse.ditto.signals.commands.common.purge.PurgeEntities;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
@@ -57,7 +56,6 @@ public final class GatewayServiceGlobalCommandRegistryTest extends GlobalCommand
                 DeleteSubject.class,
                 ActivateTokenIntegration.class,
                 RetrieveHealth.class,
-                CleanupPersistence.class,
                 PurgeEntities.class,
                 Whoami.class,
                 PublishSignal.class
