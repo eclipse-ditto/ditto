@@ -30,12 +30,11 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-policies-model</artifactId>
         </dependency>
-
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-things-model</artifactId>
+            <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>org.openjdk.jmh</groupId>
             <artifactId>jmh-core</artifactId>
