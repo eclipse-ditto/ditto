@@ -22,6 +22,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.util.Arrays;
 import java.util.UUID;
 
+import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonMissingFieldException;
@@ -52,12 +53,12 @@ public final class AcknowledgementsJsonParserTest {
     private DittoHeaders dittoHeaders;
     private Acknowledgement knownAcknowledgement;
     private Acknowledgements knownAcknowledgements;
-    private AcknowledgementsJsonParser<EntityId> underTest;
+    private AcknowledgementsJsonParser underTest;
 
     @Before
     public void setUp() {
         dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
-        final EntityId entityId = EntityId.of(EntityType.of("thing"), UUID.randomUUID().toString());
+        final EntityId entityId = EntityId.of(EntityType.of("thing"), "namespace:" + UUID.randomUUID().toString());
         knownAcknowledgement =
                 Acknowledgement.of(AcknowledgementLabel.of("foo"), entityId, HttpStatus.OK, dittoHeaders);
         final Acknowledgement knownAcknowledgement2 =
@@ -66,7 +67,7 @@ public final class AcknowledgementsJsonParserTest {
         knownAcknowledgements =
                 Acknowledgements.of(Sets.newSet(knownAcknowledgement, knownAcknowledgement2), dittoHeaders);
 
-        underTest = AcknowledgementsJsonParser.getInstance(new EntityIdAcknowledgementJsonParser());
+        underTest = AcknowledgementsJsonParser.getInstance(new AcknowledgementJsonParser());
     }
 
     @Test
@@ -87,31 +88,33 @@ public final class AcknowledgementsJsonParserTest {
     @Test
     public void parseNullJsonObject() {
         assertThatNullPointerException()
-                .isThrownBy(() -> underTest.apply(null))
+                .isThrownBy(() -> underTest.apply(null, DittoHeaders.empty()))
                 .withMessage("The jsonObject must not be null!")
                 .withNoCause();
     }
 
     @Test
     public void parseJsonWithSeveralAcksOfSameLabel() {
+        final DittoHeaders dittoHeaders = DittoHeaders.empty();
         final AcknowledgementLabel label = AcknowledgementLabel.of("same-label");
         final Acknowledgements acks = Acknowledgements.of(Arrays.asList(
                 Acknowledgement.of(label, EntityId.of(EntityType.of("thing"), "test:thing-id"), HttpStatus.OK,
-                        DittoHeaders.empty()),
+                        dittoHeaders),
                 Acknowledgement.of(label, EntityId.of(EntityType.of("thing"), "test:thing-id"), HttpStatus.FORBIDDEN,
-                        DittoHeaders.empty())
-        ), DittoHeaders.empty());
+                        dittoHeaders)
+        ), dittoHeaders);
 
-        final Acknowledgements parsedAcknowledgements = underTest.apply(acks.toJson());
+        final Acknowledgements parsedAcknowledgements = underTest.apply(acks.toJson(), dittoHeaders);
 
         assertThat(parsedAcknowledgements).isEqualTo(acks);
     }
 
     @Test
     public void parseValidJsonRepresentationOfNonEmptyAcknowledgements() {
+        final DittoHeaders dittoHeaders = knownAcknowledgements.getDittoHeaders();
         final JsonObject jsonRepresentation = knownAcknowledgements.toJson();
 
-        final Acknowledgements parsedAcknowledgements = underTest.apply(jsonRepresentation);
+        final Acknowledgements parsedAcknowledgements = underTest.apply(jsonRepresentation, dittoHeaders);
 
         assertThat(parsedAcknowledgements).isEqualTo(knownAcknowledgements);
     }
@@ -121,7 +124,7 @@ public final class AcknowledgementsJsonParserTest {
         final EntityId entityId = knownAcknowledgements.getEntityId();
         final Acknowledgements acknowledgements = Acknowledgements.empty(entityId, dittoHeaders);
 
-        final Acknowledgements parsedAcknowledgements = underTest.apply(acknowledgements.toJson());
+        final Acknowledgements parsedAcknowledgements = underTest.apply(acknowledgements.toJson(), dittoHeaders);
 
         assertThat(parsedAcknowledgements).isEqualTo(acknowledgements);
     }
@@ -134,7 +137,7 @@ public final class AcknowledgementsJsonParserTest {
                 .build();
 
         assertThatExceptionOfType(JsonMissingFieldException.class)
-                .isThrownBy(() -> underTest.apply(jsonRepresentation))
+                .isThrownBy(() -> underTest.apply(jsonRepresentation, dittoHeaders))
                 .withMessageContaining(entityIdFieldDefinition.getPointer().toString())
                 .withNoCause();
     }
@@ -147,7 +150,7 @@ public final class AcknowledgementsJsonParserTest {
                 .build();
 
         assertThatExceptionOfType(JsonMissingFieldException.class)
-                .isThrownBy(() -> underTest.apply(jsonRepresentation))
+                .isThrownBy(() -> underTest.apply(jsonRepresentation, dittoHeaders))
                 .withMessageContaining(entityTypeFieldDefinition.getPointer().toString())
                 .withNoCause();
     }
@@ -161,52 +164,9 @@ public final class AcknowledgementsJsonParserTest {
                 .build();
 
         assertThatExceptionOfType(JsonParseException.class)
-                .isThrownBy(() -> underTest.apply(jsonRepresentation))
+                .isThrownBy(() -> underTest.apply(jsonRepresentation, dittoHeaders))
                 .withMessage("Value <%s> for <%s> is not of type <String>!", invalidEntityType,
                         entityTypeFieldDefinition.getPointer())
-                .withNoCause();
-    }
-
-    @Test
-    public void parseJsonRepresentationWithUnexpectedEntityType() {
-        final JsonFieldDefinition<String> entityTypeFieldDefinition = Acknowledgements.JsonFields.ENTITY_TYPE;
-        final EntityType unexpectedEntityType = EntityType.of("plumbus");
-        final JsonObject jsonRepresentation = JsonFactory.newObjectBuilder(knownAcknowledgements.toJson())
-                .set(entityTypeFieldDefinition, unexpectedEntityType.toString())
-                .build();
-
-        assertThatExceptionOfType(JsonParseException.class)
-                .isThrownBy(() -> underTest.apply(jsonRepresentation))
-                .withMessage("The read entity type <%s> differs from the expected <%s>!", unexpectedEntityType,
-                        knownAcknowledgements.getEntityType())
-                .withNoCause();
-    }
-
-    @Test
-    public void parseJsonRepresentationWithoutDittoHeaders() {
-        final JsonFieldDefinition<?> dittoHeadersFieldDefinition = Acknowledgements.JsonFields.DITTO_HEADERS;
-        final JsonObject jsonRepresentation = JsonFactory.newObjectBuilder(knownAcknowledgements.toJson())
-                .remove(dittoHeadersFieldDefinition)
-                .build();
-
-        assertThatExceptionOfType(JsonMissingFieldException.class)
-                .isThrownBy(() -> underTest.apply(jsonRepresentation))
-                .withMessageContaining(dittoHeadersFieldDefinition.getPointer().toString())
-                .withNoCause();
-    }
-
-    @Test
-    public void parseJsonRepresentationWithInvalidDittoHeaders() {
-        final JsonValue invalidDittoHeaders = JsonValue.of("dittoHeaders");
-        final JsonFieldDefinition<?> dittoHeadersFieldDefinition = Acknowledgements.JsonFields.DITTO_HEADERS;
-        final JsonObject jsonRepresentation = JsonFactory.newObjectBuilder(knownAcknowledgements.toJson())
-                .set(dittoHeadersFieldDefinition.getPointer(), invalidDittoHeaders)
-                .build();
-
-        assertThatExceptionOfType(JsonParseException.class)
-                .isThrownBy(() -> underTest.apply(jsonRepresentation))
-                .withMessage("Value <%s> for <%s> is not of type <JsonObject>!", invalidDittoHeaders,
-                        dittoHeadersFieldDefinition.getPointer())
                 .withNoCause();
     }
 
@@ -219,7 +179,7 @@ public final class AcknowledgementsJsonParserTest {
                 .build();
 
         assertThatExceptionOfType(JsonMissingFieldException.class)
-                .isThrownBy(() -> underTest.apply(jsonRepresentation))
+                .isThrownBy(() -> underTest.apply(jsonRepresentation, dittoHeaders))
                 .withMessageContaining(acknowledgementsFieldDefinition.getPointer().toString())
                 .withNoCause();
     }
@@ -234,7 +194,7 @@ public final class AcknowledgementsJsonParserTest {
                 .build();
 
         assertThatExceptionOfType(JsonParseException.class)
-                .isThrownBy(() -> underTest.apply(jsonRepresentation))
+                .isThrownBy(() -> underTest.apply(jsonRepresentation, dittoHeaders))
                 .withMessage("Value <%s> for <%s> is not of type <JsonObject>!", invalidAcknowledgements,
                         acknowledgementsFieldDefinition.getPointer())
                 .withNoCause();
@@ -254,7 +214,7 @@ public final class AcknowledgementsJsonParserTest {
                 .build();
 
         assertThatExceptionOfType(JsonParseException.class)
-                .isThrownBy(() -> underTest.apply(jsonRepresentation))
+                .isThrownBy(() -> underTest.apply(jsonRepresentation, dittoHeaders))
                 .withMessage("<%d> is not an Acknowledgement JSON object representation!", invalidAcknowledgement)
                 .withNoCause();
     }
@@ -273,7 +233,7 @@ public final class AcknowledgementsJsonParserTest {
                 .build();
 
         assertThatExceptionOfType(JsonParseException.class)
-                .isThrownBy(() -> underTest.apply(jsonRepresentation))
+                .isThrownBy(() -> underTest.apply(jsonRepresentation, dittoHeaders))
                 .withMessage("The entity ID <%s> of parsed acknowledgement <%s> differs from the expected <%s>!",
                         differentEntityId, ackWithDifferentEntityId, knownAcknowledgements.getEntityId())
                 .withNoCause();
@@ -287,7 +247,7 @@ public final class AcknowledgementsJsonParserTest {
                 .build();
 
         assertThatExceptionOfType(JsonMissingFieldException.class)
-                .isThrownBy(() -> underTest.apply(jsonRepresentation))
+                .isThrownBy(() -> underTest.apply(jsonRepresentation, dittoHeaders))
                 .withMessageContaining(statusCodeFieldDefinition.getPointer().toString())
                 .withNoCause();
     }
@@ -301,7 +261,7 @@ public final class AcknowledgementsJsonParserTest {
                 .build();
 
         assertThatExceptionOfType(JsonParseException.class)
-                .isThrownBy(() -> underTest.apply(jsonRepresentation))
+                .isThrownBy(() -> underTest.apply(jsonRepresentation, dittoHeaders))
                 .withCauseInstanceOf(HttpStatusCodeOutOfRangeException.class);
     }
 
@@ -314,19 +274,10 @@ public final class AcknowledgementsJsonParserTest {
                 .build();
 
         assertThatExceptionOfType(JsonParseException.class)
-                .isThrownBy(() -> underTest.apply(jsonRepresentation))
+                .isThrownBy(() -> underTest.apply(jsonRepresentation, dittoHeaders))
                 .withMessage("The read status code <%d> differs from the expected <%d>!",
                         unexpectedStatusCode.getCode(), knownAcknowledgements.getHttpStatus().getCode())
                 .withNoCause();
-    }
-
-    private static final class EntityIdAcknowledgementJsonParser extends AcknowledgementJsonParser<EntityId> {
-
-        @Override
-        protected EntityId createEntityIdInstance(final CharSequence entityIdValue) {
-            return EntityId.of(EntityType.of("thing"), entityIdValue);
-        }
-
     }
 
 }

@@ -17,18 +17,13 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonMissingFieldException;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
@@ -36,20 +31,23 @@ import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonMissingFieldException;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Parses an {@link Acknowledgements} from a {@link org.eclipse.ditto.json.JsonObject}.
  *
- * @param <I> the type of the EntityId the parsed Acknowledgements returns.
  * @since 1.1.0
  */
 @Immutable
-public final class AcknowledgementsJsonParser<I extends EntityId>
-        implements Function<JsonObject, Acknowledgements> {
+final class AcknowledgementsJsonParser implements BiFunction<JsonObject, DittoHeaders, Acknowledgements> {
 
-    private final AcknowledgementJsonParser<I> acknowledgementJsonParser;
+    private final AcknowledgementJsonParser acknowledgementJsonParser;
 
-    private AcknowledgementsJsonParser(final AcknowledgementJsonParser<I> acknowledgementJsonParser) {
+    private AcknowledgementsJsonParser(final AcknowledgementJsonParser acknowledgementJsonParser) {
         this.acknowledgementJsonParser = checkNotNull(acknowledgementJsonParser, "acknowledgementJsonParser");
     }
 
@@ -57,24 +55,22 @@ public final class AcknowledgementsJsonParser<I extends EntityId>
      * Returns an instance of AcknowledgementsJsonParser.
      *
      * @param acknowledgementJsonParser a parser for a single {@link Acknowledgement}.
-     * @param <I> the type of the EntityId the parsed Acknowledgements returns.
      * @return the instance.
      * @throws NullPointerException if {@code acknowledgementJsonParser} is {@code null}.
      */
-    public static <I extends EntityId> AcknowledgementsJsonParser<I> getInstance(
-            final AcknowledgementJsonParser<I> acknowledgementJsonParser) {
+    public static AcknowledgementsJsonParser getInstance(final AcknowledgementJsonParser acknowledgementJsonParser) {
 
-        return new AcknowledgementsJsonParser<>(acknowledgementJsonParser);
+        return new AcknowledgementsJsonParser(acknowledgementJsonParser);
     }
 
     @Override
-    public Acknowledgements apply(final JsonObject jsonObject) {
-        return tryToParseJsonObject(checkNotNull(jsonObject, "jsonObject"));
+    public Acknowledgements apply(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return tryToParseJsonObject(checkNotNull(jsonObject, "jsonObject"), dittoHeaders);
     }
 
-    private Acknowledgements tryToParseJsonObject(final JsonObject jsonObject) {
+    private Acknowledgements tryToParseJsonObject(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         try {
-            return parseJsonObject(jsonObject);
+            return parseJsonObject(jsonObject, dittoHeaders);
         } catch (final JsonParseException | JsonMissingFieldException e) {
             throw e;
         } catch (final DittoRuntimeException e) {
@@ -91,11 +87,9 @@ public final class AcknowledgementsJsonParser<I extends EntityId>
         }
     }
 
-    private Acknowledgements parseJsonObject(final JsonObject jsonObject) {
-        final I entityId = getEntityId(jsonObject);
-        final EntityType entityType = getEntityType(jsonObject);
+    private Acknowledgements parseJsonObject(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        final EntityId entityId = getEntityId(jsonObject);
         final List<Acknowledgement> acknowledgements = getAcknowledgements(jsonObject, entityId);
-        final DittoHeaders dittoHeaders = getDittoHeaders(jsonObject);
 
         final Acknowledgements result;
         if (acknowledgements.isEmpty()) {
@@ -103,21 +97,18 @@ public final class AcknowledgementsJsonParser<I extends EntityId>
         } else {
             result = Acknowledgements.of(acknowledgements, dittoHeaders);
         }
-        validateEntityType(entityType, result.getEntityType());
         validateHttpStatus(getHttpStatus(jsonObject), result.getHttpStatus());
         return result;
     }
 
-    private I getEntityId(final JsonObject jsonObject) {
+    private EntityId getEntityId(final JsonObject jsonObject) {
+        final EntityType entityType =
+                EntityType.of(jsonObject.getValueOrThrow(Acknowledgements.JsonFields.ENTITY_TYPE));
         final String entityIdValue = jsonObject.getValueOrThrow(Acknowledgements.JsonFields.ENTITY_ID);
-        return acknowledgementJsonParser.tryToGetEntityId(entityIdValue);
+        return acknowledgementJsonParser.tryToGetEntityId(entityType, entityIdValue);
     }
 
-    private static EntityType getEntityType(final JsonObject jsonObject) {
-        return EntityType.of(jsonObject.getValueOrThrow(Acknowledgements.JsonFields.ENTITY_TYPE));
-    }
-
-    private List<Acknowledgement> getAcknowledgements(final JsonObject jsonObject, final I expectedEntityId) {
+    private List<Acknowledgement> getAcknowledgements(final JsonObject jsonObject, final EntityId expectedEntityId) {
         final JsonObject acknowledgements = jsonObject.getValueOrThrow(Acknowledgements.JsonFields.ACKNOWLEDGEMENTS);
         final Predicate<JsonField> isNotJsonSchemaVersion =
                 field -> !Objects.equals(field.getKey(), JsonSchemaVersion.getJsonKey());
@@ -129,7 +120,7 @@ public final class AcknowledgementsJsonParser<I extends EntityId>
     }
 
     private Stream<Acknowledgement> parseAcknowledgement(final JsonField acknowledgementJsonField,
-            final I expectedEntityId) {
+            final EntityId expectedEntityId) {
         final JsonValue acknowledgementJsonValue = acknowledgementJsonField.getValue();
 
         if (acknowledgementJsonValue.isArray()) {
@@ -141,7 +132,8 @@ public final class AcknowledgementsJsonParser<I extends EntityId>
         }
     }
 
-    private Acknowledgement parseAcknowledgementFromObject(final JsonValue jsonObject, final I expectedEntityId) {
+    private Acknowledgement parseAcknowledgementFromObject(final JsonValue jsonObject,
+            final EntityId expectedEntityId) {
         if (!jsonObject.isObject()) {
             final String msgPattern = "<{0}> is not an Acknowledgement JSON object representation!";
             throw new JsonParseException(MessageFormat.format(msgPattern, jsonObject));
@@ -151,22 +143,11 @@ public final class AcknowledgementsJsonParser<I extends EntityId>
         return result;
     }
 
-    private void validateEntityId(final Acknowledgement acknowledgement, final I expected) {
+    private void validateEntityId(final Acknowledgement acknowledgement, final EntityId expected) {
         final EntityId actual = acknowledgement.getEntityId();
         if (!actual.equals(expected)) {
             final String mPtrn = "The entity ID <{0}> of parsed acknowledgement <{1}> differs from the expected <{2}>!";
             throw new JsonParseException(MessageFormat.format(mPtrn, actual, acknowledgement, expected));
-        }
-    }
-
-    private static DittoHeaders getDittoHeaders(final JsonObject jsonObject) {
-        return DittoHeaders.newBuilder(jsonObject.getValueOrThrow(Acknowledgements.JsonFields.DITTO_HEADERS)).build();
-    }
-
-    private static void validateEntityType(final EntityType actual, final EntityType expected) {
-        if (!actual.equals(expected)) {
-            final String msgPattern = "The read entity type <{0}> differs from the expected <{1}>!";
-            throw new JsonParseException(MessageFormat.format(msgPattern, actual, expected));
         }
     }
 

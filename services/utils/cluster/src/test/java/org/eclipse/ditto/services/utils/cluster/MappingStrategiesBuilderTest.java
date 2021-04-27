@@ -21,7 +21,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
-import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.services.utils.akka.PingCommand;
 import org.eclipse.ditto.services.utils.akka.PingCommandResponse;
 import org.eclipse.ditto.services.utils.akka.SimpleCommand;
@@ -145,8 +144,6 @@ public final class MappingStrategiesBuilderTest {
                         PingCommand.class.getSimpleName(),
                         PingCommandResponse.class.getSimpleName(),
                         StatusInfo.class.getSimpleName(),
-                        Acknowledgement.getType(ThingConstants.ENTITY_TYPE),
-                        Acknowledgements.getType(ThingConstants.ENTITY_TYPE),
                         StreamAck.class.getSimpleName());
     }
 

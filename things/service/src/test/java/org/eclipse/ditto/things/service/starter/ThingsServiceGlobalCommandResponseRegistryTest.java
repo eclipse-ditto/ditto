@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.things.service.starter;
 
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.services.utils.test.GlobalCommandResponseRegistryTestCases;
@@ -47,7 +48,8 @@ public final class ThingsServiceGlobalCommandResponseRegistryTest extends Global
                 CleanupPersistenceResponse.class,
                 RetrieveConfigResponse.class,
                 RetrieveHealthResponse.class,
-                PurgeEntitiesResponse.class
+                PurgeEntitiesResponse.class,
+                Acknowledgement.class
         );
     }
 

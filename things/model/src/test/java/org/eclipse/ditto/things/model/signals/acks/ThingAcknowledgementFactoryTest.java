@@ -70,9 +70,6 @@ public final class ThingAcknowledgementFactoryTest {
             softly.assertThat((CharSequence) acknowledgement.getEntityId())
                     .as("same entity ID")
                     .isEqualTo(KNOWN_THING_ID);
-            softly.assertThat(acknowledgement.getType())
-                    .as("same type")
-                    .isEqualTo(Acknowledgement.getType(KNOWN_THING_ID.getEntityType()));
             softly.assertThat(acknowledgement.getHttpStatus())
                     .as("same status code")
                     .isEqualTo(KNOWN_HTTP_STATUS);
@@ -83,17 +80,6 @@ public final class ThingAcknowledgementFactoryTest {
                     .as("same entity")
                     .contains(KNOWN_PAYLOAD);
         }
-    }
-
-    @Test
-    public void fromJsonReturnsExpected() {
-        final Acknowledgement acknowledgement =
-                ThingAcknowledgementFactory.newAcknowledgement(KNOWN_LABEL, KNOWN_THING_ID, KNOWN_HTTP_STATUS,
-                        dittoHeaders, KNOWN_PAYLOAD);
-
-        final Acknowledgement parsedAcknowledgement = ThingAcknowledgementFactory.fromJson(acknowledgement.toJson());
-
-        assertThat(parsedAcknowledgement).isEqualTo(acknowledgement);
     }
 
 }

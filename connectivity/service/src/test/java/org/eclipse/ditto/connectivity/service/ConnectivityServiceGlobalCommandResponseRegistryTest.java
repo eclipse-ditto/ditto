@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service;
 
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoRetrieveNamespaceReportResponse;
@@ -60,7 +61,8 @@ public final class ConnectivityServiceGlobalCommandResponseRegistryTest extends 
                 CleanupPersistenceResponse.class,
                 RetrieveConfigResponse.class,
                 RetrieveHealthResponse.class,
-                PurgeEntitiesResponse.class
+                PurgeEntitiesResponse.class,
+                Acknowledgement.class
         );
     }
 

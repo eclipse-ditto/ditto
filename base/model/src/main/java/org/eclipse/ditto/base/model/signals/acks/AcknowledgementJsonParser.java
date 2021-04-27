@@ -20,48 +20,37 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelInvalidException;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Parses an {@link Acknowledgement} from a {@link org.eclipse.ditto.json.JsonObject}.
  *
- * @param <I> the type of the EntityId the parsed Acknowledgement returns.
  * @since 1.1.0
  */
 @Immutable
-public abstract class AcknowledgementJsonParser<I extends EntityId>
-        implements Function<JsonObject, Acknowledgement> {
-
-    /**
-     * Constructs a new AcknowledgementJsonParser object.
-     *
-     * @throws NullPointerException if any argument is {@code null}.
-     */
-    protected AcknowledgementJsonParser() {
-        super();
-    }
+final class AcknowledgementJsonParser implements Function<JsonObject, Acknowledgement> {
 
     @Override
     public Acknowledgement apply(final JsonObject jsonObject) {
         checkNotNull(jsonObject, "jsonObject");
         final AcknowledgementLabel label = tryToGetAcknowledgementLabel(jsonObject);
-        final I entityId = getEntityId(jsonObject);
-        validateEntityType(getEntityType(jsonObject), entityId.getEntityType());
+        final EntityId entityId = getEntityId(jsonObject);
         final HttpStatus httpStatus = getHttpStatus(jsonObject);
         final DittoHeaders dittoHeaders = getDittoHeaders(jsonObject);
         @Nullable final JsonValue payload = getPayloadOrNull(jsonObject);
 
-        return AcknowledgementFactory.newAcknowledgement(label, entityId, httpStatus, dittoHeaders, payload);
+        return Acknowledgement.of(label, entityId, httpStatus, dittoHeaders, payload);
     }
 
     private static AcknowledgementLabel tryToGetAcknowledgementLabel(final JsonObject jsonObject) {
@@ -80,8 +69,10 @@ public abstract class AcknowledgementJsonParser<I extends EntityId>
         return AcknowledgementLabel.of(jsonObject.getValueOrThrow(Acknowledgement.JsonFields.LABEL));
     }
 
-    private I getEntityId(final JsonObject jsonObject) {
-        return tryToGetEntityId(jsonObject.getValueOrThrow(Acknowledgement.JsonFields.ENTITY_ID));
+    private EntityId getEntityId(final JsonObject jsonObject) {
+        final EntityType entityType = EntityType.of(jsonObject.getValueOrThrow(Acknowledgement.JsonFields.ENTITY_TYPE));
+        final String entityId = jsonObject.getValueOrThrow(Acknowledgement.JsonFields.ENTITY_ID);
+        return tryToGetEntityId(entityType, entityId);
     }
 
     /**
@@ -91,9 +82,9 @@ public abstract class AcknowledgementJsonParser<I extends EntityId>
      * @return the specific entity ID.
      * @throws org.eclipse.ditto.json.JsonParseException if the given {@code entityIdValue} is invalid.
      */
-    public I tryToGetEntityId(final CharSequence entityIdValue) {
+    public EntityId tryToGetEntityId(final EntityType entityType, final CharSequence entityIdValue) {
         try {
-            return createEntityIdInstance(entityIdValue);
+            return EntityId.of(entityType, entityIdValue);
         } catch (final DittoRuntimeException e) {
             throw JsonParseException.newBuilder()
                     .message(e.getMessage())
@@ -105,25 +96,6 @@ public abstract class AcknowledgementJsonParser<I extends EntityId>
             final JsonParseException jsonParseException = new JsonParseException(message);
             jsonParseException.initCause(e);
             throw jsonParseException;
-        }
-    }
-
-    /**
-     * Return the specific EntityId of the target Acknowledgement.
-     *
-     * @param entityIdValue the raw value of the entity ID.
-     * @return the specific entity ID.
-     */
-    protected abstract I createEntityIdInstance(CharSequence entityIdValue);
-
-    private static EntityType getEntityType(final JsonObject jsonObject) {
-        return EntityType.of(jsonObject.getValueOrThrow(Acknowledgement.JsonFields.ENTITY_TYPE));
-    }
-
-    private static void validateEntityType(final EntityType actual, final EntityType expected) {
-        if (!actual.equals(expected)) {
-            final String msgPattern = "The read entity type <{0}> differs from the expected <{1}>!";
-            throw new JsonParseException(MessageFormat.format(msgPattern, actual, expected));
         }
     }
 

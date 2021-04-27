@@ -21,23 +21,18 @@ import java.util.function.Function;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
-import org.eclipse.ditto.things.model.ThingConstants;
+import org.eclipse.ditto.base.model.signals.JsonParsable;
+import org.eclipse.ditto.base.model.signals.JsonParsableRegistry;
+import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.services.utils.akka.PingCommand;
 import org.eclipse.ditto.services.utils.akka.PingCommandResponse;
 import org.eclipse.ditto.services.utils.akka.SimpleCommand;
 import org.eclipse.ditto.services.utils.akka.SimpleCommandResponse;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
-import org.eclipse.ditto.things.model.signals.acks.ThingAcknowledgementFactory;
-import org.eclipse.ditto.things.model.signals.acks.ThingAcknowledgementsFactory;
-import org.eclipse.ditto.base.model.signals.JsonParsable;
-import org.eclipse.ditto.base.model.signals.JsonParsableRegistry;
-import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
 
 /**
  * A mutable builder with a fluent API for a Map containing mapping strategies. This builder mainly exists to eliminate
@@ -79,13 +74,6 @@ public final class MappingStrategiesBuilder {
                 jsonObject -> PingCommandResponse.fromJson(jsonObject)); // do not replace with lambda!
         builder.add(StatusInfo.class,
                 jsonObject -> StatusInfo.fromJson(jsonObject)); // do not replace with lambda!
-        // If there will be more than one acknowledgement types, do not add them here via builder.
-        // Instead provide an infrastructure for JSON serialization like for other signals, i. e. annotation,
-        // registries etc.
-        builder.add(Acknowledgement.getType(ThingConstants.ENTITY_TYPE),
-                jsonObject -> ThingAcknowledgementFactory.fromJson(jsonObject)); // do not replace with lambda!
-        builder.add(Acknowledgements.getType(ThingConstants.ENTITY_TYPE),
-                jsonObject -> ThingAcknowledgementsFactory.fromJson(jsonObject)); // do not replace with lambda!
         builder.add(StreamAck.class, StreamAck::fromJson);
 
         return builder;

@@ -21,6 +21,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonMissingFieldException;
@@ -28,19 +32,14 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.things.model.ThingConstants;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.adapter.Adapter;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.Payload;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
-import org.eclipse.ditto.things.model.signals.acks.ThingAcknowledgementFactory;
+import org.eclipse.ditto.protocol.adapter.Adapter;
+import org.eclipse.ditto.things.model.ThingConstants;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.acks.ThingAcknowledgementsFactory;
 
 /**
@@ -99,7 +98,7 @@ final class AcknowledgementsAdapter implements Adapter<Acknowledgements> {
                     if (!field.getValue().asObject().contains(Acknowledgement.JsonFields.DITTO_HEADERS.getPointer())) {
                         builder.set(Acknowledgement.JsonFields.DITTO_HEADERS, JsonObject.empty());
                     }
-                    return ThingAcknowledgementFactory.fromJson(builder.build());
+                    return Acknowledgement.fromJson(builder.build(), DittoHeaders.empty());
                 })
                 .collect(Collectors.toList());
     }

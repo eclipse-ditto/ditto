@@ -102,8 +102,6 @@ public abstract class GlobalCommandResponseRegistryTestCases {
                     final int m = c.getModifiers();
                     return !(Modifier.isAbstract(m) || Modifier.isInterface(m));
                 })
-                .filter(c -> !Acknowledgements.class.isAssignableFrom(c)) // exclude implementations of this very special CommandResponse -> it is registered differently
-                .filter(c -> !Acknowledgement.class.isAssignableFrom(c)) // exclude implementations of this very special CommandResponse -> it is registered differently
                 .filter(c -> !knownNotAnnotatedClassnames.contains(c.getName()))
                 .forEach(c -> assertThat(c.isAnnotationPresent(JsonParsableCommandResponse.class))
                         .as("Check that '%s' is annotated with JsonParsableCommandResponse.", c.getName())

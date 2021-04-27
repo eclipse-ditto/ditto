@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.starter;
 
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.services.gateway.endpoints.routes.whoami.WhoamiResponse;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
@@ -63,7 +64,8 @@ public final class GatewayServiceGlobalCommandResponseRegistryTest extends Globa
                 RetrieveHealthResponse.class,
                 PurgeEntitiesResponse.class,
                 StreamingAck.class,
-                WhoamiResponse.class
+                WhoamiResponse.class,
+                Acknowledgement.class
         );
         excludeKnownNotAnnotatedClass("org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase$DummyThingModifyCommandResponse");
     }
