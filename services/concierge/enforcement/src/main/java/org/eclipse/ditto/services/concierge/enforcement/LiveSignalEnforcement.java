@@ -110,7 +110,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<SignalWithE
         @Override
         @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
         public Class<SignalWithEntityId<?>> getCommandClass() {
-            return (Class) Signal.class;
+            return (Class) SignalWithEntityId.class;
         }
 
         @Override
