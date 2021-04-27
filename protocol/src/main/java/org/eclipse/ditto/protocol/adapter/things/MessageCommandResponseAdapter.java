@@ -22,10 +22,10 @@ import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
 import org.eclipse.ditto.protocol.mapper.SignalMapper;
 import org.eclipse.ditto.protocol.mapper.SignalMapperFactory;
-import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
-import org.eclipse.ditto.signals.commands.messages.SendClaimMessageResponse;
-import org.eclipse.ditto.signals.commands.messages.SendFeatureMessageResponse;
-import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
+import org.eclipse.ditto.model.messages.signals.commands.MessageCommandResponse;
+import org.eclipse.ditto.model.messages.signals.commands.SendClaimMessageResponse;
+import org.eclipse.ditto.model.messages.signals.commands.SendFeatureMessageResponse;
+import org.eclipse.ditto.model.messages.signals.commands.SendThingMessageResponse;
 
 /**
  * Adapter for mapping a {@link MessageCommandResponseAdapter} to and from an {@link Adaptable}.

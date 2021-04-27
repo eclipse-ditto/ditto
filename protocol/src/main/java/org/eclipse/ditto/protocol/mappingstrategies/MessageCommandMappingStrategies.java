@@ -18,10 +18,10 @@ import java.util.Map;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableMapper;
-import org.eclipse.ditto.signals.commands.messages.MessageCommand;
-import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
-import org.eclipse.ditto.signals.commands.messages.SendFeatureMessage;
-import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
+import org.eclipse.ditto.model.messages.signals.commands.MessageCommand;
+import org.eclipse.ditto.model.messages.signals.commands.SendClaimMessage;
+import org.eclipse.ditto.model.messages.signals.commands.SendFeatureMessage;
+import org.eclipse.ditto.model.messages.signals.commands.SendThingMessage;
 
 /**
  * Defines mapping strategies (map from signal type to JsonifiableMapper) for message commands.

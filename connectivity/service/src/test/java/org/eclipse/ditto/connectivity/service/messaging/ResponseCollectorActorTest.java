@@ -23,7 +23,7 @@ import org.eclipse.ditto.model.messages.MessageBuilder;
 import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
+import org.eclipse.ditto.model.messages.signals.commands.SendThingMessageResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThingResponse;
 import org.junit.After;
 import org.junit.Before;

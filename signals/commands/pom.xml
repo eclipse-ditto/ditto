@@ -28,7 +28,6 @@
     <modules>
         <module>common</module>
         <module>devops</module>
-        <module>messages</module>
         <module>namespaces</module>
         <module>cleanup</module>
     </modules>

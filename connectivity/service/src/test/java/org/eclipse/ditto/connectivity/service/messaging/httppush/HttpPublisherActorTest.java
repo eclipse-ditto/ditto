@@ -53,9 +53,9 @@ import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.signals.commands.messages.SendFeatureMessageResponse;
-import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
-import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
+import org.eclipse.ditto.model.messages.signals.commands.SendFeatureMessageResponse;
+import org.eclipse.ditto.model.messages.signals.commands.SendThingMessage;
+import org.eclipse.ditto.model.messages.signals.commands.SendThingMessageResponse;
 import org.junit.Test;
 
 import akka.actor.ActorRef;

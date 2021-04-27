@@ -42,7 +42,7 @@ import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
+import org.eclipse.ditto.model.messages.signals.commands.SendClaimMessage;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThingResponse;
 import org.eclipse.ditto.things.model.signals.events.AttributeDeleted;

@@ -21,7 +21,7 @@ import org.eclipse.ditto.services.utils.test.GlobalCommandResponseRegistryTestCa
 import org.eclipse.ditto.signals.commands.common.RetrieveConfigResponse;
 import org.eclipse.ditto.signals.commands.common.purge.PurgeEntitiesResponse;
 import org.eclipse.ditto.signals.commands.devops.RetrieveLoggerConfigResponse;
-import org.eclipse.ditto.signals.commands.messages.SendClaimMessageResponse;
+import org.eclipse.ditto.model.messages.signals.commands.SendClaimMessageResponse;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespaceResponse;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegrationResponse;

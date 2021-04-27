@@ -56,7 +56,7 @@ import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.policies.model.signals.announcements.SubjectDeletionAnnouncement;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
+import org.eclipse.ditto.model.messages.signals.commands.SendThingMessage;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.eclipse.ditto.things.model.signals.events.ThingModified;
 import org.junit.Test;
