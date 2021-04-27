@@ -17,8 +17,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.signals.commands.common.RetrieveConfig;
-import org.eclipse.ditto.signals.commands.common.RetrieveConfigResponse;
+import org.eclipse.ditto.base.api.common.RetrieveConfig;
+import org.eclipse.ditto.base.api.common.RetrieveConfigResponse;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;

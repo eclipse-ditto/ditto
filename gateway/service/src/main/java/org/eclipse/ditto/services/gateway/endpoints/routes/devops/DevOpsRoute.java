@@ -34,7 +34,7 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.QueryParametersToHead
 import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
-import org.eclipse.ditto.signals.commands.common.RetrieveConfig;
+import org.eclipse.ditto.base.api.common.RetrieveConfig;
 import org.eclipse.ditto.model.devops.signals.commands.ChangeLogLevel;
 import org.eclipse.ditto.model.devops.signals.commands.DevOpsCommand;
 import org.eclipse.ditto.model.devops.signals.commands.ExecutePiggybackCommand;

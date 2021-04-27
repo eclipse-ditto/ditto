@@ -24,7 +24,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommand;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.signals.commands.common.CommonCommand;
+import org.eclipse.ditto.base.api.common.CommonCommand;
 
 /**
  * Command to retrieve information about the current user.

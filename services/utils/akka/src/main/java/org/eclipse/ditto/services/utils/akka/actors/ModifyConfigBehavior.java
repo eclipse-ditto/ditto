@@ -13,8 +13,8 @@
 package org.eclipse.ditto.services.utils.akka.actors;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.signals.commands.common.ModifyConfig;
-import org.eclipse.ditto.signals.commands.common.ModifyConfigResponse;
+import org.eclipse.ditto.base.api.common.ModifyConfig;
+import org.eclipse.ditto.base.api.common.ModifyConfigResponse;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;

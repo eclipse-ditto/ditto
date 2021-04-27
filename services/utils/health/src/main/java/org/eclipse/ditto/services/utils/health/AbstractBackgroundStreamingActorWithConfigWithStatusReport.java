@@ -32,8 +32,8 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.config.DittoConfigError;
 import org.eclipse.ditto.services.utils.health.config.BackgroundStreamingConfig;
-import org.eclipse.ditto.signals.commands.common.Shutdown;
-import org.eclipse.ditto.signals.commands.common.ShutdownResponse;
+import org.eclipse.ditto.base.api.common.Shutdown;
+import org.eclipse.ditto.base.api.common.ShutdownResponse;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;

@@ -29,11 +29,11 @@ import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.signals.commands.common.Shutdown;
-import org.eclipse.ditto.signals.commands.common.ShutdownReason;
-import org.eclipse.ditto.signals.commands.common.ShutdownReasonFactory;
-import org.eclipse.ditto.signals.commands.common.purge.PurgeEntities;
-import org.eclipse.ditto.signals.commands.common.purge.PurgeEntitiesResponse;
+import org.eclipse.ditto.base.api.common.Shutdown;
+import org.eclipse.ditto.base.api.common.ShutdownReason;
+import org.eclipse.ditto.base.api.common.ShutdownReasonFactory;
+import org.eclipse.ditto.base.api.common.purge.PurgeEntities;
+import org.eclipse.ditto.base.api.common.purge.PurgeEntitiesResponse;
 import org.eclipse.ditto.model.namespaces.signals.commands.PurgeNamespace;
 import org.eclipse.ditto.model.namespaces.signals.commands.PurgeNamespaceResponse;
 

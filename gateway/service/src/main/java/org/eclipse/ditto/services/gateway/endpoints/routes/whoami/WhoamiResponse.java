@@ -34,7 +34,7 @@ import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.base.model.signals.commands.WithEntity;
-import org.eclipse.ditto.signals.commands.common.CommonCommandResponse;
+import org.eclipse.ditto.base.api.common.CommonCommandResponse;
 
 /**
  * Response on a {@link org.eclipse.ditto.services.gateway.endpoints.routes.whoami.Whoami} command.

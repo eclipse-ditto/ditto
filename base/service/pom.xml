@@ -35,11 +35,6 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-commands-common</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-devops</artifactId>
         </dependency>
         <dependency>
