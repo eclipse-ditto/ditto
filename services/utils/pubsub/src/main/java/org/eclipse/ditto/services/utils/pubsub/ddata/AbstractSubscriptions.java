@@ -85,9 +85,9 @@ public abstract class AbstractSubscriptions<R, T extends DDataUpdate<R>> impleme
             final SubscriberData subscriberData = SubscriberData.of(topics, filter, group);
             subscriberDataMap.merge(subscriber, subscriberData, (oldData, newData) -> {
                 changed[0] = !oldData.getFilter().equals(newData.getFilter());
-                final Set<String> unionTopics = unionSet(oldData.getTopics(), newData.getTopics());
-                changed[0] |= !unionTopics.equals(oldData.getTopics());
-                return newData.withTopics(unionTopics);
+                // TODO YC check if when the unionSet of topics differ from the oldData.getTopics()
+                //  changed[0] should also be true
+                return newData.withTopics(unionSet(oldData.getTopics(), newData.getTopics()));
             });
 
             // add subscriber for each new topic; detect whether there is any change.

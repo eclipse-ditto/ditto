@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.utils.pubsub.actors;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,6 +41,7 @@ import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.cluster.ddata.Key;
 import akka.cluster.ddata.ORMultiMap;
 import akka.cluster.ddata.Replicator;
 import akka.japi.Pair;
@@ -62,9 +64,9 @@ public final class Publisher extends AbstractActor {
 
     private final Counter messageCounter = DittoMetrics.counter("pubsub-published-messages");
     private final Counter topicCounter = DittoMetrics.counter("pubsub-published-topics");
+    private final Map<Key<?>, PublisherIndex<Long>> publisherIndexes = new HashMap<>();
 
     private PublisherIndex<Long> publisherIndex = PublisherIndex.empty();
-
     private RemoteAcksChanged remoteAcks = RemoteAcksChanged.of(Map.of());
 
     @SuppressWarnings("unused")
@@ -165,9 +167,10 @@ public final class Publisher extends AbstractActor {
 
         final List<Pair<ActorRef, PublishSignal>> subscribers =
                 publisherIndex.assignGroupsToSubscribers(signal, hashes);
-        log.withCorrelationId(signal).info("Publishing PublishSignal to subscribers: <{}>", subscribers.stream()
-                .map(Pair::first)
-                .collect(Collectors.toList()));
+        final ThreadSafeDittoLoggingAdapter l = log.withCorrelationId(signal);
+        l.debug("Calculated hashes for signal <{}>: <{}>", signal, hashes);
+        l.info("Publishing PublishSignal to subscribers: <{}>",
+                subscribers.stream().map(Pair::first).collect(Collectors.toList()));
         subscribers.forEach(pair -> pair.first().tell(pair.second(), sender));
         return subscribers;
     }
@@ -183,7 +186,9 @@ public final class Publisher extends AbstractActor {
                 .stream()
                 .map(entry -> Pair.create(entry.getKey(), deserializeGroupedHashes(entry.getValue())))
                 .collect(Collectors.toMap(Pair::first, Pair::second));
-        publisherIndex = PublisherIndex.mergeExistingWithDeserializedMMap(publisherIndex, deserializedMMap);
+        final PublisherIndex<Long> thePublisherIndex = PublisherIndex.fromDeserializedMMap(deserializedMMap);
+        publisherIndexes.put(event.key(), thePublisherIndex);
+        publisherIndex = PublisherIndex.fromMultipleIndexes(publisherIndexes.values());
     }
 
     private void logUnhandled(final Object message) {
