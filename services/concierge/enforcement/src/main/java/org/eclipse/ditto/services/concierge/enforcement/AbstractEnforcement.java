@@ -87,8 +87,12 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
             context.getStartedTimer()
                     .map(startedTimer -> startedTimer.tag("outcome", throwable != null ? "fail" : "success"))
                     .ifPresent(StartedTimer::stop);
-            result.getLog().withCorrelationId(result)
-                    .info("Completed enforcement with headers: <{}>", result.getDittoHeaders());
+            if (null != result) {
+                result.getLog().withCorrelationId(result)
+                        .info("Completed enforcement with outcome 'success' and headers: <{}>", result.getDittoHeaders());
+            } else {
+                log().info("Completed enforcement with outcome 'failed' and headers: <{}>", dittoHeaders());
+            }
             return Objects.requireNonNullElseGet(result,
                     () -> withMessageToReceiver(reportError("Error thrown during enforcement", throwable), sender()));
         };
