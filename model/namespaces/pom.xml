@@ -31,6 +31,14 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-base-model</artifactId>
         </dependency>
+
+        <!-- ### Testing ### -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-base-model</artifactId>
+            <scope>test</scope>
+            <type>test-jar</type>
+        </dependency>
     </dependencies>
 
     <build>

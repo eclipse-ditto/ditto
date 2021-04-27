@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.signals.commands.namespaces;
+package org.eclipse.ditto.model.namespaces.signals.commands;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -21,66 +21,66 @@ import org.eclipse.ditto.base.model.json.JsonParsableCommand;
 import org.eclipse.ditto.base.model.signals.commands.CommandJsonDeserializer;
 
 /**
- * Command for unblocking signals to a particular namespace.
+ * Command for blocking signals to a particular namespace.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = AbstractNamespaceCommand.TYPE_PREFIX, name = UnblockNamespace.NAME)
-public final class UnblockNamespace extends AbstractNamespaceCommand<UnblockNamespace> {
+@JsonParsableCommand(typePrefix = AbstractNamespaceCommand.TYPE_PREFIX, name = BlockNamespace.NAME)
+public final class BlockNamespace extends AbstractNamespaceCommand<BlockNamespace> {
 
     /**
-     * The name of the {@code UnblockNamespace} command.
+     * The name of the {@code BlockNamespace} command.
      */
-    static final String NAME = "unblockNamespace";
+    static final String NAME = "blockNamespace";
 
     /**
-     * The type of the {@code UnblockNamespace} command.
+     * The type of the {@code BlockNamespace} command.
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private UnblockNamespace(final CharSequence namespace, final DittoHeaders dittoHeaders) {
+    private BlockNamespace(final CharSequence namespace, final DittoHeaders dittoHeaders) {
         super(namespace, TYPE, dittoHeaders);
     }
 
     /**
-     * Returns an instance of {@code UnblockNamespace}.
+     * Returns an instance of {@code BlockNamespace}.
      *
-     * @param namespace the namespace to be unblocked.
+     * @param namespace the namespace to be blocked.
      * @param dittoHeaders the headers of the command.
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code namespace} is empty.
      */
-    public static UnblockNamespace of(final CharSequence namespace, final DittoHeaders dittoHeaders) {
-        return new UnblockNamespace(namespace, dittoHeaders);
+    public static BlockNamespace of(final CharSequence namespace, final DittoHeaders dittoHeaders) {
+        return new BlockNamespace(namespace, dittoHeaders);
     }
 
     /**
-     * Creates a new {@code UnblockNamespace} from a JSON object.
+     * Creates a new {@code BlockNamespace} from a JSON object.
      *
-     * @param jsonObject the JSON object of which the UnblockNamespace is to be created.
+     * @param jsonObject the JSON object of which the BlockNamespace is to be created.
      * @param dittoHeaders the headers.
      * @return the command.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain
-     * {@link org.eclipse.ditto.signals.commands.namespaces.NamespaceCommand.JsonFields#NAMESPACE}.
+     * {@link org.eclipse.ditto.model.namespaces.signals.commands.NamespaceCommand.JsonFields#NAMESPACE}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static UnblockNamespace fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<UnblockNamespace>(TYPE, jsonObject).deserialize(() -> {
+    public static BlockNamespace fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandJsonDeserializer<BlockNamespace>(TYPE, jsonObject).deserialize(() -> {
             final String namespace = jsonObject.getValueOrThrow(NamespaceCommand.JsonFields.NAMESPACE);
-            return new UnblockNamespace(namespace, dittoHeaders);
+            return new BlockNamespace(namespace, dittoHeaders);
         });
     }
 
     @Override
-    public UnblockNamespace setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new UnblockNamespace(getNamespace(), dittoHeaders);
+    public BlockNamespace setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new BlockNamespace(getNamespace(), dittoHeaders);
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return other instanceof UnblockNamespace;
+        return other instanceof BlockNamespace;
     }
 
     @Override

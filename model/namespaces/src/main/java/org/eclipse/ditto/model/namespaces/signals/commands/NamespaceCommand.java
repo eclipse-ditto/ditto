@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.signals.commands.namespaces;
+package org.eclipse.ditto.model.namespaces.signals.commands;
 
 import javax.annotation.concurrent.Immutable;
 

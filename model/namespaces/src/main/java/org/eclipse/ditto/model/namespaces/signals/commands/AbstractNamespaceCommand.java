@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.signals.commands.namespaces;
+package org.eclipse.ditto.model.namespaces.signals.commands;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
 
@@ -27,7 +27,6 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
-import org.eclipse.ditto.base.model.signals.commands.Command;
 
 /**
  * Abstract base implementation of namespace commands.
@@ -87,8 +86,8 @@ abstract class AbstractNamespaceCommand<T extends AbstractNamespaceCommand<T>> e
     }
 
     @Override
-    public Command.Category getCategory() {
-        return Command.Category.MODIFY;
+    public Category getCategory() {
+        return Category.MODIFY;
     }
 
     @Override

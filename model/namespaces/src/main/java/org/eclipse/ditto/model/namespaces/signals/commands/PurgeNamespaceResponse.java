@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.signals.commands.namespaces;
+package org.eclipse.ditto.model.namespaces.signals.commands;
 
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -95,9 +95,9 @@ public final class PurgeNamespaceResponse extends AbstractNamespaceCommandRespon
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} was not in the expected format.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain
      * <ul>
-     *     <li>{@link org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandResponse.JsonFields#NAMESPACE},</li>
-     *     <li>{@link org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandResponse.JsonFields#RESOURCE_TYPE} or</li>
-     *     <li>{@link JsonFields#SUCCESSFUL}.</li>
+     *     <li>{@link org.eclipse.ditto.model.namespaces.signals.commands.NamespaceCommandResponse.JsonFields#NAMESPACE},</li>
+     *     <li>{@link org.eclipse.ditto.model.namespaces.signals.commands.NamespaceCommandResponse.JsonFields#RESOURCE_TYPE} or</li>
+     *     <li>{@link PurgeNamespaceResponse.JsonFields#SUCCESSFUL}.</li>
      * </ul>
      */
     public static PurgeNamespaceResponse fromJson(final JsonObject jsonObject, final DittoHeaders headers) {

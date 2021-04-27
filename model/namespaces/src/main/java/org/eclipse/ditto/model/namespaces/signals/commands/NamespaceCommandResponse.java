@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.signals.commands.namespaces;
+package org.eclipse.ditto.model.namespaces.signals.commands;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -21,7 +21,7 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 
 /**
- * Base interface for all response signals to {@link org.eclipse.ditto.signals.commands.namespaces.NamespaceCommand}s.
+ * Base interface for all response signals to {@link NamespaceCommand}s.
  *
  * @param <T> the type of the response.
  */

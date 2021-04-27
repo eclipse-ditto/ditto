@@ -17,10 +17,10 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
-import org.eclipse.ditto.signals.commands.namespaces.BlockNamespace;
-import org.eclipse.ditto.signals.commands.namespaces.BlockNamespaceResponse;
-import org.eclipse.ditto.signals.commands.namespaces.UnblockNamespace;
-import org.eclipse.ditto.signals.commands.namespaces.UnblockNamespaceResponse;
+import org.eclipse.ditto.model.namespaces.signals.commands.BlockNamespace;
+import org.eclipse.ditto.model.namespaces.signals.commands.BlockNamespaceResponse;
+import org.eclipse.ditto.model.namespaces.signals.commands.UnblockNamespace;
+import org.eclipse.ditto.model.namespaces.signals.commands.UnblockNamespaceResponse;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;

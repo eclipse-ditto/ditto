@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.signals.commands.namespaces;
+package org.eclipse.ditto.model.namespaces.signals.commands;
 
 import javax.annotation.Nullable;
 
@@ -21,24 +21,24 @@ import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 
 /**
- * Response to {@link BlockNamespace}.
+ * Response to {@link UnblockNamespace}.
  */
-@JsonParsableCommandResponse(type = BlockNamespaceResponse.TYPE)
-public final class BlockNamespaceResponse extends AbstractNamespaceCommandResponse<BlockNamespaceResponse> {
+@JsonParsableCommandResponse(type = UnblockNamespaceResponse.TYPE)
+public final class UnblockNamespaceResponse extends AbstractNamespaceCommandResponse<UnblockNamespaceResponse> {
 
     /**
-     * The type of the {@code BlockNamespaceResponse}.
+     * The type of the {@code UnblockNamespaceResponse}.
      */
-    public static final String TYPE = TYPE_PREFIX + BlockNamespace.NAME;
+    public static final String TYPE = TYPE_PREFIX + UnblockNamespace.NAME;
 
-    private BlockNamespaceResponse(final CharSequence namespace, final CharSequence resourceType,
+    private UnblockNamespaceResponse(final CharSequence namespace, final CharSequence resourceType,
             final DittoHeaders dittoHeaders) {
 
         super(namespace, resourceType, TYPE, HttpStatus.OK, dittoHeaders);
     }
 
     /**
-     * Returns an instance of {@code BlockNamespaceResponse}.
+     * Returns an instance of {@code UnblockNamespaceResponse}.
      *
      * @param namespace the namespace the returned response relates to.
      * @param resourceType type of the {@code Resource} represented by the returned response.
@@ -47,43 +47,45 @@ public final class BlockNamespaceResponse extends AbstractNamespaceCommandRespon
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code namespace} or {@code resourceType} is empty.
      */
-    public static BlockNamespaceResponse getInstance(final CharSequence namespace, final CharSequence resourceType,
+    public static UnblockNamespaceResponse getInstance(final CharSequence namespace, final CharSequence resourceType,
             final DittoHeaders dittoHeaders) {
 
-        return new BlockNamespaceResponse(namespace, resourceType, dittoHeaders);
+        return new UnblockNamespaceResponse(namespace, resourceType, dittoHeaders);
     }
 
     /**
-     * Creates a new {@code BlockNamespaceResponse} from the given JSON object.
+     * Creates a new {@code UnblockNamespaceResponse} from the given JSON object.
      *
-     * @param jsonObject the JSON object of which the BlockNamespaceResponse is to be created.
+     * @param jsonObject the JSON object of which the UnblockNamespaceResponse is to be created.
      * @param headers the headers.
      * @return the deserialized response.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} was not in the expected format.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain
      * <ul>
-     * <li>{@link org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandResponse.JsonFields#NAMESPACE} or</li>
-     * <li>{@link org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandResponse.JsonFields#RESOURCE_TYPE}.</li>
+     * <li>{@link NamespaceCommandResponse.JsonFields#NAMESPACE} or</li>
+     * <li>{@link NamespaceCommandResponse.JsonFields#RESOURCE_TYPE}.</li>
      * </ul>
      */
-    public static BlockNamespaceResponse fromJson(final JsonObject jsonObject, final DittoHeaders headers) {
-        return new CommandResponseJsonDeserializer<BlockNamespaceResponse>(TYPE, jsonObject).deserialize(httpStatus -> {
-            final String namespace = jsonObject.getValueOrThrow(NamespaceCommandResponse.JsonFields.NAMESPACE);
-            final String resourceType = jsonObject.getValueOrThrow(NamespaceCommandResponse.JsonFields.RESOURCE_TYPE);
+    public static UnblockNamespaceResponse fromJson(final JsonObject jsonObject, final DittoHeaders headers) {
+        return new CommandResponseJsonDeserializer<UnblockNamespaceResponse>(TYPE, jsonObject).deserialize(
+                httpStatus -> {
+                    final String namespace = jsonObject.getValueOrThrow(NamespaceCommandResponse.JsonFields.NAMESPACE);
+                    final String resourceType =
+                            jsonObject.getValueOrThrow(NamespaceCommandResponse.JsonFields.RESOURCE_TYPE);
 
-            return new BlockNamespaceResponse(namespace, resourceType, headers);
-        });
+                    return new UnblockNamespaceResponse(namespace, resourceType, headers);
+                });
     }
 
     @Override
-    public BlockNamespaceResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new BlockNamespaceResponse(getNamespace(), getResourceType(), dittoHeaders);
+    public UnblockNamespaceResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new UnblockNamespaceResponse(getNamespace(), getResourceType(), dittoHeaders);
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return other instanceof BlockNamespaceResponse;
+        return other instanceof UnblockNamespaceResponse;
     }
 
     @Override

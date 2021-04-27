@@ -34,8 +34,8 @@ import org.eclipse.ditto.services.utils.persistence.operations.PersistenceOperat
 import org.eclipse.ditto.services.utils.test.mongo.MongoDbResource;
 import org.eclipse.ditto.signals.commands.common.purge.PurgeEntities;
 import org.eclipse.ditto.signals.commands.common.purge.PurgeEntitiesResponse;
-import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespace;
-import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespaceResponse;
+import org.eclipse.ditto.model.namespaces.signals.commands.PurgeNamespace;
+import org.eclipse.ditto.model.namespaces.signals.commands.PurgeNamespaceResponse;
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;

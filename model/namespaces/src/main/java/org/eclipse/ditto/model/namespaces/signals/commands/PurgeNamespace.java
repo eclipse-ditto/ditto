@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.signals.commands.namespaces;
+package org.eclipse.ditto.model.namespaces.signals.commands;
 
 import java.util.Objects;
 
@@ -64,7 +64,7 @@ public final class PurgeNamespace extends AbstractNamespaceCommand<PurgeNamespac
      * @return the command.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain
-     * {@link org.eclipse.ditto.signals.commands.namespaces.NamespaceCommand.JsonFields#NAMESPACE}.
+     * {@link org.eclipse.ditto.model.namespaces.signals.commands.NamespaceCommand.JsonFields#NAMESPACE}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */

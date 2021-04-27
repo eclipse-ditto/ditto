@@ -10,5 +10,18 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-@org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault
-package org.eclipse.ditto.signals.commands.namespaces;
+package org.eclipse.ditto.model.namespaces.signals.commands;
+
+/**
+ * Common interface for all types which provide access to a namespace.
+ */
+public interface WithNamespace {
+
+    /**
+     * Returns the namespace this command affects.
+     *
+     * @return the target namespace.
+     */
+    String getNamespace();
+
+}

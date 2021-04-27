@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.signals.commands.namespaces;
+package org.eclipse.ditto.model.namespaces.signals.commands;
 
 import static org.eclipse.ditto.base.model.signals.commands.assertions.CommandAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -28,21 +28,21 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.signals.commands.namespaces.PurgeNamespace}.
+ * Tests {@link UnblockNamespace}.
  */
-public final class PurgeNamespaceTest {
+public final class UnblockNamespaceTest {
 
     private static final String NAMESPACE = "com.example.test";
 
     private static JsonObject knownJsonRepresentation;
     private static DittoHeaders dittoHeaders;
 
-    private PurgeNamespace underTest;
+    private UnblockNamespace underTest;
 
     @BeforeClass
     public static void initTestConstants() {
         knownJsonRepresentation = JsonFactory.newObjectBuilder()
-                .set(NamespaceCommand.JsonFields.TYPE, PurgeNamespace.TYPE)
+                .set(NamespaceCommand.JsonFields.TYPE, UnblockNamespace.TYPE)
                 .set(NamespaceCommand.JsonFields.NAMESPACE, NAMESPACE)
                 .build();
 
@@ -53,17 +53,17 @@ public final class PurgeNamespaceTest {
 
     @Before
     public void setUp() {
-        underTest = PurgeNamespace.of(NAMESPACE, dittoHeaders);
+        underTest = UnblockNamespace.of(NAMESPACE, dittoHeaders);
     }
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(PurgeNamespace.class, areImmutable());
+        assertInstancesOf(UnblockNamespace.class, areImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(PurgeNamespace.class)
+        EqualsVerifier.forClass(UnblockNamespace.class)
                 .usingGetClass()
                 .withRedefinedSuperclass()
                 .verify();
@@ -71,7 +71,7 @@ public final class PurgeNamespaceTest {
 
     @Test
     public void fromJsonReturnsExpected() {
-        final PurgeNamespace commandFromJson = PurgeNamespace.fromJson(knownJsonRepresentation, dittoHeaders);
+        final UnblockNamespace commandFromJson = UnblockNamespace.fromJson(knownJsonRepresentation, dittoHeaders);
 
         assertThat(commandFromJson).isEqualTo(underTest);
     }

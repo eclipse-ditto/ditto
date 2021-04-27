@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.signals.commands.namespaces;
+package org.eclipse.ditto.model.namespaces.signals.commands;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
 
@@ -30,7 +30,7 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
 
 /**
- * Common base implementation of {@link org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandResponse}.
+ * Common base implementation of {@link NamespaceCommandResponse}.
  */
 @Immutable
 abstract class AbstractNamespaceCommandResponse<T extends AbstractNamespaceCommandResponse<T>>

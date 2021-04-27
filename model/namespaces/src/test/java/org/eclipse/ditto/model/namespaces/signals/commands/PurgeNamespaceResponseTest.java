@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.signals.commands.namespaces;
+package org.eclipse.ditto.model.namespaces.signals.commands;
 
 import static org.eclipse.ditto.base.model.signals.commands.assertions.CommandAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -28,9 +28,9 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link UnblockNamespaceResponse}.
+ * Unit test for {@link PurgeNamespaceResponse}.
  */
-public final class UnblockNamespaceResponseTest {
+public final class PurgeNamespaceResponseTest {
 
     private static final String NAMESPACE = "com.example.test";
     private static final String RESOURCE_TYPE = "policy";
@@ -41,10 +41,11 @@ public final class UnblockNamespaceResponseTest {
     @BeforeClass
     public static void initTestConstants() {
         knownJsonRepresentation = JsonFactory.newObjectBuilder()
-                .set(NamespaceCommandResponse.JsonFields.TYPE, UnblockNamespaceResponse.TYPE)
-                .set(NamespaceCommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode())
-                .set(NamespaceCommandResponse.JsonFields.NAMESPACE, NAMESPACE)
-                .set(NamespaceCommandResponse.JsonFields.RESOURCE_TYPE, RESOURCE_TYPE)
+                .set(PurgeNamespaceResponse.JsonFields.TYPE, PurgeNamespaceResponse.TYPE)
+                .set(PurgeNamespaceResponse.JsonFields.STATUS, HttpStatus.OK.getCode())
+                .set(PurgeNamespaceResponse.JsonFields.NAMESPACE, NAMESPACE)
+                .set(PurgeNamespaceResponse.JsonFields.RESOURCE_TYPE, RESOURCE_TYPE)
+                .set(PurgeNamespaceResponse.JsonFields.SUCCESSFUL, true)
                 .build();
 
         dittoHeaders = DittoHeaders.newBuilder()
@@ -54,12 +55,12 @@ public final class UnblockNamespaceResponseTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(UnblockNamespaceResponse.class, areImmutable());
+        assertInstancesOf(PurgeNamespaceResponse.class, areImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(UnblockNamespaceResponse.class)
+        EqualsVerifier.forClass(PurgeNamespaceResponse.class)
                 .withRedefinedSuperclass()
                 .usingGetClass()
                 .verify();
@@ -67,29 +68,41 @@ public final class UnblockNamespaceResponseTest {
 
     @Test
     public void fromJsonReturnsExpected() {
-        final UnblockNamespaceResponse responseFromJson =
-                UnblockNamespaceResponse.fromJson(knownJsonRepresentation, dittoHeaders);
+        final PurgeNamespaceResponse responseFromJson =
+                PurgeNamespaceResponse.fromJson(knownJsonRepresentation, dittoHeaders);
 
-        assertThat(responseFromJson).isEqualTo(
-                UnblockNamespaceResponse.getInstance(NAMESPACE, RESOURCE_TYPE, dittoHeaders));
+        assertThat(responseFromJson)
+                .isEqualTo(PurgeNamespaceResponse.successful(NAMESPACE, RESOURCE_TYPE, dittoHeaders));
     }
 
     @Test
-    public void toJsonReturnsExpected() {
-        final UnblockNamespaceResponse underTest =
-                UnblockNamespaceResponse.getInstance(NAMESPACE, RESOURCE_TYPE, dittoHeaders);
+    public void successfulResponseToJson() {
+        final PurgeNamespaceResponse underTest =
+                PurgeNamespaceResponse.successful(NAMESPACE, RESOURCE_TYPE, dittoHeaders);
 
         assertThat(underTest.toJson()).isEqualTo(knownJsonRepresentation);
     }
 
     @Test
+    public void failedResponseToJson() {
+        final JsonObject expectedJson = knownJsonRepresentation.toBuilder()
+                .set(PurgeNamespaceResponse.JsonFields.SUCCESSFUL, false)
+                .build();
+
+        final PurgeNamespaceResponse underTest = PurgeNamespaceResponse.failed(NAMESPACE, RESOURCE_TYPE, dittoHeaders);
+
+        assertThat(underTest.toJson()).isEqualTo(expectedJson);
+    }
+
+    @Test
     public void toStringContainsExpected() {
-        final UnblockNamespaceResponse underTest =
-                UnblockNamespaceResponse.getInstance(NAMESPACE, RESOURCE_TYPE, dittoHeaders);
+        final PurgeNamespaceResponse underTest = PurgeNamespaceResponse.failed(NAMESPACE, RESOURCE_TYPE, dittoHeaders);
 
         assertThat(underTest.toString())
                 .contains(underTest.getClass().getSimpleName())
                 .contains(NAMESPACE)
-                .contains(RESOURCE_TYPE);
+                .contains(RESOURCE_TYPE)
+                .contains(String.valueOf(underTest.isSuccessful()));
     }
+
 }
