@@ -25,7 +25,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetailsResponse;
+import org.eclipse.ditto.model.devops.signals.commands.RetrieveStatisticsDetailsResponse;
 
 import akka.actor.ActorRef;
 import akka.cluster.sharding.ShardRegion;

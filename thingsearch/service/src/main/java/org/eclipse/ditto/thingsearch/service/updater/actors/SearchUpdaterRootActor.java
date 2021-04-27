@@ -37,7 +37,7 @@ import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonConnec
 import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.services.utils.pubsub.DistributedSub;
 import org.eclipse.ditto.services.utils.pubsub.ThingEventPubSubFactory;
-import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
+import org.eclipse.ditto.model.devops.signals.commands.RetrieveStatisticsDetails;
 
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;

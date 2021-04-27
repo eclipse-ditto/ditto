@@ -28,9 +28,9 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoCountThings;
-import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
-import org.eclipse.ditto.signals.commands.devops.RetrieveStatistics;
-import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
+import org.eclipse.ditto.model.devops.signals.commands.DevOpsCommand;
+import org.eclipse.ditto.model.devops.signals.commands.RetrieveStatistics;
+import org.eclipse.ditto.model.devops.signals.commands.RetrieveStatisticsDetails;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;

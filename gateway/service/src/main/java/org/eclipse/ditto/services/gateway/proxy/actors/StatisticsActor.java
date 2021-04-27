@@ -53,10 +53,10 @@ import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterRoleStatus;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
-import org.eclipse.ditto.signals.commands.devops.RetrieveStatistics;
-import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
-import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetailsResponse;
-import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsResponse;
+import org.eclipse.ditto.model.devops.signals.commands.RetrieveStatistics;
+import org.eclipse.ditto.model.devops.signals.commands.RetrieveStatisticsDetails;
+import org.eclipse.ditto.model.devops.signals.commands.RetrieveStatisticsDetailsResponse;
+import org.eclipse.ditto.model.devops.signals.commands.RetrieveStatisticsResponse;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;

@@ -43,15 +43,15 @@ import org.eclipse.ditto.base.model.signals.JsonTypeNotParsableException;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
-import org.eclipse.ditto.signals.commands.devops.AggregatedDevOpsCommandResponse;
-import org.eclipse.ditto.signals.commands.devops.ChangeLogLevel;
-import org.eclipse.ditto.signals.commands.devops.ChangeLogLevelResponse;
-import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
-import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponse;
-import org.eclipse.ditto.signals.commands.devops.DevOpsErrorResponse;
-import org.eclipse.ditto.signals.commands.devops.ExecutePiggybackCommand;
-import org.eclipse.ditto.signals.commands.devops.RetrieveLoggerConfig;
-import org.eclipse.ditto.signals.commands.devops.RetrieveLoggerConfigResponse;
+import org.eclipse.ditto.model.devops.signals.commands.AggregatedDevOpsCommandResponse;
+import org.eclipse.ditto.model.devops.signals.commands.ChangeLogLevel;
+import org.eclipse.ditto.model.devops.signals.commands.ChangeLogLevelResponse;
+import org.eclipse.ditto.model.devops.signals.commands.DevOpsCommand;
+import org.eclipse.ditto.model.devops.signals.commands.DevOpsCommandResponse;
+import org.eclipse.ditto.model.devops.signals.commands.DevOpsErrorResponse;
+import org.eclipse.ditto.model.devops.signals.commands.ExecutePiggybackCommand;
+import org.eclipse.ditto.model.devops.signals.commands.RetrieveLoggerConfig;
+import org.eclipse.ditto.model.devops.signals.commands.RetrieveLoggerConfigResponse;
 
 import com.typesafe.config.Config;
 
@@ -65,7 +65,7 @@ import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
- * An actor to consume {@link org.eclipse.ditto.signals.commands.devops.DevOpsCommand}s and reply appropriately.
+ * An actor to consume {@link org.eclipse.ditto.model.devops.signals.commands.DevOpsCommand}s and reply appropriately.
  */
 public final class DevOpsCommandsActor extends AbstractActor implements RetrieveConfigBehavior {
 

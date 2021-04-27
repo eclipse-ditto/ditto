@@ -57,7 +57,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-commands-devops</artifactId>
+            <artifactId>ditto-model-devops</artifactId>
         </dependency>
 
         <dependency>

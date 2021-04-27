@@ -20,7 +20,7 @@ import org.eclipse.ditto.services.utils.test.GlobalCommandRegistryTestCases;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
 import org.eclipse.ditto.signals.commands.common.purge.PurgeEntities;
-import org.eclipse.ditto.signals.commands.devops.ExecutePiggybackCommand;
+import org.eclipse.ditto.model.devops.signals.commands.ExecutePiggybackCommand;
 import org.eclipse.ditto.model.messages.signals.commands.SendClaimMessage;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespace;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegration;

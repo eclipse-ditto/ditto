@@ -35,10 +35,10 @@ import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
 import org.eclipse.ditto.signals.commands.common.RetrieveConfig;
-import org.eclipse.ditto.signals.commands.devops.ChangeLogLevel;
-import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
-import org.eclipse.ditto.signals.commands.devops.ExecutePiggybackCommand;
-import org.eclipse.ditto.signals.commands.devops.RetrieveLoggerConfig;
+import org.eclipse.ditto.model.devops.signals.commands.ChangeLogLevel;
+import org.eclipse.ditto.model.devops.signals.commands.DevOpsCommand;
+import org.eclipse.ditto.model.devops.signals.commands.ExecutePiggybackCommand;
+import org.eclipse.ditto.model.devops.signals.commands.RetrieveLoggerConfig;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;

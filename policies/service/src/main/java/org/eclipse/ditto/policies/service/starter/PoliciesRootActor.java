@@ -38,7 +38,7 @@ import org.eclipse.ditto.services.utils.persistentactors.PersistencePingActor;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.services.utils.pubsub.PolicyAnnouncementPubSubFactory;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
-import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
+import org.eclipse.ditto.model.devops.signals.commands.RetrieveStatisticsDetails;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;

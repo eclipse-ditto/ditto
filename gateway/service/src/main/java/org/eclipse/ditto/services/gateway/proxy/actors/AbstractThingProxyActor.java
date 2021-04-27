@@ -16,7 +16,7 @@ import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.utils.aggregator.ThingsAggregatorProxyActor;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
+import org.eclipse.ditto.model.devops.signals.commands.DevOpsCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 

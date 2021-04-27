@@ -27,7 +27,6 @@
 
     <modules>
         <module>common</module>
-        <module>devops</module>
         <module>namespaces</module>
         <module>cleanup</module>
     </modules>

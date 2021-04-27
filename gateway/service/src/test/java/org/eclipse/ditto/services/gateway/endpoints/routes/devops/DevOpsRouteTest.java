@@ -23,7 +23,7 @@ import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevopsAuthen
 import org.eclipse.ditto.services.gateway.util.config.security.DefaultDevOpsConfig;
 import org.eclipse.ditto.services.gateway.util.config.security.DevOpsConfig;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
-import org.eclipse.ditto.signals.commands.devops.ExecutePiggybackCommand;
+import org.eclipse.ditto.model.devops.signals.commands.ExecutePiggybackCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.junit.Before;
 import org.junit.Test;
