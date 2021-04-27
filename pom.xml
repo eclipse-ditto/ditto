@@ -193,7 +193,6 @@
         <module>json</module>
         <module>json-cbor</module>
         <module>model</module>
-        <module>signals</module>
         <module>protocol</module>
         <module>utils</module>
         <module>services</module>

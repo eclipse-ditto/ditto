@@ -21,8 +21,8 @@ import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
-import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistenceResponse;
+import org.eclipse.ditto.model.cleanup.signals.commands.CleanupPersistence;
+import org.eclipse.ditto.model.cleanup.signals.commands.CleanupPersistenceResponse;
 
 import akka.actor.ActorRef;
 import akka.persistence.AbstractPersistentActorWithTimers;

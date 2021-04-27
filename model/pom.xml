@@ -27,6 +27,7 @@
     <name>Eclipse Ditto :: Model</name>
 
     <modules>
+        <module>cleanup</module>
         <module>devops</module>
         <module>messages</module>
         <module>namespaces</module>

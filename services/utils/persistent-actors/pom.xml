@@ -28,9 +28,8 @@
     <dependencies>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-commands-cleanup</artifactId>
+            <artifactId>ditto-model-cleanup</artifactId>
         </dependency>
-
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-base-service</artifactId>

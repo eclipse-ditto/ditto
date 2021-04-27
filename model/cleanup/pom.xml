@@ -17,13 +17,20 @@
 
     <parent>
         <groupId>org.eclipse.ditto</groupId>
-        <artifactId>ditto-signals-commands</artifactId>
+        <artifactId>ditto-model</artifactId>
         <version>${revision}</version>
     </parent>
 
-    <artifactId>ditto-signals-commands-cleanup</artifactId>
+    <artifactId>ditto-model-cleanup</artifactId>
     <packaging>bundle</packaging>
-    <name>Eclipse Ditto :: Signals :: Commands :: Cleanup</name>
+    <name>Eclipse Ditto :: Model :: Cleanup</name>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-base-model</artifactId>
+        </dependency>
+    </dependencies>
 
     <build>
         <plugins>
@@ -38,7 +45,7 @@
                             org.eclipse.ditto.*
                         </Import-Package>
                         <Export-Package>
-                            org.eclipse.ditto.signals.commands.cleanup.*
+                            org.eclipse.ditto.model.cleanup.signals.commands.*
                         </Export-Package>
                     </instructions>
                 </configuration>

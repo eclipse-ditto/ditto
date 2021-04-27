@@ -77,8 +77,8 @@ import org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersiste
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.policies.model.signals.announcements.SubjectDeletionAnnouncement;
-import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
-import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistenceResponse;
+import org.eclipse.ditto.model.cleanup.signals.commands.CleanupPersistence;
+import org.eclipse.ditto.model.cleanup.signals.commands.CleanupPersistenceResponse;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyEntryModificationInvalidException;

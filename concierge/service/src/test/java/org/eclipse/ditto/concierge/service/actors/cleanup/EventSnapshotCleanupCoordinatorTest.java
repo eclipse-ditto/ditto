@@ -24,11 +24,11 @@ import org.eclipse.ditto.concierge.service.actors.cleanup.messages.CreditDecisio
 import org.eclipse.ditto.concierge.service.common.PersistenceCleanupConfig;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.cleanup.signals.commands.CleanupPersistence;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
 import org.eclipse.ditto.things.api.ThingSnapshotTaken;
-import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

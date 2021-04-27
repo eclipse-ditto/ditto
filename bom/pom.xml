@@ -494,7 +494,7 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-signals-commands-cleanup</artifactId>
+                <artifactId>ditto-model-cleanup</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

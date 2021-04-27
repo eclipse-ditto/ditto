@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.signals.commands.cleanup;
+package org.eclipse.ditto.model.cleanup.signals.commands;
 
 import java.util.Objects;
 import java.util.function.Predicate;

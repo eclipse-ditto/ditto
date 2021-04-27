@@ -12,4 +12,4 @@
  */
 
 @org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault
-package org.eclipse.ditto.signals.commands.cleanup;
+package org.eclipse.ditto.model.cleanup.signals.commands;
