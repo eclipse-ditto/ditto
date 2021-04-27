@@ -17,7 +17,7 @@ import org.eclipse.ditto.model.query.criteria.visitors.PredicateVisitor;
 /**
  * Greater than predicate.
  */
-public class GtPredicateImpl extends AbstractSinglePredicate {
+final class GtPredicateImpl extends AbstractSinglePredicate {
 
     public GtPredicateImpl(final Object value) {
         super(value);

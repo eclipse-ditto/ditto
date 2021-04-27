@@ -20,9 +20,8 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.query.criteria.Criteria;
-import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
-import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.model.rqlparser.RqlPredicateParser;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
@@ -33,9 +32,8 @@ import org.junit.Test;
  */
 public final class ThingPredicateVisitorTest {
 
-    private static final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
     private static final QueryFilterCriteriaFactory queryFilterCriteriaFactory =
-            new QueryFilterCriteriaFactory(criteriaFactory, new ModelBasedThingsFieldExpressionFactory());
+            QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance());
 
     private static final ThingId MATCHING_THING_ID = ThingId.of("org.eclipse.ditto", "foo-matching");
     private static final int MATCHING_THING_INTEGER = 42;

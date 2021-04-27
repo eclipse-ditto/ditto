@@ -15,8 +15,7 @@ package org.eclipse.ditto.model.query.expression.visitors;
 import org.eclipse.ditto.model.query.expression.FilterFieldExpression;
 
 /**
- * Compositional interpreter of
- * {@link FilterFieldExpression}.
+ * Compositional interpreter of {@link FilterFieldExpression}.
  */
 public interface FilterFieldExpressionVisitor<T> extends SortFieldExpressionVisitor<T> {
 

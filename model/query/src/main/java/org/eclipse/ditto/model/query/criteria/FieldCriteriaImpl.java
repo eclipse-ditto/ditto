@@ -22,7 +22,7 @@ import org.eclipse.ditto.model.query.expression.FilterFieldExpression;
 /**
  * Criteria implementation which can handle arbitrary field expressions and predicates.
  */
-public class FieldCriteriaImpl implements Criteria {
+final class FieldCriteriaImpl implements Criteria {
 
     private final FilterFieldExpression fieldExpression;
     private final Predicate predicate;

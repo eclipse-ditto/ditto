@@ -81,7 +81,7 @@ public final class DefaultJwtValidator implements JwtValidator {
         jwtParserBuilder.deserializeJsonWith(JjwtDeserializer.getInstance())
                 .setSigningKey(publicKey)
                 .build()
-                .parse(jsonWebToken.getToken());
+                .parseClaimsJws(jsonWebToken.getToken());
 
         return BinaryValidationResult.valid();
     }

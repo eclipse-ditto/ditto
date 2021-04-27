@@ -21,7 +21,21 @@ import org.eclipse.ditto.model.rqlparser.internal.RqlPredicateParser$;
  */
 public class RqlPredicateParser implements PredicateParser {
 
+    private static final RqlPredicateParser INSTANCE = new RqlPredicateParser();
     private static final PredicateParser PARSER = RqlPredicateParser$.MODULE$;
+
+    private RqlPredicateParser() {
+        // private
+    }
+
+    /**
+     * Returns the RqlPredicateParser instance.
+     *
+     * @return the instance.
+     */
+    public static RqlPredicateParser getInstance() {
+        return INSTANCE;
+    }
 
     @Override
     public RootNode parse(final String input) {

@@ -16,29 +16,23 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.model.query.expression.visitors.ExistsFieldExpressionVisitor;
 import org.eclipse.ditto.model.query.expression.visitors.FieldExpressionVisitor;
 import org.eclipse.ditto.model.query.expression.visitors.FilterFieldExpressionVisitor;
 import org.eclipse.ditto.model.query.expression.visitors.SortFieldExpressionVisitor;
 
 /**
- * Field expression for feature desired properties with a given feature id.
- *
- * @since 1.5.0
+ * Immutable implementation of {@link FeatureIdDesiredPropertyExpression}.
  */
-public class FeatureIdDesiredPropertyExpressionImpl
-        implements SortFieldExpression, FilterFieldExpression, ExistsFieldExpression {
+@Immutable
+final class FeatureIdDesiredPropertyExpressionImpl implements FeatureIdDesiredPropertyExpression {
 
     private final String desiredProperty;
     private final String featureId;
 
-    /**
-     * Constructor.
-     *
-     * @param featureId the feature id
-     * @param desiredProperty the feature desired property path
-     */
-    public FeatureIdDesiredPropertyExpressionImpl(final String featureId, final String desiredProperty) {
+    FeatureIdDesiredPropertyExpressionImpl(final String featureId, final String desiredProperty) {
         this.desiredProperty = requireNonNull(desiredProperty);
         this.featureId = requireNonNull(featureId);
     }
@@ -63,34 +57,29 @@ public class FeatureIdDesiredPropertyExpressionImpl
         return visitor.visitFeatureIdDesiredProperty(featureId, desiredProperty);
     }
 
-    /**
-     * @return the feature id.
-     */
+    @Override
     public String getFeatureId() {
         return featureId;
     }
 
-    /**
-     * @return the desiredProperty path.
-     */
+    @Override
     public String getDesiredProperty() {
         return desiredProperty;
     }
 
-    @SuppressWarnings("squid:MethodCyclomaticComplexity")
     @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
-        if ((o == null) || (getClass() != o.getClass())) {
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
         final FeatureIdDesiredPropertyExpressionImpl that = (FeatureIdDesiredPropertyExpressionImpl) o;
-        return Objects.equals(desiredProperty, that.desiredProperty) && Objects.equals(featureId, that.featureId);
+        return Objects.equals(desiredProperty, that.desiredProperty) &&
+                Objects.equals(featureId, that.featureId);
     }
 
-    @SuppressWarnings("squid:S109")
     @Override
     public int hashCode() {
         return Objects.hash(desiredProperty, featureId);
@@ -98,7 +87,9 @@ public class FeatureIdDesiredPropertyExpressionImpl
 
     @Override
     public String toString() {
-        return "FeatureIdDesiredPropertyExpression [featureId=" + featureId + ", desiredProperty=" + desiredProperty +
+        return getClass().getSimpleName() + " [" +
+                "desiredProperty=" + desiredProperty +
+                ", featureId=" + featureId +
                 "]";
     }
 }

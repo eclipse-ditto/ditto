@@ -23,6 +23,8 @@ import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.rql.ParserException;
+import org.eclipse.ditto.model.rql.predicates.PredicateParser;
+import org.eclipse.ditto.model.rqlparser.RqlPredicateParser;
 import org.eclipse.ditto.model.thingsearchparser.RqlOptionParser;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.services.models.thingsearch.query.filter.ParameterOptionVisitor;
@@ -43,12 +45,12 @@ public final class QueryParser {
     private final RqlOptionParser rqlOptionParser;
     private final QueryCriteriaValidator queryCriteriaValidator;
 
-    private QueryParser(final CriteriaFactory criteriaFactory,
-            final ThingsFieldExpressionFactory fieldExpressionFactory,
+    private QueryParser(final ThingsFieldExpressionFactory fieldExpressionFactory,
+            final PredicateParser predicateParser,
             final QueryBuilderFactory queryBuilderFactory,
             final QueryCriteriaValidator queryCriteriaValidator) {
 
-        this.queryFilterCriteriaFactory = new QueryFilterCriteriaFactory(criteriaFactory, fieldExpressionFactory);
+        this.queryFilterCriteriaFactory = QueryFilterCriteriaFactory.of(fieldExpressionFactory, predicateParser);
         this.fieldExpressionFactory = fieldExpressionFactory;
         this.queryBuilderFactory = queryBuilderFactory;
         this.queryCriteriaValidator = queryCriteriaValidator;
@@ -58,18 +60,17 @@ public final class QueryParser {
     /**
      * Create a QueryFactory.
      *
-     * @param criteriaFactory a factory to create criteria.
      * @param fieldExpressionFactory a factory to retrieve things field expressions.
      * @param queryBuilderFactory a factory to create a query builder.
      * @param queryCriteriaValidator a validator for queries.
      * @return the query factory.
      */
-    public static QueryParser of(final CriteriaFactory criteriaFactory,
-            final ThingsFieldExpressionFactory fieldExpressionFactory,
+    public static QueryParser of(final ThingsFieldExpressionFactory fieldExpressionFactory,
             final QueryBuilderFactory queryBuilderFactory,
             final QueryCriteriaValidator queryCriteriaValidator) {
 
-        return new QueryParser(criteriaFactory, fieldExpressionFactory, queryBuilderFactory, queryCriteriaValidator);
+        return new QueryParser(fieldExpressionFactory, RqlPredicateParser.getInstance(), queryBuilderFactory,
+                queryCriteriaValidator);
     }
 
     /**

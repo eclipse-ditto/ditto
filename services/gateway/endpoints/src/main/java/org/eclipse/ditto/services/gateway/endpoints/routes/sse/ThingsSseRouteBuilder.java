@@ -41,9 +41,8 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.SignalEnrichmentFailedException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
-import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
+import org.eclipse.ditto.model.rqlparser.RqlPredicateParser;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingFieldSelector;
 import org.eclipse.ditto.model.things.ThingId;
@@ -151,7 +150,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
             final ActorRef pubSubMediator) {
         checkNotNull(streamingActor, "streamingActor");
         final QueryFilterCriteriaFactory queryFilterCriteriaFactory =
-                new QueryFilterCriteriaFactory(new CriteriaFactoryImpl(), new ModelBasedThingsFieldExpressionFactory());
+                QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance());
 
         return new ThingsSseRouteBuilder(streamingActor, streamingConfig, queryFilterCriteriaFactory, pubSubMediator);
     }

@@ -40,11 +40,8 @@ import org.eclipse.ditto.model.jwt.ImmutableJsonWebToken;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.model.namespaces.NamespaceReader;
 import org.eclipse.ditto.model.query.criteria.Criteria;
-import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
-import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
-import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
-import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
+import org.eclipse.ditto.model.rqlparser.RqlPredicateParser;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.TopicPath;
@@ -666,11 +663,8 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     }
 
     private static Criteria parseCriteria(final String filter, final DittoHeaders dittoHeaders) {
-        final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
-        final ThingsFieldExpressionFactory fieldExpressionFactory =
-                new ModelBasedThingsFieldExpressionFactory();
         final QueryFilterCriteriaFactory queryFilterCriteriaFactory =
-                new QueryFilterCriteriaFactory(criteriaFactory, fieldExpressionFactory);
+                QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance());
 
         return queryFilterCriteriaFactory.filterCriteria(filter, dittoHeaders);
     }

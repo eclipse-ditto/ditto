@@ -17,7 +17,7 @@ import org.eclipse.ditto.model.query.criteria.visitors.PredicateVisitor;
 /**
  * Not equals predicate.
  */
-public class NePredicateImpl extends AbstractSinglePredicate {
+final class NePredicateImpl extends AbstractSinglePredicate {
 
     public NePredicateImpl(final Object value) {
         super(value);

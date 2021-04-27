@@ -341,7 +341,7 @@ public final class SearchSourceBuilder {
     private String validateFilter(@Nullable final String filter) {
         if (filter != null) {
             try {
-                new RqlPredicateParser().parse(filter);
+                RqlPredicateParser.getInstance().parse(filter);
             } catch (final ParserException e) {
                 throw InvalidRqlExpressionException.newBuilder()
                         .message("Invalid filter expression: " + filter)
@@ -355,7 +355,7 @@ public final class SearchSourceBuilder {
         // check sort expressions
         try {
             final ThingsFieldExpressionFactory fieldExpressionFactory =
-                    new ModelBasedThingsFieldExpressionFactory();
+                    ModelBasedThingsFieldExpressionFactory.getInstance();
             for (final SortOptionEntry entry : sort) {
                 fieldExpressionFactory.sortBy(entry.getPropertyPath().toString());
             }

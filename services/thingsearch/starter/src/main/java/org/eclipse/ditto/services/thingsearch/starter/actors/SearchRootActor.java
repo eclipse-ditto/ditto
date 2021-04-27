@@ -23,11 +23,8 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.query.QueryBuilderFactory;
-import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
-import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.expression.FieldExpressionUtil;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.base.actors.DittoRootActor;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
@@ -147,11 +144,10 @@ public final class SearchRootActor extends DittoRootActor {
     }
 
     protected static QueryParser getQueryParser(final LimitsConfig limitsConfig, final ActorSystem actorSystem) {
-        final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
         final ThingsFieldExpressionFactory fieldExpressionFactory = getThingsFieldExpressionFactory();
         final QueryBuilderFactory queryBuilderFactory = new MongoQueryBuilderFactory(limitsConfig);
         final QueryCriteriaValidator queryCriteriaValidator = QueryCriteriaValidator.get(actorSystem);
-        return QueryParser.of(criteriaFactory, fieldExpressionFactory, queryBuilderFactory, queryCriteriaValidator);
+        return QueryParser.of(fieldExpressionFactory, queryBuilderFactory, queryCriteriaValidator);
     }
 
     private ActorRef initializeHealthCheckActor(final SearchConfig searchConfig,
@@ -184,7 +180,7 @@ public final class SearchRootActor extends DittoRootActor {
         addMapping(mappings, Thing.JsonFields.MODIFIED);
         addMapping(mappings, Thing.JsonFields.CREATED);
         addMapping(mappings, Thing.JsonFields.DEFINITION);
-        return new ThingsFieldExpressionFactoryImpl(mappings);
+        return ThingsFieldExpressionFactory.of(mappings);
     }
 
     private static void addMapping(final Map<String, String> fieldMappings, final JsonFieldDefinition<?> definition) {

@@ -20,11 +20,10 @@ import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.query.criteria.visitors.CriteriaVisitor;
 
-
 /**
  * Criteria which performs a logical NOR of arbitrary criterias.
  */
-public class NorCriteriaImpl implements Criteria {
+final class NorCriteriaImpl implements Criteria {
 
     private final List<Criteria> criterias;
 

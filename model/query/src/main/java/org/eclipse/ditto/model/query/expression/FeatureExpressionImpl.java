@@ -16,22 +16,20 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.model.query.expression.visitors.ExistsFieldExpressionVisitor;
 import org.eclipse.ditto.model.query.expression.visitors.FieldExpressionVisitor;
 
 /**
- * Field expression for features itself with a given feature id.
+ * Immutable implementation of {@link FeatureExpression}.
  */
-public class FeatureExpressionImpl implements ExistsFieldExpression {
+@Immutable
+final class FeatureExpressionImpl implements FeatureExpression {
 
     private final String featureId;
 
-    /**
-     * Constructor.
-     *
-     * @param featureId the feature id.
-     */
-    public FeatureExpressionImpl(final String featureId) {
+    FeatureExpressionImpl(final String featureId) {
         this.featureId = requireNonNull(featureId);
     }
 
@@ -45,9 +43,7 @@ public class FeatureExpressionImpl implements ExistsFieldExpression {
         return visitor.visitFeature(featureId);
     }
 
-    /**
-     * @return the feature id.
-     */
+    @Override
     public String getFeatureId() {
         return featureId;
     }
@@ -73,6 +69,8 @@ public class FeatureExpressionImpl implements ExistsFieldExpression {
 
     @Override
     public String toString() {
-        return "FeatureExpression [featureId=" + featureId + "]";
+        return getClass().getSimpleName() + " [" +
+                "featureId=" + featureId +
+                "]";
     }
 }

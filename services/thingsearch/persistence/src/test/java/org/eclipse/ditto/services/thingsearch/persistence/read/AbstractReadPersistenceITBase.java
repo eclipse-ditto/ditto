@@ -14,7 +14,9 @@ package org.eclipse.ditto.services.thingsearch.persistence.read;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -31,6 +33,7 @@ import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.model.query.criteria.Criteria;
+import org.eclipse.ditto.model.query.expression.FieldExpressionUtil;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
@@ -44,6 +47,12 @@ import org.junit.Before;
 public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchPersistenceITBase {
 
     static final PolicyId POLICY_ID = PolicyId.of("global", "policy");
+
+    protected static final Map<String, String> SIMPLE_FIELD_MAPPINGS = new HashMap<>();
+    static {
+        SIMPLE_FIELD_MAPPINGS.put(FieldExpressionUtil.FIELD_NAME_THING_ID, FieldExpressionUtil.FIELD_ID);
+        SIMPLE_FIELD_MAPPINGS.put(FieldExpressionUtil.FIELD_NAME_NAMESPACE, FieldExpressionUtil.FIELD_NAMESPACE);
+    }
 
     private Enforcer policyEnforcer;
 

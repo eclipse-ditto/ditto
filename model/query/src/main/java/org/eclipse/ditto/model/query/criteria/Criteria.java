@@ -27,5 +27,5 @@ public interface Criteria {
      * @param visitor The visitor that performs the evaluation.
      * @return Result of the evaluation.
      */
-    <T> T accept(final CriteriaVisitor<T> visitor);
+    <T> T accept(CriteriaVisitor<T> visitor);
 }

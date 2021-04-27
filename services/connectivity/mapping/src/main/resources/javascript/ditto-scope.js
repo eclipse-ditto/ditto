@@ -4,9 +4,9 @@
  * @property {string} topic - The topic of the Ditto Protocol message
  * @property {string} path - The path containing the info what to change / what changed
  * @property {Object.<string, string>} headers - The Ditto headers
- * @property {*} value - The value to change to / changed value
- * @property {number} status - The status code that indicates the result of the command.
- * @property {Object} extra - The enriched extra fields when selected via "extraFields" option.
+ * @property {*} [value] - The value to change to / changed value
+ * @property {number} [status] - The status code that indicates the result of the command.
+ * @property {Object} [extra] - The enriched extra fields when selected via "extraFields" option.
  */
 
 /**
@@ -25,7 +25,7 @@ let Ditto = (function () {
   /**
    * Builds a Ditto Protocol message from the passed parameters.
    * @param {string} namespace - The namespace of the entity in java package notation, e.g.: "org.eclipse.ditto"
-   * @param {string} id - The ID of the entity
+   * @param {string} name - The name of the entity, e.g.: "device"
    * @param {string} group - The affected group/entity, one of: "things"
    * @param {string} channel - The channel for the signal, one of: "twin"|"live"
    * @param {string} criterion - The criterion to apply, one of: "commands"|"events"|"search"|"messages"|"errors"
@@ -33,22 +33,24 @@ let Ditto = (function () {
    * @param {string} path - The path which is affected by the message, e.g.: "/attributes"
    * @param {Object.<string, string>} dittoHeaders - The headers Object containing all Ditto Protocol header values
    * @param {*} [value] - The value to apply / which was applied (e.g. in a "modify" action)
-   * @param {number} status - The status code that indicates the result of the command.
-   * @param {Object} extra - The enriched extra fields when selected via "extraFields" option.
+   * @param {number} [status] - The status code that indicates the result of the command. If setting a status code,
+   * the Ditto Protocol Message will be interpreted as a response (e.g. content will be ignored when using 204).
+   * @param {Object} [extra] - The enriched extra fields when selected via "extraFields" option.
    * @returns {DittoProtocolMessage} dittoProtocolMessage(s) -
    *  The mapped Ditto Protocol message or
    *  <code>null</code> if the message could/should not be mapped
    */
-  function buildDittoProtocolMsg(namespace, id, group, channel, criterion, action, path, dittoHeaders, value, status, extra) {
+  function buildDittoProtocolMsg(namespace, name, group, channel, criterion, action,
+                                 path, dittoHeaders, value, status, extra) {
 
-    let dittoProtocolMsg = {};
-    dittoProtocolMsg.topic = namespace + "/" + id + "/" + group + "/" + channel + "/" + criterion + "/" + action;
-    dittoProtocolMsg.path = path;
-    dittoProtocolMsg.headers = dittoHeaders;
-    dittoProtocolMsg.value = value;
-    dittoProtocolMsg.status = status;
-    dittoProtocolMsg.extra = extra;
-    return dittoProtocolMsg;
+    return {
+      topic: namespace + "/" + name + "/" + group + "/" + channel + "/" + criterion + "/" + action,
+      path: path,
+      headers: dittoHeaders,
+      value: value,
+      status: status,
+      extra: extra,
+    };
   }
 
   /**
@@ -63,12 +65,12 @@ let Ditto = (function () {
    */
   function buildExternalMsg(headers, textPayload, bytePayload, contentType) {
 
-    let externalMsg = {};
-    externalMsg.headers = headers;
-    externalMsg.textPayload = textPayload;
-    externalMsg.bytePayload = bytePayload;
-    externalMsg.contentType = contentType;
-    return externalMsg;
+    return {
+      headers: headers,
+      textPayload: textPayload,
+      bytePayload: bytePayload,
+      contentType: contentType,
+    };
   }
 
   /**

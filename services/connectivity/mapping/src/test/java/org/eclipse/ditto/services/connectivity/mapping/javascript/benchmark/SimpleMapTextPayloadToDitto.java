@@ -41,7 +41,7 @@ public class SimpleMapTextPayloadToDitto implements MapToDittoProtocolScenario {
                     "    // ###\n" +
                     "    // Insert your mapping logic here\n" +
                     "    let namespace = \"org.eclipse.ditto\";\n" +
-                    "    let id = \"jmh-test\";\n" +
+                    "    let name = \"jmh-test\";\n" +
                     "    let group = \"things\";\n" +
                     "    let channel = \"twin\";\n" +
                     "    let criterion = \"commands\";\n" +
@@ -54,7 +54,7 @@ public class SimpleMapTextPayloadToDitto implements MapToDittoProtocolScenario {
                     "\n" +
                     "    return Ditto.buildDittoProtocolMsg(\n" +
                     "        namespace,\n" +
-                    "        id,\n" +
+                    "        name,\n" +
                     "        group,\n" +
                     "        channel,\n" +
                     "        criterion,\n" +

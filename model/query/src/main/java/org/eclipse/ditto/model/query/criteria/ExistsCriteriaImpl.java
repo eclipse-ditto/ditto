@@ -22,7 +22,7 @@ import org.eclipse.ditto.model.query.expression.ExistsFieldExpression;
 /**
  * Criteria implementation which can handle arbitrary field existence filters.
  */
-public class ExistsCriteriaImpl implements Criteria {
+final class ExistsCriteriaImpl implements Criteria {
 
     private final ExistsFieldExpression fieldExpression;
 

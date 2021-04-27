@@ -16,27 +16,23 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.model.query.expression.visitors.ExistsFieldExpressionVisitor;
 import org.eclipse.ditto.model.query.expression.visitors.FieldExpressionVisitor;
 import org.eclipse.ditto.model.query.expression.visitors.FilterFieldExpressionVisitor;
 import org.eclipse.ditto.model.query.expression.visitors.SortFieldExpressionVisitor;
 
 /**
- * Field expression for feature properties with a given feature id.
+ * Immutable implementation of {@link FeatureIdPropertyExpression}.
  */
-public class FeatureIdPropertyExpressionImpl
-        implements SortFieldExpression, FilterFieldExpression, ExistsFieldExpression {
+@Immutable
+final class FeatureIdPropertyExpressionImpl implements FeatureIdPropertyExpression {
 
     private final String property;
     private final String featureId;
 
-    /**
-     * Constructor.
-     *
-     * @param featureId the feature id
-     * @param property the feature property path
-     */
-    public FeatureIdPropertyExpressionImpl(final String featureId, final String property) {
+    FeatureIdPropertyExpressionImpl(final String featureId, final String property) {
         this.property = requireNonNull(property);
         this.featureId = requireNonNull(featureId);
     }
@@ -61,16 +57,12 @@ public class FeatureIdPropertyExpressionImpl
         return visitor.visitFeatureIdProperty(featureId, property);
     }
 
-    /**
-     * @return the feature id.
-     */
+    @Override
     public String getFeatureId() {
         return featureId;
     }
 
-    /**
-     * @return the property path.
-     */
+    @Override
     public String getProperty() {
         return property;
     }
@@ -96,6 +88,9 @@ public class FeatureIdPropertyExpressionImpl
 
     @Override
     public String toString() {
-        return "FeatureIdPropertyExpression [featureId=" + featureId + ", property=" + property + "]";
+        return getClass().getSimpleName() + " [" +
+                "property=" + property +
+                ", featureId=" + featureId +
+                "]";
     }
 }
