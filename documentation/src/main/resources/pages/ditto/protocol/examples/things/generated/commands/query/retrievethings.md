@@ -3,13 +3,15 @@
 ```json
 {
   "topic": "_/_/things/twin/commands/retrieve",
-  "headers": {},
+  "headers": {
+    "correlation-id": "<command-correlation-id>"
+  },
   "path": "/",
   "value": {
     "thingIds": [
-      "com.acme:xdk_53",
-      "com.acme:xdk_58",
-      "com.acme:xdk_67"
+      "org.eclipse.ditto:fancy-thing_53",
+      "org.eclipse.ditto:fancy-thing_58",
+      "org.eclipse.ditto:fancy-thing_67"
     ]
   }
 }

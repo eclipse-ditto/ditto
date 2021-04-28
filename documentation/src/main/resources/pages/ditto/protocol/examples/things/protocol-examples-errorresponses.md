@@ -1,12 +1,15 @@
 ---
-title: Error responses
+title: Things error responses
 keywords: examples, things error responses, error responses
 search: exclude
 permalink: protocol-examples-errorresponses.html
 ---
 
-{% capture thingerrorresponse %}{% include_relative generated/exceptions/thingerrorresponse.md %}{% endcapture %}
-{{ thingerrorresponse | markdownify }}
+The following listed example errors do not claim to be a complete list of all available and possible error responses.  
+Also, their texts and **error** codes might be outdated.
+
+In order to find out all currently available errors, please inspect Ditto's codebase and look at all implementations of
+the `ThingException` interface.
 
 {% capture things_attribute_notmodifiable %}{% include_relative generated/exceptions/things_attribute_notmodifiable.md %}{% endcapture %}
 {{ things_attribute_notmodifiable | markdownify }}

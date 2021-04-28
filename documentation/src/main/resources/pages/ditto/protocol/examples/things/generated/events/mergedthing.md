@@ -2,15 +2,15 @@
 
 ```json
 {
-  "topic": "com.acme/xdk_53/things/twin/events/merged",
+  "topic": "org.eclipse.ditto/fancy-thing/things/twin/events/merged",
   "headers": {
     "content-type": "application/merge-patch+json"
   },
   "path": "/",
   "value": {
-    "thingId": "com.acme:xdk_53",
-    "policyId": "com.acme:the_policy_id",
-    "definition": "com.acme:XDKmodel:1.0.0",
+    "thingId": "org.eclipse.ditto:fancy-thing_53",
+    "policyId": "org.eclipse.ditto:the_policy_id",
+    "definition": "org.eclipse.ditto:SomeModel:1.0.0",
     "attributes": {
       "location": {
         "latitude": 44.673856,
@@ -20,7 +20,7 @@
     "features": {
       "accelerometer": {
         "definition": [
-          "com.acme:accelerometer:1.0.0"
+          "org.eclipse.ditto:accelerometer:1.0.0"
         ],
         "properties": {
           "x": 3.141,

@@ -2,15 +2,16 @@
 
 ```json
 {
-  "topic": "com.acme/xdk_53/things/twin/commands/merge",
+  "topic": "org.eclipse.ditto/fancy-thing/things/twin/commands/merge",
   "headers": {
-    "content-type": "application/merge-patch+json"
+    "content-type": "application/merge-patch+json",
+    "correlation-id": "<command-correlation-id>"
   },
   "path": "/features",
   "value": {
     "accelerometer": {
       "definition": [
-        "com.acme:accelerometer:1.0.0"
+        "org.eclipse.ditto:accelerometer:1.0.0"
       ],
       "properties": {
         "x": 3.141,
