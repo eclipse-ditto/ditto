@@ -29,7 +29,6 @@
     <modules>
         <module>models</module>
         <module>utils</module>
-        <module>legal</module>
     </modules>
 
     <properties>
