@@ -97,6 +97,20 @@ public final class HttpUtils {
         return authorizationHeader.isPresent();
     }
 
+    /**
+     * Checks whether the given request contains a query parameter containing the access token.
+     *
+     * @param requestContext the context of the request
+     * @param parameter the name of the query parameter
+     * @return {@code true}, if the request contains a matching query parameter
+     */
+    public static boolean containsQueryParameter(final RequestContext requestContext, final String parameter) {
+        return requestContext.getRequest()
+                .getUri()
+                .query()
+                .get(parameter).isPresent();
+    }
+
     public static boolean basicAuthUsernameMatches(final RequestContext requestContext, final Pattern uuidPattern) {
         final HttpRequest httpRequest = requestContext.getRequest();
         return httpRequest.getHeader(Authorization.class)

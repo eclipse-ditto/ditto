@@ -14,21 +14,21 @@ package org.eclipse.ditto.services.gateway.security.authentication.jwt;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.junit.Before;
-import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.junit.Test;
+
+import akka.http.javadsl.server.RequestContext;
 
 /**
  * Tests {@link JwtAuthenticationProvider}.
  */
-@RunWith(MockitoJUnitRunner.class)
-public final class JwtAuthenticationProviderTest extends AbstractJwtAuthenticationProviderTest {
+public final class WebSocketJwtAuthenticationProviderTest extends AbstractJwtAuthenticationProviderTest {
 
     private JwtAuthenticationProvider underTest;
 
     @Before
     public void setup() {
         knownDittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
-        underTest = JwtAuthenticationProvider.newInstance(authenticationContextProvider, jwtValidator);
+        underTest = JwtAuthenticationProvider.newWsInstance(authenticationContextProvider, jwtValidator);
     }
 
     @Override
@@ -38,11 +38,18 @@ public final class JwtAuthenticationProviderTest extends AbstractJwtAuthenticati
 
     @Override
     protected boolean supportsAccessTokenParameter() {
-        return false;
+        return true;
     }
 
     @Override
     protected String getExpectedMissingJwtDescription() {
-        return "Please provide a valid JWT in the authorization header prefixed with 'Bearer '.";
+        return "Please provide a valid JWT in the authorization header prefixed with 'Bearer ' or as query" +
+                " parameter 'access_token'.";
+    }
+
+    @Test
+    public void doExtractAuthenticationWithInvalidJwtFromAccessTokenParameter() {
+        final RequestContext requestContext = mockRequestContext(URI_WITH_ACCESS_TOKEN_PARAMETER);
+        doExtractAuthenticationWithInvalidJwt(getUnderTest(), requestContext);
     }
 }

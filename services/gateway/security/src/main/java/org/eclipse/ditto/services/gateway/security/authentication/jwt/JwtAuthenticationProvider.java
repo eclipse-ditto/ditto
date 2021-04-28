@@ -23,13 +23,10 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContextType;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.jwt.ImmutableJsonWebToken;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
-import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.services.gateway.security.authentication.DefaultAuthenticationResult;
 import org.eclipse.ditto.services.gateway.security.authentication.TimeMeasuringAuthenticationProvider;
-import org.eclipse.ditto.services.gateway.security.utils.HttpUtils;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
@@ -42,26 +39,26 @@ import akka.http.javadsl.server.RequestContext;
 @NotThreadSafe
 public final class JwtAuthenticationProvider extends TimeMeasuringAuthenticationProvider<AuthenticationResult> {
 
-    private static final String AUTHORIZATION_JWT = "Bearer";
-
     private static final ThreadSafeDittoLogger LOGGER =
             DittoLoggerFactory.getThreadSafeLogger(JwtAuthenticationProvider.class);
 
     private final JwtAuthenticationResultProvider jwtAuthResultProvider;
     private final JwtValidator jwtValidator;
+    private final JwtExtractor jwtExtractor;
 
     private JwtAuthenticationProvider(final JwtAuthenticationResultProvider jwtAuthenticationResultProvider,
-            final JwtValidator jwtValidator) {
+            final JwtValidator jwtValidator, final JwtExtractor jwtExtractor) {
 
         super(LOGGER);
         jwtAuthResultProvider = checkNotNull(jwtAuthenticationResultProvider, "jwtAuthorizationContextProvider");
         this.jwtValidator = checkNotNull(jwtValidator, "jwtValidator");
+        this.jwtExtractor = checkNotNull(jwtExtractor, "jwtExtractor");
     }
 
     /**
-     * Creates a new instance of the JWT authentication provider.
+     * Creates a new instance of the JWT authentication provider that extracts the JWT from the Authorization header.
      *
-     * @param jwtValidator the .
+     * @param jwtValidator the JWT validator
      * @param jwtAuthenticationResultProvider builds the authorization context based on the JWT.
      * @return the created instance.
      * @throws NullPointerException if any argument is {@code null}.
@@ -69,7 +66,24 @@ public final class JwtAuthenticationProvider extends TimeMeasuringAuthentication
     public static JwtAuthenticationProvider newInstance(
             final JwtAuthenticationResultProvider jwtAuthenticationResultProvider, final JwtValidator jwtValidator) {
 
-        return new JwtAuthenticationProvider(jwtAuthenticationResultProvider, jwtValidator);
+        return new JwtAuthenticationProvider(jwtAuthenticationResultProvider, jwtValidator,
+                DefaultJwtExtractor.getInstance());
+    }
+
+    /**
+     * Creates a new instance of the JWT authentication provider that extracts the JWT also from the {@code access_token}
+     * query parameter in addition to the Authorization header.
+     *
+     * @param jwtValidator the JWT validator
+     * @param jwtAuthenticationResultProvider builds the authorization context based on the JWT.
+     * @return the created instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static JwtAuthenticationProvider newWsInstance(
+            final JwtAuthenticationResultProvider jwtAuthenticationResultProvider, final JwtValidator jwtValidator) {
+
+        return new JwtAuthenticationProvider(jwtAuthenticationResultProvider, jwtValidator,
+                WebSocketJwtExtractor.getInstance());
     }
 
     /**
@@ -82,7 +96,7 @@ public final class JwtAuthenticationProvider extends TimeMeasuringAuthentication
      */
     @Override
     public boolean isApplicable(final RequestContext requestContext) {
-        return HttpUtils.containsAuthorizationForPrefix(requestContext, AUTHORIZATION_JWT);
+        return jwtExtractor.isApplicable(requestContext);
     }
 
     /**
@@ -96,11 +110,12 @@ public final class JwtAuthenticationProvider extends TimeMeasuringAuthentication
     protected CompletableFuture<AuthenticationResult> tryToAuthenticate(final RequestContext requestContext,
             final DittoHeaders dittoHeaders) {
 
-        final Optional<JsonWebToken> jwtOptional = extractJwtFromRequest(requestContext);
+        final Optional<JsonWebToken> jwtOptional = jwtExtractor.apply(requestContext, dittoHeaders);
         if (jwtOptional.isEmpty()) {
             LOGGER.withCorrelationId(dittoHeaders).debug("JWT is missing.");
             return CompletableFuture.completedFuture(
-                    DefaultAuthenticationResult.failed(dittoHeaders, buildMissingJwtException(dittoHeaders)));
+                    DefaultAuthenticationResult.failed(dittoHeaders,
+                            jwtExtractor.buildMissingJwtException(dittoHeaders)));
         }
 
         final CompletableFuture<AuthenticationResult> authenticationResultFuture =
@@ -108,19 +123,6 @@ public final class JwtAuthenticationProvider extends TimeMeasuringAuthentication
                         .exceptionally(throwable -> toFailedAuthenticationResult(throwable, dittoHeaders));
 
         return failOnTimeout(authenticationResultFuture, dittoHeaders);
-    }
-
-    private static Optional<JsonWebToken> extractJwtFromRequest(final RequestContext requestContext) {
-        return HttpUtils.getRequestHeader(requestContext, HttpHeader.AUTHORIZATION.toString())
-                .map(ImmutableJsonWebToken::fromAuthorization);
-    }
-
-    private static DittoRuntimeException buildMissingJwtException(final DittoHeaders dittoHeaders) {
-        return GatewayAuthenticationFailedException
-                .newBuilder("The JWT was missing.")
-                .description("Please provide a valid JWT in the authorization header prefixed with 'Bearer '")
-                .dittoHeaders(dittoHeaders)
-                .build();
     }
 
     @SuppressWarnings("ConstantConditions")
