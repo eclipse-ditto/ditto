@@ -933,6 +933,9 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             probe.expectMsg(openConnection);
             expectMsg(createConnectionResponse);
 
+            //Close logging which are automatically enabled via create connection
+            underTest.tell(LoggingExpired.of(connectionId, DittoHeaders.empty()), getRef());
+
             // enable connection logs
             underTest.tell(enableConnectionLogs, getRef());
             probe.expectMsg(enableConnectionLogs);
