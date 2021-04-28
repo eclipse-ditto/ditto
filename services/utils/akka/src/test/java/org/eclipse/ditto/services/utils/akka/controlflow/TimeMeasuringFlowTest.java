@@ -19,6 +19,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
@@ -42,6 +43,7 @@ import akka.stream.javadsl.Source;
 import akka.stream.testkit.TestSubscriber;
 import akka.stream.testkit.javadsl.TestSink;
 import akka.testkit.javadsl.TestKit;
+import scala.jdk.javaapi.CollectionConverters;
 
 /**
  * Unit tests for {@link TimeMeasuringFlow}.
@@ -89,10 +91,13 @@ public final class TimeMeasuringFlowTest {
                     .to(testSink)
                     .run(system);
 
-            for (int i = 0; i < 10; i++) {
-                sinkProbe.request(1L);
-                sinkProbe.expectNext("Test");
+            final int numberOfRepetitions = 10;
+            final ArrayList<String> expectedResults = new ArrayList<>(numberOfRepetitions);
+            for (int i = 0; i < numberOfRepetitions; i++) {
+                expectedResults.add("Test");
             }
+            sinkProbe.request(numberOfRepetitions);
+            sinkProbe.expectNextN(CollectionConverters.asScala(expectedResults).toSeq());
 
             final double averageDurationInNanos = durations.stream()
                     .mapToLong(Duration::toNanos)
@@ -100,7 +105,40 @@ public final class TimeMeasuringFlowTest {
                     .orElseThrow();
             final Offset<Double> fiveMsOffset = Offset.offset((double) Duration.ofMillis(5).toNanos());
             assertThat(averageDurationInNanos).isCloseTo(sleepDuration.toNanos(), fiveMsOffset);
-            verify(timerMock, times(10)).start();
+            verify(timerMock, times(numberOfRepetitions)).start();
+        }};
+    }
+
+    @Test
+    public void keepsParallelism() {
+        final Duration sleepDuration = Duration.ofMillis(100);
+        final Flow<String, String, NotUsed> flowThatNeedsSomeTimeButUsesParallelism =
+                Flow.<String>create().flatMapMerge(10, input -> Source.single(input).via
+                        (Flow.<String, String>fromFunction(x -> {
+                            TimeUnit.MILLISECONDS.sleep(sleepDuration.toMillis());
+                            return x;
+                        }).async()));
+
+        final PreparedTimer timer = DittoMetrics.timer("test-time-measuring-flow");
+        final PreparedTimer timerMock = mock(PreparedTimer.class);
+        when(timerMock.start()).thenAnswer(AdditionalAnswers.delegatesTo(timer));
+        new TestKit(system) {{
+            Source.repeat("Test")
+                    .via(TimeMeasuringFlow.measureTimeOf(flowThatNeedsSomeTimeButUsesParallelism, timerMock))
+                    .to(testSink)
+                    .run(system);
+
+            final int numberOfRepetitions = 10;
+            final ArrayList<String> expectedResults = new ArrayList<>(numberOfRepetitions);
+            for (int i = 0; i < numberOfRepetitions; i++) {
+                expectedResults.add("Test");
+            }
+            final Instant start = Instant.now();
+            sinkProbe.request(numberOfRepetitions);
+            sinkProbe.expectNextN(CollectionConverters.asScala(expectedResults).toSeq());
+            final Instant end = Instant.now();
+            final Duration duration = Duration.ofMillis(end.toEpochMilli() - start.toEpochMilli());
+            assertThat(duration).isLessThan(sleepDuration.multipliedBy(numberOfRepetitions));
         }};
     }
 
