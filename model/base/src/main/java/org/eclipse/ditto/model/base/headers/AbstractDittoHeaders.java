@@ -69,7 +69,7 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
     protected AbstractDittoHeaders(final Map<String, String> headers) {
         checkNotNull(headers, "headers");
         if (headers instanceof AbstractDittoHeaders) {
-            // Share the map from the other AbstractDittoHeaders--it is not modifiable. Otherwise case is not preserved.
+            // Share the map from the other AbstractDittoHeaders -- it is not modifiable. Otherwise case is not preserved.
             this.headers = ((AbstractDittoHeaders) headers).headers;
         } else {
             this.headers = indexByLowerCase(headers);

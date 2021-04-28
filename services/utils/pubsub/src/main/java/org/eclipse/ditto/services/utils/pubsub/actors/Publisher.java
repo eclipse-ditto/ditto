@@ -97,6 +97,7 @@ public final class Publisher extends AbstractActor {
      * @return a publish message.
      */
     public static Request publish(final Collection<String> topics, final SignalWithEntityId<?> message) {
+
         return new Publish(topics, message);
     }
 

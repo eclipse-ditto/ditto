@@ -70,6 +70,7 @@ final class PublisherIndex<T> {
                         })
                         )
                 );
+
         return new PublisherIndex<>(combinedIndex, Map.of());
     }
 
@@ -79,6 +80,7 @@ final class PublisherIndex<T> {
                 groupedList.forEach(grouped -> grouped.getValues()
                         .forEach(computeIndex(index, subscriber, grouped.getGroup().orElse("")))
                 ));
+
         return new PublisherIndex<>(index, Map.of());
     }
 
@@ -89,11 +91,13 @@ final class PublisherIndex<T> {
             data.getFilter().ifPresent(filter -> filterMap.put(subscriber, filter));
             data.getTopics().forEach(computeIndex(index, subscriber, data.getGroup().orElse("")));
         });
+
         return new PublisherIndex<>(index, filterMap);
     }
 
     List<Pair<ActorRef, PublishSignal>> assignGroupsToSubscribers(final SignalWithEntityId<?> signal,
             final Collection<T> topics) {
+
         return assignGroupsToSubscribers(signal, topics, null);
     }
 
@@ -161,6 +165,7 @@ final class PublisherIndex<T> {
             return false;
         }
         final PublisherIndex<?> that = (PublisherIndex<?>) o;
+
         return index.equals(that.index) && filterMap.equals(that.filterMap);
     }
 

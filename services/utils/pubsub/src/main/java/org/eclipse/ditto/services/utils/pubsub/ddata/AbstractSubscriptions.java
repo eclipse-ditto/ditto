@@ -79,10 +79,10 @@ public abstract class AbstractSubscriptions<R, T extends DDataUpdate<R>> impleme
             @Nullable final String group) {
         if (!topics.isEmpty()) {
             // box the 'changed' flag in an array so that it can be assigned inside a closure.
-            final boolean[] changed = new boolean[1];
+            final var changed = new boolean[1];
 
             // add topics and filter.
-            final SubscriberData subscriberData = SubscriberData.of(topics, filter, group);
+            final var subscriberData = SubscriberData.of(topics, filter, group);
             subscriberDataMap.merge(subscriber, subscriberData, (oldData, newData) -> {
                 changed[0] = !oldData.getFilter().equals(newData.getFilter());
                 // TODO YC check if when the unionSet of topics differ from the oldData.getTopics()
@@ -113,7 +113,7 @@ public abstract class AbstractSubscriptions<R, T extends DDataUpdate<R>> impleme
     @Override
     public boolean unsubscribe(final ActorRef subscriber, final Set<String> topics) {
         // box 'changed' flag for assignment inside closure
-        final boolean[] changed = new boolean[1];
+        final var changed = new boolean[1];
         subscriberDataMap.computeIfPresent(subscriber, (k, subscriberData) -> {
             final Set<String> previousTopics = subscriberData.getTopics();
             final List<String> removed = new ArrayList<>();
@@ -140,7 +140,7 @@ public abstract class AbstractSubscriptions<R, T extends DDataUpdate<R>> impleme
     @Override
     public boolean removeSubscriber(final ActorRef subscriber) {
         // box 'changed' flag in array for assignment inside closure
-        final boolean[] changed = new boolean[1];
+        final var changed = new boolean[1];
         subscriberDataMap.computeIfPresent(subscriber, (k, data) -> {
             changed[0] = removeSubscriberForTopics(subscriber, data.getTopics());
             return null;
@@ -167,7 +167,7 @@ public abstract class AbstractSubscriptions<R, T extends DDataUpdate<R>> impleme
 
     private boolean removeSubscriberForTopics(final ActorRef subscriber, final Collection<String> topics) {
         // box 'changed' flag for assignment inside closure
-        final boolean[] changed = new boolean[1];
+        final var changed = new boolean[1];
         for (final String topic : topics) {
             topicDataMap.computeIfPresent(topic, (k, data) -> {
                 changed[0] |= data.removeSubscriber(subscriber);
