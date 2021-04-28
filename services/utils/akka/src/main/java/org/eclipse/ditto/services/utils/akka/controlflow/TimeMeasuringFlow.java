@@ -88,8 +88,6 @@ public final class TimeMeasuringFlow {
             final Flow<Pair<StartedTimer, O>, Duration, NotUsed> stopTimerFlow =
                     Flow.<Pair<StartedTimer, O>, Duration>fromFunction(pair -> pair.first().stop().getDuration());
 
-            final Sink<Pair<StartedTimer, O>, NotUsed> stopTimerSink = stopTimerFlow.to(durationSink);
-
             final Flow<I, StartedTimer, NotUsed> startTimerFlow = Flow.fromFunction(request -> timer.start());
 
             // its important that outlet 0 is connected to the timers, to guarantee that the timer is started first
@@ -101,7 +99,8 @@ public final class TimeMeasuringFlow {
                     .toInlet(zip.in1());
 
             builder.from(zip.out())
-                    .to(builder.add(stopTimerSink.async()));
+                    .via(builder.add(stopTimerFlow.async()))
+                    .to(builder.add(durationSink));
 
             builder.from(beforeTimerBroadcast.out(1))
                     .via(flowShape)
