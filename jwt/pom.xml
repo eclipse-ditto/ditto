@@ -24,7 +24,7 @@
 
     <artifactId>ditto-jwt</artifactId>
     <packaging>pom</packaging>
-    <name>Eclipse Ditto :: Things</name>
+    <name>Eclipse Ditto :: JWT</name>
 
     <modules>
         <module>model</module>
