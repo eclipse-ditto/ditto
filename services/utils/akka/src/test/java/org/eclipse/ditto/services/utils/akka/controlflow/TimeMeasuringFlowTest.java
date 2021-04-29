@@ -144,6 +144,7 @@ public final class TimeMeasuringFlowTest {
             final Instant end = Instant.now();
             final Duration duration = Duration.ofMillis(end.toEpochMilli() - start.toEpochMilli());
             assertThat(duration).isLessThan(sleepDuration.multipliedBy(numberOfRepetitions));
+            verify(timerMock, times(numberOfRepetitions)).start();
         }};
     }
 
