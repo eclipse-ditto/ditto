@@ -14,15 +14,15 @@ package org.eclipse.ditto.protocol;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.eclipse.ditto.model.messages.MessageDirection.FROM;
-import static org.eclipse.ditto.model.messages.MessageDirection.TO;
+import static org.eclipse.ditto.messages.model.MessageDirection.FROM;
+import static org.eclipse.ditto.messages.model.MessageDirection.TO;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.OptionalAssert;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.messages.MessageDirection;
+import org.eclipse.ditto.messages.model.MessageDirection;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

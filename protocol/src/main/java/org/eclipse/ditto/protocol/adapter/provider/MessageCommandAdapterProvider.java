@@ -13,8 +13,8 @@
 package org.eclipse.ditto.protocol.adapter.provider;
 
 import org.eclipse.ditto.protocol.adapter.Adapter;
-import org.eclipse.ditto.model.messages.signals.commands.MessageCommand;
-import org.eclipse.ditto.model.messages.signals.commands.MessageCommandResponse;
+import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
+import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 
 /**
  * Interface providing the message command adapter and the message command response adapter.

@@ -24,7 +24,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.messages.MessageDirection;
+import org.eclipse.ditto.messages.model.MessageDirection;
 
 /**
  * Immutable implementation of {@link org.eclipse.ditto.protocol.MessagePath}.

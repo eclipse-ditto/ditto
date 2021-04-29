@@ -12,11 +12,11 @@
  */
 package org.eclipse.ditto.protocol.mappingstrategies;
 
-import static org.eclipse.ditto.model.messages.MessageHeaderDefinition.DIRECTION;
-import static org.eclipse.ditto.model.messages.MessageHeaderDefinition.FEATURE_ID;
-import static org.eclipse.ditto.model.messages.MessageHeaderDefinition.STATUS_CODE;
-import static org.eclipse.ditto.model.messages.MessageHeaderDefinition.SUBJECT;
-import static org.eclipse.ditto.model.messages.MessageHeaderDefinition.THING_ID;
+import static org.eclipse.ditto.messages.model.MessageHeaderDefinition.DIRECTION;
+import static org.eclipse.ditto.messages.model.MessageHeaderDefinition.FEATURE_ID;
+import static org.eclipse.ditto.messages.model.MessageHeaderDefinition.STATUS_CODE;
+import static org.eclipse.ditto.messages.model.MessageHeaderDefinition.SUBJECT;
+import static org.eclipse.ditto.messages.model.MessageHeaderDefinition.THING_ID;
 
 import java.util.Map;
 
@@ -26,11 +26,11 @@ import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.messages.Message;
-import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
-import org.eclipse.ditto.model.messages.MessageHeaders;
-import org.eclipse.ditto.model.messages.MessagesModelFactory;
-import org.eclipse.ditto.model.messages.signals.commands.MessageDeserializer;
+import org.eclipse.ditto.messages.model.Message;
+import org.eclipse.ditto.messages.model.MessageHeaderDefinition;
+import org.eclipse.ditto.messages.model.MessageHeaders;
+import org.eclipse.ditto.messages.model.MessagesModelFactory;
+import org.eclipse.ditto.messages.model.signals.commands.MessageDeserializer;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableMapper;
 import org.eclipse.ditto.protocol.MessagePath;
@@ -61,9 +61,9 @@ abstract class AbstractMessageMappingStrategies<T extends Jsonifiable.WithPredic
      * <li>contains headers with a value that did not represent its appropriate Java type or</li>
      * <li>if the headers of {@code adaptable} did lack a mandatory header.</li>
      * </ul>
-     * @throws org.eclipse.ditto.model.messages.SubjectInvalidException if {@code initialHeaders} contains an invalid
+     * @throws org.eclipse.ditto.messages.model.SubjectInvalidException if {@code initialHeaders} contains an invalid
      * value for {@link MessageHeaderDefinition#SUBJECT}.
-     * @throws org.eclipse.ditto.model.messages.MessagePayloadSizeTooLargeException if the message's payload is too
+     * @throws org.eclipse.ditto.messages.model.MessagePayloadSizeTooLargeException if the message's payload is too
      * large
      */
     @SuppressWarnings({"rawtypes", "java:S3740"})
@@ -93,7 +93,7 @@ abstract class AbstractMessageMappingStrategies<T extends Jsonifiable.WithPredic
      * <li>contains headers with a value that did not represent its appropriate Java type or</li>
      * <li>if the headers of {@code adaptable} did lack a mandatory header.</li>
      * </ul>
-     * @throws org.eclipse.ditto.model.messages.SubjectInvalidException if {@code initialHeaders} contains an invalid
+     * @throws org.eclipse.ditto.messages.model.SubjectInvalidException if {@code initialHeaders} contains an invalid
      * value for {@link MessageHeaderDefinition#SUBJECT}.
      */
     protected static MessageHeaders messageHeadersFrom(final Adaptable adaptable) {

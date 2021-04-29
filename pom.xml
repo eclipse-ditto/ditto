@@ -192,7 +192,6 @@
         <module>documentation</module>
         <module>json</module>
         <module>json-cbor</module>
-        <module>model</module>
         <module>protocol</module>
         <module>utils</module>
         <module>services</module>
@@ -205,6 +204,7 @@
         <module>thingsearch</module>
         <module>rql</module>
         <module>jwt</module>
+        <module>messages</module>
     </modules>
 
     <properties>

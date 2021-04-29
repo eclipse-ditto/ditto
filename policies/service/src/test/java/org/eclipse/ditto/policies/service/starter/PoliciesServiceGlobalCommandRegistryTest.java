@@ -21,7 +21,7 @@ import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
 import org.eclipse.ditto.base.api.common.Shutdown;
 import org.eclipse.ditto.base.api.common.purge.PurgeEntities;
 import org.eclipse.ditto.base.api.devops.signals.commands.ExecutePiggybackCommand;
-import org.eclipse.ditto.model.messages.signals.commands.SendClaimMessage;
+import org.eclipse.ditto.messages.model.signals.commands.SendClaimMessage;
 import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespace;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubject;

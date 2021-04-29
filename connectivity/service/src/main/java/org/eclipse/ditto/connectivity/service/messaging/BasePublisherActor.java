@@ -76,7 +76,7 @@ import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.model.messages.signals.commands.MessageCommand;
+import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 

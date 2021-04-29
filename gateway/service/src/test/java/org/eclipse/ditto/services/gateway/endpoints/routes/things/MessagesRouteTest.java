@@ -26,7 +26,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
-import org.eclipse.ditto.model.messages.signals.commands.MessageCommand;
+import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;

@@ -19,16 +19,16 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.model.messages.Message;
+import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.things.model.WithThingId;
 import org.eclipse.ditto.protocol.PayloadBuilder;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.model.messages.signals.commands.MessageCommand;
-import org.eclipse.ditto.model.messages.signals.commands.MessageCommandResponse;
-import org.eclipse.ditto.model.messages.signals.commands.WithMessage;
+import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
+import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
+import org.eclipse.ditto.messages.model.signals.commands.WithMessage;
 
 /**
  * This is a SignalMapper for message signals.

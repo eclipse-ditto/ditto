@@ -459,7 +459,7 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-model-messages</artifactId>
+                <artifactId>ditto-messages-model</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

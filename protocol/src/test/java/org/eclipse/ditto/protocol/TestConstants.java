@@ -37,7 +37,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
+import org.eclipse.ditto.messages.model.MessageHeaderDefinition;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;

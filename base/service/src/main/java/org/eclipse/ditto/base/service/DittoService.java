@@ -43,7 +43,7 @@ import org.eclipse.ditto.services.utils.metrics.prometheus.PrometheusReporterRou
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.WithMongoDbConfig;
 import org.eclipse.ditto.base.model.signals.FeatureToggle;
-import org.eclipse.ditto.model.messages.signals.commands.MessageCommandSizeValidator;
+import org.eclipse.ditto.messages.model.signals.commands.MessageCommandSizeValidator;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandSizeValidator;
 import org.slf4j.Logger;

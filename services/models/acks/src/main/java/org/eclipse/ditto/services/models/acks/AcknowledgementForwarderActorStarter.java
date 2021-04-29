@@ -33,7 +33,7 @@ import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.AcknowledgementRequestDuplicateCorrelationIdException;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.model.messages.signals.commands.MessageCommand;
+import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 

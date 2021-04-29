@@ -43,7 +43,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-model-messages</artifactId>
+            <artifactId>ditto-messages-model</artifactId>
         </dependency>
 
         <!-- ### Provided ### -->

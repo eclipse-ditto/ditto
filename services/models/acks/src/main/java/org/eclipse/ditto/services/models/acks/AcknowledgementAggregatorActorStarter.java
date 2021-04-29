@@ -34,7 +34,7 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.model.messages.signals.commands.MessageCommand;
+import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 

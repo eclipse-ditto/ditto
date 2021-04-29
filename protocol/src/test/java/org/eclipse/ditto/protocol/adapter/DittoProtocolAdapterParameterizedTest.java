@@ -41,8 +41,8 @@ import org.eclipse.ditto.protocol.adapter.provider.AcknowledgementAdapterProvide
 import org.eclipse.ditto.protocol.adapter.provider.PolicyCommandAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.provider.ThingCommandAdapterProvider;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.model.messages.signals.commands.MessageCommand;
-import org.eclipse.ditto.model.messages.signals.commands.MessageCommandResponse;
+import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
+import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommandResponse;

@@ -16,7 +16,7 @@ import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.messages.MessageDirection;
+import org.eclipse.ditto.messages.model.MessageDirection;
 
 /**
  * Represent the {@code path} field of Ditto protocol messages.

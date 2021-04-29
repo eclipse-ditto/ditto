@@ -25,7 +25,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityErrorRe
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnectionResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionResponse;
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveLoggerConfigResponse;
-import org.eclipse.ditto.model.messages.signals.commands.SendClaimMessageResponse;
+import org.eclipse.ditto.messages.model.signals.commands.SendClaimMessageResponse;
 import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespaceResponse;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegrationResponse;
