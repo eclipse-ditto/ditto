@@ -46,8 +46,9 @@ for the following browser based requests:
    * sending along a JWT token as `Authorization` header with `Bearer` value
 * Establishing a [WebSocket](httpapi-protocol-bindings-websocket.html) connection for bidirectional communication with 
   Ditto via [Ditto Protocol](protocol-overview.html) JSON messages
-   * open: sending along the `Authorization` header containing the `Bearer` JWT token is not possible in the plain 
-     WebSocket API in the browser - Watch issue [#661](https://github.com/eclipse/ditto/issues/667) for fixing that
+   * sending along a JWT token as `Authorization` header with `Bearer` value (recommended)
+   * sending along a JWT token as query parameter `access_token` (use only if the websocket client does not 
+   support setting http headers e.g. plain WebSocket API of browsers)
 * Opening a [Server sent event](httpapi-sse.html) connection in order to receive change notifications of twins in the 
   browser
    * passing the `withCredentials: true` option when creating the SSE in the browser

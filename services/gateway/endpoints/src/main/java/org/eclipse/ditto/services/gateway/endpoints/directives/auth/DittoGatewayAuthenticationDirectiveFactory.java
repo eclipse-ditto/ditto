@@ -24,6 +24,8 @@ import org.eclipse.ditto.services.gateway.security.authentication.Authentication
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationProvider;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationFactory;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationProvider;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationResultProvider;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtValidator;
 import org.eclipse.ditto.services.gateway.security.authentication.preauth.PreAuthenticatedAuthenticationProvider;
 import org.eclipse.ditto.services.gateway.util.config.security.AuthenticationConfig;
 import org.slf4j.Logger;
@@ -36,7 +38,8 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DittoGatewayAuthenticationDirectiveFactory.class);
 
-    private final GatewayAuthenticationDirective gatewayAuthenticationDirective;
+    private final GatewayAuthenticationDirective gatewayHttpAuthenticationDirective;
+    private final GatewayAuthenticationDirective gatewayWsAuthenticationDirective;
 
     public DittoGatewayAuthenticationDirectiveFactory(final AuthenticationConfig authConfig,
             final JwtAuthenticationFactory jwtAuthenticationFactory,
@@ -46,23 +49,35 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
         checkNotNull(authConfig, "AuthenticationConfig");
         checkNotNull(authenticationDispatcher, "authentication dispatcher");
 
-        gatewayAuthenticationDirective = generateGatewayAuthenticationDirective(authConfig, jwtAuthenticationFactory,
-                authenticationDispatcher);
+        final JwtAuthenticationResultProvider jwtAuthenticationResultProvider =
+                jwtAuthenticationFactory.newJwtAuthenticationResultProvider();
+        final JwtValidator jwtValidator = jwtAuthenticationFactory.getJwtValidator();
+
+        final JwtAuthenticationProvider jwtHttpAuthenticationProvider =
+                JwtAuthenticationProvider.newInstance(jwtAuthenticationResultProvider, jwtValidator);
+        final JwtAuthenticationProvider jwtWsAuthenticationProvider =
+                JwtAuthenticationProvider.newWsInstance(jwtAuthenticationResultProvider, jwtValidator);
+
+        gatewayHttpAuthenticationDirective =
+                generateGatewayAuthenticationDirective(authConfig, jwtHttpAuthenticationProvider,
+                        authenticationDispatcher);
+        gatewayWsAuthenticationDirective =
+                generateGatewayAuthenticationDirective(authConfig, jwtWsAuthenticationProvider,
+                        authenticationDispatcher);
     }
 
     @Override
     public GatewayAuthenticationDirective buildHttpAuthentication() {
-        return gatewayAuthenticationDirective;
+        return gatewayHttpAuthenticationDirective;
     }
 
     @Override
     public GatewayAuthenticationDirective buildWsAuthentication() {
-        return gatewayAuthenticationDirective;
+        return gatewayWsAuthenticationDirective;
     }
 
     private static GatewayAuthenticationDirective generateGatewayAuthenticationDirective(
-            final AuthenticationConfig authConfig,
-            final JwtAuthenticationFactory jwtAuthenticationFactory,
+            final AuthenticationConfig authConfig, final JwtAuthenticationProvider jwtAuthenticationProvider,
             final Executor authenticationDispatcher) {
 
         final Collection<AuthenticationProvider<?>> authenticationProviders = new ArrayList<>();
@@ -71,9 +86,7 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
             authenticationProviders.add(PreAuthenticatedAuthenticationProvider.getInstance());
         }
 
-        authenticationProviders.add(
-                JwtAuthenticationProvider.newInstance(jwtAuthenticationFactory.newJwtAuthenticationResultProvider(),
-                        jwtAuthenticationFactory.getJwtValidator()));
+        authenticationProviders.add(jwtAuthenticationProvider);
 
         final AuthenticationFailureAggregator authenticationFailureAggregator =
                 AuthenticationFailureAggregators.getDefault();
