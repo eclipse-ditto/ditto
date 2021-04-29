@@ -69,8 +69,10 @@ final class RequestedAcksValueValidator extends AbstractHeaderValueValidator {
                 }
             } else {
                 final String msgTemplate = "JSON array for <{0}> contained invalid acknowledgement labels.";
-                throw DittoHeaderInvalidException
-                        .newCustomMessageBuilder(MessageFormat.format(msgTemplate, definition.getKey()))
+                final String invalidHeaderKey = definition.getKey();
+                throw DittoHeaderInvalidException.newBuilder()
+                        .withInvalidHeaderKey(invalidHeaderKey)
+                        .message(MessageFormat.format(msgTemplate, invalidHeaderKey))
                         .build();
             }
         }

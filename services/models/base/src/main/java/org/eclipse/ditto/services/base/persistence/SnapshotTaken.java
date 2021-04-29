@@ -201,7 +201,7 @@ public abstract class SnapshotTaken<T extends SnapshotTaken<T>>
                         getTimestamp().map(Instant::toString).orElse(null),
                         predicate.and(JsonField.isValueNonNull()))
                 .set(Event.JsonFields.METADATA,
-                        getMetadata().map(m -> m.toJson(schemaVersion, thePredicate)).orElse(null),
+                        getMetadata().map(m -> m.toJson(schemaVersion, predicate)).orElse(null),
                         predicate.and(JsonField.isValueNonNull()))
                 .set(JsonFields.ENTITY_ID, String.valueOf(getEntityId()), predicate)
                 .set(JsonFields.ENTITY, entityOfSnapshot)

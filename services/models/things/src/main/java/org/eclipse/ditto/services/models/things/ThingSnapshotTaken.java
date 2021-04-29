@@ -122,9 +122,9 @@ public final class ThingSnapshotTaken extends SnapshotTaken<ThingSnapshotTaken> 
 
         final var deserializer = JsonDeserializer.of(jsonObject, TYPE);
         return newBuilder(deserializeThingId(jsonObject),
-                deserializer.deserializeRevision(),
-                deserializer.deserializePersistenceLifecycle(),
-                deserializer.deserializeEntity())
+                    deserializer.deserializeRevision(),
+                    deserializer.deserializePersistenceLifecycle(),
+                    deserializer.deserializeEntity())
                 .policyId(deserializePolicyId(jsonObject))
                 .timestamp(deserializer.deserializeTimestamp())
                 .metadata(deserializer.deserializeMetadata())

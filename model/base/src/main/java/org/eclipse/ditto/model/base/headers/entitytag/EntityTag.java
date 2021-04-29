@@ -42,8 +42,9 @@ public final class EntityTag {
 
     private EntityTag(final boolean weak, final String opaqueTag) {
         if (!isValid(opaqueTag)) {
-            final String errorMessage = String.format(VALIDATION_ERROR_MESSAGE_TEMPLATE, opaqueTag);
-            throw DittoHeaderInvalidException.newCustomMessageBuilder(errorMessage).build();
+            throw DittoHeaderInvalidException.newBuilder()
+                    .message(String.format(VALIDATION_ERROR_MESSAGE_TEMPLATE, opaqueTag))
+                    .build();
         }
         this.weak = weak;
         this.opaqueTag = opaqueTag;
