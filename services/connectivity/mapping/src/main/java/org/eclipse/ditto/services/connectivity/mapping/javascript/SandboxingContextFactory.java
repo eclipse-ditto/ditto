@@ -72,8 +72,8 @@ final class SandboxingContextFactory extends ContextFactory {
     @Override
     protected void observeInstructionCount(final Context cx, final int instructionCount) {
         final StartTimeAwareContext context = (StartTimeAwareContext) cx;
-        final long currentTime = System.currentTimeMillis();
-        if (currentTime - context.startTime > maxScriptExecutionTime.toMillis()) {
+        final long currentTime = System.nanoTime();
+        if (currentTime - context.startTime > maxScriptExecutionTime.toNanos()) {
             throw new Error("Maximum execution time of <" + maxScriptExecutionTime.toMillis() + ">ms was exceeded.");
         }
     }
@@ -82,7 +82,7 @@ final class SandboxingContextFactory extends ContextFactory {
     protected Object doTopCall(final Callable callable, final Context cx, final Scriptable scope,
             final Scriptable thisObj, final Object[] args) {
         final StartTimeAwareContext mcx = (StartTimeAwareContext) cx;
-        mcx.startTime = System.currentTimeMillis();
+        mcx.startTime = System.nanoTime();
 
         return super.doTopCall(callable, cx, scope, thisObj, args);
     }
@@ -92,6 +92,9 @@ final class SandboxingContextFactory extends ContextFactory {
      */
     private static class StartTimeAwareContext extends Context {
 
+        /**
+         * Start time in nanoseconds.
+         */
         private long startTime;
 
         private StartTimeAwareContext(final ContextFactory factory) {

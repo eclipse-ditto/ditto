@@ -27,6 +27,7 @@ Eclipse Ditto 2.0.0 focuses on the following areas:
 * Built-in acknowledgement for search updates to have the option of twin updates with strong consistency of the search index
 * Restoring active connection faster after a hard restart of the Ditto cluster via automatic prioritization of connections
 * Support for LastWill/Testament + retain flag for MQTT connections
+* Provide JWT tokens to Websocket endpoint with browser APIs
 
 The step to a major version was done because of the following breaking API changes:
 
@@ -93,38 +94,50 @@ in a more technical way.
 
 This table shows the old modules and in which module the old ones can be found in Ditto 2.0.0:
 
-| Ditto 1.x module                    | Ditto 2.x module          |
-| ---                                 | ---                       |
-| `ditto-json`                        | `ditto-json` |
-| `ditto-json-cbor`                   | `ditto-json-cbor` |
-| `ditto-model`                       | `ditto-model??` |
-| `\ ditto-model-base`                | `ditto-model-base` |
-| `\ ditto-model-connectivity`        | `ditto-connections-model` |
-| `\ ditto-model-devops`              | `ditto-??` |
-| `\ ditto-model-enforcers`           | `ditto-??` |
-| `\ ditto-model-jwt`                 | `ditto-??` |
-| `\ ditto-model-messages`            | `ditto-messages-model` |
-| `\ ditto-model-namespaces`          | `ditto-??` |
-| `\ ditto-model-policies`            | `ditto-policies-model` |
-| `\ ditto-model-query`               | `ditto-??` |
-| `\ ditto-model-rql`                 | `ditto-??` TODO TJ breaking 2.0 change with RQL and its parser? |
-| `\ ditto-model-rql-parser`          | `ditto-??` TODO TJ breaking 2.0 change with RQL and its parser? |
-| `\ ditto-model-things`              | `ditto-things-model` |
-| `\ ditto-model-thingsearch`         | `ditto-??` |
-| `\ ditto-model-thingsearch-parser`  | `ditto-??` |
-| `ditto-protocol-adapter`            | `ditto-protocol` |
-| `ditto-services`                    | `ditto-??` |
-| `\ ditto-services-base`             | `ditto-services-base??` |
-| `\ ditto-services-concierge`        | `ditto-concierge-service` |
-| `\ ditto-services-connectivity`     | `ditto-connectivity-service` |
-| `\ ditto-services-gateway`          | `ditto-gateway-service` |
-| `\ ditto-services-models`           | `ditto-??` |
-| `\ ditto-services-policies`         | `ditto-policies-service` |
-| `\ ditto-services-things`           | `ditto-things-service` |
-| `\ ditto-services-thingsearch`      | `ditto-thingsearch-service??` |
-| `\ ditto-services-utils`            | `ditto-??` |
-| `ditto-signals`                     | `ditto-signals??` |
-| `\ ditto-signals-base`              | `ditto-signals-base??` |
+| Ditto 1.x module                             | Ditto 2.x module          |
+| ---                                          | ---                       |
+| `ditto-model`                                | `-` (was pom only)        |
+| `- ditto-model-base`                         | `ditto-base/ditto-base-model` |
+| `- ditto-model-cleanup`                      | `-` (was internal API) |
+| `- ditto-model-connectivity`                 | `ditto-connections/ditto-connections-model` |
+| `- ditto-model-devops`                       | `ditto-devops/ditto-devops-model` |
+| `- ditto-model-enforcers`                    | `ditto-policies/ditto-policies-model` |
+| `- ditto-model-jwt`                          | `ditto-jwt/ditto-jwt-model` |
+| `- ditto-model-messages`                     | `ditto-messages/ditto-messages-model` |
+| `- ditto-model-namespaces`                   | `ditto-base/ditto-base-model` |
+| `- ditto-model-policies`                     | `ditto-policies/ditto-policies-model` |
+| `- ditto-model-query`                        | ?? |
+| `- ditto-model-rql`                          | ?? |
+| `- ditto-model-rql-parser`                   | ?? |
+| `- ditto-model-things`                       | `ditto-things/ditto-things-model` |
+| `- ditto-model-thingsearch`                  | `ditto-thingsearch/ditto-thingsearch-model` |
+| `- ditto-model-thingsearch-parser`           | ?? |
+| `ditto-protocol-adapter`                     | `ditto-protocol` |
+| `ditto-signals`                              | `-` (was pom only) |
+| `- ditto-signals-base`                       | `ditto-model-base` |
+| `- ditto-signals-acks`                       | `-` (was pom only) |
+| `-- ditto-signals-acks-base`                 | `ditto-base-model` |
+| `-- ditto-signals-acks-things`               | `ditto-things-model` |
+| `- ditto-signals-announcements`              | `-` (was pom only) |
+| `-- ditto-signals-announcements-base`        | `ditto-base-model` |
+| `-- ditto-signals-announcements-policies`    | `ditto-policies-model` |
+| `- ditto-signals-commands`                   | `-` (was pom only) |
+| `-- ditto-signals-commands-base`             | `ditto-base/ditto-base-model` |
+| `-- ditto-signals-commands-cleanup`          | `-` (was internal API) |
+| `-- ditto-signals-commands-common`           | `-` (was internal API) |
+| `-- ditto-signals-commands-connectivity`     | `ditto-connectivity/ditto-connectivity-model` |
+| `-- ditto-signals-commands-devops`           | `ditto-devops/ditto-devops-model` |
+| `-- ditto-signals-commands-messages`         | `ditto-messages/ditto-messages-model` |
+| `-- ditto-signals-commands-namespaces`       | `ditto-base/ditto-base-model` |
+| `-- ditto-signals-commands-policies`         | `ditto-policies/ditto-policies-model` |
+| `-- ditto-signals-commands-things`           | `ditto-things/ditto-things-model` |
+| `-- ditto-signals-commands-thingsearch`      | `ditto-thingsearch/ditto-thingsearch-model` |
+| `- ditto-signals-events`                     | `-` (was pom only) |
+| `-- ditto-signals-events-base`               | `ditto-base-model` |
+| `-- ditto-signals-events-connectivity`       | `ditto-connectivity/ditto-connectivity-model` |
+| `-- ditto-signals-events-policies`           | `ditto-policies/ditto-policies-model` |
+| `-- ditto-signals-events-things`             | `ditto-things/ditto-things-model` |
+| `-- ditto-signals-events-thingsearch`        | `ditto-thingsearch/ditto-thingsearch-model` |
 
 TODO TJ complete once modularization finished!
 
@@ -133,9 +146,44 @@ TODO TJ complete once modularization finished!
 When updating from Ditto 1.x Java APIs (e.g. also when using the [Ditto Java client](#ditto-java-client)), the following
 packages were renamed:
 
-| Ditto 1.x package                               | Ditto 2.x package      |
-| ---                                             | ---                    |
-| `org.eclipse.ditto.json`                        | `org.eclipse.ditto.json` |
+| Ditto 1.x package                                   | Ditto 2.x package      |
+| ---                                                 | ---                    |
+| `org.eclipse.ditto.model.base`                      | `org.eclipse.ditto.base.model` |
+| `org.eclipse.ditto.model.cleanup`                   | `-` (was internal API) |
+| `org.eclipse.ditto.model.connectivity`              | `org.eclipse.ditto.connectivity.model` |
+| `org.eclipse.ditto.model.devops`                    | `org.eclipse.ditto.devops.model` |
+| `org.eclipse.ditto.model.enforcers`                 | `org.eclipse.ditto.policies.model` |
+| `org.eclipse.ditto.model.jwt`                       | `org.eclipse.ditto.jwt.model` |
+| `org.eclipse.ditto.model.messages`                  | `org.eclipse.ditto.messages.model` |
+| `org.eclipse.ditto.model.namespaces`                | `org.eclipse.ditto.base.model` |
+| `org.eclipse.ditto.model.policies`                  | `org.eclipse.ditto.policies.model` |
+| `org.eclipse.ditto.model.query`                     | ?? |
+| `org.eclipse.ditto.model.rql`                       | ?? |
+| `org.eclipse.ditto.model.rqlparser`                 | ?? |
+| `org.eclipse.ditto.model.things`                    | `org.eclipse.ditto.things.model` |
+| `org.eclipse.ditto.model.thingsearch`               | `org.eclipse.ditto.thingsearch.model` |
+| `org.eclipse.ditto.model.thingsearchparser`         | ?? |
+| `org.eclipse.ditto.model.protocoladapter`           | `org.eclipse.ditto.protocol` |
+| `org.eclipse.ditto.signals.base`                    | `org.eclipse.ditto.base.model.signals` |
+| `org.eclipse.ditto.signals.acks.base`               | `org.eclipse.ditto.base.model.signals.acks` |
+| `org.eclipse.ditto.signals.acks.things`             | `org.eclipse.ditto.things.model.signals.acks` |
+| `org.eclipse.ditto.signals.announcements.base`      | `org.eclipse.ditto.base.model.signals.announcements` |
+| `org.eclipse.ditto.signals.announcements.policies`  | `org.eclipse.ditto.policies.model.signals.announcements` |
+| `org.eclipse.ditto.signals.commands.base`           | `org.eclipse.ditto.base.model.signals.commands` |
+| `org.eclipse.ditto.signals.commands.cleanup`        | `-` (was internal API) |
+| `org.eclipse.ditto.signals.commands.common`         | `-` (was internal API) |
+| `org.eclipse.ditto.signals.commands.connectivity`   | `org.eclipse.ditto.connectivity.model.signals.commands` |
+| `org.eclipse.ditto.signals.commands.devops`         | `org.eclipse.ditto.devops.model.signals.commands` |
+| `org.eclipse.ditto.signals.commands.messages`       | `org.eclipse.ditto.messages.model.signals.commands` |
+| `org.eclipse.ditto.signals.commands.namespaces`     | `org.eclipse.ditto.base.model.signals.commands` |
+| `org.eclipse.ditto.signals.commands.policies`       | `org.eclipse.ditto.policies.model.signals.commands` |
+| `org.eclipse.ditto.signals.commands.things`         | `org.eclipse.ditto.things.model.signals.commands` |
+| `org.eclipse.ditto.signals.commands.thingsearch`    | `org.eclipse.ditto.thingsearch.model.signals.commands` |
+| `org.eclipse.ditto.signals.events.base`             | `org.eclipse.ditto.base.model.signals.events` |
+| `org.eclipse.ditto.signals.events.connectivity`     | `org.eclipse.ditto.connectivity.model.signals.events` |
+| `org.eclipse.ditto.signals.events.policies`         | `org.eclipse.ditto.policies.model.signals.events` |
+| `org.eclipse.ditto.signals.events.things`           | `org.eclipse.ditto.things.model.signals.events` |
+| `org.eclipse.ditto.signals.events.thingsearch`      | `org.eclipse.ditto.thingsearch.model.signals.events` |
 
 TODO TJ complete once modularization finished!
 
@@ -218,6 +266,13 @@ Adds "Last Will" support for managed MQTT connections
 
 The `retain` flag of MQTT messages published via a managed connection is set according to a message header.
 
+#### [Provide JWT tokens to Websocket endpoint with browser APIs](https://github.com/eclipse/ditto/issues/667)
+
+Prior to Ditto 2.0 it was only possible to pass a JWT to the `/ws` endpoint with the `Authorization` header.  
+As this however is not possible to influence in the browser based JavaScript API of `WebSocket`, it was not possible
+to authenticate easily running a web application connecting against Ditto.
+
+This is now possible by supplying the JWT via a [query-parameter `access_token`](basic-auth.html#single-sign-on-sso).
 
 
 ### Bugfixes
@@ -368,5 +423,4 @@ This call returns a `CompletionStage` which finally resolves to a connected `Dit
 Looking forward, the current plans for Ditto 2.1.0 are:
 
 * [Support for consuming messages from Apache Kafka](https://github.com/eclipse/ditto/issues/586)
-* [Provide JWT tokens to Websocket without passing via HTTP headers](https://github.com/eclipse/ditto/issues/667)
 * [Let policies import other policies to enable re-use when securing things](https://github.com/eclipse/ditto/issues/298)
