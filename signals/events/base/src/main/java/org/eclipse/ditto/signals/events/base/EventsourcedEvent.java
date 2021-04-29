@@ -41,6 +41,7 @@ public interface EventsourcedEvent<T extends EventsourcedEvent<T>> extends Event
      *
      * @param revision the revision to be set.
      * @return the event with the revision set.
+     * @since 2.0.0
      */
     T setRevision(long revision);
 

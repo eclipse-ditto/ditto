@@ -146,6 +146,7 @@ public abstract class SnapshotTaken<T extends SnapshotTaken<T>>
      * @param revisionNumber the new revision number to be set.
      * @param entityOfSnapshot the JSON representation of the entity of which a snapshot was taken.
      * @return the new SnapshotTaken event with {@code revisionNumber} set.
+     * @since 2.0.0
      */
     protected abstract T setRevision(long revisionNumber, JsonObject entityOfSnapshot);
 

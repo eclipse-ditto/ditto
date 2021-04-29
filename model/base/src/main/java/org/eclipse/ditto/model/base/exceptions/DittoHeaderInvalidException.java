@@ -60,6 +60,8 @@ public final class DittoHeaderInvalidException extends DittoRuntimeException {
 
     /**
      * Definition of an optional JSON field that contains the key of the invalid header.
+     *
+     * @since 2.0.0
      */
     static final JsonFieldDefinition<String> JSON_FIELD_INVALID_HEADER_KEY =
             JsonFieldDefinition.ofString("invalidHeaderKey",
@@ -127,6 +129,7 @@ public final class DittoHeaderInvalidException extends DittoRuntimeException {
      * The returned builder is initialized with a default message and a default description.
      *
      * @return the builder.
+     * @since 2.0.0
      */
     public static DittoHeaderInvalidException.Builder newBuilder() {
         return new Builder();
@@ -155,6 +158,7 @@ public final class DittoHeaderInvalidException extends DittoRuntimeException {
      * Returns the key of the invalid header if known.
      *
      * @return an Optional that either contains the key of the invalid header or is empty if the key is unknown.
+     * @since 2.0.0
      */
     public Optional<String> getInvalidHeaderKey() {
         return Optional.ofNullable(invalidHeaderKey);
@@ -229,6 +233,7 @@ public final class DittoHeaderInvalidException extends DittoRuntimeException {
          *
          * @param invalidHeaderKey the key of the invalid header.
          * @return this builder instance for method chaining.
+         * @since 2.0.0
          */
         public Builder withInvalidHeaderKey(@Nullable final CharSequence invalidHeaderKey) {
             if (null != invalidHeaderKey) {
