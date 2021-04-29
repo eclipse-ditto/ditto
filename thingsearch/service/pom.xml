@@ -45,19 +45,19 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-akka</artifactId>
+            <artifactId>ditto-internal-utils-akka</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-persistence</artifactId>
+            <artifactId>ditto-internal-utils-persistence</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-namespaces</artifactId>
+            <artifactId>ditto-internal-utils-namespaces</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-cache-loaders</artifactId>
+            <artifactId>ditto-internal-utils-cache-loaders</artifactId>
         </dependency>
 
         <!-- ### Testing ### -->
@@ -85,13 +85,13 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-test</artifactId>
+            <artifactId>ditto-internal-utils-test</artifactId>
             <scope>test</scope>
             <type>test-jar</type>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-persistence</artifactId>
+            <artifactId>ditto-internal-utils-persistence</artifactId>
             <scope>test</scope>
             <type>test-jar</type>
         </dependency>

@@ -81,35 +81,35 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-models-acks</artifactId>
+            <artifactId>ditto-internal-models-acks</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-models-signalenrichment</artifactId>
+            <artifactId>ditto-internal-models-signalenrichment</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-models-placeholders</artifactId>
+            <artifactId>ditto-internal-models-placeholders</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-persistence</artifactId>
+            <artifactId>ditto-internal-utils-persistence</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-persistent-actors</artifactId>
+            <artifactId>ditto-internal-utils-persistent-actors</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-protocol</artifactId>
+            <artifactId>ditto-internal-utils-protocol</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-search</artifactId>
+            <artifactId>ditto-internal-utils-search</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-aggregator</artifactId>
+            <artifactId>ditto-internal-utils-aggregator</artifactId>
         </dependency>
 
         <!-- note: the order of classindex and jmh-generator-annprocess is important (classindex before
@@ -147,13 +147,13 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-test</artifactId>
+            <artifactId>ditto-internal-utils-test</artifactId>
             <scope>test</scope>
             <type>test-jar</type>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-persistence</artifactId>
+            <artifactId>ditto-internal-utils-persistence</artifactId>
             <scope>test</scope>
             <type>test-jar</type>
         </dependency>

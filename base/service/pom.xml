@@ -35,15 +35,15 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-config</artifactId>
+            <artifactId>ditto-internal-utils-config</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-metrics</artifactId>
+            <artifactId>ditto-internal-utils-metrics</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-persistence</artifactId>
+            <artifactId>ditto-internal-utils-persistence</artifactId>
             <scope>provided</scope>
         </dependency>
 

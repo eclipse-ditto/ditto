@@ -194,7 +194,7 @@
         <module>json-cbor</module>
         <module>protocol</module>
         <module>utils</module>
-        <module>services</module>
+        <module>internal</module>
         <module>policies</module>
         <module>things</module>
         <module>base</module>

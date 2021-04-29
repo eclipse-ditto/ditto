@@ -51,31 +51,31 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-akka</artifactId>
+            <artifactId>ditto-internal-utils-akka</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-pubsub</artifactId>
+            <artifactId>ditto-internal-utils-pubsub</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-search</artifactId>
+            <artifactId>ditto-internal-utils-search</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-tracing</artifactId>
+            <artifactId>ditto-internal-utils-tracing</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-protocol</artifactId>
+            <artifactId>ditto-internal-utils-protocol</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-aggregator</artifactId>
+            <artifactId>ditto-internal-utils-aggregator</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-jwt</artifactId>
+            <artifactId>ditto-internal-utils-jwt</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -87,11 +87,11 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-models-signalenrichment</artifactId>
+            <artifactId>ditto-internal-models-signalenrichment</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-models-acks</artifactId>
+            <artifactId>ditto-internal-models-acks</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -160,7 +160,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-test</artifactId>
+            <artifactId>ditto-internal-utils-test</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>

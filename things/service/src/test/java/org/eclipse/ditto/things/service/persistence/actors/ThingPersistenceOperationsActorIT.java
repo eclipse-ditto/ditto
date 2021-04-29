@@ -48,7 +48,7 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
 
     @Override
     protected String getServiceName() {
-        // this loads the things.conf from module "ditto-services-things-config" as ActorSystem conf
+        // this loads the things.conf from module "ditto-internal-things-config" as ActorSystem conf
         return "things";
     }
 

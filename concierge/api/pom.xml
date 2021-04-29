@@ -31,11 +31,11 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-pubsub</artifactId>
+            <artifactId>ditto-internal-utils-pubsub</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-cache</artifactId>
+            <artifactId>ditto-internal-utils-cache</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>

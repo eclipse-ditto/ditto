@@ -36,11 +36,11 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-models-streaming</artifactId>
+            <artifactId>ditto-internal-models-streaming</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-cluster</artifactId>
+            <artifactId>ditto-internal-utils-cluster</artifactId>
         </dependency>
     </dependencies>
 

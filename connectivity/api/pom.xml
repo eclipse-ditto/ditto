@@ -35,11 +35,11 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-models-placeholders</artifactId>
+            <artifactId>ditto-internal-models-placeholders</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-cluster</artifactId>
+            <artifactId>ditto-internal-utils-cluster</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>

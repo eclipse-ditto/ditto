@@ -22,7 +22,7 @@
     </parent>
 
     <artifactId>ditto-thingsearch-api</artifactId>
-    <name>Eclipse Ditto :: Services :: Models :: Things Search</name>
+    <name>Eclipse Ditto :: Internal :: Models :: Things Search</name>
 
     <dependencies>
         <dependency>
@@ -39,7 +39,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-models-streaming</artifactId>
+            <artifactId>ditto-internal-models-streaming</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>

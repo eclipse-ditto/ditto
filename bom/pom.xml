@@ -444,7 +444,7 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-models-placeholders</artifactId>
+                <artifactId>ditto-internal-models-placeholders</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -487,103 +487,103 @@
 
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-models-acks</artifactId>
+                <artifactId>ditto-internal-models-acks</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-models-streaming</artifactId>
+                <artifactId>ditto-internal-models-streaming</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-utils-aggregator</artifactId>
+                <artifactId>ditto-internal-utils-aggregator</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-utils-akka</artifactId>
+                <artifactId>ditto-internal-utils-akka</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-utils-cache</artifactId>
+                <artifactId>ditto-internal-utils-cache</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-utils-cache-loaders</artifactId>
+                <artifactId>ditto-internal-utils-cache-loaders</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-utils-cluster</artifactId>
+                <artifactId>ditto-internal-utils-cluster</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-utils-config</artifactId>
+                <artifactId>ditto-internal-utils-config</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-utils-ddata</artifactId>
+                <artifactId>ditto-internal-utils-ddata</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-utils-health</artifactId>
+                <artifactId>ditto-internal-utils-health</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-utils-jwt</artifactId>
+                <artifactId>ditto-internal-utils-jwt</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-utils-namespaces</artifactId>
+                <artifactId>ditto-internal-utils-namespaces</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-utils-persistence</artifactId>
+                <artifactId>ditto-internal-utils-persistence</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-utils-protocol</artifactId>
+                <artifactId>ditto-internal-utils-protocol</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-utils-pubsub</artifactId>
+                <artifactId>ditto-internal-utils-pubsub</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-utils-search</artifactId>
+                <artifactId>ditto-internal-utils-search</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-utils-tracing</artifactId>
+                <artifactId>ditto-internal-utils-tracing</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-utils-metrics</artifactId>
+                <artifactId>ditto-internal-utils-metrics</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-utils-conditional-headers</artifactId>
+                <artifactId>ditto-internal-utils-conditional-headers</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-utils-persistent-actors</artifactId>
+                <artifactId>ditto-internal-utils-persistent-actors</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -619,28 +619,28 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-models-signalenrichment</artifactId>
+                <artifactId>ditto-internal-models-signalenrichment</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-concierge-config</artifactId>
+                <artifactId>ditto-internal-concierge-config</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-concierge-common</artifactId>
+                <artifactId>ditto-internal-concierge-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-concierge-enforcement</artifactId>
+                <artifactId>ditto-internal-concierge-enforcement</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-concierge-actors</artifactId>
+                <artifactId>ditto-internal-concierge-actors</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -894,28 +894,28 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-utils-akka</artifactId>
+                <artifactId>ditto-internal-utils-akka</artifactId>
                 <type>test-jar</type>
                 <version>${project.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-utils-persistence</artifactId>
+                <artifactId>ditto-internal-utils-persistence</artifactId>
                 <type>test-jar</type>
                 <version>${project.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-utils-test</artifactId>
+                <artifactId>ditto-internal-utils-test</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-connectivity-common</artifactId>
+                <artifactId>ditto-internal-connectivity-common</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
                 <scope>test</scope>

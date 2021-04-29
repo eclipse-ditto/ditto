@@ -41,36 +41,36 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-akka</artifactId>
+            <artifactId>ditto-internal-utils-akka</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-cluster</artifactId>
+            <artifactId>ditto-internal-utils-cluster</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-persistence</artifactId>
+            <artifactId>ditto-internal-utils-persistence</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-health</artifactId>
+            <artifactId>ditto-internal-utils-health</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-config</artifactId>
+            <artifactId>ditto-internal-utils-config</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-persistent-actors</artifactId>
+            <artifactId>ditto-internal-utils-persistent-actors</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-pubsub</artifactId>
+            <artifactId>ditto-internal-utils-pubsub</artifactId>
         </dependency>
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-models-placeholders</artifactId>
+            <artifactId>ditto-internal-models-placeholders</artifactId>
         </dependency>
 
         <dependency>
@@ -116,13 +116,13 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-test</artifactId>
+            <artifactId>ditto-internal-utils-test</artifactId>
             <scope>test</scope>
             <type>test-jar</type>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-persistence</artifactId>
+            <artifactId>ditto-internal-utils-persistence</artifactId>
             <scope>test</scope>
             <type>test-jar</type>
         </dependency>

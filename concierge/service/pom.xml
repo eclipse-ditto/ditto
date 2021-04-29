@@ -36,23 +36,23 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-namespaces</artifactId>
+            <artifactId>ditto-internal-utils-namespaces</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-config</artifactId>
+            <artifactId>ditto-internal-utils-config</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-health</artifactId>
+            <artifactId>ditto-internal-utils-health</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-persistence</artifactId>
+            <artifactId>ditto-internal-utils-persistence</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-cache-loaders</artifactId>
+            <artifactId>ditto-internal-utils-cache-loaders</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -139,7 +139,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-test</artifactId>
+            <artifactId>ditto-internal-utils-test</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
