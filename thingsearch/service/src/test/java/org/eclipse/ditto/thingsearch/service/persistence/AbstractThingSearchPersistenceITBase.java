@@ -23,11 +23,11 @@ import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 
 import org.bson.Document;
-import org.eclipse.ditto.model.query.Query;
-import org.eclipse.ditto.model.query.QueryBuilderFactory;
-import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
-import org.eclipse.ditto.model.query.expression.FieldExpressionUtil;
-import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
+import org.eclipse.ditto.rql.query.Query;
+import org.eclipse.ditto.rql.query.QueryBuilderFactory;
+import org.eclipse.ditto.rql.query.criteria.CriteriaFactory;
+import org.eclipse.ditto.rql.query.expression.FieldExpressionUtil;
+import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.thingsearch.service.common.model.ResultList;

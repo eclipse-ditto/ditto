@@ -34,7 +34,7 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
 
     /**
      * Returns the {@code QueryCriteriaValidator} to be used for validating and decoding
-     * {@link org.eclipse.ditto.model.query.criteria.Criteria} of a
+     * {@link org.eclipse.ditto.rql.query.criteria.Criteria} of a
      * {@link org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand}.
      *
      * @return the config.
@@ -59,7 +59,7 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
         MONGO_HINTS_BY_NAMESPACE("mongo-hints-by-namespace", null),
 
         /**
-         * The {@code QueryCriteriaValidator} used for decoding and validating {@link org.eclipse.ditto.model.query.criteria.Criteria}
+         * The {@code QueryCriteriaValidator} used for decoding and validating {@link org.eclipse.ditto.rql.query.criteria.Criteria}
          * of a {@link org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand}.
          *
          * @since 1.6.0

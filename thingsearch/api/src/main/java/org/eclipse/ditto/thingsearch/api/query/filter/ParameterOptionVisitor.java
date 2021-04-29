@@ -18,11 +18,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.query.QueryBuilder;
-import org.eclipse.ditto.model.query.SortDirection;
-import org.eclipse.ditto.model.query.SortOption;
-import org.eclipse.ditto.model.query.expression.FieldExpressionFactory;
-import org.eclipse.ditto.model.query.expression.SortFieldExpression;
+import org.eclipse.ditto.rql.query.QueryBuilder;
+import org.eclipse.ditto.rql.query.SortDirection;
+import org.eclipse.ditto.rql.query.SortOption;
+import org.eclipse.ditto.rql.query.expression.FieldExpressionFactory;
+import org.eclipse.ditto.rql.query.expression.SortFieldExpression;
 import org.eclipse.ditto.thingsearch.model.CursorOption;
 import org.eclipse.ditto.thingsearch.model.LimitOption;
 import org.eclipse.ditto.thingsearch.model.Option;

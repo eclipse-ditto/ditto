@@ -16,9 +16,9 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.query.QueryBuilder;
-import org.eclipse.ditto.model.query.QueryBuilderFactory;
-import org.eclipse.ditto.model.query.criteria.Criteria;
+import org.eclipse.ditto.rql.query.QueryBuilder;
+import org.eclipse.ditto.rql.query.QueryBuilderFactory;
+import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 
 

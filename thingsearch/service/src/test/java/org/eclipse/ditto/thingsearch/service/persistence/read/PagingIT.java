@@ -23,11 +23,11 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.model.query.Query;
-import org.eclipse.ditto.model.query.QueryBuilder;
-import org.eclipse.ditto.model.query.SortDirection;
-import org.eclipse.ditto.model.query.SortOption;
-import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
+import org.eclipse.ditto.rql.query.Query;
+import org.eclipse.ditto.rql.query.QueryBuilder;
+import org.eclipse.ditto.rql.query.SortDirection;
+import org.eclipse.ditto.rql.query.SortOption;
+import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;

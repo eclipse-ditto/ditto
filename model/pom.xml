@@ -30,10 +30,6 @@
         <module>devops</module>
         <module>messages</module>
         <module>jwt</module>
-        <module>thingsearch-parser</module>
-        <module>query</module>
-        <module>rql</module>
-        <module>rql-parser</module>
     </modules>
 
     <properties>

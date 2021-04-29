@@ -18,8 +18,8 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.model.query.expression.FilterFieldExpression;
-import org.eclipse.ditto.model.query.expression.visitors.FilterFieldExpressionVisitor;
+import org.eclipse.ditto.rql.query.expression.FilterFieldExpression;
+import org.eclipse.ditto.rql.query.expression.visitors.FilterFieldExpressionVisitor;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 
 import com.mongodb.client.model.Filters;

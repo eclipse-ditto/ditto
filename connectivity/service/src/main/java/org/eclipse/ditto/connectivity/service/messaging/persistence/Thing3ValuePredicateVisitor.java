@@ -18,16 +18,16 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.query.criteria.Criteria;
-import org.eclipse.ditto.model.query.criteria.Predicate;
-import org.eclipse.ditto.model.query.criteria.visitors.CriteriaVisitor;
-import org.eclipse.ditto.model.query.expression.ExistsFieldExpression;
-import org.eclipse.ditto.model.query.expression.FieldExpression;
-import org.eclipse.ditto.model.query.expression.FilterFieldExpression;
-import org.eclipse.ditto.model.query.expression.visitors.FieldExpressionVisitor;
-import org.eclipse.ditto.model.query.things.ExistsThingPredicateVisitor;
-import org.eclipse.ditto.model.query.things.FilterThingPredicateVisitor;
-import org.eclipse.ditto.model.query.things.ThingPredicatePredicateVisitor;
+import org.eclipse.ditto.rql.query.criteria.Criteria;
+import org.eclipse.ditto.rql.query.criteria.Predicate;
+import org.eclipse.ditto.rql.query.criteria.visitors.CriteriaVisitor;
+import org.eclipse.ditto.rql.query.expression.ExistsFieldExpression;
+import org.eclipse.ditto.rql.query.expression.FieldExpression;
+import org.eclipse.ditto.rql.query.expression.FilterFieldExpression;
+import org.eclipse.ditto.rql.query.expression.visitors.FieldExpressionVisitor;
+import org.eclipse.ditto.rql.query.things.ExistsThingPredicateVisitor;
+import org.eclipse.ditto.rql.query.things.FilterThingPredicateVisitor;
+import org.eclipse.ditto.rql.query.things.ThingPredicatePredicateVisitor;
 import org.eclipse.ditto.things.model.Thing;
 
 /**

@@ -21,11 +21,11 @@ import javax.annotation.Nullable;
 
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.model.query.criteria.Criteria;
-import org.eclipse.ditto.model.query.criteria.Predicate;
-import org.eclipse.ditto.model.query.criteria.visitors.CriteriaVisitor;
-import org.eclipse.ditto.model.query.expression.ExistsFieldExpression;
-import org.eclipse.ditto.model.query.expression.FilterFieldExpression;
+import org.eclipse.ditto.rql.query.criteria.Criteria;
+import org.eclipse.ditto.rql.query.criteria.Predicate;
+import org.eclipse.ditto.rql.query.criteria.visitors.CriteriaVisitor;
+import org.eclipse.ditto.rql.query.expression.ExistsFieldExpression;
+import org.eclipse.ditto.rql.query.expression.FilterFieldExpression;
 import org.eclipse.ditto.thingsearch.service.persistence.read.expression.visitors.AbstractFieldBsonCreator;
 import org.eclipse.ditto.thingsearch.service.persistence.read.expression.visitors.GetExistsBsonVisitor;
 import org.eclipse.ditto.thingsearch.service.persistence.read.expression.visitors.GetFilterBsonVisitor;

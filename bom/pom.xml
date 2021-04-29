@@ -449,22 +449,17 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-model-thingsearch-parser</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-models-placeholders</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-model-rql</artifactId>
+                <artifactId>ditto-rql-model</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-model-rql-parser</artifactId>
+                <artifactId>ditto-rql-parser</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -474,7 +469,7 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-model-query</artifactId>
+                <artifactId>ditto-rql-query</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

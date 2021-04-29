@@ -19,8 +19,8 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.query.criteria.Criteria;
-import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
+import org.eclipse.ditto.rql.query.criteria.Criteria;
+import org.eclipse.ditto.rql.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.base.model.signals.Signal;

@@ -15,10 +15,10 @@ package org.eclipse.ditto.thingsearch.service.persistence.read.expression.visito
 import java.util.Collections;
 
 import org.bson.Document;
-import org.eclipse.ditto.model.query.SortDirection;
-import org.eclipse.ditto.model.query.SortOption;
-import org.eclipse.ditto.model.query.expression.AttributeExpression;
-import org.eclipse.ditto.model.query.expression.SortFieldExpression;
+import org.eclipse.ditto.rql.query.SortDirection;
+import org.eclipse.ditto.rql.query.SortOption;
+import org.eclipse.ditto.rql.query.expression.AttributeExpression;
+import org.eclipse.ditto.rql.query.expression.SortFieldExpression;
 import org.junit.Test;
 
 /**

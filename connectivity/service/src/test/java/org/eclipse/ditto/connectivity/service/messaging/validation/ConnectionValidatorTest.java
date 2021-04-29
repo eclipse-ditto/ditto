@@ -57,7 +57,7 @@ import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.SourceBuilder;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
-import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.junit.AfterClass;

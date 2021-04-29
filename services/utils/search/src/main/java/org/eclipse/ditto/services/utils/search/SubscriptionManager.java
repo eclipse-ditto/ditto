@@ -24,7 +24,7 @@ import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.thingsearch.model.SizeOption;
-import org.eclipse.ditto.model.thingsearchparser.RqlOptionParser;
+import org.eclipse.ditto.rql.parser.thingsearch.RqlOptionParser;
 import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;

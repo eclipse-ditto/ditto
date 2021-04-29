@@ -18,7 +18,7 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.model.query.criteria.Criteria;
+import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.TestConstants;

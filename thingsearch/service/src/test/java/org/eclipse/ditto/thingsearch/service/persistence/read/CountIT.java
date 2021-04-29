@@ -25,7 +25,7 @@ import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
-import org.eclipse.ditto.model.query.criteria.Criteria;
+import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.TestConstants;

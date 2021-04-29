@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.query.Query;
+import org.eclipse.ditto.rql.query.Query;
 import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;

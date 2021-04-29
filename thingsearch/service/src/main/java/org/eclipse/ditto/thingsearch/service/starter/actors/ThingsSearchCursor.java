@@ -45,11 +45,11 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.model.query.Query;
-import org.eclipse.ditto.model.query.SortDirection;
-import org.eclipse.ditto.model.query.criteria.Criteria;
-import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
-import org.eclipse.ditto.model.rql.ParserException;
+import org.eclipse.ditto.rql.query.Query;
+import org.eclipse.ditto.rql.query.SortDirection;
+import org.eclipse.ditto.rql.query.criteria.Criteria;
+import org.eclipse.ditto.rql.query.criteria.CriteriaFactory;
+import org.eclipse.ditto.rql.model.ParserException;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.model.CursorOption;
@@ -60,7 +60,7 @@ import org.eclipse.ditto.thingsearch.model.SearchResultBuilder;
 import org.eclipse.ditto.thingsearch.model.SizeOption;
 import org.eclipse.ditto.thingsearch.model.SortOption;
 import org.eclipse.ditto.thingsearch.model.SortOptionEntry;
-import org.eclipse.ditto.model.thingsearchparser.RqlOptionParser;
+import org.eclipse.ditto.rql.parser.thingsearch.RqlOptionParser;
 import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
 import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.JsonToBson;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
@@ -678,7 +678,7 @@ final class ThingsSearchCursor {
      * @param cf a criteria factory.
      * @return criteria to filter out results before a cursor's position.
      */
-    private static Criteria getNextPageFilter(final List<org.eclipse.ditto.model.query.SortOption> sortOptions,
+    private static Criteria getNextPageFilter(final List<org.eclipse.ditto.rql.query.SortOption> sortOptions,
             final JsonArray previousValues,
             final CriteriaFactory cf) {
 
@@ -699,11 +699,11 @@ final class ThingsSearchCursor {
      * @return criteria starting from the ith dimension.
      */
     private static Criteria getNextPageFilterImpl(
-            final List<org.eclipse.ditto.model.query.SortOption> sortOptionEntries,
+            final List<org.eclipse.ditto.rql.query.SortOption> sortOptionEntries,
             final JsonArray previousValues,
             final CriteriaFactory cf, final int i) {
 
-        final org.eclipse.ditto.model.query.SortOption sortOption = sortOptionEntries.get(i);
+        final org.eclipse.ditto.rql.query.SortOption sortOption = sortOptionEntries.get(i);
         final JsonValue previousValue = previousValues.get(i).orElse(JsonFactory.nullLiteral());
         final Criteria ithDimensionCriteria = getDimensionLtCriteria(sortOption, previousValue, cf);
         if (i + 1 >= sortOptionEntries.size()) {
@@ -723,7 +723,7 @@ final class ThingsSearchCursor {
      * @param cf a criteria factory.
      * @return criteria to filter for things prior to a cursor's position on the specified field.
      */
-    private static Criteria getDimensionLtCriteria(final org.eclipse.ditto.model.query.SortOption entry,
+    private static Criteria getDimensionLtCriteria(final org.eclipse.ditto.rql.query.SortOption entry,
             final JsonValue previousValue, final CriteriaFactory cf) {
 
         // special handling for null values needed due to comparison operators never matching null values
@@ -762,7 +762,7 @@ final class ThingsSearchCursor {
      * dimensions.
      */
     private static Criteria getNextDimensionCriteria(final Criteria thisDimensionLt, final Criteria nextDimension,
-            final org.eclipse.ditto.model.query.SortOption sortOption, final JsonValue previousValue,
+            final org.eclipse.ditto.rql.query.SortOption sortOption, final JsonValue previousValue,
             final CriteriaFactory cf) {
 
         final Criteria thisDimensionEq;

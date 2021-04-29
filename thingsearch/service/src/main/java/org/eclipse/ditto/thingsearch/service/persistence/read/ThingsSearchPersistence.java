@@ -19,7 +19,7 @@ import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.model.query.Query;
+import org.eclipse.ditto.rql.query.Query;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.api.SearchNamespaceReportResult;
 import org.eclipse.ditto.thingsearch.service.common.model.ResultList;

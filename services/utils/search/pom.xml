@@ -31,7 +31,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-model-thingsearch-parser</artifactId>
+            <artifactId>ditto-rql-parser</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>

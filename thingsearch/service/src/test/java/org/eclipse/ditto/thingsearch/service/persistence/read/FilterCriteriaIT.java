@@ -17,9 +17,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Collection;
 import java.util.Collections;
 
-import org.eclipse.ditto.model.query.criteria.Criteria;
-import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
-import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
+import org.eclipse.ditto.rql.query.criteria.Criteria;
+import org.eclipse.ditto.rql.query.criteria.CriteriaFactory;
+import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.TestConstants;

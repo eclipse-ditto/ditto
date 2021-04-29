@@ -18,9 +18,9 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.model.query.expression.ExistsFieldExpression;
-import org.eclipse.ditto.model.query.expression.FieldExpressionUtil;
-import org.eclipse.ditto.model.query.expression.visitors.ExistsFieldExpressionVisitor;
+import org.eclipse.ditto.rql.query.expression.ExistsFieldExpression;
+import org.eclipse.ditto.rql.query.expression.FieldExpressionUtil;
+import org.eclipse.ditto.rql.query.expression.visitors.ExistsFieldExpressionVisitor;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 
 import com.mongodb.client.model.Filters;

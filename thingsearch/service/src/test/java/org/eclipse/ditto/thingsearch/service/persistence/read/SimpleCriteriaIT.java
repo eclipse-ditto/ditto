@@ -18,9 +18,9 @@ import java.util.Collection;
 import java.util.stream.Stream;
 
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.query.criteria.Criteria;
-import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
-import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
+import org.eclipse.ditto.rql.query.criteria.Criteria;
+import org.eclipse.ditto.rql.query.criteria.CriteriaFactory;
+import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.TestConstants;
 import org.junit.Before;

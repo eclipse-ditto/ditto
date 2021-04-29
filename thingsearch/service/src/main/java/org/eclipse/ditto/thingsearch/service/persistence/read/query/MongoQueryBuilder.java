@@ -22,13 +22,13 @@ import java.util.stream.IntStream;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.model.query.Query;
-import org.eclipse.ditto.model.query.QueryBuilder;
-import org.eclipse.ditto.model.query.SortDirection;
-import org.eclipse.ditto.model.query.SortOption;
-import org.eclipse.ditto.model.query.criteria.Criteria;
-import org.eclipse.ditto.model.query.expression.SimpleFieldExpression;
-import org.eclipse.ditto.model.query.expression.SortFieldExpression;
+import org.eclipse.ditto.rql.query.Query;
+import org.eclipse.ditto.rql.query.QueryBuilder;
+import org.eclipse.ditto.rql.query.SortDirection;
+import org.eclipse.ditto.rql.query.SortOption;
+import org.eclipse.ditto.rql.query.criteria.Criteria;
+import org.eclipse.ditto.rql.query.expression.SimpleFieldExpression;
+import org.eclipse.ditto.rql.query.expression.SortFieldExpression;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 
 /**

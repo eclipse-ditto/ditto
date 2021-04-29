@@ -24,10 +24,10 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonArrayBuilder;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.query.SortDirection;
-import org.eclipse.ditto.model.query.SortOption;
-import org.eclipse.ditto.model.query.expression.SortFieldExpression;
-import org.eclipse.ditto.model.query.expression.visitors.SortFieldExpressionVisitor;
+import org.eclipse.ditto.rql.query.SortDirection;
+import org.eclipse.ditto.rql.query.SortOption;
+import org.eclipse.ditto.rql.query.expression.SortFieldExpression;
+import org.eclipse.ditto.rql.query.expression.visitors.SortFieldExpressionVisitor;
 import org.eclipse.ditto.thingsearch.service.persistence.MongoSortKeyMappingFunction;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 

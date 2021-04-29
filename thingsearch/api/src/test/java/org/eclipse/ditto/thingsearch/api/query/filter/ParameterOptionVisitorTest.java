@@ -20,10 +20,10 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.query.QueryBuilder;
-import org.eclipse.ditto.model.query.SortDirection;
-import org.eclipse.ditto.model.query.expression.FieldExpressionFactory;
-import org.eclipse.ditto.model.query.expression.SortFieldExpression;
+import org.eclipse.ditto.rql.query.QueryBuilder;
+import org.eclipse.ditto.rql.query.SortDirection;
+import org.eclipse.ditto.rql.query.expression.FieldExpressionFactory;
+import org.eclipse.ditto.rql.query.expression.SortFieldExpression;
 import org.eclipse.ditto.thingsearch.model.LimitOption;
 import org.eclipse.ditto.thingsearch.model.Option;
 import org.eclipse.ditto.thingsearch.model.SearchModelFactory;
@@ -100,7 +100,7 @@ public final class ParameterOptionVisitorTest {
         // verify
         verify(exprFactoryMock).sortBy(POINTER_1.toString());
         verify(qbMock).sort(
-                Collections.singletonList(new org.eclipse.ditto.model.query.SortOption(exprMock,
+                Collections.singletonList(new org.eclipse.ditto.rql.query.SortOption(exprMock,
                         SortDirection.ASC)));
     }
 
@@ -134,9 +134,9 @@ public final class ParameterOptionVisitorTest {
         verify(exprFactoryMock).sortBy(POINTER_2.toString());
         verify(exprFactoryMock).sortBy(POINTER_1.toString());
         verify(qbMock).sort(
-                Arrays.asList(new org.eclipse.ditto.model.query.SortOption(exprMock,
+                Arrays.asList(new org.eclipse.ditto.rql.query.SortOption(exprMock,
                                 SortDirection.DESC),
-                        new org.eclipse.ditto.model.query.SortOption(exprMock,
+                        new org.eclipse.ditto.rql.query.SortOption(exprMock,
                                 SortDirection.ASC)));
     }
 
@@ -157,7 +157,7 @@ public final class ParameterOptionVisitorTest {
         verify(qbMock).limit(KNOWN_LIMIT);
         verify(exprFactoryMock).sortBy(POINTER_1.toString());
         verify(qbMock).sort(
-                Collections.singletonList(new org.eclipse.ditto.model.query.SortOption(exprMock,
+                Collections.singletonList(new org.eclipse.ditto.rql.query.SortOption(exprMock,
                         SortDirection.ASC)));
     }
 
