@@ -19,7 +19,7 @@ import org.eclipse.ditto.model.query.criteria.visitors.PredicateVisitor;
 /**
  * In predicate.
  */
-public class InPredicateImpl extends AbstractMultiPredicate {
+final class InPredicateImpl extends AbstractMultiPredicate {
 
     public InPredicateImpl(final List<?> values) {
         super(values);

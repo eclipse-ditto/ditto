@@ -136,7 +136,7 @@ This can be achieved by configuring an outgoing JavaScript payload mapper in the
 ```javascript
 function mapFromDittoProtocolMsg(
   namespace,
-  id,
+  name,
   group,
   channel,
   criterion,
@@ -150,7 +150,7 @@ function mapFromDittoProtocolMsg(
 
   let headers = dittoHeaders;
   let textPayload = null;
-  let bytePayload = Ditto.stringToArrayBuffer(Ditto.buildDittoProtocolMsg(namespace, id, group, channel, criterion, action, path, dittoHeaders, value).toString());
+  let bytePayload = Ditto.stringToArrayBuffer(Ditto.buildDittoProtocolMsg(namespace, name, group, channel, criterion, action, path, dittoHeaders, value).toString());
   let contentType = 'application/octet-stream';
 
   return Ditto.buildExternalMsg(

@@ -26,6 +26,15 @@ import org.eclipse.ditto.model.query.expression.FilterFieldExpression;
 public interface CriteriaFactory {
 
     /**
+     * Returns the CriteriaFactory instance.
+     *
+     * @return the CriteriaFactory instance.
+     */
+    static CriteriaFactory getInstance() {
+        return CriteriaFactoryImpl.getInstance();
+    }
+
+    /**
      * Creates a Criteria which matches any document.
      *
      * @return the criteria.

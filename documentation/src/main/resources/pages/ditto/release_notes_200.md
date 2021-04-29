@@ -94,6 +94,12 @@ The HTTP header / query param `x-ditto-dummy-auth` which was already an alias fo
 been removed from Ditto 2.0.  
 Please use the header `x-ditto-pre-authenticated` instead.
 
+#### Removed default source header mapping for MQTT connections
+
+The default source header mapping of MQTT connections was removed. The headers `mqtt.topic`, `mqtt.qos`
+and `mqtt.retain` now must explicitly be added to the source header mapping if they are required for further processing.
+
+
 #### Restructuring of Ditto's Maven modules
 
 Ditto's modules were adjusted to be structured in a more functional way. In Ditto 1.x the modules were structured

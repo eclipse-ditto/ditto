@@ -34,8 +34,6 @@ all permissions set to true will be created.
 | **value**  |        | The created Thing as JSON object, see [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
 | **status** | *code* |                          | 
 |            | `201`  | Success - the thing was created successfully.       |
-|            | `409`  | Conflict - a thing with the given ID already exists. |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -75,9 +73,6 @@ If the thing does not yet exist, the same rules apply as described for the [crea
 | **status** | _code_ |    
 |            | `201`  | Success - the Thing was created successfully.       |
 |            | `204`  | Success - the Thing was modified successfully.       |
-|            | `403`  | Not Modifiable - The Thing could not be modified as the requester had insufficient permissions ('WRITE' is required).  |
-|            | `404`  | Not Found - The Thing was not found or requester had insufficient permissions.  |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -116,9 +111,6 @@ The Attributes will be replaced by the JSON in the `value`.
 | **status** | _code_ |                          | 
 |            | `201`  | Success - Attributes were created successfully.       |
 |            | `204`  | Success - Attributes were modified successfully.       |
-|            | `403`  | Not Modifiable - The Attributes could not be modified as the requester had insufficient permissions ('WRITE' is required).  |
-|            | `404`  | Not Found - The Thing or Attributes were not found or requester had insufficient permissions.  |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -167,9 +159,6 @@ The attribute (JSON) can be referenced hierarchically by applying [JSON Pointer 
 | **status** | _code_ |                          | 
 |            | `201`  | Success - The Attribute was created successfully.       |
 |            | `204`  | Success - The Attribute was modified successfully.       |
-|            | `403`  | Not Modifiable - The Attribute could not be modified as the requester had insufficient permissions ('WRITE' is required).         |
-|            | `404`  | Not Found - The Thing or Attribute was not found or requester had insufficient permissions.   |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -217,9 +206,6 @@ The definition will be created in case it doesn't exist yet, otherwise the thing
 | **status** | _code_ |                          | 
 |            | `201`  | Success - The definition was created successfully.       |
 |            | `204`  | Success - The definition was modified successfully.       |
-|            | `403`  | Not Modifiable - The definition could not be modified as the requester had insufficient permissions ('WRITE' is required).         |
-|            | `404`  | Not Found - The Thing or definition was not found or requester had insufficient permissions.   |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -267,9 +253,6 @@ The list of Features will be replaced by the JSON in the `value`.
 | **status** | _code_ |                          | 
 |            | `201`  | Success - The Features were created successfully.       |
 |            | `204`  | Success - The Features were modified successfully.       |
-|            | `403`  | Not Modifiable - The Features could not be modified as the requester had insufficient permissions ('WRITE' is required).          |
-|            | `404`  | Not Found - The Thing or Features were not found or requester had insufficient permissions.  |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -316,9 +299,6 @@ Create or modify a specific Feature (identified by the Feature ID in the `path`)
 | **status** | _code_ |                          | 
 |            | `201`  | Success - The Feature was created successfully.       |
 |            | `204`  | Success - the Feature was modified successfully.       |
-|            | `403`  | Not Modifiable - The Feature could not be modified as the requester had insufficient permissions ('WRITE' is required).  |
-|            | `404`  | Not Found - The Thing or Feature was not found or requester had insufficient permissions.   |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -365,9 +345,6 @@ Create or modify the Definition of a Feature (identified by the Feature ID in th
 | **status** | _code_ |                          | 
 |            | `201`  | Success - the Definition was created successfully.       |
 |            | `204`  | Success - the Definition was modified successfully.       |
-|            | `403`  | Not Modifiable - The Definition could not be modified as the requester had insufficient permissions ('WRITE' is required).  |
-|            | `404`  | Not Found - The Thing, Feature or Definition was not found or requester had insufficient permissions.  |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -415,9 +392,6 @@ Create or modify the Properties of a Feature (identified by the Feature ID in th
 | **status** | *code* |                          | 
 |            | `201`  | Success - the Properties were created successfully.       |
 |            | `204`  | Success - the Properties were modified successfully.       |
-|            | `403`  | Not Modifiable - The Properties could not be modified as the requester had insufficient permissions ('WRITE' is required).  |
-|            | `404`  | Not Found - The Properties were not found or requester had insufficient permissions.  |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -464,9 +438,6 @@ Create or modify the desired Properties of a Feature (identified by the Feature 
 | **status** | *code* |                          | 
 |            | `201`  | Success - the desired Properties were created successfully.       |
 |            | `204`  | Success - the desired Properties were modified successfully.       |
-|            | `403`  | Not Modifiable - The desired Properties could not be modified as the requester had insufficient permissions ('WRITE' is required).  |
-|            | `404`  | Not Found - The desired Properties were not found or requester had insufficient permissions.  |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -514,9 +485,6 @@ The Property (JSON) can be referenced hierarchically by applying [JSON Pointer n
 | **status** | *code* |                          | 
 |            | `201`  | Success - the Property was created successfully.       |               | 
 |            | `204`  | Success - the Property was modified successfully.       |
-|            | `403`  | Not Modifiable - The Property could not be modified as the requester had insufficient permissions ('WRITE' is required).   |
-|            | `404`  | Not Found - The Thing or Property was not found or requester had insufficient permissions.  |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -565,9 +533,6 @@ The Property (JSON) can be referenced hierarchically by applying [JSON Pointer n
 | **status** | *code* |                          | 
 |            | `201`  | Success - the desired Property was created successfully.       |               | 
 |            | `204`  | Success - the desired Property was modified successfully.       |
-|            | `403`  | Not Modifiable - The desired Property could not be modified as the requester had insufficient permissions ('WRITE' is required).   |
-|            | `404`  | Not Found - The Thing or desired Property was not found or requester had insufficient permissions.  |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 

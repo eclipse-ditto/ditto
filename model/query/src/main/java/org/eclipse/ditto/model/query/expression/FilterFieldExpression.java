@@ -27,8 +27,8 @@ public interface FilterFieldExpression extends FieldExpression {
      * @param <T> The result type.
      * @return The result of the evaluation.
      */
-    <T> T acceptFilterVisitor(final FilterFieldExpressionVisitor<T> visitor);
+    <T> T acceptFilterVisitor(FilterFieldExpressionVisitor<T> visitor);
 
     @Override
-    <T> T accept(final FieldExpressionVisitor<T> visitor);
+    <T> T accept(FieldExpressionVisitor<T> visitor);
 }

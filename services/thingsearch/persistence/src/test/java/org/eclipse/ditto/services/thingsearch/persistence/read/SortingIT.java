@@ -28,14 +28,12 @@ import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.model.query.SortDirection;
 import org.eclipse.ditto.model.query.SortOption;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
-import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
-import org.eclipse.ditto.model.query.expression.AttributeExpressionImpl;
-import org.eclipse.ditto.model.query.expression.FeatureIdDesiredPropertyExpressionImpl;
-import org.eclipse.ditto.model.query.expression.FeatureIdPropertyExpressionImpl;
+import org.eclipse.ditto.model.query.expression.AttributeExpression;
+import org.eclipse.ditto.model.query.expression.FeatureIdDesiredPropertyExpression;
+import org.eclipse.ditto.model.query.expression.FeatureIdPropertyExpression;
 import org.eclipse.ditto.model.query.expression.FieldExpression;
-import org.eclipse.ditto.model.query.expression.SimpleFieldExpressionImpl;
+import org.eclipse.ditto.model.query.expression.SimpleFieldExpression;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
@@ -56,7 +54,7 @@ public final class SortingIT extends AbstractReadPersistenceITBase {
     private static final List<SortDirection> SORT_DIRECTIONS = Arrays.asList(SortDirection.values());
     private static final Random RANDOM = new Random();
 
-    private static final ThingsFieldExpressionFactory EFT = new ThingsFieldExpressionFactoryImpl();
+    private static final ThingsFieldExpressionFactory EFT = ThingsFieldExpressionFactory.of(SIMPLE_FIELD_MAPPINGS);
 
     public static final String NAMESPACE = "thingsearch.read";
     private static final List<ThingId> THING_IDS = Arrays.asList(
@@ -77,7 +75,7 @@ public final class SortingIT extends AbstractReadPersistenceITBase {
         return Arrays.asList(SORT_DIRECTIONS.toArray());
     }
 
-    private final CriteriaFactory cf = new CriteriaFactoryImpl();
+    private final CriteriaFactory cf = CriteriaFactory.getInstance();
 
     @Parameterized.Parameter(0)
     public SortDirection testedSortDirection;
@@ -242,12 +240,12 @@ public final class SortingIT extends AbstractReadPersistenceITBase {
 
     private Function<Thing, String> extractStringField(final FieldExpression sortField) {
         return (thing) -> {
-            if (sortField instanceof SimpleFieldExpressionImpl) {
+            if (sortField instanceof SimpleFieldExpression) {
                 return thing.getEntityId().orElseThrow(IllegalStateException::new).toString();
             } else {
                 return thing.getAttributes()
                         .orElseThrow(IllegalStateException::new)
-                        .getValue(((AttributeExpressionImpl) sortField).getKey())
+                        .getValue(((AttributeExpression) sortField).getKey())
                         .orElseThrow(IllegalStateException::new)
                         .asString();
             }
@@ -256,26 +254,26 @@ public final class SortingIT extends AbstractReadPersistenceITBase {
 
     private Function<Thing, Long> extractLongField(final FieldExpression sortField) {
         return (thing) -> {
-            if (sortField instanceof AttributeExpressionImpl) {
+            if (sortField instanceof AttributeExpression) {
                 return thing.getAttributes()
                         .orElseThrow(IllegalStateException::new)
-                        .getValue(((AttributeExpressionImpl) sortField).getKey())
+                        .getValue(((AttributeExpression) sortField).getKey())
                         .orElseThrow(IllegalStateException::new)
                         .asLong();
-            } else if (sortField instanceof FeatureIdPropertyExpressionImpl) {
+            } else if (sortField instanceof FeatureIdPropertyExpression) {
                 return thing.getFeatures()
                         .orElseThrow(IllegalStateException::new)
-                        .getFeature(((FeatureIdPropertyExpressionImpl) sortField).getFeatureId())
+                        .getFeature(((FeatureIdPropertyExpression) sortField).getFeatureId())
                         .orElseThrow(IllegalStateException::new)
-                        .getProperty(((FeatureIdPropertyExpressionImpl) sortField).getProperty())
+                        .getProperty(((FeatureIdPropertyExpression) sortField).getProperty())
                         .orElseThrow(IllegalStateException::new)
                         .asLong();
-            } else if (sortField instanceof FeatureIdDesiredPropertyExpressionImpl) {
+            } else if (sortField instanceof FeatureIdDesiredPropertyExpression) {
                 return thing.getFeatures()
                         .orElseThrow(IllegalStateException::new)
-                        .getFeature(((FeatureIdDesiredPropertyExpressionImpl) sortField).getFeatureId())
+                        .getFeature(((FeatureIdDesiredPropertyExpression) sortField).getFeatureId())
                         .orElseThrow(IllegalStateException::new)
-                        .getDesiredProperty(((FeatureIdDesiredPropertyExpressionImpl) sortField).getDesiredProperty())
+                        .getDesiredProperty(((FeatureIdDesiredPropertyExpression) sortField).getDesiredProperty())
                         .orElseThrow(IllegalStateException::new)
                         .asLong();
             } else {

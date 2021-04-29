@@ -28,9 +28,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -60,8 +58,6 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 @SuppressWarnings("squid:S2160")
 public abstract class AbstractDittoHeaders implements DittoHeaders {
 
-    private static final String ISSUER_DIVIDER = ":";
-
     final Map<String, Header> headers;
 
     /**
@@ -73,12 +69,10 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
     protected AbstractDittoHeaders(final Map<String, String> headers) {
         checkNotNull(headers, "headers");
         if (headers instanceof AbstractDittoHeaders) {
-            // Share the map from the other AbstractDittoHeaders--it is not modifiable. Otherwise case is not preserved.
+            // Share the map from the other AbstractDittoHeaders -- it is not modifiable. Otherwise case is not preserved.
             this.headers = ((AbstractDittoHeaders) headers).headers;
         } else {
-            final Map<String, String> headersWithOnlyPrefixedSubjects =
-                    keepAuthContextSubjectsWithIssuer(headers, (key, value) -> value);
-            this.headers = indexByLowerCase(headersWithOnlyPrefixedSubjects);
+            this.headers = indexByLowerCase(headers);
         }
     }
 
@@ -91,8 +85,7 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
     @SuppressWarnings("unused")
     protected AbstractDittoHeaders(final Map<String, Header> headers, final boolean flag) {
         checkNotNull(headers, "headers");
-        final Map<String, Header> candidate = keepAuthContextSubjectsWithIssuer(headers, Header::of);
-        this.headers = candidate != headers ? candidate : new LinkedHashMap<>(candidate);
+        this.headers = new LinkedHashMap<>(headers);
     }
 
     @Override
@@ -149,24 +142,6 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
         }
     }
 
-    private static <T extends CharSequence> Map<String, T> keepAuthContextSubjectsWithIssuer(
-            final Map<String, T> headers,
-            final BiFunction<String, String, T> fromString) {
-
-        if (headers.containsKey(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey())) {
-            final Map<String, T> newHeaders = new LinkedHashMap<>(headers);
-            final AuthorizationContext authContext =
-                    AuthorizationModelFactory.newAuthContext(getAuthorizationContextAsJson(headers));
-            final AuthorizationContext authContextWithoutDups = keepAuthContextSubjectsWithIssuer(authContext);
-            newHeaders.put(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey(),
-                    fromString.apply(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey(),
-                            authContextWithoutDups.toJsonString()));
-            return newHeaders;
-        } else {
-            return headers;
-        }
-    }
-
     private static JsonObject getAuthorizationContextAsJson(final Map<String, ? extends CharSequence> headers) {
         final CharSequence jsonObjectString = headers.get(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey());
         final JsonObject result;
@@ -176,27 +151,6 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
             result = JsonObject.empty();
         }
         return result;
-    }
-
-    protected static AuthorizationContext keepAuthContextSubjectsWithIssuer(final AuthorizationContext authContext) {
-        final Set<String> subjectsWithoutIssuer = authContext.getAuthorizationSubjects()
-                .stream()
-                .flatMap(authorizationSubject -> {
-                    final String authorizationSubjectId = authorizationSubject.getId();
-                    final String[] issuers = authorizationSubjectId.split(ISSUER_DIVIDER, 2);
-                    if (2 == issuers.length) {
-                        return Stream.of(issuers[1]);
-                    } else {
-                        return Stream.empty();
-                    }
-                })
-                .collect(Collectors.toSet());
-
-        final List<AuthorizationSubject> subjectsWithIssuer = authContext.stream()
-                .filter(subject -> !subjectsWithoutIssuer.contains(subject.getId()))
-                .collect(Collectors.toList());
-
-        return AuthorizationModelFactory.newAuthContext(authContext.getType(), subjectsWithIssuer);
     }
 
     @Override

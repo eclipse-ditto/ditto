@@ -14,12 +14,14 @@ package org.eclipse.ditto.model.query.filter;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.model.query.criteria.Criteria;
-import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
+import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.expression.FieldExpressionUtil;
-import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
+import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.rql.predicates.ast.LogicalNode;
 import org.eclipse.ditto.model.rql.predicates.ast.RootNode;
 import org.eclipse.ditto.model.rql.predicates.ast.SingleComparisonNode;
@@ -36,13 +38,17 @@ public final class ParameterPredicateVisitorTest {
     private static final String KNOWN_FIELD_VALUE_2 = "value2";
 
     private ParameterPredicateVisitor visitorUnderTest;
-    private CriteriaFactoryImpl cf;
-    private ThingsFieldExpressionFactoryImpl ef;
+    private CriteriaFactory cf;
+    private ThingsFieldExpressionFactory ef;
 
     @Before
     public void before() {
-        cf = new CriteriaFactoryImpl();
-        ef = new ThingsFieldExpressionFactoryImpl();
+        cf = CriteriaFactory.getInstance();
+
+        final Map<String, String> simpleFieldMappings = new HashMap<>();
+        simpleFieldMappings.put(FieldExpressionUtil.FIELD_NAME_THING_ID, FieldExpressionUtil.FIELD_ID);
+        simpleFieldMappings.put(FieldExpressionUtil.FIELD_NAME_NAMESPACE, FieldExpressionUtil.FIELD_NAMESPACE);
+        ef = ThingsFieldExpressionFactory.of(simpleFieldMappings);
         visitorUnderTest = new ParameterPredicateVisitor(cf, ef);
     }
 

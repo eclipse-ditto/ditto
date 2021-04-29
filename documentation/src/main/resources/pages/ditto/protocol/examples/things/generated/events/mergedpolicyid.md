@@ -2,12 +2,12 @@
 
 ```json
 {
-  "topic": "com.acme/xdk_53/things/twin/events/merged",
+  "topic": "org.eclipse.ditto/fancy-thing/things/twin/events/merged",
   "headers": {
     "content-type": "application/merge-patch+json"
   },
   "path": "/policyId",
-  "value": "com.acme:the_policy_id",
+  "value": "org.eclipse.ditto:the_policy_id",
   "revision": 42,
   "timestamp": "2021-01-18T09:42:12Z"
 }

@@ -17,7 +17,7 @@ import java.util.Collections;
 import org.bson.Document;
 import org.eclipse.ditto.model.query.SortDirection;
 import org.eclipse.ditto.model.query.SortOption;
-import org.eclipse.ditto.model.query.expression.AttributeExpressionImpl;
+import org.eclipse.ditto.model.query.expression.AttributeExpression;
 import org.eclipse.ditto.model.query.expression.SortFieldExpression;
 import org.junit.Test;
 
@@ -28,7 +28,7 @@ public final class GetSortBsonVisitorTest {
 
     @Test
     public void handlesNullValues() {
-        final SortFieldExpression expression = new AttributeExpressionImpl("a/b/c/d/e/f/g");
+        final SortFieldExpression expression = AttributeExpression.of("a/b/c/d/e/f/g");
         final SortOption sortOption = new SortOption(expression, SortDirection.ASC);
 
         GetSortBsonVisitor.sortValuesAsArray(new Document(), Collections.singletonList(sortOption));

@@ -12,6 +12,10 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 
+import static org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttHeader.MQTT_QOS;
+import static org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttHeader.MQTT_RETAIN;
+import static org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttHeader.MQTT_TOPIC;
+
 import static org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders.newSourceAddressPlaceholder;
 
 import java.nio.ByteBuffer;
@@ -25,11 +29,8 @@ import org.eclipse.ditto.model.base.common.ByteBufferUtils;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.EnforcementFilter;
 import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
-import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.messaging.BaseConsumerActor;
@@ -52,10 +53,6 @@ import akka.actor.ActorRef;
  * @param <P> type of PUBLISH messages.
  */
 abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
-
-    protected static final String MQTT_TOPIC_HEADER = "mqtt.topic";
-    protected static final String MQTT_QOS_HEADER = "mqtt.qos";
-    protected static final String MQTT_RETAIN_HEADER = "mqtt.retain";
 
     protected final ThreadSafeDittoLoggingAdapter logger;
     protected final boolean dryRun;
@@ -95,9 +92,9 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
     protected HashMap<String, String> extractHeadersMapFromMqttMessage(final P message) {
         final HashMap<String, String> headersFromMqttMessage = new HashMap<>();
 
-        headersFromMqttMessage.put(MQTT_TOPIC_HEADER, getTopic(message));
-        headersFromMqttMessage.put(MQTT_QOS_HEADER, String.valueOf(getQoS(message).getCode()));
-        headersFromMqttMessage.put(MQTT_RETAIN_HEADER, String.valueOf(isRetain(message)));
+        headersFromMqttMessage.put(MQTT_TOPIC.getName(), getTopic(message));
+        headersFromMqttMessage.put(MQTT_QOS.getName(), String.valueOf(getQoS(message).getCode()));
+        headersFromMqttMessage.put(MQTT_RETAIN.getName(), String.valueOf(isRetain(message)));
 
         return headersFromMqttMessage;
     }
@@ -165,7 +162,7 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
 
     private void handleMqttMessage(final P message) {
         logger.debug("Received message: {}", message);
-        final Optional<ExternalMessage> externalMessageOptional = hiveToExternalMessage(message, connectionId);
+        final Optional<ExternalMessage> externalMessageOptional = hiveToExternalMessage(message);
         final ActorRef parent = getContext().getParent();
         externalMessageOptional.ifPresent(externalMessage ->
                 forwardToMappingActor(externalMessage,
@@ -174,7 +171,7 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
         );
     }
 
-    private Optional<ExternalMessage> hiveToExternalMessage(final P message, final ConnectionId connectionId) {
+    private Optional<ExternalMessage> hiveToExternalMessage(final P message) {
         HashMap<String, String> headers = null;
         try {
             final ByteBuffer payload = getPayload(message)
@@ -186,18 +183,6 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
 
             headers = extractHeadersMapFromMqttMessage(message);
 
-            final Map<String, String> headerMappingMap = new HashMap<>();
-            final Map<String, String> mqttMappings = Map.of(
-                    MQTT_TOPIC_HEADER, getHeaderPlaceholder(MQTT_TOPIC_HEADER),
-                    MQTT_QOS_HEADER, getHeaderPlaceholder(MQTT_QOS_HEADER),
-                    MQTT_RETAIN_HEADER, getHeaderPlaceholder(MQTT_RETAIN_HEADER)
-            );
-
-            final HeaderMapping sourceHeaderMapping = source.getHeaderMapping();
-            headerMappingMap.putAll(sourceHeaderMapping.getMapping());
-            headerMappingMap.putAll(mqttMappings);
-
-            final HeaderMapping mqttTopicHeaderMapping = ConnectivityModelFactory.newHeaderMapping(headerMappingMap);
             final ExternalMessage externalMessage = ExternalMessageFactory
                     .newExternalMessageBuilder(headers)
                     .withTextAndBytes(textPayload, payload)
@@ -205,7 +190,7 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
                     .withEnforcement(getEnforcementFilter(headers, topic))
                     .withSourceAddress(sourceAddress)
                     .withPayloadMapping(payloadMapping)
-                    .withHeaderMapping(mqttTopicHeaderMapping)
+                    .withHeaderMapping(source.getHeaderMapping())
                     .build();
             inboundMonitor.success(externalMessage);
 
@@ -230,10 +215,6 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
 
         }
         return Optional.empty();
-    }
-
-    private static String getHeaderPlaceholder(final String headerName) {
-        return "{{ header:" + headerName + "}}";
     }
 
     private void acknowledge(final ExternalMessage externalMessage, final P message) {

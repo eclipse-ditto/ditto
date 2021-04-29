@@ -21,39 +21,50 @@ import org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
-import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.rql.ParserException;
+import org.eclipse.ditto.model.rql.predicates.PredicateParser;
 import org.eclipse.ditto.model.rql.predicates.ast.RootNode;
-import org.eclipse.ditto.model.rqlparser.RqlPredicateParser;
 
 /**
  * The place for query filter manipulations
  */
 public final class QueryFilterCriteriaFactory {
 
-    private static final QueryFilterCriteriaFactory MODEL_BASED =
-            new QueryFilterCriteriaFactory(new CriteriaFactoryImpl(), new ModelBasedThingsFieldExpressionFactory());
-
     private final CriteriaFactory criteriaFactory;
     private final ThingsFieldExpressionFactory fieldExpressionFactory;
-    private final RqlPredicateParser rqlPredicateParser;
+    private final PredicateParser predicateParser;
 
-    public QueryFilterCriteriaFactory(final CriteriaFactory criteriaFactory,
-            final ThingsFieldExpressionFactory fieldExpressionFactory) {
+    private QueryFilterCriteriaFactory(final CriteriaFactory criteriaFactory,
+            final ThingsFieldExpressionFactory fieldExpressionFactory,
+            final PredicateParser predicateParser) {
+
         this.criteriaFactory = criteriaFactory;
         this.fieldExpressionFactory = fieldExpressionFactory;
-        this.rqlPredicateParser = new RqlPredicateParser();
+        this.predicateParser = predicateParser;
     }
 
     /**
      * Retrieve the unique model-based query filter criteria factory.
      *
+     * @param fieldExpressionFactory the ThingsFieldExpressionFactory to use.
+     * @param predicateParser the PredicateParser to use for parsing RQL strings.
      * @return the model-based query filter criteria factory.
      */
-    public static QueryFilterCriteriaFactory modelBased() {
-        return MODEL_BASED;
+    public static QueryFilterCriteriaFactory of(final ThingsFieldExpressionFactory fieldExpressionFactory,
+            final PredicateParser predicateParser) {
+        return new QueryFilterCriteriaFactory(CriteriaFactory.getInstance(), fieldExpressionFactory, predicateParser);
+    }
+
+    /**
+     * Retrieve the unique model-based query filter criteria factory.
+     *
+     * @param predicateParser the PredicateParser to use for parsing RQL strings.
+     * @return the model-based query filter criteria factory.
+     */
+    public static QueryFilterCriteriaFactory modelBased(final PredicateParser predicateParser) {
+        return of(ModelBasedThingsFieldExpressionFactory.getInstance(), predicateParser);
     }
 
     /**
@@ -106,7 +117,7 @@ public final class QueryFilterCriteriaFactory {
             final ParameterPredicateVisitor visitor =
                     new ParameterPredicateVisitor(criteriaFactory, fieldExpressionFactory);
 
-            final RootNode rootNode = rqlPredicateParser.parse(filter);
+            final RootNode rootNode = predicateParser.parse(filter);
             visitor.visit(rootNode);
 
             final Criteria criteria;

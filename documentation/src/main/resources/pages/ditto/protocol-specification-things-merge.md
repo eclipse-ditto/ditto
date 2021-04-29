@@ -32,8 +32,6 @@ the [JSON merge patch](https://tools.ietf.org/html/rfc7396) defined by the JSON 
 | **path**   |        | `/`                      |
 | **status** | *code* |                          | 
 |            | `204`  | Success - the thing was merged successfully.       |
-|            | `403`  | Not Modifiable - Could not be merged as the requester had insufficient permissions ('WRITE' is required).  |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -68,9 +66,6 @@ merged with the JSON merge patch provided in the `value` field.
 | **path**   |        | `/attributes`                      |
 | **status** | _code_ |                          | 
 |            | `204`  | Success - attributes were merged successfully.       |
-|            | `403`  | Not Modifiable - The attributes could not be merged as the requester had insufficient permissions ('WRITE' is required).  |
-|            | `404`  | Not Found - The thing or attributes were not found or requester had insufficient permissions.  |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -105,9 +100,6 @@ hierarchically by applying [JSON Pointer notation (RFC-6901)](https://tools.ietf
 | **path**   |        | `/attributes/<attributePath>`                      |
 | **status** | _code_ |                          | 
 |            | `204`  | Success - The attribute was merged successfully.       |
-|            | `403`  | Not Modifiable - The attribute could not be merged as the requester had insufficient permissions ('WRITE' is required).         |
-|            | `404`  | Not Found - The thing or attribute was not found or requester had insufficient permissions.   |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -141,9 +133,6 @@ Merge the definition of a thing.
 | **path**   |        | `/definition`                      |
 | **status** | _code_ |                          | 
 |            | `204`  | Success - The definition was merged successfully.       |
-|            | `403`  | Not Modifiable - The definition could not be merged as the requester had insufficient permissions ('WRITE' is required).         |
-|            | `404`  | Not Found - The thing or definition was not found or requester had insufficient permissions.   |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ## Merge the policy ID of a thing
 
@@ -165,11 +154,6 @@ Merge the policy ID of a thing.
 | **path**   |        | `/definition`                      |
 | **status** | _code_ |                          | 
 |            | `204`  | Success - The definition was merged successfully.       |
-|            | `400`  | Policy ID invalid - The provided policyId is not valid.         |
-|            | `400`  | Not Deletable - The policyId of a thing cannot be deleted.         |
-|            | `403`  | Not Modifiable - The definition could not be merged as the requester had insufficient permissions ('WRITE' is required).         |
-|            | `404`  | Not Found - The thing or definition was not found or requester had insufficient permissions.   |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -204,9 +188,6 @@ The list of features will be merged with the JSON merge patch provided in the `v
 | **path**   |        | `/features`                      |
 | **status** | _code_ |                          | 
 |            | `204`  | Success - The features were modified successfully.       |
-|            | `403`  | Not Modifiable - The features could not be merged as the requester had insufficient permissions ('WRITE' is required).          |
-|            | `404`  | Not Found - The thing or features were not found or requester had insufficient permissions.  |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -239,9 +220,6 @@ the `<thingName>` in the topic).
 | **path**   |        | `/features/<featureId>`                      |
 | **status** | _code_ |                          | 
 |            | `201`  | Success - The feature was created successfully.       |
-|            | `403`  | Not Modifiable - The feature could not be merged as the requester had insufficient permissions ('WRITE' is required).  |
-|            | `404`  | Not Found - The thing or feature was not found or requester had insufficient permissions.   |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -274,9 +252,6 @@ Merge the definition of a feature (identified by the feature ID in the `path`) o
 | **path**   |        | `/features/<featureId>/definition`                      |
 | **status** | _code_ |                          | 
 |            | `204`  | Success - the definition was merged successfully.       |
-|            | `403`  | Not Modifiable - The definition could not be merged as the requester had insufficient permissions ('WRITE' is required).  |
-|            | `404`  | Not Found - The thing, feature or definition was not found or requester had insufficient permissions.  |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -309,9 +284,6 @@ Merge the properties of a feature (identified by the feature ID in the `path`) o
 | **path**   |        | `/features/<featureId>/properties`                      |
 | **status** | *code* |                          | 
 |            | `204`  | Success - the properties were modified successfully.       |
-|            | `403`  | Not Modifiable - The properties could not be merged as the requester had insufficient permissions ('WRITE' is required).  |
-|            | `404`  | Not Found - The properties were not found or requester had insufficient permissions.  |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -344,9 +316,6 @@ Merge the desired properties of a feature (identified by the feature ID in the `
 | **path**   |        | `/features/<featureId>/desiredProperties`                      |
 | **status** | *code* |                          | 
 |            | `204`  | Success - the desired properties were modified successfully.       |
-|            | `403`  | Not Modifiable - The desired properties could not be merged as the requester had insufficient permissions ('WRITE' is required).  |
-|            | `404`  | Not Found - The desired properties were not found or requester had insufficient permissions.  |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -380,9 +349,6 @@ applying [JSON Pointer notation (RFC-6901)](https://tools.ietf.org/html/rfc6901)
 | **path**   |        | `/features/<featureId>/properties/<propertyPath>`                      |
 | **status** | *code* |                          | 
 |            | `204`  | Success - the property was merged successfully.       |
-|            | `403`  | Not Modifiable - The property could not be merged as the requester had insufficient permissions ('WRITE' is required).   |
-|            | `404`  | Not Found - The thing or property was not found or requester had insufficient permissions.  |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -416,9 +382,6 @@ applying [JSON Pointer notation (RFC-6901)](https://tools.ietf.org/html/rfc6901)
 | **path**   |        | `/features/<featureId>/desiredProperties/<desiredPropertyPath>`                      |
 | **status** | *code* |                          | 
 |            | `204`  | Success - the desired property was merged successfully.       |
-|            | `403`  | Not Modifiable - The desired property could not be merged as the requester had insufficient permissions ('WRITE' is required).   |
-|            | `404`  | Not Found - The thing or desired property was not found or requester had insufficient permissions.  |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 

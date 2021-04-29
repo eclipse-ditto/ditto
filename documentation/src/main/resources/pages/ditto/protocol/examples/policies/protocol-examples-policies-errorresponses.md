@@ -1,9 +1,15 @@
 ---
-title: Error responses
+title: Policies error responses
 keywords: examples, policies error responses, error responses
 search: exclude
 permalink: protocol-examples-policies-errorresponses.html
 ---
+
+The following listed example errors do not claim to be a complete list of all available and possible error responses.  
+Also, their texts and **error** codes might be outdated.
+
+In order to find out all currently available errors, please inspect Ditto's codebase and look at all implementations of
+the `PolicyException` interface.
 
 {% capture policy_id_invalid %}{% include_relative generated/exceptions/policies_id_invalid.md %}{% endcapture %}
 {{ policy_id_invalid | markdownify }}

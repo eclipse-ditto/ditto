@@ -110,7 +110,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<SignalWithE
         @Override
         @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
         public Class<SignalWithEntityId<?>> getCommandClass() {
-            return (Class) Signal.class;
+            return (Class) SignalWithEntityId.class;
         }
 
         @Override
@@ -309,7 +309,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<SignalWithE
             final DistributedPub<T> pub) {
 
         // using pub/sub to publish the command to any interested parties (e.g. a Websocket):
-        log(signal).debug("Publish message to pub-sub");
+        log(signal).debug("Publish message to pub-sub: <{}>", signal);
         return addToResponseReceiver(signal).thenApply(newSignal ->
                 withMessageToReceiver(newSignal, pub.getPublisher(),
                         obj -> pub.wrapForPublicationWithAcks((S) obj, ackExtractor))

@@ -30,14 +30,14 @@ public interface SortFieldExpression extends FilterFieldExpression, ExistsFieldE
      * @param <T> The result type.
      * @return The result of the evaluation.
      */
-    <T> T acceptSortVisitor(final SortFieldExpressionVisitor<T> visitor);
+    <T> T acceptSortVisitor(SortFieldExpressionVisitor<T> visitor);
 
     @Override
-    <T> T acceptFilterVisitor(final FilterFieldExpressionVisitor<T> visitor);
+    <T> T acceptFilterVisitor(FilterFieldExpressionVisitor<T> visitor);
 
     @Override
-    <T> T acceptExistsVisitor(final ExistsFieldExpressionVisitor<T> visitor);
+    <T> T acceptExistsVisitor(ExistsFieldExpressionVisitor<T> visitor);
 
     @Override
-    <T> T accept(final FieldExpressionVisitor<T> visitor);
+    <T> T accept(FieldExpressionVisitor<T> visitor);
 }

@@ -12,7 +12,12 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 
+import static org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttHeader.MQTT_QOS;
+import static org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttHeader.MQTT_RETAIN;
+import static org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttHeader.MQTT_TOPIC;
+
 import java.nio.ByteBuffer;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -65,12 +70,13 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
     /**
      * Map an external message into a PUBLISH.
      *
-     * @param mqttTarget the target to publish at.
+     * @param topic the topic to publish at.
      * @param qos the QoS.
+     * @param retain the retain flag
      * @param externalMessage the external message.
      * @return the PUBLISH message with the content of the external message.
      */
-    abstract P mapExternalMessageToMqttMessage(MqttPublishTarget mqttTarget, MqttQos qos,
+    abstract P mapExternalMessageToMqttMessage(String topic, MqttQos qos, boolean retain,
             ExternalMessage externalMessage);
 
     /**
@@ -138,11 +144,13 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
             final MqttPublishTarget publishTarget,
             final ExternalMessage message,
             final int maxTotalMessageSize,
-            int ackSizeQuota) {
+            final int ackSizeQuota) {
 
         try {
-            final MqttQos qos = determineQos(autoAckTarget);
-            final P mqttMessage = mapExternalMessageToMqttMessage(publishTarget, qos, message);
+            final String topic = determineTopic(publishTarget, message);
+            final MqttQos qos = determineQos(message.getHeaders(), autoAckTarget);
+            final boolean retain = determineMqttRetainFromHeaders(message.getHeaders());
+            final P mqttMessage = mapExternalMessageToMqttMessage(topic, qos, retain, message);
             if (logger.isDebugEnabled()) {
                 logger.withCorrelationId(signal)
                         .debug("Publishing MQTT message to topic <{}>: {}", getTopic(mqttMessage),
@@ -154,13 +162,42 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
         }
     }
 
-    private static MqttQos determineQos(@Nullable final Target autoAckTarget) {
-        if (autoAckTarget == null) {
+    private String determineTopic(final MqttPublishTarget publishTarget, final ExternalMessage message) {
+        return Optional.of(message)
+                .map(ExternalMessage::getHeaders)
+                .flatMap(m -> Optional.ofNullable(m.get(MQTT_TOPIC.getName())))
+                .orElse(publishTarget.getTopic());
+    }
+
+    private static MqttQos determineQos(final Map<String, String> headers, @Nullable final Target autoAckTarget) {
+        final Optional<MqttQos> mqttQosFromHeaders = getMqttQosFromHeaders(headers);
+        if (mqttQosFromHeaders.isPresent()) {
+            return mqttQosFromHeaders.get();
+        } else if (autoAckTarget == null) {
             return MqttQos.AT_MOST_ONCE;
         } else {
             final int qos = autoAckTarget.getQos().orElse(DEFAULT_TARGET_QOS);
             return AbstractMqttValidator.getHiveQoS(qos);
         }
+    }
+
+    private static Optional<MqttQos> getMqttQosFromHeaders(final Map<String, String> headers) {
+        return Optional.ofNullable(headers.get(MQTT_QOS.getName()))
+                .flatMap(qosHeader -> {
+                    try {
+                        return Optional.of(Integer.parseInt(qosHeader));
+                    } catch (final NumberFormatException nfe) {
+                        return Optional.empty();
+                    }
+                })
+                .map(MqttQos::fromCode);
+    }
+
+    private boolean determineMqttRetainFromHeaders(final Map<String, String> headers) {
+        return Optional.of(headers)
+                .map(h -> h.get(MQTT_RETAIN.getName()))
+                .map(Boolean::parseBoolean)
+                .orElse(false);
     }
 
     private boolean isDryRun(final Object message) {

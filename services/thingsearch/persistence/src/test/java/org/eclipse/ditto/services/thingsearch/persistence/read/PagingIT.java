@@ -28,7 +28,6 @@ import org.eclipse.ditto.model.query.QueryBuilder;
 import org.eclipse.ditto.model.query.SortDirection;
 import org.eclipse.ditto.model.query.SortOption;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
@@ -62,7 +61,7 @@ public final class PagingIT extends AbstractReadPersistenceITBase {
     private int maxPageSizeFromConfig;
     private int defaultPageSizeFromConfig;
 
-    private final ThingsFieldExpressionFactory eft = new ThingsFieldExpressionFactoryImpl();
+    private final ThingsFieldExpressionFactory eft = ThingsFieldExpressionFactory.of(SIMPLE_FIELD_MAPPINGS);
 
     @BeforeClass
     public static void initTestFixture() {

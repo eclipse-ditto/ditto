@@ -6,7 +6,7 @@
   "properties": {
     "topic": {
       "type": "string",
-      "description": "Contains the topic of the error including on which channel it was issued."
+      "description": "Contains the topic of the error including on which channel it was issued: `<namespace>/<name>/<group>/<optional-channel>/errors`\n* for Thing related errors: `<namespace>/<name>/things/twin/errors`\n* for Policy related errors: `<namespace>/<name>/policies/errors`"
     },
     "headers": {
       "type": "object",
@@ -35,7 +35,7 @@
         "error": {
           "type": "string",
           "title": "Error code",
-          "description": "The error code or identifier that uniquely identifies the error e.g. `things:features.notfound`."
+          "description": "The error code or identifier that uniquely identifies the error.\nThis code is not to be considered as API and must therefore not be relied on.\nIt might change without prior notice."
         },
         "message": {
           "type": "string",
@@ -64,5 +64,5 @@
       "description": "The status code that indicates the result of the command. The semantics of the used status codes are based on the [HTTP status codes](https://tools.ietf.org/html/rfc7231#section-6)."
     }
   },
-  "required": [ "topic", "headers", "path", "status" ]
+  "required": [ "topic", "headers", "path", "value","status" ]
 }

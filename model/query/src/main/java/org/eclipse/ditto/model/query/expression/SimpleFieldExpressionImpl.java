@@ -14,24 +14,24 @@ package org.eclipse.ditto.model.query.expression;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Objects;
+
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.model.query.expression.visitors.ExistsFieldExpressionVisitor;
 import org.eclipse.ditto.model.query.expression.visitors.FieldExpressionVisitor;
 import org.eclipse.ditto.model.query.expression.visitors.FilterFieldExpressionVisitor;
 import org.eclipse.ditto.model.query.expression.visitors.SortFieldExpressionVisitor;
 
 /**
- * Expression for a simple field, in contrast to e.g. {@link AttributeExpressionImpl}.
+ * Immutable implementation of {@link SimpleFieldExpression}.
  */
-public class SimpleFieldExpressionImpl implements FilterFieldExpression, SortFieldExpression, ExistsFieldExpression {
+@Immutable
+final class SimpleFieldExpressionImpl implements SimpleFieldExpression {
 
     private final String fieldName;
 
-    /**
-     * Creates a expression for a simple field.
-     *
-     * @param fieldName the field name
-     */
-    public SimpleFieldExpressionImpl(final String fieldName) {
+    SimpleFieldExpressionImpl(final String fieldName) {
         this.fieldName = requireNonNull(fieldName);
     }
 
@@ -55,47 +55,32 @@ public class SimpleFieldExpressionImpl implements FilterFieldExpression, SortFie
         return visitor.visitSimple(fieldName);
     }
 
-    /**
-     * @return the field name.
-     */
+    @Override
     public String getFieldName() {
         return fieldName;
     }
 
-    @SuppressWarnings("squid:S109")
     @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = (prime * result) + ((fieldName == null) ? 0 : fieldName.hashCode());
-        return result;
-    }
-
-    @SuppressWarnings("squid:MethodCyclomaticComplexity")
-    @Override
-    public boolean equals(final Object obj) {
-        if (this == obj) {
+    public boolean equals(final Object o) {
+        if (this == o) {
             return true;
         }
-        if (obj == null) {
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final SimpleFieldExpressionImpl other = (SimpleFieldExpressionImpl) obj;
-        if (fieldName == null) {
-            if (other.fieldName != null) {
-                return false;
-            }
-        } else if (!fieldName.equals(other.fieldName)) {
-            return false;
-        }
-        return true;
+        final SimpleFieldExpressionImpl that = (SimpleFieldExpressionImpl) o;
+        return Objects.equals(fieldName, that.fieldName);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(fieldName);
     }
 
     @Override
     public String toString() {
-        return "SimpleFieldExpression [fieldName=" + fieldName + "]";
+        return getClass().getSimpleName() + " [" +
+                "fieldName=" + fieldName +
+                "]";
     }
 }

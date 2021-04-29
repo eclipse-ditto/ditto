@@ -393,7 +393,7 @@ Ditto comes with a few helper functions, which makes writing the mapping scripts
 /**
  * Builds a Ditto Protocol message from the passed parameters.
  * @param {string} namespace - The namespace of the entity in java package notation, e.g.: "org.eclipse.ditto"
- * @param {string} id - The ID of the entity
+ * @param {string} name - The name of the entity, e.g.: "device"
  * @param {string} group - The affected group/entity, one of: "things"
  * @param {string} channel - The channel for the signal, one of: "twin"|"live"
  * @param {string} criterion - The criterion to apply, one of: "commands"|"events"|"search"|"messages"|"errors"
@@ -401,22 +401,24 @@ Ditto comes with a few helper functions, which makes writing the mapping scripts
  * @param {string} path - The path which is affected by the message, e.g.: "/attributes"
  * @param {Object.<string, string>} dittoHeaders - The headers Object containing all Ditto Protocol header values
  * @param {*} [value] - The value to apply / which was applied (e.g. in a "modify" action)
- * @param {number} status - The status code that indicates the result of the command.
- * @param {Object} extra - The enriched extra fields when selected via "extraFields" option.
+ * @param {number} [status] - The status code that indicates the result of the command. If setting a status code,
+ * the Ditto Protocol Message will be interpreted as a response (e.g. content will be ignored when using 204).
+ * @param {Object} [extra] - The enriched extra fields when selected via "extraFields" option.
  * @returns {DittoProtocolMessage} dittoProtocolMessage - 
  *  the mapped Ditto Protocol message or 
  *  <code>null</code> if the message could/should not be mapped
  */
-function buildDittoProtocolMsg(namespace, id, group, channel, criterion, action, path, dittoHeaders, value, status, extra) {
+function buildDittoProtocolMsg(namespace, name, group, channel, criterion, action, 
+                               path, dittoHeaders, value, status, extra) {
 
-    let dittoProtocolMsg = {};
-    dittoProtocolMsg.topic = namespace + "/" + id + "/" + group + "/" + channel + "/" + criterion + "/" + action;
-    dittoProtocolMsg.path = path;
-    dittoProtocolMsg.headers = dittoHeaders;
-    dittoProtocolMsg.value = value;
-    dittoProtocolMsg.status = status;
-    dittoProtocolMsg.extra = extra;
-    return dittoProtocolMsg;
+  return {
+    topic: namespace + "/" + name + "/" + group + "/" + channel + "/" + criterion + "/" + action,
+    path: path,
+    headers: dittoHeaders,
+    value: value,
+    status: status,
+    extra: extra,
+  };
 }
 
 /**
@@ -431,12 +433,12 @@ function buildDittoProtocolMsg(namespace, id, group, channel, criterion, action,
  */
 function buildExternalMsg(headers, textPayload, bytePayload, contentType) {
 
-    let externalMsg = {};
-    externalMsg.headers = headers;
-    externalMsg.textPayload = textPayload;
-    externalMsg.bytePayload = bytePayload;
-    externalMsg.contentType = contentType;
-    return externalMsg;
+  return {
+    headers: headers,
+    textPayload: textPayload,
+    bytePayload: bytePayload,
+    contentType: contentType,
+  };
 }
 
 /**
@@ -448,7 +450,7 @@ function buildExternalMsg(headers, textPayload, bytePayload, contentType) {
  */
 function arrayBufferToString(arrayBuffer) {
 
-    return String.fromCharCode.apply(null, new Uint8Array(arrayBuffer));
+  return String.fromCharCode.apply(null, new Uint8Array(arrayBuffer));
 }
 
 /**
@@ -459,12 +461,12 @@ function arrayBufferToString(arrayBuffer) {
  */
 function stringToArrayBuffer(string) {
 
-    let buf = new ArrayBuffer(string.length);
-    let bufView = new Uint8Array(buf);
-    for (let i=0, strLen=string.length; i<strLen; i++) {
-        bufView[i] = string.charCodeAt(i);
-    }
-    return buf;
+  let buf = new ArrayBuffer(string.length);
+  let bufView = new Uint8Array(buf);
+  for (let i=0, strLen=string.length; i<strLen; i++) {
+    bufView[i] = string.charCodeAt(i);
+  }
+  return buf;
 }
 
 /**
@@ -475,9 +477,9 @@ function stringToArrayBuffer(string) {
  */
 function asByteBuffer(arrayBuffer) {
     
-    let byteBuffer = new ArrayBuffer(arrayBuffer.byteLength);
-    new Uint8Array(byteBuffer).set(new Uint8Array(arrayBuffer));
-    return dcodeIO.ByteBuffer.wrap(byteBuffer);
+  let byteBuffer = new ArrayBuffer(arrayBuffer.byteLength);
+  new Uint8Array(byteBuffer).set(new Uint8Array(arrayBuffer));
+  return dcodeIO.ByteBuffer.wrap(byteBuffer);
 }
 ```
 
@@ -498,28 +500,31 @@ Incoming external messages can be mapped to Ditto Protocol conform messages by i
  *  <code>null</code> if the message could/should not be mapped
  */
 function mapToDittoProtocolMsg(
-    headers,
-    textPayload,
-    bytePayload,
-    contentType
+  headers,
+  textPayload,
+  bytePayload,
+  contentType
 ) {
 
-    // ###
-    // Insert your mapping logic here:
-    // ###
-
-    return Ditto.buildDittoProtocolMsg(
-        namespace,
-        id,
-        group,
-        channel,
-        criterion,
-        action,
-        path,
-        dittoHeaders,
-        value,
-        status
-    );
+  // ### Insert/adapt your mapping logic here.
+  // Use helper function Ditto.buildDittoProtocolMsg to build Ditto protocol message
+  // based on incoming payload.
+  // See https://www.eclipse.org/ditto/connectivity-mapping.html#helper-functions for details.
+  // ### example code assuming the Ditto protocol content type for incoming messages.
+  if (contentType === 'application/vnd.eclipse.ditto+json') {
+    // Message is sent as Ditto protocol text payload and can be used directly
+    return JSON.parse(textPayload);
+  } else if (contentType === 'application/octet-stream') {
+    // Message is sent as binary payload; assume Ditto protocol message (JSON).
+    try {
+      return JSON.parse(Ditto.arrayBufferToString(bytePayload));
+    } catch (e) {
+      // parsing failed (no JSON document); return null to drop the message
+      return null;
+    }
+  }
+  // no mapping logic matched; return null to drop the message
+  return null;
 }
 ```
 
@@ -536,7 +541,7 @@ can be mapped to external messages by implementing the following JavaScript func
 /**
  * Maps the passed parameters which originated from a Ditto Protocol message to an external message.
  * @param {string} namespace - The namespace of the entity in java package notation, e.g.: "org.eclipse.ditto"
- * @param {string} id - The ID of the entity
+ * @param {string} name - The name of the entity, e.g.: "device"
  * @param {string} channel - The channel for the signal, one of: "twin"|"live"
  * @param {string} group - The affected group/entity, one of: "things"
  * @param {string} criterion - The criterion to apply, one of: "commands"|"events"|"search"|"messages"|"errors"
@@ -544,37 +549,42 @@ can be mapped to external messages by implementing the following JavaScript func
  * @param {string} path - The path which is affected by the message, e.g.: "/attributes"
  * @param {Object.<string, string>} dittoHeaders - The headers Object containing all Ditto Protocol header values
  * @param {*} [value] - The value to apply / which was applied (e.g. in a "modify" action)
- * @param {number} status - The status code that indicates the result of the command.
- * @param {Object} extra - The enriched extra fields when selected via "extraFields" option.
+ * @param {number} [status] - The status code that indicates the result of the command. When this field is set,
+ * it indicates that the Ditto Protocol Message contains a response.
+ * @param {Object} [extra] - The enriched extra fields when selected via "extraFields" option.
  * @returns {(ExternalMessage|Array<ExternalMessage>)} externalMessage -
  *  The mapped external message,
  *  an array of external messages or
  *  <code>null</code> if the message could/should not be mapped
  */
 function mapFromDittoProtocolMsg(
-    namespace,
-    id,
-    group,
-    channel,
-    criterion,
-    action,
-    path,
-    dittoHeaders,
-    value,
-    status,
-    extra
+  namespace,
+  name,
+  group,
+  channel,
+  criterion,
+  action,
+  path,
+  dittoHeaders,
+  value,
+  status,
+  extra
 ) {
 
-    // ###
-    // Insert your mapping logic here:
-    // ###
-
-    return  Ditto.buildExternalMsg(
-        headers,
-        textPayload,
-        bytePayload,
-        contentType
-    );
+  // ###
+  // Insert your mapping logic here
+  // ### example code using the Ditto protocol content type.
+  let headers = dittoHeaders;
+  let textPayload = JSON.stringify(Ditto.buildDittoProtocolMsg(namespace, name, group, channel, criterion, action, 
+                                                               path, dittoHeaders, value, status, extra));
+  let bytePayload = null;
+  let contentType = 'application/vnd.eclipse.ditto+json';
+  return Ditto.buildExternalMsg(
+    headers, // The external headers Object containing header values
+    textPayload, // The external mapped String
+    bytePayload, // The external mapped byte[]
+    contentType // The returned Content-Type
+  );
 }
 ```
 
@@ -595,11 +605,11 @@ structured data may be processed like this:
 ```javascript
 let value;
 if (contentType === 'application/json') {
-    let parsedJson = JSON.parse(textPayload);
-    value = parsedJson.number1 + parsedJson['sub-field']; // remember to access JSON keys with dashes in a JS special way
+  let parsedJson = JSON.parse(textPayload);
+  value = parsedJson.number1 + parsedJson['sub-field']; // remember to access JSON keys with dashes in a JS special way
 } else {
-    // a script may decide to not map other content-types than application/json
-    return null;
+  // a script may decide to not map other content-types than application/json
+  return null;
 }
 // proceed ...
 ```

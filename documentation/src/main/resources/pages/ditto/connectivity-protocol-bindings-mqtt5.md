@@ -70,7 +70,7 @@ In addition, Ditto extracts the following headers from each consumed message:
 * `content-type`: contains the MQTT 5 "content type" value
 
 The [header mapping](connectivity-header-mapping.html) applies to the supported MQTT 5 specific headers as well
-as to the user defined properties, e. g.:
+as to the user defined properties, e.g.:
 ```json
 {
   "headerMapping": {
@@ -134,6 +134,11 @@ The default value is `0` (at-most-once).
 MQTT 5 supports so-called user defined properties, which are defined for every message type.
 The [header mapping](connectivity-header-mapping.html) applies to the supported MQTT 5 specific headers as well as to 
 the user defined properties.
+
+The following headers have a special meaning in that the values are applied directly to the published message:
+* `mqtt.topic`: overwrites the topic configured for the target 
+* `mqtt.qos`: overwrites the qos level configured in the target 
+* `mqtt.retain`: controls whether the MQTT retain flag is set on the published message  
 
 #### Target acknowledgement handling
 
@@ -277,7 +282,7 @@ Default: empty string
 To notify other clients when the connection is disconnected ungracefully the [Last Will feature](https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901033) 
 can be used. The message which will be published, is specified in the connection and stored in the broker when it 
 connects. The message contains a topic, retained message flag, QoS, and the text payload to be published. These can be 
-configured in the [Specific Configuration](#specificconfiguration) of the connection. 
+configured in the [Specific Configuration](#specific-configuration) of the connection. 
 
 {% include note.html content="This feature is enabled if the _last will topic_ is set." %}
 

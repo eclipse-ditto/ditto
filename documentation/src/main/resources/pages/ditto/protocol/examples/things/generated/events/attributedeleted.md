@@ -2,8 +2,10 @@
 
 ```json
 {
-  "topic": "com.acme/xdk_53/things/twin/events/deleted",
-  "headers": {},
+  "topic": "org.eclipse.ditto/fancy-thing/things/twin/events/deleted",
+  "headers": {
+    "correlation-id": "<preserved-command-correlation-id>"
+  },
   "path": "/attributes/location",
   "revision": 1
 }
