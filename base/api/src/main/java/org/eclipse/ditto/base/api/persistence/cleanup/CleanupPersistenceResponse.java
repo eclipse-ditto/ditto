@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.cleanup.signals.commands;
+package org.eclipse.ditto.base.api.persistence.cleanup;
 
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -29,7 +29,6 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 
 /**
@@ -102,7 +101,7 @@ public final class CleanupPersistenceResponse extends AbstractCommandResponse<Cl
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain
-     * {@link Command.JsonFields#TYPE}.
+     * {@link org.eclipse.ditto.base.model.signals.commands.Command.JsonFields#TYPE}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */

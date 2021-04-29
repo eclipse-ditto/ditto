@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.cleanup.signals.commands;
+package org.eclipse.ditto.base.api.persistence.cleanup;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;

@@ -13,7 +13,7 @@
 package org.eclipse.ditto.concierge.service.starter;
 
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.model.cleanup.signals.commands.CleanupPersistenceResponse;
+import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoRetrieveNamespaceReportResponse;

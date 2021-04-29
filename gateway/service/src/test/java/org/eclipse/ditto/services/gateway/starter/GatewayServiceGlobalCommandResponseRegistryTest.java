@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.starter;
 
+import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.services.gateway.endpoints.routes.whoami.WhoamiResponse;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
@@ -65,7 +66,8 @@ public final class GatewayServiceGlobalCommandResponseRegistryTest extends Globa
                 PurgeEntitiesResponse.class,
                 StreamingAck.class,
                 WhoamiResponse.class,
-                Acknowledgement.class
+                Acknowledgement.class,
+                CleanupPersistenceResponse.class
         );
         excludeKnownNotAnnotatedClass("org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase$DummyThingModifyCommandResponse");
     }

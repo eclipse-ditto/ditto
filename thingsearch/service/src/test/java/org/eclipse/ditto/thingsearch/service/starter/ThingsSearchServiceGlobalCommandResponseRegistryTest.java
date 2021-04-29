@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.thingsearch.service.starter;
 
+import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
@@ -56,7 +57,8 @@ public final class ThingsSearchServiceGlobalCommandResponseRegistryTest extends 
                 RetrieveHealthResponse.class,
                 PurgeEntitiesResponse.class,
                 SudoRetrieveNamespaceReportResponse.class,
-                Acknowledgement.class
+                Acknowledgement.class,
+                CleanupPersistenceResponse.class
         );
     }
 

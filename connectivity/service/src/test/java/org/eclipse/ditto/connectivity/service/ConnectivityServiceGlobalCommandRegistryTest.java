@@ -20,7 +20,7 @@ import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.services.utils.health.RetrieveHealth;
 import org.eclipse.ditto.services.utils.pubsub.api.PublishSignal;
 import org.eclipse.ditto.services.utils.test.GlobalCommandRegistryTestCases;
-import org.eclipse.ditto.model.cleanup.signals.commands.CleanupPersistence;
+import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
 import org.eclipse.ditto.base.api.common.Shutdown;
 import org.eclipse.ditto.base.api.common.purge.PurgeEntities;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;

@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.concierge.service.starter;
 
-import org.eclipse.ditto.model.cleanup.signals.commands.CleanupPersistence;
+import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.streaming.SudoStreamPids;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;

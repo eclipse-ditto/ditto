@@ -492,11 +492,6 @@
                 <artifactId>ditto-model-acks</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-model-cleanup</artifactId>
-                <version>${project.version}</version>
-            </dependency>
 
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>

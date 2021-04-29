@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.cleanup.signals.commands;
+package org.eclipse.ditto.base.api.persistence.cleanup;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -22,7 +22,7 @@ import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 
 /**
- * Aggregates all {@link Command}s which are related to cleaning up (e.g. journal entries) in the database.
+ * Aggregates all {@link org.eclipse.ditto.base.model.signals.commands.Command}s which are related to cleaning up (e.g. journal entries) in the database.
  *
  * @param <T> the type of the implementing class.
  */

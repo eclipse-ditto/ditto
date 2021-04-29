@@ -16,7 +16,7 @@ import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.services.utils.test.GlobalCommandResponseRegistryTestCases;
-import org.eclipse.ditto.model.cleanup.signals.commands.CleanupPersistenceResponse;
+import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse;
 import org.eclipse.ditto.base.api.common.RetrieveConfigResponse;
 import org.eclipse.ditto.base.api.common.purge.PurgeEntitiesResponse;
 import org.eclipse.ditto.model.devops.signals.commands.RetrieveLoggerConfigResponse;

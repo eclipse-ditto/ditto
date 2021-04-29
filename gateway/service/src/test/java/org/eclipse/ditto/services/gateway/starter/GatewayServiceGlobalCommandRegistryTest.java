@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.starter;
 
+import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
 import org.eclipse.ditto.services.gateway.endpoints.routes.whoami.Whoami;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.streaming.SudoStreamPids;
@@ -58,7 +59,8 @@ public final class GatewayServiceGlobalCommandRegistryTest extends GlobalCommand
                 RetrieveHealth.class,
                 PurgeEntities.class,
                 Whoami.class,
-                PublishSignal.class
+                PublishSignal.class,
+                CleanupPersistence.class
         );
     }
 
