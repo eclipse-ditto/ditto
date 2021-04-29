@@ -169,7 +169,7 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
 
         // make requests in parallel
         return Flow.<Pair<HttpRequest, T>>create().flatMapMerge(parallelism, request ->
-                TimeoutFlow.single(request, flow, requestTimeout, DefaultHttpPushFactory::onRequestTimeout));
+                TimeoutFlow.single(request, flow, requestTimeout, DefaultHttpPushFactory::onRequestTimeout).async());
     }
 
     private ConnectionPoolSettings getConnectionPoolSettings(final ActorSystem system) {
