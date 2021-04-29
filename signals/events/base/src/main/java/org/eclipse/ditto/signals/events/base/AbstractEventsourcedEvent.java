@@ -88,7 +88,6 @@ public abstract class AbstractEventsourcedEvent<T extends AbstractEventsourcedEv
      * @param revision the event's revision.
      * @return the copy of the event with the given revision.
      */
-    @Override
     public abstract T setRevision(long revision);
 
     @Override

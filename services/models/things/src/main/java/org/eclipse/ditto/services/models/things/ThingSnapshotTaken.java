@@ -105,16 +105,16 @@ public final class ThingSnapshotTaken extends SnapshotTaken<ThingSnapshotTaken> 
     }
 
     /**
-     * Deserializes a {@code DittoThingSnapshotTaken} instance from the specified JSON object.
+     * Deserializes a {@code ThingSnapshotTaken} instance from the specified JSON object.
      *
      * @param jsonObject the JSON object that should be deserialized.
      * @param dittoHeaders the headers of the deserialized event.
-     * @return the deserialized BoschThingSnapshotTaken instance.
+     * @return the deserialized ThingSnapshotTaken instance.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException – if {@code jsonObject} did not contain all required
      * fields.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} does not represent a valid
-     * {@code DittoThingSnapshotTaken}.
+     * {@code ThingSnapshotTaken}.
      */
     public static ThingSnapshotTaken fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         ConditionChecker.checkNotNull(jsonObject, "jsonObject");
@@ -169,16 +169,6 @@ public final class ThingSnapshotTaken extends SnapshotTaken<ThingSnapshotTaken> 
     @Override
     public String getPubSubTopic() {
         return PUB_SUB_TOPIC;
-    }
-
-    @Override
-    protected ThingSnapshotTaken setRevision(final long revisionNumber, final JsonObject thingJson) {
-        return newBuilder(thingId, revisionNumber, getLifecycle(), thingJson)
-                .policyId(getPolicyId().orElse(null))
-                .timestamp(getTimestamp().orElse(null))
-                .metadata(getMetadata().orElse(null))
-                .dittoHeaders(getDittoHeaders())
-                .build();
     }
 
     @Override

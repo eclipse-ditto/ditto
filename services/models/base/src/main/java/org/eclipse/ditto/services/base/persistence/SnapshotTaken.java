@@ -134,22 +134,6 @@ public abstract class SnapshotTaken<T extends SnapshotTaken<T>>
         return revision;
     }
 
-    @Override
-    public T setRevision(final long revision) {
-        return setRevision(revision, entityOfSnapshot);
-    }
-
-    /**
-     * Helps subclasses to implement {@link #setRevision(long)} as it provides the entity JSON for constructing a new
-     * SnapshotTaken event.
-     *
-     * @param revisionNumber the new revision number to be set.
-     * @param entityOfSnapshot the JSON representation of the entity of which a snapshot was taken.
-     * @return the new SnapshotTaken event with {@code revisionNumber} set.
-     * @since 2.0.0
-     */
-    protected abstract T setRevision(long revisionNumber, JsonObject entityOfSnapshot);
-
     /**
      * Gets the type of the event.
      *
