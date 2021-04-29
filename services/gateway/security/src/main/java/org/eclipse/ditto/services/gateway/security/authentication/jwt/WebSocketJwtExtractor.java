@@ -73,7 +73,7 @@ final class WebSocketJwtExtractor implements JwtExtractor {
 
     @Override
     public String getErrorDescription() {
-        return "Please provide a valid JWT in the authorization header prefixed with 'Bearer ' or as query parameter" +
+        return "Please provide a valid JWT in the 'Authorization' header prefixed with 'Bearer ' or as query parameter" +
                 " 'access_token'.";
     }
 

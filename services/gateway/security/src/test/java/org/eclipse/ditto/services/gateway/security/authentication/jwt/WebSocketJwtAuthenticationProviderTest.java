@@ -43,7 +43,7 @@ public final class WebSocketJwtAuthenticationProviderTest extends AbstractJwtAut
 
     @Override
     protected String getExpectedMissingJwtDescription() {
-        return "Please provide a valid JWT in the authorization header prefixed with 'Bearer ' or as query" +
+        return "Please provide a valid JWT in the 'Authorization' header prefixed with 'Bearer ' or as query" +
                 " parameter 'access_token'.";
     }
 

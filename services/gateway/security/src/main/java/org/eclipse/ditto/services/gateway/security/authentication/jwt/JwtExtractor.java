@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.security.authentication.jwt;
 
-
 import java.util.Optional;
 import java.util.function.BiFunction;
 
@@ -40,7 +39,7 @@ public interface JwtExtractor extends BiFunction<RequestContext, DittoHeaders, O
      * Builds an exception with detailed description where the token information was expected.
      *
      * @param dittoHeaders ditto headers of the current request
-     * @return the built expection
+     * @return the built exception
      */
     default Exception buildMissingJwtException(final DittoHeaders dittoHeaders) {
         return GatewayAuthenticationFailedException

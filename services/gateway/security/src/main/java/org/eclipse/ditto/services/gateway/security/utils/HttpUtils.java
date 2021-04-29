@@ -98,7 +98,7 @@ public final class HttpUtils {
     }
 
     /**
-     * Checks whether the given request contains a query parameter containing the access token.
+     * Checks whether the given request contains a query parameter matching the given {@code parameter}.
      *
      * @param requestContext the context of the request
      * @param parameter the name of the query parameter
