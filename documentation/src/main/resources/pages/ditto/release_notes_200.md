@@ -3,7 +3,7 @@ title: Release notes 2.0.0
 tags: [release_notes]
 published: true
 keywords: release notes, announcements, changelog
-summary: "Version 2.0.0 of Eclipse Ditto, released on 29.04.2021"
+summary: "Version 2.0.0 of Eclipse Ditto, released on 04.05.2021"
 permalink: release_notes_200.html
 ---
 
@@ -96,7 +96,7 @@ Please use the header `x-ditto-pre-authenticated` instead.
 
 #### Restructuring of Ditto's Maven modules
 
-Ditto's modules were adjusted to be structured in a more functional way. In Ditto 1.x the modules were structured 
+Ditto's modules were adjusted to be structured in a more functional way. In Ditto 1.x the modules were structured
 in a more technical way.
 
 This table shows the old modules and in which module the old ones can be found in Ditto 2.0.0:
@@ -113,12 +113,12 @@ This table shows the old modules and in which module the old ones can be found i
 | `- ditto-model-messages`                     | `ditto-messages/ditto-messages-model` |
 | `- ditto-model-namespaces`                   | `ditto-base/ditto-base-model` |
 | `- ditto-model-policies`                     | `ditto-policies/ditto-policies-model` |
-| `- ditto-model-query`                        | ?? |
-| `- ditto-model-rql`                          | ?? |
-| `- ditto-model-rql-parser`                   | ?? |
+| `- ditto-model-query`                        | `ditto-rql/ditto-rql-query` |
+| `- ditto-model-rql`                          | `ditto-rql/ditto-rql-model` |
+| `- ditto-model-rql-parser`                   | `ditto-rql/ditto-rql-parser` |
 | `- ditto-model-things`                       | `ditto-things/ditto-things-model` |
 | `- ditto-model-thingsearch`                  | `ditto-thingsearch/ditto-thingsearch-model` |
-| `- ditto-model-thingsearch-parser`           | ?? |
+| `- ditto-model-thingsearch-parser`           | `ditto-rql/ditto-rql-parser` |
 | `ditto-protocol-adapter`                     | `ditto-protocol` |
 | `ditto-signals`                              | `-` (was pom only) |
 | `- ditto-signals-base`                       | `ditto-model-base` |
@@ -146,8 +146,6 @@ This table shows the old modules and in which module the old ones can be found i
 | `-- ditto-signals-events-things`             | `ditto-things/ditto-things-model` |
 | `-- ditto-signals-events-thingsearch`        | `ditto-thingsearch/ditto-thingsearch-model` |
 
-TODO TJ complete once modularization finished!
-
 #### Restructuring of Ditto's Java packages
 
 When updating from Ditto 1.x Java APIs (e.g. also when using the [Ditto Java client](#ditto-java-client)), the following
@@ -164,12 +162,12 @@ packages were renamed:
 | `org.eclipse.ditto.model.messages`                  | `org.eclipse.ditto.messages.model` |
 | `org.eclipse.ditto.model.namespaces`                | `org.eclipse.ditto.base.model` |
 | `org.eclipse.ditto.model.policies`                  | `org.eclipse.ditto.policies.model` |
-| `org.eclipse.ditto.model.query`                     | ?? |
-| `org.eclipse.ditto.model.rql`                       | ?? |
-| `org.eclipse.ditto.model.rqlparser`                 | ?? |
+| `org.eclipse.ditto.model.query`                     | `org.eclipse.ditto.rql.query` |
+| `org.eclipse.ditto.model.rql`                       | `org.eclipse.ditto.rql.model` |
+| `org.eclipse.ditto.model.rqlparser`                 | `org.eclipse.ditto.rql.parser` |
 | `org.eclipse.ditto.model.things`                    | `org.eclipse.ditto.things.model` |
 | `org.eclipse.ditto.model.thingsearch`               | `org.eclipse.ditto.thingsearch.model` |
-| `org.eclipse.ditto.model.thingsearchparser`         | ?? |
+| `org.eclipse.ditto.model.thingsearchparser`         | `org.eclipse.ditto.rql.parser.thingsearch` |
 | `org.eclipse.ditto.model.protocoladapter`           | `org.eclipse.ditto.protocol` |
 | `org.eclipse.ditto.signals.base`                    | `org.eclipse.ditto.base.model.signals` |
 | `org.eclipse.ditto.signals.acks.base`               | `org.eclipse.ditto.base.model.signals.acks` |
@@ -191,8 +189,6 @@ packages were renamed:
 | `org.eclipse.ditto.signals.events.policies`         | `org.eclipse.ditto.policies.model.signals.events` |
 | `org.eclipse.ditto.signals.events.things`           | `org.eclipse.ditto.things.model.signals.events` |
 | `org.eclipse.ditto.signals.events.thingsearch`      | `org.eclipse.ditto.thingsearch.model.signals.events` |
-
-TODO TJ complete once modularization finished!
 
 #### Ditto Java client
 
