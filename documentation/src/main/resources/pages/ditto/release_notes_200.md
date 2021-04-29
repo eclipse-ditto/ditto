@@ -87,6 +87,13 @@ For supporting [Configurable OpenID Connect / OAuth2.0 claim extraction](https:/
 the configuration format was changed, please have a look at the  
 [migration notes](#openid-connect-configuration-for-gateway).
 
+#### Removal of header `x-ditto-dummy-auth`
+
+The HTTP header / query param `x-ditto-dummy-auth` which was already an alias for the 
+[pre-authentication provider](installation-operating.html#pre-authentication) header `x-ditto-pre-authenticated` has
+been removed from Ditto 2.0.  
+Please use the header `x-ditto-pre-authenticated` instead.
+
 #### Restructuring of Ditto's Maven modules
 
 Ditto's modules were adjusted to be structured in a more functional way. In Ditto 1.x the modules were structured 
