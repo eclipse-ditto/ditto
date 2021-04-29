@@ -85,7 +85,7 @@ public final class ProtocolFactory {
      * @return the topic path.
      */
     public static TopicPath emptyTopicPath() {
-        return ImmutableTopicPathBuilder.empty();
+        return EmptyTopicPath.getInstance();
     }
 
     /**

@@ -15,8 +15,6 @@ package org.eclipse.ditto.protocoladapter;
 import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.Optional;
-
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
@@ -43,15 +41,6 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     private ImmutableTopicPathBuilder(final String namespace, final String name) {
         this.namespace = namespace;
         this.name = name;
-    }
-
-    /**
-     * Returns an empty {@code TopicPath}.
-     *
-     * @return the topic path.
-     */
-    public static TopicPath empty() {
-        return EmptyTopicPath.newInstance();
     }
 
     /**
@@ -291,75 +280,6 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
             return ImmutableTopicPath.of(namespace, name, group, channel, criterion, searchAction);
         } else {
             return ImmutableTopicPath.of(namespace, name, group, channel, criterion);
-        }
-    }
-
-    /**
-     * Implementation of {@link TopicPath} with an empty path.
-     */
-    private static class EmptyTopicPath implements TopicPath {
-
-        private EmptyTopicPath() {
-            // no-op
-        }
-
-        static EmptyTopicPath newInstance() {
-            return new EmptyTopicPath();
-        }
-
-        @Override
-        public String getNamespace() {
-            return null;
-        }
-
-        @Override
-        public String getEntityName() {
-            return null;
-        }
-
-        @Override
-        public Group getGroup() {
-            return null;
-        }
-
-        @Override
-        public Criterion getCriterion() {
-            return null;
-        }
-
-        @Override
-        public Channel getChannel() {
-            return null;
-        }
-
-        @Override
-        public Optional<Action> getAction() {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<SearchAction> getSearchAction() {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<String> getSubject() {
-            return Optional.empty();
-        }
-
-        @Override
-        public String getPath() {
-            return "";
-        }
-
-        @Override
-        public boolean equals(final Object o) {
-            return this == o || !(o == null || getClass() != o.getClass());
-        }
-
-        @Override
-        public int hashCode() {
-            return super.hashCode();
         }
     }
 
