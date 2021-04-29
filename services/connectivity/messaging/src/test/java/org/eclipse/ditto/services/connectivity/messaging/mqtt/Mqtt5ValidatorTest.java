@@ -216,6 +216,7 @@ public final class Mqtt5ValidatorTest extends AbstractMqttValidatorTest {
                 .withMessageContaining(MqttSpecificConfig.LAST_WILL_QOS);
     }
 
+    @Override
     protected ThrowableAssertAlternative<ConnectionConfigurationInvalidException>
     verifyConnectionConfigurationInvalidExceptionIsThrown(final Connection connection) {
         return Assertions.assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)

@@ -129,8 +129,14 @@ The default value is `0` (at-most-once).
 
 #### Target header mapping
 
-As MQTT 3.1.1 does not support headers in its protocol, a [header mapping](connectivity-header-mapping.html) is not 
-possible to configure here.
+As MQTT 3.1.1 does not support headers in its protocol, a generic [header mapping](connectivity-header-mapping.html) is 
+not possible to configure here.
+
+However, if one of the following headers are contained in the header mapping, they are directly applied to the 
+published MQTT message:
+* `mqtt.topic`: overwrites the topic configured for the target 
+* `mqtt.qos`: overwrites the qos level configured for the target 
+* `mqtt.retain`: controls whether the MQTT retain flag is set on the published message 
 
 #### Target acknowledgement handling
 

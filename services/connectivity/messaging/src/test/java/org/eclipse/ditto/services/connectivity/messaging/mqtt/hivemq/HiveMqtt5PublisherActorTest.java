@@ -17,6 +17,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -28,11 +30,12 @@ import org.eclipse.ditto.model.base.common.ByteBufferUtils;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
+import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttHeader;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 
+import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5Client;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
@@ -40,10 +43,10 @@ import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 import akka.actor.Props;
 import akka.testkit.TestProbe;
 
-public class HiveMqtt5PublisherActorTest extends AbstractPublisherActorTest {
+public class HiveMqtt5PublisherActorTest extends AbstractMqttPublisherActorTest {
 
     private static final String OUTBOUND_ADDRESS = "mqtt/eclipse/ditto";
-    private List<Mqtt5Publish> received = new LinkedList<>();
+    private final List<Mqtt5Publish> received = new LinkedList<>();
     private Mqtt5Client mqtt5Client;
 
     @Override
@@ -71,14 +74,38 @@ public class HiveMqtt5PublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected void verifyPublishedMessage() {
-        Awaitility.await().until(() -> received.size() > 0);
+        verifyPublishedMessage(getOutboundAddress(), DEFAULT_RETAIN, DEFAULT_QOS, Collections.emptySet());
+    }
+
+    @Override
+    protected void verifyPublishedMessageIsRetained() {
+        verifyPublishedMessage(getOutboundAddress(), true, DEFAULT_QOS,
+                Collections.singleton(MqttHeader.MQTT_RETAIN.getName()));
+    }
+
+    @Override
+    protected void verifyPublishedMessageHasQos(final MqttQos expectedQos) {
+        verifyPublishedMessage(getOutboundAddress(), DEFAULT_RETAIN, expectedQos,
+                Collections.singleton(MqttHeader.MQTT_QOS.getName()));
+    }
+
+    @Override
+    protected void verifyPublishedMessageHasTopic(final String expectedTopic) {
+        verifyPublishedMessage(expectedTopic, DEFAULT_RETAIN, DEFAULT_QOS,
+                Collections.singleton(MqttHeader.MQTT_TOPIC.getName()));
+    }
+
+    private void verifyPublishedMessage(final String topic, final boolean expectedRetain, final MqttQos expectedQos,
+            final Collection<String> additionalExpectedUserProperties) {
+        Awaitility.await().until(() -> !received.isEmpty());
         assertThat(received).hasSize(1);
         final Mqtt5Publish mqttMessage = received.get(0);
-        assertThat(mqttMessage.getTopic().toString()).isEqualTo(getOutboundAddress());
+        assertThat(mqttMessage.getTopic().toString()).isEqualTo(topic);
         assertThat(mqttMessage.getPayload().map(ByteBufferUtils::toUtf8String).orElse(null)).isEqualTo("payload");
         assertThat(mqttMessage.getUserProperties().asList().isEmpty()).isFalse();
         assertThat(mqttMessage.getUserProperties().asList().stream()
                 .filter(prop -> !TestConstants.HEADER_MAPPING.getMapping().containsKey(prop.getName().toString()))
+                .filter(prop -> !additionalExpectedUserProperties.contains(prop.getName().toString()))
                 .count()).isEqualTo(0);
         assertThat(mqttMessage.getUserProperties().asList().stream().anyMatch(
                 prop -> prop.getName().toString().equals("eclipse") &&
@@ -86,27 +113,29 @@ public class HiveMqtt5PublisherActorTest extends AbstractPublisherActorTest {
         assertThat(ByteBufferUtils.toUtf8String(mqttMessage.getCorrelationData().get())).isEqualTo(
                 TestConstants.CORRELATION_ID);
         assertThat(mqttMessage.getContentType()).isEmpty();
+        assertThat(mqttMessage.isRetain()).isEqualTo(expectedRetain);
+        assertThat(mqttMessage.getQos()).isEqualTo(expectedQos);
     }
 
     @Override
     protected void verifyPublishedMessageToReplyTarget() {
-        Awaitility.await().until(() -> received.size() > 0);
+        Awaitility.await().until(() -> !received.isEmpty());
         assertThat(received).hasSize(1);
         final Mqtt5Publish mqttMessage = received.get(0);
         assertThat(mqttMessage.getTopic().toString()).isEqualTo("replyTarget/thing:id");
     }
 
     @Override
-    protected void verifyAcknowledgements(final Supplier<Acknowledgements> ackSupplier) throws Exception {
+    protected void verifyAcknowledgements(final Supplier<Acknowledgements> ackSupplier) {
         final CompletableFuture<Acknowledgements> acksFuture = CompletableFuture.supplyAsync(ackSupplier);
         final Acknowledgements acks = acksFuture.join();
         for (final Acknowledgement ack : acks.getSuccessfulAcknowledgements()) {
-            System.out.println(ack);
             assertThat(ack.getLabel().toString()).isEqualTo("please-verify");
             assertThat(ack.getHttpStatus()).isEqualTo(HttpStatus.OK);
         }
     }
 
+    @Override
     protected String getOutboundAddress() {
         return OUTBOUND_ADDRESS;
     }
