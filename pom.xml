@@ -204,6 +204,7 @@
         <module>gateway</module>
         <module>thingsearch</module>
         <module>rql</module>
+        <module>jwt</module>
     </modules>
 
     <properties>

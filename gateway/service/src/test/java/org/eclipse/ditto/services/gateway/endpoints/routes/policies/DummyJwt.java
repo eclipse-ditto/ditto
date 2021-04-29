@@ -18,8 +18,8 @@ import java.util.List;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.jwt.Audience;
-import org.eclipse.ditto.model.jwt.JsonWebToken;
+import org.eclipse.ditto.jwt.model.Audience;
+import org.eclipse.ditto.jwt.model.JsonWebToken;
 
 /**
  * Dummy JSON web token for tests.

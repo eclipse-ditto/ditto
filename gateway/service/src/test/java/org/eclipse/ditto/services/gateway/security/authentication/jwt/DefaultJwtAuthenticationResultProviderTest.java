@@ -23,7 +23,7 @@ import java.util.Collections;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.model.jwt.JsonWebToken;
+import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
 import org.junit.Test;
 import org.junit.runner.RunWith;

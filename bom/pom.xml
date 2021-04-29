@@ -429,7 +429,7 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-model-jwt</artifactId>
+                <artifactId>ditto-jwt-model</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

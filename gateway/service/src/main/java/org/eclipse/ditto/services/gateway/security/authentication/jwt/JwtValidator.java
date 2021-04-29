@@ -17,10 +17,10 @@ import java.util.concurrent.CompletableFuture;
 import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.base.model.common.BinaryValidationResult;
-import org.eclipse.ditto.model.jwt.JsonWebToken;
+import org.eclipse.ditto.jwt.model.JsonWebToken;
 
 /**
- * Validates {@link org.eclipse.ditto.model.jwt.JsonWebToken}.
+ * Validates {@link org.eclipse.ditto.jwt.model.JsonWebToken}.
  */
 @ThreadSafe
 public interface JwtValidator {

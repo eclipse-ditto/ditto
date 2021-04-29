@@ -13,8 +13,7 @@
 package org.eclipse.ditto.services.gateway.security.authentication.jwt;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.model.jwt.JsonWebToken;
-import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
+import org.eclipse.ditto.jwt.model.JsonWebToken;
 
 /**
  * Responsible for extraction of an {@link org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult} out of a

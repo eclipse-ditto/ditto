@@ -10,39 +10,52 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.jwt;
+package org.eclipse.ditto.jwt.model;
 
 import java.net.URI;
+import java.text.MessageFormat;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
 
-@JsonParsableException(errorCode = JwtInvalidException.ERROR_CODE)
-public final class JwtInvalidException extends DittoRuntimeException implements JwtException {
+@JsonParsableException(errorCode = JwtAudienceInvalidException.ERROR_CODE)
+public final class JwtAudienceInvalidException extends DittoRuntimeException implements JwtException {
 
     /**
      * Error code of this exception.
      */
-    static final String ERROR_CODE = ERROR_CODE_PREFIX + "invalid";
+    static final String ERROR_CODE = ERROR_CODE_PREFIX + "audience.invalid";
 
-    private static final String MESSAGE = "The JSON Web Token is not valid.";
-    private static final String DESCRIPTION = "The provided token string did not have the expected format.";
+    private static final String MESSAGE = "The value for the <aud> field is not valid.";
+    private static final String DESCRIPTION_TEMPLATE = "The <aud> field was expected to be either a string or an " +
+            "array of strings. The actual value was <{0}>.";
 
-    private static final long serialVersionUID = 5465883600617188286L;
+    private static final long serialVersionUID = -7613054868240460649L;
 
-    private JwtInvalidException(final DittoHeaders dittoHeaders,
+    private JwtAudienceInvalidException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
         super(ERROR_CODE, HttpStatus.BAD_REQUEST, dittoHeaders, message, description, cause, href);
+    }
+
+    /**
+     * A mutable builder for this exception.
+     *
+     * @param audValue the value the aud key.
+     * @return the builder.
+     */
+    public static Builder newBuilder(final JsonValue audValue) {
+        return new Builder(audValue);
     }
 
     /**
@@ -55,18 +68,18 @@ public final class JwtInvalidException extends DittoRuntimeException implements 
     }
 
     /**
-     * Constructs a new {@code JwtInvalidException} object with the exception message extracted from the
+     * Constructs a new {@code JwtAudienceInvalidException} object with the exception message extracted from the
      * given JSON object.
      *
-     * @param jsonObject the JSON to read the {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
+     * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new JwtInvalidException.
+     * @return the new JwtAudienceInvalidException.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static JwtInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+    public static JwtAudienceInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
@@ -82,24 +95,27 @@ public final class JwtInvalidException extends DittoRuntimeException implements 
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link org.eclipse.ditto.model.jwt.JwtInvalidException}.
+     * A mutable builder with a fluent API for a {@link JwtAudienceInvalidException}.
      */
     @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<JwtInvalidException> {
+    public static final class Builder extends DittoRuntimeExceptionBuilder<JwtAudienceInvalidException> {
 
         private Builder() {
-            message(MESSAGE).description(DESCRIPTION);
+            message(MESSAGE).description(DESCRIPTION_TEMPLATE);
+        }
+
+        private Builder(final JsonValue audValue) {
+            this();
+            description(MessageFormat.format(DESCRIPTION_TEMPLATE, audValue));
         }
 
         @Override
-        protected JwtInvalidException doBuild(final DittoHeaders dittoHeaders,
+        protected JwtAudienceInvalidException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-            return new JwtInvalidException(dittoHeaders, message, description, cause, href);
+            return new JwtAudienceInvalidException(dittoHeaders, message, description, cause, href);
         }
-
     }
-
 }

@@ -23,7 +23,7 @@ import java.util.stream.Stream;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.jwt.JsonWebToken;
+import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.eclipse.ditto.services.models.placeholders.Placeholder;
 
 /**

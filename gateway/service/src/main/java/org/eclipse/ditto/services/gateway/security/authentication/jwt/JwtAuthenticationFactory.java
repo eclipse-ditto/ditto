@@ -21,7 +21,7 @@ import org.eclipse.ditto.services.gateway.util.config.security.OAuthConfig;
 import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
 
 /**
- * A factory for {@link org.eclipse.ditto.model.jwt.JsonWebToken} related security.
+ * A factory for {@link org.eclipse.ditto.jwt.model.JsonWebToken} related security.
  */
 public final class JwtAuthenticationFactory {
 

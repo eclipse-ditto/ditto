@@ -22,7 +22,7 @@ import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.model.jwt.JsonWebToken;
+import org.eclipse.ditto.jwt.model.JsonWebToken;
 
 /**
  * Default implementation of {@link org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationResultProvider}.

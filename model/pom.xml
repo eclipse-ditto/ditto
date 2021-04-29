@@ -28,7 +28,6 @@
 
     <modules>
         <module>messages</module>
-        <module>jwt</module>
     </modules>
 
     <properties>

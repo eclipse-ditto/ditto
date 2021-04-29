@@ -18,7 +18,7 @@ import java.util.Optional;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.model.jwt.JsonWebToken;
+import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
 
 /**
