@@ -16,7 +16,7 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.model.namespaces.NamespaceReader;
+import org.eclipse.ditto.base.model.namespaces.NamespaceReader;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CacheKey;

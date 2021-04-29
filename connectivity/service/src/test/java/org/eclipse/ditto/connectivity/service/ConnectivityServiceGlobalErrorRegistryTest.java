@@ -18,7 +18,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigUnavailableException;
 import org.eclipse.ditto.model.messages.AuthorizationSubjectBlockedException;
-import org.eclipse.ditto.model.namespaces.NamespaceBlockedException;
+import org.eclipse.ditto.base.model.namespaces.NamespaceBlockedException;
 import org.eclipse.ditto.protocol.adapter.UnknownTopicPathException;
 import org.eclipse.ditto.services.models.placeholders.PlaceholderFunctionSignatureInvalidException;
 import org.eclipse.ditto.policies.model.PolicyEntryInvalidException;

@@ -29,7 +29,6 @@
     <modules>
         <module>devops</module>
         <module>messages</module>
-        <module>namespaces</module>
         <module>jwt</module>
         <module>thingsearch-parser</module>
         <module>query</module>

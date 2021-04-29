@@ -28,7 +28,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnecti
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionResponse;
 import org.eclipse.ditto.model.devops.signals.commands.RetrieveLoggerConfigResponse;
 import org.eclipse.ditto.model.messages.signals.commands.SendClaimMessageResponse;
-import org.eclipse.ditto.model.namespaces.signals.commands.PurgeNamespaceResponse;
+import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespaceResponse;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegrationResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubjectResponse;

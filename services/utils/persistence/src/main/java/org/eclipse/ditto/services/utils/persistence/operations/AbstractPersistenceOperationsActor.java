@@ -34,8 +34,8 @@ import org.eclipse.ditto.base.api.common.ShutdownReason;
 import org.eclipse.ditto.base.api.common.ShutdownReasonFactory;
 import org.eclipse.ditto.base.api.common.purge.PurgeEntities;
 import org.eclipse.ditto.base.api.common.purge.PurgeEntitiesResponse;
-import org.eclipse.ditto.model.namespaces.signals.commands.PurgeNamespace;
-import org.eclipse.ditto.model.namespaces.signals.commands.PurgeNamespaceResponse;
+import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespace;
+import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespaceResponse;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
