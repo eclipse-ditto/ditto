@@ -30,7 +30,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.concierge.service.common.CachesConfig;
 import org.eclipse.ditto.concierge.service.common.DefaultCachesConfig;
-import org.eclipse.ditto.model.enforcers.Enforcer;
+import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.ThingBuilder;
 import org.eclipse.ditto.things.model.ThingId;

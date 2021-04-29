@@ -18,7 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.base.model.entity.type.EntityType;
-import org.eclipse.ditto.model.enforcers.Enforcer;
+import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CacheKey;

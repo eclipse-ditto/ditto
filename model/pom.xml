@@ -27,11 +27,9 @@
     <name>Eclipse Ditto :: Model</name>
 
     <modules>
-        <module>cleanup</module>
         <module>devops</module>
         <module>messages</module>
         <module>namespaces</module>
-        <module>enforcers</module>
         <module>jwt</module>
         <module>thingsearch-parser</module>
         <module>query</module>
