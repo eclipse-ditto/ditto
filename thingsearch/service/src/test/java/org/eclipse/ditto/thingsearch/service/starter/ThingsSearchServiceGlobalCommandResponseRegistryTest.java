@@ -21,7 +21,7 @@ import org.eclipse.ditto.services.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.services.utils.test.GlobalCommandResponseRegistryTestCases;
 import org.eclipse.ditto.base.api.common.RetrieveConfigResponse;
 import org.eclipse.ditto.base.api.common.purge.PurgeEntitiesResponse;
-import org.eclipse.ditto.model.devops.signals.commands.RetrieveLoggerConfigResponse;
+import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveLoggerConfigResponse;
 import org.eclipse.ditto.model.messages.signals.commands.SendClaimMessageResponse;
 import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespaceResponse;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;

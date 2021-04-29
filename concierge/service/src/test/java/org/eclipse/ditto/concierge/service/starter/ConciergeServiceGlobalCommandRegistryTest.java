@@ -24,7 +24,7 @@ import org.eclipse.ditto.base.api.common.Shutdown;
 import org.eclipse.ditto.base.api.common.purge.PurgeEntities;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnection;
-import org.eclipse.ditto.model.devops.signals.commands.ExecutePiggybackCommand;
+import org.eclipse.ditto.base.api.devops.signals.commands.ExecutePiggybackCommand;
 import org.eclipse.ditto.model.messages.signals.commands.SendClaimMessage;
 import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespace;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegration;

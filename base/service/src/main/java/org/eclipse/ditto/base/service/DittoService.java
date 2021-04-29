@@ -35,8 +35,8 @@ import org.eclipse.ditto.services.utils.config.DittoConfigError;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.services.utils.config.raw.RawConfigSupplier;
-import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
-import org.eclipse.ditto.services.utils.devops.LogbackLoggingFacade;
+import org.eclipse.ditto.base.service.devops.DevOpsCommandsActor;
+import org.eclipse.ditto.base.service.devops.LogbackLoggingFacade;
 import org.eclipse.ditto.services.utils.health.status.StatusSupplierActor;
 import org.eclipse.ditto.services.utils.metrics.config.MetricsConfig;
 import org.eclipse.ditto.services.utils.metrics.prometheus.PrometheusReporterRoute;
@@ -373,7 +373,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
     }
 
     /**
-     * Starts the {@link org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor}.
+     * Starts the {@link org.eclipse.ditto.base.service.devops.DevOpsCommandsActor}.
      * May be overridden to change the way how the actor is started.
      *
      * @param actorSystem Akka actor system for starting actors.

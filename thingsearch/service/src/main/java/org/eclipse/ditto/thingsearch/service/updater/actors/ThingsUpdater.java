@@ -38,7 +38,7 @@ import org.eclipse.ditto.services.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.services.utils.pubsub.DistributedSub;
 import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
-import org.eclipse.ditto.model.devops.signals.commands.RetrieveStatisticsDetails;
+import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.thingsearch.model.signals.events.ThingsOutOfSync;

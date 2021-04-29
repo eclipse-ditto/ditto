@@ -36,7 +36,7 @@ import org.eclipse.ditto.services.utils.persistence.mongo.config.TagsConfig;
 import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.services.utils.pubsub.ThingEventPubSubFactory;
-import org.eclipse.ditto.model.devops.signals.commands.RetrieveStatisticsDetails;
+import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 import akka.actor.ActorRef;

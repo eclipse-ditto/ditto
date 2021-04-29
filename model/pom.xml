@@ -27,7 +27,6 @@
     <name>Eclipse Ditto :: Model</name>
 
     <modules>
-        <module>devops</module>
         <module>messages</module>
         <module>jwt</module>
     </modules>

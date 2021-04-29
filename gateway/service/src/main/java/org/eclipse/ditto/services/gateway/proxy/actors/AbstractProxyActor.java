@@ -19,8 +19,8 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.model.devops.signals.commands.RetrieveStatistics;
-import org.eclipse.ditto.model.devops.signals.commands.RetrieveStatisticsDetails;
+import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatistics;
+import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorKilledException;
