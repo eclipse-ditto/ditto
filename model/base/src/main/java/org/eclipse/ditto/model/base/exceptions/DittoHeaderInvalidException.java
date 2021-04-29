@@ -64,7 +64,6 @@ public final class DittoHeaderInvalidException extends DittoRuntimeException {
     static final JsonFieldDefinition<String> JSON_FIELD_INVALID_HEADER_KEY =
             JsonFieldDefinition.ofString("invalidHeaderKey",
                     FieldType.REGULAR,
-                    JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
     @Nullable private final String invalidHeaderKey;
