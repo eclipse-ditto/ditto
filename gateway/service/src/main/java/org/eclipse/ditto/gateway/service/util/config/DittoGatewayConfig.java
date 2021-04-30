@@ -35,12 +35,12 @@ import org.eclipse.ditto.gateway.service.util.config.security.DefaultCachesConfi
 import org.eclipse.ditto.gateway.service.util.config.streaming.DefaultStreamingConfig;
 import org.eclipse.ditto.gateway.service.util.config.streaming.StreamingConfig;
 import org.eclipse.ditto.gateway.service.util.config.health.DefaultHealthCheckConfig;
-import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
-import org.eclipse.ditto.services.utils.config.ScopedConfig;
-import org.eclipse.ditto.services.utils.config.WithConfigPath;
-import org.eclipse.ditto.services.utils.metrics.config.MetricsConfig;
-import org.eclipse.ditto.services.utils.protocol.config.DefaultProtocolConfig;
-import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
+import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.config.WithConfigPath;
+import org.eclipse.ditto.internal.utils.metrics.config.MetricsConfig;
+import org.eclipse.ditto.internal.utils.protocol.config.DefaultProtocolConfig;
+import org.eclipse.ditto.internal.utils.protocol.config.ProtocolConfig;
 
 /**
  * This class is the default implementation of the Gateway config.
@@ -85,7 +85,7 @@ public final class DittoGatewayConfig implements GatewayConfig, WithConfigPath {
      * @param dittoScopedConfig is supposed to provide the settings of the service config at the {@code "ditto"} config
      * path.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
+     * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DittoGatewayConfig of(final ScopedConfig dittoScopedConfig) {
         return new DittoGatewayConfig(dittoScopedConfig);

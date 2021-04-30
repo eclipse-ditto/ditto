@@ -23,7 +23,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.HeaderDefinition;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 import akka.http.javadsl.model.MediaTypes;
 

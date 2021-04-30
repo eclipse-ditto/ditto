@@ -29,7 +29,7 @@ import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextCreator;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
-import org.eclipse.ditto.services.utils.akka.controlflow.TimeoutFlow;
+import org.eclipse.ditto.internal.utils.akka.controlflow.TimeoutFlow;
 
 import akka.actor.ActorSystem;
 import akka.event.LoggingAdapter;

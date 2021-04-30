@@ -17,11 +17,11 @@ import java.util.Map;
 
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.updater.actors.SearchUpdaterRootActor;
-import org.eclipse.ditto.services.utils.health.AbstractHealthCheckingActor;
-import org.eclipse.ditto.services.utils.health.CompositeCachingHealthCheckingActor;
-import org.eclipse.ditto.services.utils.health.SingletonStatusReporter;
-import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
+import org.eclipse.ditto.internal.utils.health.AbstractHealthCheckingActor;
+import org.eclipse.ditto.internal.utils.health.CompositeCachingHealthCheckingActor;
+import org.eclipse.ditto.internal.utils.health.SingletonStatusReporter;
+import org.eclipse.ditto.internal.utils.health.config.HealthCheckConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.MongoHealthChecker;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;

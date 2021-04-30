@@ -17,7 +17,7 @@ import java.util.List;
 
 import org.eclipse.ditto.concierge.service.common.CreditDecisionConfig;
 import org.eclipse.ditto.concierge.service.actors.cleanup.messages.CreditDecision;
-import org.eclipse.ditto.services.utils.health.StatusInfo;
+import org.eclipse.ditto.internal.utils.health.StatusInfo;
 
 import akka.NotUsed;
 import akka.actor.ActorContext;

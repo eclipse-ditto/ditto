@@ -18,7 +18,7 @@ import java.util.Map;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -67,7 +67,7 @@ public interface ThrottlingConfig {
      *
      * @param config is supposed to provide the settings at {@value #CONFIG_PATH}.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
+     * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     static ThrottlingConfig of(final Config config) {
         return DefaultThrottlingConfig.of(config);

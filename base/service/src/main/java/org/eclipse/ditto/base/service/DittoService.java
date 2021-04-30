@@ -30,18 +30,18 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.base.service.config.ServiceSpecificConfig;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.services.utils.config.DittoConfigError;
-import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
-import org.eclipse.ditto.services.utils.config.ScopedConfig;
-import org.eclipse.ditto.services.utils.config.raw.RawConfigSupplier;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.DittoConfigError;
+import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.config.raw.RawConfigSupplier;
 import org.eclipse.ditto.base.service.devops.DevOpsCommandsActor;
 import org.eclipse.ditto.base.service.devops.LogbackLoggingFacade;
-import org.eclipse.ditto.services.utils.health.status.StatusSupplierActor;
-import org.eclipse.ditto.services.utils.metrics.config.MetricsConfig;
-import org.eclipse.ditto.services.utils.metrics.prometheus.PrometheusReporterRoute;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.WithMongoDbConfig;
+import org.eclipse.ditto.internal.utils.health.status.StatusSupplierActor;
+import org.eclipse.ditto.internal.utils.metrics.config.MetricsConfig;
+import org.eclipse.ditto.internal.utils.metrics.prometheus.PrometheusReporterRoute;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithMongoDbConfig;
 import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandSizeValidator;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
@@ -354,7 +354,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
     }
 
     /**
-     * Starts the {@link org.eclipse.ditto.services.utils.health.status.StatusSupplierActor}.
+     * Starts the {@link org.eclipse.ditto.internal.utils.health.status.StatusSupplierActor}.
      * May be overridden to change the way how the actor is started.
      *
      * @param actorSystem Akka actor system for starting actors.

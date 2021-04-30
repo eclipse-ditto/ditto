@@ -14,7 +14,7 @@ package org.eclipse.ditto.base.service.config.http;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 import akka.http.javadsl.ClientTransport;
 

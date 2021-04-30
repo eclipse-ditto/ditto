@@ -26,8 +26,8 @@ import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.slf4j.Logger;
 
 import akka.http.javadsl.model.HttpHeader;

@@ -20,7 +20,7 @@ import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.base.model.common.BinaryValidationResult;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
-import org.eclipse.ditto.services.utils.jwt.JjwtDeserializer;
+import org.eclipse.ditto.internal.utils.jwt.JjwtDeserializer;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationFailedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

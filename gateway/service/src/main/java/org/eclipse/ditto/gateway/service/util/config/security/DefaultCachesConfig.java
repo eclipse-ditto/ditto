@@ -16,9 +16,9 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
-import org.eclipse.ditto.services.utils.cache.config.DefaultCacheConfig;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
+import org.eclipse.ditto.internal.utils.cache.config.DefaultCacheConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
 import com.typesafe.config.Config;
 
@@ -41,7 +41,7 @@ public final class DefaultCachesConfig implements CachesConfig {
      *
      * @param config is supposed to provide the settings of the caches config at {@value #CONFIG_PATH}.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
+     * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultCachesConfig of(final Config config) {
         final DefaultScopedConfig cacheScopedConfig = DefaultScopedConfig.newInstance(config, CONFIG_PATH);

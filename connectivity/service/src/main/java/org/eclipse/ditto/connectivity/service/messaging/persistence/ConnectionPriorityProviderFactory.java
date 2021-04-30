@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.persistence;
 
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 
 import akka.actor.ActorRef;
 

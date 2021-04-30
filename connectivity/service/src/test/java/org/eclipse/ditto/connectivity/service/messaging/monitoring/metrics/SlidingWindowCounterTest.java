@@ -21,7 +21,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.Map;
 
-import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
+import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

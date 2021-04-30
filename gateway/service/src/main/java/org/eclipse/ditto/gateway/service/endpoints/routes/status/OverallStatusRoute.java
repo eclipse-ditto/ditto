@@ -18,7 +18,7 @@ import java.util.function.Supplier;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevOpsOAuth2AuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirective;
 import org.eclipse.ditto.gateway.service.health.StatusAndHealthProvider;
-import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
+import org.eclipse.ditto.internal.utils.health.cluster.ClusterStatus;
 
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpResponse;

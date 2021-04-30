@@ -16,7 +16,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyLifecycle;
-import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
+import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.policies.model.signals.events.PolicyCreated;
 
 /**

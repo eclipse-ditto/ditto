@@ -29,7 +29,7 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.services.models.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.connectivity.service.messaging.Resolvers;
 import org.eclipse.ditto.connectivity.service.messaging.validation.AbstractProtocolValidator;
 

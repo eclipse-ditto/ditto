@@ -92,8 +92,8 @@ import org.eclipse.ditto.connectivity.service.messaging.AbstractBaseClientActorT
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants.Authorization;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
-import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
-import org.eclipse.ditto.services.utils.test.Retry;
+import org.eclipse.ditto.internal.utils.pubsub.DittoProtocolSub;
+import org.eclipse.ditto.internal.utils.test.Retry;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;

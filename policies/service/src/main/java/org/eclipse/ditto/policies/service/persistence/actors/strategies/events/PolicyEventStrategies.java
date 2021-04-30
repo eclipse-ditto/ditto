@@ -13,7 +13,7 @@
 package org.eclipse.ditto.policies.service.persistence.actors.strategies.events;
 
 import org.eclipse.ditto.policies.model.Policy;
-import org.eclipse.ditto.services.utils.persistentactors.events.AbstractEventStrategies;
+import org.eclipse.ditto.internal.utils.persistentactors.events.AbstractEventStrategies;
 import org.eclipse.ditto.policies.model.signals.events.PolicyCreated;
 import org.eclipse.ditto.policies.model.signals.events.PolicyDeleted;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEntriesModified;

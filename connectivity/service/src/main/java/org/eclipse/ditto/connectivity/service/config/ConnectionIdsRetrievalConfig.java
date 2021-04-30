@@ -14,7 +14,7 @@ package org.eclipse.ditto.connectivity.service.config;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings for Connectivity service's behaviour for retrieval of connection ids.

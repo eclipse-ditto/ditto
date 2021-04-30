@@ -16,9 +16,9 @@ import java.util.regex.Pattern;
 
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.api.PolicyTag;
-import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
-import org.eclipse.ditto.services.utils.persistence.mongo.DefaultPersistenceStreamingActor;
-import org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr;
+import org.eclipse.ditto.internal.models.streaming.EntityIdWithRevision;
+import org.eclipse.ditto.internal.utils.persistence.mongo.DefaultPersistenceStreamingActor;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.PidWithSeqNr;
 
 import akka.actor.Props;
 

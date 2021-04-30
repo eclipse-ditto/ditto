@@ -18,12 +18,12 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.supervision.DefaultSupervisorConfig;
 import org.eclipse.ditto.base.service.config.supervision.SupervisorConfig;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.services.utils.config.ScopedConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultActivityCheckConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultSnapshotConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.SnapshotConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultActivityCheckConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultSnapshotConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
 
 import com.typesafe.config.Config;
 
@@ -50,7 +50,7 @@ public final class DefaultThingConfig implements ThingConfig {
      *
      * @param config is supposed to provide the settings of the thing config at {@value #CONFIG_PATH}.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
+     * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultThingConfig of(final Config config) {
         return new DefaultThingConfig(DefaultScopedConfig.newInstance(config, CONFIG_PATH));

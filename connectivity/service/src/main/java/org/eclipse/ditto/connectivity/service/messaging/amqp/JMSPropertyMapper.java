@@ -34,8 +34,8 @@ import org.apache.qpid.jms.message.facade.JmsMessageFacade;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsMessageFacade;
 import org.apache.qpid.proton.amqp.Symbol;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.services.utils.akka.logging.CommonMdcEntryKey;
-import org.eclipse.ditto.services.utils.akka.logging.MdcEntrySettable;
+import org.eclipse.ditto.internal.utils.akka.logging.CommonMdcEntryKey;
+import org.eclipse.ditto.internal.utils.akka.logging.MdcEntrySettable;
 
 import akka.event.LoggingAdapter;
 

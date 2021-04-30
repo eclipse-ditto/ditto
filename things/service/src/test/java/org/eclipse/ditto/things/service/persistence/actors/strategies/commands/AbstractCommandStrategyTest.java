@@ -27,12 +27,12 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.services.utils.persistentactors.commands.AbstractCommandStrategy;
-import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
-import org.eclipse.ditto.services.utils.persistentactors.commands.DefaultContext;
-import org.eclipse.ditto.services.utils.persistentactors.results.Result;
-import org.eclipse.ditto.services.utils.persistentactors.results.ResultVisitor;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.persistentactors.commands.AbstractCommandStrategy;
+import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
+import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultVisitor;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandSizeValidator;
@@ -43,7 +43,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 /**
- * Abstract base implementation for unit tests of implementations of {@link org.eclipse.ditto.services.utils.persistentactors.commands.AbstractCommandStrategy}.
+ * Abstract base implementation for unit tests of implementations of {@link org.eclipse.ditto.internal.utils.persistentactors.commands.AbstractCommandStrategy}.
  */
 public abstract class AbstractCommandStrategyTest {
 

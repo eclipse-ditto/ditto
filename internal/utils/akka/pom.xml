@@ -127,9 +127,9 @@
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <configuration>
                     <excludePackageNames>
-                        org.eclipse.ditto.services.utils.akka.logging;
-                        org.eclipse.ditto.services.utils.akka.controlflow;
-                        org.eclipse.ditto.services.utils.akka.actors
+                        org.eclipse.ditto.internal.utils.akka.logging;
+                        org.eclipse.ditto.internal.utils.akka.controlflow;
+                        org.eclipse.ditto.internal.utils.akka.actors
                     </excludePackageNames>
                 </configuration>
             </plugin>
@@ -144,7 +144,7 @@
                         </goals>
                         <configuration>
                             <includes>
-                                <include>org/eclipse/ditto/services/utils/akka/*</include>
+                                <include>org/eclipse/ditto/internal/utils/akka/*</include>
                             </includes>
                         </configuration>
                     </execution>

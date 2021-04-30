@@ -14,7 +14,7 @@ package org.eclipse.ditto.policies.service.persistence.actors.strategies.command
 
 import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 import org.eclipse.ditto.policies.service.persistence.actors.resolvers.SubjectIdFromActionResolver;
-import org.eclipse.ditto.services.utils.akka.AkkaClassLoader;
+import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
 import org.eclipse.ditto.policies.model.signals.commands.actions.PolicyActionCommand;
 import org.eclipse.ditto.policies.model.signals.events.PolicyActionEvent;
 

@@ -17,7 +17,7 @@ import java.time.Duration;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.ThrottlingConfig;
-import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings of the MQTT protocol.

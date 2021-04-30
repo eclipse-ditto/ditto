@@ -25,7 +25,7 @@ import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants;
-import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureProperties;
 import org.junit.Before;
 import org.junit.Rule;

@@ -36,7 +36,7 @@ import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
 import org.eclipse.ditto.gateway.service.streaming.Connect;
 import org.eclipse.ditto.gateway.service.streaming.StartStreaming;
 import org.eclipse.ditto.gateway.service.streaming.actors.SessionedJsonifiable;
-import org.eclipse.ditto.services.utils.pubsub.StreamingType;
+import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayServiceUnavailableException;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;

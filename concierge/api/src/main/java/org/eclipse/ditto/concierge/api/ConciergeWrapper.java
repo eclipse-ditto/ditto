@@ -14,7 +14,7 @@ package org.eclipse.ditto.concierge.api;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
-import org.eclipse.ditto.services.utils.cache.CacheKey;
+import org.eclipse.ditto.internal.utils.cache.CacheKey;
 import org.eclipse.ditto.base.model.signals.Signal;
 
 import akka.routing.ConsistentHashingRouter;

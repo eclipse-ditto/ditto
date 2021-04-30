@@ -31,7 +31,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.connectivity.model.MessageMapperConfigurationInvalidException;
-import org.eclipse.ditto.services.models.placeholders.UnresolvedPlaceholderException;
+import org.eclipse.ditto.internal.models.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.SubjectIssuer;

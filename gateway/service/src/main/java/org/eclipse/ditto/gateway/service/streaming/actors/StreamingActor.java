@@ -22,14 +22,14 @@ import org.eclipse.ditto.gateway.service.util.config.streaming.DefaultStreamingC
 import org.eclipse.ditto.gateway.service.util.config.streaming.StreamingConfig;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.gateway.service.streaming.Connect;
-import org.eclipse.ditto.services.utils.akka.actors.ModifyConfigBehavior;
-import org.eclipse.ditto.services.utils.akka.actors.RetrieveConfigBehavior;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
-import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
-import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
-import org.eclipse.ditto.services.utils.search.SubscriptionManager;
+import org.eclipse.ditto.internal.utils.akka.actors.ModifyConfigBehavior;
+import org.eclipse.ditto.internal.utils.akka.actors.RetrieveConfigBehavior;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.Gauge;
+import org.eclipse.ditto.internal.utils.pubsub.DittoProtocolSub;
+import org.eclipse.ditto.internal.utils.search.SubscriptionManager;
 
 import com.typesafe.config.Config;
 

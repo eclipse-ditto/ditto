@@ -60,8 +60,8 @@
                         </goals>
                         <configuration>
                             <includes>
-                                <include>org/eclipse/ditto/services/utils/test/*</include>
-                                <include>org/eclipse/ditto/services/utils/test/mongo/*</include>
+                                <include>org/eclipse/ditto/internal/utils/test/*</include>
+                                <include>org/eclipse/ditto/internal/utils/test/mongo/*</include>
                             </includes>
                         </configuration>
                     </execution>

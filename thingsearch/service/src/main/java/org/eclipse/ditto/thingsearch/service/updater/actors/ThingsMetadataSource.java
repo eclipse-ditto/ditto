@@ -24,12 +24,12 @@ import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.services.models.streaming.LowerBound;
-import org.eclipse.ditto.services.models.streaming.StreamedSnapshot;
-import org.eclipse.ditto.services.models.streaming.SudoStreamSnapshots;
+import org.eclipse.ditto.internal.models.streaming.LowerBound;
+import org.eclipse.ditto.internal.models.streaming.StreamedSnapshot;
+import org.eclipse.ditto.internal.models.streaming.SudoStreamSnapshots;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
-import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;

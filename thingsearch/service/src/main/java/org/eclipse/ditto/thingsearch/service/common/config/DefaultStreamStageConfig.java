@@ -19,7 +19,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.supervision.DefaultExponentialBackOffConfig;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
-import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 
 import com.typesafe.config.Config;
 
@@ -45,7 +45,7 @@ public final class DefaultStreamStageConfig implements StreamStageConfig {
      * @param config is supposed to provide the settings of the stream stage config at {@code configPath}.
      * @param configPath the supposed path of the nested stream stage config settings.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
+     * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultStreamStageConfig getInstance(final Config config, final String configPath) {
         final ConfigWithFallback configWithFallback =

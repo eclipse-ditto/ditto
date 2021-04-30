@@ -17,9 +17,9 @@ import java.time.Duration;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.supervision.WithSupervisorConfig;
-import org.eclipse.ditto.services.utils.config.KnownConfigValue;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.WithActivityCheckConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.WithSnapshotConfig;
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithActivityCheckConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithSnapshotConfig;
 
 /**
  * Provides configuration settings for policy entities.

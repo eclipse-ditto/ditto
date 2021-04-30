@@ -12,14 +12,14 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.persistence.strategies.commands;
 
-import static org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory.newErrorResult;
+import static org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory.newErrorResult;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionState;
-import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionConflictException;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CreateConnection;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;

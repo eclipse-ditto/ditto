@@ -32,7 +32,7 @@ import org.eclipse.ditto.policies.model.SubjectAnnouncement;
 import org.eclipse.ditto.policies.model.SubjectExpiry;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
-import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.actions.DeactivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.actions.TopLevelPolicyActionCommand;

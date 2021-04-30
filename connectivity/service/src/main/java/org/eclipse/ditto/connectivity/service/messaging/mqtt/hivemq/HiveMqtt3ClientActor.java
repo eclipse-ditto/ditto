@@ -21,7 +21,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
-import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 
 import com.hivemq.client.mqtt.mqtt3.Mqtt3AsyncClient;
 import com.hivemq.client.mqtt.mqtt3.message.connect.Mqtt3ConnectBuilder;

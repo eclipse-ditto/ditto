@@ -39,7 +39,7 @@ import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnec
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
-import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 
 import com.hivemq.client.mqtt.MqttClientState;

@@ -14,7 +14,7 @@ package org.eclipse.ditto.concierge.service.common;
 
 import java.time.Duration;
 
-import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings for credit decisions of persistence cleanup actions.

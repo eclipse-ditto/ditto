@@ -20,7 +20,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
+import org.eclipse.ditto.internal.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.base.model.signals.Signal;
 
 import akka.actor.ActorRef;

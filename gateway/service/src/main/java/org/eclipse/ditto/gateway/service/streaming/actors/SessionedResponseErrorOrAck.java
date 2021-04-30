@@ -23,7 +23,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
-import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
+import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
 
 /**
  * Sessioned Jsonifiable that does not support signal enrichment.

@@ -21,7 +21,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
+import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureResponse;
 import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;

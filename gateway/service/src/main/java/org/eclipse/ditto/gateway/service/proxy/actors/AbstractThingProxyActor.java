@@ -13,7 +13,7 @@
 package org.eclipse.ditto.gateway.service.proxy.actors;
 
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
-import org.eclipse.ditto.services.utils.aggregator.ThingsAggregatorProxyActor;
+import org.eclipse.ditto.internal.utils.aggregator.ThingsAggregatorProxyActor;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.api.devops.signals.commands.DevOpsCommand;

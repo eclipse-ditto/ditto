@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence;
 
-import org.eclipse.ditto.services.utils.persistence.mongo.assertions.MongoIndexAssertions;
+import org.eclipse.ditto.internal.utils.persistence.mongo.assertions.MongoIndexAssertions;
 import org.junit.Test;
 
 /**

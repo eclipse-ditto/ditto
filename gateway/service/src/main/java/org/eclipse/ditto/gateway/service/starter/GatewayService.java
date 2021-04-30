@@ -15,7 +15,7 @@ package org.eclipse.ditto.gateway.service.starter;
 import org.eclipse.ditto.base.service.DittoService;
 import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
 import org.eclipse.ditto.gateway.service.util.config.GatewayConfig;
-import org.eclipse.ditto.services.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

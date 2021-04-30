@@ -23,7 +23,7 @@ import java.util.stream.IntStream;
 
 import org.eclipse.ditto.connectivity.model.MetricDirection;
 import org.eclipse.ditto.connectivity.model.MetricType;
-import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
+import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

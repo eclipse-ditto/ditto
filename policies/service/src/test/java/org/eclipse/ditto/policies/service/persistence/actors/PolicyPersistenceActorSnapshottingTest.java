@@ -39,10 +39,10 @@ import org.eclipse.ditto.policies.service.persistence.serializer.PolicyMongoSnap
 import org.eclipse.ditto.policies.service.persistence.testhelper.Assertions;
 import org.eclipse.ditto.policies.service.persistence.testhelper.PoliciesJournalTestHelper;
 import org.eclipse.ditto.policies.service.persistence.testhelper.PoliciesSnapshotTestHelper;
-import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
-import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJson;
-import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
-import org.eclipse.ditto.services.utils.test.Retry;
+import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
+import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
+import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.internal.utils.test.Retry;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;

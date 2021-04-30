@@ -21,8 +21,8 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityInternalErrorException;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionState;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.StagedCommand;
-import org.eclipse.ditto.services.utils.persistentactors.results.Result;
-import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 
 /**

@@ -22,11 +22,11 @@ import java.util.NoSuchElementException;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.service.config.http.HttpConfig;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
-import org.eclipse.ditto.services.utils.config.LocalHostAddressSupplier;
-import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.cluster.ClusterStatusSupplier;
+import org.eclipse.ditto.internal.utils.config.LocalHostAddressSupplier;
+import org.eclipse.ditto.internal.utils.health.routes.StatusRoute;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorInitializationException;

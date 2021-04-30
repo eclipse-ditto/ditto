@@ -13,11 +13,11 @@
 package org.eclipse.ditto.connectivity.service.mapping;
 
 import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.services.models.signalenrichment.ByRoundTripSignalEnrichmentFacade;
-import org.eclipse.ditto.services.models.signalenrichment.DefaultSignalEnrichmentFacadeByRoundTripConfig;
-import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentConfig;
-import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
-import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacadeByRoundTripConfig;
+import org.eclipse.ditto.internal.models.signalenrichment.ByRoundTripSignalEnrichmentFacade;
+import org.eclipse.ditto.internal.models.signalenrichment.DefaultSignalEnrichmentFacadeByRoundTripConfig;
+import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentConfig;
+import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
+import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacadeByRoundTripConfig;
 
 import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;

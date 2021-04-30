@@ -33,7 +33,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
-import org.eclipse.ditto.services.utils.headers.conditional.ConditionalHeadersValidator;
+import org.eclipse.ditto.internal.utils.headers.conditional.ConditionalHeadersValidator;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.Command.Category;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyPreconditionFailedException;

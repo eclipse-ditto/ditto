@@ -50,8 +50,8 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.Connecti
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders;
-import org.eclipse.ditto.services.models.placeholders.ExpressionResolver;
-import org.eclipse.ditto.services.models.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.internal.models.placeholders.ExpressionResolver;
+import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
 
 import akka.actor.ActorSystem;
 import akka.event.LoggingAdapter;

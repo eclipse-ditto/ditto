@@ -25,9 +25,9 @@ import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyRevision;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyRevisionResponse;
-import org.eclipse.ditto.services.models.streaming.LowerBound;
+import org.eclipse.ditto.internal.models.streaming.LowerBound;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
-import org.eclipse.ditto.services.utils.akka.controlflow.MergeSortedAsPair;
+import org.eclipse.ditto.internal.utils.akka.controlflow.MergeSortedAsPair;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;

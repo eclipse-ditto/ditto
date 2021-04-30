@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.services.utils.pubsub.PubSubFactory;
+import org.eclipse.ditto.internal.utils.pubsub.PubSubFactory;
 
 import akka.actor.ActorPath;
 import akka.actor.ActorRef;

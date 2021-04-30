@@ -17,8 +17,8 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.services.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
 
@@ -50,7 +50,7 @@ public class DefaultMapperLimitsConfig implements MapperLimitsConfig {
      *
      * @param config is supposed to provide the settings of the mapper-limits mapping config at {@value #CONFIG_PATH}.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
+     * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultMapperLimitsConfig of(final Config config) {
         return new DefaultMapperLimitsConfig(

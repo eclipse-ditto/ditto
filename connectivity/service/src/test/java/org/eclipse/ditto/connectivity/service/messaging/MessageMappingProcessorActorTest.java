@@ -63,7 +63,7 @@ import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.api.InboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
-import org.eclipse.ditto.services.models.placeholders.UnresolvedPlaceholderException;
+import org.eclipse.ditto.internal.models.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.base.model.signals.Signal;

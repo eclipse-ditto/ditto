@@ -19,7 +19,7 @@ import java.util.Set;
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.util.config.security.DefaultOAuthConfig;
-import org.eclipse.ditto.services.models.placeholders.UnresolvedPlaceholderException;
+import org.eclipse.ditto.internal.models.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.junit.Test;
 

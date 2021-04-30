@@ -24,7 +24,7 @@ import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirectiveFactory;
-import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
+import org.eclipse.ditto.internal.utils.health.cluster.ClusterStatus;
 import org.junit.Before;
 import org.junit.Test;
 

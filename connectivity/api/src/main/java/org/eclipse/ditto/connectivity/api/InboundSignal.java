@@ -29,7 +29,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
-import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
+import org.eclipse.ditto.internal.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.base.model.signals.Signal;
 
 /**

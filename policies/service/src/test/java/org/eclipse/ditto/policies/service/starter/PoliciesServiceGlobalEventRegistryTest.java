@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.policies.service.starter;
 
-import org.eclipse.ditto.services.utils.persistentactors.EmptyEvent;
-import org.eclipse.ditto.services.utils.test.GlobalEventRegistryTestCases;
+import org.eclipse.ditto.internal.utils.persistentactors.EmptyEvent;
+import org.eclipse.ditto.internal.utils.test.GlobalEventRegistryTestCases;
 import org.eclipse.ditto.policies.model.signals.events.ResourceDeleted;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 

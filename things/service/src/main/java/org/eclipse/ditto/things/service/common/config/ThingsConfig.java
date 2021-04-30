@@ -15,11 +15,11 @@ package org.eclipse.ditto.things.service.common.config;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.ServiceSpecificConfig;
-import org.eclipse.ditto.services.utils.config.KnownConfigValue;
-import org.eclipse.ditto.services.utils.health.config.WithHealthCheckConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.WithMongoDbConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.WithTagsConfig;
-import org.eclipse.ditto.services.utils.persistence.operations.WithPersistenceOperationsConfig;
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
+import org.eclipse.ditto.internal.utils.health.config.WithHealthCheckConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithMongoDbConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithTagsConfig;
+import org.eclipse.ditto.internal.utils.persistence.operations.WithPersistenceOperationsConfig;
 
 /**
  * Provides the configuration settings of the Things service.

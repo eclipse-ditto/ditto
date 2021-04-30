@@ -18,7 +18,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
-import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
+import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionOpened;
 
 /**

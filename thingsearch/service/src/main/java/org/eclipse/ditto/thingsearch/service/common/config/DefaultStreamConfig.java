@@ -18,7 +18,7 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 
 import com.typesafe.config.Config;
 
@@ -51,7 +51,7 @@ public final class DefaultStreamConfig implements StreamConfig {
      *
      * @param config is supposed to provide the settings of the stream config at {@value CONFIG_PATH}.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
+     * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultStreamConfig of(final Config config) {
         return new DefaultStreamConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH, StreamConfigValue.values()));

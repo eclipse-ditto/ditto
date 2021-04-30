@@ -13,7 +13,7 @@
 package org.eclipse.ditto.concierge.service.starter;
 
 import org.eclipse.ditto.things.api.ThingSnapshotTaken;
-import org.eclipse.ditto.services.utils.test.GlobalEventRegistryTestCases;
+import org.eclipse.ditto.internal.utils.test.GlobalEventRegistryTestCases;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionCreated;
 import org.eclipse.ditto.policies.model.signals.events.ResourceDeleted;
 import org.eclipse.ditto.things.model.signals.events.FeatureDeleted;

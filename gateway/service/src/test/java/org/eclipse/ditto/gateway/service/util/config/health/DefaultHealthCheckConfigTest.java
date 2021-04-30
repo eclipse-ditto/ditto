@@ -19,7 +19,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
-import org.eclipse.ditto.services.utils.health.config.BasicHealthCheckConfig;
+import org.eclipse.ditto.internal.utils.health.config.BasicHealthCheckConfig;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;

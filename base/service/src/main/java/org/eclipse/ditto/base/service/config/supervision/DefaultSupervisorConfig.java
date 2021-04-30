@@ -16,8 +16,8 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.services.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
 
@@ -40,7 +40,7 @@ public final class DefaultSupervisorConfig implements SupervisorConfig {
      *
      * @param config is supposed to provide the settings of the supervisor config at {@value #CONFIG_PATH}.
      * @return instance
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
+     * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultSupervisorConfig of(final Config config) {
         final ScopedConfig supervisorScopedConfig = DefaultScopedConfig.newInstance(config, CONFIG_PATH);

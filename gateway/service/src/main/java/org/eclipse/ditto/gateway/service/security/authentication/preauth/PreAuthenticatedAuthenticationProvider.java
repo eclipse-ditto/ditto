@@ -34,8 +34,8 @@ import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationR
 import org.eclipse.ditto.gateway.service.security.authentication.DefaultAuthenticationResult;
 import org.eclipse.ditto.gateway.service.security.authentication.TimeMeasuringAuthenticationProvider;
 import org.eclipse.ditto.gateway.service.security.utils.HttpUtils;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 

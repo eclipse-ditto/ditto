@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
-import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
+import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 
 /**
  * Simple implementation of a sliding window using a map. Depending on the given parameters

@@ -13,7 +13,7 @@
 package org.eclipse.ditto.connectivity.service.messaging.persistence.strategies.events;
 
 import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.services.utils.persistentactors.events.AbstractEventStrategies;
+import org.eclipse.ditto.internal.utils.persistentactors.events.AbstractEventStrategies;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionClosed;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionCreated;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionDeleted;

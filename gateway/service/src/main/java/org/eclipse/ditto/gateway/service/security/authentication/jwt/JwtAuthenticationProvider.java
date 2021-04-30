@@ -27,8 +27,8 @@ import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.gateway.service.security.authentication.DefaultAuthenticationResult;
 import org.eclipse.ditto.gateway.service.security.authentication.TimeMeasuringAuthenticationProvider;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationFailedException;
 
 import akka.http.javadsl.server.RequestContext;

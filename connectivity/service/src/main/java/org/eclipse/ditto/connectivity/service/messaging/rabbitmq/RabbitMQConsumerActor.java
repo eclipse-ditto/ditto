@@ -31,15 +31,15 @@ import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
-import org.eclipse.ditto.services.models.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.connectivity.service.messaging.BaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.connectivity.api.EnforcementFactoryFactory;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageBuilder;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.base.model.signals.Signal;
 
 import com.rabbitmq.client.BasicProperties;

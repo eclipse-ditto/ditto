@@ -22,7 +22,7 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirectiveFactory;
-import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.base.api.devops.signals.commands.ExecutePiggybackCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.junit.Before;

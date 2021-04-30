@@ -16,8 +16,8 @@ import java.time.Duration;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
-import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings of the streaming cache of the Search service.

@@ -17,10 +17,10 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.services.utils.config.ScopedConfig;
-import org.eclipse.ditto.services.utils.health.config.BasicHealthCheckConfig;
-import org.eclipse.ditto.services.utils.health.config.DefaultBasicHealthCheckConfig;
+import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.health.config.BasicHealthCheckConfig;
+import org.eclipse.ditto.internal.utils.health.config.DefaultBasicHealthCheckConfig;
 
 import com.typesafe.config.Config;
 
@@ -49,7 +49,7 @@ public final class DefaultHealthCheckConfig implements HealthCheckConfig {
      *
      * @param config is supposed to provide the settings of the health check config at {@value #CONFIG_PATH}.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
+     * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultHealthCheckConfig of(final Config config) {
         final ConfigWithFallback configWithFallback =

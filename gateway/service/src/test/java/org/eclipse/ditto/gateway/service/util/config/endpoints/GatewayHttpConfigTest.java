@@ -33,7 +33,7 @@ import org.assertj.core.util.Maps;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.HeaderDefinition;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.services.utils.config.DittoConfigError;
+import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;

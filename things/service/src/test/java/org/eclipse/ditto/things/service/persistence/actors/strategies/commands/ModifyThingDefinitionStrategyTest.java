@@ -19,7 +19,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
+import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThingDefinition;
 import org.eclipse.ditto.things.model.signals.events.ThingDefinitionCreated;
 import org.eclipse.ditto.things.model.signals.events.ThingDefinitionModified;

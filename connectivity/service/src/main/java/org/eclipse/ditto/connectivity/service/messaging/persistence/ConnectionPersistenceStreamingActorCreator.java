@@ -14,9 +14,9 @@ package org.eclipse.ditto.connectivity.service.messaging.persistence;
 
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.api.ConnectionTag;
-import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
-import org.eclipse.ditto.services.utils.persistence.mongo.DefaultPersistenceStreamingActor;
-import org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr;
+import org.eclipse.ditto.internal.models.streaming.EntityIdWithRevision;
+import org.eclipse.ditto.internal.utils.persistence.mongo.DefaultPersistenceStreamingActor;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.PidWithSeqNr;
 
 import akka.actor.Props;
 

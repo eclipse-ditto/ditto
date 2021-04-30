@@ -14,8 +14,8 @@ package org.eclipse.ditto.base.service.config;
 
 import org.eclipse.ditto.base.service.config.http.HttpConfig;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
-import org.eclipse.ditto.services.utils.cluster.config.WithClusterConfig;
-import org.eclipse.ditto.services.utils.metrics.config.WithMetricsConfig;
+import org.eclipse.ditto.internal.utils.cluster.config.WithClusterConfig;
+import org.eclipse.ditto.internal.utils.metrics.config.WithMetricsConfig;
 
 /**
  * Provides the common configuration settings of each Ditto service.

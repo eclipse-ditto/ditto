@@ -24,7 +24,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.services.models.streaming.IdentifiableStreamingMessage;
+import org.eclipse.ditto.internal.models.streaming.IdentifiableStreamingMessage;
 
 /**
  * Represents the ID and revision of a Policy combined with an ID of another entity referencing this policy.

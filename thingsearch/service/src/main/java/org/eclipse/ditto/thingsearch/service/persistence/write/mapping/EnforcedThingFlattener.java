@@ -34,7 +34,7 @@ import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.thingsearch.service.persistence.write.IndexLengthRestrictionEnforcer;
-import org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil;
+import org.eclipse.ditto.internal.utils.persistence.mongo.BsonUtil;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 
 /**

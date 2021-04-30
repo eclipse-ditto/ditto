@@ -14,7 +14,7 @@ package org.eclipse.ditto.connectivity.service.messaging.persistence;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.services.utils.persistence.mongo.AbstractMongoSnapshotAdapter;
+import org.eclipse.ditto.internal.utils.persistence.mongo.AbstractMongoSnapshotAdapter;
 import org.slf4j.LoggerFactory;
 
 /**

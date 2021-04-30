@@ -15,7 +15,7 @@ package org.eclipse.ditto.things.service.starter;
 import org.eclipse.ditto.base.service.actors.AbstractDittoRootActorTest;
 import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 import org.eclipse.ditto.things.service.common.config.ThingsConfig;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
 import akka.actor.ActorSystem;
 import akka.actor.Props;

@@ -18,7 +18,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
-import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
+import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;

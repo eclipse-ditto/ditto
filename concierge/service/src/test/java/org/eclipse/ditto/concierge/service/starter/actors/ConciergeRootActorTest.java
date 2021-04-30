@@ -18,7 +18,7 @@ import org.eclipse.ditto.base.service.actors.AbstractDittoRootActorTest;
 import org.eclipse.ditto.concierge.service.common.ConciergeConfig;
 import org.eclipse.ditto.concierge.service.common.DittoConciergeConfig;
 import org.eclipse.ditto.concierge.service.starter.proxy.DefaultEnforcerActorFactory;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
 import akka.actor.ActorSystem;
 import akka.actor.Props;

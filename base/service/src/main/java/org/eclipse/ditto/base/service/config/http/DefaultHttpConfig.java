@@ -17,9 +17,9 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.services.utils.config.DittoConfigError;
-import org.eclipse.ditto.services.utils.config.WithConfigPath;
+import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.config.DittoConfigError;
+import org.eclipse.ditto.internal.utils.config.WithConfigPath;
 
 import com.typesafe.config.Config;
 

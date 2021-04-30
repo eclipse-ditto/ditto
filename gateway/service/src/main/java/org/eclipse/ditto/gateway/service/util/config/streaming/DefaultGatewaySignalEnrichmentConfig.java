@@ -17,9 +17,9 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
-import org.eclipse.ditto.services.utils.cache.config.DefaultCacheConfig;
-import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
+import org.eclipse.ditto.internal.utils.cache.config.DefaultCacheConfig;
+import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -50,7 +50,7 @@ public final class DefaultGatewaySignalEnrichmentConfig implements GatewaySignal
      *
      * @param config is supposed to provide the settings of the provider specific config at {@value #CONFIG_PATH}.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
+     * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultGatewaySignalEnrichmentConfig of(final Config config) {
         return new DefaultGatewaySignalEnrichmentConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH,

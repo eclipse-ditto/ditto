@@ -20,9 +20,9 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.services.utils.persistentactors.results.Result;
-import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
-import org.eclipse.ditto.services.utils.persistentactors.results.ResultVisitor;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultVisitor;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
@@ -32,7 +32,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
 import org.junit.Test;
 
 /**
- * Unit tests for {@link org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory}.
+ * Unit tests for {@link org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory}.
  */
 public final class ResultFactoryTest {
 

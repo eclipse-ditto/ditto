@@ -22,12 +22,12 @@ import java.util.function.Supplier;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
-import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
-import org.eclipse.ditto.services.utils.metrics.instruments.timer.StoppedTimer;
-import org.eclipse.ditto.services.utils.tracing.TraceUtils;
-import org.eclipse.ditto.services.utils.tracing.TracingTags;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StoppedTimer;
+import org.eclipse.ditto.internal.utils.tracing.TraceUtils;
+import org.eclipse.ditto.internal.utils.tracing.TracingTags;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayServiceUnavailableException;
 import org.slf4j.Logger;
 

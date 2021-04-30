@@ -20,9 +20,9 @@ import java.util.Map;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.policies.model.PolicyConstants;
-import org.eclipse.ditto.services.utils.cache.Cache;
-import org.eclipse.ditto.services.utils.cache.CacheKey;
-import org.eclipse.ditto.services.utils.cache.entry.Entry;
+import org.eclipse.ditto.internal.utils.cache.Cache;
+import org.eclipse.ditto.internal.utils.cache.CacheKey;
+import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 
 /**
  * Creates an {@link EnforcerRetriever} which retrieves an enforcer by using an policy-enforcer-cache.

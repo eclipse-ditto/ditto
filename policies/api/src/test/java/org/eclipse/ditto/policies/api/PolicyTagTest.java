@@ -19,7 +19,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
+import org.eclipse.ditto.internal.models.streaming.EntityIdWithRevision;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

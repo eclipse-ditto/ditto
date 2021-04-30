@@ -18,8 +18,8 @@ import java.util.List;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.utils.config.KnownConfigValue;
-import org.eclipse.ditto.services.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
 
@@ -64,7 +64,7 @@ public interface StatisticsConfig {
      *
      * @param context any actor context.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
+     * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     static StatisticsConfig forActor(final ActorContext context) {
         final Config systemConfig = context.system().settings().config();

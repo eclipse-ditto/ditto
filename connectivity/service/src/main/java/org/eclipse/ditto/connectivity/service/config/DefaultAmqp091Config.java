@@ -18,8 +18,8 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.services.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
 
@@ -42,7 +42,7 @@ public final class DefaultAmqp091Config implements Amqp091Config {
      *
      * @param config is supposed to provide the settings of the JavaScript mapping config at {@value #CONFIG_PATH}.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
+     * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultAmqp091Config of(final Config config) {
         return new DefaultAmqp091Config(ConfigWithFallback.newInstance(config, CONFIG_PATH, ConfigValue.values()));

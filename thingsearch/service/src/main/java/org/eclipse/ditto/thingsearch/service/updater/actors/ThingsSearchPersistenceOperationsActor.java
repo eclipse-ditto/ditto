@@ -14,9 +14,9 @@ package org.eclipse.ditto.thingsearch.service.updater.actors;
 
 import org.eclipse.ditto.thingsearch.model.ThingSearchConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.write.ThingsSearchUpdaterPersistence;
-import org.eclipse.ditto.services.utils.persistence.operations.AbstractPersistenceOperationsActor;
-import org.eclipse.ditto.services.utils.persistence.operations.NamespacePersistenceOperations;
-import org.eclipse.ditto.services.utils.persistence.operations.PersistenceOperationsConfig;
+import org.eclipse.ditto.internal.utils.persistence.operations.AbstractPersistenceOperationsActor;
+import org.eclipse.ditto.internal.utils.persistence.operations.NamespacePersistenceOperations;
+import org.eclipse.ditto.internal.utils.persistence.operations.PersistenceOperationsConfig;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;

@@ -14,7 +14,7 @@ package org.eclipse.ditto.connectivity.service.config;
 
 import java.time.Duration;
 
-import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 
 public interface TunnelConfig {

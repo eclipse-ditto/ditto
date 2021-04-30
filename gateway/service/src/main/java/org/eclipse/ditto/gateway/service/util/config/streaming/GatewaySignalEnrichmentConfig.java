@@ -16,8 +16,8 @@ import java.time.Duration;
 
 import javax.annotation.Nonnull;
 
-import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
-import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 import com.typesafe.config.Config;
 

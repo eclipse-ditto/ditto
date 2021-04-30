@@ -158,8 +158,8 @@
                         </goals>
                         <configuration>
                             <includes>
-                                <include>org/eclipse/ditto/services/utils/persistence/mongo/assertions/*</include>
-                                <include>org/eclipse/ditto/services/utils/persistence/mongo/ops/eventsource/*</include>
+                                <include>org/eclipse/ditto/internal/utils/persistence/mongo/assertions/*</include>
+                                <include>org/eclipse/ditto/internal/utils/persistence/mongo/ops/eventsource/*</include>
                             </includes>
                         </configuration>
                     </execution>

@@ -33,7 +33,7 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.jwt.model.JsonWebKey;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
-import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
+import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationProviderUnavailableException;
 import org.junit.After;
 import org.junit.Before;

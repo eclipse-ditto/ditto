@@ -57,6 +57,7 @@ import org.eclipse.ditto.connectivity.service.messaging.rabbitmq.RabbitMQValidat
 import org.eclipse.ditto.connectivity.service.messaging.validation.CompoundConnectivityCommandInterceptor;
 import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.connectivity.service.messaging.validation.DittoConnectivityCommandValidator;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
@@ -73,17 +74,17 @@ import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.connectivity.service.messaging.ClientActorRefs;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
-import org.eclipse.ditto.services.utils.akka.PingCommand;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
-import org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersistenceActor;
-import org.eclipse.ditto.services.utils.persistentactors.EmptyEvent;
-import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
-import org.eclipse.ditto.services.utils.persistentactors.commands.DefaultContext;
-import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
+import org.eclipse.ditto.internal.utils.akka.PingCommand;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.internal.utils.persistentactors.AbstractShardedPersistenceActor;
+import org.eclipse.ditto.internal.utils.persistentactors.EmptyEvent;
+import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
+import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext;
+import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
@@ -323,7 +324,7 @@ public final class ConnectionPersistenceActor
     }
 
     @Override
-    protected org.eclipse.ditto.services.utils.persistence.mongo.config.SnapshotConfig getSnapshotConfig() {
+    protected SnapshotConfig getSnapshotConfig() {
         return config.getSnapshotConfig();
     }
 

@@ -18,7 +18,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;

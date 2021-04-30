@@ -15,7 +15,7 @@ package org.eclipse.ditto.connectivity.service.config;
 import java.time.Duration;
 
 import org.eclipse.ditto.base.service.config.http.HttpProxyConfig;
-import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings of the http-push connection type.

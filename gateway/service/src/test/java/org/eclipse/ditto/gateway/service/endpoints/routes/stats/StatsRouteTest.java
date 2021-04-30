@@ -24,7 +24,7 @@ import org.eclipse.ditto.gateway.service.util.config.security.DevOpsConfig;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevOpsOAuth2AuthenticationDirective;
-import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.CountThingsResponse;
 import org.junit.Before;
 import org.junit.Test;

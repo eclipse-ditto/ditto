@@ -17,11 +17,11 @@ import java.util.regex.Pattern;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
+import org.eclipse.ditto.internal.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.things.api.ThingTag;
-import org.eclipse.ditto.services.utils.persistence.mongo.DefaultPersistenceStreamingActor;
-import org.eclipse.ditto.services.utils.persistence.mongo.SnapshotStreamingActor;
-import org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr;
+import org.eclipse.ditto.internal.utils.persistence.mongo.DefaultPersistenceStreamingActor;
+import org.eclipse.ditto.internal.utils.persistence.mongo.SnapshotStreamingActor;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.PidWithSeqNr;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;

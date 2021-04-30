@@ -18,7 +18,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.services.models.streaming.AbstractEntityIdWithRevision;
+import org.eclipse.ditto.internal.models.streaming.AbstractEntityIdWithRevision;
 
 /**
  * Represents the ID and revision of a Thing.

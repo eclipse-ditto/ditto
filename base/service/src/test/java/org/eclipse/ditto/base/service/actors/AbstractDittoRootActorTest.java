@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import org.eclipse.ditto.services.utils.config.raw.RawConfigSupplier;
+import org.eclipse.ditto.internal.utils.config.raw.RawConfigSupplier;
 import org.junit.After;
 import org.junit.Test;
 

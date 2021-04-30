@@ -39,7 +39,7 @@ import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnec
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.api.InboundSignal;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionSignalIllegalException;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;

@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
-import static org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory.newErrorResult;
-import static org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory.newMutationResult;
+import static org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory.newErrorResult;
+import static org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory.newMutationResult;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -34,7 +34,7 @@ import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingLifecycle;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThingResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingCreated;

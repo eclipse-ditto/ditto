@@ -33,7 +33,7 @@ import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.api.MappedInboundExternalMessage;
-import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

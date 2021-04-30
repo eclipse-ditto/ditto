@@ -23,13 +23,13 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.connectivity.model.HeaderMapping;
-import org.eclipse.ditto.services.models.placeholders.ExpressionResolver;
-import org.eclipse.ditto.services.models.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.internal.models.placeholders.ExpressionResolver;
+import org.eclipse.ditto.internal.models.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 
 /**
  * Applies an optional "header mapping" potentially configured on a target on a passed {@link OutboundSignal.Mapped}.

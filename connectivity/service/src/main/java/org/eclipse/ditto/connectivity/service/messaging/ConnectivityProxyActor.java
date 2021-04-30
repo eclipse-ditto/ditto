@@ -12,10 +12,10 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging;
 
-import static org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory.getDiagnosticLoggingAdapter;
+import static org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory.getDiagnosticLoggingAdapter;
 
-import org.eclipse.ditto.services.utils.aggregator.ThingsAggregatorProxyActor;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.aggregator.ThingsAggregatorProxyActor;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;

@@ -14,8 +14,8 @@ package org.eclipse.ditto.policies.service.starter;
 
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
-import org.eclipse.ditto.services.utils.health.RetrieveHealthResponse;
-import org.eclipse.ditto.services.utils.test.GlobalCommandResponseRegistryTestCases;
+import org.eclipse.ditto.internal.utils.health.RetrieveHealthResponse;
+import org.eclipse.ditto.internal.utils.test.GlobalCommandResponseRegistryTestCases;
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse;
 import org.eclipse.ditto.base.api.common.RetrieveConfigResponse;
 import org.eclipse.ditto.base.api.common.purge.PurgeEntitiesResponse;

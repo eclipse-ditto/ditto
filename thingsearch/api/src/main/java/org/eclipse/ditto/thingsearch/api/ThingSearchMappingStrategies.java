@@ -19,11 +19,11 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.policies.api.PoliciesMappingStrategies;
-import org.eclipse.ditto.services.models.streaming.StreamedSnapshot;
+import org.eclipse.ditto.internal.models.streaming.StreamedSnapshot;
 import org.eclipse.ditto.things.api.ThingsMappingStrategies;
-import org.eclipse.ditto.services.utils.cluster.GlobalMappingStrategies;
-import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
-import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
+import org.eclipse.ditto.internal.utils.cluster.GlobalMappingStrategies;
+import org.eclipse.ditto.internal.utils.cluster.MappingStrategies;
+import org.eclipse.ditto.internal.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.base.model.signals.JsonParsable;
 
 /**

@@ -21,14 +21,14 @@ import java.util.stream.Collectors;
 
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
-import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.services.utils.namespaces.BlockNamespaceBehavior;
-import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
-import org.eclipse.ditto.services.utils.pubsub.DistributedSub;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
+import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.namespaces.BlockNamespaceBehavior;
+import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
+import org.eclipse.ditto.internal.utils.pubsub.DistributedSub;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 import akka.actor.AbstractActorWithTimers;

@@ -16,7 +16,7 @@ import static org.apache.qpid.jms.message.JmsMessageSupport.ACCEPTED;
 import static org.apache.qpid.jms.message.JmsMessageSupport.MODIFIED_FAILED;
 import static org.apache.qpid.jms.message.JmsMessageSupport.REJECTED;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.services.models.placeholders.PlaceholderFactory.newHeadersPlaceholder;
+import static org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 import static org.eclipse.ditto.connectivity.api.EnforcementFactoryFactory.newEnforcementFilterFactory;
 
 import java.nio.ByteBuffer;
@@ -65,9 +65,9 @@ import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageBuilder;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.base.model.signals.Signal;
 
 import akka.actor.ActorRef;

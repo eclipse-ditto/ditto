@@ -19,7 +19,7 @@ import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.connectivity.model.Enforcement;
 import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders;
-import org.eclipse.ditto.services.models.placeholders.Placeholder;
+import org.eclipse.ditto.internal.models.placeholders.Placeholder;
 import org.eclipse.ditto.base.model.signals.Signal;
 
 /**

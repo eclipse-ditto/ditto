@@ -15,7 +15,7 @@ package org.eclipse.ditto.concierge.service.common;
 import java.time.Duration;
 import java.util.Objects;
 
-import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 
 import com.typesafe.config.Config;
 

@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
-import static org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory.newErrorResult;
+import static org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory.newErrorResult;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -28,9 +28,9 @@ import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingBuilder;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
-import org.eclipse.ditto.services.utils.persistentactors.results.Result;
-import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandSizeValidator;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;

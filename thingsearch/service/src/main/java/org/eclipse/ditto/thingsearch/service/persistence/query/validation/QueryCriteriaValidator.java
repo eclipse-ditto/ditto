@@ -16,8 +16,8 @@ import java.util.List;
 
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
-import org.eclipse.ditto.services.utils.akka.AkkaClassLoader;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand;
 
 import akka.actor.AbstractExtensionId;

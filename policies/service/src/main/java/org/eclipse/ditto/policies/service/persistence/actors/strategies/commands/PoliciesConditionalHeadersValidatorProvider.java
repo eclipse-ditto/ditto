@@ -15,7 +15,7 @@ package org.eclipse.ditto.policies.service.persistence.actors.strategies.command
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
-import org.eclipse.ditto.services.utils.headers.conditional.ConditionalHeadersValidator;
+import org.eclipse.ditto.internal.utils.headers.conditional.ConditionalHeadersValidator;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyPreconditionFailedException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyPreconditionNotModifiedException;
 

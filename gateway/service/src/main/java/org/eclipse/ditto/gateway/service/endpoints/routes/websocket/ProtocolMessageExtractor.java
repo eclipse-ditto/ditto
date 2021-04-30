@@ -33,7 +33,7 @@ import org.eclipse.ditto.gateway.service.streaming.StartStreaming;
 import org.eclipse.ditto.gateway.service.streaming.StopStreaming;
 import org.eclipse.ditto.gateway.service.streaming.StreamControlMessage;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
-import org.eclipse.ditto.services.utils.pubsub.StreamingType;
+import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 
 /**
  * Extracts WebSocket Protocol message from the given payload string and returns a {@link org.eclipse.ditto.gateway.service.streaming.StartStreaming},

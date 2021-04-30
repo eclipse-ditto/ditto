@@ -29,11 +29,11 @@ import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
-import org.eclipse.ditto.services.models.placeholders.ExpressionResolver;
-import org.eclipse.ditto.services.models.placeholders.PlaceholderFactory;
-import org.eclipse.ditto.services.models.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.internal.models.placeholders.ExpressionResolver;
+import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.internal.models.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders;
-import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 
 /**
  * Abstract implementation for mapping one type to another.

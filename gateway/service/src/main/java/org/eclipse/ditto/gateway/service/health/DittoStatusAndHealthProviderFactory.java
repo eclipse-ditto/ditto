@@ -15,9 +15,9 @@ package org.eclipse.ditto.gateway.service.health;
 import java.util.function.Supplier;
 
 import org.eclipse.ditto.gateway.service.util.config.health.HealthCheckConfig;
-import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
-import org.eclipse.ditto.services.utils.health.status.StatusHealthSupplier;
-import org.eclipse.ditto.services.utils.health.status.StatusSupplier;
+import org.eclipse.ditto.internal.utils.health.cluster.ClusterStatus;
+import org.eclipse.ditto.internal.utils.health.status.StatusHealthSupplier;
+import org.eclipse.ditto.internal.utils.health.status.StatusSupplier;
 
 import akka.actor.ActorSystem;
 
@@ -34,7 +34,7 @@ public final class DittoStatusAndHealthProviderFactory {
      * Returns a new {@link StatusAndHealthProvider} for the ditto-cluster.
      *
      * @param actorSystem the ActorSystem to use.
-     * @param clusterStateSupplier the {@link org.eclipse.ditto.services.utils.health.cluster.ClusterStatus} supplier
+     * @param clusterStateSupplier the {@link org.eclipse.ditto.internal.utils.health.cluster.ClusterStatus} supplier
      * to use in order to find out the reachable cluster nodes.
      * @param healthCheckConfig the configuration settings for health checking.
      * @return the {@link StatusAndHealthProvider}.

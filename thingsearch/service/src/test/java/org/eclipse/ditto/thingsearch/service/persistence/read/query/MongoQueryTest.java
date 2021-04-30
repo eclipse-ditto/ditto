@@ -28,6 +28,7 @@ import java.util.Map;
 
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.internal.utils.persistence.mongo.BsonUtil;
 import org.eclipse.ditto.rql.query.SortDirection;
 import org.eclipse.ditto.rql.query.SortOption;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
@@ -36,7 +37,7 @@ import org.eclipse.ditto.rql.query.expression.SimpleFieldExpression;
 import org.eclipse.ditto.rql.query.expression.SortFieldExpression;
 import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
-import org.eclipse.ditto.services.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -130,9 +131,9 @@ public final class MongoQueryTest {
 
     private static void assertBson(final Bson expected, final Bson actual) {
         final BsonDocument expectedDoc =
-                org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil.toBsonDocument(expected);
+                BsonUtil.toBsonDocument(expected);
         final BsonDocument actualDoc =
-                org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil.toBsonDocument(actual);
+                BsonUtil.toBsonDocument(actual);
 
         assertThat(actualDoc).isEqualTo(expectedDoc);
     }

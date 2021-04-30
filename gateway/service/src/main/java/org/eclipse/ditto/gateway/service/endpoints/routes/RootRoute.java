@@ -51,8 +51,8 @@ import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.gateway.service.endpoints.utils.DittoRejectionHandlerFactory;
-import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
-import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.internal.utils.health.routes.StatusRoute;
+import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.base.model.signals.commands.CommandNotSupportedException;
 
 import akka.http.javadsl.model.HttpHeader;

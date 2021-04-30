@@ -30,10 +30,10 @@ import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders;
-import org.eclipse.ditto.services.models.placeholders.ExpressionResolver;
-import org.eclipse.ditto.services.models.placeholders.Placeholder;
-import org.eclipse.ditto.services.models.placeholders.PlaceholderFactory;
-import org.eclipse.ditto.services.models.placeholders.PlaceholderResolver;
+import org.eclipse.ditto.internal.models.placeholders.ExpressionResolver;
+import org.eclipse.ditto.internal.models.placeholders.Placeholder;
+import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.internal.models.placeholders.PlaceholderResolver;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithFeatureId;
 

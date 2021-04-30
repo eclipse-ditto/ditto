@@ -20,8 +20,8 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtPlaceholder;
 import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
-import org.eclipse.ditto.services.models.placeholders.ExpressionResolver;
-import org.eclipse.ditto.services.models.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.internal.models.placeholders.ExpressionResolver;
+import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.policies.model.SubjectId;
 
 /**

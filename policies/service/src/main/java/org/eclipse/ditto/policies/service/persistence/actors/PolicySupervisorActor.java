@@ -23,10 +23,10 @@ import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.policies.service.common.config.DittoPoliciesConfig;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
-import org.eclipse.ditto.services.utils.persistentactors.AbstractPersistenceSupervisor;
-import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
+import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
+import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyUnavailableException;
 

@@ -20,7 +20,7 @@ import java.util.Objects;
 
 import com.typesafe.config.Config;
 
-import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 
 public final class DefaultSubjectIssuerConfig implements SubjectIssuerConfig {
 
@@ -43,7 +43,7 @@ public final class DefaultSubjectIssuerConfig implements SubjectIssuerConfig {
      *
      * @param config is supposed to provide the config for the issuer at its current level.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
+     * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultSubjectIssuerConfig of(final Config config) {
         return new DefaultSubjectIssuerConfig(

@@ -20,17 +20,17 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.service.config.DittoServiceConfig;
 import org.eclipse.ditto.base.service.config.http.HttpConfig;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
-import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
-import org.eclipse.ditto.services.utils.config.ScopedConfig;
-import org.eclipse.ditto.services.utils.health.config.DefaultHealthCheckConfig;
-import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
-import org.eclipse.ditto.services.utils.metrics.config.MetricsConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultTagsConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.TagsConfig;
-import org.eclipse.ditto.services.utils.persistence.operations.DefaultPersistenceOperationsConfig;
-import org.eclipse.ditto.services.utils.persistence.operations.PersistenceOperationsConfig;
+import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.health.config.DefaultHealthCheckConfig;
+import org.eclipse.ditto.internal.utils.health.config.HealthCheckConfig;
+import org.eclipse.ditto.internal.utils.metrics.config.MetricsConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultTagsConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.TagsConfig;
+import org.eclipse.ditto.internal.utils.persistence.operations.DefaultPersistenceOperationsConfig;
+import org.eclipse.ditto.internal.utils.persistence.operations.PersistenceOperationsConfig;
 
 /**
  * This class implements the config of the Ditto Things service.
@@ -64,7 +64,7 @@ public final class DittoThingsConfig implements ThingsConfig {
      * @param dittoScopedConfig is supposed to provide the settings of the service config at the {@code "ditto"} config
      * path.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
+     * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DittoThingsConfig of(final ScopedConfig dittoScopedConfig) {
         return new DittoThingsConfig(dittoScopedConfig);

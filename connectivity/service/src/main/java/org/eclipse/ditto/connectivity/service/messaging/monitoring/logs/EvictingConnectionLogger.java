@@ -29,8 +29,8 @@ import org.eclipse.ditto.connectivity.model.LogEntry;
 import org.eclipse.ditto.connectivity.model.LogLevel;
 import org.eclipse.ditto.connectivity.model.LogType;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 
 /**
  * Implementation of {@link ConnectionLogger} that

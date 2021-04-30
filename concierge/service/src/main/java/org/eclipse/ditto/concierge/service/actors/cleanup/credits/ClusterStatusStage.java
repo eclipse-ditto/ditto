@@ -16,9 +16,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.concierge.service.actors.cleanup.messages.CreditDecision;
-import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
-import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
-import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
+import org.eclipse.ditto.internal.utils.akka.controlflow.Filter;
+import org.eclipse.ditto.internal.utils.cluster.ClusterStatusSupplier;
+import org.eclipse.ditto.internal.utils.health.cluster.ClusterStatus;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;

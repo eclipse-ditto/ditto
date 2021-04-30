@@ -20,10 +20,10 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
-import org.eclipse.ditto.services.utils.cluster.GlobalMappingStrategies;
-import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
-import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
+import org.eclipse.ditto.internal.models.streaming.BatchedEntityIdWithRevisions;
+import org.eclipse.ditto.internal.utils.cluster.GlobalMappingStrategies;
+import org.eclipse.ditto.internal.utils.cluster.MappingStrategies;
+import org.eclipse.ditto.internal.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.base.model.signals.JsonParsable;
 
 /**

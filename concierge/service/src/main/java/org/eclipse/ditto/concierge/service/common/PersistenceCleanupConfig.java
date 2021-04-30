@@ -14,8 +14,8 @@ package org.eclipse.ditto.concierge.service.common;
 
 import java.time.Duration;
 
-import org.eclipse.ditto.services.utils.config.KnownConfigValue;
-import org.eclipse.ditto.services.utils.health.config.BackgroundStreamingConfig;
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
+import org.eclipse.ditto.internal.utils.health.config.BackgroundStreamingConfig;
 
 import com.typesafe.config.Config;
 

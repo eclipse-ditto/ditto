@@ -17,8 +17,8 @@ import java.util.Optional;
 import org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
-import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
-import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
+import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
+import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;

@@ -22,7 +22,7 @@ import org.eclipse.ditto.gateway.service.util.config.health.HealthCheckConfig;
 import org.eclipse.ditto.gateway.service.util.config.security.AuthenticationConfig;
 import org.eclipse.ditto.gateway.service.util.config.security.CachesConfig;
 import org.eclipse.ditto.gateway.service.util.config.streaming.StreamingConfig;
-import org.eclipse.ditto.services.utils.protocol.config.WithProtocolConfig;
+import org.eclipse.ditto.internal.utils.protocol.config.WithProtocolConfig;
 
 /**
  * Provides configuration settings for the Gateway service.

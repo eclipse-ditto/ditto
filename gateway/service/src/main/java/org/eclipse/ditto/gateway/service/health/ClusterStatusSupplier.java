@@ -15,8 +15,8 @@ package org.eclipse.ditto.gateway.service.health;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.services.utils.health.status.Status;
-import org.eclipse.ditto.services.utils.health.status.StatusSupplier;
+import org.eclipse.ditto.internal.utils.health.status.Status;
+import org.eclipse.ditto.internal.utils.health.status.StatusSupplier;
 
 /**
  * Provides aggregated status information for a cluster, grouped by the cluster's roles.

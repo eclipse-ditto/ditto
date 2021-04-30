@@ -19,7 +19,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.service.persistence.actors.ThingPersistenceActor;
 import org.eclipse.ditto.things.service.persistence.actors.ThingPersistenceActorPropsFactory;
-import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 import akka.actor.ActorRef;

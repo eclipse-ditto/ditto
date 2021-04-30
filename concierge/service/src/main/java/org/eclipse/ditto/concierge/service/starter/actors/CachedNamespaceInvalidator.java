@@ -17,10 +17,10 @@ import java.util.Collection;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.namespaces.NamespaceReader;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.services.utils.cache.Cache;
-import org.eclipse.ditto.services.utils.cache.CacheKey;
-import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.cache.Cache;
+import org.eclipse.ditto.internal.utils.cache.CacheKey;
+import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.Props;

@@ -22,7 +22,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
-import org.eclipse.ditto.services.utils.headers.conditional.ConditionalHeadersValidator;
+import org.eclipse.ditto.internal.utils.headers.conditional.ConditionalHeadersValidator;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingPreconditionFailedException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingPreconditionNotModifiedException;

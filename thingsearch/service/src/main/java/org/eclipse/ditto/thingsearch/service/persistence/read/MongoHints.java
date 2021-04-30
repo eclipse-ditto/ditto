@@ -25,8 +25,8 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.thingsearch.service.persistence.Indices;
-import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJson;
-import org.eclipse.ditto.services.utils.persistence.mongo.indices.Index;
+import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
+import org.eclipse.ditto.internal.utils.persistence.mongo.indices.Index;
 
 /**
  * Package-private interface of configured hints for MongoDB.

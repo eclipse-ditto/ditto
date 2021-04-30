@@ -30,11 +30,11 @@ import org.eclipse.ditto.concierge.service.common.EnforcementConfig;
 import org.eclipse.ditto.concierge.service.enforcement.PreEnforcer;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.ThingSearchSudoCommand;
-import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
-import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
-import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
-import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.akka.controlflow.AbstractGraphActor;
+import org.eclipse.ditto.internal.utils.akka.controlflow.Filter;
+import org.eclipse.ditto.internal.utils.akka.controlflow.WithSender;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 

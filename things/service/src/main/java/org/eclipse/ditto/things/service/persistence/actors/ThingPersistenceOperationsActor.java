@@ -13,13 +13,13 @@
 package org.eclipse.ditto.things.service.persistence.actors;
 
 import org.eclipse.ditto.things.model.ThingConstants;
-import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEventSourceSettings;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoNamespacePersistenceOperations;
-import org.eclipse.ditto.services.utils.persistence.operations.AbstractPersistenceOperationsActor;
-import org.eclipse.ditto.services.utils.persistence.operations.NamespacePersistenceOperations;
-import org.eclipse.ditto.services.utils.persistence.operations.PersistenceOperationsConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceSettings;
+import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoNamespacePersistenceOperations;
+import org.eclipse.ditto.internal.utils.persistence.operations.AbstractPersistenceOperationsActor;
+import org.eclipse.ditto.internal.utils.persistence.operations.NamespacePersistenceOperations;
+import org.eclipse.ditto.internal.utils.persistence.operations.PersistenceOperationsConfig;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 import com.mongodb.reactivestreams.client.MongoDatabase;

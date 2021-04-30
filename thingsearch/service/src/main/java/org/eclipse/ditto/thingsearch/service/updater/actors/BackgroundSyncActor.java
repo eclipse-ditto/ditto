@@ -21,17 +21,17 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.services.models.streaming.LowerBound;
+import org.eclipse.ditto.internal.models.streaming.LowerBound;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
 import org.eclipse.ditto.thingsearch.service.common.config.BackgroundSyncConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.DefaultBackgroundSyncConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.BackgroundSyncStream;
-import org.eclipse.ditto.services.utils.akka.controlflow.ResumeSource;
-import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
-import org.eclipse.ditto.services.utils.health.AbstractBackgroundStreamingActorWithConfigWithStatusReport;
-import org.eclipse.ditto.services.utils.health.StatusDetailMessage;
+import org.eclipse.ditto.internal.utils.akka.controlflow.ResumeSource;
+import org.eclipse.ditto.internal.utils.akka.streaming.TimestampPersistence;
+import org.eclipse.ditto.internal.utils.health.AbstractBackgroundStreamingActorWithConfigWithStatusReport;
+import org.eclipse.ditto.internal.utils.health.StatusDetailMessage;
 
 import com.typesafe.config.Config;
 

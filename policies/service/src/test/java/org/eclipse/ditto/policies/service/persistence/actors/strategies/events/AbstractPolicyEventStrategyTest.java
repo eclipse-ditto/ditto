@@ -20,7 +20,7 @@ import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyRevision;
 import org.eclipse.ditto.policies.service.persistence.TestConstants;
-import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
+import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.junit.Before;
 import org.junit.Test;

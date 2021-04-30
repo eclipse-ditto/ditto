@@ -28,7 +28,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThingResponse;
-import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 
 import akka.actor.ActorRef;

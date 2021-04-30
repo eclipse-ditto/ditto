@@ -16,9 +16,9 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.services.utils.config.ScopedConfig;
-import org.eclipse.ditto.services.utils.config.WithConfigPath;
+import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.config.WithConfigPath;
 
 import com.typesafe.config.Config;
 
@@ -52,7 +52,7 @@ final class DefaultStatisticsShardConfig implements StatisticsShardConfig, WithC
      *
      * @param config is supposed to provide the settings of the authentication config at root.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
+     * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     static DefaultStatisticsShardConfig of(final Config config) {
         return new DefaultStatisticsShardConfig(

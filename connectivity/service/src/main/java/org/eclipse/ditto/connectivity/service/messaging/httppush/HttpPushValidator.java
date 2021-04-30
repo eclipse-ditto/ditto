@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
-import static org.eclipse.ditto.services.models.placeholders.PlaceholderFactory.newHeadersPlaceholder;
+import static org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 
 import java.util.Arrays;
 import java.util.Collection;

@@ -55,12 +55,12 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.gateway.service.endpoints.utils.GatewaySignalEnrichmentProvider;
-import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
-import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
-import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
-import org.eclipse.ditto.services.utils.pubsub.StreamingType;
-import org.eclipse.ditto.services.utils.search.SearchSource;
-import org.eclipse.ditto.services.utils.search.SearchSourceBuilder;
+import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
+import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
+import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
+import org.eclipse.ditto.internal.utils.search.SearchSource;
+import org.eclipse.ditto.internal.utils.search.SearchSourceBuilder;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 import akka.NotUsed;

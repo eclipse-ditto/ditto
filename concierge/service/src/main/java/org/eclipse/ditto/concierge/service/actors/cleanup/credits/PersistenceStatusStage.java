@@ -19,11 +19,11 @@ import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.concierge.service.actors.cleanup.messages.CreditDecision;
-import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
-import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.services.utils.health.RetrieveHealth;
-import org.eclipse.ditto.services.utils.health.StatusInfo;
-import org.eclipse.ditto.services.utils.persistence.mongo.MongoMetricsReporter;
+import org.eclipse.ditto.internal.utils.akka.controlflow.Filter;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
+import org.eclipse.ditto.internal.utils.health.StatusInfo;
+import org.eclipse.ditto.internal.utils.persistence.mongo.MongoMetricsReporter;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;

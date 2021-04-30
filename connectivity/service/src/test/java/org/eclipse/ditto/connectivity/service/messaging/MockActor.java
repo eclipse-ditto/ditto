@@ -14,8 +14,8 @@ package org.eclipse.ditto.connectivity.service.messaging;
 
 import java.time.Duration;
 
-import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRefFactory;

@@ -20,8 +20,8 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.services.utils.config.DittoConfigError;
+import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 
 import com.typesafe.config.Config;
 
@@ -76,7 +76,7 @@ public final class DefaultDevOpsConfig implements DevOpsConfig {
      *
      * @param config is supposed to provide the settings of the DevOps config at {@value #CONFIG_PATH}.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
+     * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultDevOpsConfig of(final Config config) {
         return new DefaultDevOpsConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH, DevOpsConfigValue.values()));

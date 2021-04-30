@@ -16,13 +16,13 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.ServiceSpecificConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
-import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
-import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentConfig;
-import org.eclipse.ditto.services.utils.health.config.WithHealthCheckConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.WithMongoDbConfig;
-import org.eclipse.ditto.services.utils.persistence.operations.WithPersistenceOperationsConfig;
-import org.eclipse.ditto.services.utils.persistentactors.config.PingConfig;
-import org.eclipse.ditto.services.utils.protocol.config.WithProtocolConfig;
+import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
+import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentConfig;
+import org.eclipse.ditto.internal.utils.health.config.WithHealthCheckConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithMongoDbConfig;
+import org.eclipse.ditto.internal.utils.persistence.operations.WithPersistenceOperationsConfig;
+import org.eclipse.ditto.internal.utils.persistentactors.config.PingConfig;
+import org.eclipse.ditto.internal.utils.protocol.config.WithProtocolConfig;
 
 /**
  * Provides the configuration settings of the Connectivity service.

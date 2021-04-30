@@ -29,8 +29,8 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.thingsearch.ThingSearc
 import org.eclipse.ditto.gateway.service.endpoints.routes.websocket.WebSocketRouteBuilder;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiRoute;
 import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
-import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.internal.utils.health.routes.StatusRoute;
+import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 
 import akka.http.javadsl.server.ExceptionHandler;
 import akka.http.javadsl.server.RejectionHandler;

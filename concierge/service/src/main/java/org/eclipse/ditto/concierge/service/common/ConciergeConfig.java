@@ -15,8 +15,8 @@ package org.eclipse.ditto.concierge.service.common;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.ServiceSpecificConfig;
-import org.eclipse.ditto.services.utils.health.config.WithHealthCheckConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.WithMongoDbConfig;
+import org.eclipse.ditto.internal.utils.health.config.WithHealthCheckConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithMongoDbConfig;
 
 /**
  * Provides the configuration settings of the Concierge service.

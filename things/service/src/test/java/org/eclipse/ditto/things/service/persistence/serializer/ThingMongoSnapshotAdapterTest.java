@@ -25,7 +25,7 @@ import org.eclipse.ditto.things.model.TestConstants;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
 import org.eclipse.ditto.things.api.ThingSnapshotTaken;
-import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;

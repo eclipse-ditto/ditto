@@ -24,8 +24,8 @@ import org.eclipse.ditto.gateway.service.health.StatusAndHealthProvider;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.PublicHealthConfig;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.services.utils.health.StatusDetailMessage;
-import org.eclipse.ditto.services.utils.health.StatusInfo;
+import org.eclipse.ditto.internal.utils.health.StatusDetailMessage;
+import org.eclipse.ditto.internal.utils.health.StatusInfo;
 
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpResponse;

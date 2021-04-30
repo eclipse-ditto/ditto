@@ -29,9 +29,9 @@ import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.policies.api.Permission;
-import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.services.utils.cache.CacheKey;
-import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.cache.CacheKey;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
 

@@ -17,7 +17,7 @@ import java.util.NoSuchElementException;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.services.utils.pubsub.StreamingType;
+import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 
 /**
  * Enumeration of the protocol message types used to control emitting of events and messages via WebSocket.

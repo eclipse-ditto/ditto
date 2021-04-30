@@ -17,8 +17,8 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.utils.cache.config.DefaultCacheConfig;
-import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.cache.config.DefaultCacheConfig;
+import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -49,7 +49,7 @@ public final class DefaultStreamCacheConfig implements StreamCacheConfig {
      *
      * @param config is supposed to provide the settings of the stream cache config at {@value CONFIG_PATH}.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
+     * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultStreamCacheConfig of(final Config config) {
         return new DefaultStreamCacheConfig(

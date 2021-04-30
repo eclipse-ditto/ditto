@@ -14,7 +14,7 @@ package org.eclipse.ditto.gateway.service.util.config.security;
 
 import java.util.List;
 
-import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 /**
  * Represents configuration for a {@link org.eclipse.ditto.policies.model.SubjectIssuer}, containing

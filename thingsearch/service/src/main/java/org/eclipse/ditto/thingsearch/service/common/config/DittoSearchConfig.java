@@ -21,19 +21,19 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.service.config.DittoServiceConfig;
 import org.eclipse.ditto.base.service.config.http.HttpConfig;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
-import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
-import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.services.utils.config.ScopedConfig;
-import org.eclipse.ditto.services.utils.config.WithConfigPath;
-import org.eclipse.ditto.services.utils.health.config.DefaultHealthCheckConfig;
-import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
-import org.eclipse.ditto.services.utils.metrics.config.MetricsConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultIndexInitializationConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.IndexInitializationConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
-import org.eclipse.ditto.services.utils.persistence.operations.DefaultPersistenceOperationsConfig;
-import org.eclipse.ditto.services.utils.persistence.operations.PersistenceOperationsConfig;
+import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
+import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.config.WithConfigPath;
+import org.eclipse.ditto.internal.utils.health.config.DefaultHealthCheckConfig;
+import org.eclipse.ditto.internal.utils.health.config.HealthCheckConfig;
+import org.eclipse.ditto.internal.utils.metrics.config.MetricsConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultIndexInitializationConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.IndexInitializationConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
+import org.eclipse.ditto.internal.utils.persistence.operations.DefaultPersistenceOperationsConfig;
+import org.eclipse.ditto.internal.utils.persistence.operations.PersistenceOperationsConfig;
 
 /**
  * This class is the default implementation of {@link SearchConfig}.
@@ -72,7 +72,7 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
      * @param dittoScopedConfig is supposed to provide the settings of the service config at the {@code "ditto"} config
      * path.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
+     * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DittoSearchConfig of(final ScopedConfig dittoScopedConfig) {
         return new DittoSearchConfig(dittoScopedConfig);

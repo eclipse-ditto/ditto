@@ -27,7 +27,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
-import org.eclipse.ditto.services.utils.pubsub.StreamingType;
+import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 
 /**
  * Send for acknowledging that a subscription in the cluster for a {@link StreamingType} was either subscribed to

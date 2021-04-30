@@ -44,7 +44,7 @@ import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.DefaultUserInformation;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.UserInformation;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.Whoami;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessageResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;

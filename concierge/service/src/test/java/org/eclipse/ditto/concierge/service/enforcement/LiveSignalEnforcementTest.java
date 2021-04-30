@@ -43,7 +43,7 @@ import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.things.api.Permission;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
-import org.eclipse.ditto.services.utils.pubsub.StreamingType;
+import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 import org.eclipse.ditto.messages.model.signals.commands.SendFeatureMessage;

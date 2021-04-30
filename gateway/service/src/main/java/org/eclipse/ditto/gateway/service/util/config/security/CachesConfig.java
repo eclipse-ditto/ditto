@@ -14,7 +14,7 @@ package org.eclipse.ditto.gateway.service.util.config.security;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
+import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 
 /**
  * Provides configuration settings for the caches of the Gateway service.

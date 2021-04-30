@@ -29,7 +29,7 @@ import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
-import org.eclipse.ditto.services.models.streaming.LowerBound;
+import org.eclipse.ditto.internal.models.streaming.LowerBound;
 import org.eclipse.ditto.thingsearch.api.SearchNamespaceReportResult;
 import org.eclipse.ditto.thingsearch.service.persistence.TestConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.read.query.MongoQueryBuilderFactory;

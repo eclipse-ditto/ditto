@@ -18,8 +18,8 @@ import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.utils.config.KnownConfigValue;
-import org.eclipse.ditto.services.utils.health.config.BasicHealthCheckConfig;
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
+import org.eclipse.ditto.internal.utils.health.config.BasicHealthCheckConfig;
 
 /**
  * Provides configuration settings of the health checking of Gateway service.

@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.persistence.strategies.commands;
 
-import static org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory.newMutationResult;
+import static org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory.newMutationResult;
 
 import java.util.List;
 
@@ -25,7 +25,7 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionState;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.StagedCommand;
-import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 

@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.utils;
 
-import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
+import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
 
 import akka.http.javadsl.model.HttpRequest;
 

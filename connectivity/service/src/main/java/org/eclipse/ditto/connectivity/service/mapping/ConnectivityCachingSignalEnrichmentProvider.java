@@ -15,11 +15,11 @@ package org.eclipse.ditto.connectivity.service.mapping;
 import java.util.concurrent.Executor;
 
 import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.services.models.signalenrichment.CachingSignalEnrichmentFacade;
-import org.eclipse.ditto.services.models.signalenrichment.CachingSignalEnrichmentFacadeConfig;
-import org.eclipse.ditto.services.models.signalenrichment.DefaultCachingSignalEnrichmentFacadeConfig;
-import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentConfig;
-import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
+import org.eclipse.ditto.internal.models.signalenrichment.CachingSignalEnrichmentFacade;
+import org.eclipse.ditto.internal.models.signalenrichment.CachingSignalEnrichmentFacadeConfig;
+import org.eclipse.ditto.internal.models.signalenrichment.DefaultCachingSignalEnrichmentFacadeConfig;
+import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentConfig;
+import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
 
 import akka.actor.ActorSystem;
 

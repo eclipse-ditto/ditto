@@ -35,15 +35,15 @@ import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsSearchP
 import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence;
 import org.eclipse.ditto.thingsearch.service.persistence.read.query.MongoQueryBuilderFactory;
 import org.eclipse.ditto.thingsearch.service.updater.actors.SearchUpdaterRootActor;
-import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
-import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
-import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.IndexInitializationConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonCommandListener;
-import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonConnectionPoolListener;
-import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoTimestampPersistence;
+import org.eclipse.ditto.internal.utils.akka.streaming.TimestampPersistence;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
+import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.IndexInitializationConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.monitoring.KamonCommandListener;
+import org.eclipse.ditto.internal.utils.persistence.mongo.monitoring.KamonConnectionPoolListener;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoTimestampPersistence;
 
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;

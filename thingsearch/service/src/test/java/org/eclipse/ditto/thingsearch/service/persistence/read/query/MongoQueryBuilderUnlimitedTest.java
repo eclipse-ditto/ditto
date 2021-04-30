@@ -13,7 +13,7 @@
 package org.eclipse.ditto.thingsearch.service.persistence.read.query;
 
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_ID;
-import static org.eclipse.ditto.services.utils.persistence.mongo.assertions.BsonAssertions.assertThat;
+import static org.eclipse.ditto.internal.utils.persistence.mongo.assertions.BsonAssertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.Collections;

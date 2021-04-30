@@ -21,7 +21,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
+import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttribute;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributeResponse;
 import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;

@@ -16,7 +16,7 @@ import java.util.Optional;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.base.model.signals.events.Event;
 
 import akka.actor.ActorRef;

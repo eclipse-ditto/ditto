@@ -15,7 +15,7 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.events;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.services.utils.persistentactors.events.AbstractEventStrategies;
+import org.eclipse.ditto.internal.utils.persistentactors.events.AbstractEventStrategies;
 import org.eclipse.ditto.things.model.signals.events.AttributeCreated;
 import org.eclipse.ditto.things.model.signals.events.AttributeDeleted;
 import org.eclipse.ditto.things.model.signals.events.AttributeModified;

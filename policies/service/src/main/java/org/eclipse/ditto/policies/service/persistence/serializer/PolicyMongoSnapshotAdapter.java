@@ -17,11 +17,11 @@ import javax.annotation.concurrent.ThreadSafe;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
-import org.eclipse.ditto.services.utils.persistence.mongo.AbstractMongoSnapshotAdapter;
+import org.eclipse.ditto.internal.utils.persistence.mongo.AbstractMongoSnapshotAdapter;
 import org.slf4j.LoggerFactory;
 
 /**
- * A {@link org.eclipse.ditto.services.utils.persistence.SnapshotAdapter} for snapshotting a
+ * A {@link org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter} for snapshotting a
  * {@link org.eclipse.ditto.policies.model.Policy}.
  */
 @ThreadSafe

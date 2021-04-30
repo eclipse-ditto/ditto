@@ -33,7 +33,7 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
 import org.eclipse.ditto.thingsearch.service.persistence.TestConstants;
-import org.eclipse.ditto.services.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;

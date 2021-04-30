@@ -23,7 +23,7 @@ import java.util.Collections;
 
 import org.eclipse.ditto.base.model.common.DittoDuration;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.services.models.placeholders.UnresolvedPlaceholderException;
+import org.eclipse.ditto.internal.models.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -36,7 +36,7 @@ import org.eclipse.ditto.policies.model.SubjectIssuer;
 import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.service.common.config.DefaultPolicyConfig;
 import org.eclipse.ditto.policies.service.persistence.TestConstants;
-import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
+import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegrationResponse;
 import org.eclipse.ditto.policies.model.signals.events.SubjectCreated;

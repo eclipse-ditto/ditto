@@ -25,8 +25,8 @@ import org.eclipse.ditto.policies.model.PolicyRevision;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyRevision;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyRevisionResponse;
 import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
-import org.eclipse.ditto.services.utils.persistentactors.results.Result;
-import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 

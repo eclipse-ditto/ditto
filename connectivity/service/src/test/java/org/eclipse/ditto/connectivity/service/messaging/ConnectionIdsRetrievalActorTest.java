@@ -28,7 +28,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.ConnectivityInternalErrorException;
 import org.eclipse.ditto.connectivity.service.config.ConnectionIdsRetrievalConfig;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceActor;
-import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityErrorResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveAllConnectionIds;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveAllConnectionIdsResponse;

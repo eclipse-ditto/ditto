@@ -17,11 +17,11 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.util.Collections;
 
-import org.eclipse.ditto.services.models.placeholders.ExpressionResolver;
-import org.eclipse.ditto.services.models.placeholders.PlaceholderFactory;
-import org.eclipse.ditto.services.models.placeholders.PlaceholderFilter;
-import org.eclipse.ditto.services.models.placeholders.PlaceholderResolver;
-import org.eclipse.ditto.services.models.placeholders.UnresolvedPlaceholderException;
+import org.eclipse.ditto.internal.models.placeholders.ExpressionResolver;
+import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.internal.models.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.internal.models.placeholders.PlaceholderResolver;
+import org.eclipse.ditto.internal.models.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;

@@ -18,9 +18,9 @@ import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.concierge.service.actors.cleanup.messages.CreditDecision;
-import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
-import org.eclipse.ditto.services.utils.health.StatusInfo;
-import org.eclipse.ditto.services.utils.persistence.mongo.MongoMetrics;
+import org.eclipse.ditto.internal.utils.akka.controlflow.Filter;
+import org.eclipse.ditto.internal.utils.health.StatusInfo;
+import org.eclipse.ditto.internal.utils.persistence.mongo.MongoMetrics;
 
 import akka.NotUsed;
 import akka.stream.FanOutShape2;

@@ -23,9 +23,9 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.services.utils.persistentactors.AbstractPersistenceSupervisor;
-import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
+import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingUnavailableException;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 

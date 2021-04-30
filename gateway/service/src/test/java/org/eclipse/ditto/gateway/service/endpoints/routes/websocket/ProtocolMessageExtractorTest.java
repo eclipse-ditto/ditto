@@ -34,7 +34,7 @@ import org.eclipse.ditto.gateway.service.streaming.Jwt;
 import org.eclipse.ditto.gateway.service.streaming.StartStreaming;
 import org.eclipse.ditto.gateway.service.streaming.StopStreaming;
 import org.eclipse.ditto.gateway.service.streaming.StreamControlMessage;
-import org.eclipse.ditto.services.utils.pubsub.StreamingType;
+import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;

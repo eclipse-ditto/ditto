@@ -24,7 +24,7 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
-import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;

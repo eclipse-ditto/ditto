@@ -18,7 +18,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.gateway.service.security.utils.HttpClientFacade;
 import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
-import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
+import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 
 /**
  * A factory for {@link org.eclipse.ditto.jwt.model.JsonWebToken} related security.

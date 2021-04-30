@@ -27,13 +27,13 @@ import org.eclipse.ditto.base.service.config.http.DefaultHttpConfig;
 import org.eclipse.ditto.base.service.config.http.HttpConfig;
 import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
-import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
-import org.eclipse.ditto.services.utils.cluster.config.DefaultClusterConfig;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.services.utils.config.DittoConfigError;
-import org.eclipse.ditto.services.utils.config.ScopedConfig;
-import org.eclipse.ditto.services.utils.metrics.config.DefaultMetricsConfig;
-import org.eclipse.ditto.services.utils.metrics.config.MetricsConfig;
+import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
+import org.eclipse.ditto.internal.utils.cluster.config.DefaultClusterConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.DittoConfigError;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.metrics.config.DefaultMetricsConfig;
+import org.eclipse.ditto.internal.utils.metrics.config.MetricsConfig;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigList;
@@ -48,7 +48,7 @@ import com.typesafe.config.ConfigValue;
  * This class provides a common implementation of {@link ServiceSpecificConfig}
  * and is supposed to be used as delegation target for the methods of {@code ServiceSpecificConfig} within the
  * dedicated service-specific implementations of the interface.
- * Furthermore it is a {@link org.eclipse.ditto.services.utils.config.ScopedConfig} to act as a source for additional
+ * Furthermore it is a {@link org.eclipse.ditto.internal.utils.config.ScopedConfig} to act as a source for additional
  * config settings.
  */
 @Immutable
@@ -78,7 +78,7 @@ public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificCo
      * settings.
      * Mostly this value is the service name.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if
+     * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if
      * <ul>
      * <li>{@code config} is {@code null},</li>
      * <li>{@code configPath} is {@code null} or if</li>

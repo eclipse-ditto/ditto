@@ -28,9 +28,9 @@ import org.eclipse.ditto.connectivity.model.ReplyTarget;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.MqttConfig;
-import org.eclipse.ditto.services.models.placeholders.HeadersPlaceholder;
-import org.eclipse.ditto.services.models.placeholders.Placeholder;
-import org.eclipse.ditto.services.models.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.internal.models.placeholders.HeadersPlaceholder;
+import org.eclipse.ditto.internal.models.placeholders.Placeholder;
+import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
 
 import akka.actor.ActorSystem;
 

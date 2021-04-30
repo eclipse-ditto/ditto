@@ -14,8 +14,8 @@ package org.eclipse.ditto.things.service.starter;
 
 import org.eclipse.ditto.policies.model.signals.events.PolicyModified;
 import org.eclipse.ditto.things.api.ThingSnapshotTaken;
-import org.eclipse.ditto.services.utils.persistentactors.EmptyEvent;
-import org.eclipse.ditto.services.utils.test.GlobalEventRegistryTestCases;
+import org.eclipse.ditto.internal.utils.persistentactors.EmptyEvent;
+import org.eclipse.ditto.internal.utils.test.GlobalEventRegistryTestCases;
 import org.eclipse.ditto.things.model.signals.events.FeatureDeleted;
 
 public final class ThingsServiceGlobalEventRegistryTest extends GlobalEventRegistryTestCases {

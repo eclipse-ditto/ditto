@@ -19,8 +19,8 @@ import org.bson.Document;
 import org.eclipse.ditto.thingsearch.service.common.config.PersistenceStreamConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
-import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
-import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 
 import com.mongodb.MongoBulkWriteException;

@@ -24,7 +24,7 @@ import org.eclipse.ditto.rql.query.SortOption;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.expression.SimpleFieldExpression;
 import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
-import org.eclipse.ditto.services.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;

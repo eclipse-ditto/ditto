@@ -17,11 +17,11 @@ import org.eclipse.ditto.base.model.entity.id.NamespacedEntityIdInvalidException
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.messages.model.AuthorizationSubjectBlockedException;
 import org.eclipse.ditto.base.model.namespaces.NamespaceBlockedException;
-import org.eclipse.ditto.services.models.placeholders.PlaceholderFunctionUnknownException;
+import org.eclipse.ditto.internal.models.placeholders.PlaceholderFunctionUnknownException;
 import org.eclipse.ditto.policies.model.PolicyEntryInvalidException;
 import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
-import org.eclipse.ditto.services.utils.test.GlobalErrorRegistryTestCases;
+import org.eclipse.ditto.internal.utils.test.GlobalErrorRegistryTestCases;
 import org.eclipse.ditto.base.model.signals.acks.AcknowledgementCorrelationIdMissingException;
 import org.eclipse.ditto.base.model.signals.JsonTypeNotParsableException;
 import org.eclipse.ditto.base.model.signals.UnsupportedSchemaVersionException;

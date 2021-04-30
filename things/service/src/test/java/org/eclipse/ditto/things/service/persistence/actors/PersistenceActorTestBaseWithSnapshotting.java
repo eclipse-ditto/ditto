@@ -39,7 +39,7 @@ import org.eclipse.ditto.things.service.persistence.serializer.ThingMongoEventAd
 import org.eclipse.ditto.things.service.persistence.testhelper.Assertions;
 import org.eclipse.ditto.things.service.persistence.testhelper.ThingsJournalTestHelper;
 import org.eclipse.ditto.things.service.persistence.testhelper.ThingsSnapshotTestHelper;
-import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJson;
+import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThing;

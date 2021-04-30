@@ -26,8 +26,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.eclipse.ditto.services.utils.persistence.mongo.indices.Index;
-import org.eclipse.ditto.services.utils.persistence.mongo.indices.IndexFactory;
+import org.eclipse.ditto.internal.utils.persistence.mongo.indices.Index;
+import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexFactory;
 
 /**
  * Defines the MongoDB indices used by the things-search persistence.

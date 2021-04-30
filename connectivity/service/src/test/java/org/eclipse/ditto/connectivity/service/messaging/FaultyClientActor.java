@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging;
 
-import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CreateConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.DeleteConnection;

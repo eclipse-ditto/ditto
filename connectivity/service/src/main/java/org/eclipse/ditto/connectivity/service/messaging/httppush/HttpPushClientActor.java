@@ -40,7 +40,7 @@ import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextCreator;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 
 import akka.actor.ActorRef;

@@ -16,8 +16,8 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
-import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;

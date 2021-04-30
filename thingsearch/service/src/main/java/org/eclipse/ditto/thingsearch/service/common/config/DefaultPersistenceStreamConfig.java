@@ -21,8 +21,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
-import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.services.utils.config.DittoConfigError;
+import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 
 import com.mongodb.WriteConcern;
 import com.typesafe.config.Config;
@@ -62,7 +62,7 @@ public final class DefaultPersistenceStreamConfig implements PersistenceStreamCo
      *
      * @param config is supposed to provide the settings of the persistence stream config at {@value CONFIG_PATH}.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
+     * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultPersistenceStreamConfig of(final Config config) {
         return new DefaultPersistenceStreamConfig(

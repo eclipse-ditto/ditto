@@ -16,7 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.base.service.config.ThrottlingConfig;
-import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;

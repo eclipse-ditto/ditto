@@ -22,23 +22,23 @@ import org.eclipse.ditto.base.service.config.http.HttpConfig;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.DefaultMappingConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
-import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
-import org.eclipse.ditto.services.models.acks.config.DefaultAcknowledgementConfig;
-import org.eclipse.ditto.services.models.signalenrichment.DefaultSignalEnrichmentConfig;
-import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentConfig;
-import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
-import org.eclipse.ditto.services.utils.config.ScopedConfig;
-import org.eclipse.ditto.services.utils.health.config.DefaultHealthCheckConfig;
-import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
-import org.eclipse.ditto.services.utils.metrics.config.MetricsConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
-import org.eclipse.ditto.services.utils.persistence.operations.DefaultPersistenceOperationsConfig;
-import org.eclipse.ditto.services.utils.persistence.operations.PersistenceOperationsConfig;
-import org.eclipse.ditto.services.utils.persistentactors.config.DefaultPingConfig;
-import org.eclipse.ditto.services.utils.persistentactors.config.PingConfig;
-import org.eclipse.ditto.services.utils.protocol.config.DefaultProtocolConfig;
-import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
+import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
+import org.eclipse.ditto.internal.models.acks.config.DefaultAcknowledgementConfig;
+import org.eclipse.ditto.internal.models.signalenrichment.DefaultSignalEnrichmentConfig;
+import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentConfig;
+import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.health.config.DefaultHealthCheckConfig;
+import org.eclipse.ditto.internal.utils.health.config.HealthCheckConfig;
+import org.eclipse.ditto.internal.utils.metrics.config.MetricsConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
+import org.eclipse.ditto.internal.utils.persistence.operations.DefaultPersistenceOperationsConfig;
+import org.eclipse.ditto.internal.utils.persistence.operations.PersistenceOperationsConfig;
+import org.eclipse.ditto.internal.utils.persistentactors.config.DefaultPingConfig;
+import org.eclipse.ditto.internal.utils.persistentactors.config.PingConfig;
+import org.eclipse.ditto.internal.utils.protocol.config.DefaultProtocolConfig;
+import org.eclipse.ditto.internal.utils.protocol.config.ProtocolConfig;
 
 /**
  * This class is the implementation of {@link ConnectivityConfig} for Ditto's Connectivity service.
@@ -86,7 +86,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
      * @param dittoScopedConfig is supposed to provide the settings of the service config at the {@code "ditto"} config
      * path.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
+     * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DittoConnectivityConfig of(final ScopedConfig dittoScopedConfig) {
         return new DittoConnectivityConfig(dittoScopedConfig);

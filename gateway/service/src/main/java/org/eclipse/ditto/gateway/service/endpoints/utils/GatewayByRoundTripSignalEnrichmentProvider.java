@@ -14,8 +14,8 @@ package org.eclipse.ditto.gateway.service.endpoints.utils;
 
 import org.eclipse.ditto.gateway.service.util.config.streaming.GatewaySignalEnrichmentConfig;
 import org.eclipse.ditto.concierge.api.actors.ConciergeForwarderActor;
-import org.eclipse.ditto.services.models.signalenrichment.ByRoundTripSignalEnrichmentFacade;
-import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
+import org.eclipse.ditto.internal.models.signalenrichment.ByRoundTripSignalEnrichmentFacade;
+import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
 
 import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;

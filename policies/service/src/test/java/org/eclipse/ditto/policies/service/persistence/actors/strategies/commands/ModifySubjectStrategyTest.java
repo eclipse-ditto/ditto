@@ -29,7 +29,7 @@ import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
 import org.eclipse.ditto.policies.service.common.config.DefaultPolicyConfig;
 import org.eclipse.ditto.policies.service.persistence.TestConstants;
-import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
+import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubject;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjectResponse;
 import org.eclipse.ditto.policies.model.signals.events.SubjectCreated;

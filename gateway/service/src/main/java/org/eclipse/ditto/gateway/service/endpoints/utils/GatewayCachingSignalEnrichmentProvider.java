@@ -15,8 +15,8 @@ package org.eclipse.ditto.gateway.service.endpoints.utils;
 import java.util.concurrent.Executor;
 
 import org.eclipse.ditto.gateway.service.util.config.streaming.GatewaySignalEnrichmentConfig;
-import org.eclipse.ditto.services.models.signalenrichment.CachingSignalEnrichmentFacade;
-import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
+import org.eclipse.ditto.internal.models.signalenrichment.CachingSignalEnrichmentFacade;
+import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
 
 import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpRequest;

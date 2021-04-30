@@ -17,9 +17,9 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.services.utils.health.StatusInfo;
-import org.eclipse.ditto.services.utils.health.status.StatusHealthSupplier;
-import org.eclipse.ditto.services.utils.health.status.StatusSupplier;
+import org.eclipse.ditto.internal.utils.health.StatusInfo;
+import org.eclipse.ditto.internal.utils.health.status.StatusHealthSupplier;
+import org.eclipse.ditto.internal.utils.health.status.StatusSupplier;
 
 /**
  * Implementation of {@link StatusAndHealthProvider} which is configurable by means of a {@link StatusSupplier} and

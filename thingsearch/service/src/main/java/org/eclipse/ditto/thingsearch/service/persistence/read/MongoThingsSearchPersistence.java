@@ -36,7 +36,7 @@ import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.rql.query.Query;
 import org.eclipse.ditto.rql.query.SortOption;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.services.models.streaming.LowerBound;
+import org.eclipse.ditto.internal.models.streaming.LowerBound;
 import org.eclipse.ditto.thingsearch.api.SearchNamespaceReportResult;
 import org.eclipse.ditto.thingsearch.api.SearchNamespaceResultEntry;
 import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
@@ -47,9 +47,9 @@ import org.eclipse.ditto.thingsearch.service.persistence.read.criteria.visitors.
 import org.eclipse.ditto.thingsearch.service.persistence.read.expression.visitors.GetSortBsonVisitor;
 import org.eclipse.ditto.thingsearch.service.persistence.read.query.MongoQuery;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
-import org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil;
-import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
-import org.eclipse.ditto.services.utils.persistence.mongo.indices.IndexInitializer;
+import org.eclipse.ditto.internal.utils.persistence.mongo.BsonUtil;
+import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
+import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexInitializer;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayQueryTimeExceededException;
 import org.reactivestreams.Publisher;
 

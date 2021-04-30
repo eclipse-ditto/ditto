@@ -20,7 +20,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.TestConstants;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
+import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeature;
 import org.eclipse.ditto.things.model.signals.events.FeatureCreated;
 import org.eclipse.ditto.things.model.signals.events.FeatureModified;

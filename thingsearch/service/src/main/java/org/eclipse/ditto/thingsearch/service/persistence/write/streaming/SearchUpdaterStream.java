@@ -25,7 +25,7 @@ import org.eclipse.ditto.thingsearch.service.common.config.StreamConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.StreamStageConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
-import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
+import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 
 import com.mongodb.reactivestreams.client.MongoDatabase;
 

@@ -29,8 +29,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.policies.model.SubjectIssuer;
-import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 import com.typesafe.config.Config;
@@ -72,7 +72,7 @@ public final class DefaultOAuthConfig implements OAuthConfig {
      *
      * @param config is supposed to provide the settings for OAuth config at {@value #CONFIG_PATH}.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
+     * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultOAuthConfig of(final Config config) {
         return new DefaultOAuthConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH, OAuthConfigValue.values()));

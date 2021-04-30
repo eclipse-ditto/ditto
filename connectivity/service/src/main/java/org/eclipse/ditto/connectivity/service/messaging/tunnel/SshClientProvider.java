@@ -23,9 +23,9 @@ import org.apache.sshd.server.config.AllowTcpForwardingValue;
 import org.apache.sshd.server.forward.ForwardingFilter;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.TunnelConfig;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
 import akka.Done;
 import akka.actor.AbstractExtensionId;

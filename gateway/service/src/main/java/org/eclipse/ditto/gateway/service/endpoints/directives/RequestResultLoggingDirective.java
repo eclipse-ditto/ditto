@@ -20,8 +20,8 @@ import static akka.http.javadsl.server.Directives.mapRouteResult;
 import java.util.function.Supplier;
 
 import org.eclipse.ditto.gateway.service.endpoints.utils.HttpUtils;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 
 import akka.http.javadsl.server.Complete;
 import akka.http.javadsl.server.Route;

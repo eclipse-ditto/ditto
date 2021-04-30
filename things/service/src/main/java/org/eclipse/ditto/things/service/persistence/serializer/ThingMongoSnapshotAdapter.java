@@ -26,15 +26,15 @@ import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
 import org.eclipse.ditto.base.api.persistence.SnapshotTaken;
 import org.eclipse.ditto.things.api.ThingSnapshotTaken;
-import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.services.utils.persistence.mongo.AbstractMongoSnapshotAdapter;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.persistence.mongo.AbstractMongoSnapshotAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import akka.actor.ActorRef;
 
 /**
- * A {@link org.eclipse.ditto.services.utils.persistence.SnapshotAdapter} for snapshotting a
+ * A {@link org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter} for snapshotting a
  * {@link org.eclipse.ditto.things.model.Thing}.
  */
 @ThreadSafe

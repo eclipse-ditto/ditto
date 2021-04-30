@@ -13,8 +13,8 @@
 package org.eclipse.ditto.connectivity.service.messaging.persistence.strategies.commands;
 
 import static org.eclipse.ditto.connectivity.model.ConnectionLifecycle.ACTIVE;
-import static org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory.newErrorResult;
-import static org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory.newMutationResult;
+import static org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory.newErrorResult;
+import static org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory.newMutationResult;
 
 import java.util.Arrays;
 import java.util.List;
@@ -31,8 +31,8 @@ import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionState;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.StagedCommand;
-import org.eclipse.ditto.services.utils.persistentactors.results.Result;
-import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.ModifyConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.ModifyConnectionResponse;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionModified;

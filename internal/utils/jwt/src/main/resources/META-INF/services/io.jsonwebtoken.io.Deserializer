@@ -10,4 +10,4 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 #
-org.eclipse.ditto.services.utils.jwt.JjwtDeserializer
+org.eclipse.ditto.internal.utils.jwt.JjwtDeserializer

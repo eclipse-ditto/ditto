@@ -21,9 +21,9 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.services.utils.cache.Cache;
-import org.eclipse.ditto.services.utils.cache.CacheKey;
-import org.eclipse.ditto.services.utils.cache.entry.Entry;
+import org.eclipse.ditto.internal.utils.cache.Cache;
+import org.eclipse.ditto.internal.utils.cache.CacheKey;
+import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

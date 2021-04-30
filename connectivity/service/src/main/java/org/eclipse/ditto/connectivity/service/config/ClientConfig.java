@@ -14,7 +14,7 @@ package org.eclipse.ditto.connectivity.service.config;
 
 import java.time.Duration;
 
-import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings for Connectivity service's client.

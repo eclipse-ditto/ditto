@@ -15,7 +15,7 @@ package org.eclipse.ditto.gateway.service.health;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.services.utils.health.StatusInfo;
+import org.eclipse.ditto.internal.utils.health.StatusInfo;
 
 /**
  * Determines the status and health of a cluster.

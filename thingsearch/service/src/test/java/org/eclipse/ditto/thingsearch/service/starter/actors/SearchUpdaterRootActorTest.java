@@ -19,8 +19,8 @@ import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence;
 import org.eclipse.ditto.thingsearch.service.updater.actors.SearchUpdaterRootActor;
-import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.akka.streaming.TimestampPersistence;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.mockito.Mockito;
 
 import akka.actor.ActorSystem;
