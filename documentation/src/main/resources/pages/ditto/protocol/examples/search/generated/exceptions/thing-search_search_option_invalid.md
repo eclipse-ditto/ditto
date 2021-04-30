@@ -2,9 +2,9 @@
 
 ```json
 {
-  "topic": "unknown/unknown/things/twin/errors",
+  "topic": "_/_/things/search/errors",
   "headers": {
-    "content-type": "application/json"
+    "correlation-id": "<preserved-command-correlation-id>"
   },
   "path": "/",
   "value": {

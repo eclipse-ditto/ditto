@@ -26,13 +26,13 @@ import org.awaitility.Awaitility;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.ByteBufferUtils;
 import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
-import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.connectivity.service.messaging.AbstractPublisherActorTest;
-import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
+import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
+import org.eclipse.ditto.connectivity.model.Target;
+import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 
+import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt3.Mqtt3AsyncClient;
 import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
 import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
@@ -40,10 +40,10 @@ import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
 import akka.actor.Props;
 import akka.testkit.TestProbe;
 
-public class HiveMqtt3PublisherActorTest extends AbstractPublisherActorTest {
+public class HiveMqtt3PublisherActorTest extends AbstractMqttPublisherActorTest {
 
     private static final String OUTBOUND_ADDRESS = "mqtt/eclipse/ditto";
-    private List<Mqtt3Publish> received = new LinkedList<>();
+    private final List<Mqtt3Publish> received = new LinkedList<>();
     private Mqtt3Client mqtt3Client;
 
     @Override
@@ -71,17 +71,38 @@ public class HiveMqtt3PublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected void verifyPublishedMessage() {
-        Awaitility.await().until(() -> received.size() > 0);
+        verifyPublishedMessage(getOutboundAddress(), DEFAULT_RETAIN, DEFAULT_QOS);
+    }
+
+    @Override
+    protected void verifyPublishedMessageIsRetained() {
+        verifyPublishedMessage(getOutboundAddress(), true, DEFAULT_QOS);
+    }
+
+    @Override
+    protected void verifyPublishedMessageHasQos(final MqttQos expectedQos) {
+        verifyPublishedMessage(getOutboundAddress(), DEFAULT_RETAIN, expectedQos);
+    }
+
+    @Override
+    protected void verifyPublishedMessageHasTopic(final String expectedTopic) {
+        verifyPublishedMessage(expectedTopic, DEFAULT_RETAIN, DEFAULT_QOS);
+    }
+
+    private void verifyPublishedMessage(final String topic, final boolean expectedRetain, final MqttQos expectedQos) {
+        Awaitility.await().until(() -> !received.isEmpty());
         assertThat(received).hasSize(1);
         final Mqtt3Publish mqttMessage = received.get(0);
-        assertThat(mqttMessage.getTopic().toString()).isEqualTo(getOutboundAddress());
+        assertThat(mqttMessage.getTopic().toString()).isEqualTo(topic);
         assertThat(mqttMessage.getPayload().map(ByteBufferUtils::toUtf8String).orElse(null)).isEqualTo("payload");
+        assertThat(mqttMessage.isRetain()).isEqualTo(expectedRetain);
+        assertThat(mqttMessage.getQos()).isEqualTo(expectedQos);
         // MQTT 3.1.1 does not support headers - the workaround with property bag is not (yet) implemented
     }
 
     @Override
     protected void verifyPublishedMessageToReplyTarget() {
-        Awaitility.await().until(() -> received.size() > 0);
+        Awaitility.await().until(() -> !received.isEmpty());
         assertThat(received).hasSize(1);
         final Mqtt3Publish mqttMessage = received.get(0);
         assertThat(mqttMessage.getTopic().toString()).isEqualTo("replyTarget/thing:id");
@@ -92,12 +113,12 @@ public class HiveMqtt3PublisherActorTest extends AbstractPublisherActorTest {
         final Acknowledgements acks = ackSupplier.get();
         assertThat(acks.getSize()).describedAs("Expect 1 acknowledgement in: " + acks).isEqualTo(1);
         for (final Acknowledgement ack : acks.getSuccessfulAcknowledgements()) {
-            System.out.println(ack);
             assertThat(ack.getLabel().toString()).isEqualTo("please-verify");
             assertThat(ack.getHttpStatus()).isEqualTo(HttpStatus.OK);
         }
     }
 
+    @Override
     protected String getOutboundAddress() {
         return OUTBOUND_ADDRESS;
     }

@@ -88,6 +88,22 @@ This can be done by setting the MongoDB URI via env variable "MONGO_DB_URI" in t
 Other MongoDB settings can be set via env variables and are documented in
 [Operating Ditto](https://www.eclipse.org/ditto/installation-operating.html) section.
 
+In case your "MONGO_DB_URI" contains sensitive information like username and password it is recommended to use
+a kubernetes secret. 
+To create a kubernetes secret use the following command;
+```bash
+kubectl create secret generic mongodb --from-literal=mongodb-uri='<mongodb_uri>' 
+```
+
+In order to use the kubernetes secret replace the variable "MONGO_DB_HOSTNAME" with the following lines:
+```yaml
+  - name: MONGO_DB_URI    
+    valueFrom:
+      secretKeyRef:
+        name: mongodb
+        key: mongodb-uri
+```
+
 ### Start Eclipse Ditto
 
 Ditto uses the `latest` tag for its images. If you want to use a different version replace the `latest` tag in

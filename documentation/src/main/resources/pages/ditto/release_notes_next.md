@@ -18,6 +18,11 @@ Removed the default header mapping of `content-type` for new connection targets.
 results, when payload mapping and header mapping disagreed on the actual `content-type`. Existing connections will still
 keep the "old" default and map the `content-type` header.
 
+#### [Removed default source header mapping for MQTT connections](https://github.com/eclipse/ditto/pull/000)
+
+The default source header mapping of MQTT connections was removed. The headers `mqtt.topic`, `mqtt.qos` 
+and `mqtt.retain` now must explicitly be added to the source header mapping if they are required for further processing.  
+
 ### New features
 
 #### [Merge updates](https://github.com/eclipse/ditto/issues/288)

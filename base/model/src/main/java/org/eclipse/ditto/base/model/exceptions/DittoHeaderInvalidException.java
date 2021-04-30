@@ -16,16 +16,24 @@ import static java.util.Objects.requireNonNull;
 
 import java.net.URI;
 import java.text.MessageFormat;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.HeaderDefinition;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 
 /**
  * Thrown when an (external) header value can not be converted to a Ditto header.
@@ -50,13 +58,27 @@ public final class DittoHeaderInvalidException extends DittoRuntimeException {
 
     private static final long serialVersionUID = -2338222496153977081L;
 
+    /**
+     * Definition of an optional JSON field that contains the key of the invalid header.
+     *
+     * @since 2.0.0
+     */
+    static final JsonFieldDefinition<String> JSON_FIELD_INVALID_HEADER_KEY =
+            JsonFieldDefinition.ofString("invalidHeaderKey",
+                    FieldType.REGULAR,
+                    JsonSchemaVersion.V_2);
+
+    @Nullable private final String invalidHeaderKey;
+
     private DittoHeaderInvalidException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
-            @Nullable final URI href) {
+            @Nullable final URI href,
+            @Nullable final String invalidHeaderKey) {
 
         super(ERROR_CODE, HttpStatus.BAD_REQUEST, dittoHeaders, message, description, cause, href);
+        this.invalidHeaderKey = invalidHeaderKey;
     }
 
     /**
@@ -68,10 +90,10 @@ public final class DittoHeaderInvalidException extends DittoRuntimeException {
      * @return the builder.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static Builder newInvalidTypeBuilder(final String headerName,
+    public static DittoHeaderInvalidException.Builder newInvalidTypeBuilder(final String headerName,
             @Nullable final CharSequence headerValue, final String headerType) {
 
-        return new Builder(headerName, headerValue, headerType);
+        return new DittoHeaderInvalidException.Builder(headerName, headerValue, headerType);
     }
 
     /**
@@ -84,10 +106,10 @@ public final class DittoHeaderInvalidException extends DittoRuntimeException {
      * @throws NullPointerException if any argument is {@code null}.
      * @since 1.1.0
      */
-    public static Builder newInvalidTypeBuilder(final HeaderDefinition headerDefinition,
+    public static DittoHeaderInvalidException.Builder newInvalidTypeBuilder(final HeaderDefinition headerDefinition,
             @Nullable final CharSequence headerValue, final String headerType) {
 
-        return new Builder(headerDefinition.getKey(), headerValue, headerType);
+        return new DittoHeaderInvalidException.Builder(headerDefinition.getKey(), headerValue, headerType);
     }
 
     /**
@@ -95,16 +117,29 @@ public final class DittoHeaderInvalidException extends DittoRuntimeException {
      *
      * @param customMessage the custom message
      * @return the builder.
+     * @deprecated as of Ditto 2.0 please use {@code newBuilder().message(String)}.
      */
-    public static Builder newCustomMessageBuilder(final String customMessage) {
-        return new Builder(customMessage);
+    @Deprecated
+    public static DittoHeaderInvalidException.Builder newCustomMessageBuilder(final String customMessage) {
+        return new DittoHeaderInvalidException.Builder(customMessage);
+    }
+
+    /**
+     * Returns a new mutable builder with a fluent API for creating a {@code DittoHeaderInvalidException}.
+     * The returned builder is initialized with a default message and a default description.
+     *
+     * @return the builder.
+     * @since 2.0.0
+     */
+    public static DittoHeaderInvalidException.Builder newBuilder() {
+        return new Builder();
     }
 
     /**
      * Constructs a new {@code DittoHeaderInvalidException} object with the exception message extracted from the
      * given JSON object.
      *
-     * @param jsonObject the JSON to read the {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
+     * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new DittoHeaderInvalidException.
      * @throws NullPointerException if any argument is {@code null}.
@@ -113,7 +148,27 @@ public final class DittoHeaderInvalidException extends DittoRuntimeException {
      * format.
      */
     public static DittoHeaderInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
+        final Builder builder = new Builder();
+        builder.withInvalidHeaderKey(jsonObject.getValue(JSON_FIELD_INVALID_HEADER_KEY).orElse(null));
+
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, builder);
+    }
+
+    /**
+     * Returns the key of the invalid header if known.
+     *
+     * @return an Optional that either contains the key of the invalid header or is empty if the key is unknown.
+     * @since 2.0.0
+     */
+    public Optional<String> getInvalidHeaderKey() {
+        return Optional.ofNullable(invalidHeaderKey);
+    }
+
+    @Override
+    protected void appendToJson(final JsonObjectBuilder jsonObjectBuilder, final Predicate<JsonField> predicate) {
+        if (null != invalidHeaderKey) {
+            jsonObjectBuilder.set(JSON_FIELD_INVALID_HEADER_KEY, invalidHeaderKey, predicate);
+        }
     }
 
     @Override
@@ -127,18 +182,42 @@ public final class DittoHeaderInvalidException extends DittoRuntimeException {
                 .build();
     }
 
+    @Override
+    public boolean equals(@Nullable final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
+        final DittoHeaderInvalidException that = (DittoHeaderInvalidException) o;
+        return Objects.equals(invalidHeaderKey, that.invalidHeaderKey);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), invalidHeaderKey);
+    }
+
     /**
-     * A mutable builder with a fluent API for a {@link org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException}.
+     * A mutable builder with a fluent API for a {@link DittoHeaderInvalidException}.
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<DittoHeaderInvalidException> {
 
+        @Nullable private String invalidHeaderKey;
+
         private Builder() {
+            invalidHeaderKey = null;
             message(DEFAULT_MESSAGE);
             description(DEFAULT_DESCRIPTION);
         }
 
         private Builder(final String headerName, @Nullable final CharSequence headerValue, final String headerType) {
+            invalidHeaderKey = headerName;
             message(MessageFormat.format(MESSAGE_TEMPLATE, String.valueOf(headerValue), requireNonNull(headerName),
                     requireNonNull(headerType)));
             description(MessageFormat.format(DESCRIPTION_TEMPLATE, headerName, headerType));
@@ -149,6 +228,22 @@ public final class DittoHeaderInvalidException extends DittoRuntimeException {
             message(customMessage);
         }
 
+        /**
+         * Sets the key of the invalid header.
+         *
+         * @param invalidHeaderKey the key of the invalid header.
+         * @return this builder instance for method chaining.
+         * @since 2.0.0
+         */
+        public Builder withInvalidHeaderKey(@Nullable final CharSequence invalidHeaderKey) {
+            if (null != invalidHeaderKey) {
+                this.invalidHeaderKey = invalidHeaderKey.toString();
+            } else {
+                this.invalidHeaderKey = null;
+            }
+            return this;
+        }
+
         @Override
         protected DittoHeaderInvalidException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
@@ -156,7 +251,7 @@ public final class DittoHeaderInvalidException extends DittoRuntimeException {
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
 
-            return new DittoHeaderInvalidException(dittoHeaders, message, description, cause, href);
+            return new DittoHeaderInvalidException(dittoHeaders, message, description, cause, href, invalidHeaderKey);
         }
 
     }

@@ -134,7 +134,7 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
                         logger.error(exc, "Exception in stream of {}: {}",
                                 graphActorClassName, exc.getMessage());
                     }
-                    return Supervision.resume(); // in any case, resume!
+                    return (Supervision.Directive) Supervision.resume(); // in any case, resume!
                 }
         );
     }
@@ -147,9 +147,7 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
 
         return Source.<T>queue(getBufferSize(), OverflowStrategy.dropNew())
                 .map(this::incrementDequeueCounter)
-                .log("graph-actor-stream-1-dequeued", logger)
                 .via(Flow.fromFunction(this::beforeProcessMessage))
-                .log("graph-actor-stream-2-preprocessed", logger)
                 .to(createSink())
                 .withAttributes(streamLogLevels.and(getSupervisionStrategyAttribute()))
                 .run(materializer);

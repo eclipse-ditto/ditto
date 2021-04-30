@@ -234,7 +234,7 @@
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <manifestEntries>
-                                        <Main-Class>org.eclipse.ditto.services.gateway.starter.GatewayService
+                                        <Main-Class>org.eclipse.ditto.gateway.service.starter.GatewayService
                                         </Main-Class>
                                     </manifestEntries>
                                 </transformer>

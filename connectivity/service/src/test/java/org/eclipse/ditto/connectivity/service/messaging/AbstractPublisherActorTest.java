@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+import org.eclipse.ditto.connectivity.model.HeaderMapping;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
@@ -141,10 +142,14 @@ public abstract class AbstractPublisherActorTest {
                 .address(getOutboundAddress())
                 .originalAddress(getOutboundAddress())
                 .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
-                .headerMapping(TestConstants.HEADER_MAPPING)
+                .headerMapping(getHeaderMapping())
                 .issuedAcknowledgementLabel(acks.length != 1 ? null : AcknowledgementLabel.of(acks[0]))
                 .topics(Topic.TWIN_EVENTS)
                 .build();
+    }
+
+    protected HeaderMapping getHeaderMapping() {
+        return TestConstants.HEADER_MAPPING;
     }
 
     protected abstract String getOutboundAddress();

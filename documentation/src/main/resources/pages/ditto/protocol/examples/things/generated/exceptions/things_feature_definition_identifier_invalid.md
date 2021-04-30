@@ -2,8 +2,10 @@
 
 ```json
 {
-  "topic": "unknown/unknown/things/twin/errors",
-  "headers": {},
+  "topic": "org.eclipse.ditto/fancy-thing/things/twin/errors",
+  "headers": {
+    "correlation-id": "<preserved-command-correlation-id>"
+  },
   "path": "/",
   "value": {
     "status": 400,

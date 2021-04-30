@@ -92,7 +92,7 @@ abstract class AbstractHiveMqttClientFactory {
                 .map(step -> mqttSpecificConfig.getMqttWillMessage()
                         .map(msg -> step.payload(msg.getBytes(StandardCharsets.UTF_8)))
                         .orElse(step))
-                .map(Mqtt3WillPublishBuilder.Nested.Complete::applyWillPublish);
+                .ifPresent(Mqtt3WillPublishBuilder.Nested.Complete::applyWillPublish);
     }
 
     @SuppressWarnings("Duplicates")
@@ -107,7 +107,7 @@ abstract class AbstractHiveMqttClientFactory {
                 .map(step -> mqttSpecificConfig.getMqttWillMessage()
                         .map(msg -> step.payload(msg.getBytes(StandardCharsets.UTF_8)))
                         .orElse(step))
-                .map(Mqtt5WillPublishBuilder.Nested.Complete::applyWillPublish);
+                .ifPresent(Mqtt5WillPublishBuilder.Nested.Complete::applyWillPublish);
     }
 
     <T extends MqttClientBuilderBase<T>> T configureClientBuilder(

@@ -2,11 +2,13 @@
 
 ```json
 {
-  "topic": "com.acme/xdk_53/things/twin/commands/modify",
-  "headers": {},
+  "topic": "org.eclipse.ditto/fancy-thing/things/twin/commands/modify",
+  "headers": {
+    "correlation-id": "<command-correlation-id>"
+  },
   "path": "/features/accelerometer/definition",
   "value": [
-    "com.acme:accelerometer:1.0.0"
+    "org.eclipse.ditto:accelerometer:1.0.0"
   ]
 }
 ```

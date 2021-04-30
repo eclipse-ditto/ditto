@@ -316,7 +316,7 @@ public final class DittoProtocolAdapterParameterizedTest {
     private static Set<Class<?>> collectInterfaces(Class<?>... c) {
         final Set<Class<?>> ifcs = new HashSet<>();
         for (final Class<?> cls : c) {
-            if (cls.getPackage().getName().startsWith("org.eclipse.ditto.signals")) {
+            if (Signal.class.isAssignableFrom(cls)) {
                 ifcs.add(cls);
             }
             final Class<?>[] interfaces = cls.getInterfaces();

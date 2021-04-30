@@ -228,7 +228,7 @@ public final class ThingSnapshotTaken extends SnapshotTaken<ThingSnapshotTaken> 
 
     /**
      * A mutable builder with a fluent API for creating instances of {@code ThingSnapshotTaken}.
-     * By default the builder sets the timestamp of the event to {@link java.time.Instant#now()} and empty DittoHeaders.
+     * By default the builder sets the timestamp of the event to {@link Instant#now()} and empty DittoHeaders.
      * Both properties can be overwritten by calling the appropriate setter methods.
      */
     @NotThreadSafe
@@ -270,7 +270,7 @@ public final class ThingSnapshotTaken extends SnapshotTaken<ThingSnapshotTaken> 
         }
 
         /**
-         * Sets the timestamp when the snapshot was taken. By default the timestamp is set to {@link java.time.Instant#now()}.
+         * Sets the timestamp when the snapshot was taken. By default the timestamp is set to {@link Instant#now()}.
          *
          * @param timestamp the timestamp to be set or {@code null} if the event does not have a timestamp at all.
          * @return this builder instance.

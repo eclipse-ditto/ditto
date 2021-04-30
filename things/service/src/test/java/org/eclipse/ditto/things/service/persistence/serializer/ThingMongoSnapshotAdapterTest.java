@@ -77,7 +77,7 @@ public final class ThingMongoSnapshotAdapterTest {
     private void toSnapshotStoreFromSnapshotStoreRoundTripReturnsExpected(final Thing thing) {
         final Object rawSnapshotEntity = underTest.toSnapshotStore(thing);
 
-        assertThat(rawSnapshotEntity).as("snapshot entity is BSON document").isInstanceOf(BsonDocument.class);
+        softly.assertThat(rawSnapshotEntity).as("snapshot entity is BSON document").isInstanceOf(BsonDocument.class);
 
         final BsonDocument dbObject = (BsonDocument) rawSnapshotEntity;
         final Thing restoredThing = underTest.fromSnapshotStore(new SnapshotOffer(SNAPSHOT_METADATA, dbObject));
@@ -88,10 +88,8 @@ public final class ThingMongoSnapshotAdapterTest {
     private void expectSnapshotPublished(final Thing thing) {
         final var thingJson = thing.toJson(thing.getImplementedSchemaVersion(), FieldType.regularOrSpecial());
         final var timestamp = Instant.now();
-        final var thingId = thing.getEntityId().orElseThrow();
-        final var revision = thing.getRevision().orElseThrow();
-        final var expectedSnapshotTaken = ThingSnapshotTaken.newBuilder(thingId,
-                revision.toLong(),
+        final var expectedSnapshotTaken = ThingSnapshotTaken.newBuilder(TestConstants.Thing.THING_ID,
+                TestConstants.Thing.REVISION_NUMBER,
                 PersistenceLifecycle.ACTIVE,
                 thingJson).build();
 
@@ -105,10 +103,10 @@ public final class ThingMongoSnapshotAdapterTest {
                 .isInstanceOfSatisfying(ThingSnapshotTaken.class, actualSnapshotTaken -> {
                     softly.assertThat((CharSequence) actualSnapshotTaken.getEntityId())
                             .as("entity ID")
-                            .isEqualTo(thingId);
+                            .isEqualTo(TestConstants.Thing.THING_ID);
                     softly.assertThat(actualSnapshotTaken.getRevision())
                             .as("revision number")
-                            .isEqualTo(revision.toLong());
+                            .isEqualTo(TestConstants.Thing.REVISION_NUMBER);
                     softly.assertThat(actualSnapshotTaken.getTimestamp())
                             .as("timestamp")
                             .hasValueSatisfying(actualTimestamp -> softly.assertThat(actualTimestamp)

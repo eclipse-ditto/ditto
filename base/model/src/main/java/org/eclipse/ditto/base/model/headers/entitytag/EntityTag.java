@@ -42,8 +42,9 @@ public final class EntityTag {
 
     private EntityTag(final boolean weak, final String opaqueTag) {
         if (!isValid(opaqueTag)) {
-            final String errorMessage = String.format(VALIDATION_ERROR_MESSAGE_TEMPLATE, opaqueTag);
-            throw DittoHeaderInvalidException.newCustomMessageBuilder(errorMessage).build();
+            throw DittoHeaderInvalidException.newBuilder()
+                    .message(String.format(VALIDATION_ERROR_MESSAGE_TEMPLATE, opaqueTag))
+                    .build();
         }
         this.weak = weak;
         this.opaqueTag = opaqueTag;
@@ -115,7 +116,7 @@ public final class EntityTag {
      *
      * @param entityTag the string representation of the entity-tag.
      * @return the EntityTag built from the given string value.
-     * @throws org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException if the given {@code entityTag} is not valid according to
+     * @throws DittoHeaderInvalidException if the given {@code entityTag} is not valid according to
      * {@link #isValid(CharSequence)}.
      */
     public static EntityTag fromString(final String entityTag) {

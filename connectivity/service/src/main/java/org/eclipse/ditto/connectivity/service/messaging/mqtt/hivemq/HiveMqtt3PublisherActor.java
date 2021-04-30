@@ -55,8 +55,8 @@ public final class HiveMqtt3PublisherActor extends AbstractMqttPublisherActor<Mq
     }
 
     @Override
-    Mqtt3Publish mapExternalMessageToMqttMessage(final MqttPublishTarget mqttTarget, final MqttQos qos,
-            final ExternalMessage externalMessage) {
+    Mqtt3Publish mapExternalMessageToMqttMessage(final String topic, final MqttQos qos,
+            final boolean retain, final ExternalMessage externalMessage) {
 
         final ByteBuffer payload;
         if (externalMessage.isTextMessage()) {
@@ -71,7 +71,12 @@ public final class HiveMqtt3PublisherActor extends AbstractMqttPublisherActor<Mq
         } else {
             payload = ByteBufferUtils.empty();
         }
-        return Mqtt3Publish.builder().topic(mqttTarget.getTopic()).qos(qos).payload(payload).build();
+        return Mqtt3Publish.builder()
+                .topic(topic)
+                .qos(qos)
+                .retain(retain)
+                .payload(payload)
+                .build();
     }
 
     @Override

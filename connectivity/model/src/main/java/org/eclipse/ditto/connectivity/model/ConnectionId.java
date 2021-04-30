@@ -30,7 +30,7 @@ import org.eclipse.ditto.base.model.entity.id.TypedEntityId;
 @TypedEntityId(type = "connection")
 public final class ConnectionId extends AbstractEntityId {
 
-    static final String ID_REGEX = "[a-zA-Z0-9-_]{1,80}";
+    static final String ID_REGEX = "[a-zA-Z0-9-_:]{1,80}";
     static final Pattern ID_PATTERN = Pattern.compile(ID_REGEX);
 
     private ConnectionId(final String stringRepresentation, final boolean shouldValidate) {

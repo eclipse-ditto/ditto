@@ -24,8 +24,8 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementLabelInvalidException;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 
 /**
- * This validator checks if a CharSequence is a JSON array of {@link org.eclipse.ditto.base.model.acks.AcknowledgementLabel}.
- * If validation fails, a {@link org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException} is thrown.
+ * This validator checks if a CharSequence is a JSON array of {@link AcknowledgementLabel}.
+ * If validation fails, a {@link DittoHeaderInvalidException} is thrown.
  *
  * @since 1.4.0
  */
@@ -69,8 +69,10 @@ final class RequestedAcksValueValidator extends AbstractHeaderValueValidator {
                 }
             } else {
                 final String msgTemplate = "JSON array for <{0}> contained invalid acknowledgement labels.";
-                throw DittoHeaderInvalidException
-                        .newCustomMessageBuilder(MessageFormat.format(msgTemplate, definition.getKey()))
+                final String invalidHeaderKey = definition.getKey();
+                throw DittoHeaderInvalidException.newBuilder()
+                        .withInvalidHeaderKey(invalidHeaderKey)
+                        .message(MessageFormat.format(msgTemplate, invalidHeaderKey))
                         .build();
             }
         }

@@ -24,7 +24,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 /**
  * This validator parses a CharSequence to a {@link JsonArray} and ensures that the JSON array <em>contains only string
  * items.</em>
- * If validation fails, a {@link org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException} is thrown.
+ * If validation fails, a {@link DittoHeaderInvalidException} is thrown.
  */
 @Immutable
 final class JsonArrayValueValidator extends AbstractHeaderValueValidator {
@@ -48,8 +48,10 @@ final class JsonArrayValueValidator extends AbstractHeaderValueValidator {
     protected void validateValue(final HeaderDefinition definition, final CharSequence value) {
         if (containsNonStringArrayValues(tryToParseJsonArray(definition, value.toString()))) {
             final String msgTemplate = "JSON array for <{0}> contained non-string values!";
-            throw DittoHeaderInvalidException
-                    .newCustomMessageBuilder(MessageFormat.format(msgTemplate, definition.getKey()))
+            final String invalidHeaderKey = definition.getKey();
+            throw DittoHeaderInvalidException.newBuilder()
+                    .withInvalidHeaderKey(invalidHeaderKey)
+                    .message(MessageFormat.format(msgTemplate, invalidHeaderKey))
                     .build();
         }
     }

@@ -78,12 +78,16 @@ public final class PubSubFactoryTest {
 
     private ActorSystem system1;
     private ActorSystem system2;
+    private ActorSystem system3;
     private Cluster cluster1;
     private Cluster cluster2;
+    private Cluster cluster3;
     private TestPubSubFactory factory1;
     private TestPubSubFactory factory2;
+    private TestPubSubFactory factory3;
     private DistributedAcks distributedAcks1;
     private DistributedAcks distributedAcks2;
+    private DistributedAcks distributedAcks3;
     private AckExtractor<Acknowledgement> ackExtractor;
     private Map<String, ThingId> thingIdMap;
     private Map<String, DittoHeaders> dittoHeadersMap;
@@ -97,16 +101,22 @@ public final class PubSubFactoryTest {
         final CountDownLatch latch = new CountDownLatch(2);
         system1 = ActorSystem.create("actorSystem", getTestConf());
         system2 = ActorSystem.create("actorSystem", getTestConf());
+        system3 = ActorSystem.create("actorSystem", getTestConf());
         cluster1 = Cluster.get(system1);
         cluster2 = Cluster.get(system2);
+        cluster3 = Cluster.get(system3);
         cluster1.registerOnMemberUp(latch::countDown);
         cluster2.registerOnMemberUp(latch::countDown);
+        cluster3.registerOnMemberUp(latch::countDown);
         cluster1.join(cluster1.selfAddress());
         cluster2.join(cluster1.selfAddress());
+        cluster3.join(cluster1.selfAddress());
         final ActorContext context1 = newContext(system1);
         final ActorContext context2 = newContext(system2);
+        final ActorContext context3 = newContext(system3);
         distributedAcks1 = TestPubSubFactory.startDistributedAcks(context1);
         distributedAcks2 = TestPubSubFactory.startDistributedAcks(context2);
+        distributedAcks3 = TestPubSubFactory.startDistributedAcks(context3);
         thingIdMap = new ConcurrentHashMap<>();
         dittoHeadersMap = new ConcurrentHashMap<>();
         ackExtractor = AckExtractor.of(
@@ -115,6 +125,7 @@ public final class PubSubFactoryTest {
         );
         factory1 = TestPubSubFactory.of(context1, ackExtractor, distributedAcks1);
         factory2 = TestPubSubFactory.of(context2, ackExtractor, distributedAcks2);
+        factory3 = TestPubSubFactory.of(context3, ackExtractor, distributedAcks3);
         // wait for both members to be UP
         latch.await();
     }
@@ -259,7 +270,7 @@ public final class PubSubFactoryTest {
                     assertThat(factory1.getSubscribers())
                             .describedAs("subscriber should be removed from ddata")
                             .isEmpty()
-                            );
+            );
         }};
     }
 
@@ -537,10 +548,14 @@ public final class PubSubFactoryTest {
             final TestProbe subscriber2 = TestProbe.apply("subscriber2", system2);
             final TestProbe subscriber3 = TestProbe.apply("subscriber3", system1);
             final TestProbe subscriber4 = TestProbe.apply("subscriber4", system2);
+            final TestProbe subscriber5 = TestProbe.apply("subscriber5", system3);
+            final TestProbe subscriber6 = TestProbe.apply("subscriber6", system3);
 
-            final DistributedPub<Acknowledgement> pub = factory1.startDistributedPub();
+            final DistributedPub<Acknowledgement> pub1 = factory1.startDistributedPub();
+            final DistributedPub<Acknowledgement> pub2 = factory2.startDistributedPub();
             final DistributedSub sub1 = factory1.startDistributedSub();
             final DistributedSub sub2 = factory2.startDistributedSub();
+            final DistributedSub sub3 = factory3.startDistributedSub();
 
             // GIVEN: subscribers subscribe to the same topic as a group
             final String topic = "topic";
@@ -548,24 +563,30 @@ public final class PubSubFactoryTest {
             await(sub2.subscribeWithFilterAndGroup(List.of(topic), subscriber2.ref(), null, "group"));
             await(sub1.subscribeWithFilterAndGroup(List.of(topic), subscriber3.ref(), null, "group"));
             await(sub2.subscribeWithFilterAndGroup(List.of(topic), subscriber4.ref(), null, "group"));
+            await(sub3.subscribeWithFilterAndGroup(List.of(topic), subscriber5.ref(), null, "group"));
+            await(sub3.subscribeWithFilterAndGroup(List.of(topic), subscriber6.ref(), null, "group"));
 
             // WHEN: signals are published with different entity IDs differing by 1 in the last byte
-            pub.publish(signal(topic, 0), publisher.ref());
-            pub.publish(signal(topic, 1), publisher.ref());
-            pub.publish(signal(topic, 2), publisher.ref());
-            pub.publish(signal(topic, 3), publisher.ref());
+            pub1.publish(signal(topic, 0), publisher.ref());
+            pub1.publish(signal(topic, 1), publisher.ref());
+            pub2.publish(signal(topic, 2), publisher.ref());
+            pub2.publish(signal(topic, 3), publisher.ref());
+            pub2.publish(signal(topic, 4), publisher.ref());
+            pub1.publish(signal(topic, 5), publisher.ref());
 
             // THEN: exactly 1 subscriber gets each message.
             final Acknowledgement received1 = subscriber1.expectMsgClass(Acknowledgement.class);
             final Acknowledgement received2 = subscriber2.expectMsgClass(Acknowledgement.class);
             final Acknowledgement received3 = subscriber3.expectMsgClass(Acknowledgement.class);
             final Acknowledgement received4 = subscriber4.expectMsgClass(Acknowledgement.class);
+            final Acknowledgement received5 = subscriber5.expectMsgClass(Acknowledgement.class);
+            final Acknowledgement received6 = subscriber6.expectMsgClass(Acknowledgement.class);
             final Set<EntityId> thingIdSet =
                     Set.of(received1.getEntityId(), received2.getEntityId(), received3.getEntityId(),
-                            received4.getEntityId());
+                            received4.getEntityId(), received5.getEntityId(), received6.getEntityId());
             assertThat(thingIdSet.size())
                     .describedAs("Signals received by subscribers should have distinct entity IDs")
-                    .isEqualTo(4);
+                    .isEqualTo(6);
 
             // THEN: any subscriber receives no further messages.
             subscriber1.expectNoMessage();

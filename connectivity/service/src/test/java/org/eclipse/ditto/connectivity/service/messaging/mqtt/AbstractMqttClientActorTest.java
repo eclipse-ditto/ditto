@@ -31,26 +31,28 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.common.ResponseType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
+import org.eclipse.ditto.connectivity.model.HeaderMapping;
 import org.eclipse.ditto.connectivity.model.ReplyTarget;
 import org.eclipse.ditto.connectivity.model.Source;
+import org.eclipse.ditto.connectivity.model.SourceBuilder;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.connectivity.service.messaging.AbstractBaseClientActorTest;
-import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
-import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetrics;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetricsResponse;
+import org.eclipse.ditto.connectivity.service.messaging.AbstractBaseClientActorTest;
+import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
@@ -90,6 +92,21 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
             .address(SOURCE_ADDRESS)
             .qos(1)
             .build();
+
+    private static final HeaderMapping MQTT_HEADER_MAPPING = ConnectivityModelFactory.newHeaderMapping(Map.of(
+            MqttHeader.MQTT_TOPIC.getName(), getHeaderPlaceholder(MqttHeader.MQTT_TOPIC.getName()),
+            MqttHeader.MQTT_QOS.getName(), getHeaderPlaceholder(MqttHeader.MQTT_QOS.getName()),
+            MqttHeader.MQTT_RETAIN.getName(), getHeaderPlaceholder(MqttHeader.MQTT_RETAIN.getName()),
+            "custom.topic", getHeaderPlaceholder(MqttHeader.MQTT_TOPIC.getName()),
+            "custom.qos", getHeaderPlaceholder(MqttHeader.MQTT_QOS.getName()),
+            "custom.retain", getHeaderPlaceholder(MqttHeader.MQTT_RETAIN.getName())
+    ));
+
+    private static String getHeaderPlaceholder(final String headerName) {
+        return "{{ header:" + headerName + "}}";
+    }
+
+
     protected static final ConnectionType connectionType = ConnectionType.MQTT;
 
     protected ActorSystem actorSystem;
@@ -228,8 +245,32 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
 
     @Test
     public void testConsumeFromTopic() {
-        testConsumeModifyThing(connection, SOURCE_ADDRESS)
+        final ModifyThing modifyThing = testConsumeModifyThing(connection, SOURCE_ADDRESS)
                 .expectMsgClass(ModifyThing.class);
+
+        // verify that mqtt properties are not mapped by default
+        assertThat(modifyThing.getDittoHeaders()).doesNotContainKeys(
+                MqttHeader.getHeaderNames().toArray(String[]::new));
+    }
+
+    @Test
+    public void testConsumeFromTopicWithSourceHeaderMapping() {
+        final Connection connectionWithHeaderMapping = connection.toBuilder()
+                .setSources(connection.getSources().stream()
+                        .map(ConnectivityModelFactory::newSourceBuilder)
+                        .map(sb -> sb.headerMapping(MQTT_HEADER_MAPPING))
+                        .map(SourceBuilder::build)
+                        .collect(Collectors.toList())).build();
+
+        final ModifyThing modifyThing = testConsumeModifyThing(connectionWithHeaderMapping, SOURCE_ADDRESS)
+                .expectMsgClass(ModifyThing.class);
+        assertThat(modifyThing.getDittoHeaders()).containsKeys(MqttHeader.getHeaderNames().toArray(String[]::new));
+        assertThat(modifyThing.getDittoHeaders()).containsEntry(MqttHeader.MQTT_TOPIC.getName(), SOURCE_ADDRESS);
+        assertThat(modifyThing.getDittoHeaders()).containsEntry(MqttHeader.MQTT_QOS.getName(), "0");
+        assertThat(modifyThing.getDittoHeaders()).containsEntry(MqttHeader.MQTT_RETAIN.getName(), "false");
+        assertThat(modifyThing.getDittoHeaders()).containsEntry("custom.topic", SOURCE_ADDRESS);
+        assertThat(modifyThing.getDittoHeaders()).containsEntry("custom.qos", "0");
+        assertThat(modifyThing.getDittoHeaders()).containsEntry("custom.retain", "false");
     }
 
     @Test
@@ -297,8 +338,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
             final TestProbe controlProbe = TestProbe.apply(actorSystem);
 
             final List<String> irrelevantTopics = Arrays.asList("irrelevant", "topics");
-            final String[] subscriptions =
-                    new String[]{"A1", "A1", "A1", "B1", "B1", "B2", "B2", "C1", "C2", "C3"};
+            final String[] subscriptions = {"A1", "A1", "A1", "B1", "B1", "B2", "B2", "C1", "C2", "C3"};
             final List<M> mockMessages =
                     Stream.concat(irrelevantTopics.stream(), Arrays.stream(subscriptions))
                             .map(topic -> mqttMessage(topic, TestConstants.modifyThing()))
@@ -343,6 +383,8 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
                 .index(index)
                 .consumerCount(consumerCount)
                 .addresses(TestConstants.asSet(sources))
+                .headerMapping(ConnectivityModelFactory.newHeaderMapping(Map.of(MqttHeader.MQTT_TOPIC.getName(),
+                        "{{ header:" + MqttHeader.MQTT_TOPIC.getName() + " }}")))
                 .qos(1)
                 .build();
     }

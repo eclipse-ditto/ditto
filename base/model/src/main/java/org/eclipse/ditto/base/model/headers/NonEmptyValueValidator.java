@@ -20,7 +20,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 
 /**
  * This validator parses a CharSequence value and ensures that it was non-empty.
- * If it was empty, a {@link org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException} is thrown.
+ * If it was empty, a {@link DittoHeaderInvalidException} is thrown.
  *
  * @since 1.3.0
  */
@@ -42,8 +42,9 @@ final class NonEmptyValueValidator extends AbstractHeaderValueValidator {
     @Override
     protected void validateValue(final HeaderDefinition definition, final CharSequence value) {
         if (value.length() < 1) {
-            final String message = MessageFormat.format(MESSAGE_TEMPLATE, definition.getKey());
-            throw DittoHeaderInvalidException.newCustomMessageBuilder(message).build();
+            throw DittoHeaderInvalidException.newBuilder()
+                    .message(MessageFormat.format(MESSAGE_TEMPLATE, definition.getKey()))
+                    .build();
         }
     }
 

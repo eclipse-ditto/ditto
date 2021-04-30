@@ -147,7 +147,7 @@ final class KafkaPublishTarget implements PublishTarget {
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                ", topic=" + topic +
+                "topic=" + topic +
                 ", key=" + key +
                 ", partition=" + partition +
                 "]";

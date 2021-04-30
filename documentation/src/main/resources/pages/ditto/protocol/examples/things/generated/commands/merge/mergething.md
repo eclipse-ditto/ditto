@@ -2,15 +2,16 @@
 
 ```json
 {
-  "topic": "com.acme/xdk_53/things/twin/commands/merge",
+  "topic": "org.eclipse.ditto/fancy-thing/things/twin/commands/merge",
   "headers": {
-    "content-type": "application/merge-patch+json"
+    "content-type": "application/merge-patch+json",
+    "correlation-id": "<command-correlation-id>"
   },
   "path": "/",
   "value": {
-    "thingId": "com.acme:xdk_53",
-    "policyId": "com.acme:the_policy_id",
-    "definition": "com.acme:XDKmodel:1.0.0",
+    "thingId": "org.eclipse.ditto:fancy-thing_53",
+    "policyId": "org.eclipse.ditto:the_policy_id",
+    "definition": "org.eclipse.ditto:SomeModel:1.0.0",
     "attributes": {
       "location": {
         "latitude": 44.673856,
@@ -20,7 +21,7 @@
     "features": {
       "accelerometer": {
         "definition": [
-          "com.acme:accelerometer:1.0.0"
+          "org.eclipse.ditto:accelerometer:1.0.0"
         ],
         "properties": {
           "x": 3.141,

@@ -12,7 +12,7 @@
     "error": {
       "type": "string",
       "title": "Error code",
-      "description": "The error code or identifier that uniquely identifies the error e.g. `things:features.notfound`."
+      "description": "The error code or identifier that uniquely identifies the error.\nThis code is not to be considered as API and must therefore not be relied on.\nIt might change without prior notice."
     },
     "message": {
       "type": "string",

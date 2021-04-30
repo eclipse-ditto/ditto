@@ -2,8 +2,10 @@
 
 ```json
 {
-  "topic": "com.acme/xdk_53/things/twin/commands/retrieve",
-  "headers": {},
+  "topic": "org.eclipse.ditto/fancy-thing/things/twin/commands/retrieve",
+  "headers": {
+    "correlation-id": "<command-correlation-id>"
+  },
   "path": "/attributes"
 }
 ```
