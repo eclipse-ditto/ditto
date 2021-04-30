@@ -32,10 +32,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatcher;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
-import org.eclipse.ditto.services.models.placeholders.ExpressionResolver;
-import org.eclipse.ditto.services.models.placeholders.HeadersPlaceholder;
-import org.eclipse.ditto.services.models.placeholders.PlaceholderFactory;
-import org.eclipse.ditto.services.models.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
@@ -46,6 +42,10 @@ import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.config.mapping.MappingConfig;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.placeholders.ExpressionResolver;
+import org.eclipse.ditto.services.models.placeholders.HeadersPlaceholder;
+import org.eclipse.ditto.services.models.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.services.models.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
@@ -229,18 +229,24 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
 
     @Override
     public List<ExternalMessage> map(final Adaptable adaptable) {
-        if (TopicPath.Criterion.ERRORS.equals(adaptable.getTopicPath().getCriterion())) {
-            adaptable.getPayload().getValue()
+        if (isErrorByTopicPath(adaptable)) {
+            final var adaptablePayload = adaptable.getPayload();
+            adaptablePayload.getValue()
                     .filter(JsonValue::isObject)
                     .map(JsonValue::asObject)
                     .ifPresentOrElse(jsonObject -> {
-                        throw GlobalErrorRegistry.getInstance().parse(jsonObject,
-                                adaptable.getDittoHeaders());
+                        final var globalErrorRegistry = GlobalErrorRegistry.getInstance();
+                        throw globalErrorRegistry.parse(jsonObject, adaptable.getDittoHeaders());
                     }, () -> LOGGER.withCorrelationId(adaptable.getDittoHeaders())
                             .warn("Unexpected error adaptable. Expected value of type JsonObject in payload but got " +
-                                    "<{}>.", adaptable.getPayload()));
+                                    "<{}>.", adaptablePayload));
         }
         return Collections.emptyList();
+    }
+
+    private static boolean isErrorByTopicPath(final Adaptable adaptable) {
+        final var topicPath = adaptable.getTopicPath();
+        return topicPath.isCriterion(TopicPath.Criterion.ERRORS);
     }
 
 }

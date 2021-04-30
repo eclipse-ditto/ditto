@@ -17,6 +17,8 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -123,28 +125,40 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
      * @return filteredHeaders with extra information from topicPath.
      */
     private static DittoHeaders addTopicPathInfo(final DittoHeaders filteredHeaders, final TopicPath topicPath) {
-        final DittoHeaders extraInfo = mapTopicPathToHeaders(topicPath);
-        return extraInfo.isEmpty() ? filteredHeaders : filteredHeaders.toBuilder().putHeaders(extraInfo).build();
+        final DittoHeaders result;
+        final DittoHeaders extraInfo = getExtraInformationFromTopicPath(topicPath);
+        if (extraInfo.isEmpty()) {
+            result = filteredHeaders;
+        } else {
+            result = DittoHeaders.newBuilder(filteredHeaders).putHeaders(extraInfo).build();
+        }
+        return result;
     }
 
     /**
-     * Add any extra information in topic path as Ditto headers. Currently "channel" is the only relevant header.
+     * Add any extra information in topic path as Ditto headers.
      *
      * @param topicPath the topic path to extract information from.
      * @return headers containing extra information from topic path.
      */
-    private static DittoHeaders mapTopicPathToHeaders(final TopicPath topicPath) {
+    private static DittoHeaders getExtraInformationFromTopicPath(final TopicPath topicPath) {
         final DittoHeadersBuilder<?, ?> headersBuilder = DittoHeaders.newBuilder();
-        if (topicPath.getNamespace() != null && topicPath.getEntityName() != null) {
+        @Nullable final String namespace = topicPath.getNamespace();
+        @Nullable final String entityName = topicPath.getEntityName();
+        if (null != namespace && null != entityName) {
             // add entity ID for known topic-paths for error reporting.
+            final TopicPath.Group group = topicPath.getGroup();
             headersBuilder.putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(),
-                    topicPath.getGroup().getEntityType() + ":" + topicPath.getNamespace() + ":" +
-                            topicPath.getEntityName());
+                    getEntityId(group, namespace, entityName));
         }
-        if (topicPath.getChannel() == TopicPath.Channel.LIVE) {
+        if (topicPath.isChannel(TopicPath.Channel.LIVE)) {
             headersBuilder.channel(TopicPath.Channel.LIVE.getName());
         }
         return headersBuilder.build();
+    }
+
+    private static String getEntityId(final TopicPath.Group group, final String namespace, final String entityName) {
+        return String.join(":", group.getEntityType(), namespace, entityName);
     }
 
     /*

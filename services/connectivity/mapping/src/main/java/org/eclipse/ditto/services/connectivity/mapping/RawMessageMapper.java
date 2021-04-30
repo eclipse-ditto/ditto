@@ -215,7 +215,8 @@ public final class RawMessageMapper extends AbstractMessageMapper {
     }
 
     private static boolean isMessageCommandOrResponse(final Adaptable adaptable) {
-        return adaptable.getTopicPath().getCriterion() == TopicPath.Criterion.MESSAGES;
+        final var topicPath = adaptable.getTopicPath();
+        return topicPath.isCriterion(TopicPath.Criterion.MESSAGES);
     }
 
     private static String asPlaceholder(final MessageHeaderDefinition messageHeaderDefinition) {

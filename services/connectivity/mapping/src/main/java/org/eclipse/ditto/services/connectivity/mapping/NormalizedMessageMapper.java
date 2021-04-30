@@ -122,7 +122,7 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
                 : builder.build().get(jsonFieldSelector);
 
         final JsonObject result;
-        if (topicPath.getAction().filter(TopicPath.Action.MERGED::equals).isPresent()) {
+        if (topicPath.isAction(TopicPath.Action.MERGED)) {
             result = filterNullValuesAndEmptyObjects(jsonObject);
         } else {
             result = jsonObject;
@@ -156,16 +156,14 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
     }
 
     private static boolean isCreatedModifiedOrMergedThingEvent(final TopicPath topicPath) {
-        final Optional<TopicPath.Action> action = topicPath.getAction();
-        if (topicPath.getCriterion() == TopicPath.Criterion.EVENTS &&
-                topicPath.getGroup() == TopicPath.Group.THINGS &&
-                action.isPresent()) {
-            final TopicPath.Action act = action.get();
-            return act == TopicPath.Action.CREATED || act == TopicPath.Action.MODIFIED ||
-                    act == TopicPath.Action.MERGED;
-        }
+        final var isThingEvent =
+                topicPath.isGroup(TopicPath.Group.THINGS) && topicPath.isCriterion(TopicPath.Criterion.EVENTS);
 
-        return false;
+        final var isCreatedModifiedOrMerged = topicPath.isAction(TopicPath.Action.CREATED) ||
+                topicPath.isAction(TopicPath.Action.MODIFIED) ||
+                topicPath.isAction(TopicPath.Action.MERGED);
+
+        return isThingEvent && isCreatedModifiedOrMerged;
     }
 
     private static JsonObject filterNullValuesAndEmptyObjects(final JsonObject jsonObject) {

@@ -22,9 +22,9 @@ import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyException;
 import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.things.ThingException;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
@@ -37,7 +37,7 @@ import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 final class DittoRuntimeExceptionToErrorResponseFunction
         implements BiFunction<DittoRuntimeException, TopicPath, ErrorResponse<?>> {
 
-    private long headersMaxSize;
+    private final long headersMaxSize;
 
     private DittoRuntimeExceptionToErrorResponseFunction(final long headersMaxSize) {
         this.headersMaxSize = headersMaxSize;
@@ -49,57 +49,55 @@ final class DittoRuntimeExceptionToErrorResponseFunction
 
     @Override
     public ErrorResponse<?> apply(final DittoRuntimeException exception, @Nullable final TopicPath topicPath) {
-        /*
-         * Truncate headers to send in an error response.
-         * This is necessary because the consumer actor and the publisher actor may not reside in the same connectivity
-         * instance due to cluster routing.
-         */
-        final DittoHeaders truncatedHeaders = exception.getDittoHeaders().truncate(headersMaxSize);
-        if (exception instanceof PolicyException) {
-            return toPolicyErrorResponse(exception, truncatedHeaders, topicPath);
-        } else if (exception instanceof ThingException) {
-            return toThingErrorResponse(exception, truncatedHeaders, topicPath);
-        } else if (topicPath != null && topicPath.getGroup().equals(TopicPath.Group.POLICIES)) {
-            return toPolicyErrorResponse(exception, truncatedHeaders, topicPath);
-        } else if (topicPath != null && topicPath.getGroup().equals(TopicPath.Group.THINGS)) {
-            return toThingErrorResponse(exception, truncatedHeaders, topicPath);
+        final ErrorResponse<?> result;
+        if (isPolicyException(exception, topicPath)) {
+            result = getPolicyErrorResponse(exception, topicPath);
         } else {
-            return toThingErrorResponse(exception, truncatedHeaders, topicPath);
+            result = getThingErrorResponse(exception, topicPath);
         }
+        return result;
     }
 
-    private ThingErrorResponse toThingErrorResponse(final DittoRuntimeException exception,
-            final DittoHeaders truncatedHeaders,
+    private static boolean isPolicyException(final DittoRuntimeException exception,
             @Nullable final TopicPath topicPath) {
-        final Optional<EntityId> entityId = getEntityId(exception, topicPath);
-        return entityId
-                .map(ThingId::of)
-                .map(thingId -> ThingErrorResponse.of(thingId, exception, truncatedHeaders))
-                .orElseGet(() -> ThingErrorResponse.of(exception, truncatedHeaders));
+
+        return isPolicyExceptionByErrorCode(exception.getErrorCode()) || isPolicyExceptionByTopicPath(topicPath);
     }
 
-    private PolicyErrorResponse toPolicyErrorResponse(final DittoRuntimeException exception,
-            final DittoHeaders truncatedHeaders,
+    private static boolean isPolicyExceptionByErrorCode(final String errorCode) {
+        return errorCode.startsWith(PolicyException.ERROR_CODE_PREFIX);
+    }
+
+    private static boolean isPolicyExceptionByTopicPath(@Nullable final TopicPath topicPath) {
+        return null != topicPath && topicPath.isGroup(TopicPath.Group.POLICIES);
+    }
+
+    private PolicyErrorResponse getPolicyErrorResponse(final DittoRuntimeException exception,
             @Nullable final TopicPath topicPath) {
-        final Optional<EntityId> entityId = getEntityId(exception, topicPath);
-        return entityId
+
+        return getEntityId(exception, topicPath)
                 .map(PolicyId::of)
-                .map(policyId -> PolicyErrorResponse.of(policyId, exception, truncatedHeaders))
-                .orElseGet(() -> PolicyErrorResponse.of(exception, truncatedHeaders));
+                .map(policyId -> PolicyErrorResponse.of(policyId, exception, truncateHeaders(exception)))
+                .orElseGet(() -> PolicyErrorResponse.of(exception, truncateHeaders(exception)));
     }
 
-    private static Optional<EntityId> getEntityId(final DittoRuntimeException e,
+    private ThingErrorResponse getThingErrorResponse(final DittoRuntimeException exception,
             @Nullable final TopicPath topicPath) {
-        return Optional.ofNullable(topicPath)
-                .flatMap(DittoRuntimeExceptionToErrorResponseFunction::getEntityIdFromTopicPath)
-                .or(() -> Optional.ofNullable(e.getDittoHeaders().get(DittoHeaderDefinition.ENTITY_ID.getKey()))
-                        .map(entityId -> {
-                            final int indexOfSeparator = entityId.indexOf(':');
-                            final EntityType entityType = EntityType.of(entityId.substring(0, indexOfSeparator));
-                            final String id = entityId.substring(indexOfSeparator + 1);
-                            return EntityId.of(entityType, id);
-                        })
-                );
+
+        return getEntityId(exception, topicPath)
+                .map(ThingId::of)
+                .map(thingId -> ThingErrorResponse.of(thingId, exception, truncateHeaders(exception)))
+                .orElseGet(() -> ThingErrorResponse.of(exception, truncateHeaders(exception)));
+    }
+
+    private static Optional<EntityId> getEntityId(final WithDittoHeaders e, @Nullable final TopicPath topicPath) {
+        final Optional<EntityId> result;
+        if (null != topicPath) {
+            result = getEntityIdFromTopicPath(topicPath);
+        } else {
+            result = getEntityIdFromDittoHeaders(e.getDittoHeaders());
+        }
+        return result;
     }
 
     private static Optional<EntityId> getEntityIdFromTopicPath(final TopicPath topicPath) {
@@ -112,4 +110,30 @@ final class DittoRuntimeExceptionToErrorResponseFunction
                 return Optional.empty();
         }
     }
+
+    private static Optional<EntityId> getEntityIdFromDittoHeaders(final DittoHeaders dittoHeaders) {
+        final Optional<EntityId> result;
+        @Nullable final var entityId = dittoHeaders.get(DittoHeaderDefinition.ENTITY_ID.getKey());
+        if (null != entityId) {
+            final var indexOfSeparator = entityId.indexOf(':');
+            final var entityType = EntityType.of(entityId.substring(0, indexOfSeparator));
+            final var id = entityId.substring(indexOfSeparator + 1);
+            result = Optional.of(EntityId.of(entityType, id));
+        } else {
+            result = Optional.empty();
+        }
+        return result;
+    }
+
+    private DittoHeaders truncateHeaders(final WithDittoHeaders withDittoHeaders) {
+
+        /*
+         * Truncate headers to send in an error response.
+         * This is necessary because the consumer actor and the publisher actor may not reside in the same connectivity
+         * instance due to cluster routing.
+         */
+        final var dittoHeaders = withDittoHeaders.getDittoHeaders();
+        return dittoHeaders.truncate(headersMaxSize);
+    }
+
 }
