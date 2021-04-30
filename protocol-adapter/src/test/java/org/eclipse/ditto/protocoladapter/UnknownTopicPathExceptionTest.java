@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.protocoladapter;
 
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -19,6 +18,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
 import org.junit.Test;
 
 /**
@@ -28,12 +28,13 @@ public final class UnknownTopicPathExceptionTest {
 
     @Test
     public void fromTopicAndPath() {
-        final TopicPath topicPath = ImmutableTopicPath.of("ns", "id", TopicPath.Group.THINGS, TopicPath.Channel.TWIN,
-                TopicPath.Criterion.COMMANDS, TopicPath.Action.MODIFY);
+        final TopicPath topicPath =
+                TopicPath.newBuilder(ThingId.of("ns", "id")).things().twin().commands().modify().build();
         final MessagePath messagePath = ImmutableMessagePath.of(JsonPointer.of("/policyId"));
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
 
-        final UnknownTopicPathException exception = UnknownTopicPathException.fromTopicAndPath(topicPath, messagePath, dittoHeaders);
+        final UnknownTopicPathException exception =
+                UnknownTopicPathException.fromTopicAndPath(topicPath, messagePath, dittoHeaders);
 
         Assertions.assertThat(exception)
                 .hasMessageContaining(topicPath.getPath())

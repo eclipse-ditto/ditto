@@ -34,8 +34,8 @@ import org.eclipse.ditto.signals.events.thingsearch.SubscriptionHasNextPage;
  * <p>
  * A {@code TopicPath} complies with the scheme
  *
- * <code>&lt;namespace&gt;/&lt;id&gt;/&lt;group&gt;/&lt;channel&gt;/&lt;criterion&gt;/&lt;action&gt;</code> <br>
- * for example <code>org.eclipse.ditto/myThing/things/twin/commands/modify</code>
+ * {@code <namespace>/<id>/<group>/<channel>/<criterion>/<action>} <br>
+ * for example {@code org.eclipse.ditto/myThing/things/twin/commands/modify}
  * </p>
  */
 public interface TopicPath {
@@ -185,10 +185,14 @@ public interface TopicPath {
             return entityType;
         }
 
+        /**
+         * @return the same as {@link #getName()}.
+         */
         @Override
         public String toString() {
-            return name;
+            return getName();
         }
+
     }
 
     /**
@@ -248,10 +252,14 @@ public interface TopicPath {
             return name;
         }
 
+        /**
+         * @return the same as {@link #getName()}.
+         */
         @Override
         public String toString() {
-            return name;
+            return getName();
         }
+
     }
 
     /**
@@ -293,10 +301,14 @@ public interface TopicPath {
             return name;
         }
 
+        /**
+         * @return same as {@link #getName()}.
+         */
         @Override
         public String toString() {
-            return name;
+            return getName();
         }
+
     }
 
     /**
@@ -414,10 +426,14 @@ public interface TopicPath {
             return name;
         }
 
+        /**
+         * @return the same as {@link #getName()}.
+         */
         @Override
         public String toString() {
-            return name;
+            return getName();
         }
+
     }
 
 }

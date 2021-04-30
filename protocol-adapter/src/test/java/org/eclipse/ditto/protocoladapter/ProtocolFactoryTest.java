@@ -12,77 +12,41 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.model.base.entity.id.AbstractNamespacedEntityId;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingConstants;
 import org.eclipse.ditto.model.things.ThingId;
+import org.junit.Rule;
 import org.junit.Test;
 
 /**
- * Tests {@link ProtocolFactory}.
+ * Unit tests for {@link ProtocolFactory}.
  */
-public class ProtocolFactoryTest {
+public final class ProtocolFactoryTest {
 
     private static final String NAMESPACE = "namespace";
     private static final String ID = "id";
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @Test(expected = UnknownTopicPathException.class)
     public void testInvalidPolicyModifyTopicPathWithChannel() {
         ProtocolFactory.newTopicPath("namespace/id/policies/twin/commands/modify");
     }
 
-    @Test(expected = UnknownTopicPathException.class)
-    public void testInvalidGroup() {
-        ProtocolFactory.newTopicPath("namespace/id/invalid/commands/modify");
-    }
-
-    @Test(expected = UnknownTopicPathException.class)
-    public void testInvalidCriterion() {
-        ProtocolFactory.newTopicPath("namespace/id/things/twin/invalid/modify");
-    }
-
-    @Test(expected = UnknownTopicPathException.class)
-    public void testInvalidChannel() {
-        ProtocolFactory.newTopicPath("namespace/id/things/invalid/commands/modify");
-    }
-
-    @Test(expected = UnknownTopicPathException.class)
-    public void testInvalidAction() {
-        ProtocolFactory.newTopicPath("namespace/id/things/twin/commands/invalid");
-    }
-
-    @Test(expected = UnknownTopicPathException.class)
-    public void testMissingGroup() {
-        ProtocolFactory.newTopicPath("namespace/id");
-    }
-
-    @Test(expected = UnknownTopicPathException.class)
-    public void testMissingId() {
-        ProtocolFactory.newTopicPath("namespace");
-    }
-
-    @Test(expected = UnknownTopicPathException.class)
-    public void testMissingNamespace() {
-        ProtocolFactory.newTopicPath("");
-    }
-
-    @Test(expected = NullPointerException.class)
-    public void testNullPath() {
-        ProtocolFactory.newTopicPath(null);
-    }
-
     @Test
     public void testNewTopicPathBuilderFromThingId() {
         final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(ThingId.of(NAMESPACE, ID));
         final TopicPath topicPath = topicPathBuilder.twin().commands().modify().build();
-        assertThat(topicPath.getNamespace()).isEqualTo(NAMESPACE);
-        assertThat(topicPath.getEntityName()).isEqualTo(ID);
-        assertThat(topicPath.getChannel()).isEqualTo(TopicPath.Channel.TWIN);
-        assertThat(topicPath.getGroup()).isEqualTo(TopicPath.Group.THINGS);
-        assertThat(topicPath.getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);
-        assertThat(topicPath.getAction()).contains(TopicPath.Action.MODIFY);
+
+        softly.assertThat(topicPath.getNamespace()).isEqualTo(NAMESPACE);
+        softly.assertThat(topicPath.getEntityName()).isEqualTo(ID);
+        softly.assertThat(topicPath.getChannel()).isEqualTo(TopicPath.Channel.TWIN);
+        softly.assertThat(topicPath.getGroup()).isEqualTo(TopicPath.Group.THINGS);
+        softly.assertThat(topicPath.getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);
+        softly.assertThat(topicPath.getAction()).contains(TopicPath.Action.MODIFY);
     }
 
     @Test
@@ -91,35 +55,39 @@ public class ProtocolFactoryTest {
                 ProtocolFactory.newTopicPathBuilder(
                         new AbstractNamespacedEntityId(ThingConstants.ENTITY_TYPE, NAMESPACE, ID, true) {});
         final TopicPath topicPath = topicPathBuilder.twin().commands().modify().build();
-        assertThat(topicPath.getNamespace()).isEqualTo(NAMESPACE);
-        assertThat(topicPath.getEntityName()).isEqualTo(ID);
-        assertThat(topicPath.getChannel()).isEqualTo(TopicPath.Channel.TWIN);
-        assertThat(topicPath.getGroup()).isEqualTo(TopicPath.Group.THINGS);
-        assertThat(topicPath.getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);
-        assertThat(topicPath.getAction()).contains(TopicPath.Action.MODIFY);
+
+        softly.assertThat(topicPath.getNamespace()).isEqualTo(NAMESPACE);
+        softly.assertThat(topicPath.getEntityName()).isEqualTo(ID);
+        softly.assertThat(topicPath.getChannel()).isEqualTo(TopicPath.Channel.TWIN);
+        softly.assertThat(topicPath.getGroup()).isEqualTo(TopicPath.Group.THINGS);
+        softly.assertThat(topicPath.getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);
+        softly.assertThat(topicPath.getAction()).contains(TopicPath.Action.MODIFY);
     }
 
     @Test
     public void testNewTopicPathBuilderFromPolicyId() {
         final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(PolicyId.of(NAMESPACE, ID));
         final TopicPath topicPath = topicPathBuilder.none().commands().modify().build();
-        assertThat(topicPath.getNamespace()).isEqualTo(NAMESPACE);
-        assertThat(topicPath.getEntityName()).isEqualTo(ID);
-        assertThat(topicPath.getChannel()).isEqualTo(TopicPath.Channel.NONE);
-        assertThat(topicPath.getGroup()).isEqualTo(TopicPath.Group.POLICIES);
-        assertThat(topicPath.getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);
-        assertThat(topicPath.getAction()).contains(TopicPath.Action.MODIFY);
+
+        softly.assertThat(topicPath.getNamespace()).isEqualTo(NAMESPACE);
+        softly.assertThat(topicPath.getEntityName()).isEqualTo(ID);
+        softly.assertThat(topicPath.getChannel()).isEqualTo(TopicPath.Channel.NONE);
+        softly.assertThat(topicPath.getGroup()).isEqualTo(TopicPath.Group.POLICIES);
+        softly.assertThat(topicPath.getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);
+        softly.assertThat(topicPath.getAction()).contains(TopicPath.Action.MODIFY);
     }
 
     @Test
     public void testNewTopicPathBuilderFromNamespace() {
         final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilderFromNamespace(NAMESPACE);
         final TopicPath topicPath = topicPathBuilder.twin().commands().modify().build();
-        assertThat(topicPath.getNamespace()).isEqualTo(NAMESPACE);
-        assertThat(topicPath.getEntityName()).isEqualTo(TopicPath.ID_PLACEHOLDER);
-        assertThat(topicPath.getChannel()).isEqualTo(TopicPath.Channel.TWIN);
-        assertThat(topicPath.getGroup()).isEqualTo(TopicPath.Group.THINGS);
-        assertThat(topicPath.getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);
-        assertThat(topicPath.getAction()).contains(TopicPath.Action.MODIFY);
+
+        softly.assertThat(topicPath.getNamespace()).isEqualTo(NAMESPACE);
+        softly.assertThat(topicPath.getEntityName()).isEqualTo(TopicPath.ID_PLACEHOLDER);
+        softly.assertThat(topicPath.getChannel()).isEqualTo(TopicPath.Channel.TWIN);
+        softly.assertThat(topicPath.getGroup()).isEqualTo(TopicPath.Group.THINGS);
+        softly.assertThat(topicPath.getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);
+        softly.assertThat(topicPath.getAction()).contains(TopicPath.Action.MODIFY);
     }
+
 }

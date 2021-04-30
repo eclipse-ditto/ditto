@@ -14,11 +14,8 @@ package org.eclipse.ditto.protocoladapter;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -89,108 +86,53 @@ public final class ProtocolFactory {
     }
 
     /**
-     * Returns a new {@code TopicPath} for the specified {@code path}.
+     * Parses the string argument as a {@link TopicPath}.
      *
-     * @param path the path.
-     * @return the builder.
+     * @param topicPathString a String containing of the {@code TopicPath} representation to be parsed.
+     * @return the {@code TopicPath} represented by the argument.
      * @throws NullPointerException if {@code path} is {@code null}.
-     * @throws UnknownTopicPathException if {@code path} is no valid {@code TopicPath}.
+     * @throws UnknownTopicPathException if the string does not contain a parsable {@code TopicPath}.
      */
-    @SuppressWarnings({"squid:S1166"})
-    public static TopicPath newTopicPath(final String path) {
-        checkNotNull(path, "path");
-        final LinkedList<String> parts = new LinkedList<>(Arrays.asList(path.split(TopicPath.PATH_DELIMITER)));
-
-        try {
-            final String namespace = parts.pop(); // parts[0]
-            final String id = parts.pop(); // parts[1]
-            final TopicPath.Group group =
-                    TopicPath.Group.forName(parts.pop()) // parts[2]
-                            .orElseThrow(() -> UnknownTopicPathException.newBuilder(path).build());
-
-            final TopicPath.Channel channel;
-            switch (group) {
-                case POLICIES:
-                    channel = TopicPath.Channel.NONE;
-                    break;
-                case THINGS:
-                    channel = TopicPath.Channel.forName(parts.pop()) // parts[3]
-                            .orElseThrow(() -> UnknownTopicPathException.newBuilder(path).build());
-                    break;
-                default:
-                    throw UnknownTopicPathException.newBuilder(path).build();
-            }
-
-            final TopicPath.Criterion criterion =
-                    TopicPath.Criterion.forName(parts.pop())
-                            .orElseThrow(() -> UnknownTopicPathException.newBuilder(path).build());
-
-            switch (criterion) {
-                case COMMANDS:
-                case EVENTS:
-                    // commands and events Path always contain an ID:
-                    final TopicPath.Action action =
-                            TopicPath.Action.forName(parts.pop())
-                                    .orElseThrow(() -> UnknownTopicPathException.newBuilder(path).build());
-                    return ImmutableTopicPath.of(namespace, id, group, channel, criterion, action);
-                case SEARCH:
-                    final TopicPath.SearchAction searchAction =
-                            TopicPath.SearchAction.forName(parts.pop())
-                                    .orElseThrow(() -> UnknownTopicPathException.newBuilder(path).build());
-                    return ImmutableTopicPath.of(namespace, id, group, channel, criterion, searchAction);
-                case ERRORS:
-                    // errors Path does neither contain an "action":
-                    return ImmutableTopicPath.of(namespace, id, group, channel, criterion);
-                case MESSAGES:
-                case ACKS:
-                case ANNOUNCEMENTS:
-                    // messages and announcements should always contain a non-empty subject:
-                    // ACK Paths contain a custom acknowledgement label or an empty subject for aggregated ACKs:
-                    final String subject = String.join(TopicPath.PATH_DELIMITER, parts);
-                    if (subject.isEmpty()) {
-                        return ImmutableTopicPath.of(namespace, id, group, channel, criterion);
-                    } else {
-                        return ImmutableTopicPath.of(namespace, id, group, channel, criterion, subject);
-                    }
-
-                default:
-                    throw UnknownTopicPathException.newBuilder(path).build();
-            }
-        } catch (final NoSuchElementException e) {
-            throw UnknownTopicPathException.newBuilder(path).build();
-        }
+    public static TopicPath newTopicPath(final String topicPathString) {
+        return ImmutableTopicPath.parseTopicPath(topicPathString);
     }
 
     /**
-     * Returns a new {@code TopicPathBuilder} for the specified {@code thingId}. The {@code namespace} and {@code id}
-     * part of the {@code TopicPath} will pe parsed from the {@code thingId} and set in the builder.
+     * Returns a new {@code TopicPathBuilder} for the specified {@link ThingId}.
+     * The namespace and name part of the {@code TopicPath} will pe parsed from the {@code ThingId} and set in the
+     * builder.
      *
-     * @param thingId the id.
+     * @param thingId the ID.
      * @return the builder.
      * @throws NullPointerException if {@code thingId} is {@code null}.
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if {@code thingId} is not in the expected format.
      */
     public static TopicPathBuilder newTopicPathBuilder(final ThingId thingId) {
-        return ImmutableTopicPathBuilder.of(thingId).things();
+        checkNotNull(thingId, "thingId");
+        final TopicPathBuilder result = ImmutableTopicPath.newBuilder(thingId.getNamespace(), thingId.getName());
+        return result.things();
     }
 
     /**
-     * Returns a new {@code TopicPathBuilder} for the specified {@code entityId}. The {@code namespace} and {@code id}
-     * part of the {@code TopicPath} will pe parsed from the {@code entityId} and set in the builder.
+     * Returns a new {@code TopicPathBuilder} for the specified {@link NamespacedEntityId}.
+     * The namespace and name part of the {@code TopicPath} will pe parsed from the entity ID and set in the builder.
      *
-     * @param entityId the id.
+     * @param entityId the ID.
      * @return the builder.
      * @throws NullPointerException if {@code entityId} is {@code null}.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if {@code entityIdId} is not in the expected
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if {@code entityId} is not in the expected
      * format.
      */
     public static TopicPathBuilder newTopicPathBuilder(final NamespacedEntityId entityId) {
-        return ImmutableTopicPathBuilder.of(entityId).things();
+        checkNotNull(entityId, "entityId");
+        final TopicPathBuilder result = ImmutableTopicPath.newBuilder(entityId.getNamespace(), entityId.getName());
+        return result.things();
     }
 
     /**
-     * Returns a new {@code TopicPathBuilder} for the specified {@code policyId}. The {@code namespace} and {@code id}
-     * part of the {@code TopicPath} will pe parsed from the {@code policyId} and set in the builder.
+     * Returns a new {@code TopicPathBuilder} for the specified {@link PolicyId}.
+     * The namespace and name part of the {@code TopicPath} will pe parsed from the {@code PolicyId} and set in the
+     * builder.
      *
      * @param policyId the id.
      * @return the builder.
@@ -199,19 +141,22 @@ public final class ProtocolFactory {
      * format.
      */
     public static TopicPathBuilder newTopicPathBuilder(final PolicyId policyId) {
-        return ImmutableTopicPathBuilder.of(policyId).policies();
+        checkNotNull(policyId, "policyId");
+        final TopicPathBuilder result = ImmutableTopicPath.newBuilder(policyId.getNamespace(), policyId.getName());
+        return result.policies();
     }
 
     /**
-     * Returns a new {@code TopicPathBuilder}. The {@code id} part of the {@code TopicPath} is set to
-     * {@link TopicPath#ID_PLACEHOLDER}.
+     * Returns a new {@code TopicPathBuilder}.
+     * The name part of the {@code TopicPath} is set to {@link TopicPath#ID_PLACEHOLDER}.
      *
-     * @param namespace the namespace.
+     * @param namespace the namespace to be set to the builder.
      * @return the builder.
      * @throws NullPointerException if {@code namespace} is {@code null}.
      */
     public static TopicPathBuilder newTopicPathBuilderFromNamespace(final String namespace) {
-        return ImmutableTopicPathBuilder.of(namespace, TopicPath.ID_PLACEHOLDER).things();
+        final TopicPathBuilder result = ImmutableTopicPath.newBuilder(namespace, TopicPath.ID_PLACEHOLDER);
+        return result.things();
     }
 
     /**
