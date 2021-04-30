@@ -469,12 +469,6 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-model-acks</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-protocol</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -877,14 +871,6 @@
                 <version>${project.version}</version>
                 <scope>test</scope>
             </dependency>
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-signals-commands-policies</artifactId>
-                <type>test-jar</type>
-                <version>${project.version}</version>
-                <scope>test</scope>
-            </dependency>
-
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-base-service</artifactId>
