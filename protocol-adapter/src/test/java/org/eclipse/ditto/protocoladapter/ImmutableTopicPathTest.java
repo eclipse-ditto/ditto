@@ -21,6 +21,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.NoSuchElementException;
+import java.util.stream.Stream;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.Rule;
@@ -243,6 +244,60 @@ public final class ImmutableTopicPathTest {
                         .build())
                 .withMessage("The policies group requires no channel.")
                 .withNoCause();
+    }
+
+    @Test
+    public void isGroupReturnsExpected() {
+        final TopicPath underTest =
+                ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME).things().twin().messages().build();
+
+        softly.assertThat(underTest.isGroup(TopicPath.Group.THINGS)).as("actual group").isTrue();
+        softly.assertThat(underTest.isGroup(null)).as("null group").isFalse();
+        softly.assertThat(underTest.isGroup(TopicPath.Group.POLICIES)).as("different group").isFalse();
+    }
+
+    @Test
+    public void isChannelReturnsExpected() {
+        final TopicPath underTest =
+                ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME).things().twin().commands().modify().build();
+        final TopicPath.Channel actualChannel = TopicPath.Channel.TWIN;
+
+        softly.assertThat(underTest.isChannel(actualChannel)).as("actual channel").isTrue();
+        softly.assertThat(underTest.isChannel(null)).as("null channel").isFalse();
+        Stream.of(TopicPath.Channel.values())
+                .filter(c -> !c.equals(actualChannel))
+                .forEach(c -> softly.assertThat(underTest.isChannel(c)).as(c.getName()).isFalse());
+    }
+
+    @Test
+    public void isCriterionReturnsExpected() {
+        final TopicPath underTest =
+                ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME).things().commands().modify().build();
+        final TopicPath.Criterion actualCriterion = TopicPath.Criterion.COMMANDS;
+
+        softly.assertThat(underTest.isCriterion(actualCriterion)).as("actual criterion").isTrue();
+        softly.assertThat(underTest.isCriterion(null)).as("null criterion").isFalse();
+        Stream.of(TopicPath.Criterion.values())
+                .filter(c -> !c.equals(actualCriterion))
+                .forEach(c -> softly.assertThat(underTest.isCriterion(c)).as(c.getName()).isFalse());
+    }
+
+    @Test
+    public void isActionReturnsExpected() {
+        final TopicPath underTestWithAction =
+                ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME).policies().commands().retrieve().build();
+        final TopicPath.Action actualAction = TopicPath.Action.RETRIEVE;
+
+        softly.assertThat(underTestWithAction.isAction(actualAction)).as("actual action").isTrue();
+        softly.assertThat(underTestWithAction.isAction(null)).as("null action").isFalse();
+        Stream.of(TopicPath.Action.values())
+                .filter(a -> !a.equals(actualAction))
+                .forEach(a -> softly.assertThat(underTestWithAction.isAction(a)).as(a.getName()).isFalse());
+
+        final TopicPath underTestWithoutAction =
+                ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME).things().twin().search().request().build();
+
+        softly.assertThat(underTestWithoutAction.isAction(null)).as("null action").isTrue();
     }
 
     @Test

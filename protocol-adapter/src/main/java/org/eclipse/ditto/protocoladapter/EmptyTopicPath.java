@@ -114,6 +114,26 @@ final class EmptyTopicPath implements TopicPath {
     }
 
     @Override
+    public boolean isGroup(@Nullable final Group expectedGroup) {
+        return false;
+    }
+
+    @Override
+    public boolean isChannel(@Nullable final Channel expectedChannel) {
+        return false;
+    }
+
+    @Override
+    public boolean isCriterion(@Nullable final Criterion expectedCriterion) {
+        return false;
+    }
+
+    @Override
+    public boolean isAction(@Nullable final Action expectedAction) {
+        return false;
+    }
+
+    @Override
     public boolean equals(@Nullable final Object o) {
         return this == o || !(o == null || getClass() != o.getClass());
     }

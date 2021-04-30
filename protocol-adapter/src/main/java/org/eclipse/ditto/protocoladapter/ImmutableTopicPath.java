@@ -136,6 +136,26 @@ final class ImmutableTopicPath implements TopicPath {
         return pathPartStream.filter(s -> !s.isEmpty()).collect(Collectors.joining(PATH_DELIMITER));
     }
 
+    @Override
+    public boolean isGroup(@Nullable final Group expectedGroup) {
+        return group.equals(expectedGroup);
+    }
+
+    @Override
+    public boolean isChannel(@Nullable final Channel expectedChannel) {
+        return channel.equals(expectedChannel);
+    }
+
+    @Override
+    public boolean isCriterion(@Nullable final Criterion expectedCriterion) {
+        return criterion.equals(expectedCriterion);
+    }
+
+    @Override
+    public boolean isAction(@Nullable final Action expectedAction) {
+        return Objects.equals(action, expectedAction);
+    }
+
     private static String getStringOrEmptyStringIfNull(@Nullable final Object pathPart) {
         final String result;
         if (null != pathPart) {
