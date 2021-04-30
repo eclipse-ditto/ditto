@@ -42,8 +42,9 @@ final class NonEmptyValueValidator extends AbstractHeaderValueValidator {
     @Override
     protected void validateValue(final HeaderDefinition definition, final CharSequence value) {
         if (value.length() < 1) {
-            final String message = MessageFormat.format(MESSAGE_TEMPLATE, definition.getKey());
-            throw DittoHeaderInvalidException.newCustomMessageBuilder(message).build();
+            throw DittoHeaderInvalidException.newBuilder()
+                    .message(MessageFormat.format(MESSAGE_TEMPLATE, definition.getKey()))
+                    .build();
         }
     }
 

@@ -189,9 +189,12 @@ public final class AcknowledgementAggregatorActorStarter {
         final boolean isTimeoutHeaderInvalid = isTimeoutZero &&
                 (dittoHeaders.isResponseRequired() || !dittoHeaders.getAcknowledgementRequests().isEmpty());
         if (isTimeoutHeaderInvalid) {
+            final var invalidHeaderKey = DittoHeaderDefinition.TIMEOUT.getKey();
             final String message = String.format("The value of the header '%s' must not be zero if " +
-                    "response or acknowledgements are requested.", DittoHeaderDefinition.TIMEOUT.getKey());
-            return Optional.of(DittoHeaderInvalidException.newCustomMessageBuilder(message)
+                    "response or acknowledgements are requested.", invalidHeaderKey);
+            return Optional.of(DittoHeaderInvalidException.newBuilder()
+                    .withInvalidHeaderKey(invalidHeaderKey)
+                    .message(message)
                     .description("Please provide a positive timeout.")
                     .dittoHeaders(dittoHeaders)
                     .build());

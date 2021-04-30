@@ -48,8 +48,10 @@ final class JsonArrayValueValidator extends AbstractHeaderValueValidator {
     protected void validateValue(final HeaderDefinition definition, final CharSequence value) {
         if (containsNonStringArrayValues(tryToParseJsonArray(definition, value.toString()))) {
             final String msgTemplate = "JSON array for <{0}> contained non-string values!";
-            throw DittoHeaderInvalidException
-                    .newCustomMessageBuilder(MessageFormat.format(msgTemplate, definition.getKey()))
+            final String invalidHeaderKey = definition.getKey();
+            throw DittoHeaderInvalidException.newBuilder()
+                    .withInvalidHeaderKey(invalidHeaderKey)
+                    .message(MessageFormat.format(msgTemplate, invalidHeaderKey))
                     .build();
         }
     }
