@@ -301,27 +301,6 @@
                     <version>3.1.0</version>
                 </plugin>
                 <plugin>
-                    <groupId>org.codehaus.mojo</groupId>
-                    <artifactId>exec-maven-plugin</artifactId>
-                    <version>1.6.0</version>
-                    <executions>
-                        <execution>
-                            <id>produce-json-examples</id>
-                            <phase>pre-site</phase>
-                            <goals>
-                                <goal>java</goal>
-                            </goals>
-                            <configuration>
-                                <classpathScope>test</classpathScope>
-                                <!-- <mainClass>define in submodules</mainClass> -->
-                                <arguments>
-                                    <argument>${project.build.directory}/generated-resources</argument>
-                                </arguments>
-                            </configuration>
-                        </execution>
-                    </executions>
-                </plugin>
-                <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-site-plugin</artifactId>
                     <version>3.7</version>

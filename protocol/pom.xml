@@ -177,24 +177,6 @@
                     </parameter>
                 </configuration>
             </plugin>
-
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>produce-json-examples</id>
-                        <configuration>
-                            <mainClass>
-                                org.eclipse.ditto.protocol.examples.PublicJsonExamplesProducer
-                            </mainClass>
-                            <arguments>
-                                <argument>${project.build.directory}/generated-resources/markdown</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
 
