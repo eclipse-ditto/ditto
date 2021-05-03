@@ -22,7 +22,7 @@
     </parent>
 
     <artifactId>ditto-internal-utils-conditional-headers</artifactId>
-    <name>Eclipse Ditto :: Internal :: Utils :: Conditional Header Utils</name>
+    <name>Eclipse Ditto :: Internal :: Utils :: Conditional Headers</name>
 
     <dependencies>
         <dependency>

@@ -16,6 +16,7 @@ package org.eclipse.ditto.base.model.headers;
  * Common interface for all classes which have {@link org.eclipse.ditto.base.model.headers.DittoHeaders} available.
  *
  * @param <T> the type of the implementing class.
+ * @since 2.0.0
  */
 public interface DittoHeadersSettable<T extends DittoHeadersSettable<T>> extends WithDittoHeaders {
 

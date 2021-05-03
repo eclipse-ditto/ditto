@@ -22,11 +22,9 @@
     </parent>
 
     <artifactId>ditto-internal-utils-tracing</artifactId>
-    <name>Eclipse Ditto :: Internal :: Utils :: Tracing Utils</name>
+    <name>Eclipse Ditto :: Internal :: Utils :: Tracing</name>
 
     <dependencies>
-
-
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-base-model</artifactId>

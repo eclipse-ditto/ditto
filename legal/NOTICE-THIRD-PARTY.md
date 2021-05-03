@@ -220,14 +220,14 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=com/hierynomus/asn-one/0.5.0/asn-one-0.5.0-sources.jar
 
 
-## HiveMQ MQTT Client (1.2.1)
+## HiveMQ MQTT Client (1.2.2)
 
-* Maven coordinates: `com.hivemq:hivemq-mqtt-client:1.2.1`
+* Maven coordinates: `com.hivemq:hivemq-mqtt-client:1.2.2`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://github.com/hivemq/hivemq-mqtt-client
 * Sources: 
    * declared as SCM: https://github.com/hivemq/hivemq-mqtt-client
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/hivemq/hivemq-mqtt-client/1.2.1/hivemq-mqtt-client-1.2.1-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/hivemq/hivemq-mqtt-client/1.2.2/hivemq-mqtt-client-1.2.2-sources.jar
 
 
 ## akka-discovery-kubernetes-api (1.0.10)
@@ -418,6 +418,16 @@
 * Sources: 
    * declared as SCM: https://github.com/akka/akka
    * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-coordination_2.13/2.6.13/akka-coordination_2.13-2.6.13-sources.jar
+
+
+## akka-discovery (2.6.13)
+
+* Maven coordinates: `com.typesafe.akka:akka-discovery_2.13:2.5.31`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://akka.io/
+* Sources: 
+   * declared as SCM: https://github.com/akka/akka
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-discovery_2.13/2.6.13/akka-discovery_2.13-2.6.13-sources.jar
 
 
 ## akka-distributed-data (2.6.13)
@@ -839,14 +849,15 @@
    * declared as SCM: https://gitbox.apache.org/repos/asf?p=qpid-jms/qpid-jms-client
    * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/qpid/qpid-jms-client/0.54.0/qpid-jms-client-0.54.0-sources.jar
 
+
 ## Apache Mina SSHD :: Common support utilities (2.6.0)
 
 * Maven coordinates: `org.apache.sshd:sshd-common:2.6.0`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://www.apache.org/sshd/sshd-common/
-* Sources:
-  * declared as SCM: https://github.com/apache/mina-sshd/tree/sshd-2.6.0/sshd-common
-  * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/sshd/sshd-common/2.6.0/sshd-common-2.6.0-sources.jar
+* Sources: 
+   * declared as SCM: https://github.com/apache/mina-sshd/tree/sshd-2.6.0/sshd-common
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/sshd/sshd-common/2.6.0/sshd-common-2.6.0-sources.jar
 
 
 ## Apache Mina SSHD :: Core (2.6.0)
@@ -854,9 +865,9 @@
 * Maven coordinates: `org.apache.sshd:sshd-core:2.6.0`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://www.apache.org/sshd/sshd-core/
-* Sources:
-  * declared as SCM: https://github.com/apache/mina-sshd/tree/sshd-2.6.0/sshd-core
-  * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/sshd/sshd-core/2.6.0/sshd-core-2.6.0-sources.jar
+* Sources: 
+   * declared as SCM: https://github.com/apache/mina-sshd/tree/sshd-2.6.0/sshd-core
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/sshd/sshd-core/2.6.0/sshd-core-2.6.0-sources.jar
 
 
 ## Atteo Class Index (3.8)
@@ -1047,6 +1058,16 @@
 * Sources: 
    * declared as SCM: https://github.com/scala/scala-parser-combinators
    * Maven sources: https://search.maven.org/remotecontent?filepath=org/scala-lang/modules/scala-parser-combinators_2.13/1.1.2/scala-parser-combinators_2.13-1.1.2-sources.jar
+
+
+## JUL to SLF4J bridge (1.7.30)
+
+* Maven coordinates: `org.slf4j:jul-to-slf4j:1.7.30`
+* License: [MIT](https://spdx.org/licenses/MIT.html)
+* Project: http://www.slf4j.org
+* Sources: 
+   * declared as SCM: https://github.com/qos-ch/slf4j/jul-to-slf4j
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/slf4j/jul-to-slf4j/1.7.30/jul-to-slf4j-1.7.30-sources.jar
 
 
 ## SLF4J API Module (1.7.30)

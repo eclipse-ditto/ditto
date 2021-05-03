@@ -22,7 +22,7 @@
     </parent>
 
     <artifactId>ditto-internal-utils-cache</artifactId>
-    <name>Eclipse Ditto :: Internal :: Utils :: Cache Utils</name>
+    <name>Eclipse Ditto :: Internal :: Utils :: Cache</name>
 
     <dependencies>
         <dependency>

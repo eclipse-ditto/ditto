@@ -37,9 +37,6 @@ org.objenesis:objenesis:jar:2.6:test
 org.openjdk.jmh:jmh-core:jar:1.27:test
 org.openjdk.jmh:jmh-generator-annprocess:jar:1.27:test
 org.opentest4j:opentest4j:jar:1.2.0:test
-org.scalactic:scalactic_2.13:jar:3.1.4:test
-org.scala-lang.modules:scala-xml_2.13:jar:1.2.0:test
-org.scalatest:scalatest_2.13:jar:3.1.4:test
 org.scalaz:scalaz-core_2.13:jar:7.2.28:test
 org.skyscreamer:jsonassert:jar:1.5.0:test
 org.slf4j:slf4j-simple:jar:1.7.30:test

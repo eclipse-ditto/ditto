@@ -22,7 +22,7 @@
     </parent>
 
     <artifactId>ditto-internal-utils-cluster</artifactId>
-    <name>Eclipse Ditto :: Internal :: Utils :: Cluster Utils</name>
+    <name>Eclipse Ditto :: Internal :: Utils :: Cluster</name>
 
     <dependencies>
         <!-- Required by ditto-json to use CBOR: -->

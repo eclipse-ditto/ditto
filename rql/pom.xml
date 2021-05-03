@@ -23,8 +23,8 @@
     </parent>
 
     <artifactId>ditto-rql</artifactId>
-    <name>Eclipse Ditto :: RQL</name>
     <packaging>pom</packaging>
+    <name>Eclipse Ditto :: RQL</name>
 
     <modules>
         <module>model</module>

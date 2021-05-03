@@ -22,7 +22,7 @@
     </parent>
 
     <artifactId>ditto-internal-utils-health</artifactId>
-    <name>Eclipse Ditto :: Internal :: Utils :: Health Utils</name>
+    <name>Eclipse Ditto :: Internal :: Utils :: Health</name>
 
     <dependencies>
         <dependency>

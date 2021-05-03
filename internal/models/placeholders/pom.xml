@@ -23,7 +23,6 @@
     </parent>
 
     <artifactId>ditto-internal-models-placeholders</artifactId>
-    <packaging>jar</packaging>
     <name>Eclipse Ditto :: Internal :: Models :: Placeholders</name>
 
     <dependencies>

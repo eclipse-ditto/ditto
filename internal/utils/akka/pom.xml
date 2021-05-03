@@ -22,7 +22,7 @@
     </parent>
 
     <artifactId>ditto-internal-utils-akka</artifactId>
-    <name>Eclipse Ditto :: Internal :: Utils :: Akka Utils</name>
+    <name>Eclipse Ditto :: Internal :: Utils :: Akka</name>
 
     <dependencies>
         <dependency>

@@ -22,7 +22,7 @@
     </parent>
 
     <artifactId>ditto-internal-utils-test</artifactId>
-    <name>Eclipse Ditto :: Internal :: Utils :: Test Utils</name>
+    <name>Eclipse Ditto :: Internal :: Utils :: Test</name>
 
     <dependencies>
         <!-- Required for GlobalErrorRegistryTestCases -->

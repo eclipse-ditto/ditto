@@ -22,7 +22,7 @@
     </parent>
 
     <artifactId>ditto-thingsearch-api</artifactId>
-    <name>Eclipse Ditto :: Internal :: Models :: Things Search</name>
+    <name>Eclipse Ditto :: Thing Search :: API</name>
 
     <dependencies>
         <dependency>

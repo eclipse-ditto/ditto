@@ -22,7 +22,7 @@
     </parent>
 
     <artifactId>ditto-internal-utils-config</artifactId>
-    <name>Eclipse Ditto :: Internal :: Utils :: Config Utils</name>
+    <name>Eclipse Ditto :: Internal :: Utils :: Config</name>
 
     <dependencies>
         <dependency>

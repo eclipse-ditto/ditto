@@ -22,7 +22,6 @@
     </parent>
 
     <artifactId>ditto-internal-models-signalenrichment</artifactId>
-    <packaging>jar</packaging>
     <name>Eclipse Ditto :: Internal :: Models :: Signal Enrichment</name>
 
     <dependencies>

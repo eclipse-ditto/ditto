@@ -22,7 +22,7 @@
     </parent>
 
     <artifactId>ditto-internal-utils-persistence</artifactId>
-    <name>Eclipse Ditto :: Internal :: Utils :: Persistence Utils</name>
+    <name>Eclipse Ditto :: Internal :: Utils :: Persistence</name>
 
     <dependencies>
         <dependency>
