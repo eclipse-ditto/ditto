@@ -127,13 +127,24 @@ final class ImmutableTopicPath implements TopicPath {
                 .add(namespace)
                 .add(name)
                 .add(group.getName())
-                .add(Channel.NONE == channel ? "" : channel.getName())
+                .add(Channel.NONE != channel ? channel.getName() : null)
                 .add(criterion.getName())
-                .add(getStringOrEmptyStringIfNull(action))
-                .add(getStringOrEmptyStringIfNull(searchAction))
-                .add(getStringOrEmptyStringIfNull(subject))
+                .add(getStringOrNull(action))
+                .add(getStringOrNull(searchAction))
+                .add(getStringOrNull(subject))
                 .build();
-        return pathPartStream.filter(s -> !s.isEmpty()).collect(Collectors.joining(PATH_DELIMITER));
+        return pathPartStream.filter(Objects::nonNull).collect(Collectors.joining(PATH_DELIMITER));
+    }
+
+    @Nullable
+    private static String getStringOrNull(@Nullable final Object pathPart) {
+        @Nullable final String result;
+        if (null == pathPart) {
+            result = null;
+        } else {
+            result = pathPart.toString();
+        }
+        return result;
     }
 
     @Override
@@ -154,16 +165,6 @@ final class ImmutableTopicPath implements TopicPath {
     @Override
     public boolean isAction(@Nullable final Action expectedAction) {
         return Objects.equals(action, expectedAction);
-    }
-
-    private static String getStringOrEmptyStringIfNull(@Nullable final Object pathPart) {
-        final String result;
-        if (null != pathPart) {
-            result = pathPart.toString();
-        } else {
-            result = "";
-        }
-        return result;
     }
 
     @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067", "OverlyComplexMethod"})

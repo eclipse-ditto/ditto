@@ -247,6 +247,14 @@ public final class ImmutableTopicPathTest {
     }
 
     @Test
+    public void getPathWithEmptyNamespaceReturnsExpected() {
+        final TopicPath underTest =
+                ImmutableTopicPath.newBuilder("", ENTITY_NAME).things().live().commands().retrieve().build();
+
+        assertThat(underTest.getPath()).isEqualTo("/" + ENTITY_NAME + "/things/live/commands/retrieve");
+    }
+
+    @Test
     public void isGroupReturnsExpected() {
         final TopicPath underTest =
                 ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME).things().twin().messages().build();
