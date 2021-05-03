@@ -77,15 +77,6 @@ public final class ProtocolFactory {
     }
 
     /**
-     * Returns an empty {@code TopicPath}.
-     *
-     * @return the topic path.
-     */
-    public static TopicPath emptyTopicPath() {
-        return EmptyTopicPath.getInstance();
-    }
-
-    /**
      * Parses the string argument as a {@link TopicPath}.
      *
      * @param topicPathString a String containing of the {@code TopicPath} representation to be parsed.

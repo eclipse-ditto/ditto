@@ -12,18 +12,14 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-
 import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
@@ -39,14 +35,17 @@ import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
-import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 /**
  * Unit test for {@link DittoMessageMapper}.
  */
 public final class DittoMessageMapperTest {
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     private DittoMessageMapper underTest;
 
@@ -55,37 +54,30 @@ public final class DittoMessageMapperTest {
         underTest = new DittoMessageMapper();
     }
 
-    @After
-    public void tearDown() {
-    }
-
     @Test
     public void mapMessage() {
-        createValidIncomingMappings().forEach((in, out) -> assertThat(underTest.map(in)).isEqualTo(out));
+        final var validMapping = valid1();
+        softly.assertThat(underTest.map(validMapping.getKey())).isEqualTo(validMapping.getValue());
     }
 
     @Test
     public void mapMessageFails() {
-        createInvalidIncomingMappings().forEach((in, e) -> assertThatExceptionOfType(e.getClass()).isThrownBy(
-                () -> underTest.map(in)));
+        final var invalidIncomingMappings = createInvalidIncomingMappings();
+        invalidIncomingMappings.forEach(
+                (in, e) -> softly.assertThatThrownBy(() -> underTest.map(in)).hasSameClassAs(e));
     }
 
     @Test
     public void mapAdaptable() {
-        createValidOutgoingMappings().forEach((in, out) -> assertThat(underTest.map(in)).isEqualTo(out));
+        final var validOutgoingMappings = createValidOutgoingMappings();
+        validOutgoingMappings.forEach((in, out) -> softly.assertThat(underTest.map(in)).isEqualTo(out));
     }
 
     @Test
     public void mapAdaptableFails() {
-        createInvalidOutgoingMappings().forEach((in, e) -> assertThatExceptionOfType(e.getClass()).isThrownBy(
-                () -> underTest.map(in)));
-    }
-
-    private static Map<ExternalMessage, List<Adaptable>> createValidIncomingMappings() {
-        return Stream.of(
-                valid1(),
-                valid2()
-        ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        final var invalidOutgoingMappings = createInvalidOutgoingMappings();
+        invalidOutgoingMappings.forEach(
+                (in, e) -> softly.assertThatThrownBy(() -> underTest.map(in)).hasSameClassAs(e));
     }
 
     private static Map.Entry<ExternalMessage, List<Adaptable>> valid1() {
@@ -115,24 +107,6 @@ public final class DittoMessageMapperTest {
         return new AbstractMap.SimpleEntry<>(message, expected);
     }
 
-    private static Map.Entry<ExternalMessage, List<Adaptable>> valid2() {
-        final Map<String, String> headers = new HashMap<>();
-        headers.put("header-key", "header-value");
-        headers.put(ExternalMessage.CONTENT_TYPE_HEADER, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
-
-        final JsonObject json = JsonFactory.newObjectBuilder()
-                .set("path", "/some/path")
-                .build();
-
-        final List<Adaptable> expected = Collections.singletonList(
-                ProtocolFactory.newAdaptableBuilder(ProtocolFactory.jsonifiableAdaptableFromJson(json))
-                        .build());
-        final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers)
-                .withText(json.toString())
-                .build();
-        return new AbstractMap.SimpleEntry<>(message, expected);
-    }
-
     private static Map<ExternalMessage, Throwable> createInvalidIncomingMappings() {
         final Map<ExternalMessage, Throwable> mappings = new HashMap<>();
 
@@ -151,8 +125,14 @@ public final class DittoMessageMapperTest {
         message = ExternalMessageFactory.newExternalMessageBuilder(headers)
                 .withText("no json")
                 .build();
-        mappings.put(message, new DittoJsonException(
-                new JsonParseException("Failed to create JSON object from string!")));
+        mappings.put(message,
+                new DittoJsonException(new JsonParseException("Failed to create JSON object from string!")));
+
+        message = ExternalMessageFactory.newExternalMessageBuilder(headers)
+                .withText(String.valueOf(JsonObject.newBuilder().set("myKey", "myValue").build()))
+                .build();
+        mappings.put(message,
+                new DittoJsonException(new JsonMissingFieldException(JsonifiableAdaptable.JsonFields.TOPIC)));
 
         return mappings;
     }
