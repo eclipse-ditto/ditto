@@ -56,9 +56,18 @@ Modules not on this list are not considered API; they may contain incompatible c
 
 ```
 ditto-json
-ditto-model
-ditto-protocol-adapter
-ditto-signals
+ditto-base-model
+ditto-messages-model
+dito-jwt-model
+ditto-rql-model
+ditto-rql-query
+ditto-rql-parser
+ditto-policies-model
+ditto-things-model
+ditto-thingsearch-model
+ditto-concierge-model
+ditto-connectivity-model
+ditto-protocol
 ditto-utils
 ```
 
