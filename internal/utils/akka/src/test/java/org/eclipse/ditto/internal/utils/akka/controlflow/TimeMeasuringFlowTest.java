@@ -117,8 +117,47 @@ public final class TimeMeasuringFlowTest {
              */
             final Offset<Double> offset = Offset.offset((double) Duration.ofMillis(20).toNanos());
             assertThat(averageDurationInNanos).isCloseTo(sleepDuration.toNanos(), offset);
-            verify(timerMock, times(numberOfRepetitions + 1)).start();
-            assertThat(flowCounter).hasValue(numberOfRepetitions * 2 + 1);
+            verify(timerMock, times(numberOfRepetitions)).start();
+            assertThat(flowCounter).hasValue(numberOfRepetitions * 2);
+        }};
+    }
+
+    /**
+     * This test verifies that a provided duration sink that does not demand any elements does not stop the processing
+     * of the measured flow.
+     */
+    @Test
+    public void durationSinkHasNoImpactOnFlowProcessing() {
+        final AtomicInteger flowCounter = new AtomicInteger();
+        final Duration sleepDuration = Duration.ofMillis(100);
+        final Flow<String, String, NotUsed> flowThatNeedsSomeTime = Flow.<String, String>fromFunction(x -> {
+            flowCounter.incrementAndGet();
+            TimeUnit.MILLISECONDS.sleep(sleepDuration.toMillis());
+            return x;
+        });
+
+        final PreparedTimer timer = DittoMetrics.timer("test-time-measuring-flow");
+        final PreparedTimer timerMock = mock(PreparedTimer.class);
+        when(timerMock.start()).thenAnswer(AdditionalAnswers.delegatesTo(timer));
+        final Sink<Duration, TestSubscriber.Probe<Duration>> sink = TestSink.<Duration>probe(system);
+        final Pair<TestSubscriber.Probe<Duration>, Sink<Duration, NotUsed>> sinkPair = sink.preMaterialize(system);
+        final TestSubscriber.Probe<Duration> durationProbe = sinkPair.first();
+        new TestKit(system) {{
+            Source.repeat("Test")
+                    .via(TimeMeasuringFlow.measureTimeOf(flowThatNeedsSomeTime, timerMock, sinkPair.second()))
+                    .via(flowThatNeedsSomeTime) // This should not influence the time measuring above
+                    .to(testSink)
+                    .run(system);
+
+            final int numberOfRepetitions = 10;
+            final ArrayList<String> expectedResults = new ArrayList<>(numberOfRepetitions);
+            for (int i = 0; i < numberOfRepetitions; i++) {
+                expectedResults.add("Test");
+            }
+            sinkProbe.request(numberOfRepetitions);
+            sinkProbe.expectNextN(CollectionConverters.asScala(expectedResults).toSeq());
+            verify(timerMock, times(numberOfRepetitions)).start();
+            assertThat(flowCounter).hasValue(numberOfRepetitions * 2);
         }};
     }
 

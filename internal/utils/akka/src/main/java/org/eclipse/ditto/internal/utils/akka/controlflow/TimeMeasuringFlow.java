@@ -20,7 +20,6 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import akka.NotUsed;
 import akka.japi.Pair;
 import akka.stream.FanInShape2;
-import akka.stream.FanOutShape2;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
 import akka.stream.UniformFanOutShape;
@@ -28,7 +27,6 @@ import akka.stream.javadsl.Broadcast;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.GraphDSL;
 import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Unzip;
 import akka.stream.javadsl.Zip;
 
 public final class TimeMeasuringFlow {
@@ -54,17 +52,17 @@ public final class TimeMeasuringFlow {
      * Builds a flow that measures the time it took the given flow to process the input to the output using the given timer.
      *
      * <pre>
-     *   +--------------------------------------------------------------------------------------------------------+
-     *   |                                                                                                        |
-     *   |                         +--------------+                                                               |
-     *   |                     +-->+ startTimer   +----+  +-----+   +-------+      +-----------+   +--------------+
-     * IN|  +---------------+  |   +--------------+    +->+ zip +-->+ unzip +---+->+ stopTimer |-->+ durationSink |
-     * +--->+ beforeTimerBC +--+                       |  +-----+   +-------+   |  +-----------+   +--------------+
-     *   |  +---------------+  |   +------+            |                        |                                 |
-     *   |                     +-->+ flow +------------+                        |                                 |OUT
-     *   |                         +------+                                     +----------------------------------->
-     *   |                                                                                                        |
-     *   +--------------------------------------------------------------------------------------------------------+
+     *   +------------------------------------------------------------------------------------+
+     *   |                                                                                    |
+     *   |                         +--------------+                                           |
+     *   |                     +-->+ startTimer   +-------------+   +-----+   +-----------+   |
+     * IN|  +---------------+  |   +--------------+             +-->+ zip +-->+ stopTimer |   |
+     * +--->+ beforeTimerBC +--+                                |   +-----+   +-----------+   |
+     *   |  +---------------+  |   +------+   +--------------+  |                             |
+     *   |                     +-->+ flow +-->+ afterTimerBC +--+                             |OUT
+     *   |                         +------+   +--------------+  +-------------------------------->
+     *   |                                                                                    |
+     *   +------------------------------------------------------------------------------------+
      * </pre>
      *
      * @param flow the flow that should be measured.
@@ -80,36 +78,35 @@ public final class TimeMeasuringFlow {
 
         final Graph<FlowShape<I, O>, M> flowShapeNotUsedGraph = GraphDSL.create(flow, (builder, flowShape) -> {
 
-            final UniformFanOutShape<I, I> beforeTimerBroadcast = builder.add(Broadcast.<I>create(2).async());
+            final UniformFanOutShape<I, I> beforeTimerBroadcast = builder.add(Broadcast.create(2));
+
+            final UniformFanOutShape<O, O> afterTimerBroadcast = builder.add(Broadcast.create(2));
 
             final FanInShape2<StartedTimer, O, Pair<StartedTimer, O>> zip =
-                    builder.add(Zip.<StartedTimer, O>create());
+                    builder.add(Zip.<StartedTimer, O>create().async());
 
-            final FanOutShape2<Pair<StartedTimer, O>, StartedTimer, O> unzip =
-                    builder.add(Unzip.<StartedTimer, O>create());
-
-            final Flow<StartedTimer, Duration, NotUsed> stopTimerFlow =
-                    Flow.<StartedTimer, Duration>fromFunction(startedTimer -> startedTimer.stop().getDuration());
+            final Flow<Pair<StartedTimer, O>, Duration, NotUsed> stopTimerFlow =
+                    Flow.<Pair<StartedTimer, O>, Duration>fromFunction(pair -> pair.first().stop().getDuration());
 
             final Flow<I, StartedTimer, NotUsed> startTimerFlow = Flow.fromFunction(request -> timer.start());
 
             // its important that outlet 0 is connected to the timers, to guarantee that the timer is started first
             builder.from(beforeTimerBroadcast.out(0))
-                    .via(builder.add(startTimerFlow))
+                    .via(builder.add(startTimerFlow.async()))
                     .toInlet(zip.in0());
 
-            builder.from(zip.out())
-                    .toInlet(unzip.in());
+            builder.from(afterTimerBroadcast.out(0))
+                    .toInlet(zip.in1());
 
-            builder.from(unzip.out0())
-                    .via(builder.add(stopTimerFlow))
+            builder.from(zip.out())
+                    .via(builder.add(stopTimerFlow.async()))
                     .to(builder.add(durationSink));
 
             builder.from(beforeTimerBroadcast.out(1))
                     .via(flowShape)
-                    .toInlet(zip.in1());
+                    .viaFanOut(afterTimerBroadcast);
 
-            return FlowShape.of(beforeTimerBroadcast.in(), unzip.out1());
+            return FlowShape.of(beforeTimerBroadcast.in(), afterTimerBroadcast.out(1));
         });
 
         return Flow.fromGraph(flowShapeNotUsedGraph);
