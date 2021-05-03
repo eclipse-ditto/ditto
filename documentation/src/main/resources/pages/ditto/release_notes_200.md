@@ -25,19 +25,19 @@ Eclipse Ditto 2.0.0 focuses on the following areas:
 * Expiring policy subjects + publishing of announcement message prior to expiry
 * Addition of policy actions in order to inject a policy subject based on a provided JWT
 * Built-in acknowledgement for search updates to have the option of twin updates with strong consistency of the search index
-* Restoring active connection faster after a hard restart of the Ditto cluster via automatic prioritization of connections
+* Restoring active connections faster after a hard restart of the Ditto cluster via automatic prioritization of connections
 * Support for LastWill/Testament + retain flag for MQTT connections
 * Provide JWT tokens to Websocket endpoint with browser APIs
 
 The step to a major version was done because of the following breaking API changes:
 
-* removal of "API version 1" (deprecated in [Ditto 1.1.0](release_notes_110.html#deprecations)) 
+* Removal of "API version 1" (deprecated in [Ditto 1.1.0](release_notes_110.html#deprecations)) 
   from Ditto's Java APIs + HTTP API
-* removal of code in Java APIs marked as `@Deprecated`
-* binary incompatible changes to Java APIs
+* Removal of code in Java APIs marked as `@Deprecated`
+* Binary incompatible changes to Java APIs
 * Restructuring of Ditto's Maven modules in order to simplify/ease further development
 
-The following non-functional work is also included:
+The following non-functional enhancements are also included:
 
 * Improvement of stability during rolling updates
 * Addition of sharding concept for Ditto internal pub/sub enabling connection of e.g. tens of thousands websocket sessions
@@ -70,7 +70,7 @@ Ditto 2.0.0. If you need to migrate "things" from API 1 to API version 2, please
 In order to not break binary compatibility in Ditto 1.x, existing APIs were marked as `@Deprecated` with a comment 
 pointing to an alternative implementation to use instead. Now, these deprecated APIs are removed from Ditto's codebase.
 
-Some changes to the codebase which could not be done in Ditto 1.x withour breaking binary compatibility were also done.
+Some changes to the codebase which could not be done in Ditto 1.x without breaking binary compatibility were also done.
 
 #### [Removed content-type header mapping for connection targets](https://github.com/eclipse/ditto/pull/934)
 
@@ -78,7 +78,7 @@ Removed the default header mapping of `content-type` for new connection targets.
 results, when payload mapping and header mapping disagreed on the actual `content-type`. Existing connections will still
 keep the "old" default and map the `content-type` header.
 
-If you need to keep the old behavior, please have a look at the  
+If you need to keep the old behavior, please have a look at the
 [migration notes](#content-type-header-mapping-in-connection-targets).
 
 #### OpenID Connect configuration change
@@ -379,7 +379,6 @@ oauth = {
 new:
 
 ```
-
 oauth = {
   openid-connect-issuers = {
     someissuer = {
@@ -387,7 +386,6 @@ oauth = {
     }
   }
 }
-
 ```
 
 The `auth-subjects` field is optional. When not supplied, the 'old' behaviour (using the JWT `sub` field) remains.
@@ -403,23 +401,16 @@ Prior to this release, [MQTT 3.1.1](connectivity-protocol-bindings-mqtt.html) an
 * `mqtt.retain`
 
 Those headers could be e.g. used in the 
-[JavaScript payload mapping engine](connectivity-mapping.html#javascript-mapping-engine) in order to e.g. find out on
+[JavaScript payload mapping engine](connectivity-mapping.html#javascript-mapping-engine) in order to find out on
 which topic a consumed MQTT message was received.
 
 These headers are not longer implicitly mapped, but instead have to be mapped via 
 [header mapping](connectivity-header-mapping.html) manually.
 
-TODO TJ link to section in MQTT 3.1.1 page about source header mapping.
-
+An example [source header mapping](connectivity-protocol-bindings-mqtt.html#source-header-mapping) is provided 
+in the documentation.
 
 ### Ditto Java Client instantiation
-
-The synchronous instantiation of the Ditto Java Client has been removed from its Factory class `DittoClients`.
-To get a `DittoClient` instantiate a `DisconnectedDittoClient` via `DittoClients.newInstance(messagingProvider)` first 
-and call `connect()` on it.  
-This call returns a `CompletionStage` which finally resolves to a connected `DittoClient`.
-
-### Ditto Java Client CompletionStage APIs
 
 The synchronous instantiation of the Ditto Java Client has been removed from its Factory class `DittoClients`.
 To get a `DittoClient` instantiate a `DisconnectedDittoClient` via `DittoClients.newInstance(messagingProvider)` first 

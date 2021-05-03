@@ -13,8 +13,8 @@ toc: false
 Today, ~1.5 years after release [1.0.0](2019-12-12-release-announcement-100.html), the Eclipse Ditto team is happy to 
 announce the availability of Eclipse Ditto [2.0.0](https://projects.eclipse.org/projects/iot.ditto/releases/2.0.0).
 
-With the major version 2.0.0 the Ditto team removed technical dept and removed deprecated APIs in order to have a 
-better maintainable codebase, but some awesome new features are included as well.
+With the major version 2.0.0 the Ditto team removed technical debt and ended support for APIs which were deprecated 
+long ago in order to have a better maintainable codebase. However some awesome new features are included as well.
 
 
 ## Adoption
@@ -22,14 +22,14 @@ better maintainable codebase, but some awesome new features are included as well
 Companies are willing to show their adoption of Eclipse Ditto publicly: [https://iot.eclipse.org/adopters/?#iot.ditto](https://iot.eclipse.org/adopters/?#iot.ditto)
 
 From our various [feedback channels](feedback.html) we however know of more adoption.  
-If you are making use of Eclipse Ditto, it would be great to show your adoption by adding your company to that list of 
+If you are making use of Eclipse Ditto, it would be great to show this by adding your company name to that list of 
 known adopters.  
 In the end, that's one main way of measuring the success of the project.
 
 
 ## Changelog
 
-The main changes and additions of Ditto 2.0.0 are:
+The main improvements and additions of Ditto 2.0.0 are:
 
 * Merge/PATCH updates of digital twins
 * Configurable OpenID Connect / OAuth2.0 claim extraction to be used for authorization
@@ -43,16 +43,16 @@ The main changes and additions of Ditto 2.0.0 are:
 
 The step to a major version was done because of the following breaking API changes:
 
-* removal of "API version 1" (deprecated in [Ditto 1.1.0](release_notes_110.html#deprecations))
+* Removal of "API version 1" (deprecated in [Ditto 1.1.0](release_notes_110.html#deprecations))
   from Ditto's Java APIs + HTTP API
-* removal of code in Java APIs marked as `@Deprecated`
-* binary incompatible changes to Java APIs
+* Removal of code in Java APIs marked as `@Deprecated`
+* Binary incompatible changes to Java APIs
 * Restructuring of Ditto's Maven modules in order to simplify/ease further development
 
-The following non-functional work is also included:
+The following non-functional enhancements are also included:
 
 * Improvement of stability during rolling updates
-* Addition of sharding concept for Ditto internal pub/sub enabling connection of e.g. tens of thousands websocket sessions
+* Addition of sharding concept for Ditto internal pub/sub enabling connection of e.g. tens of thousands Websocket Wessions
 * Background cleanup improvements in order to have less impact on DB roundtrip times
 * Update of third party libraries (e.g. Akka)
 * Documentation of deployment via K3S
