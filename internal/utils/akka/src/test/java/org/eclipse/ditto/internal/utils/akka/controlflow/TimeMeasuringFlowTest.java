@@ -115,10 +115,10 @@ public final class TimeMeasuringFlowTest {
              * Needs to be lesser than sleep duration to verify that potential inaccuracies are not mixed up with
              * what this test you ensure.
              */
-            final Offset<Double> offset = Offset.offset((double) Duration.ofMillis(20).toNanos());
+            final Offset<Double> offset = Offset.offset((double) Duration.ofMillis(5).toNanos());
             assertThat(averageDurationInNanos).isCloseTo(sleepDuration.toNanos(), offset);
-            verify(timerMock, times(numberOfRepetitions)).start();
-            assertThat(flowCounter).hasValue(numberOfRepetitions * 2);
+            verify(timerMock, times(numberOfRepetitions + 1)).start();
+            assertThat(flowCounter).hasValue(numberOfRepetitions * 2 + 1);
         }};
     }
 
@@ -156,8 +156,8 @@ public final class TimeMeasuringFlowTest {
             }
             sinkProbe.request(numberOfRepetitions);
             sinkProbe.expectNextN(CollectionConverters.asScala(expectedResults).toSeq());
-            verify(timerMock, times(numberOfRepetitions)).start();
-            assertThat(flowCounter).hasValue(numberOfRepetitions * 2);
+            verify(timerMock, times(numberOfRepetitions + 1)).start();
+            assertThat(flowCounter).hasValue(numberOfRepetitions * 2 + 1);
         }};
     }
 

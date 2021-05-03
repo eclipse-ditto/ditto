@@ -16,6 +16,7 @@ import java.time.Duration;
 
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StoppedTimer;
 
 import akka.NotUsed;
 import akka.japi.Pair;
@@ -52,17 +53,20 @@ public final class TimeMeasuringFlow {
      * Builds a flow that measures the time it took the given flow to process the input to the output using the given timer.
      *
      * <pre>
-     *   +------------------------------------------------------------------------------------+
-     *   |                                                                                    |
-     *   |                         +--------------+                                           |
-     *   |                     +-->+ startTimer   +-------------+   +-----+   +-----------+   |
-     * IN|  +---------------+  |   +--------------+             +-->+ zip +-->+ stopTimer |   |
-     * +--->+ beforeTimerBC +--+                                |   +-----+   +-----------+   |
-     *   |  +---------------+  |   +------+   +--------------+  |                             |
-     *   |                     +-->+ flow +-->+ afterTimerBC +--+                             |OUT
-     *   |                         +------+   +--------------+  +-------------------------------->
-     *   |                                                                                    |
-     *   +------------------------------------------------------------------------------------+
+     * ┌──────────────────────────────────────────────────────────────────────────────────┐
+     * │                                                                                  │
+     * │                                                                                  │
+     * │ IN     ┌──────────────┐         ┌────┐          ┌─────┐   ┌─────────┐      OUT   │
+     * │ ──────►│BeforeTimerBC ├───┬───► │flow│ ───────┐►│ zip ├─► │stopTimer├───────►    │
+     * │        └──────────────┘   │     └────┘        │ └─────┘   └────┬────┘            │
+     * │                           │                   │                │                 │
+     * │                           │     ┌──────────┐  │                │ wireTap         │
+     * │                           └───► │startTimer│ ─┘                ▼                 │
+     * │                                 └──────────┘              ┌────────────┐         │
+     * │                                                           │durationSink│         │
+     * │                                                           └────────────┘         │
+     * │                                                                                  │
+     * └──────────────────────────────────────────────────────────────────────────────────┘
      * </pre>
      *
      * @param flow the flow that should be measured.
@@ -78,35 +82,37 @@ public final class TimeMeasuringFlow {
 
         final Graph<FlowShape<I, O>, M> flowShapeNotUsedGraph = GraphDSL.create(flow, (builder, flowShape) -> {
 
-            final UniformFanOutShape<I, I> beforeTimerBroadcast = builder.add(Broadcast.create(2));
-
-            final UniformFanOutShape<O, O> afterTimerBroadcast = builder.add(Broadcast.create(2));
+            final UniformFanOutShape<I, I> beforeTimerBroadcast = builder.add(Broadcast.<I>create(2).async());
 
             final FanInShape2<StartedTimer, O, Pair<StartedTimer, O>> zip =
-                    builder.add(Zip.<StartedTimer, O>create().async());
+                    builder.add(Zip.<StartedTimer, O>create());
 
-            final Flow<Pair<StartedTimer, O>, Duration, NotUsed> stopTimerFlow =
-                    Flow.<Pair<StartedTimer, O>, Duration>fromFunction(pair -> pair.first().stop().getDuration());
+            final Flow<Pair<StartedTimer, O>, O, NotUsed> stopTimerFlow =
+                    Flow.<Pair<StartedTimer, O>>create()
+                            .map(pair -> new Pair<>(pair.first().stop(), pair.second()))
+                            .wireTap(Flow.<Pair<StoppedTimer, O>>create()
+                                    .map(pair -> pair.first().getDuration())
+                                    .to(durationSink))
+                            .map(Pair::second);
 
             final Flow<I, StartedTimer, NotUsed> startTimerFlow = Flow.fromFunction(request -> timer.start());
 
+            final FlowShape<O, O> outputFlow = builder.add(Flow.<O>create());
+
             // its important that outlet 0 is connected to the timers, to guarantee that the timer is started first
             builder.from(beforeTimerBroadcast.out(0))
-                    .via(builder.add(startTimerFlow.async()))
+                    .via(builder.add(startTimerFlow))
                     .toInlet(zip.in0());
 
-            builder.from(afterTimerBroadcast.out(0))
-                    .toInlet(zip.in1());
-
             builder.from(zip.out())
-                    .via(builder.add(stopTimerFlow.async()))
-                    .to(builder.add(durationSink));
+                    .via(builder.add(stopTimerFlow))
+                    .toInlet(outputFlow.in());
 
             builder.from(beforeTimerBroadcast.out(1))
                     .via(flowShape)
-                    .viaFanOut(afterTimerBroadcast);
+                    .toInlet(zip.in1());
 
-            return FlowShape.of(beforeTimerBroadcast.in(), afterTimerBroadcast.out(1));
+            return FlowShape.of(beforeTimerBroadcast.in(), outputFlow.out());
         });
 
         return Flow.fromGraph(flowShapeNotUsedGraph);
