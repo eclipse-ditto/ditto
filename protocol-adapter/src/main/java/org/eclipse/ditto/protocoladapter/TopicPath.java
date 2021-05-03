@@ -150,7 +150,7 @@ public interface TopicPath {
      *
      * @param expectedGroup the group to check for.
      * @return {@code true} if this TopicPath has group {@code expectedGroup}, {@code false} else.
-     * @since 2.1.0
+     * @since 2.0.0
      */
     boolean isGroup(@Nullable Group expectedGroup);
 
@@ -159,7 +159,7 @@ public interface TopicPath {
      *
      * @param expectedChannel the channel to check for.
      * @return {@code true} if this TopicPath has channel {@code expectedChannel}, {@code false} else.
-     * @since 2.1.0
+     * @since 2.0.0
      */
     boolean isChannel(@Nullable Channel expectedChannel);
 
@@ -168,7 +168,7 @@ public interface TopicPath {
      *
      * @param expectedCriterion the criterion to check for.
      * @return {@code true} if this TopicPath has criterion {@code expectedCriterion}, {@code false} else.
-     * @since 2.1.0
+     * @since 2.0.0
      */
     boolean isCriterion(@Nullable Criterion expectedCriterion);
 
@@ -177,7 +177,7 @@ public interface TopicPath {
      *
      * @param expectedAction the action to check for.
      * @return {@code true} if this TopicPath has action {@code expectedAction}, {@code false} else.
-     * @since 2.1.0
+     * @since 2.0.0
      */
     boolean isAction(@Nullable TopicPath.Action expectedAction);
 
