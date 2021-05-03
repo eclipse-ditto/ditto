@@ -39,10 +39,10 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
  * </p>
  * <p>
  * The <em>data</em> related to Features is managed in form of {@link FeatureProperties}. These properties can
- * be categorized, e. g. to manage the status, the configuration or any fault information.
+ * be categorized, e.g. to manage the status, the configuration or any fault information.
  * </p>
  * <p>
- * For Ditto to be able to work with models/concepts of a Feature (e. g. syntactically validate
+ * For Ditto to be able to work with models/concepts of a Feature (e.g. syntactically validate
  * properties of Features or provide detailed information about message parameters, etc.) it is possible to attach a
  * {@link FeatureDefinition}. The Definition can be compared to interface declarations in programming languages
  * (with the difference that in programming languages the type system is fully known where as in Ditto the semantics of

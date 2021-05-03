@@ -72,7 +72,7 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
     TIMESTAMP("timestamp", String.class, true, true, TimestampValueValidator.getInstance()),
 
     /**
-     * Header definition for the status code of a message, e. g. if a message is a response to another message.
+     * Header definition for the status code of a message, e.g. if a message is a response to another message.
      * <p>
      * Key: {@code "status"}, Java type: {@code int}.
      * </p>

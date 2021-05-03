@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
 /**
  * TraceUriGenerator generates a trace uri based on a specified path.
  * <p>
- * The purpose of this class is to minimize the amount of requests to be logged (e. g. by shortening requests),
+ * The purpose of this class is to minimize the amount of requests to be logged (e.g. by shortening requests),
  * in order to avoid the creation of too many Kamon traces (causing OutOfMemory).
  */
 @Immutable

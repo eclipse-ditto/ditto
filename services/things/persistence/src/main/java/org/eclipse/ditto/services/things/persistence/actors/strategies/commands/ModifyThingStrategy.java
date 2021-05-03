@@ -90,7 +90,7 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
             @Nullable final Metadata metadata) {
 
         // make sure that the ThingModified-Event contains all data contained in the resulting existingThing (this is
-        // required e. g. for updating the search-index)
+        // required e.g. for updating the search-index)
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         final Thing modifiedThing = mergeThingModifications(command.getThing(), thing, eventTs, nextRevision);

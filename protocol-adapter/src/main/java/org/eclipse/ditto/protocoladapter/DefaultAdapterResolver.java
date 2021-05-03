@@ -289,7 +289,7 @@ final class DefaultAdapterResolver implements AdapterResolver {
             final EnumMapOrFunction<T> dispatchByT =
                     DefaultAdapterResolver.dispatchByEnum(adapters, enumClass, enumValues, getSupportedEnums, nextStep);
             // consider adapters that support no enum value to be those that support adaptables without enum values.
-            // e. g., search signals for actions, non-search signals for search actions, non-message signals for subjects
+            // e.g., search signals for actions, non-search signals for search actions, non-message signals for subjects
             final List<Adapter<?>> noEnumValueAdapters =
                     filter(adapters, adapter -> getSupportedEnums.apply(adapter).isEmpty());
             return dispatchByT.evalByOptional(nextStep.apply(noEnumValueAdapters), extractEnum);

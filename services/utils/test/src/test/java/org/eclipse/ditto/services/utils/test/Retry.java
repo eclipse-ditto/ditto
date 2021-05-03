@@ -38,7 +38,7 @@ public final class Retry {
      * Retry a supplier until it provides a value.
      *
      * @param throwingSupplier supplier to try to run.
-     * @param conditionFactoryConfigurer function to configure e. g. timeout and poll interval of the Awaitility
+     * @param conditionFactoryConfigurer function to configure e.g. timeout and poll interval of the Awaitility
      * condition factory.
      * @param <T> type of expected values.
      * @return the supplied value, if any.

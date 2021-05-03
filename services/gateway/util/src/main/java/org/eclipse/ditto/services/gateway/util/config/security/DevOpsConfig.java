@@ -26,7 +26,7 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 public interface DevOpsConfig {
 
     /**
-     * Indicates whether DevOps resources (e. g. /status and /devops) should be secured or not.
+     * Indicates whether DevOps resources (e.g. /status and /devops) should be secured or not.
      *
      * @return {@code true} if resources should be secured, {@code false} else;
      */
@@ -88,7 +88,7 @@ public interface DevOpsConfig {
     enum DevOpsConfigValue implements KnownConfigValue {
 
         /**
-         * Determines whether DevOps resources (e. g. /status and /devops) should be secured or not.
+         * Determines whether DevOps resources (e.g. /status and /devops) should be secured or not.
          */
         SECURED("secured", true),
 

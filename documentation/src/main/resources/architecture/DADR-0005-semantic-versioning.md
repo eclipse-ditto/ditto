@@ -11,10 +11,10 @@ accepted
 ## Context
 
 Eclipse Ditto project exited the incubation phase with release 1.0.0.
-Henceforth any change to the Ditto API enters a Ditto release according to [semantic versioning](https://semver.org):
-- Incompatible API changes increment major version number (e. g., 1.7.5 -> 2.0.0);
-- Compatible API changes increment minor version number (e. g., 1.2.3 -> 1.3.0);
-- Changes in the implementation without any API change increment patch version number (e. g., 1.0.0 -> 1.0.1).
+Henceforth, any change to the Ditto API enters a Ditto release according to [semantic versioning](https://semver.org):
+- Incompatible API changes increment major version number (e.g., 1.7.5 -> 2.0.0);
+- Compatible API changes increment minor version number (e.g., 1.2.3 -> 1.3.0);
+- Changes in the implementation without any API change increment patch version number (e.g., 1.0.0 -> 1.0.1).
 
 This document defines what _API compatibility_ means,
 the modules which are considered API and for which semantic versioning holds,
@@ -50,7 +50,7 @@ version upgrade.
 
 ### Modules considered API
 
-Public classes, interfaces and their public members of the following modules and their submodules are considered
+Public classes, interfaces and their public members of the following modules, and their submodules are considered
 Ditto API. Changes to them must enter Ditto release in accord with semantic versioning.
 Modules not on this list are not considered API; they may contain incompatible changes for any Ditto version change.
 
@@ -64,7 +64,8 @@ ditto-utils
 
 ### Javadoc documentation using `@since`
 
-When adding new public visible API (e.g. new interfaces, classes or methods in existing code) in the defined API modules, a `@since <version>` javadoc annotation shall be added.
+When adding new public visible API (e.g. new interfaces, classes or methods in existing code) in the defined API modules, 
+a `@since <version>` javadoc annotation shall be added.
 
 Example:
 ```java

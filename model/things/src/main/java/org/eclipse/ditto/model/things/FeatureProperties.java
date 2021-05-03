@@ -22,7 +22,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
- * Represents data related to {@link Feature}s. Properties can be categorized, e. g. to manage the status, the
+ * Represents data related to {@link Feature}s. Properties can be categorized, e.g. to manage the status, the
  * configuration or any fault information. Each property itself can be either a simple (scalar) value or a complex
  * object. Allowed is any JSON object. The FeatureProperties can either represent the desired properties or
  * the actual properties of a {@link Feature}.

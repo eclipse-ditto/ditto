@@ -62,9 +62,9 @@ public final class DittoDuration implements CharSequence {
      * Creates a DittoDuration from the passed char sequence that represents a <em>positive</em> amount.
      * Suffixes of the duration amount are allowed to specify the time unit:
      * <ul>
-     *     <li>{@code "ms":} milliseconds, e. g. {@code "2000ms"} for 2000 milliseconds.</li>
-     *     <li>{@code "s":} seconds, e. g. {@code "2s"} or {@code "2"} for 2 seconds.</li>
-     *     <li>{@code "m":} minutes e. g. {@code "3m"} for 3 minutes.</li>
+     *     <li>{@code "ms":} milliseconds, e.g. {@code "2000ms"} for 2000 milliseconds.</li>
+     *     <li>{@code "s":} seconds, e.g. {@code "2s"} or {@code "2"} for 2 seconds.</li>
+     *     <li>{@code "m":} minutes e.g. {@code "3m"} for 3 minutes.</li>
      * </ul>
      * <em>A string representation of a long value without suffix is interpreted as seconds.</em>
      *

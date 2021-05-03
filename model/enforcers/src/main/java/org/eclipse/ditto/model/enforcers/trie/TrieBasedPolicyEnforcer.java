@@ -61,12 +61,12 @@ import org.eclipse.ditto.model.policies.ResourceKey;
  * ancestors are overridden by subjects defined at the corresponding node in {@code rawTrie}.
  * </li>
  * <li><em>Bottom Up
- * Grant Trie:</em> Supports partial permissions, e. g., a resource is considered readable also when 1 or more
+ * Grant Trie:</em> Supports partial permissions, e.g., a resource is considered readable also when 1 or more
  * sub-resources are readable in an authorization context. To build it, start from {@code inheritedTrie}, push granted
  * subjects from descendants up to ancestors.
  * </li>
  * <li><em>Bottom Up Revoke Trie:</em> Supports unrestricted
- * permissions, e. g., a resource is considered writable only if all sub-resources are writable, and any WRITE-revoked
+ * permissions, e.g., a resource is considered writable only if all sub-resources are writable, and any WRITE-revoked
  * resource make all its super-resources non-writable. To build it, start from {@code inheritedTrie}, push revoked
  * subjects from descendants up to ancestors.
  * </li>

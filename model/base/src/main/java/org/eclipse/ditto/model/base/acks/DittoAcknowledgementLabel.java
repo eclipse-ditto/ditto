@@ -28,7 +28,7 @@ import javax.annotation.Nullable;
 public final class DittoAcknowledgementLabel implements AcknowledgementLabel {
 
     /**
-     * Label for Acknowledgements indicating that a change to an entity (e. g. a thing) has successfully been persisted
+     * Label for Acknowledgements indicating that a change to an entity (e.g. a thing) has successfully been persisted
      * to the twin.
      */
     public static final DittoAcknowledgementLabel TWIN_PERSISTED = new DittoAcknowledgementLabel("twin-persisted");
@@ -41,7 +41,7 @@ public final class DittoAcknowledgementLabel implements AcknowledgementLabel {
     public static final DittoAcknowledgementLabel LIVE_RESPONSE = new DittoAcknowledgementLabel("live-response");
 
     /**
-     * Label for Acknowledgements indicating that a change to an entity (e. g. a thing) has successfully been reflected
+     * Label for Acknowledgements indicating that a change to an entity (e.g. a thing) has successfully been reflected
      * in the search index.
      *
      * @since 2.0.0

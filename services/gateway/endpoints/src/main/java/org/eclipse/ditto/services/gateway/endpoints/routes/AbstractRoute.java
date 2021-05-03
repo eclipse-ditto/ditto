@@ -363,7 +363,7 @@ public abstract class AbstractRoute extends AllDirectives {
      *
      * @param optionalTimeout the custom timeout to use as Akka HTTP request timeout adjusting the configured default
      * one.
-     * @param checkTimeoutFunction a function to check the passed optionalTimeout for validity e. g. within some bounds.
+     * @param checkTimeoutFunction a function to check the passed optionalTimeout for validity e.g. within some bounds.
      * @param defaultTimeout an optional default timeout if the passed optionalTimeout was not set.
      * @param inner the inner Route to wrap.
      * @return the wrapped route - potentially with custom timeout adjusted.

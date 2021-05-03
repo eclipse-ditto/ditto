@@ -222,7 +222,7 @@ final class ResourceNode implements PolicyTreeNode {
     }
 
     /**
-     * If this node is part of a tree, e. g. it has a parent and/or children, this method returns the level where
+     * If this node is part of a tree, e.g. it has a parent and/or children, this method returns the level where
      * this node is located within this tree.
      *
      * @return the level of this node within its tree.

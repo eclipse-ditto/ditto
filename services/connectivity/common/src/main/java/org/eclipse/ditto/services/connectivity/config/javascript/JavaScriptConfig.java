@@ -27,7 +27,7 @@ public interface JavaScriptConfig {
     /**
      * Returns the maximum script size in bytes of a mapping script to run.
      * This value is meant to prevent loading big JS dependencies into the script
-     * (e. g. jQuery which has ~250 kB).
+     * (e.g. jQuery which has ~250 kB).
      *
      * @return the maximum script size.
      */

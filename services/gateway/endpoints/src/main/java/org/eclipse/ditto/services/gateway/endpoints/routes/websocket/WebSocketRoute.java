@@ -732,7 +732,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
     /**
      * Tests whether a signal together with enriched extra fields pass its filter defined in the session.
-     * Always return true for Jsonifiables without any session, e. g., errors, responses, stream control messages.
+     * Always return true for Jsonifiables without any session, e.g., errors, responses, stream control messages.
      *
      * @param sessionedJsonifiable the Jsonifiable with session information attached.
      * @param extra extra fields from signal enrichment.

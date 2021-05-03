@@ -22,7 +22,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
- * {@code Attributes} describe other entities (e. g. a {@code Thing}) in more detail and can be of any type. Attributes
+ * {@code Attributes} describe other entities (e.g. a {@code Thing}) in more detail and can be of any type. Attributes
  * can also be used to find entities. Attributes are typically used to model rather static properties of an entity.
  * Static means that the values do not change as frequently as property values of Features for example.
  */
