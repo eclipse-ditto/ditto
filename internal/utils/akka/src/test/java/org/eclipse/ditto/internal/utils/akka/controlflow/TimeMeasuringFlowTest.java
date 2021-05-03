@@ -23,6 +23,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -73,8 +74,10 @@ public final class TimeMeasuringFlowTest {
 
     @Test
     public void timeMeasuresOnlyTimeOfWrappedFlow() {
+        final AtomicInteger flowCounter = new AtomicInteger();
         final Duration sleepDuration = Duration.ofMillis(100);
-        final Flow<String, String, NotUsed> flowThatNeedsSomeTime = Flow.fromFunction(x -> {
+        final Flow<String, String, NotUsed> flowThatNeedsSomeTime = Flow.<String, String>fromFunction(x -> {
+            flowCounter.incrementAndGet();
             TimeUnit.MILLISECONDS.sleep(sleepDuration.toMillis());
             return x;
         });
@@ -103,6 +106,7 @@ public final class TimeMeasuringFlowTest {
             final List<Duration> durations =
                     CollectionConverters.asJava(durationProbe.expectNextN(numberOfRepetitions));
 
+            assertThat(durations).hasSize(numberOfRepetitions);
             final double averageDurationInNanos = durations.stream()
                     .mapToLong(Duration::toNanos)
                     .average()
@@ -113,7 +117,8 @@ public final class TimeMeasuringFlowTest {
              */
             final Offset<Double> offset = Offset.offset((double) Duration.ofMillis(20).toNanos());
             assertThat(averageDurationInNanos).isCloseTo(sleepDuration.toNanos(), offset);
-            verify(timerMock, times(numberOfRepetitions)).start();
+            verify(timerMock, times(numberOfRepetitions + 1)).start();
+            assertThat(flowCounter).hasValue(numberOfRepetitions * 2 + 1);
         }};
     }
 
