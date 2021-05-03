@@ -112,7 +112,7 @@ This table shows the old modules and in which module the old ones can be found i
 | `ditto-model`                                | `-` (was pom only)        |
 | `- ditto-model-base`                         | `ditto-base/ditto-base-model` |
 | `- ditto-model-cleanup`                      | `-` (was internal API) |
-| `- ditto-model-connectivity`                 | `ditto-connections/ditto-connections-model` |
+| `- ditto-model-connectivity`                 | `ditto-connectivity/ditto-connectivity-model` |
 | `- ditto-model-devops`                       | `ditto-devops/ditto-devops-model` |
 | `- ditto-model-enforcers`                    | `ditto-policies/ditto-policies-model` |
 | `- ditto-model-jwt`                          | `ditto-jwt/ditto-jwt-model` |
@@ -127,26 +127,26 @@ This table shows the old modules and in which module the old ones can be found i
 | `- ditto-model-thingsearch-parser`           | `ditto-rql/ditto-rql-parser` |
 | `ditto-protocol-adapter`                     | `ditto-protocol` |
 | `ditto-signals`                              | `-` (was pom only) |
-| `- ditto-signals-base`                       | `ditto-model-base` |
+| `- ditto-signals-base`                       | `ditto-base/ditto-base-model` |
 | `- ditto-signals-acks`                       | `-` (was pom only) |
-| `-- ditto-signals-acks-base`                 | `ditto-base-model` |
-| `-- ditto-signals-acks-things`               | `ditto-things-model` |
+| `-- ditto-signals-acks-base`                 | `ditto-base/ditto-base-model` |
+| `-- ditto-signals-acks-things`               | `ditto-things/ditto-things-model` |
 | `- ditto-signals-announcements`              | `-` (was pom only) |
-| `-- ditto-signals-announcements-base`        | `ditto-base-model` |
-| `-- ditto-signals-announcements-policies`    | `ditto-policies-model` |
+| `-- ditto-signals-announcements-base`        | `ditto-base/ditto-base-model` |
+| `-- ditto-signals-announcements-policies`    | `ditto-policies/ditto-policies-model` |
 | `- ditto-signals-commands`                   | `-` (was pom only) |
 | `-- ditto-signals-commands-base`             | `ditto-base/ditto-base-model` |
 | `-- ditto-signals-commands-cleanup`          | `-` (was internal API) |
 | `-- ditto-signals-commands-common`           | `-` (was internal API) |
 | `-- ditto-signals-commands-connectivity`     | `ditto-connectivity/ditto-connectivity-model` |
-| `-- ditto-signals-commands-devops`           | `ditto-devops/ditto-devops-model` |
+| `-- ditto-signals-commands-devops`           | `-` (was internal API and is merged into ditto-base/ditto-base-api) |
 | `-- ditto-signals-commands-messages`         | `ditto-messages/ditto-messages-model` |
 | `-- ditto-signals-commands-namespaces`       | `ditto-base/ditto-base-model` |
 | `-- ditto-signals-commands-policies`         | `ditto-policies/ditto-policies-model` |
 | `-- ditto-signals-commands-things`           | `ditto-things/ditto-things-model` |
 | `-- ditto-signals-commands-thingsearch`      | `ditto-thingsearch/ditto-thingsearch-model` |
 | `- ditto-signals-events`                     | `-` (was pom only) |
-| `-- ditto-signals-events-base`               | `ditto-base-model` |
+| `-- ditto-signals-events-base`               | `ditto-base/ditto-base-model` |
 | `-- ditto-signals-events-connectivity`       | `ditto-connectivity/ditto-connectivity-model` |
 | `-- ditto-signals-events-policies`           | `ditto-policies/ditto-policies-model` |
 | `-- ditto-signals-events-things`             | `ditto-things/ditto-things-model` |
@@ -162,7 +162,7 @@ packages were renamed:
 | `org.eclipse.ditto.model.base`                      | `org.eclipse.ditto.base.model` |
 | `org.eclipse.ditto.model.cleanup`                   | `-` (was internal API) |
 | `org.eclipse.ditto.model.connectivity`              | `org.eclipse.ditto.connectivity.model` |
-| `org.eclipse.ditto.model.devops`                    | `org.eclipse.ditto.devops.model` |
+| `org.eclipse.ditto.model.devops`                    | `-` (was internal API and is merged into ditto-base/ditto-base-api) |
 | `org.eclipse.ditto.model.enforcers`                 | `org.eclipse.ditto.policies.model` |
 | `org.eclipse.ditto.model.jwt`                       | `org.eclipse.ditto.jwt.model` |
 | `org.eclipse.ditto.model.messages`                  | `org.eclipse.ditto.messages.model` |
