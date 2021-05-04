@@ -12,6 +12,11 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.persistence.strategies.commands;
 
+import static org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction.ENABLE_LOGGING;
+import static org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction.OPEN_CONNECTION;
+import static org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction.PERSIST_AND_APPLY_EVENT;
+import static org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction.SEND_RESPONSE;
+import static org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction.UPDATE_SUBSCRIPTIONS;
 import static org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory.newErrorResult;
 import static org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory.newMutationResult;
 
@@ -35,7 +40,7 @@ import org.eclipse.ditto.connectivity.model.signals.events.ConnectionOpened;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 
 /**
- * This strategy handles the {@link org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection} command.
+ * This strategy handles the {@link OpenConnection} command.
  */
 final class OpenConnectionStrategy extends AbstractConnectivityCommandStrategy<OpenConnection> {
 
@@ -59,7 +64,8 @@ final class OpenConnectionStrategy extends AbstractConnectivityCommandStrategy<O
             final WithDittoHeaders response =
                     OpenConnectionResponse.of(context.getState().id(), command.getDittoHeaders());
             final List<ConnectionAction> actions =
-                    Arrays.asList(ConnectionAction.PERSIST_AND_APPLY_EVENT, ConnectionAction.OPEN_CONNECTION, ConnectionAction.UPDATE_SUBSCRIPTIONS, ConnectionAction.SEND_RESPONSE);
+                    Arrays.asList(ENABLE_LOGGING, PERSIST_AND_APPLY_EVENT, OPEN_CONNECTION, UPDATE_SUBSCRIPTIONS,
+                            SEND_RESPONSE);
             return newMutationResult(StagedCommand.of(command, event, response, actions), event, response);
         }
     }

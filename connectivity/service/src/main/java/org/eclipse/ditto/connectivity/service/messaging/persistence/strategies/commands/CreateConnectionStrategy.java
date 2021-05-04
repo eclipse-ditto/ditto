@@ -13,6 +13,12 @@
 package org.eclipse.ditto.connectivity.service.messaging.persistence.strategies.commands;
 
 import static org.eclipse.ditto.connectivity.model.ConnectionLifecycle.ACTIVE;
+import static org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction.BECOME_CREATED;
+import static org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction.ENABLE_LOGGING;
+import static org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction.OPEN_CONNECTION_IGNORE_ERRORS;
+import static org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction.PERSIST_AND_APPLY_EVENT;
+import static org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction.SEND_RESPONSE;
+import static org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction.UPDATE_SUBSCRIPTIONS;
 import static org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory.newErrorResult;
 import static org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory.newMutationResult;
 
@@ -36,7 +42,7 @@ import org.eclipse.ditto.connectivity.model.signals.events.ConnectionCreated;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 
 /**
- * This strategy handles the {@link org.eclipse.ditto.connectivity.model.signals.commands.modify.CreateConnection} command.
+ * This strategy handles the {@link CreateConnection} command.
  */
 final class CreateConnectionStrategy extends AbstractConnectivityCommandStrategy<CreateConnection> {
 
@@ -53,7 +59,8 @@ final class CreateConnectionStrategy extends AbstractConnectivityCommandStrategy
 
         final Connection connection = command.getConnection().toBuilder().lifecycle(ACTIVE).build();
         final ConnectivityEvent<?> event =
-                ConnectionCreated.of(connection, nextRevision, getEventTimestamp(), command.getDittoHeaders(), metadata);
+                ConnectionCreated.of(connection, nextRevision, getEventTimestamp(), command.getDittoHeaders(),
+                        metadata);
         final WithDittoHeaders response =
                 CreateConnectionResponse.of(connection, command.getDittoHeaders());
         final Optional<DittoRuntimeException> validationError = validate(context, command);
@@ -63,8 +70,9 @@ final class CreateConnectionStrategy extends AbstractConnectivityCommandStrategy
             context.getLog().withCorrelationId(command)
                     .debug("Connection <{}> has status <{}> and will therefore be opened.",
                             connection.getId(), connection.getConnectionStatus());
-            final List<ConnectionAction> actions = List.of(
-                    ConnectionAction.PERSIST_AND_APPLY_EVENT, ConnectionAction.BECOME_CREATED, ConnectionAction.UPDATE_SUBSCRIPTIONS, ConnectionAction.SEND_RESPONSE, ConnectionAction.OPEN_CONNECTION_IGNORE_ERRORS);
+            final List<ConnectionAction> actions =
+                    List.of(ENABLE_LOGGING, PERSIST_AND_APPLY_EVENT, BECOME_CREATED, UPDATE_SUBSCRIPTIONS,
+                            SEND_RESPONSE, OPEN_CONNECTION_IGNORE_ERRORS);
             return newMutationResult(StagedCommand.of(command, event, response, actions), event, response);
         } else {
             return newMutationResult(command, event, response, true, false);

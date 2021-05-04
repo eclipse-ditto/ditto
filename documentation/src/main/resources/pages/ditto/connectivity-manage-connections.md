@@ -266,6 +266,9 @@ allow you more insight in what goes well, and more importantly, what goes wrong.
 The default duration and the maximum amount of logs stored for one connection can be configured in Ditto's connectivity
 service configuration.
 
+{% include note.html content="When creating or opening an connection the logging is enabled per default. This allows 
+to log possible errors on connection establishing." %}
+
 ```json
 {
   "targetActorSelection": "/system/sharding/connection",
