@@ -59,7 +59,6 @@ mvn clean install
 
 #### 2. Build local Ditto Docker snapshot images
 ```bash
-cd services/
 ./build-images.sh
 ```
 If your infrastructure requires a proxy, its host and port can be set using the `-p` option like for example:
