@@ -2,8 +2,10 @@
 
 ```json
 {
-  "topic": "com.acme/xdk_53/things/twin/commands/modify",
-  "headers": {},
+  "topic": "org.eclipse.ditto/fancy-thing/things/twin/commands/modify",
+  "headers": {
+    "correlation-id": "<command-correlation-id>"
+  },
   "path": "/features/accelerometer/desiredProperties",
   "value": {
     "x": 4,

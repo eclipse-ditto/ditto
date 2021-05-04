@@ -1,16 +1,18 @@
 ## CreateThing
 
-Creates a new Thing with ID ``com.acme:xdk_53`` that uses an existing Policy with ID ``com.acme:the_policy_id``.
+Creates a new Thing with ID ``org.eclipse.ditto:fancy-thing_53`` that uses an existing Policy with ID ``org.eclipse.ditto:the_policy_id``.
 
 ```json
 {
-  "topic": "com.acme/xdk_53/things/twin/commands/create",
-  "headers": {},
+  "topic": "org.eclipse.ditto/fancy-thing/things/twin/commands/create",
+  "headers": {
+    "correlation-id": "<command-correlation-id>"
+  },
   "path": "/",
   "value": {
-    "thingId": "com.acme:xdk_53",
-    "policyId": "com.acme:the_policy_id",
-    "definition": "com.acme:XDKmodel:1.0.0",
+    "thingId": "org.eclipse.ditto:fancy-thing_53",
+    "policyId": "org.eclipse.ditto:the_policy_id",
+    "definition": "org.eclipse.ditto:SomeModel:1.0.0",
     "attributes": {
       "location": {
         "latitude": 44.673856,

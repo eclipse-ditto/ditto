@@ -2,13 +2,13 @@
 
 ```json
 {
-  "topic": "com.acme/xdk_53/things/twin/events/merged",
+  "topic": "org.eclipse.ditto/fancy-thing/things/twin/events/merged",
   "headers": {
     "content-type": "application/merge-patch+json"
   },
   "path": "/features/accelerometer/definition",
   "value": [
-    "com.acme:accelerometer:1.0.0"
+    "org.eclipse.ditto:accelerometer:1.0.0"
   ],
   "revision": 42,
   "timestamp": "2021-01-18T09:42:12Z"

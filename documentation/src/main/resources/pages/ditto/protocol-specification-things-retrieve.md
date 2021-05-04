@@ -31,8 +31,6 @@ Optionally you can use field selectors (see `fields`) to only get the specified 
 | **value**  |        | The found complete Thing as JSON object. See [Ditto protocol payload (JSON).](protocol-specification.html#dittoProtocolPayload) |
 | **status** | _code_ |                          | 
 |            | `200`  | Success.       |
-|            | `404`  | Not Found - the requested Thing does not exist or the requesting user does not have enough permission to retrieve it. |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 **Example:** 
 [Retrieve a Thing](protocol-examples-retrievething.html)
@@ -63,8 +61,6 @@ Optionally you can use field selectors (see `fields`) to only get the specified 
 | **value**  |        | JSON Array of all found Things (as JSON object). See [Ditto protocol payload (JSON).](protocol-specification.html#dittoProtocolPayload) |
 | **status** | _code_ |                          | 
 |            | `200`  | Success.       |
-|            | `404`  | Not Found - the requested Things do not exist or the requesting user does not have enough permission to retrieve it. |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 **Example:** 
 [Retrieve multiple Things](protocol-examples-retrievethings.html)
@@ -89,8 +85,6 @@ Retrieve the Attributes of a Thing identified by the `<namespace>` and `<thingId
 | **value**  |        | The Attributes of the Thing as JSON, see property attributes of Things JSON schema. See [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload) |
 | **status** | _code_ |                          | 
 |            | `200`  | Success.       |
-|            | `404`  | Not Found - the requested Attributes do not exist or the requesting user does not have enough permission to retrieve it. |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 **Example:** 
 [Retrieve Attributes](protocol-examples-retrieveattributes.html)
@@ -117,8 +111,6 @@ The Attribute (JSON) can be referenced hierarchically by applying [JSON Pointer 
 | **value**  |        | The specific Attribute of the Thing as JSON. |
 | **status** | _code_ |                          | 
 |            | `200`  | Success.       |
-|            | `404`  | Not Found - the requested Attribute does not exist or the requesting user does not have enough permission to retrieve it. |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 **Example:** 
 [Retrieve a single Attribute](protocol-examples-retrieveattribute.html)
@@ -143,8 +135,6 @@ Retrieve the Definition of the Thing.
 | **value**  |        | The specific Definition of the Thing as JSON. |
 | **status** | _code_ |                          | 
 |            | `200`  | Success.       |
-|            | `404`  | Not Found - the requested Definition does not exist or the requesting user does not have enough permission to retrieve it. |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 **Example:** 
 [Retrieve a single Attribute](protocol-examples-retrieveattribute.html)
@@ -169,8 +159,6 @@ Retrieve the Features of a Thing identified by identified by the `<namespace>` a
 | **value**  |        | All Features of the Thing as JSON, see property features of Things JSON schema. See [Ditto protocol payload (JSON).](protocol-specification.html#dittoProtocolPayload) |
 | **status** | _code_ |                          | 
 |            | `200`  | Success.       |
-|            | `404`  | Not Found - the requested Features do not exist or the requesting user does not have enough permission to retrieve it. |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 **Example:** 
 [Retrieve Features](protocol-examples-retrievefeatures.html)
@@ -197,8 +185,6 @@ Retrieve a specific Feature (identified by the `<featureId>` in the `path`) of t
 | **value**  |        | The specific Feature of the Thing as JSON. See [Ditto protocol payload (JSON).](protocol-specification.html#dittoProtocolPayload) |
 | **status** | _code_ |                          | 
 |            | `200`  | Success.       |
-|            | `404`  | Not Found - the requested Feature does not exist or the requesting user does not have enough permission to retrieve it. |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 **Example:** 
 [Retrieve a single Feature](protocol-examples-retrievefeature.html)
@@ -225,8 +211,6 @@ Retrieve the Definition of a Feature (identified by the `<featureId>` in the `pa
 | **value**  |        | The Definition of the Feature as JSON array, see property properties of Things JSON schema. See [Ditto protocol payload (JSON).](protocol-specification.html#dittoProtocolPayload) |
 | **status** | _code_ |                          | 
 |            | `200`  | Success.       |
-|            | `404`  | Not Found - the requested Definition does not exist or requester has insufficient permissions to retrieve it. |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 **Example:** 
 [Retrieve Feature Definition](protocol-examples-retrievedefinition.html)
@@ -253,8 +237,6 @@ Retrieve all Properties of a Feature (identified by the `<featureId>` in the `pa
 | **value**  |        | The Properties of the Feature as JSON, see property properties of Things JSON schema. See [Ditto protocol payload (JSON).](protocol-specification.html#dittoProtocolPayload) |
 | **status** | _code_ |                          | 
 |            | `200`  | Success.       |
-|            | `404`  | Not Found - the requested Properties do not exist or the requesting user does not have enough permission to retrieve it. |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 **Example:** 
 [Retrieve Feature Properties](protocol-examples-retrieveproperties.html)
@@ -280,8 +262,6 @@ Retrieve all desired Properties of a Feature (identified by the `<featureId>` in
 | **value**  |        | The desired Properties of the Feature as JSON, see property desiredProperties of Things JSON schema. See [Ditto protocol payload (JSON).](protocol-specification.html#dittoProtocolPayload) |
 | **status** | _code_ |                          | 
 |            | `200`  | Success.       |
-|            | `404`  | Not Found - the requested desired Properties do not exist or the requesting user does not have enough permission to retrieve it. |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 **Example:** 
 [Retrieve Feature Properties](protocol-examples-retrieveproperties.html)
@@ -308,8 +288,6 @@ The Property (JSON) can be referenced hierarchically by applying [JSON Pointer n
 | **value**  |        | The specific Property of the Feature as JSON. |
 | **status** | _code_ |                          | 
 |            | `200`  | Success.       |
-|            | `404`  | Not Found - the requested Property does not exist or the requesting user does not have enough permission to retrieve it. |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 **Example:** 
 [Retrieve a single Feature Property](protocol-examples-retrieveproperty.html)
@@ -335,8 +313,6 @@ The Property (JSON) can be referenced hierarchically by applying [JSON Pointer n
 | **value**  |        | The specific desired Property of the Feature as JSON. |
 | **status** | _code_ |                          | 
 |            | `200`  | Success.       |
-|            | `404`  | Not Found - the requested desired Property does not exist or the requesting user does not have enough permission to retrieve it. |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 **Example:** 
 [Retrieve a single Feature Property](protocol-examples-retrievedesiredproperty.html)

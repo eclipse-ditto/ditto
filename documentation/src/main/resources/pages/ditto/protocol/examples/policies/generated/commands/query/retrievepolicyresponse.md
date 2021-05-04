@@ -2,13 +2,13 @@
 
 ```json
 {
-  "topic": "com.acme/the_policy_id/policies/commands/retrieve",
+  "topic": "org.eclipse.ditto/the_policy_id/policies/commands/retrieve",
   "headers": {
-    "content-type": "application/json"
+    "correlation-id": "<preserved-command-correlation-id>"
   },
   "path": "/",
   "value": {
-    "policyId": "com.acme:the_policy_id",
+    "policyId": "org.eclipse.ditto:the_policy_id",
     "entries": {
       "the_label": {
         "subjects": {

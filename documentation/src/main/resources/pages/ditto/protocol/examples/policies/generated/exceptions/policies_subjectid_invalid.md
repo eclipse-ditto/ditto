@@ -2,9 +2,9 @@
 
 ```json
 {
-  "topic": "unknown/unknown/policies/errors",
+  "topic": "org.eclipse.ditto/the_policy_id/policies/errors",
   "headers": {
-    "content-type": "application/json"
+    "correlation-id": "<preserved-command-correlation-id>"
   },
   "path": "/",
   "value": {

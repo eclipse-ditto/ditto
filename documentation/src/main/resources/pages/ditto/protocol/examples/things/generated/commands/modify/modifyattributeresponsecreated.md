@@ -2,8 +2,10 @@
 
 ```json
 {
-  "topic": "com.acme/xdk_53/things/twin/commands/modify",
-  "headers": {},
+  "topic": "org.eclipse.ditto/fancy-thing/things/twin/commands/modify",
+  "headers": {
+    "correlation-id": "<preserved-command-correlation-id>"
+  },
   "path": "/attributes/location",
   "value": {
     "latitude": 44.673856,

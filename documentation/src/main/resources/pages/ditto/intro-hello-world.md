@@ -65,7 +65,7 @@ Those credentials have been created by default in the [nginx](https://github.com
 (See [ditto/deployment/docker/README.md](https://github.com/eclipse/ditto/blob/master/deployment/docker/README.md))
 
 ```bash
-curl -u ditto:ditto -X PUT -d '{
+curl -u ditto:ditto -X PUT -H 'Content-Type: application/json' -d '{
    "definition": "digitaltwin:DigitaltwinExample:1.0.0",
    "attributes": {
      "manufacturer": "ACME",
@@ -128,7 +128,7 @@ curl -u ditto:ditto -X GET 'http://localhost:8080/api/2/things/org.eclipse.ditto
 We can just as easy use the HTTP API to update one attribute or feature property, e.g. update the `cur_speed` to `77`:
 
 ```bash
-curl -u ditto:ditto -X PUT -d '77' 'http://localhost:8080/api/2/things/org.eclipse.ditto:fancy-car/features/transmission/properties/cur_speed'
+curl -u ditto:ditto -X PUT -H 'Content-Type: application/json' -d '77' 'http://localhost:8080/api/2/things/org.eclipse.ditto:fancy-car/features/transmission/properties/cur_speed'
 ```
 
 ## Searching for all Things

@@ -27,9 +27,6 @@ Deletes the Thing identified by the `<namespace>` and `<thingId>` in the `topic`
 | **path**   |        | `/`                      |
 | **status** | _code_ |                          | 
 |            | `204`  | Success - the Thing was deleted successfully.       |
-|            | `403`  | Not Deletable - the Thing could not be deleted.  |
-|            | `404`  | Not Found - the Thing was not found or requester had insufficient permissions.  |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -62,9 +59,6 @@ Deletes all Attributes of a Thing identified by the `<namespace>` and `<thingId>
 | **path**   |        | `/attributes`                      |
 | **status** | _code_ |                          | 
 |            | `204`  | Success - Attributes were deleted successfully.       |
-|            | `403`  | Not Modifiable - The Attributes could not be deleted as the requester had insufficient permissions ('WRITE' is required).  |
-|            | `404`  | Not Found - The Thing or Attributes were not found or requester had insufficient permissions.  |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -98,9 +92,6 @@ Delete a specific Attribute identified by the `<attributePath>` of the Thing.
 | **path**   |        | `/attributes/<attributePath>`                      |
 | **status** | _code_ |                          | 
 |            | `204`  | Success - The Attribute was deleted successfully.       |
-|            | `403`  | Not Modifiable - The Attribute could not be deleted as the requester had insufficient permissions ('WRITE' is required).         |
-|            | `404`  | Not Found - The Thing or Attribute was not found or requester had insufficient permissions.   |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -133,9 +124,6 @@ Delete the definition of the Thing.
 | **path**   |        | `/definition`                      |
 | **status** | _code_ |                          | 
 |            | `204`  | Success - The definition was deleted successfully.       |
-|            | `403`  | Not Modifiable - The definition could not be deleted as the requester had insufficient permissions ('WRITE' is required).         |
-|            | `404`  | Not Found - The Thing or definition was not found or requester had insufficient permissions.   |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -170,9 +158,6 @@ Delete all Features of a Thing identified by identified by the `<namespace>` and
 | **path**   |        | `/features`                      |
 | **status** | _code_ |                          | 
 |            | `204`  | Success - The Features were deleted successfully.       |
-|            | `403`  | Not Modifiable - The Features could not be deleted as the requester had insufficient permissions ('WRITE' is required).          |
-|            | `404`  | Not Found - The Thing or Features were not found or requester had insufficient permissions.  |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -206,9 +191,6 @@ Delete a specific Feature (identified by the `<featureId>` in the `path`) of a T
 | **path**   |        | `/features/<featureId>`                      |
 | **status** | _code_ |                          | 
 |            | `204`  | Success - the Feature was deleted successfully.       |
-|            | `403`  | Not Modifiable - The Feature could not be deleted as the requester had insufficient permissions ('WRITE' is required).  |
-|            | `404`  | Not Found - The Thing or Feature was not found or requester had insufficient permissions.   |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -244,9 +226,6 @@ Delete the Definition of a Feature (identified by the `<featureId>` in the `path
 | **path**   |        | `/features/<featureId>/definition`                      |
 | **status** | _code_ |                          | 
 |            | `204`  | Success - the Definition was deleted successfully.       |
-|            | `403`  | Not Modifiable - The Definition could not be deleted as the requester had insufficient permissions ('WRITE' is required).  |
-|            | `404`  | Not Found - The Thing, Feature or Definition was not found or requester had insufficient permissions.  |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -281,9 +260,6 @@ Delete all Properties of a Feature (identified by the `<featureId>` in the `path
 | **path**   |        | `/features/<featureId>/properties`                      |
 | **status** | _code_ |                          | 
 |            | `204`  | Success - the Properties were deleted successfully.       |
-|            | `403`  | Not Modifiable - The Properties could not be deleted as the requester had insufficient permissions ('WRITE' is required).  |
-|            | `404`  | Not Found - The Properties were not found or requester had insufficient permissions.  |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -318,9 +294,6 @@ Delete all desired Properties of a Feature (identified by the `<featureId>` in t
 | **path**   |        | `/features/<featureId>/desiredProperties`                      |
 | **status** | _code_ |                          | 
 |            | `204`  | Success - the desired Properties were deleted successfully.       |
-|            | `403`  | Not Modifiable - The desired Properties could not be deleted as the requester had insufficient permissions ('WRITE' is required).  |
-|            | `404`  | Not Found - The desired Properties were not found or requester had insufficient permissions.  |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -353,9 +326,6 @@ Delete a specific Property (identified by `<propertyPath>`) of a Feature (identi
 | **path**   |        | `/features/<featureId>/properties/<propertyPath>`                      |
 | **status** | _code_ |                          | 
 |            | `204`  | Success - the Property was deleted successfully.       |
-|            | `403`  | Not Modifiable - The Property could not be deleted as the requester had insufficient permissions ('WRITE' is required).   |
-|            | `404`  | Not Found - The Thing or Property was not found or requester had insufficient permissions.  |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 
@@ -388,9 +358,6 @@ Delete a specific Property (identified by `<desiredPropertyPath>`) of a Feature 
 | **path**   |        | `/features/<featureId>/desiredProperties/<desiredPropertyPath>`                      |
 | **status** | _code_ |                          | 
 |            | `204`  | Success - the desired Property was deleted successfully.       |
-|            | `403`  | Not Modifiable - The desired Property could not be deleted as the requester had insufficient permissions ('WRITE' is required).   |
-|            | `404`  | Not Found - The Thing or desired Property was not found or requester had insufficient permissions.  |
-|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
 

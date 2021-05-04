@@ -2,7 +2,7 @@
 
 ```json
 {
-  "topic": "unknown/unknown/things/twin/errors",
+  "topic": "org.eclipse.ditto/fancy-thing/things/twin/errors",
   "headers": {
     "response-required": false,
     "content-type": "application/json"

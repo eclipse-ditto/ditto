@@ -344,6 +344,9 @@ entries:
           - title: Protocol topic
             url: /protocol-specification-topic.html
             output: web
+          - title: Errors
+            url: /protocol-specification-errors.html
+            output: web
           - title: Things group
             url: /protocol-specification-things.html
             output: web
@@ -366,9 +369,6 @@ entries:
                     output: web
                   - title: Acknowledgements
                     url: /protocol-specification-acks.html
-                    output: web
-                  - title: Errors
-                    url: /protocol-specification-errors.html
                     output: web
 
               - title: → search/messages

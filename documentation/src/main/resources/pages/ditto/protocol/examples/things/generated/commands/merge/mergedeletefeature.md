@@ -2,9 +2,10 @@
 
 ```json
 {
-  "topic": "com.acme/xdk_53/things/twin/commands/merge",
+  "topic": "org.eclipse.ditto/fancy-thing/things/twin/commands/merge",
   "headers": {
-    "content-type": "application/merge-patch+json"
+    "content-type": "application/merge-patch+json",
+    "correlation-id": "<command-correlation-id>"
   },
   "path": "/features/accelerometer",
   "value": null

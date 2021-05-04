@@ -12,9 +12,22 @@ cause by the user or appeared in the server.
 
 {% include docson.html schema="jsonschema/error.json" %}
 
-### Error codes
+### Status
 
-A Ditto error defines an "error code" which is a string identifier that uniquely identifies the error.
+The "status" uses HTTP status codes semantics (see [RFC 7231](https://tools.ietf.org/html/rfc7231#section-6))
+to indicate whether a specific command has been successfully completed, or not.
+
+These "status" codes can be seen as API/contract which will be always the same for a specific error.  
+Use the "status" in order to identify an error, as the additional "error" and "description" might change
+without prior notice.
+
+### Error
+
+A Ditto error contains an "error" code which is a string identifier that uniquely identifies the error.
+
+These error codes Ditto provides in addition to the HTTP **status** code are not to be considered as API and must 
+therefore not be relied on.  
+They might change without prior notice.
 
 Ditto itself uses the following prefixes for its error codes:
 
@@ -27,6 +40,19 @@ Ditto itself uses the following prefixes for its error codes:
 * `jwt:` - for errors related to <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.jwt}}">JWT</a> based [authentication](basic-auth.html)
 * `gateway:` - for errors produced by the (HTTP/WS) [gateway](architecture-services-gateway.html) service
 * `connectivity:` - for errors produced by the [connectivity](architecture-services-connectivity.html) service
+
+### Message
+
+The error "message" contains a short message describing the encountered problem in plain english text.
+
+### Description
+
+The optional error "description" describes in more detail how the error could be resolved.
+
+### Href
+
+The optional href contains a link to Ditto documentation or external resources in order to help to resolve the error.
+
 
 ## Examples
 

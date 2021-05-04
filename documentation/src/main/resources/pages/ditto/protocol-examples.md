@@ -14,7 +14,7 @@ Each example always starts with a command message that initiates an operation at
 
 ```json
 {
-  "topic": "com.acme/xdk_58/things/twin/commands/modify",
+  "topic": "org.eclipse.ditto/fancy-thing/things/twin/commands/modify",
   "headers": {
     "correlation-id": "a780b7b5-fdd2-4864-91fc-80df6bb0a636",
     "requested-acks": [ "twin-persisted","custom-ack" ]
@@ -50,7 +50,7 @@ an example of such an event is also demonstrated.
 
 ```json
 {
-  "topic": "com.acme/thing_id_3141/things/twin/events/modified",
+  "topic": "org.eclipse.ditto/thing_name_3141/things/twin/events/modified",
   "headers": {
     "correlation-id": "a780b7b5-fdd2-4864-91fc-80df6bb0a636",
     "requested-acks": [ "custom-ack" ]
@@ -72,7 +72,7 @@ Below an example is given for a successfully fulfilled ACK (status 202):
 
 ```json
 {
-  "topic": "com.acme/thing_name_3141/things/twin/acks/custom-ack",
+  "topic": "org.eclipse.ditto/thing_name_3141/things/twin/acks/custom-ack",
   "headers": {
     "correlation-id": "a780b7b5-fdd2-4864-91fc-80df6bb0a636"
   },
@@ -85,7 +85,7 @@ And here is an example for a failed ACK (aka NACK, status 400):
 
 ```json
 {
-  "topic": "com.acme/thing_name_3141/things/twin/acks/custom-ack",
+  "topic": "org.eclipse.ditto/thing_name_3141/things/twin/acks/custom-ack",
   "headers": {
     "correlation-id": "a780b7b5-fdd2-4864-91fc-80df6bb0a636"
   },
@@ -99,7 +99,7 @@ An ACK representing a timeout would look like this:
 
 ```json
 {
-  "topic": "com.acme/thing_name_3141/things/twin/acks/custom-ack",
+  "topic": "org.eclipse.ditto/thing_name_3141/things/twin/acks/custom-ack",
   "headers": {
     "correlation-id": "a780b7b5-fdd2-4864-91fc-80df6bb0a636"
   },

@@ -2,7 +2,7 @@
 
 ```json
 {
-  "topic": "com.acme/xdk_53/things/twin/events/merged",
+  "topic": "org.eclipse.ditto/fancy-thing/things/twin/events/merged",
   "headers": {
     "content-type": "application/merge-patch+json"
   },
