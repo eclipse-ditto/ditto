@@ -19,9 +19,7 @@ import java.util.Objects;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 
@@ -62,18 +60,21 @@ final class ImmutableJsonifiableAdaptable implements JsonifiableAdaptable {
                 .map(ProtocolFactory::newHeaders)
                 .orElse(DittoHeaders.empty());
 
-        final TopicPath topicPath;
+        return new ImmutableJsonifiableAdaptable(ImmutableAdaptable.of(tryToDeserializeTopicPath(jsonObject, headers),
+                ProtocolFactory.newPayload(jsonObject),
+                headers));
+    }
 
+    private static TopicPath tryToDeserializeTopicPath(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         try {
-            topicPath = jsonObject.getValue(JsonFields.TOPIC)
-                    .map(ProtocolFactory::newTopicPath)
-                    .orElseGet(ProtocolFactory::emptyTopicPath);
+            return deserializeTopicPath(jsonObject);
         } catch (final DittoRuntimeException e) {
-            throw e.setDittoHeaders(headers);
+            throw e.setDittoHeaders(dittoHeaders);
         }
+    }
 
-        return new ImmutableJsonifiableAdaptable(ImmutableAdaptable.of(topicPath,
-                ProtocolFactory.newPayload(jsonObject), headers));
+    private static TopicPath deserializeTopicPath(final JsonObject jsonObject) {
+        return ProtocolFactory.newTopicPath(jsonObject.getValueOrThrow(JsonFields.TOPIC));
     }
 
     @Override
@@ -98,11 +99,8 @@ final class ImmutableJsonifiableAdaptable implements JsonifiableAdaptable {
 
     @Override
     public JsonObject toJson(final DittoHeaders specificHeaders) {
-        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
-        if (!getTopicPath().equals(ProtocolFactory.emptyTopicPath())) {
-            jsonObjectBuilder.set(JsonFields.TOPIC, getTopicPath().getPath());
-        }
-        return jsonObjectBuilder
+        return JsonObject.newBuilder()
+                .set(JsonFields.TOPIC, getTopicPath().getPath())
                 .set(JsonFields.HEADERS, specificHeaders.toJson())
                 .setAll(getPayload().toJson())
                 .build();

@@ -10,19 +10,18 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.protocol.adapter;
 
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.protocol.MessagePath;
 import org.eclipse.ditto.protocol.Payload;
 import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Test;
 
 /**
@@ -32,12 +31,14 @@ public final class UnknownTopicPathExceptionTest {
 
     @Test
     public void fromTopicAndPath() {
-        final TopicPath topicPath = TopicPath.newBuilder(ThingId.of("ns:id")).twin().commands().modify().build();
+        final TopicPath topicPath =
+                TopicPath.newBuilder(ThingId.of("ns", "id")).things().twin().commands().modify().build();
         final MessagePath messagePath = Payload.newBuilder(JsonPointer.of("/policyId")).build().getPath();
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
 
         final UnknownTopicPathException
-                exception = UnknownTopicPathException.fromTopicAndPath(topicPath, messagePath, dittoHeaders);
+                exception =
+                UnknownTopicPathException.fromTopicAndPath(topicPath, messagePath, dittoHeaders);
 
         Assertions.assertThat(exception)
                 .hasMessageContaining(topicPath.getPath())

@@ -16,6 +16,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -34,8 +36,8 @@ import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionHasNextPag
  * <p>
  * A {@code TopicPath} complies with the scheme
  *
- * <code>&lt;namespace&gt;/&lt;id&gt;/&lt;group&gt;/&lt;channel&gt;/&lt;criterion&gt;/&lt;action&gt;</code> <br>
- * for example <code>org.eclipse.ditto/myThing/things/twin/commands/modify</code>
+ * {@code <namespace>/<id>/<group>/<channel>/<criterion>/<action>} <br>
+ * for example {@code org.eclipse.ditto/myThing/things/twin/commands/modify}
  * </p>
  */
 public interface TopicPath {
@@ -84,6 +86,13 @@ public interface TopicPath {
     String getNamespace();
 
     /**
+     * Returns the entity name part of this {@code TopicPath}.
+     *
+     * @return the entity name.
+     */
+    String getEntityName();
+
+    /**
      * Returns the group part of this {@code TopicPath}.
      *
      * @return the group.
@@ -126,13 +135,6 @@ public interface TopicPath {
     Optional<String> getSubject();
 
     /**
-     * Returns the entity name part of this {@code TopicPath}.
-     *
-     * @return the entity name.
-     */
-    String getEntityName();
-
-    /**
      * Returns the path of this {@code TopicPath}.
      *
      * @return the path.
@@ -142,6 +144,42 @@ public interface TopicPath {
     default boolean isWildcardTopic() {
         return ID_PLACEHOLDER.equals(getEntityName());
     }
+
+    /**
+     * Indicates whether this TopicPath has the specified Group.
+     *
+     * @param expectedGroup the group to check for.
+     * @return {@code true} if this TopicPath has group {@code expectedGroup}, {@code false} else.
+     * @since 2.0.0
+     */
+    boolean isGroup(@Nullable Group expectedGroup);
+
+    /**
+     * Indicates whether this TopicPath has the specified Channel.
+     *
+     * @param expectedChannel the channel to check for.
+     * @return {@code true} if this TopicPath has channel {@code expectedChannel}, {@code false} else.
+     * @since 2.0.0
+     */
+    boolean isChannel(@Nullable Channel expectedChannel);
+
+    /**
+     * Indicates whether this TopicPath has the specified Criterion.
+     *
+     * @param expectedCriterion the criterion to check for.
+     * @return {@code true} if this TopicPath has criterion {@code expectedCriterion}, {@code false} else.
+     * @since 2.0.0
+     */
+    boolean isCriterion(@Nullable Criterion expectedCriterion);
+
+    /**
+     * Indicates whether this TopicPath has the specified Action.
+     *
+     * @param expectedAction the action to check for.
+     * @return {@code true} if this TopicPath has action {@code expectedAction}, {@code false} else.
+     * @since 2.0.0
+     */
+    boolean isAction(@Nullable TopicPath.Action expectedAction);
 
     /**
      * An enumeration of topic path groups.
@@ -185,10 +223,14 @@ public interface TopicPath {
             return entityType;
         }
 
+        /**
+         * @return the same as {@link #getName()}.
+         */
         @Override
         public String toString() {
-            return name;
+            return getName();
         }
+
     }
 
     /**
@@ -248,10 +290,14 @@ public interface TopicPath {
             return name;
         }
 
+        /**
+         * @return the same as {@link #getName()}.
+         */
         @Override
         public String toString() {
-            return name;
+            return getName();
         }
+
     }
 
     /**
@@ -293,10 +339,14 @@ public interface TopicPath {
             return name;
         }
 
+        /**
+         * @return same as {@link #getName()}.
+         */
         @Override
         public String toString() {
-            return name;
+            return getName();
         }
+
     }
 
     /**
@@ -414,10 +464,14 @@ public interface TopicPath {
             return name;
         }
 
+        /**
+         * @return the same as {@link #getName()}.
+         */
         @Override
         public String toString() {
-            return name;
+            return getName();
         }
+
     }
 
 }

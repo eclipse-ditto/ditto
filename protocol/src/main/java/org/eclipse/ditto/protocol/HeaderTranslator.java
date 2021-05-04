@@ -80,7 +80,7 @@ public final class HeaderTranslator {
      * Read Ditto headers from external headers.
      *
      * @param externalHeaders external headers as a map.
-     * @return a Map of headers to keep from the passed external headers.
+     * @return an unmodifiable Map of headers to keep from the passed external headers.
      * @throws NullPointerException if {@code externalHeaders} is {@code null}.
      */
     public Map<String, String> fromExternalHeaders(final Map<String, String> externalHeaders) {
