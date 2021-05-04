@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2017 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.eclipse.ditto</groupId>
+        <artifactId>ditto-internal</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>ditto-internal-utils</artifactId>
+    <packaging>pom</packaging>
+    <name>Eclipse Ditto :: Internal :: Utils</name>
+
+    <modules>
+        <module>aggregator</module>
+        <module>akka</module>
+        <module>pubsub</module>
+        <module>cache</module>
+        <module>cache-loaders</module>
+        <module>cluster</module>
+        <module>conditional-headers</module>
+        <module>config</module>
+        <module>ddata</module>
+        <module>health</module>
+        <module>jwt</module>
+        <module>namespaces</module>
+        <module>persistence</module>
+        <module>protocol</module>
+        <module>search</module>
+        <module>test</module>
+        <module>tracing</module>
+        <module>metrics</module>
+        <module>persistent-actors</module>
+    </modules>
+
+</project>

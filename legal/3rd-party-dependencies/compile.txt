@@ -21,7 +21,7 @@ com.github.luben:zstd-jni:jar:1.4.4-7:compile
 com.github.scullxbones:akka-persistence-mongo-common_2.13:jar:3.0.6:compile
 com.github.scullxbones:akka-persistence-mongo-scala_2.13:jar:3.0.6:compile
 com.hierynomus:asn-one:jar:0.5.0:compile
-com.hivemq:hivemq-mqtt-client:jar:1.2.1:compile
+com.hivemq:hivemq-mqtt-client:jar:1.2.2:compile
 com.lightbend.akka.discovery:akka-discovery-kubernetes-api_2.13:jar:1.0.10:compile
 com.lightbend.akka.management:akka-lease-kubernetes_2.13:jar:1.0.10:compile
 com.lightbend.akka.management:akka-management_2.13:jar:1.0.10:compile
@@ -100,6 +100,7 @@ org.scala-lang.modules:scala-java8-compat_2.13:jar:0.9.0:compile
 org.scala-lang.modules:scala-parser-combinators_2.13:jar:1.1.2:compile
 org.scala-lang:scala-library:jar:2.13.5:compile
 org.scala-lang:scala-reflect:jar:2.13.5:compile
+org.slf4j:jul-to-slf4j:jar:1.7.30:compile
 org.slf4j:slf4j-api:jar:1.7.30:compile
 org.webjars.npm:bytebuffer:jar:5.0.1:compile
 org.webjars.npm:long:jar:3.2.0:compile
