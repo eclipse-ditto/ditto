@@ -17,30 +17,20 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.EventsTopicPathBuilder;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.JsonifiableMapper;
+import org.eclipse.ditto.protocol.Payload;
 import org.eclipse.ditto.protocol.PayloadPathMatcher;
-import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.protocol.TopicPathBuilder;
-import org.eclipse.ditto.protocol.UnknownEventException;
 import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategies;
-import org.eclipse.ditto.things.model.signals.events.ThingEvent;
-import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategies;
 
 /**
  * Abstract implementation of {@link Adapter} to provide common functionality.

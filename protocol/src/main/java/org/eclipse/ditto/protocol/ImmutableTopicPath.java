@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.protocol;
 
-import static org.eclipse.ditto.base.model.common.ConditionChecker.checkArgument;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
@@ -28,6 +27,8 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
+
+import org.eclipse.ditto.protocol.adapter.UnknownTopicPathException;
 
 /**
  * Immutable implementation of {@link TopicPath}.

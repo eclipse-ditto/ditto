@@ -24,6 +24,7 @@ import java.util.NoSuchElementException;
 import java.util.stream.Stream;
 
 import org.assertj.core.api.JUnitSoftAssertions;
+import org.eclipse.ditto.protocol.adapter.UnknownTopicPathException;
 import org.junit.Rule;
 import org.junit.Test;
 

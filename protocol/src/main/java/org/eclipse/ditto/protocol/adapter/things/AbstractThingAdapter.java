@@ -14,18 +14,18 @@ package org.eclipse.ditto.protocol.adapter.things;
 
 import java.util.Locale;
 
-import org.eclipse.ditto.protocol.adapter.AbstractAdapter;
-import org.eclipse.ditto.protocoladapter.EventsTopicPathBuilder;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.protocol.EventsTopicPathBuilder;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.PayloadPathMatcher;
-import org.eclipse.ditto.protocoladapter.ProtocolFactory;
-import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.protocoladapter.TopicPathBuilder;
-import org.eclipse.ditto.protocoladapter.UnknownChannelException;
-import org.eclipse.ditto.protocoladapter.UnknownEventException;
+import org.eclipse.ditto.protocol.ProtocolFactory;
+import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.protocol.TopicPathBuilder;
+import org.eclipse.ditto.protocol.UnknownChannelException;
+import org.eclipse.ditto.protocol.UnknownEventException;
+import org.eclipse.ditto.protocol.adapter.AbstractAdapter;
 import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategies;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 /**
  * Base class for {@link org.eclipse.ditto.protocol.adapter.Adapter}s that handle thing commands.

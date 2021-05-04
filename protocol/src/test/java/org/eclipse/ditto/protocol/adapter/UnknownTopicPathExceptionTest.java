@@ -16,14 +16,12 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.protocol.MessagePath;
 import org.eclipse.ditto.protocol.Payload;
 import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Test;
 
 /**
@@ -35,7 +33,7 @@ public final class UnknownTopicPathExceptionTest {
     public void fromTopicAndPath() {
         final TopicPath topicPath =
                 TopicPath.newBuilder(ThingId.of("ns", "id")).things().twin().commands().modify().build();
-        final MessagePath messagePath = ImmutableMessagePath.of(JsonPointer.of("/policyId"));
+        final MessagePath messagePath = Payload.newBuilder(JsonPointer.of("/policyId")).build().getPath();
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
 
         final UnknownTopicPathException
