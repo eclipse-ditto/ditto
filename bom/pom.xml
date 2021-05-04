@@ -595,6 +595,11 @@
                 <artifactId>ditto-signals-announcements-policies</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-signals-announcements-connectivity</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>

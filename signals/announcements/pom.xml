@@ -27,6 +27,7 @@
 
     <modules>
         <module>base</module>
+        <module>connectivity</module>
         <module>policies</module>
     </modules>
 
