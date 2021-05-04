@@ -2,7 +2,8 @@
 
 Date: 27.01.2020
 
-Enhancement of adding `@since` in javadoc: 21.02.2020
+* Enhancement of adding `@since` in javadoc: 21.02.2020
+* Adjusted [Modules considered API](#modules-considered-api) with Ditto 2.0 in 05.2021
 
 ## Status
 
@@ -56,9 +57,18 @@ Modules not on this list are not considered API; they may contain incompatible c
 
 ```
 ditto-json
-ditto-model
-ditto-protocol-adapter
-ditto-signals
+ditto-base-model
+ditto-messages-model
+ditto-jwt-model
+ditto-rql-model
+ditto-rql-query
+ditto-rql-parser
+ditto-policies-model
+ditto-things-model
+ditto-thingsearch-model
+ditto-concierge-model
+ditto-connectivity-model
+ditto-protocol
 ditto-utils
 ```
 

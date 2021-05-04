@@ -76,7 +76,15 @@ spec:
           value: "-Xgcpolicy:gencon -Xgc:concurrentScavenge -XX:+IdleTuningGcOnIdle -XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
         - name: MONGO_DB_HOSTNAME
           value: "mongodb"
+# in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
+#        - name: MONGO_DB_URI
+#          valueFrom:
+#            secretKeyRef:
+#              name: mongodb
+#              key: mongodb-uri
+
 ---
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -154,7 +162,15 @@ spec:
           value: "-Xgcpolicy:gencon -Xgc:concurrentScavenge -XX:+IdleTuningGcOnIdle -XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
         - name: MONGO_DB_HOSTNAME
           value: "mongodb"
+# in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
+#        - name: MONGO_DB_URI
+#          valueFrom:
+#            secretKeyRef:
+#              name: mongodb
+#              key: mongodb-uri
+
 ---
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -232,7 +248,15 @@ spec:
           value: "-Xgcpolicy:gencon -Xgc:concurrentScavenge -XX:+IdleTuningGcOnIdle -XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
         - name: MONGO_DB_HOSTNAME
           value: "mongodb"
+# in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
+#        - name: MONGO_DB_URI
+#          valueFrom:
+#            secretKeyRef:
+#              name: mongodb
+#              key: mongodb-uri
+
 ---
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -309,7 +333,15 @@ spec:
           value: "-Xgcpolicy:gencon -Xgc:concurrentScavenge -XX:+IdleTuningGcOnIdle -XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
         - name: MONGO_DB_HOSTNAME
           value: "mongodb"
+# in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
+#        - name: MONGO_DB_URI
+#          valueFrom:
+#            secretKeyRef:
+#              name: mongodb
+#              key: mongodb-uri
+
 ---
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -386,7 +418,15 @@ spec:
           value: "-Xgcpolicy:gencon -Xgc:concurrentScavenge -XX:+IdleTuningGcOnIdle -XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
         - name: MONGO_DB_HOSTNAME
           value: "mongodb"
+# in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
+#        - name: MONGO_DB_URI
+#          valueFrom:
+#            secretKeyRef:
+#              name: mongodb
+#              key: mongodb-uri
+
 ---
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
