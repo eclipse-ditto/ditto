@@ -12,12 +12,10 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
-import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.HashMap;
 import java.util.Map;
-
-import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
@@ -25,10 +23,8 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategies;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * Abstract implementation of {@link Adapter} to provide common functionality.
@@ -41,30 +37,18 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
      */
     protected static final String RESPONSES_CRITERION = "responses";
 
-    private final MappingStrategies<T> mappingStrategies;
-    private final HeaderTranslator headerTranslator;
     protected final PayloadPathMatcher payloadPathMatcher;
 
+    private final MappingStrategies<T> mappingStrategies;
+    private final HeaderTranslator headerTranslator;
+
     protected AbstractAdapter(final MappingStrategies<T> mappingStrategies,
-            final HeaderTranslator headerTranslator, final PayloadPathMatcher payloadPathMatcher) {
-        this.mappingStrategies = requireNonNull(mappingStrategies);
-        this.headerTranslator = requireNonNull(headerTranslator);
-        this.payloadPathMatcher = requireNonNull(payloadPathMatcher);
-    }
+            final HeaderTranslator headerTranslator,
+            final PayloadPathMatcher payloadPathMatcher) {
 
-    /**
-     * Reads Ditto headers from an Adaptable. CAUTION: Headers are taken as-is!.
-     *
-     * @param adaptable the protocol message.
-     * @return the headers of the message.
-     */
-    protected static DittoHeaders dittoHeadersFrom(final Adaptable adaptable) {
-        return adaptable.getDittoHeaders();
-    }
-
-    protected static TopicPath.Action getAction(final TopicPath topicPath) {
-        return topicPath.getAction()
-                .orElseThrow(() -> new NullPointerException("TopicPath did not contain an Action!"));
+        this.mappingStrategies = checkNotNull(mappingStrategies, "mappingStrategies");
+        this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
+        this.payloadPathMatcher = checkNotNull(payloadPathMatcher, "payloadPathMatcher");
     }
 
     /*
@@ -72,25 +56,15 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
      */
     @Override
     public final T fromAdaptable(final Adaptable externalAdaptable) {
-        checkNotNull(externalAdaptable, "Adaptable");
-        // get type from external adaptable before header filtering in case some headers exist for external messages
+        checkNotNull(externalAdaptable, "externalAdaptable");
+
+        // Get type from external adaptable before header filtering in case some headers exist for external messages
         // but not internally in Ditto.
         final String type = getType(externalAdaptable);
-
-        // filter headers by header translator, then inject any missing information from topic path
-        final DittoHeaders externalHeaders = externalAdaptable.getDittoHeaders();
-        final DittoHeaders filteredHeaders = addTopicPathInfo(
-                DittoHeaders.of(headerTranslator.fromExternalHeaders(externalHeaders)),
-                externalAdaptable.getTopicPath());
-
-        final JsonifiableMapper<T> jsonifiableMapper = mappingStrategies.find(type);
-        if (null == jsonifiableMapper) {
-            throw UnknownTopicPathException.fromTopicAndPath(externalAdaptable.getTopicPath(),
-                    externalAdaptable.getPayload().getPath(), filteredHeaders);
-        }
-
+        final DittoHeaders filteredHeaders = filterHeadersAndAddExtraHeadersFromTopicPath(externalAdaptable);
+        final JsonifiableMapper<T> mapper = getJsonifiableMapperOrThrow(type, externalAdaptable, filteredHeaders);
         final Adaptable adaptable = externalAdaptable.setDittoHeaders(filteredHeaders);
-        return DittoJsonException.wrapJsonRuntimeException(() -> jsonifiableMapper.map(adaptable));
+        return DittoJsonException.wrapJsonRuntimeException(() -> mapper.map(adaptable));
     }
 
     /**
@@ -101,9 +75,47 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
      */
     protected String getType(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();
-        final JsonPointer path = adaptable.getPayload().getPath();
-        final String commandName = getAction(topicPath) + upperCaseFirst(payloadPathMatcher.match(path));
+        final Payload adaptablePayload = adaptable.getPayload();
+        final JsonPointer path = adaptablePayload.getPath();
+        final String commandName = getActionOrThrow(topicPath) + upperCaseFirst(payloadPathMatcher.match(path));
         return topicPath.getGroup() + "." + getTypeCriterionAsString(topicPath) + ":" + commandName;
+    }
+
+    private static TopicPath.Action getActionOrThrow(final TopicPath topicPath) {
+        return topicPath.getAction()
+                .orElseThrow(() -> new NullPointerException("TopicPath did not contain an Action!"));
+    }
+
+    private JsonifiableMapper<T> getJsonifiableMapperOrThrow(final String type,
+            final Adaptable externalAdaptable,
+            final DittoHeaders filteredHeaders) {
+
+        final JsonifiableMapper<T> result = mappingStrategies.find(type);
+        if (null == result) {
+            final Payload adaptablePayload = externalAdaptable.getPayload();
+            throw UnknownTopicPathException.fromTopicAndPath(externalAdaptable.getTopicPath(),
+                    adaptablePayload.getPath(),
+                    filteredHeaders);
+        }
+        return result;
+    }
+
+    /**
+     * Returns the given String {@code s} with an upper case first letter.
+     *
+     * @param s the String.
+     * @return the upper case String.
+     */
+    protected static String upperCaseFirst(final String s) {
+        final String result;
+        if (s.isEmpty()) {
+            result = s;
+        } else {
+            final char[] chars = s.toCharArray();
+            chars[0] = Character.toUpperCase(chars[0]);
+            result = new String(chars);
+        }
+        return result;
     }
 
     /**
@@ -114,25 +126,15 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
      * @return the criterion used in the type as a string
      */
     protected String getTypeCriterionAsString(final TopicPath topicPath) {
-        return topicPath.getCriterion().getName();
+        final TopicPath.Criterion criterion = topicPath.getCriterion();
+        return criterion.getName();
     }
 
-    /**
-     * Add to headers any information that will be missing from topic path.
-     *
-     * @param filteredHeaders headers read from external headers.
-     * @param topicPath topic path of an adaptable.
-     * @return filteredHeaders with extra information from topicPath.
-     */
-    private static DittoHeaders addTopicPathInfo(final DittoHeaders filteredHeaders, final TopicPath topicPath) {
-        final DittoHeaders result;
-        final DittoHeaders extraInfo = getExtraInformationFromTopicPath(topicPath);
-        if (extraInfo.isEmpty()) {
-            result = filteredHeaders;
-        } else {
-            result = DittoHeaders.newBuilder(filteredHeaders).putHeaders(extraInfo).build();
-        }
-        return result;
+    // filter headers by header translator, then inject any missing information from topic path
+    private DittoHeaders filterHeadersAndAddExtraHeadersFromTopicPath(final Adaptable externalAdaptable) {
+        return DittoHeaders.newBuilder(headerTranslator.fromExternalHeaders(externalAdaptable.getDittoHeaders()))
+                .putHeaders(getExtraHeadersFromTopicPath(externalAdaptable.getTopicPath()))
+                .build();
     }
 
     /**
@@ -141,24 +143,20 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
      * @param topicPath the topic path to extract information from.
      * @return headers containing extra information from topic path.
      */
-    private static DittoHeaders getExtraInformationFromTopicPath(final TopicPath topicPath) {
-        final DittoHeadersBuilder<?, ?> headersBuilder = DittoHeaders.newBuilder();
-        @Nullable final String namespace = topicPath.getNamespace();
-        @Nullable final String entityName = topicPath.getEntityName();
-        if (null != namespace && null != entityName) {
-            // add entity ID for known topic-paths for error reporting.
-            final TopicPath.Group group = topicPath.getGroup();
-            headersBuilder.putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(),
-                    getEntityId(group, namespace, entityName));
-        }
+    private static Map<String, String> getExtraHeadersFromTopicPath(final TopicPath topicPath) {
+        final Map<String, String> result = new HashMap<>();
+
+        // add entity ID for known topic-paths for error reporting.
+        result.put(DittoHeaderDefinition.ENTITY_ID.getKey(), getEntityId(topicPath));
         if (topicPath.isChannel(TopicPath.Channel.LIVE)) {
-            headersBuilder.channel(TopicPath.Channel.LIVE.getName());
+            result.put(DittoHeaderDefinition.CHANNEL.getKey(), TopicPath.Channel.LIVE.getName());
         }
-        return headersBuilder.build();
+        return result;
     }
 
-    private static String getEntityId(final TopicPath.Group group, final String namespace, final String entityName) {
-        return String.join(":", group.getEntityType(), namespace, entityName);
+    private static String getEntityId(final TopicPath topicPath) {
+        final TopicPath.Group group = topicPath.getGroup();
+        return String.join(":", group.getEntityType(), topicPath.getNamespace(), topicPath.getEntityName());
     }
 
     /*
@@ -180,56 +178,6 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
      * @param channel the channel to which the signal belongs.
      * @return the mapped {@link Adaptable}
      */
-    protected abstract Adaptable mapSignalToAdaptable(final T signal, final TopicPath.Channel channel);
-
-    /**
-     * @return the {@link HeaderTranslator} used for the mapping
-     */
-    protected final HeaderTranslator headerTranslator() {
-        return headerTranslator;
-    }
-
-    protected EventsTopicPathBuilder getEventTopicPathBuilderFor(final ThingEvent<?> event,
-            final TopicPath.Channel channel) {
-        final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(event.getEntityId());
-        final EventsTopicPathBuilder eventsTopicPathBuilder;
-        if (channel == TopicPath.Channel.TWIN) {
-            eventsTopicPathBuilder = topicPathBuilder.twin().events();
-        } else if (channel == TopicPath.Channel.LIVE) {
-            eventsTopicPathBuilder = topicPathBuilder.live().events();
-        } else {
-            throw new IllegalArgumentException("Unknown Channel '" + channel + "'");
-        }
-
-        final String eventName = event.getClass().getSimpleName().toLowerCase();
-        if (eventName.contains(TopicPath.Action.CREATED.toString())) {
-            eventsTopicPathBuilder.created();
-        } else if (eventName.contains(TopicPath.Action.MODIFIED.toString())) {
-            eventsTopicPathBuilder.modified();
-        } else if (eventName.contains(TopicPath.Action.DELETED.toString())) {
-            eventsTopicPathBuilder.deleted();
-        } else if (eventName.contains(TopicPath.Action.MERGED.toString())) {
-            eventsTopicPathBuilder.merged();
-        } else {
-            throw UnknownEventException.newBuilder(eventName).build();
-        }
-        return eventsTopicPathBuilder;
-    }
-
-    /**
-     * Returns the given String {@code s} with an upper case first letter.
-     *
-     * @param s the String.
-     * @return the upper case String.
-     */
-    protected static String upperCaseFirst(final String s) {
-        if (s.isEmpty()) {
-            return s;
-        }
-
-        final char[] chars = s.toCharArray();
-        chars[0] = Character.toUpperCase(chars[0]);
-        return new String(chars);
-    }
+    protected abstract Adaptable mapSignalToAdaptable(T signal, TopicPath.Channel channel);
 
 }
