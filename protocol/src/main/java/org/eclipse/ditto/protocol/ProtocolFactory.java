@@ -79,7 +79,7 @@ public final class ProtocolFactory {
     /**
      * Parses the string argument as a {@link TopicPath}.
      *
-     * @param topicPathString a String containing of the {@code TopicPath} representation to be parsed.
+     * @param topicPathString a String containing the {@code TopicPath} representation to be parsed.
      * @return the {@code TopicPath} represented by the argument.
      * @throws NullPointerException if {@code path} is {@code null}.
      * @throws org.eclipse.ditto.protocol.adapter.UnknownTopicPathException if the string does not contain a parsable
