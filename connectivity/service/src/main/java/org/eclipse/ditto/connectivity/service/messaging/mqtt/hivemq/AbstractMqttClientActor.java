@@ -26,8 +26,10 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.Source;
+import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.service.config.MqttConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientData;
@@ -38,9 +40,7 @@ import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailu
 import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
-import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 
 import com.hivemq.client.mqtt.MqttClientState;
 import com.hivemq.client.mqtt.lifecycle.MqttClientDisconnectedListener;
@@ -196,7 +196,7 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
         final ClientWithCancelSwitch oldClient = getClient();
         final AbstractMqttSubscriptionHandler<S, P, R> oldSubscriptionHandler = getSubscriptionHandler();
         safelyDisconnectClient(oldClient, "consumer");
-        createSubscriberClientAndSubscriptionHandler();
+        createSubscriberClientAndSubscriptionHandler(!data.getConnection().getSources().isEmpty());
         oldSubscriptionHandler.stream().forEach(getSubscriptionHandler()::handleMqttConsumer);
         subscribeAndSendConn(false).whenComplete(
                 (result, error) -> logger.info("Consumer client restarted: result{}, error={]", result, error));
@@ -240,11 +240,13 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
     /**
      * Create a new client using the configuration of this actor.
      * On failure, send a ConnectionFailure to self.
+     *
+     * @param willSubscribe {@code true} whether the created client will subscribe to MQTT topics at all.
      */
-    private void createClientAndSubscriptionHandler() {
+    private void createClientAndSubscriptionHandler(final boolean willSubscribe) {
         final ActorRef self = getContext().getSelf();
         try {
-            createSubscriberClientAndSubscriptionHandler();
+            createSubscriberClientAndSubscriptionHandler(willSubscribe);
             if (mqttSpecificConfig.separatePublisherClient()) {
                 final String publisherClientId = resolvePublisherClientId(connection, mqttSpecificConfig);
                 final AtomicBoolean cancelReconnect = new AtomicBoolean(false);
@@ -283,7 +285,7 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
         };
     }
 
-    private void createSubscriberClientAndSubscriptionHandler() {
+    private void createSubscriberClientAndSubscriptionHandler(final boolean willSubscribe) {
         final String mqttClientId = resolveMqttClientId(connection, mqttSpecificConfig);
         final AtomicBoolean cancelReconnect = new AtomicBoolean(false);
         // apply last will config only if *no* separate publisher client is used
@@ -294,7 +296,13 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
                 null,
                 getMqttClientDisconnectedListener(cancelReconnect), connectionLogger);
         client = new ClientWithCancelSwitch(createdClient, cancelReconnect);
-        subscriptionHandler = createSubscriptionHandler(connection, createdClient, logger);
+
+        if (willSubscribe) {
+            // create a "real" subscription handler:
+            subscriptionHandler = createSubscriptionHandler(connection, createdClient, logger);
+        } else {
+            subscriptionHandler = new DummySubscriptionHandler<>(connection, logger);
+        }
     }
 
     private void resetClientAndSubscriptionHandler() {
@@ -363,7 +371,7 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
         // start publisher and consumer actors first.
         // after that, subscribe and connect in parallel in order to receive redelivered PUBLISH messages.
         if (client == null) {
-            createClientAndSubscriptionHandler();
+            createClientAndSubscriptionHandler(!connection.getSources().isEmpty());
             if (client == null) {
                 // client creation failed; a ConnectionFailure event will arrive and cause transition to failure state
                 return;
