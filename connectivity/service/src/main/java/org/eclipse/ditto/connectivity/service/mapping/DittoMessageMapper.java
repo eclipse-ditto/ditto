@@ -104,7 +104,7 @@ public final class DittoMessageMapper extends AbstractMessageMapper {
 
     private static boolean isError(final Adaptable adaptable) {
         final var topicPath = adaptable.getTopicPath();
-        return TopicPath.Criterion.ERRORS.equals(topicPath.getCriterion());
+        return topicPath.isCriterion(TopicPath.Criterion.ERRORS);
     }
 
     @Override

@@ -21,6 +21,9 @@ public interface TopicPathBuildable {
      * Creates a new {@code TopicPath} from the previously set values.
      *
      * @return the topic path.
+     * @throws IllegalStateException if the group is {@link org.eclipse.ditto.protocol.TopicPath.Group#POLICIES}
+     * and channel is <em>not</em> {@link org.eclipse.ditto.protocol.TopicPath.Channel#NONE}.
      */
     TopicPath build();
+
 }

@@ -13,20 +13,24 @@
 package org.eclipse.ditto.protocol;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Instant;
+import java.util.NoSuchElementException;
 
+import org.assertj.core.api.AutoCloseableSoftAssertions;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.entity.metadata.Metadata;
-import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.protocol.adapter.UnknownTopicPathException;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -38,9 +42,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ImmutableJsonifiableAdaptableTest {
 
     private static final String KNOWN_TOPIC = "org.eclipse.ditto/myThing/things/twin/commands/modify";
-    private static final JsonObject KNOWN_HEADERS = JsonObject.newBuilder()
-            .set(DittoHeaderDefinition.CORRELATION_ID.getKey(), "cor-id")
-            .set(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), true)
+    private static final DittoHeaders KNOWN_HEADERS = DittoHeaders.newBuilder()
+            .correlationId("cor-id")
+            .responseRequired(true)
             .build();
 
     private static final JsonPointer KNOWN_PATH = JsonPointer.empty();
@@ -104,7 +108,7 @@ public final class ImmutableJsonifiableAdaptableTest {
     public void jsonSerializationWorksAsExpected() {
         final JsonObject expected = JsonObject.newBuilder()
                 .set(JsonifiableAdaptable.JsonFields.TOPIC, KNOWN_TOPIC)
-                .set(JsonifiableAdaptable.JsonFields.HEADERS, KNOWN_HEADERS)
+                .set(JsonifiableAdaptable.JsonFields.HEADERS, KNOWN_HEADERS.toJson())
                 .set(Payload.JsonFields.PATH, KNOWN_PATH.toString())
                 .set(Payload.JsonFields.VALUE, KNOWN_VALUE)
                 .set(Payload.JsonFields.EXTRA, knownExtra)
@@ -115,8 +119,8 @@ public final class ImmutableJsonifiableAdaptableTest {
                 .set(Payload.JsonFields.FIELDS, KNOWN_FIELDS.toString())
                 .build();
 
-        final Adaptable adaptable = ImmutableAdaptable.of(ProtocolFactory.newTopicPath(KNOWN_TOPIC), knownPayload,
-                DittoHeaders.newBuilder(KNOWN_HEADERS).build());
+        final Adaptable adaptable =
+                ImmutableAdaptable.of(ProtocolFactory.newTopicPath(KNOWN_TOPIC), knownPayload, KNOWN_HEADERS);
         final JsonifiableAdaptable jsonifiableAdaptable = ImmutableJsonifiableAdaptable.of(adaptable);
 
         final JsonObject actual = jsonifiableAdaptable.toJson().asObject();
@@ -126,13 +130,13 @@ public final class ImmutableJsonifiableAdaptableTest {
 
     @Test
     public void jsonDeserializationWorksAsExpected() {
-        final Adaptable adaptable = ImmutableAdaptable.of(ProtocolFactory.newTopicPath(KNOWN_TOPIC), knownPayload,
-                DittoHeaders.newBuilder(KNOWN_HEADERS).build());
+        final Adaptable adaptable =
+                ImmutableAdaptable.of(ProtocolFactory.newTopicPath(KNOWN_TOPIC), knownPayload, KNOWN_HEADERS);
         final JsonifiableAdaptable expected = ImmutableJsonifiableAdaptable.of(adaptable);
 
         final JsonObject payloadJsonObject = JsonObject.newBuilder()
                 .set(JsonifiableAdaptable.JsonFields.TOPIC, KNOWN_TOPIC)
-                .set(JsonifiableAdaptable.JsonFields.HEADERS, KNOWN_HEADERS)
+                .set(JsonifiableAdaptable.JsonFields.HEADERS, KNOWN_HEADERS.toJson())
                 .set(Payload.JsonFields.PATH, KNOWN_PATH.toString())
                 .set(Payload.JsonFields.VALUE, KNOWN_VALUE)
                 .set(Payload.JsonFields.EXTRA, knownExtra)
@@ -146,6 +150,43 @@ public final class ImmutableJsonifiableAdaptableTest {
         final ImmutableJsonifiableAdaptable actual = ImmutableJsonifiableAdaptable.fromJson(payloadJsonObject);
 
         assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void deserializeJsonWithoutTopicPathFails() {
+        final JsonObject invalidJsonObject = JsonObject.newBuilder()
+                .set(JsonifiableAdaptable.JsonFields.HEADERS, KNOWN_HEADERS.toJson())
+                .build();
+
+        assertThatExceptionOfType(JsonMissingFieldException.class)
+                .isThrownBy(() -> ImmutableJsonifiableAdaptable.fromJson(invalidJsonObject))
+                .withMessageContaining(JsonifiableAdaptable.JsonFields.TOPIC.getPointer().toString())
+                .withNoCause();
+    }
+
+    @Test
+    public void deserializeJsonWithInvalidTopicPathFails() {
+        final String invalidTopicPath = "abc";
+        final JsonObject invalidJsonObject = JsonObject.newBuilder()
+                .set(JsonifiableAdaptable.JsonFields.HEADERS, KNOWN_HEADERS.toJson())
+                .set(JsonifiableAdaptable.JsonFields.TOPIC, invalidTopicPath)
+                .build();
+
+        assertThatExceptionOfType(UnknownTopicPathException.class)
+                .isThrownBy(() -> ImmutableJsonifiableAdaptable.fromJson(invalidJsonObject))
+                .satisfies(unknownTopicPathException -> {
+                    try (final AutoCloseableSoftAssertions softly = new AutoCloseableSoftAssertions()) {
+                        softly.assertThat(unknownTopicPathException.getDittoHeaders())
+                                .as("DittoHeaders")
+                                .isEqualTo(KNOWN_HEADERS);
+                        softly.assertThat(unknownTopicPathException.getDescription())
+                                .as("description")
+                                .hasValue("The topic path has no entity name part.");
+                        softly.assertThat(unknownTopicPathException.getCause())
+                                .as("cause")
+                                .isInstanceOf(NoSuchElementException.class);
+                    }
+                });
     }
 
 }

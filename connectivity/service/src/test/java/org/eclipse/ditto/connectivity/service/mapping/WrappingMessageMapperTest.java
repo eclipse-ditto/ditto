@@ -23,15 +23,15 @@ import java.util.Collections;
 import java.util.List;
 
 import org.assertj.core.api.Assertions;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.model.MessageMappingFailedException;
 import org.eclipse.ditto.connectivity.service.config.mapping.DefaultMappingConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.connectivity.model.MessageMappingFailedException;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
-import org.junit.After;
+import org.eclipse.ditto.protocol.TopicPath;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -45,6 +45,7 @@ import com.typesafe.config.ConfigFactory;
 public class WrappingMessageMapperTest {
 
     private static final JsonObject DEFAULT_OPTIONS = JsonObject.newBuilder().set("default", "option").build();
+
     private MessageMapper mockMapper;
     private MessageMapper underTest;
     private MessageMapperConfiguration mockConfiguration;
@@ -67,17 +68,13 @@ public class WrappingMessageMapperTest {
         when(mockMapper.map(mockAdaptable)).thenReturn(singletonList(mockMessage));
         when(mockMapper.getId()).thenReturn("mockMapper");
         when(mockMapper.getDefaultOptions()).thenReturn(DEFAULT_OPTIONS);
-        when(mockAdaptable.getTopicPath()).thenReturn(ProtocolFactory.emptyTopicPath());
+        when(mockAdaptable.getTopicPath()).thenReturn(mock(TopicPath.class));
         when(mockAdaptable.getDittoHeaders()).thenReturn(DittoHeaders.empty());
         when(mockAdaptable.getPayload()).thenReturn(ProtocolFactory.newPayload("{\"path\":\"/\"}"));
         when(mockMessage.getInternalHeaders()).thenReturn(DittoHeaders.empty());
 
         mapperLimitsConfig = DefaultMappingConfig.of(ConfigFactory.load("mapping-test"));
         underTest = WrappingMessageMapper.wrap(mockMapper);
-    }
-
-    @After
-    public void tearDown() {
     }
 
     @Test
@@ -98,8 +95,7 @@ public class WrappingMessageMapperTest {
 
     @Test
     public void mapAdaptable() {
-        final DittoHeaders headers =
-                DittoHeaders.of(Collections.singletonMap(ExternalMessage.CONTENT_TYPE_HEADER, "contentType"));
+        final var headers = DittoHeaders.newBuilder().contentType("contentType").build();
         when(mockAdaptable.getDittoHeaders()).thenReturn(headers);
 
         underTest.configure(mapperLimitsConfig, mockConfiguration);
@@ -135,11 +131,12 @@ public class WrappingMessageMapperTest {
         Assertions.assertThat(underTest.getDefaultOptions()).isEqualTo(DEFAULT_OPTIONS);
     }
 
-    private <T> List<T> listOfElements(final T elementInList, final int numberOfElements) {
+    private static <T> List<T> listOfElements(final T elementInList, final int numberOfElements) {
         final List<T> list = new ArrayList<>();
         for (int i = 0; i < numberOfElements + 1; i++) {
             list.add(elementInList);
         }
         return list;
     }
+
 }

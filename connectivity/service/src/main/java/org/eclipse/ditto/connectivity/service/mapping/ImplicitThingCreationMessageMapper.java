@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.connectivity.service.mapping;
 
 import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJsonRuntimeException;
@@ -22,34 +21,34 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.common.Placeholders;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityIdInvalidException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatcher;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
+import org.eclipse.ditto.base.model.signals.GlobalErrorRegistry;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.MessageMapperConfigurationInvalidException;
+import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.internal.models.placeholders.ExpressionResolver;
 import org.eclipse.ditto.internal.models.placeholders.HeadersPlaceholder;
 import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.internal.models.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
-import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.base.model.signals.GlobalErrorRegistry;
-import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 
 /**
@@ -229,18 +228,24 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
 
     @Override
     public List<ExternalMessage> map(final Adaptable adaptable) {
-        if (TopicPath.Criterion.ERRORS.equals(adaptable.getTopicPath().getCriterion())) {
-            adaptable.getPayload().getValue()
+        if (isErrorByTopicPath(adaptable)) {
+            final var adaptablePayload = adaptable.getPayload();
+            adaptablePayload.getValue()
                     .filter(JsonValue::isObject)
                     .map(JsonValue::asObject)
                     .ifPresentOrElse(jsonObject -> {
-                        throw GlobalErrorRegistry.getInstance().parse(jsonObject,
-                                adaptable.getDittoHeaders());
+                        final var globalErrorRegistry = GlobalErrorRegistry.getInstance();
+                        throw globalErrorRegistry.parse(jsonObject, adaptable.getDittoHeaders());
                     }, () -> LOGGER.withCorrelationId(adaptable.getDittoHeaders())
                             .warn("Unexpected error adaptable. Expected value of type JsonObject in payload but got " +
-                                    "<{}>.", adaptable.getPayload()));
+                                    "<{}>.", adaptablePayload));
         }
         return Collections.emptyList();
+    }
+
+    private static boolean isErrorByTopicPath(final Adaptable adaptable) {
+        final var topicPath = adaptable.getTopicPath();
+        return topicPath.isCriterion(TopicPath.Criterion.ERRORS);
     }
 
 }
