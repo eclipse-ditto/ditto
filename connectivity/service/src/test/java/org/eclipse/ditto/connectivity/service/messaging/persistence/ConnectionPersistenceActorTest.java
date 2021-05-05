@@ -98,6 +98,7 @@ import akka.cluster.pubsub.DistributedPubSub;
 import akka.japi.pf.ReceiveBuilder;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
+import scala.PartialFunction;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -349,7 +350,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
             // forward signal once
             underTest.tell(CreateSubscription.of(DittoHeaders.empty()), getRef());
-            probe.expectMsgClass(CreateSubscription.class); // is not the exact command because prefix is added
+            probe.fishForMessage(scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS), "CreateSubscription",
+                    PartialFunction.fromFunction(CreateSubscription.class::isInstance));
 
             // close connection: at least 1 client actor gets the command; the other may or may not be started.
             underTest.tell(closeConnection, getRef());
@@ -1141,12 +1143,19 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             underTest.tell(createClosedConnectionWith2Clients, getRef());
             expectMsgClass(CreateConnectionResponse.class);
             underTest.tell(OpenConnection.of(myConnectionId, DittoHeaders.empty()), getRef());
-            assertThat(clientActorsProbe.expectMsgClass(WithSender.class).getMessage())
-                    .isInstanceOf(EnableConnectionLogs.class);
-            assertThat(clientActorsProbe.expectMsgClass(WithSender.class).getMessage())
-                    .isInstanceOf(EnableConnectionLogs.class);
-            assertThat(clientActorsProbe.expectMsgClass(WithSender.class).getMessage())
-                    .isInstanceOf(OpenConnection.class);
+
+            final WithSender<?> msg1 = clientActorsProbe.expectMsgClass(WithSender.class);
+            final WithSender<?> msg2 = clientActorsProbe.expectMsgClass(WithSender.class);
+            final WithSender<?> msg3 = clientActorsProbe.expectMsgClass(WithSender.class);
+            assertThat(List.of(
+                    msg1.getMessage().getClass(),
+                    msg2.getMessage().getClass(),
+                    msg3.getMessage().getClass()
+            )).containsExactlyInAnyOrder(
+                    EnableConnectionLogs.class,
+                    EnableConnectionLogs.class,
+                    OpenConnection.class);
+
             clientActorsProbe.reply(new Status.Success("connected"));
             expectMsgClass(OpenConnectionResponse.class);
 
