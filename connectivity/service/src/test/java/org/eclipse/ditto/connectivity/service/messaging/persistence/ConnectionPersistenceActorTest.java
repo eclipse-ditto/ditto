@@ -1158,8 +1158,14 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             // THEN: The 2 commands land in different client actors
             underTest.tell(CreateSubscription.of(DittoHeaders.empty()), getRef());
             underTest.tell(CreateSubscription.of(DittoHeaders.empty()), getRef());
-            final WithSender<?> createSubscription1 = clientActorsProbe.expectMsgClass(WithSender.class);
-            final WithSender<?> createSubscription2 = clientActorsProbe.expectMsgClass(WithSender.class);
+            final WithSender<?> createSubscription1 = (WithSender<?>) clientActorsProbe.fishForMessage(
+                    scala.concurrent.duration.Duration.create(5, TimeUnit.SECONDS),
+                    "WithSender", PartialFunction.fromFunction(msg -> (msg instanceof WithSender<?> &&
+                            ((WithSender<?>) msg).getMessage() instanceof CreateSubscription)));
+            final WithSender<?> createSubscription2 = (WithSender<?>) clientActorsProbe.fishForMessage(
+                    scala.concurrent.duration.Duration.create(5, TimeUnit.SECONDS),
+                    "WithSender", PartialFunction.fromFunction(msg -> (msg instanceof WithSender<?> &&
+                            ((WithSender<?>) msg).getMessage() instanceof CreateSubscription)));
             assertThat(createSubscription1.getSender()).isNotEqualTo(createSubscription2.getSender());
         }};
     }
