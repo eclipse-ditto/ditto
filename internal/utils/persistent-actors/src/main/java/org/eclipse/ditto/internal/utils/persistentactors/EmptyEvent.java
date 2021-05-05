@@ -19,13 +19,6 @@ import java.util.function.Predicate;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
@@ -36,6 +29,13 @@ import org.eclipse.ditto.base.model.json.JsonParsableEvent;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.model.signals.events.EventJsonDeserializer;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * An "empty" event which can be persisted to the backing event journal which does not contain any change "instruction"
@@ -60,6 +60,13 @@ public final class EmptyEvent implements Event<EmptyEvent>, WithEntityId {
     static final String NAME = "empty-event";
 
     static final String TYPE = TYPE_PREFIX + NAME;
+
+    /**
+     * For already persisted events the {@link #JSON_ENTITY_TYPE} might not be present. In this case, fall back to this
+     * type.
+     * Should not have a relevance for EmptyEvent anyhow.
+     */
+    private static final EntityType UNKNOWN_ENTITY_TYPE = EntityType.of("unknown");
 
     private static final JsonFieldDefinition<String> JSON_ENTITY_TYPE =
             JsonFactory.newStringFieldDefinition("entityType", FieldType.REGULAR, JsonSchemaVersion.V_2);
@@ -97,7 +104,9 @@ public final class EmptyEvent implements Event<EmptyEvent>, WithEntityId {
     public static EmptyEvent fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<EmptyEvent>(TYPE, jsonObject)
                 .deserialize((revision, timestamp, metadata) -> {
-                    final EntityType entityType = EntityType.of(jsonObject.getValueOrThrow(JSON_ENTITY_TYPE));
+                    final EntityType entityType = jsonObject.getValue(JSON_ENTITY_TYPE)
+                            .map(EntityType::of)
+                            .orElse(UNKNOWN_ENTITY_TYPE);
                     final EntityId readEntityId =
                             EntityId.of(entityType, jsonObject.getValueOrThrow(JSON_ENTITY_ID));
                     final JsonValue readEffect = jsonObject.getValueOrThrow(JSON_EFFECT);
