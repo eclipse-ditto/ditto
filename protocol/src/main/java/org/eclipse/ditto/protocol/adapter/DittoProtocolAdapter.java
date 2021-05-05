@@ -96,7 +96,8 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         this.policiesAdapters = new DefaultPolicyCommandAdapterProvider(errorRegistry, headerTranslator);
         this.connectivityAdapters = new DefaultConnectivityCommandAdapterProvider(headerTranslator);
         this.acknowledgementAdapters = new DefaultAcknowledgementsAdapterProvider(errorRegistry, headerTranslator);
-        this.adapterResolver = new DefaultAdapterResolver(thingsAdapters, policiesAdapters, acknowledgementAdapters);
+        this.adapterResolver = new DefaultAdapterResolver(thingsAdapters, policiesAdapters, connectivityAdapters,
+                acknowledgementAdapters);
     }
 
     private DittoProtocolAdapter(final HeaderTranslator headerTranslator,
