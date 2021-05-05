@@ -198,14 +198,15 @@ final class ImmutableFilteredTopic implements FilteredTopic {
 
         @Override
         public ImmutableFilteredTopicBuilder withNamespaces(@Nullable final Collection<String> namespaces) {
-            this.namespaces = namespaces;
+            if (supportsNamespaces()) {
+                this.namespaces = namespaces;
+            }
             return this;
         }
 
         @Override
         public ImmutableFilteredTopicBuilder withFilter(@Nullable final CharSequence filter) {
-            // policy announcements do not support filter.
-            if (topic != Topic.POLICY_ANNOUNCEMENTS) {
+            if (supportsFilters()) {
                 this.filter = filter;
             }
             return this;
@@ -213,8 +214,7 @@ final class ImmutableFilteredTopic implements FilteredTopic {
 
         @Override
         public ImmutableFilteredTopicBuilder withExtraFields(@Nullable final ThingFieldSelector extraFields) {
-            // policy announcements do not support extra fields.
-            if (topic != Topic.POLICY_ANNOUNCEMENTS) {
+            if (supportsExtraFields()) {
                 this.extraFields = extraFields;
             }
             return this;
@@ -223,6 +223,18 @@ final class ImmutableFilteredTopic implements FilteredTopic {
         @Override
         public ImmutableFilteredTopic build() {
             return new ImmutableFilteredTopic(this);
+        }
+
+        private boolean supportsNamespaces() {
+            return Topic.CONNECTION_ANNOUNCEMENTS != topic;
+        }
+
+        private boolean supportsFilters() {
+            return Topic.POLICY_ANNOUNCEMENTS != topic && Topic.CONNECTION_ANNOUNCEMENTS != topic;
+        }
+
+        private boolean supportsExtraFields() {
+            return Topic.POLICY_ANNOUNCEMENTS != topic && Topic.CONNECTION_ANNOUNCEMENTS != topic;
         }
 
     }
