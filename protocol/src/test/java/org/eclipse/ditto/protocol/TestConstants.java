@@ -25,11 +25,6 @@ import java.util.UUID;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
@@ -37,6 +32,12 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.messages.model.MessageHeaderDefinition;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Label;
@@ -311,6 +312,26 @@ public final class TestConstants {
                     TopicPath.newBuilder(POLICY_ID).policies().commands().delete().build();
             public static final TopicPath RETRIEVE =
                     TopicPath.newBuilder(POLICY_ID).policies().commands().retrieve().build();
+
+        }
+
+    }
+
+    public static class Connectivity {
+
+        public static final ConnectionId CONNECTION_ID = ConnectionId.of("bumlux");
+        public static final Instant TIMESTAMP = Instant.now();
+
+        public static class TopicPaths {
+
+            public static TopicPath announcement(final String name) {
+                return ProtocolFactory.newTopicPathBuilderFromName(CONNECTION_ID.toString())
+                        .connections()
+                        .announcements()
+                        .name(name)
+                        .build();
+            }
+
         }
 
     }

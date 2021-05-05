@@ -111,4 +111,21 @@ public class ImmutableTopicPathBuilderTest {
         assertThat(actual.getPath()).isEqualTo(expectedTopicPathString);
     }
 
+    @Test
+    public void buildConnectivityAnnouncementTopicPath() {
+        final TopicPath expected = ImmutableTopicPath
+                .of("_", "myConnection", TopicPath.Group.CONNECTIONS, TopicPath.Channel.NONE,
+                        TopicPath.Criterion.ANNOUNCEMENTS, "opened");
+        final TopicPath actual = ProtocolFactory.newTopicPathBuilderFromName("myConnection") //
+                .connections()
+                .announcements()
+                .name("opened")
+                .build();
+
+        final String expectedTopicPathString = "_/myConnection/connections/announcements/opened";
+
+        assertThat(actual).isEqualTo(expected);
+        assertThat(actual.getPath()).isEqualTo(expectedTopicPathString);
+    }
+
 }

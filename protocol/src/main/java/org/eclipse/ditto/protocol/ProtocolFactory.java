@@ -112,6 +112,7 @@ public final class ProtocolFactory {
             final TopicPath.Channel channel;
             switch (group) {
                 case POLICIES:
+                case CONNECTIONS:
                     channel = TopicPath.Channel.NONE;
                     break;
                 case THINGS:
@@ -204,7 +205,7 @@ public final class ProtocolFactory {
     }
 
     /**
-     * Returns a new {@code TopicPathBuilder}. The {@code id} part of the {@code TopicPath} is set to
+     * Returns a new {@code TopicPathBuilder}. The {@code name} part of the {@code TopicPath} is set to
      * {@link TopicPath#ID_PLACEHOLDER}.
      *
      * @param namespace the namespace.
@@ -213,6 +214,18 @@ public final class ProtocolFactory {
      */
     public static TopicPathBuilder newTopicPathBuilderFromNamespace(final String namespace) {
         return ImmutableTopicPathBuilder.of(namespace, TopicPath.ID_PLACEHOLDER).things();
+    }
+
+    /**
+     * Returns a new {@code TopicPathBuilder}. The {@code namespace} part of the {@code TopicPath} is set to
+     * {@link TopicPath#ID_PLACEHOLDER}.
+     *
+     * @param name the name.
+     * @return the builder.
+     * @throws NullPointerException if {@code name} is {@code null}.
+     */
+    public static TopicPathBuilder newTopicPathBuilderFromName(final String name) {
+        return ImmutableTopicPathBuilder.of(TopicPath.ID_PLACEHOLDER, name);
     }
 
     /**

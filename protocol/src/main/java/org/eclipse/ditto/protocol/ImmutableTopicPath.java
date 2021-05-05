@@ -65,10 +65,10 @@ final class ImmutableTopicPath implements TopicPath {
     }
 
     private Channel checkChannelArgument(final Channel channel, final Group group) {
-        if (group == Group.POLICIES) {
+        if (group == Group.POLICIES || group == Group.CONNECTIONS) {
             // for policies group no channel is required/allowed
             checkArgument(channel, ch -> ch == null || ch == Channel.NONE,
-                    () -> "The policies group requires no channel.");
+                    () -> "The policies and connections groups require no channel.");
             return Channel.NONE;
         } else {
             // for other groups just check that a channel is there

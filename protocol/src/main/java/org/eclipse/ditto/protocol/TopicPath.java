@@ -17,6 +17,7 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import org.eclipse.ditto.base.model.entity.type.EntityType;
+import org.eclipse.ditto.connectivity.model.ConnectivityConstants;
 import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingConstants;
@@ -150,7 +151,14 @@ public interface TopicPath {
 
         POLICIES("policies", PolicyConstants.ENTITY_TYPE),
 
-        THINGS("things", ThingConstants.ENTITY_TYPE);
+        THINGS("things", ThingConstants.ENTITY_TYPE),
+
+        /**
+         * Connections group.
+         *
+         * @since 2.1.0
+         */
+        CONNECTIONS("connections", ConnectivityConstants.ENTITY_TYPE);
 
         private final String name;
         private final EntityType entityType;

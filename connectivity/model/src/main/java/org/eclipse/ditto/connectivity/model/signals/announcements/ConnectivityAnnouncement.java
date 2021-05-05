@@ -30,9 +30,14 @@ public interface ConnectivityAnnouncement<T extends ConnectivityAnnouncement<T>>
         extends Announcement<T>, SignalWithEntityId<T> {
 
     /**
+     * The service prefix for connectivity announcement commands.
+     */
+    String SERVICE_PREFIX = "connectivity";
+
+    /**
      * Type prefix of connection announcements.
      */
-    String TYPE_PREFIX = "connectivity." + TYPE_QUALIFIER + ":";
+    String TYPE_PREFIX = SERVICE_PREFIX + "." + TYPE_QUALIFIER + ":";
 
     /**
      * Connection resource type.

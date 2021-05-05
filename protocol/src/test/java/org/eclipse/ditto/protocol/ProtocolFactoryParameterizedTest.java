@@ -26,10 +26,12 @@ import static org.eclipse.ditto.protocol.TopicPath.Action.RETRIEVE;
 import static org.eclipse.ditto.protocol.TopicPath.Channel.LIVE;
 import static org.eclipse.ditto.protocol.TopicPath.Channel.NONE;
 import static org.eclipse.ditto.protocol.TopicPath.Channel.TWIN;
+import static org.eclipse.ditto.protocol.TopicPath.Criterion.ANNOUNCEMENTS;
 import static org.eclipse.ditto.protocol.TopicPath.Criterion.COMMANDS;
 import static org.eclipse.ditto.protocol.TopicPath.Criterion.ERRORS;
 import static org.eclipse.ditto.protocol.TopicPath.Criterion.EVENTS;
 import static org.eclipse.ditto.protocol.TopicPath.Criterion.MESSAGES;
+import static org.eclipse.ditto.protocol.TopicPath.Group.CONNECTIONS;
 import static org.eclipse.ditto.protocol.TopicPath.Group.POLICIES;
 import static org.eclipse.ditto.protocol.TopicPath.Group.THINGS;
 
@@ -69,7 +71,9 @@ public class ProtocolFactoryParameterizedTest {
                 {"ns/id/policies/commands/retrieve", of(ns, ID, POLICIES, NONE, COMMANDS, RETRIEVE)},
                 {"ns/id/policies/commands/create", of(ns, ID, POLICIES, NONE, COMMANDS, CREATE)},
                 {"ns/id/policies/commands/delete", of(ns, ID, POLICIES, NONE, COMMANDS, DELETE)},
-                {"ns/id/policies/errors", of(ns, ID, POLICIES, NONE, ERRORS)}
+                {"ns/id/policies/errors", of(ns, ID, POLICIES, NONE, ERRORS)},
+                {"ns/id/policies/announcements", of(ns, ID, POLICIES, NONE, ANNOUNCEMENTS)},
+                {"_/id/connections/announcements", of(TopicPath.ID_PLACEHOLDER, ID, CONNECTIONS, NONE, ANNOUNCEMENTS)}
         };
         return Arrays.asList(data);
     }

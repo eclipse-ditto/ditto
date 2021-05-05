@@ -96,6 +96,12 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     }
 
     @Override
+    public TopicPathBuilder connections() {
+        this.group = TopicPath.Group.CONNECTIONS;
+        return this;
+    }
+
+    @Override
     public SearchTopicPathBuilder search() {
         this.criterion = TopicPath.Criterion.SEARCH;
         return this;

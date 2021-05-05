@@ -107,7 +107,7 @@ public abstract class AbstractConnectivityAnnouncement<T extends AbstractConnect
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final Predicate<JsonField> predicate) {
-        jsonObjectBuilder.set(ConnectivityAnnouncement.JsonFields.JSON_CONNECTION_ID, connectionId.toString());
+        jsonObjectBuilder.set(ConnectivityAnnouncement.JsonFields.JSON_CONNECTION_ID, connectionId.toString(), predicate);
         appendConnectivityAnnouncementPayload(jsonObjectBuilder, predicate);
     }
 
