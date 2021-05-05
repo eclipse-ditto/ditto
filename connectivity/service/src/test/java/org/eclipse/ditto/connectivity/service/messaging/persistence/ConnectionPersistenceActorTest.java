@@ -1144,18 +1144,9 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             expectMsgClass(CreateConnectionResponse.class);
             underTest.tell(OpenConnection.of(myConnectionId, DittoHeaders.empty()), getRef());
 
-            final WithSender<?> msg1 = clientActorsProbe.expectMsgClass(WithSender.class);
-            final WithSender<?> msg2 = clientActorsProbe.expectMsgClass(WithSender.class);
-            final WithSender<?> msg3 = clientActorsProbe.expectMsgClass(WithSender.class);
-            assertThat(List.of(
-                    msg1.getMessage().getClass(),
-                    msg2.getMessage().getClass(),
-                    msg3.getMessage().getClass()
-            )).containsExactlyInAnyOrder(
-                    EnableConnectionLogs.class,
-                    EnableConnectionLogs.class,
-                    OpenConnection.class);
-
+            clientActorsProbe.fishForMessage(scala.concurrent.duration.Duration.create(5, TimeUnit.SECONDS),
+                    "CreateConnection", PartialFunction.fromFunction(msg ->
+                            (msg instanceof WithSender<?> && ((WithSender<?>) msg).getMessage() instanceof OpenConnection)));
             clientActorsProbe.reply(new Status.Success("connected"));
             expectMsgClass(OpenConnectionResponse.class);
 
