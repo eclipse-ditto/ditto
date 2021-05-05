@@ -16,6 +16,9 @@ import static akka.http.javadsl.server.Directives.extractRequest;
 import static akka.http.javadsl.server.Directives.logRequest;
 import static akka.http.javadsl.server.Directives.logResult;
 import static akka.http.javadsl.server.Directives.mapRouteResult;
+import static org.eclipse.ditto.gateway.service.endpoints.directives.RequestLoggingFilter.filterHeaders;
+import static org.eclipse.ditto.gateway.service.endpoints.directives.RequestLoggingFilter.filterRawUri;
+import static org.eclipse.ditto.gateway.service.endpoints.directives.RequestLoggingFilter.filterUri;
 
 import java.util.function.Supplier;
 
@@ -57,24 +60,25 @@ public final class RequestResultLoggingDirective {
         // code is inspired by DebuggingDirectives#logRequestResult
         return extractRequest(request -> {
             final String requestMethod = request.method().name();
-            final String requestUri = request.getUri().toRelative().toString();
+            final String filteredRelativeRequestUri = filterUri(request.getUri().toRelative()).toString();
             return mapRouteResult(routeResult -> {
                 final ThreadSafeDittoLogger logger = LOGGER.withCorrelationId(correlationId);
                 if (routeResult instanceof Complete) {
                     final Complete complete = (Complete) routeResult;
                     final int statusCode = complete.getResponse().status().intValue();
-                    logger.info("StatusCode of request {} '{}' was: {}", requestMethod, requestUri, statusCode);
-                    final String rawRequestUri = HttpUtils.getRawRequestUri(request);
-                    logger.debug("Raw request URI was: {}", rawRequestUri);
+                    logger.info("StatusCode of request {} '{}' was: {}", requestMethod, filteredRelativeRequestUri,
+                            statusCode);
+                    final String filteredRawRequestUri = filterRawUri(HttpUtils.getRawRequestUri(request));
+                    logger.debug("Raw request URI was: {}", filteredRawRequestUri);
                     request.getHeader(DITTO_TRACE_HEADERS)
                             .filter(unused -> TRACE_LOGGER.isDebugEnabled())
                             .ifPresent(unused -> TRACE_LOGGER.withCorrelationId(correlationId)
-                                    .debug("Request headers: {}", request.getHeaders()));
+                                    .debug("Request headers: {}", filterHeaders(request.getHeaders())));
                 } else {
                          /* routeResult could be Rejected, if no route is able to handle the request -> but this should
                             not happen when rejections are handled before this directive is called. */
                     logger.warn("Unexpected routeResult for request {} '{}': {}, routeResult will be handled by " +
-                                    "akka default RejectionHandler.", requestMethod, requestUri,
+                                    "akka default RejectionHandler.", requestMethod, filteredRelativeRequestUri,
                             routeResult);
                 }
 
