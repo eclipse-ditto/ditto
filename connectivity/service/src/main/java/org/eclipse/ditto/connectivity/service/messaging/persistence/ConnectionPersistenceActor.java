@@ -31,12 +31,51 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.connectivity.api.BaseClientState;
+import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.model.ConnectionLifecycle;
+import org.eclipse.ditto.connectivity.model.ConnectionMetrics;
+import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
+import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
+import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
+import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandInterceptor;
+import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
+import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionNotAccessibleException;
+import org.eclipse.ditto.connectivity.model.signals.commands.modify.CheckConnectionLogsActive;
+import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnection;
+import org.eclipse.ditto.connectivity.model.signals.commands.modify.EnableConnectionLogs;
+import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
+import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
+import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnectionResponse;
+import org.eclipse.ditto.connectivity.model.signals.commands.query.ConnectivityQueryCommand;
+import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionLogs;
+import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionLogsResponse;
+import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetrics;
+import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetricsResponse;
+import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionStatus;
+import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionStatusResponse;
+import org.eclipse.ditto.connectivity.model.signals.events.ConnectionClosed;
+import org.eclipse.ditto.connectivity.model.signals.events.ConnectionCreated;
+import org.eclipse.ditto.connectivity.model.signals.events.ConnectionDeleted;
+import org.eclipse.ditto.connectivity.model.signals.events.ConnectionModified;
+import org.eclipse.ditto.connectivity.model.signals.events.ConnectionOpened;
+import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigProvider;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigProviderFactory;
 import org.eclipse.ditto.connectivity.service.config.MonitoringConfig;
 import org.eclipse.ditto.connectivity.service.config.MqttConfig;
+import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory;
+import org.eclipse.ditto.connectivity.service.messaging.ClientActorRefs;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpValidator;
 import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpPushValidator;
 import org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaValidator;
@@ -57,60 +96,21 @@ import org.eclipse.ditto.connectivity.service.messaging.rabbitmq.RabbitMQValidat
 import org.eclipse.ditto.connectivity.service.messaging.validation.CompoundConnectivityCommandInterceptor;
 import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.connectivity.service.messaging.validation.DittoConnectivityCommandValidator;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
-import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.connectivity.model.ConnectionLifecycle;
-import org.eclipse.ditto.connectivity.model.ConnectionMetrics;
-import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
-import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
-import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory;
-import org.eclipse.ditto.connectivity.service.messaging.ClientActorRefs;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
-import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.internal.utils.akka.PingCommand;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractShardedPersistenceActor;
 import org.eclipse.ditto.internal.utils.persistentactors.EmptyEvent;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
-import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
-import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
-import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandInterceptor;
-import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
-import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionNotAccessibleException;
-import org.eclipse.ditto.connectivity.model.signals.commands.modify.CheckConnectionLogsActive;
-import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnection;
-import org.eclipse.ditto.connectivity.model.signals.commands.modify.EnableConnectionLogs;
-import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
-import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
-import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnectionResponse;
-import org.eclipse.ditto.connectivity.model.signals.commands.query.ConnectivityQueryCommand;
-import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionLogs;
-import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionLogsResponse;
-import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetrics;
-import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetricsResponse;
-import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionStatus;
-import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionStatusResponse;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
-import org.eclipse.ditto.connectivity.model.signals.events.ConnectionClosed;
-import org.eclipse.ditto.connectivity.model.signals.events.ConnectionCreated;
-import org.eclipse.ditto.connectivity.model.signals.events.ConnectionDeleted;
-import org.eclipse.ditto.connectivity.model.signals.events.ConnectionModified;
-import org.eclipse.ditto.connectivity.model.signals.events.ConnectionOpened;
-import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -428,7 +428,7 @@ public final class ConnectionPersistenceActor
             //  "always alive".  Stop persisting the empty event once every open connection has a tagged event, when
             // the persistence ping actor will have a non-empty journal tag configured.
             final EmptyEvent
-                    emptyEvent = new EmptyEvent(entityId, EmptyEvent.EFFECT_ALWAYS_ALIVE, getRevisionNumber() + 1,
+                    emptyEvent = new EmptyEvent(EmptyEvent.EFFECT_ALWAYS_ALIVE, getRevisionNumber() + 1,
                     DittoHeaders.newBuilder()
                             .correlationId(ping.getCorrelationId().orElse(null))
                             .journalTags(journalTags())
@@ -649,9 +649,8 @@ public final class ConnectionPersistenceActor
             this.priority = desiredPriority;
             final DittoHeaders headersWithJournalTags =
                     updatePriority.getDittoHeaders().toBuilder().journalTags(journalTags()).build();
-            final EmptyEvent emptyEvent =
-                    new EmptyEvent(entityId, EmptyEvent.EFFECT_PRIORITY_UPDATE, getRevisionNumber() + 1,
-                            headersWithJournalTags);
+            final EmptyEvent emptyEvent = new EmptyEvent(EmptyEvent.EFFECT_PRIORITY_UPDATE, getRevisionNumber() + 1,
+                    headersWithJournalTags);
             getSelf().tell(new PersistEmptyEvent(emptyEvent), ActorRef.noSender());
         }
     }
