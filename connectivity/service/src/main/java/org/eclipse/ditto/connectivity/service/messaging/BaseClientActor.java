@@ -1761,12 +1761,19 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             return CompletableFuture.completedFuture(null);
         } else {
             final String group = getPubsubGroup();
-            final CompletionStage<Void> subscribe =
-                    dittoProtocolSub.subscribe(getUniqueStreamingTypes(), getTargetAuthSubjects(), getSelf(), group);
+            final CompletionStage<Void> subscribe = subscribeToStreamingTypes(group);
             final CompletionStage<Void> declare =
                     dittoProtocolSub.declareAcknowledgementLabels(getDeclaredAcks(), getSelf(), group);
             return declare.thenCompose(unused -> subscribe);
         }
+    }
+
+    private CompletionStage<Void> subscribeToStreamingTypes(final String pubSubGroup) {
+        final Set<StreamingType> streamingTypes = getUniqueStreamingTypes();
+        if (streamingTypes.isEmpty()) {
+            return CompletableFuture.completedFuture(null);
+        }
+        return dittoProtocolSub.subscribe(streamingTypes, getTargetAuthSubjects(), getSelf(), pubSubGroup);
     }
 
     private Set<AcknowledgementLabel> getDeclaredAcks() {
@@ -1791,22 +1798,25 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .flatMap(target -> target.getTopics().stream()
                         .map(FilteredTopic::getTopic)
                         .map(BaseClientActor::toStreamingTypes))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
                 .collect(Collectors.toSet());
     }
 
-    private static StreamingType toStreamingTypes(final Topic topic) {
+    private static Optional<StreamingType> toStreamingTypes(final Topic topic) {
         switch (topic) {
             case POLICY_ANNOUNCEMENTS:
-                return StreamingType.POLICY_ANNOUNCEMENTS;
+                return Optional.of(StreamingType.POLICY_ANNOUNCEMENTS);
             case LIVE_EVENTS:
-                return StreamingType.LIVE_EVENTS;
+                return Optional.of(StreamingType.LIVE_EVENTS);
             case LIVE_COMMANDS:
-                return StreamingType.LIVE_COMMANDS;
+                return Optional.of(StreamingType.LIVE_COMMANDS);
             case LIVE_MESSAGES:
-                return StreamingType.MESSAGES;
+                return Optional.of(StreamingType.MESSAGES);
             case TWIN_EVENTS:
+                return Optional.of(StreamingType.EVENTS);
             default:
-                return StreamingType.EVENTS;
+                return Optional.empty();
         }
     }
 
