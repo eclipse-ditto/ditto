@@ -20,12 +20,12 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * This exception indicates that the configured {@code "timeout"} of a HTTP call was not valid or within its allowed
@@ -60,6 +60,8 @@ public final class GatewayTimeoutInvalidException extends DittoRuntimeException 
     /**
      * A mutable builder for a {@code GatewayTimeoutInvalidException}.
      *
+     * @param timeout the applied timeout.
+     * @param maxTimeout the configured max timeout.
      * @return the builder.
      */
     public static Builder newBuilder(final Duration timeout, final Duration maxTimeout) {
