@@ -3,7 +3,7 @@ title: Release notes 2.0.0
 tags: [release_notes]
 published: true
 keywords: release notes, announcements, changelog
-summary: "Version 2.0.0 of Eclipse Ditto, released on 04.05.2021"
+summary: "Version 2.0.0 of Eclipse Ditto, released on 06.05.2021"
 permalink: release_notes_200.html
 ---
 

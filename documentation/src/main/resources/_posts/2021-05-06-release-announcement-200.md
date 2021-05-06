@@ -1,7 +1,7 @@
 ---
 title: "Announcing Eclipse Ditto Release 2.0.0"
 published: true
-permalink: 2021-05-04-release-announcement-200.html
+permalink: 2021-05-06-release-announcement-200.html
 layout: post
 author: thomas_jaeckle
 tags: [blog]
