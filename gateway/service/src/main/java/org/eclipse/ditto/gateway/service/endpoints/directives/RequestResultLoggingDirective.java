@@ -68,8 +68,10 @@ public final class RequestResultLoggingDirective {
                     final int statusCode = complete.getResponse().status().intValue();
                     logger.info("StatusCode of request {} '{}' was: {}", requestMethod, filteredRelativeRequestUri,
                             statusCode);
-                    final String filteredRawRequestUri = filterRawUri(HttpUtils.getRawRequestUri(request));
-                    logger.debug("Raw request URI was: {}", filteredRawRequestUri);
+                    if (logger.isDebugEnabled()) {
+                        final String filteredRawRequestUri = filterRawUri(HttpUtils.getRawRequestUri(request));
+                        logger.debug("Raw request URI was: {}", filteredRawRequestUri);
+                    }
                     request.getHeader(DITTO_TRACE_HEADERS)
                             .filter(unused -> TRACE_LOGGER.isDebugEnabled())
                             .ifPresent(unused -> TRACE_LOGGER.withCorrelationId(correlationId)
