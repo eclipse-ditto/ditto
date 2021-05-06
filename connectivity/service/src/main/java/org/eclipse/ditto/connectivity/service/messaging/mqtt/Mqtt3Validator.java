@@ -164,7 +164,7 @@ public final class Mqtt3Validator extends AbstractMqttValidator {
         return !headerMapping.getMapping().isEmpty();
     }
 
-    private Boolean targetContainsOnlyAllowedHeaderMappings(final Target target, final DittoHeaders dittoHeaders) {
+    private boolean targetContainsOnlyAllowedHeaderMappings(final Target target, final DittoHeaders dittoHeaders) {
         return containsOnlyAllowedTargetMappings(target.getHeaderMapping(), dittoHeaders);
     }
 

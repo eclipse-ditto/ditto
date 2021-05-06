@@ -56,13 +56,15 @@ import akka.pattern.Patterns;
  *
  * @param <S> type of Subscribe messages.
  * @param <P> type of Publish messages.
- * @param <Q> type of mQtt client.
- * @param <R> type of subscription Replies.
+ * @param <Q> type of mqtt client.
+ * @param <R> type of subscription replies.
  */
 abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
 
     // status for consumer creation (always successful)
     private static final Status.Success CONSUMERS_CREATED = new Status.Success("consumers created");
+    private static final String CONSUMER = "consumer";
+    private static final String PUBLISHER = "publisher";
 
     private final Connection connection;
     private final MqttSpecificConfig mqttSpecificConfig;
@@ -147,8 +149,8 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
     @Override
     public void postStop() {
         logger.info("actor stopped, stopping clients");
-        safelyDisconnectClient(client, "consumer");
-        safelyDisconnectClient(publisherClient, "publisher");
+        safelyDisconnectClient(client, CONSUMER);
+        safelyDisconnectClient(publisherClient, PUBLISHER);
         super.postStop();
     }
 
@@ -195,7 +197,7 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
 
         final ClientWithCancelSwitch oldClient = getClient();
         final AbstractMqttSubscriptionHandler<S, P, R> oldSubscriptionHandler = getSubscriptionHandler();
-        safelyDisconnectClient(oldClient, "consumer");
+        safelyDisconnectClient(oldClient, CONSUMER);
         createSubscriberClientAndSubscriptionHandler(!data.getConnection().getSources().isEmpty());
         oldSubscriptionHandler.stream().forEach(getSubscriptionHandler()::handleMqttConsumer);
         subscribeAndSendConn(false).whenComplete(
@@ -418,7 +420,7 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
 
     private CompletableFuture<InitializationResult> sendConnAndExpectConnAck(final Duration delay,
             final boolean connectPublisher) {
-        final Q client = getClient().getMqttClient();
+        final Q mqttClient = getClient().getMqttClient();
 
         final CompletableFuture<Object> delayFuture = new CompletableFuture<>()
                 .completeOnTimeout(null, delay.toMillis(), TimeUnit.MILLISECONDS);
@@ -432,7 +434,7 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
                     // will only arrive after
                     final boolean cleanSession = mqttSpecificConfig.cleanSession();
                     final Duration keepAlive = mqttSpecificConfig.getKeepAliveInterval().orElse(null);
-                    return sendConn(client, cleanSession, keepAlive);
+                    return sendConn(mqttClient, cleanSession, keepAlive);
                 })
                 .handle(this::handleConnAck);
     }
@@ -502,8 +504,8 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
     protected void cleanupResourcesForConnection() {
         stopCommandConsumers(subscriptionHandler);
         stopChildActor(publisherActor);
-        safelyDisconnectClient(client, "consumer");
-        safelyDisconnectClient(publisherClient, "publisher");
+        safelyDisconnectClient(client, CONSUMER);
+        safelyDisconnectClient(publisherClient, PUBLISHER);
         resetClientAndSubscriptionHandler();
     }
 

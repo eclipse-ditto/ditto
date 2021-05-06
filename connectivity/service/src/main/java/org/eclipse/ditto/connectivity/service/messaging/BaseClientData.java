@@ -74,14 +74,14 @@ public final class BaseClientData {
     }
 
     /**
-     * @return the ID of the Connection
+     * @return the ID of the connection
      */
     public ConnectionId getConnectionId() {
         return connectionId;
     }
 
     /**
-     * @return the managed Connection
+     * @return the managed connection
      */
     public Connection getConnection() {
         return connection;

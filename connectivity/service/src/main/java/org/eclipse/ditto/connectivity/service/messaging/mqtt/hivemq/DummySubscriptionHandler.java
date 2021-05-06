@@ -25,7 +25,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapt
 final class DummySubscriptionHandler<S, P, R> extends AbstractMqttSubscriptionHandler<S, P, R> {
 
     DummySubscriptionHandler(final Connection connection, final ThreadSafeDittoLoggingAdapter logger) {
-        // this DummySubscriptionHandler does not actually subscribe, but always return a null in the client future:
+        // this DummySubscriptionHandler does not actually subscribe, but always return a null in the client future.
         super(connection,
                 (subscribeMessage, callback, manualAcknowledgement) -> CompletableFuture.completedFuture(null), logger);
     }

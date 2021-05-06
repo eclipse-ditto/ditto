@@ -17,9 +17,8 @@ import java.nio.charset.Charset;
 import java.util.Optional;
 
 import org.eclipse.ditto.base.model.common.ByteBufferUtils;
-import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttPublishTarget;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.model.Connection;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
