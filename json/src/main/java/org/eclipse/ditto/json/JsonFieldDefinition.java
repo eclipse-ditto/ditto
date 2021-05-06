@@ -202,7 +202,7 @@ public interface JsonFieldDefinition<T> {
     Class<T> getValueType();
 
     /**
-     * Returns an unordered and unmodifiable set of markers which provide this field with semantics, e. g. schema
+     * Returns an unordered and unmodifiable set of markers which provide this field with semantics, e.g. schema
      * version number.
      *
      * @return the markers of this field or an empty set.

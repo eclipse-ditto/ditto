@@ -10,7 +10,7 @@ sidebar: false
 toc: false
 ---
 
-Today the Eclipse Ditto is thrilled to announce the availability of Eclipse Ditto's first major release
+Today the Eclipse Ditto team is thrilled to announce the availability of Eclipse Ditto's first major release
 [1.0.0](https://projects.eclipse.org/projects/iot.ditto/releases/1.0.0).
 
 
