@@ -68,7 +68,8 @@ public class KamonGauge implements Gauge {
         if (kamonInternalGauge instanceof kamon.metric.Gauge.Volatile) {
             return (long) ((kamon.metric.Gauge.Volatile) kamonInternalGauge).snapshot(false);
         }
-        throw new IllegalStateException("Could not get value from kamon gauge");
+        LOGGER.warn("Could not get value from kamon gauge");
+        return 0L;
     }
 
     @Override
