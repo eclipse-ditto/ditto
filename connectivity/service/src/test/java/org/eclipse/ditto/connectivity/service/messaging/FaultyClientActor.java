@@ -66,7 +66,7 @@ public class FaultyClientActor extends AbstractActor {
                             if (allowClose) {
                                 sender().tell(new Status.Success("mock"), getSelf());
                             } else {
-                                sender().tell(new Status.Success(new IllegalStateException("error message")),
+                                sender().tell(new Status.Failure(new IllegalStateException("error message")),
                                         getSelf());
                             }
                         })
