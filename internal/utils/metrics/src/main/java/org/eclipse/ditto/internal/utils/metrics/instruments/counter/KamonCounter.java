@@ -108,7 +108,8 @@ public final class KamonCounter implements Counter {
         if (kamonInternalCounter instanceof kamon.metric.Counter.LongAdder) {
             return ((kamon.metric.Counter.LongAdder) kamonInternalCounter).snapshot(false);
         }
-        throw new IllegalStateException(String.format("Could not get snapshot of Kamon counter with name <%s>!", name));
+        LOGGER.warn("Could not get snapshot of Kamon counter with name <{}>!", name);
+        return 0L;
     }
 
     private kamon.metric.Counter getKamonInternalCounter() {

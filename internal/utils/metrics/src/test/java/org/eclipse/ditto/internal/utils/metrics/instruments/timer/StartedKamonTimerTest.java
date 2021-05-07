@@ -13,6 +13,7 @@
 package org.eclipse.ditto.internal.utils.metrics.instruments.timer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -65,10 +66,10 @@ public class StartedKamonTimerTest {
         assertThat(sut.isRunning()).isFalse();
     }
 
-    @Test(expected = IllegalStateException.class)
-    public void stopAStoppedTimerCausesException() {
+    @Test
+    public void stopAStoppedTimerCausesNoException() {
         sut.stop();
-        sut.stop();
+        assertThatCode(() -> sut.stop()).doesNotThrowAnyException();
     }
 
     @Test
