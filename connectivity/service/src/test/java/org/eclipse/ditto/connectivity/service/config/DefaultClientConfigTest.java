@@ -67,6 +67,12 @@ public final class DefaultClientConfigTest {
         softly.assertThat(underTest.getConnectingMaxTimeout())
                 .as(ClientConfig.ClientConfigValue.CONNECTING_MAX_TIMEOUT.getConfigPath())
                 .isEqualTo(ClientConfig.ClientConfigValue.CONNECTING_MAX_TIMEOUT.getDefaultValue());
+        softly.assertThat(underTest.getDisconnectingMaxTimeout())
+                .as(ClientConfig.ClientConfigValue.DISCONNECTING_MAX_TIMEOUT.getConfigPath())
+                .isEqualTo(ClientConfig.ClientConfigValue.DISCONNECTING_MAX_TIMEOUT.getDefaultValue());
+        softly.assertThat(underTest.getDisconnectAnnouncementTimeout())
+                .as(ClientConfig.ClientConfigValue.DISCONNECT_ANNOUNCEMENT_TIMEOUT.getConfigPath())
+                .isEqualTo(ClientConfig.ClientConfigValue.DISCONNECT_ANNOUNCEMENT_TIMEOUT.getDefaultValue());
         softly.assertThat(underTest.getConnectingMaxTries())
                 .as(ClientConfig.ClientConfigValue.CONNECTING_MAX_TRIES.getConfigPath())
                 .isEqualTo(ClientConfig.ClientConfigValue.CONNECTING_MAX_TRIES.getDefaultValue());
@@ -94,6 +100,12 @@ public final class DefaultClientConfigTest {
         softly.assertThat(underTest.getConnectingMaxTimeout())
                 .as(ClientConfig.ClientConfigValue.CONNECTING_MAX_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(120L));
+        softly.assertThat(underTest.getDisconnectingMaxTimeout())
+                .as(ClientConfig.ClientConfigValue.DISCONNECTING_MAX_TIMEOUT.getConfigPath())
+                .isEqualTo(Duration.ofSeconds(21L));
+        softly.assertThat(underTest.getDisconnectAnnouncementTimeout())
+                .as(ClientConfig.ClientConfigValue.DISCONNECT_ANNOUNCEMENT_TIMEOUT.getConfigPath())
+                .isEqualTo(Duration.ofSeconds(11L));
         softly.assertThat(underTest.getConnectingMaxTries())
                 .as(ClientConfig.ClientConfigValue.CONNECTING_MAX_TRIES.getConfigPath())
                 .isEqualTo(10);

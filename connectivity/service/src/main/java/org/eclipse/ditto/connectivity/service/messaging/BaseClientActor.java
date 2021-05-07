@@ -54,6 +54,10 @@ import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.connectivity.api.BaseClientState;
+import org.eclipse.ditto.connectivity.api.InboundSignal;
+import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionMetrics;
@@ -67,6 +71,25 @@ import org.eclipse.ditto.connectivity.model.SshTunnel;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.TargetMetrics;
 import org.eclipse.ditto.connectivity.model.Topic;
+import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectionClosedAnnouncement;
+import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectionOpenedAnnouncement;
+import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
+import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
+import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionSignalIllegalException;
+import org.eclipse.ditto.connectivity.model.signals.commands.modify.CheckConnectionLogsActive;
+import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnection;
+import org.eclipse.ditto.connectivity.model.signals.commands.modify.CreateConnection;
+import org.eclipse.ditto.connectivity.model.signals.commands.modify.EnableConnectionLogs;
+import org.eclipse.ditto.connectivity.model.signals.commands.modify.LoggingExpired;
+import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
+import org.eclipse.ditto.connectivity.model.signals.commands.modify.ResetConnectionLogs;
+import org.eclipse.ditto.connectivity.model.signals.commands.modify.ResetConnectionMetrics;
+import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
+import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionLogs;
+import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionLogsResponse;
+import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetrics;
+import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetricsResponse;
+import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.connectivity.service.config.ClientConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigModifiedBehavior;
@@ -88,11 +111,7 @@ import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPe
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelActor;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionValidator;
-import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
-import org.eclipse.ditto.connectivity.api.BaseClientState;
-import org.eclipse.ditto.connectivity.api.InboundSignal;
-import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
@@ -103,24 +122,7 @@ import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.internal.utils.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.search.SubscriptionManager;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
-import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
-import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionSignalIllegalException;
-import org.eclipse.ditto.connectivity.model.signals.commands.modify.CheckConnectionLogsActive;
-import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnection;
-import org.eclipse.ditto.connectivity.model.signals.commands.modify.CreateConnection;
-import org.eclipse.ditto.connectivity.model.signals.commands.modify.EnableConnectionLogs;
-import org.eclipse.ditto.connectivity.model.signals.commands.modify.LoggingExpired;
-import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
-import org.eclipse.ditto.connectivity.model.signals.commands.modify.ResetConnectionLogs;
-import org.eclipse.ditto.connectivity.model.signals.commands.modify.ResetConnectionMetrics;
-import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
-import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionLogs;
-import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionLogsResponse;
-import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetrics;
-import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetricsResponse;
-import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionStatus;
+import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.commands.WithSubscriptionId;
 
@@ -649,6 +651,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         if (to == CONNECTED) {
             clientGauge.set(1L);
             reconnectTimeoutStrategy.reset();
+            publishConnectionOpenedAnnouncement();
         }
         if (to == DISCONNECTED) {
             clientGauge.reset();
@@ -666,6 +669,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         }
     }
 
+    private void publishConnectionOpenedAnnouncement() {
+        getSelf().tell(ConnectionOpenedAnnouncement.of(connectionId(), Instant.now(), DittoHeaders.empty()), getSelf());
+    }
+
     /*
      * For each volatile state, use the special goTo methods for timer management.
      */
@@ -674,8 +681,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return goTo(CONNECTING);
     }
 
-    private FSM.State<BaseClientState, BaseClientData> goToDisconnecting() {
-        scheduleStateTimeout(clientConfig.getConnectingMinTimeout());
+    private FSM.State<BaseClientState, BaseClientData> goToDisconnecting(final Duration timeout) {
+        scheduleStateTimeout(timeout);
         return goTo(DISCONNECTING);
     }
 
@@ -760,6 +767,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      */
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inDisconnectingState() {
         return matchEventEquals(StateTimeout(), (event, data) -> connectionTimedOut(data))
+                .eventEquals(SendDisconnectAnnouncement, (event, data) -> this.sendDisconnectAnnouncement(data))
+                .event(Disconnect.class, this::disconnect)
                 .event(ConnectionFailure.class, this::connectingConnectionFailed)
                 .event(ClientDisconnected.class, this::clientDisconnected);
     }
@@ -830,12 +839,35 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             final BaseClientData data) {
 
         final ActorRef sender = getSender();
-        doDisconnectClient(data.getConnection(), sender);
+
+        final Duration disconnectAnnouncementTimeout = clientConfig.getDisconnectAnnouncementTimeout();
+        final Duration timeoutUntilDisconnectCompletes =
+                clientConfig.getDisconnectingMaxTimeout().plus(disconnectAnnouncementTimeout);
+
+        getSelf().tell(SendDisconnectAnnouncement, sender);
+        startSingleTimer("startDisconnect", new Disconnect(sender), disconnectAnnouncementTimeout);
 
         dittoProtocolSub.removeSubscriber(getSelf());
-        return goToDisconnecting().using(setSession(data, sender, closeConnection.getDittoHeaders())
-                .setDesiredConnectionStatus(ConnectivityStatus.CLOSED)
-                .setConnectionStatusDetails("closing or deleting connection at " + Instant.now()));
+
+        return goToDisconnecting(timeoutUntilDisconnectCompletes).using(
+                setSession(data, sender, closeConnection.getDittoHeaders())
+                        .setDesiredConnectionStatus(ConnectivityStatus.CLOSED)
+                        .setConnectionStatusDetails(
+                                "cleaning up before closing or deleting connection at " + Instant.now()));
+    }
+
+    private State<BaseClientState, BaseClientData> sendDisconnectAnnouncement(final BaseClientData data) {
+        final ConnectionClosedAnnouncement announcement =
+                ConnectionClosedAnnouncement.of(data.getConnectionId(), Instant.now(), DittoHeaders.empty());
+        // need to tell the announcement directly to the dispatching actor since the state == DISCONNECTING
+        outboundDispatchingActor.tell(announcement, getSender());
+        return stay();
+    }
+
+    private State<BaseClientState, BaseClientData> disconnect(final Disconnect disconnect, final BaseClientData data) {
+        doDisconnectClient(connection(), disconnect.getSender());
+        return stay()
+                .using(data.setConnectionStatusDetails("disconnecting connection at " + Instant.now()));
     }
 
     private FSM.State<BaseClientState, BaseClientData> openConnection(final OpenConnection openConnection,
@@ -871,7 +903,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                             .resetSession());
         }
     }
-
 
     private FSM.State<BaseClientState, BaseClientData> connectionAlreadyOpen(final OpenConnection openConnection,
             final BaseClientData data) {
@@ -1460,7 +1491,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return stay();
     }
 
-    private static Optional<EntityId> tryExtractEntityId(Signal<?> signal){
+    private static Optional<EntityId> tryExtractEntityId(Signal<?> signal) {
         if (signal instanceof WithEntityId) {
             final WithEntityId withEntityId = (WithEntityId) signal;
             return Optional.of(withEntityId.getEntityId());
@@ -1679,7 +1710,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     private void scheduleStateTimeout(final Duration duration) {
-        setTimer(DITTO_STATE_TIMEOUT_TIMER, StateTimeout(), duration, false);
+        startSingleTimer(DITTO_STATE_TIMEOUT_TIMER, StateTimeout(), duration);
     }
 
     /**
@@ -2019,6 +2050,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         public String toString() {
             return isSuccess() ? "Success" : failure.toString();
         }
+
     }
 
     private enum Control {
@@ -2042,6 +2074,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         InboundMappingProcessor getInboundMappingProcessor() {
             return inboundMappingProcessor;
         }
+
     }
 
     /**
@@ -2060,5 +2093,25 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         OutboundMappingProcessor getOutboundMappingProcessor() {
             return outboundMappingProcessor;
         }
+
     }
+
+    private static final Object SendDisconnectAnnouncement = new Object();
+
+    private static final class Disconnect {
+
+        @Nullable
+        private final ActorRef sender;
+
+        private Disconnect(@Nullable final ActorRef sender) {
+            this.sender = sender;
+        }
+
+        @Nullable
+        private ActorRef getSender() {
+            return sender;
+        }
+
+    }
+
 }
