@@ -131,6 +131,7 @@ import akka.actor.AbstractFSMWithStash;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
+import akka.actor.CoordinatedShutdown;
 import akka.actor.FSM;
 import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
@@ -318,6 +319,17 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     clientActorRefsNotificationDelay);
         }
         clientActorRefs.add(getSelf());
+
+        closeConnectionBeforeTerminatingCluster();
+    }
+
+    private void closeConnectionBeforeTerminatingCluster() {
+        CoordinatedShutdown.get(getContext().getSystem())
+                .addActorTerminationTask(
+                        CoordinatedShutdown.PhaseBeforeServiceUnbind(),
+                        "closeConnection",
+                        getSelf(),
+                        Optional.of(CloseConnection.of(connectionId(), DittoHeaders.empty())));
     }
 
     @Override
