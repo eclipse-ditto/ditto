@@ -40,7 +40,7 @@ final class ConnectivityAnnouncementSignalMapper extends AbstractSignalMapper<Co
     void enhancePayloadBuilder(final ConnectivityAnnouncement<?> signal, final PayloadBuilder payloadBuilder) {
         if (signal instanceof ConnectionOpenedAnnouncement) {
             final ConnectionOpenedAnnouncement announcement = (ConnectionOpenedAnnouncement) signal;
-            final JsonObject payload = getConnectionopenedAnnouncementPayload(announcement);
+            final JsonObject payload = getConnectionOpenedAnnouncementPayload(announcement);
             payloadBuilder.withValue(payload).build();
         }
         if (signal instanceof ConnectionClosedAnnouncement) {
@@ -51,7 +51,7 @@ final class ConnectivityAnnouncementSignalMapper extends AbstractSignalMapper<Co
         // otherwise be tolerant and don't expand payload instead of throwing an exception
     }
 
-    private static JsonObject getConnectionopenedAnnouncementPayload(final ConnectionOpenedAnnouncement announcement) {
+    private static JsonObject getConnectionOpenedAnnouncementPayload(final ConnectionOpenedAnnouncement announcement) {
         return JsonObject.newBuilder()
                 .set(ConnectionOpenedAnnouncement.JsonFields.OPENED_AT, announcement.getOpenedAt().toString())
                 .build();
