@@ -2,7 +2,7 @@
 
 Running Eclipse Ditto on minikube with kubernetes descriptor files or Ditto Helm chart.
 
-In the following sections you can find a short description how to set up Eclipse Ditto on minikube.
+In the following sections you can find a short description how to run Eclipse Ditto on minikube.
 
 ## Requirements
 
