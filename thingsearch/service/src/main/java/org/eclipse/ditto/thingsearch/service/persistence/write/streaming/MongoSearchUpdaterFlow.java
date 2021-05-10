@@ -32,7 +32,6 @@ import com.mongodb.reactivestreams.client.MongoDatabase;
 import akka.NotUsed;
 import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
-import akka.stream.Attributes;
 import akka.stream.FanInShape2;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
@@ -102,9 +101,7 @@ final class MongoSearchUpdaterFlow {
         final Flow<List<AbstractWriteModel>, WriteResultAndErrors, NotUsed> writeFlow =
                 Flow.<List<AbstractWriteModel>>create()
                         .flatMapMerge(parallelism, writeModels ->
-                                executeBulkWrite(shouldAcknowledge, writeModels).async(DISPATCHER_NAME, parallelism))
-                        // never initiate more than "parallelism" writes against the persistence
-                        .withAttributes(Attributes.inputBuffer(parallelism, parallelism));
+                                executeBulkWrite(shouldAcknowledge, writeModels).async(DISPATCHER_NAME, parallelism));
 
         return Flow.fromGraph(assembleFlows(batchFlow, writeFlow, createStartTimerFlow(), createStopTimerFlow()));
     }

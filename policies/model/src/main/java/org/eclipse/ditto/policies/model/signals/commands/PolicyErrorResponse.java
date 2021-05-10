@@ -15,25 +15,27 @@ package org.eclipse.ditto.policies.model.signals.commands;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.GlobalErrorRegistry;
+import org.eclipse.ditto.base.model.signals.commands.AbstractErrorResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.base.model.signals.GlobalErrorRegistry;
-import org.eclipse.ditto.base.model.signals.commands.AbstractErrorResponse;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 
 /**
  * Response to a {@link PolicyCommand} which wraps the exception thrown while processing the command.
@@ -71,7 +73,13 @@ public final class PolicyErrorResponse extends AbstractErrorResponse<PolicyError
      * @throws NullPointerException if one of the arguments is {@code null}.
      */
     public static PolicyErrorResponse of(final DittoRuntimeException dittoRuntimeException) {
-        return of(FALLBACK_POLICY_ID, dittoRuntimeException, dittoRuntimeException.getDittoHeaders());
+        final DittoHeaders dittoHeaders = dittoRuntimeException.getDittoHeaders();
+        final String nullableEntityId = dittoHeaders.get(DittoHeaderDefinition.ENTITY_ID.getKey());
+        final PolicyId policyId = Optional.ofNullable(nullableEntityId)
+                .map(entityId -> entityId.substring(entityId.indexOf(":") + 1)) // starts with "policy:" - cut that off!
+                .map(PolicyId::of)
+                .orElse(FALLBACK_POLICY_ID);
+        return of(policyId, dittoRuntimeException, dittoHeaders);
     }
 
     /**
