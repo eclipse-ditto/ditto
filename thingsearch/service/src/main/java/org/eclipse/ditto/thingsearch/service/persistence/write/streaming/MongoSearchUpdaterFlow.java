@@ -52,6 +52,11 @@ final class MongoSearchUpdaterFlow {
     private static final String COUNT_THING_BULK_UPDATES_PER_BULK = "things_search_thing_bulkUpdate_updates_per_bulk";
     private static final String UPDATE_TYPE_TAG = "update_type";
 
+    /**
+     * Config key of the dispatcher for the search updater.
+     */
+    static final String DISPATCHER_NAME = "search-updater-dispatcher";
+
     private final MongoCollection<Document> collection;
     private final MongoCollection<Document> collectionWithAcknowledgements;
 
@@ -97,7 +102,7 @@ final class MongoSearchUpdaterFlow {
         final Flow<List<AbstractWriteModel>, WriteResultAndErrors, NotUsed> writeFlow =
                 Flow.<List<AbstractWriteModel>>create()
                         .flatMapMerge(parallelism, writeModels ->
-                                executeBulkWrite(shouldAcknowledge, writeModels).async())
+                                executeBulkWrite(shouldAcknowledge, writeModels).async(DISPATCHER_NAME, parallelism))
                         // never initiate more than "parallelism" writes against the persistence
                         .withAttributes(Attributes.inputBuffer(parallelism, parallelism));
 

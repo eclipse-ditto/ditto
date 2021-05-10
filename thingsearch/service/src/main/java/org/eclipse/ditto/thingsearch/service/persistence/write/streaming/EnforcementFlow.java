@@ -166,7 +166,7 @@ final class EnforcementFlow {
                             Source.fromIterator(changeMap.values()::iterator)
                                     .flatMapMerge(parallelism, metadataRef ->
                                             computeWriteModel(metadataRef, responseMap.get(metadataRef.getThingId()))
-                                                    .async()
+                                                    .async(MongoSearchUpdaterFlow.DISPATCHER_NAME, parallelism)
                                     )
                                     .withAttributes(Attributes.inputBuffer(parallelism, parallelism))
                     );
@@ -179,7 +179,8 @@ final class EnforcementFlow {
             final int parallelism, final Map<ThingId, Metadata> changeMap) {
 
         return Source.fromIterator(changeMap.entrySet()::iterator)
-                .flatMapMerge(parallelism, entry -> sudoRetrieveThing(entry).async())
+                .flatMapMerge(parallelism, entry -> sudoRetrieveThing(entry)
+                        .async(MongoSearchUpdaterFlow.DISPATCHER_NAME, parallelism))
                 .withAttributes(Attributes.inputBuffer(parallelism, parallelism))
                 .<Map<ThingId, SudoRetrieveThingResponse>>fold(new HashMap<>(), (map, response) -> {
                     map.put(getThingId(response), response);
