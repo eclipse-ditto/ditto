@@ -91,8 +91,9 @@ final class StartedKamonTimer implements StartedTimer {
 
         if (isRunning()) {
             stoppedTimer = StoppedKamonTimer.fromStartedTimer(this);
+        }else {
+            LOGGER.warn("Tried to stop the already stopped timer <{}> with segment <{}>.", name, getTag(SEGMENT_TAG));
         }
-        LOGGER.warn("Tried to stop the already stopped timer <{}> with segment <{}>.", name, getTag(SEGMENT_TAG));
         return stoppedTimer;
     }
 
