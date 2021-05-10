@@ -22,6 +22,7 @@ the following environment variables in order to configure the connection to the 
 
 * MONGO_DB_URI: Connection string to MongoDB
 * MONGO_DB_SSL_ENABLED: Enabled SSL connection to MongoDB
+* MONGO_DB_CONNECTION_MIN_POOL_SIZE: Configure MongoDB minimum connection pool size
 * MONGO_DB_CONNECTION_POOL_SIZE: Configure MongoDB connection pool size
 * MONGO_DB_READ_PREFERENCE: Configure MongoDB read preference
 * MONGO_DB_WRITE_CONCERN: Configure MongoDB write concern
