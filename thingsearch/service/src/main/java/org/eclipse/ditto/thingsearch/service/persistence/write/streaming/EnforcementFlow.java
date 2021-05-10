@@ -19,29 +19,29 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.policies.model.enforcers.Enforcer;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
-import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
-import org.eclipse.ditto.thingsearch.service.common.config.StreamCacheConfig;
-import org.eclipse.ditto.thingsearch.service.common.config.StreamConfig;
-import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.EnforcedThingMapper;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheFactory;
 import org.eclipse.ditto.internal.utils.cache.CacheKey;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcerCacheLoader;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonRuntimeException;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
+import org.eclipse.ditto.policies.model.enforcers.Enforcer;
+import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
+import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
+import org.eclipse.ditto.thingsearch.service.common.config.StreamCacheConfig;
+import org.eclipse.ditto.thingsearch.service.common.config.StreamConfig;
+import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.EnforcedThingMapper;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -166,6 +166,7 @@ final class EnforcementFlow {
                             Source.fromIterator(changeMap.values()::iterator)
                                     .flatMapMerge(parallelism, metadataRef ->
                                             computeWriteModel(metadataRef, responseMap.get(metadataRef.getThingId()))
+                                                    .async()
                                     )
                                     .withAttributes(Attributes.inputBuffer(parallelism, parallelism))
                     );
@@ -178,7 +179,7 @@ final class EnforcementFlow {
             final int parallelism, final Map<ThingId, Metadata> changeMap) {
 
         return Source.fromIterator(changeMap.entrySet()::iterator)
-                .flatMapMerge(parallelism, this::sudoRetrieveThing)
+                .flatMapMerge(parallelism, entry -> sudoRetrieveThing(entry).async())
                 .withAttributes(Attributes.inputBuffer(parallelism, parallelism))
                 .<Map<ThingId, SudoRetrieveThingResponse>>fold(new HashMap<>(), (map, response) -> {
                     map.put(getThingId(response), response);

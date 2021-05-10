@@ -218,6 +218,13 @@ public interface MongoDbConfig {
     interface ConnectionPoolConfig {
 
         /**
+         * Returns the minimum number of connections in the connection pool always to be kept alive.
+         *
+         * @return the minimum number of connections.
+         */
+        int getMinSize();
+
+        /**
          * Returns the maximum number of connections in the connection pool.
          *
          * @return the maximum number of connections.
@@ -243,6 +250,11 @@ public interface MongoDbConfig {
          * {@code ConnectionPoolConfig}.
          */
         enum ConnectionPoolConfigValue implements KnownConfigValue {
+
+            /**
+             * The minimum number of connections in the connection pool.
+             */
+            MIN_SIZE("minSize", 0),
 
             /**
              * The maximum number of connections in the connection pool.

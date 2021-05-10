@@ -100,6 +100,15 @@ public interface DittoMongoClientBuilder {
         GeneralPropertiesStep maxQueryTime(@Nullable Duration maxQueryTime);
 
         /**
+         * Sets the minimum number of connections to the database always kept alive in the pool.
+         * Default is {@code 0} connections.
+         *
+         * @param minSize the minimum connection pool size.
+         * @return this builder instance to allow method chaining.
+         */
+        GeneralPropertiesStep connectionPoolMinSize(int minSize);
+
+        /**
          * Sets the maximum allowed number of connections to the database.
          * The connections are kept in a pool.
          * Default is {@code 100} connections.

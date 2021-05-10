@@ -16,12 +16,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.bson.Document;
-import org.eclipse.ditto.thingsearch.service.common.config.PersistenceStreamConfig;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.thingsearch.service.common.config.PersistenceStreamConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
 
 import com.mongodb.MongoBulkWriteException;
 import com.mongodb.client.model.BulkWriteOptions;
@@ -96,7 +96,8 @@ final class MongoSearchUpdaterFlow {
 
         final Flow<List<AbstractWriteModel>, WriteResultAndErrors, NotUsed> writeFlow =
                 Flow.<List<AbstractWriteModel>>create()
-                        .flatMapMerge(parallelism, writeModels -> executeBulkWrite(shouldAcknowledge, writeModels))
+                        .flatMapMerge(parallelism, writeModels ->
+                                executeBulkWrite(shouldAcknowledge, writeModels).async())
                         // never initiate more than "parallelism" writes against the persistence
                         .withAttributes(Attributes.inputBuffer(parallelism, parallelism));
 
