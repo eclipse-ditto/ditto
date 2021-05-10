@@ -30,21 +30,6 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.gateway.service.security.HttpHeader;
-import org.eclipse.ditto.gateway.service.streaming.Connect;
-import org.eclipse.ditto.gateway.service.streaming.IncomingSignal;
-import org.eclipse.ditto.gateway.service.streaming.StreamControlMessage;
-import org.eclipse.ditto.gateway.service.streaming.StreamingAck;
-import org.eclipse.ditto.gateway.service.streaming.actors.SessionedJsonifiable;
-import org.eclipse.ditto.gateway.service.streaming.actors.StreamingActor;
-import org.eclipse.ditto.gateway.service.streaming.actors.SupervisedStream;
-import org.eclipse.ditto.gateway.service.util.config.streaming.StreamingConfig;
-import org.eclipse.ditto.gateway.service.util.config.streaming.WebsocketConfig;
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
@@ -58,20 +43,24 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
-import org.eclipse.ditto.jwt.model.ImmutableJsonWebToken;
-import org.eclipse.ditto.jwt.model.JsonWebToken;
-import org.eclipse.ditto.policies.model.PolicyException;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.thingsearch.model.ThingSearchException;
-import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.protocol.JsonifiableAdaptable;
-import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
-import org.eclipse.ditto.protocol.ProtocolFactory;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayWebsocketSessionClosedException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.gateway.service.endpoints.utils.GatewaySignalEnrichmentProvider;
+import org.eclipse.ditto.gateway.service.security.HttpHeader;
+import org.eclipse.ditto.gateway.service.streaming.Connect;
+import org.eclipse.ditto.gateway.service.streaming.IncomingSignal;
+import org.eclipse.ditto.gateway.service.streaming.StreamControlMessage;
+import org.eclipse.ditto.gateway.service.streaming.StreamingAck;
+import org.eclipse.ditto.gateway.service.streaming.actors.SessionedJsonifiable;
+import org.eclipse.ditto.gateway.service.streaming.actors.StreamingActor;
+import org.eclipse.ditto.gateway.service.streaming.actors.SupervisedStream;
+import org.eclipse.ditto.gateway.service.util.config.streaming.StreamingConfig;
+import org.eclipse.ditto.gateway.service.util.config.streaming.WebsocketConfig;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.internal.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.internal.utils.akka.controlflow.LimitRateByRejection;
@@ -80,13 +69,23 @@ import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayWebsocketSessionClosedException;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayWebsocketSessionExpiredException;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.jwt.model.ImmutableJsonWebToken;
+import org.eclipse.ditto.jwt.model.JsonWebToken;
+import org.eclipse.ditto.policies.model.PolicyException;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.HeaderTranslator;
+import org.eclipse.ditto.protocol.JsonifiableAdaptable;
+import org.eclipse.ditto.protocol.ProtocolFactory;
+import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
+import org.eclipse.ditto.thingsearch.model.ThingSearchException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.SearchErrorResponse;
 import org.slf4j.Logger;
 
@@ -794,12 +793,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     }
 
     private static PolicyErrorResponse buildPolicyErrorResponse(final DittoRuntimeException dittoRuntimeException) {
-        final DittoHeaders dittoHeaders = dittoRuntimeException.getDittoHeaders();
-        final String nullableEntityId = dittoHeaders.get(DittoHeaderDefinition.ENTITY_ID.getKey());
-        return Optional.ofNullable(nullableEntityId)
-                .map(entityId -> entityId.substring(entityId.indexOf(':')))
-                .map(entityId -> PolicyErrorResponse.of(PolicyId.of(entityId), dittoRuntimeException, dittoHeaders))
-                .orElseGet(() -> PolicyErrorResponse.of(dittoRuntimeException, dittoHeaders));
+        return PolicyErrorResponse.of(dittoRuntimeException);
     }
 
     private static SearchErrorResponse buildSearchErrorResponse(final DittoRuntimeException dittoRuntimeException) {
