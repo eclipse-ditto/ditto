@@ -63,7 +63,6 @@ AuthenticationProvider authenticationProvider =
 MessagingProvider messagingProvider =
     MessagingProviders.webSocket(WebSocketMessagingConfiguration.newBuilder()
         .endpoint("wss://ditto.eclipseprojects.io")
-        .jsonSchemaVersion(JsonSchemaVersion.V_2)
         // optionally configure a proxy server or a truststore containing the trusted CAs for SSL connection establishment
         .proxyConfiguration(proxyConfiguration)
         .trustStoreConfiguration(TrustStoreConfiguration.newBuilder()
@@ -72,7 +71,7 @@ MessagingProvider messagingProvider =
             .build())
         .build(), authenticationProvider);
 
-DisconnectedDittoClient disconnectedDittoClient = DittoClients.newDisconnectedInstance(messagingProvider);
+DisconnectedDittoClient disconnectedDittoClient = DittoClients.newInstance(messagingProvider);
 
 disconnectedDittoClient.connect()
     .thenAccept(this::startUsingDittoClient)

@@ -222,6 +222,7 @@ public final class Acknowledgement implements CommandResponse<Acknowledgement>, 
     /**
      * Sets the optional payload of the Acknowledgement.
      *
+     * @param payload the payload to set as entity.
      * @return the Acknowledgement with set payload.
      * @since 1.2.0
      */

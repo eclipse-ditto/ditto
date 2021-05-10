@@ -16,16 +16,18 @@ import java.util.Map;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonMissingFieldException;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.json.JsonParsableEvent;
 import org.eclipse.ditto.base.model.signals.AbstractAnnotationBasedJsonParsableFactory;
 import org.eclipse.ditto.base.model.signals.AbstractGlobalJsonParsableRegistry;
 import org.eclipse.ditto.base.model.signals.JsonParsable;
+import org.eclipse.ditto.json.JsonMissingFieldException;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Contains all strategies to deserialize subclasses of {@link Event} from a combination of
  * {@link org.eclipse.ditto.json.JsonObject} and {@link org.eclipse.ditto.base.model.headers.DittoHeaders}.
+ *
+ * @param <T> the event's type.
  */
 @Immutable
 public final class GlobalEventRegistry<T extends Event<?>>
@@ -40,6 +42,7 @@ public final class GlobalEventRegistry<T extends Event<?>>
     /**
      * Gets an instance of GlobalEventRegistry.
      *
+     * @param <T> the event's type.
      * @return the instance of GlobalEventRegistry.
      */
     public static <T extends Event<?>> GlobalEventRegistry<T> getInstance() {

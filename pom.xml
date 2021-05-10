@@ -229,9 +229,7 @@
         <!-- globally set version for checking binary compatibility against -->
         <!-- whoever changes this to ${revision} or ${project.version} is responsible for API breakage caused by this! -->
         <!-- in other words: never do that here! exclude the 'breakages' locally in the japicmp maven plugin if you intentionally break something -->
-        <!-- TODO: set compatibility version to 2.0.0 -->
-        <!-- <binary-compatibility-check.version>1.5.0</binary-compatibility-check.version> -->
-        <binary-compatibility-check.version>${revision}</binary-compatibility-check.version>
+        <binary-compatibility-check.version>2.0.0</binary-compatibility-check.version>
 
         <maven.skins.fluido.version>1.7</maven.skins.fluido.version>
         <doxia.markdown.version>1.8</doxia.markdown.version>
@@ -284,10 +282,10 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-javadoc-plugin</artifactId>
-                    <version>3.1.1</version>
+                    <version>3.2.0</version>
                     <configuration>
                         <javadocExecutable>${java.home}/bin/javadoc</javadocExecutable>
-                        <source>11</source>
+                        <detectJavaApiLink>false</detectJavaApiLink>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -719,6 +717,32 @@
                                     <thirdPartyFilename>NOTICE-THIRD-PARTY.md</thirdPartyFilename>
                                     <licenseMergesFile>./legal/templates/licenses-merges-file</licenseMergesFile>
                                 </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>createJavadoc</id>
+            <activation>
+                <property>
+                    <name>createJavadoc</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
                             </execution>
                         </executions>
                     </plugin>

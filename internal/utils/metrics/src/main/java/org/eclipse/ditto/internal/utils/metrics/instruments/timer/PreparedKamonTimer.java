@@ -15,6 +15,7 @@ package org.eclipse.ditto.internal.utils.metrics.instruments.timer;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -136,12 +137,12 @@ final class PreparedKamonTimer implements PreparedTimer {
 
     @Override
     public Long getTotalTime() {
-        return getSnapshot(false).sum();
+        return getSnapshot(false).map(Distribution::sum).orElse(0L);
     }
 
     @Override
     public Long getNumberOfRecords() {
-        return getSnapshot(false).count();
+        return getSnapshot(false).map(Distribution::count).orElse(0L);
     }
 
     @Override
@@ -171,12 +172,13 @@ final class PreparedKamonTimer implements PreparedTimer {
         return true;
     }
 
-    private Distribution getSnapshot(boolean reset) {
+    private Optional<Distribution> getSnapshot(boolean reset) {
         final Timer kamonInternalTimer = getKamonInternalTimer();
         if (kamonInternalTimer instanceof Timer.Atomic) {
-            return ((Timer.Atomic) kamonInternalTimer).snapshot(reset);
+            return Optional.of(((Timer.Atomic) kamonInternalTimer).snapshot(reset));
         } else {
-            throw new IllegalStateException("Could not get snapshot of kamon timer");
+            LOGGER.warn("Could not get snapshot of kamon timer");
+            return Optional.empty();
         }
     }
 

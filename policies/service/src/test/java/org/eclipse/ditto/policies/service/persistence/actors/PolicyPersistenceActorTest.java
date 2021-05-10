@@ -13,6 +13,7 @@
 package org.eclipse.ditto.policies.service.persistence.actors;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.eclipse.ditto.internal.utils.persistentactors.AbstractShardedPersistenceActor.JOURNAL_TAG_ALWAYS_ALIVE;
 import static org.eclipse.ditto.policies.service.persistence.TestConstants.Policy.SUBJECT_TYPE;
 import static org.eclipse.ditto.policies.service.persistence.testhelper.ETagTestUtils.modifyPolicyEntryResponse;
 import static org.eclipse.ditto.policies.service.persistence.testhelper.ETagTestUtils.modifyPolicyResponse;
@@ -22,7 +23,6 @@ import static org.eclipse.ditto.policies.service.persistence.testhelper.ETagTest
 import static org.eclipse.ditto.policies.service.persistence.testhelper.ETagTestUtils.retrievePolicyResponse;
 import static org.eclipse.ditto.policies.service.persistence.testhelper.ETagTestUtils.retrieveResourceResponse;
 import static org.eclipse.ditto.policies.service.persistence.testhelper.ETagTestUtils.retrieveSubjectResponse;
-import static org.eclipse.ditto.internal.utils.persistentactors.AbstractShardedPersistenceActor.JOURNAL_TAG_ALWAYS_ALIVE;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
@@ -39,10 +39,21 @@ import java.util.concurrent.TimeUnit;
 
 import org.assertj.core.api.Assertions;
 import org.awaitility.Awaitility;
+import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
+import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse;
 import org.eclipse.ditto.base.model.common.DittoDuration;
 import org.eclipse.ditto.base.model.entity.Revision;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
+import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
+import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
+import org.eclipse.ditto.internal.utils.persistentactors.AbstractShardedPersistenceActor;
+import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
+import org.eclipse.ditto.policies.api.PolicyTag;
+import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
+import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
@@ -64,21 +75,8 @@ import org.eclipse.ditto.policies.model.SubjectIssuer;
 import org.eclipse.ditto.policies.model.SubjectType;
 import org.eclipse.ditto.policies.model.Subjects;
 import org.eclipse.ditto.policies.model.assertions.DittoPolicyAssertions;
-import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
-import org.eclipse.ditto.policies.api.PolicyTag;
-import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
-import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
-import org.eclipse.ditto.policies.service.persistence.TestConstants;
-import org.eclipse.ditto.policies.service.persistence.serializer.PolicyMongoSnapshotAdapter;
-import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
-import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
-import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
-import org.eclipse.ditto.internal.utils.persistentactors.AbstractShardedPersistenceActor;
-import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.policies.model.signals.announcements.SubjectDeletionAnnouncement;
-import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
-import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyEntryModificationInvalidException;
@@ -116,10 +114,13 @@ import org.eclipse.ditto.policies.model.signals.events.PolicyEntryCreated;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.eclipse.ditto.policies.model.signals.events.SubjectCreated;
 import org.eclipse.ditto.policies.model.signals.events.SubjectDeleted;
+import org.eclipse.ditto.policies.service.persistence.TestConstants;
+import org.eclipse.ditto.policies.service.persistence.serializer.PolicyMongoSnapshotAdapter;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.mockito.internal.verification.VerificationModeFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1414,7 +1415,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
                 // THEN: SubjectDeletionAnnouncement is published
                 final var announcementCaptor = ArgumentCaptor.forClass(SubjectDeletionAnnouncement.class);
-                verify(policyAnnouncementPub).publish(announcementCaptor.capture(), any());
+                verify(policyAnnouncementPub, VerificationModeFactory.atLeastOnce()).publish(announcementCaptor.capture(), any());
                 final var announcement = announcementCaptor.getValue();
                 Assertions.assertThat(announcement.getSubjectIds()).containsExactly(expiringSubject.getId());
                 Assertions.assertThat(announcement.getDeleteAt()).isEqualTo(expectedRoundedExpiryInstant);

@@ -20,10 +20,10 @@
  import javax.annotation.concurrent.Immutable;
  import javax.annotation.concurrent.NotThreadSafe;
 
- import org.eclipse.ditto.json.JsonObject;
  import org.eclipse.ditto.base.model.common.HttpStatus;
  import org.eclipse.ditto.base.model.headers.DittoHeaders;
  import org.eclipse.ditto.base.model.json.JsonParsableException;
+ import org.eclipse.ditto.json.JsonObject;
 
  /**
   * Thrown if a request with an unsupported media-type is made.
@@ -96,6 +96,7 @@
       * about the actual used media-type and the description information about media-types are supported for the
       * requested resource.
       *
+      * @param callersMediaType the actually used media-type.
       * @param mediaTypeSupportedByCalledResource media-types which are supported.
       * @return the new UnsupportedMediaTypeException.
       */
