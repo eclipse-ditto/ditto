@@ -52,7 +52,7 @@ The step to a major version was done because of the following breaking API chang
 The following non-functional enhancements are also included:
 
 * Improvement of stability during rolling updates
-* Addition of sharding concept for Ditto internal pub/sub enabling connection of e.g. tens of thousands Websocket Wessions
+* Addition of sharding concept for Ditto internal pub/sub enabling connection of e.g. tens of thousands Websocket sessions
 * Background cleanup improvements in order to have less impact on DB roundtrip times
 * Update of third party libraries (e.g. Akka)
 * Documentation of deployment via K3S
