@@ -105,8 +105,6 @@ public final class Mqtt3Validator extends AbstractMqttValidator {
             final DittoHeaders dittoHeaders) {
         source.getHeaderMapping().getMapping()
                 .forEach((key, value) -> {
-                    // some keys are protected and cannot be used in a header mapping
-                    checkIfKeyIsProtected(key, dittoHeaders);
                     // constant header mappings are allowed and are not checked further
                     if (Placeholders.containsAnyPlaceholder(value)) {
                         // allow only a fixed set of placeholders
@@ -114,37 +112,6 @@ public final class Mqtt3Validator extends AbstractMqttValidator {
                     }
                 });
         return true;
-    }
-
-    private static void checkIfKeyIsProtected(final String key, final DittoHeaders dittoHeaders) {
-        if (MqttHeader.getHeaderNames().contains(key)) {
-            final String message =
-                    String.format("The header '%s' is protected and cannot be used in MQTT 3.1.1 source header " +
-                            "mapping.", key);
-            final String description = String.format(
-                    "The following header keys are protected and are set with the corresponding value by default: %s",
-                    MqttHeader.getHeaderNames());
-            throw ConnectionConfigurationInvalidException
-                    .newBuilder(message)
-                    .description(description)
-                    .dittoHeaders(dittoHeaders)
-                    .build();
-        }
-    }
-
-    private static void checkIfKeyIsAllowed(final String key, final DittoHeaders dittoHeaders) {
-        if (!MqttHeader.getHeaderNames().contains(key)) {
-            final String message = String.format("The header '%s' is not allowed in MQTT 3.1.1 target header mapping.",
-                    key);
-            final String description = String.format(
-                    "The following headers are allowed and are directly applied to the published MQTT message: %s",
-                    MqttHeader.getHeaderNames());
-            throw ConnectionConfigurationInvalidException
-                    .newBuilder(message)
-                    .description(description)
-                    .dittoHeaders(dittoHeaders)
-                    .build();
-        }
     }
 
     @Override
@@ -179,6 +146,21 @@ public final class Mqtt3Validator extends AbstractMqttValidator {
             }
         });
         return true;
+    }
+
+    private static void checkIfKeyIsAllowed(final String key, final DittoHeaders dittoHeaders) {
+        if (!MqttHeader.getHeaderNames().contains(key)) {
+            final String message = String.format("The header '%s' is not allowed in MQTT 3.1.1 target header mapping.",
+                    key);
+            final String description = String.format(
+                    "The following headers are allowed and are directly applied to the published MQTT message: %s",
+                    MqttHeader.getHeaderNames());
+            throw ConnectionConfigurationInvalidException
+                    .newBuilder(message)
+                    .description(description)
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
     }
 
     private static void validateConsumerCount(final Source source, final DittoHeaders dittoHeaders) {

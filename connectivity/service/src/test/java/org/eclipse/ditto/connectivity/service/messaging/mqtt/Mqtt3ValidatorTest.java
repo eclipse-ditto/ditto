@@ -40,6 +40,7 @@ import org.eclipse.ditto.connectivity.model.SourceBuilder;
 import org.eclipse.ditto.connectivity.model.TargetBuilder;
 import org.eclipse.ditto.connectivity.service.config.MqttConfig;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -241,12 +242,17 @@ public final class Mqtt3ValidatorTest extends AbstractMqttValidatorTest {
     }
 
     @Test
-    public void testProtectedSourceMappingKeys() {
-        Stream.of(MqttHeader.values()).map(MqttHeader::getName).forEach(key -> {
-            final HeaderMapping validHeaderMapping =
-                    ConnectivityModelFactory.newHeaderMapping(Map.of(key, "{{ header:mqtt.topic }}"));
-            testSourceMapping(validHeaderMapping, key);
-        });
+    public void testValidSourceMappingKeys() {
+        final HeaderMapping validHeaderMapping = ConnectivityModelFactory.newHeaderMapping(Map.of(
+                "mqtt.topic", "{{ header:mqtt.topic }}",
+                "mqtt.qos", "{{ header:mqtt.qos }}",
+                "mqtt.retain", "{{ header:mqtt.retain }}",
+                "custom.topic", "{{ header:mqtt.topic }}",
+                "custom.qos", "{{ header:mqtt.qos }}",
+                "custom.retain", "{{ header:mqtt.retain }}"
+        ));
+        final Connection connection = getConnectionWithSourceHeaderMapping(validHeaderMapping);
+        Mqtt3Validator.newInstance(mqttConfig).validate(connection, DittoHeaders.empty(), actorSystem);
     }
 
     @Test
@@ -276,16 +282,21 @@ public final class Mqtt3ValidatorTest extends AbstractMqttValidatorTest {
     }
 
     private void testSourceMapping(final HeaderMapping headerMapping, final String containedInMessage) {
+        final Connection connectionWithHeaderMapping =
+                getConnectionWithSourceHeaderMapping(headerMapping);
+
+        verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithHeaderMapping).withMessageContaining(
+                containedInMessage);
+    }
+
+    private Connection getConnectionWithSourceHeaderMapping(final HeaderMapping headerMapping) {
         final Connection connection = connectionWithSource("ditto/#");
-        final Connection connectionWithHeaderMapping = connection.toBuilder()
+        return connection.toBuilder()
                 .setSources(connection.getSources().stream()
                         .map(ConnectivityModelFactory::newSourceBuilder)
                         .map(sb -> sb.headerMapping(headerMapping))
                         .map(SourceBuilder::build)
                         .collect(Collectors.toList())).build();
-
-        verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithHeaderMapping).withMessageContaining(
-                containedInMessage);
     }
 
     private void testTargetMapping(final HeaderMapping headerMapping, final String containedInMessage) {
