@@ -115,13 +115,13 @@ spec:
         imagePullPolicy: IfNotPresent
         args: ["java", "-jar", "starter.jar"]
         # Resource can be managed by setting the following resource config.
-        #resources:
-        #  requests:
-        #    cpu: "1"
-        #    memory: "1Gi"
-        #  limits:
-        #    # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
-        #    memory: "4Gi"
+        resources:
+          requests:
+            cpu: "1"
+            memory: "1Gi"
+          limits:
+            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            memory: "4Gi"
         ports:
         - name: remoting
           containerPort: 2551
@@ -201,13 +201,13 @@ spec:
         imagePullPolicy: IfNotPresent
         args: ["java", "-jar", "starter.jar"]
         # Resource can be managed by setting the following resource config.
-        #resources:
-        #  requests:
-        #    cpu: "1"
-        #    memory: "1Gi"
-        #  limits:
-        #    # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
-        #    memory: "4Gi"
+        resources:
+          requests:
+            cpu: "1"
+            memory: "1Gi"
+          limits:
+            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            memory: "4Gi"
         ports:
         - name: remoting
           containerPort: 2551
@@ -286,13 +286,13 @@ spec:
         imagePullPolicy: IfNotPresent
         args: ["java", "-jar", "starter.jar"]
         # Resource can be managed by setting the following resource config.
-        #resources:
-        #  requests:
-        #    cpu: "0.75"
-        #    memory: "512Mi"
-        #  limits:
-        #    # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
-        #    memory: "2Gi"
+        resources:
+          requests:
+            cpu: "1"
+            memory: "512Mi"
+          limits:
+            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            memory: "2Gi"
         ports:
         - name: remoting
           containerPort: 2551
@@ -371,13 +371,13 @@ spec:
         imagePullPolicy: IfNotPresent
         args: ["java", "-jar", "starter.jar"]
         # Resource can be managed by setting the following resource config.
-        #resources:
-        #  requests:
-        #    cpu: "0.75"
-        #    memory: "1Gi"
-        #  limits:
-        #    # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
-        #    memory: "2Gi"
+        resources:
+          requests:
+            cpu: "1"
+            memory: "1Gi"
+          limits:
+            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            memory: "2Gi"
         ports:
         - name: remoting
           containerPort: 2551
@@ -456,13 +456,13 @@ spec:
         imagePullPolicy: IfNotPresent
         args: ["java", "-jar", "starter.jar"]
         # Resource can be managed by setting the following resource config.
-        #resources:
-        #  requests:
-        #    cpu: "1"
-        #    memory: "512Mi"
-        #  limits:
-        #    # cpu: "{{ item.cpus }}" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
-        #    memory: "2Gi"
+        resources:
+          requests:
+            cpu: "1"
+            memory: "512Mi"
+          limits:
+            # cpu: "{{ item.cpus }}" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            memory: "2Gi"
         ports:
         - name: remoting
           containerPort: 2551
@@ -503,7 +503,9 @@ spec:
           value: "Europe/Berlin"
         - name: OPENJ9_JAVA_OPTIONS
           value: "-Xgcpolicy:gencon -Xgc:concurrentScavenge -XX:+IdleTuningGcOnIdle -XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
+
 ---
+
 apiVersion: v1
 kind: Service
 metadata:
