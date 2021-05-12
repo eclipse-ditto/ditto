@@ -1,12 +1,12 @@
 ---
-title: Protocol specification for Connections
+title: Protocol specification for connections
 keywords: protocol, specification, general, connection, connections, connectivity
 tags: [protocol]
 permalink: protocol-specification-connections.html
 ---
 
 
-## Ditto Protocol topic structure for Connections
+## Ditto Protocol topic structure for connections
 
 A valid topic consists of four elements, describing the connection affected by this message and the type of the message:
 
@@ -15,9 +15,9 @@ _/<connectionId>/connections/announcements/<subject>
 ```
 
 1. `_`: empty field.
-2. `connectionId`: the id of the connection.
-3. `group`: the group for addressing Connections is `connections`.
-4. `criterion`: the type of Protocol messages addressing Connection [announcements](basic-signals-announcement.html) is 
+2. `connectionId`: the ID of the connection.
+3. `group`: the group for addressing connections is `connections`.
+4. `criterion`: the type of protocol messages addressing connection [announcements](basic-signals-announcement.html) is 
    [`announcements`](protocol-specification-policies-announcement.html).
 5. `subject`: for [announcements](basic-signals-announcement.html) the `subject` contains the announcement name
        

@@ -12,7 +12,7 @@ details. " %}
 
 ## Connection announcements
 
-A Connection announcement contains the announcement name as last part of the topic:
+A connection announcement contains the announcement name as last part of the topic:
 ```
 _/<connectionId>/connections/announcements/<announcement-name>
 ```
