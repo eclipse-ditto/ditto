@@ -17,15 +17,14 @@ import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
+import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.PersistenceStreamConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.StreamCacheConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.StreamConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.StreamStageConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
-import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
@@ -37,6 +36,7 @@ import akka.dispatch.MessageDispatcher;
 import akka.stream.Attributes;
 import akka.stream.KillSwitch;
 import akka.stream.KillSwitches;
+import akka.stream.RestartSettings;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.RestartSink;
@@ -139,10 +139,10 @@ public final class SearchUpdaterStream {
                                 .map(writeModelSource -> writeModelSource.via(
                                         blockNamespaceFlow(SearchUpdaterStream::namespaceOfWriteModel))));
 
-        final ExponentialBackOffConfig backOffConfig = retrievalConfig.getExponentialBackOffConfig();
-
-        return RestartSource.withBackoff(backOffConfig.getMin(), backOffConfig.getMax(),
-                backOffConfig.getRandomFactor(), () -> source);
+        final var backOffConfig = retrievalConfig.getExponentialBackOffConfig();
+        return RestartSource.withBackoff(
+                RestartSettings.create(backOffConfig.getMax(), backOffConfig.getMax(), backOffConfig.getRandomFactor()),
+                () -> source);
     }
 
     private Sink<Source<AbstractWriteModel, NotUsed>, NotUsed> createRestartSink(
@@ -163,9 +163,9 @@ public final class SearchUpdaterStream {
                                 Attributes.logLevelError()))
                         .to(Sink.<String>ignore());
 
-        final ExponentialBackOffConfig backOffConfig = persistenceConfig.getExponentialBackOffConfig();
-
-        return RestartSink.withBackoff(backOffConfig.getMax(), backOffConfig.getMax(), backOffConfig.getRandomFactor(),
+        final var backOffConfig = persistenceConfig.getExponentialBackOffConfig();
+        return RestartSink.withBackoff(
+                RestartSettings.create(backOffConfig.getMax(), backOffConfig.getMax(), backOffConfig.getRandomFactor()),
                 () -> sink);
     }
 

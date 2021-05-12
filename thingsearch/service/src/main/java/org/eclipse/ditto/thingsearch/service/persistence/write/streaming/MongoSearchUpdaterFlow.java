@@ -75,7 +75,8 @@ final class MongoSearchUpdaterFlow {
      */
     public static MongoSearchUpdaterFlow of(final MongoDatabase database,
             final PersistenceStreamConfig persistenceConfig) {
-        return new MongoSearchUpdaterFlow(database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME), persistenceConfig);
+        return new MongoSearchUpdaterFlow(database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME),
+                persistenceConfig);
     }
 
 
@@ -117,9 +118,9 @@ final class MongoSearchUpdaterFlow {
 
         final MongoCollection<Document> theCollection;
         if (shouldAcknowledge) {
-            theCollection = this.collection;
-        } else {
             theCollection = this.collectionWithAcknowledgements;
+        } else {
+            theCollection = this.collection;
         }
 
         return Source.fromPublisher(theCollection.bulkWrite(writeModels, new BulkWriteOptions().ordered(false)))
