@@ -66,7 +66,7 @@ public final class PoliciesRoute extends AbstractRoute {
 
     private static final String PATH_ACTIONS = "actions";
 
-    private static final String PATH_POLICIES = "policies";
+    public static final String PATH_POLICIES = "policies";
     private static final String PATH_ENTRIES = "entries";
 
     private static final Label DUMMY_LABEL = Label.of("-");
