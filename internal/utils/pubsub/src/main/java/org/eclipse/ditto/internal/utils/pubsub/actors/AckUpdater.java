@@ -25,8 +25,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.internal.utils.pubsub.config.PubSubConfig;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.base.model.acks.PubSubTerminatedException;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -40,17 +38,20 @@ import org.eclipse.ditto.internal.utils.pubsub.api.ReceiveLocalAcks;
 import org.eclipse.ditto.internal.utils.pubsub.api.ReceiveRemoteAcks;
 import org.eclipse.ditto.internal.utils.pubsub.api.RemoteAcksChanged;
 import org.eclipse.ditto.internal.utils.pubsub.api.RemoveSubscriberAcks;
+import org.eclipse.ditto.internal.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.DDataWriter;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.ack.Grouped;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.ack.GroupedRelation;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.literal.LiteralUpdate;
+import org.eclipse.ditto.json.JsonValue;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
 import akka.actor.Address;
 import akka.actor.Props;
 import akka.actor.Terminated;
+import akka.cluster.ddata.Key;
 import akka.cluster.ddata.ORMultiMap;
 import akka.cluster.ddata.Replicator;
 import akka.event.LoggingAdapter;
@@ -75,6 +76,7 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
     private final java.util.Set<ActorRef> ddataChangeRecipients;
     private final java.util.Set<ActorRef> localChangeRecipients;
     private final Gauge ackSizeMetric;
+    private final Map<Key<?>, Map<Address, List<Grouped<String>>>> cachedRemoteAcks;
 
     private Map<String, Set<String>> remoteAckLabels = Map.of();
     private Map<String, Set<String>> remoteGroups = Map.of();
@@ -89,6 +91,7 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
         ddataChangeRecipients = new HashSet<>();
         localChangeRecipients = new HashSet<>();
         ackSizeMetric = DittoMetrics.gauge("pubsub-ack-size-bytes");
+        cachedRemoteAcks = new HashMap<>();
         subscribeForClusterMemberRemovedAware();
         ackDData.getReader().receiveChanges(getSelf());
         getTimers().startTimerAtFixedRate(Clock.TICK, Clock.TICK, config.getUpdateInterval());
@@ -195,16 +198,28 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
     private void onChanged(final Replicator.Changed<?> event) {
         final Map<Address, List<Grouped<String>>> mmap = Grouped.deserializeORMultiMap(
                 ((ORMultiMap<Address, String>) event.dataValue()), JsonValue::asString);
-        final List<Grouped<String>> remoteGroupedAckLabels = getRemoteGroupedAckLabelsOrderByAddress(mmap);
+
+        cachedRemoteAcks.put(event.key(), mmap);
+        // calculate all sharded maps:
+        final Map<Address, List<Grouped<String>>> completeMmap = new HashMap<>();
+        cachedRemoteAcks.values()
+                .forEach(map -> map.forEach((address, groups) ->
+                        completeMmap.merge(address, groups, (g1, g2) -> {
+                            g1.addAll(g2);
+                            return g1;
+                        }))
+                );
+
+        final List<Grouped<String>> remoteGroupedAckLabels = getRemoteGroupedAckLabelsOrderByAddress(completeMmap);
         remoteGroups = getRemoteGroups(remoteGroupedAckLabels);
         remoteAckLabels = getRemoteAckLabels(remoteGroupedAckLabels);
 
-        for (final ActorRef localLoser : getLocalLosers(mmap)) {
+        for (final ActorRef localLoser : getLocalLosers(completeMmap)) {
             doRemoveSubscriber(localLoser);
             failSubscribe(localLoser);
         }
 
-        final RemoteAcksChanged ddataChanged = RemoteAcksChanged.of(mmap);
+        final RemoteAcksChanged ddataChanged = RemoteAcksChanged.of(completeMmap);
         ddataChangeRecipients.forEach(recipient -> recipient.tell(ddataChanged, getSelf()));
     }
 

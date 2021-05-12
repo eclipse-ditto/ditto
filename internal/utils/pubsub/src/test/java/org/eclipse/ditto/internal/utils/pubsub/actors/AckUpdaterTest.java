@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.internal.utils.pubsub.actors;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -21,6 +23,8 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.internal.utils.pubsub.LiteralDDataProvider;
 import org.eclipse.ditto.internal.utils.pubsub.api.AcksDeclared;
 import org.eclipse.ditto.internal.utils.pubsub.api.DeclareAcks;
+import org.eclipse.ditto.internal.utils.pubsub.api.ReceiveRemoteAcks;
+import org.eclipse.ditto.internal.utils.pubsub.api.RemoteAcksChanged;
 import org.eclipse.ditto.internal.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.literal.AbstractConfigAwareDDataProvider;
@@ -151,6 +155,58 @@ public final class AckUpdaterTest {
             expectMsgClass(AcknowledgementLabelNotUniqueException.class);
             underTest.tell(DeclareAcks.of(s3.ref(), null, Set.of("a2")), getRef());
             expectMsgClass(AcknowledgementLabelNotUniqueException.class);
+        }};
+    }
+
+    @Test
+    public void delclarationsInSeveralSystemsMaintainKnownRemoteDeclaredAcks() {
+        new TestKit(system1) {{
+            final ActorRef underTest1 = system1.actorOf(AckSupervisor.props(ddata1));
+            final ActorRef underTest2 = system2.actorOf(AckSupervisor.props(ddata2));
+            final TestProbe s1a = TestProbe.apply("s1-a", system1);
+            final TestProbe s1b = TestProbe.apply("s1-b", system1);
+            final TestProbe s2a = TestProbe.apply("s2-a", system2);
+            final TestProbe s2b = TestProbe.apply("s2-b", system2);
+
+            underTest1.tell(ReceiveRemoteAcks.of(getRef()), getRef());
+
+            final String someGroup = "some-group";
+            final String groupedTopic = "grouped-topic";
+            final String standaloneTopic1 = "standalone-topic-1";
+            final String standaloneTopic2 = "standalone-topic-2";
+
+            // GIVEN: ack labels are declared on cluster node 1
+            underTest1.tell(DeclareAcks.of(s1a.ref(), someGroup, Set.of(groupedTopic)), getRef());
+            expectMsgClass(AcksDeclared.class);
+            assertThat(expectMsgClass(RemoteAcksChanged.class).contains(groupedTopic)).isTrue();
+
+            // GIVEN:
+            //  ack labels are declared on cluster node 2
+            underTest2.tell(DeclareAcks.of(s2a.ref(), someGroup, Set.of(groupedTopic)), getRef());
+            expectMsgClass(AcksDeclared.class);
+            assertThat(expectMsgClass(RemoteAcksChanged.class).contains(groupedTopic)).isTrue();
+            //  ack labels are declared on cluster node 1 without group
+            underTest1.tell(DeclareAcks.of(s1a.ref(), null, Set.of(standaloneTopic1, standaloneTopic2)),
+                    getRef());
+            expectMsgClass(AcksDeclared.class);
+            final RemoteAcksChanged remoteAcksChanged = expectMsgClass(RemoteAcksChanged.class);
+            assertThat(remoteAcksChanged.contains(groupedTopic)).isTrue();
+            assertThat(remoteAcksChanged.contains(standaloneTopic1)).isTrue();
+            assertThat(remoteAcksChanged.contains(standaloneTopic2)).isTrue();
+
+            // WHEN: ddata is replicated
+            waitForHeartBeats(system1, this);
+            waitForHeartBeats(system2, this);
+
+            // THEN:
+            //  without group those ack labels may not be declared again:
+            underTest1.tell(DeclareAcks.of(s1b.ref(), null, Set.of(standaloneTopic1)), getRef());
+            expectMsgClass(AcknowledgementLabelNotUniqueException.class);
+            underTest2.tell(DeclareAcks.of(s2b.ref(), null, Set.of(standaloneTopic2)), getRef());
+            expectMsgClass(AcknowledgementLabelNotUniqueException.class);
+            //  with same group as above an ack labels may be declared again:
+            underTest2.tell(DeclareAcks.of(s2b.ref(), someGroup, Set.of(groupedTopic)), getRef());
+            expectMsgClass(AcksDeclared.class);
         }};
     }
 
