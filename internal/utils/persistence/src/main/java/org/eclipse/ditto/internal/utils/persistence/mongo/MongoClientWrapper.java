@@ -285,6 +285,7 @@ public final class MongoClientWrapper implements DittoMongoClient {
             builder.connectionString(mongoDbConfig.getMongoDbUri());
 
             final MongoDbConfig.ConnectionPoolConfig connectionPoolConfig = mongoDbConfig.getConnectionPoolConfig();
+            builder.connectionPoolMinSize(connectionPoolConfig.getMinSize());
             builder.connectionPoolMaxSize(connectionPoolConfig.getMaxSize());
             builder.connectionPoolMaxWaitTime(connectionPoolConfig.getMaxWaitTime());
             builder.enableJmxListener(connectionPoolConfig.isJmxListenerEnabled());
@@ -333,6 +334,12 @@ public final class MongoClientWrapper implements DittoMongoClient {
         @Override
         public GeneralPropertiesStep defaultDatabaseName(final CharSequence databaseName) {
             defaultDatabaseName = checkNotNull(databaseName, "name of the default database").toString();
+            return this;
+        }
+
+        @Override
+        public GeneralPropertiesStep connectionPoolMinSize(final int minSize) {
+            mongoClientSettingsBuilder.applyToConnectionPoolSettings(builder -> builder.minSize(minSize));
             return this;
         }
 

@@ -26,9 +26,9 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
-import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextCreator;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.internal.utils.akka.controlflow.TimeoutFlow;
 
 import akka.actor.ActorSystem;
@@ -56,6 +56,11 @@ import scala.util.Try;
 final class DefaultHttpPushFactory implements HttpPushFactory {
 
     private static final String PATH_DELIMITER = "/";
+
+    /**
+     * Config key of the dispatcher for http push connections.
+     */
+    private static final String DISPATCHER_NAME = "http-push-connection-dispatcher";
 
     private final Connection connection;
     private final int parallelism;
@@ -169,7 +174,8 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
 
         // make requests in parallel
         return Flow.<Pair<HttpRequest, T>>create().flatMapMerge(parallelism, request ->
-                TimeoutFlow.single(request, flow, requestTimeout, DefaultHttpPushFactory::onRequestTimeout).async());
+                TimeoutFlow.single(request, flow, requestTimeout, DefaultHttpPushFactory::onRequestTimeout)
+                        .async(DISPATCHER_NAME, parallelism));
     }
 
     private ConnectionPoolSettings getConnectionPoolSettings(final ActorSystem system) {

@@ -25,17 +25,19 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.bson.Document;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
+import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
+import org.eclipse.ditto.internal.utils.test.mongo.MongoDbResource;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.auth.AuthorizationContext;
-import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
-import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.policies.model.enforcers.Enforcer;
-import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
@@ -45,21 +47,19 @@ import org.eclipse.ditto.policies.model.Resource;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectType;
+import org.eclipse.ditto.policies.model.enforcers.Enforcer;
+import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
-import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
-import org.eclipse.ditto.thingsearch.service.persistence.query.QueryParser;
-import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsSearchPersistence;
-import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.TestSearchUpdaterStream;
-import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
-import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
-import org.eclipse.ditto.internal.utils.test.mongo.MongoDbResource;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThingsResponse;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.StreamThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand;
+import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
+import org.eclipse.ditto.thingsearch.service.persistence.query.QueryParser;
+import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsSearchPersistence;
+import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.TestSearchUpdaterStream;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -110,6 +110,10 @@ public final class SearchActorIT {
     public void before() {
         actorSystem = ActorSystem.create(getClass().getSimpleName(),
                 ConfigFactory.parseString("search-dispatcher {\n" +
+                        "  type = PinnedDispatcher\n" +
+                        "  executor = \"thread-pool-executor\"\n" +
+                        "}\n" +
+                        "search-updater-dispatcher {\n" +
                         "  type = PinnedDispatcher\n" +
                         "  executor = \"thread-pool-executor\"\n" +
                         "}"));
