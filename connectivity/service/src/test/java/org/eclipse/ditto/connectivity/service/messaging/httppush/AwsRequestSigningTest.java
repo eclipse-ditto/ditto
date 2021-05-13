@@ -28,7 +28,7 @@ import akka.http.javadsl.model.headers.HttpCredentials;
 /**
  * Test cases for AWS request signing.
  */
-public final class AwsRequestSignatureTest {
+public final class AwsRequestSigningTest {
 
     private static final String ACCESS_KEY = "MyAwesomeAccessKey";
 

@@ -47,7 +47,7 @@ final class HttpPublishTarget implements PublishTarget {
     }
 
     /**
-     * @return the complete path including optional query paramerters to use for the HTTP request.
+     * @return the complete path including optional query parameters to use for the HTTP request.
      */
     String getPathWithQuery() {
         return pathWithQuery;
