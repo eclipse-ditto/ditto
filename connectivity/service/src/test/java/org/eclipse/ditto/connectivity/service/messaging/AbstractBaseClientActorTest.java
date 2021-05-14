@@ -34,8 +34,6 @@ import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextCreator;
-import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.EnableConnectionLogs;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.ResetConnectionLogs;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.ResetConnectionMetrics;
@@ -45,6 +43,8 @@ import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConne
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetrics;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionStatus;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextCreator;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
@@ -168,6 +168,7 @@ public abstract class AbstractBaseClientActorTest {
         final ActorSystem actorSystem = getActorSystem();
         final ServerBinding binding = Http.get(actorSystem)
                 .newServerAt("127.0.0.1", 0)
+                // TODO YC: use sslContext for server binding
                 .bindFlow(Flow.fromSinkAndSource(Sink.ignore(), Source.empty()))
                 .toCompletableFuture()
                 .join();

@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.gateway.service.endpoints.utils;
+package org.eclipse.ditto.base.service;
 
 import static java.util.Objects.requireNonNull;
 
@@ -100,6 +100,16 @@ public final class UriEncoding {
         } else {
             return encodeRFC3986UriComponent(queryParam, ALLOWED_IN_QUERY_PARAM);
         }
+    }
+
+    /**
+     * Encodes every character other than unreserved characters. Used in AWS request signing.
+     *
+     * @param string the string to encode.
+     * @return the encoded string.
+     */
+    public static String encodeAllButUnreserved(final String string) {
+        return encodeRFC3986UriComponent(string, UriEncoding::isUnreserved);
     }
 
     /**

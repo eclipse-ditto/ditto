@@ -54,11 +54,11 @@ public interface RequestSigning {
     /**
      * Compute HMAC using SHA256 hash function.
      *
-     * @param input the message.
      * @param key the key.
+     * @param input the message.
      * @return the HMAC.
      */
-    static byte[] getHmacSha256(final String input, final byte[] key) {
+    static byte[] hmacSha256(final byte[] key, final String input) {
         try {
             final String hmacSha256 = "HmacSHA256";
             final Mac mac = Mac.getInstance(hmacSha256);
@@ -71,4 +71,5 @@ public interface RequestSigning {
                     .build();
         }
     }
+
 }

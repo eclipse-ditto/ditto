@@ -14,16 +14,27 @@ package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
+import org.bouncycastle.util.encoders.Hex;
+import org.junit.After;
 import org.junit.Test;
 
+import akka.actor.ActorSystem;
+import akka.http.javadsl.model.ContentType;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpEntities;
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpRequest;
+import akka.http.javadsl.model.RequestEntity;
+import akka.http.javadsl.model.Uri;
 import akka.http.javadsl.model.headers.HttpCredentials;
+import akka.stream.javadsl.Sink;
+import akka.testkit.javadsl.TestKit;
 
 /**
  * Test cases for AWS request signing.
@@ -41,6 +52,77 @@ public final class AwsRequestSigningTest {
     private static final String SERVICE_NAME = "iam";
 
     private static final String BODY = "The quick brown fox jumped over the lazy dog";
+
+    private final ActorSystem actorSystem = ActorSystem.create();
+
+    @After
+    public void shutdown() {
+        TestKit.shutdownActorSystem(actorSystem);
+    }
+
+    @Test
+    public void testCanonicalQuery() {
+        final Uri uri = Uri.create("https://www.example.com?Action=ListUsers&" +
+                "X-Amz-Date=20150830T123600Z&" +
+                "X-Amz-Credential=AKIDEXAMPLE/20150830/us-east-1/iam/aws4_request&" +
+                "X-Amz-Algorithm=AWS4-HMAC-SHA256&" +
+                "X-Amz-SignedHeaders=content-type;host;x-amz-date&" +
+                "Version=2010-05-08&" +
+                "Order-by-Value=2&" +
+                "Order-by-Value=3&" +
+                "Order-by-Value=1&" +
+                "Double-Encode-Equality=a=b");
+
+        final String expectedCanonicalQuery = "Action=ListUsers&" +
+                "Double-Encode-Equality=a%253Db&" +
+                "Order-by-Value=1&" +
+                "Order-by-Value=2&" +
+                "Order-by-Value=3&" +
+                "Version=2010-05-08&" +
+                "X-Amz-Algorithm=AWS4-HMAC-SHA256&" +
+                "X-Amz-Credential=AKIDEXAMPLE%2F20150830%2Fus-east-1%2Fiam%2Faws4_request&" +
+                "X-Amz-Date=20150830T123600Z&" +
+                "X-Amz-SignedHeaders=content-type%3Bhost%3Bx-amz-date";
+
+        final String canonicalQuery = AwsRequestSigning.getCanonicalQuery(uri.query());
+
+        assertThat(canonicalQuery).isEqualTo(expectedCanonicalQuery);
+    }
+
+    @Test
+    public void testCanonicalHeaders() {
+        // lower-case charset does not work; Akka HTTP always sends the charset in upper case.
+        final ContentType contentType = ContentTypes.parse("application/x-www-form-urlencoded; charset=UTF-8");
+        final RequestEntity body = HttpEntities.create(contentType, new byte[0]);
+        final List<HttpHeader> headesInSequence = List.of(
+                HttpHeader.parse("Host", "iam.amazonaws.com"),
+                HttpHeader.parse("My-header1", "    a   b   c  "),
+                HttpHeader.parse("My-Header2", "    \"a   b   c\"  "),
+                HttpHeader.parse("My-header2", "def")
+        );
+
+        final HttpRequest request = HttpRequest.GET("https://iam.amazonaws.com")
+                .withEntity(body)
+                // can't use .addHeader because it _prepends_ the header to the list
+                .withHeaders(headesInSequence);
+
+        final Collection<String> canonicalHeaderNames = AwsRequestSigning.toDeduplicatedSortedLowerCase(
+                List.of("Host", "My-header1", "X-Amz-Date", "my-headER2", "CONTENT-TYPE", "nonexistent-header"));
+
+        final String expectedCanonicalHeaders =
+                "content-type:application/x-www-form-urlencoded; charset=UTF-8\n" +
+                        "host:iam.amazonaws.com\n" +
+                        "my-header1:a b c\n" +
+                        "my-header2:\"a b c\",def\n" +
+                        "nonexistent-header:\n" +
+                        "x-amz-date:20150830T123600Z\n";
+
+        final String canonicalHeaders =
+                AwsRequestSigning.getCanonicalHeaders(request, canonicalHeaderNames,
+                        Instant.parse("2015-08-30T12:36:00Z"));
+
+        assertThat(canonicalHeaders).isEqualTo(expectedCanonicalHeaders);
+    }
 
     @Test
     public void testRequestSignature() {
@@ -95,13 +177,17 @@ public final class AwsRequestSigningTest {
     }
 
     @Test
-    public void testS3CanonicalUrl() {
-        throw new AssertionError("TODO");
+    public void testS3CanonicalUri() {
+        final Uri uri = Uri.create("https://www.example.com/my-object//example//photo.user");
+        assertThat(AwsRequestSigning.getCanonicalUri(uri, false))
+                .isEqualTo("/my-object//example//photo.user");
     }
 
     @Test
     public void testNonS3CanonicalUrl() {
-        throw new AssertionError("TODO");
+        final Uri uri = Uri.create("https://www.example.com///documents%20and%20settings//////");
+        assertThat(AwsRequestSigning.getCanonicalUri(uri, true))
+                .isEqualTo("/documents%2520and%2520settings/");
     }
 
     private static HttpRequest getSampleHttpRequest() {
@@ -114,36 +200,48 @@ public final class AwsRequestSigningTest {
                 .withEntity(requestEntity);
     }
 
-    private static String getStringToSign(final HttpRequest httpRequest) {
-        throw new UnsupportedOperationException("TODO " + X_AMZ_DATE);
+    private HttpRequest signRequest(final HttpRequest originalRequest) {
+        return new AwsRequestSigning(actorSystem, List.of("host", "x-amz-date"), REGION_NAME, SERVICE_NAME, ACCESS_KEY,
+                SECRET_KEY, true, Duration.ofSeconds(10))
+                .sign(originalRequest, X_AMZ_DATE)
+                .runWith(Sink.head(), actorSystem)
+                .toCompletableFuture()
+                .join();
     }
 
-    private static HttpRequest signRequest(final HttpRequest originalRequest) {
-        throw new UnsupportedOperationException("TODO " + ACCESS_KEY + SECRET_KEY);
+    private String getStringToSign(final HttpRequest httpRequest) {
+        return new AwsRequestSigning(actorSystem, List.of("host", "x-amz-date"), REGION_NAME, SERVICE_NAME, ACCESS_KEY,
+                SECRET_KEY, true, Duration.ofSeconds(10))
+                .getStringToSign(httpRequest, X_AMZ_DATE, true);
     }
 
-    private static String getCanonicalRequest(final HttpRequest httpRequest) {
-        throw new UnsupportedOperationException("TODO " + httpRequest);
+    private String getCanonicalRequest(final HttpRequest httpRequest) {
+        return new AwsRequestSigning(actorSystem, List.of("host", "x-amz-date"), REGION_NAME, SERVICE_NAME, ACCESS_KEY,
+                SECRET_KEY, true, Duration.ofSeconds(10))
+                .getCanonicalRequest(httpRequest, X_AMZ_DATE, true);
     }
 
     private static String getKSecret() {
-        throw new UnsupportedOperationException("TODO " + SECRET_KEY);
+        return toHex(AwsRequestSigning.getKSecret(SECRET_KEY));
     }
 
     private static String getKDate() {
-        throw new UnsupportedOperationException("TODO " + X_AMZ_DATE);
+        return toHex(AwsRequestSigning.getKDate(Hex.decode(getKSecret()), X_AMZ_DATE));
     }
 
     private static String getKRegion() {
-        throw new UnsupportedOperationException("TODO " + REGION_NAME);
+        return toHex(AwsRequestSigning.getKRegion(Hex.decode(getKDate()), REGION_NAME));
     }
 
     private static String getKService() {
-        throw new UnsupportedOperationException("TODO " + SERVICE_NAME);
+        return toHex(AwsRequestSigning.getKService(Hex.decode(getKRegion()), SERVICE_NAME));
     }
 
     private static String getKSigning() {
-        throw new UnsupportedOperationException("TODO aws4_request");
+        return toHex(AwsRequestSigning.getKSigning(Hex.decode(getKService())));
     }
 
+    private static String toHex(final byte[] bytes) {
+        return Hex.toHexString(bytes);
+    }
 }

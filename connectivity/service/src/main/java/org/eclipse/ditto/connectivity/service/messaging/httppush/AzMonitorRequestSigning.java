@@ -12,13 +12,12 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
-import java.sql.Date;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Base64;
-import java.util.TimeZone;
+import java.util.Locale;
 
 import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 
@@ -38,7 +37,8 @@ import akka.util.ByteString;
 final class AzMonitorRequestSigning implements RequestSigning {
 
     private static final String X_MS_DATE_HEADER = "x-ms-date";
-    private static final DateFormat X_MS_DATE_FORMAT = getXMsDateFormat();
+    private static final DateTimeFormatter X_MS_DATE_FORMAT =
+            DateTimeFormatter.ofPattern("EEE, dd MMM uuuu HH:mm:ss zzz", Locale.ENGLISH).withZone(ZoneId.of("GMT"));
 
     private final ActorSystem actorSystem;
     private final String workspaceId;
@@ -61,7 +61,7 @@ final class AzMonitorRequestSigning implements RequestSigning {
         } catch (final IllegalArgumentException e) {
             throw MessageSendingFailedException.newBuilder()
                     .message("Failed to sign HTTP request to Azure Monitor.")
-                    .description("The shared key is not in a valid Base64 scheme.")
+                    .description("The shared key is not in Base64 scheme.")
                     .build();
         }
     }
@@ -72,8 +72,8 @@ final class AzMonitorRequestSigning implements RequestSigning {
                 .map(request::withEntity)
                 .map(strictRequest -> {
                     final String stringToSign = getStringToSign(strictRequest, timestamp);
-                    final byte[] signature = RequestSigning.getHmacSha256(stringToSign, sharedKey.toArray());
-                    final HttpHeader xMsDate = HttpHeader.parse(X_MS_DATE_HEADER, getXMsDateString(timestamp));
+                    final byte[] signature = RequestSigning.hmacSha256(sharedKey.toArray(), stringToSign);
+                    final HttpHeader xMsDate = HttpHeader.parse(X_MS_DATE_HEADER, X_MS_DATE_FORMAT.format(timestamp));
                     final HttpCredentials httpCredentials = toHttpCredentials(signature);
                     return request.addHeader(xMsDate).addCredentials(httpCredentials);
                 });
@@ -90,18 +90,9 @@ final class AzMonitorRequestSigning implements RequestSigning {
         // a strict request entity always has a content length
         final long contentLength = strictRequest.entity().getContentLengthOption().orElseThrow();
         final ContentType contentType = strictRequest.entity().getContentType();
-        final String xMsDate = X_MS_DATE_HEADER + ":" + getXMsDateString(timestamp);
+        final String xMsDate = X_MS_DATE_HEADER + ":" + X_MS_DATE_FORMAT.format(timestamp);
         final String resource = strictRequest.getUri().path();
         return String.join("\n", verb.name(), String.valueOf(contentLength), contentType.toString(), xMsDate, resource);
     }
 
-    private static String getXMsDateString(final Instant timestamp) {
-        return X_MS_DATE_FORMAT.format(Date.from(timestamp));
-    }
-
-    private static DateFormat getXMsDateFormat() {
-        final DateFormat dateFormat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z");
-        dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
-        return dateFormat;
-    }
 }
