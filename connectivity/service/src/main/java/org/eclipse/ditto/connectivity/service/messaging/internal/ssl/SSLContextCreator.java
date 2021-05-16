@@ -26,6 +26,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.ClientCertificateCredentials;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.CredentialsVisitor;
+import org.eclipse.ditto.connectivity.model.HmacCredentials;
 import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
@@ -162,6 +163,11 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
     public SSLContext sshPublicKeyAuthentication(final SshPublicKeyCredentials credentials) {
         throw new UnsupportedOperationException("Key pair credentials are not supported on certificate " +
                 "credentials");
+    }
+
+    @Override
+    public SSLContext hmac(final HmacCredentials credentials) {
+        throw new UnsupportedOperationException("HMAC is not supported on certificate credentials");
     }
 
     /**

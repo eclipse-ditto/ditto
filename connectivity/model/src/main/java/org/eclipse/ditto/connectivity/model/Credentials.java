@@ -97,6 +97,7 @@ public interface Credentials {
             registerDeserializer(ClientCertificateCredentials.TYPE, ClientCertificateCredentials::fromJson);
             registerDeserializer(SshPublicKeyCredentials.TYPE, SshPublicKeyCredentials::fromJson);
             registerDeserializer(UserPasswordCredentials.TYPE, UserPasswordCredentials::fromJson);
+            registerDeserializer(HmacCredentials.TYPE, HmacCredentials::fromJson);
         }
     }
 }
