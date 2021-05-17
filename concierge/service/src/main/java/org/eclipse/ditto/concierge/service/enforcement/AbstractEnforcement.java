@@ -14,7 +14,6 @@ package org.eclipse.ditto.concierge.service.enforcement;
 
 import java.time.Duration;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -90,14 +89,18 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
                     .map(startedTimer -> startedTimer.tag("outcome", throwable != null ? "fail" : "success"))
                     .ifPresent(StartedTimer::stop);
             if (null != result) {
-                final Optional<String> typeHint = result.getMessageOptional()
+                final ThreadSafeDittoLoggingAdapter l = result.getLog().withCorrelationId(result);
+                final String typeHint = result.getMessageOptional()
                         .filter(WithType.class::isInstance)
-                        .map(msg -> ((WithType) msg).getType());
-                result.getLog().withCorrelationId(result)
-                        .info("Completed enforcement of contextual message type <{}> with outcome 'success' " +
-                                "and headers: <{}>", typeHint.orElse("?"), result.getDittoHeaders());
+                        .map(msg -> ((WithType) msg).getType())
+                        .orElse("?");
+                l.info("Completed enforcement of contextual message type <{}> with outcome 'success'",
+                        typeHint);
+                l.debug("Completed enforcement of contextual message type <{}> with outcome 'success' " +
+                        "and headers: <{}>", typeHint, result.getDittoHeaders());
             } else {
-                log().info("Completed enforcement with outcome 'failed' and headers: <{}>", dittoHeaders());
+                log().info("Completed enforcement of contextual message with outcome 'failed' and headers: " +
+                        "<{}>", dittoHeaders());
             }
             return Objects.requireNonNullElseGet(result,
                     () -> withMessageToReceiver(reportError("Error thrown during enforcement", throwable), sender()));
