@@ -93,7 +93,6 @@ public final class KafkaValidator extends AbstractProtocolValidator {
     @Override
     protected void validateSource(final Source source, final DittoHeaders dittoHeaders,
             final Supplier<String> sourceDescription) {
-        // TODO: kafka source - Check if this validation is correct and sufficient. It is copied from AMQP 1.0 right now.
         source.getEnforcement().ifPresent(enforcement -> {
             validateTemplate(enforcement.getInput(), dittoHeaders, PlaceholderFactory.newHeadersPlaceholder());
             enforcement.getFilters().forEach(filterTemplate ->
@@ -101,6 +100,13 @@ public final class KafkaValidator extends AbstractProtocolValidator {
                             newEntityPlaceholder(), newFeaturePlaceholder()));
         });
         validateHeaderMapping(source.getHeaderMapping(), dittoHeaders);
+
+        final String placeholderReplacement = UUID.randomUUID().toString();
+        source.getAddresses().forEach(address -> {
+            final String addressWithoutPlaceholders = validateTemplateAndReplace(address, dittoHeaders,
+                    placeholderReplacement, Resolvers.getPlaceholders());
+            validateSourceAddress(addressWithoutPlaceholders, dittoHeaders, placeholderReplacement);
+        });
     }
 
     @Override
@@ -111,10 +117,16 @@ public final class KafkaValidator extends AbstractProtocolValidator {
         final String addressWithoutPlaceholders = validateTemplateAndReplace(target.getAddress(), dittoHeaders,
                 placeholderReplacement, Resolvers.getPlaceholders());
 
-        validateAddress(addressWithoutPlaceholders, dittoHeaders, placeholderReplacement);
+        validateTargetAddress(addressWithoutPlaceholders, dittoHeaders, placeholderReplacement);
+        validateHeaderMapping(target.getHeaderMapping(), dittoHeaders);
     }
 
-    private static void validateAddress(final String address, final DittoHeaders dittoHeaders,
+    private static void validateSourceAddress(final String address, final DittoHeaders dittoHeaders,
+            final String placeholderReplacement) {
+        validateTopic(address, dittoHeaders, placeholderReplacement);
+    }
+
+    private static void validateTargetAddress(final String address, final DittoHeaders dittoHeaders,
             final String placeholderReplacement) {
 
         if (KafkaPublishTarget.containsKey(address)) {

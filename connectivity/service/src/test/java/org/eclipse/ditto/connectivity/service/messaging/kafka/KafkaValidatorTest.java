@@ -29,13 +29,11 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
-import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import akka.actor.ActorSystem;
@@ -78,13 +76,27 @@ public final class KafkaValidatorTest {
     }
 
     @Test
-    @Ignore
-    public void testSourcesAreInvalid() {
-        // TODO: kafka source - Test is no longer correct. Test validation instead.
-        final Source source = ConnectivityModelFactory.newSource(AUTHORIZATION_CONTEXT, "any");
+    public void testValidSourceAddress() {
+        final DittoHeaders emptyDittoHeaders = DittoHeaders.empty();
+        underTest.validate(getConnectionWithSource("events"), emptyDittoHeaders, actorSystem);
+        underTest.validate(getConnectionWithSource("events.with.dots"), emptyDittoHeaders, actorSystem);
+        underTest.validate(getConnectionWithSource("events_with_underscores"), emptyDittoHeaders, actorSystem);
+        underTest.validate(getConnectionWithSource("events-with-dashes"), emptyDittoHeaders, actorSystem);
+    }
 
-        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
-                .isThrownBy(() -> underTest.validateSource(source, DittoHeaders.empty(), () -> ""));
+    @Test
+    public void testInvalidSourceAddress() {
+        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithSource(""));
+        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithSource("events/"));
+        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithSource("ditto#"));
+        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithSource("ditto#notANumber"));
+        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithSource("ditto*a"));
+        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithSource("ditto\\"));
+        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithSource("ditto/{{thing:id}}"));
+        verifyConnectionConfigurationInvalidExceptionIsThrown(
+                getConnectionWithSource("{{thing:namespace}}/{{thing:name}}"));
+        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithSource("events#{{topic:full}}"));
+        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithSource("ditto/{{header:x}}"));
     }
 
     @Test
@@ -134,6 +146,18 @@ public final class KafkaValidatorTest {
                         .authorizationContext(AUTHORIZATION_CONTEXT)
                         .qos(1)
                         .topics(Topic.LIVE_EVENTS)
+                        .build()))
+                .specificConfig(defaultSpecificConfig)
+                .build();
+    }
+
+    private static Connection getConnectionWithSource(final String sourceAddress) {
+        return ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.KAFKA,
+                ConnectivityStatus.OPEN, "tcp://localhost:1883")
+                .sources(singletonList(ConnectivityModelFactory.newSourceBuilder()
+                        .address(sourceAddress)
+                        .authorizationContext(AUTHORIZATION_CONTEXT)
+                        .qos(1)
                         .build()))
                 .specificConfig(defaultSpecificConfig)
                 .build();
