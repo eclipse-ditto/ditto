@@ -282,7 +282,7 @@ public final class SendingTest {
     }
 
     @Test
-    public void monitorNothingAsShouldNotAcknowledgeAndOriginalResponseIsNull() {
+    public void monitorNoAckAsShouldNotAcknowledgeAndOriginalResponseIsNull() {
         sendingContext = SendingContext.newBuilder()
                 .mappedOutboundSignal(mappedOutboundSignal)
                 .externalMessage(externalMessage)
@@ -298,7 +298,7 @@ public final class SendingTest {
 
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);
 
-        Mockito.verifyNoInteractions(publishedMonitor, acknowledgedMonitor);
+        Mockito.verifyNoInteractions(acknowledgedMonitor);
         assertThat(result)
                 .hasValueSatisfying(resultFuture -> assertThat(resultFuture).isCompletedWithValue(commandResponse));
     }
