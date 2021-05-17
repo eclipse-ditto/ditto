@@ -14,6 +14,7 @@ package org.eclipse.ditto.concierge.service.enforcement;
 
 import java.time.Duration;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -24,16 +25,17 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.policies.model.enforcers.EffectedSubjects;
-import org.eclipse.ditto.policies.model.enforcers.Enforcer;
-import org.eclipse.ditto.policies.model.ResourceKey;
-import org.eclipse.ditto.things.model.ThingConstants;
-import org.eclipse.ditto.policies.api.Permission;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.WithType;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.cache.CacheKey;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.policies.api.Permission;
+import org.eclipse.ditto.policies.model.ResourceKey;
+import org.eclipse.ditto.policies.model.enforcers.EffectedSubjects;
+import org.eclipse.ditto.policies.model.enforcers.Enforcer;
+import org.eclipse.ditto.things.model.ThingConstants;
 
 import akka.actor.ActorRef;
 import akka.pattern.AskTimeoutException;
@@ -88,8 +90,12 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
                     .map(startedTimer -> startedTimer.tag("outcome", throwable != null ? "fail" : "success"))
                     .ifPresent(StartedTimer::stop);
             if (null != result) {
+                final Optional<String> typeHint = result.getMessageOptional()
+                        .filter(WithType.class::isInstance)
+                        .map(msg -> ((WithType) msg).getType());
                 result.getLog().withCorrelationId(result)
-                        .info("Completed enforcement with outcome 'success' and headers: <{}>", result.getDittoHeaders());
+                        .info("Completed enforcement of contextual message type <{}> with outcome 'success' " +
+                                "and headers: <{}>", typeHint.orElse("?"), result.getDittoHeaders());
             } else {
                 log().info("Completed enforcement with outcome 'failed' and headers: <{}>", dittoHeaders());
             }

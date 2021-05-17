@@ -216,7 +216,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
     <S extends WithDittoHeaders> Contextual<S> withReceivedMessage(@Nullable final S message,
             @Nullable final ActorRef sender) {
         return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout,
-                log, entityIdFor(message), startedTimer, receiver, receiverWrapperFunction, responseReceivers,
+                log, cacheKeyFor(message), startedTimer, receiver, receiverWrapperFunction, responseReceivers,
                 askFuture);
     }
 
@@ -239,7 +239,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
     }
 
     @Nullable
-    private static CacheKey entityIdFor(@Nullable final WithDittoHeaders signal) {
+    private static CacheKey cacheKeyFor(@Nullable final WithDittoHeaders signal) {
 
         if (signal == null) {
             return null;
@@ -259,7 +259,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
                 "message=" + message +
                 ", self=" + self +
                 ", sender=" + sender +
-                ", entityId=" + cacheKey +
+                ", cacheKey=" + cacheKey +
                 ", receiver=" + receiver +
                 ", receiverWrapperFunction=" + receiverWrapperFunction +
                 ", responseReceivers=" + responseReceivers +
