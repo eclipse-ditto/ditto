@@ -51,7 +51,7 @@ final class AwsRequestSigning implements RequestSigning {
     private static final String HOST_HEADER = "host";
     private static final DateTimeFormatter DATE_STAMP_FORMATTER =
             DateTimeFormatter.ofPattern("yyyyMMdd").withZone(ZoneId.of("Z"));
-    private static final DateTimeFormatter X_AMZ_DATE_FORMATTER =
+    static final DateTimeFormatter X_AMZ_DATE_FORMATTER =
             DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmssz").withZone(ZoneId.of("Z"));
 
     private final ActorSystem actorSystem;

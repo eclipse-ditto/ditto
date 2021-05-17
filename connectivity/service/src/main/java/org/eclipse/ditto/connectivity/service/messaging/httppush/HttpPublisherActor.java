@@ -29,10 +29,6 @@ import java.util.function.BiFunction;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.common.HttpStatusCodeOutOfRangeException;
@@ -40,27 +36,27 @@ import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.messages.model.Message;
-import org.eclipse.ditto.messages.model.MessageHeadersBuilder;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
-import org.eclipse.ditto.protocol.JsonifiableAdaptable;
-import org.eclipse.ditto.protocol.ProtocolFactory;
+import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.internal.utils.akka.controlflow.TimeMeasuringFlow;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.messages.model.Message;
+import org.eclipse.ditto.messages.model.MessageHeadersBuilder;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 import org.eclipse.ditto.messages.model.signals.commands.SendClaimMessage;
@@ -69,8 +65,13 @@ import org.eclipse.ditto.messages.model.signals.commands.SendFeatureMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendFeatureMessageResponse;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessageResponse;
+import org.eclipse.ditto.protocol.JsonifiableAdaptable;
+import org.eclipse.ditto.protocol.ProtocolFactory;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.things.model.ThingId;
 
 import akka.Done;
+import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.http.javadsl.model.HttpCharset;
@@ -121,6 +122,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     private final Materializer materializer;
     private final SourceQueue<Pair<HttpRequest, HttpPushContext>> sourceQueue;
     private final KillSwitch killSwitch;
+    private final RequestSigning requestSigning;
 
     @SuppressWarnings("unused")
     private HttpPublisherActor(final Connection connection, final HttpPushFactory factory, final String clientId) {
@@ -142,6 +144,10 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         // If self is alive, the error should be escalated.
         materialized.second()
                 .whenComplete((done, error) -> getSelf().tell(toConnectionFailure(done, error), ActorRef.noSender()));
+
+        requestSigning = connection.getCredentials()
+                .map(credentials -> credentials.accept(RequestSigningExtension.get(getContext().getSystem())))
+                .orElse(NoOpRequestSigning.INSTANCE);
     }
 
     static Props props(final Connection connection, final HttpPushFactory factory, final String clientId) {
@@ -159,12 +165,19 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 .tag("id", connection.getId().toString());
 
         final Sink<Duration, CompletionStage<Done>> logRequestTimes = Sink.<Duration>foreach(duration ->
-            connectionLogger.success("HTTP request took <{0}> ms.", duration.toMillis())
+                connectionLogger.success("HTTP request took <{0}> ms.", duration.toMillis())
         );
+
+        final Flow<Pair<HttpRequest, HttpPushContext>, Pair<HttpRequest, HttpPushContext>, NotUsed> requestSigningFlow =
+                Flow.<Pair<HttpRequest, HttpPushContext>>create()
+                        .flatMapConcat(pair -> requestSigning.sign(pair.first())
+                                .map(signedRequest -> Pair.create(signedRequest, pair.second())));
 
         final var httpPushFlow = factory.<HttpPushContext>createFlow(getContext().getSystem(), logger, requestTimeout);
 
-        return TimeMeasuringFlow.measureTimeOf(httpPushFlow, timer, logRequestTimes);
+        final var httpFlowIncludingRequestSigning = requestSigningFlow.via(httpPushFlow);
+
+        return TimeMeasuringFlow.measureTimeOf(httpFlowIncludingRequestSigning, timer, logRequestTimes);
     }
 
     @Override
@@ -333,11 +346,12 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 if (DittoAcknowledgementLabel.LIVE_RESPONSE.equals(autoAckLabel.get())) {
                     // Live-Response is declared as issued ack => parse live response from response
                     if (isMessageCommand) {
-                        result = toMessageCommandResponse((MessageCommand<?, ?>) signal, dittoHeaders, body, httpStatus);
+                        result =
+                                toMessageCommandResponse((MessageCommand<?, ?>) signal, dittoHeaders, body, httpStatus);
                     } else {
                         result = null;
                     }
-                }  else {
+                } else {
                     // There is an issued ack declared but its not live-response => handle response as acknowledgement.
                     result = Acknowledgement.of(autoAckLabel.get(), thingId, httpStatus, dittoHeaders, body);
                 }
@@ -389,7 +403,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     messageThingId);
             handleInvalidResponse(message, commandResponse);
         }
-        final EntityId responseThingId = ((WithEntityId)commandResponse).getEntityId();
+        final EntityId responseThingId = ((WithEntityId) commandResponse).getEntityId();
 
         if (!responseThingId.equals(messageThingId)) {
             final String message = String.format(

@@ -28,19 +28,19 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.eclipse.ditto.base.service.config.DittoServiceConfig;
+import org.eclipse.ditto.base.service.config.http.DefaultHttpProxyConfig;
+import org.eclipse.ditto.base.service.config.http.HttpProxyConfig;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
-import org.eclipse.ditto.base.service.config.DittoServiceConfig;
-import org.eclipse.ditto.base.service.config.http.DefaultHttpProxyConfig;
-import org.eclipse.ditto.base.service.config.http.HttpProxyConfig;
 import org.eclipse.ditto.connectivity.service.config.DefaultConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
-import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
-import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractBaseClientActorTest;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.junit.After;
 import org.junit.Before;
@@ -167,6 +167,11 @@ public final class HttpPushFactoryTest {
             public HttpProxyConfig getHttpProxyConfig() {
                 return getEnabledProxyConfig(binding);
             }
+
+            @Override
+            public Map<String, String> getHmacAlgorithms() {
+                return Map.of();
+            }
         }, mock(ConnectionLogger.class), SshTunnelState::disabled);
         final Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> pair =
                 newSourceSinkQueues(underTest);
@@ -193,7 +198,8 @@ public final class HttpPushFactoryTest {
         new TestKit(actorSystem) {{
             // GIVEN: An HTTP-push connection is established against localhost.
             final HttpPushFactory underTest =
-                    HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(), mock(ConnectionLogger.class), SshTunnelState::disabled);
+                    HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(), mock(ConnectionLogger.class),
+                            SshTunnelState::disabled);
             final Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> pair =
                     newSourceSinkQueues(underTest);
             final SourceQueueWithComplete<HttpRequest> sourceQueue = pair.first();

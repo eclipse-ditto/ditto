@@ -37,7 +37,8 @@ import akka.util.ByteString;
 final class AzMonitorRequestSigning implements RequestSigning {
 
     private static final String X_MS_DATE_HEADER = "x-ms-date";
-    private static final DateTimeFormatter X_MS_DATE_FORMAT =
+
+    static final DateTimeFormatter X_MS_DATE_FORMAT =
             DateTimeFormatter.ofPattern("EEE, dd MMM uuuu HH:mm:ss zzz", Locale.ENGLISH).withZone(ZoneId.of("GMT"));
 
     private final ActorSystem actorSystem;

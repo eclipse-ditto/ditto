@@ -23,6 +23,10 @@ import akka.stream.javadsl.Source;
  */
 final class NoOpRequestSigning implements RequestSigning {
 
+    static final RequestSigning INSTANCE = new NoOpRequestSigning();
+
+    private NoOpRequestSigning() {}
+
     @Override
     public Source<HttpRequest, NotUsed> sign(final HttpRequest request, final Instant timestamp) {
         return Source.single(request);
