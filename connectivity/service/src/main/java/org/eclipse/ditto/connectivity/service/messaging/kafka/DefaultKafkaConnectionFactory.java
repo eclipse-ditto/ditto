@@ -13,12 +13,14 @@
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
 import java.util.Map;
+import java.util.Properties;
 
 import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.service.config.KafkaConfig;
 
 /**
@@ -30,12 +32,15 @@ final class DefaultKafkaConnectionFactory implements KafkaConnectionFactory {
     private static final Serializer<String> VALUE_SERIALIZER = KEY_SERIALIZER;
 
     private final Connection connection;
-    private final Map<String, Object> properties;
+    private final Map<String, Object> producerProperties;
+    private final Properties consumerStreamProperties;
 
-    private DefaultKafkaConnectionFactory(final Connection connection, final Map<String, Object> producerProperties) {
+    private DefaultKafkaConnectionFactory(final Connection connection, final Map<String, Object> producerProperties,
+            final Properties consumerStreamProperties) {
 
         this.connection = connection;
-        properties = producerProperties;
+        this.producerProperties = producerProperties;
+        this.consumerStreamProperties =  consumerStreamProperties;
     }
 
     /**
@@ -48,20 +53,27 @@ final class DefaultKafkaConnectionFactory implements KafkaConnectionFactory {
      */
     static DefaultKafkaConnectionFactory getInstance(final Connection connection, final KafkaConfig kafkaConfig,
             final String clientId) {
-        final ProducerPropertiesFactory settingsFactory =
+        final ProducerPropertiesFactory producerPropertiesFactory =
                 ProducerPropertiesFactory.getInstance(connection, kafkaConfig, clientId);
+        final ConsumerPropertiesFactory consumerPropertiesFactory = ConsumerPropertiesFactory.getInstance(connection);
 
-        return new DefaultKafkaConnectionFactory(connection, settingsFactory.getProducerProperties());
+        return new DefaultKafkaConnectionFactory(connection, producerPropertiesFactory.getProducerProperties(),
+                consumerPropertiesFactory.getConsumerProperties());
     }
 
     @Override
-    public EntityId connectionId() {
+    public ConnectionId connectionId() {
         return connection.getId();
     }
 
     @Override
-    public org.apache.kafka.clients.producer.Producer<String, String> newProducer() {
-        return new KafkaProducer<>(properties, KEY_SERIALIZER, VALUE_SERIALIZER);
+    public Producer<String, String> newProducer() {
+        return new KafkaProducer<>(producerProperties, KEY_SERIALIZER, VALUE_SERIALIZER);
+    }
+
+    @Override
+    public Properties consumerStreamProperties() {
+        return consumerStreamProperties;
     }
 
 }

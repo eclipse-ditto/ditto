@@ -12,6 +12,11 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
+import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newEntityPlaceholder;
+import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newFeaturePlaceholder;
+import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newPolicyPlaceholder;
+import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newThingPlaceholder;
+
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Collection;
@@ -32,6 +37,7 @@ import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.messaging.Resolvers;
 import org.eclipse.ditto.connectivity.service.messaging.validation.AbstractProtocolValidator;
+import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
 
 import akka.actor.ActorSystem;
 
@@ -87,11 +93,14 @@ public final class KafkaValidator extends AbstractProtocolValidator {
     @Override
     protected void validateSource(final Source source, final DittoHeaders dittoHeaders,
             final Supplier<String> sourceDescription) {
-
-        final String message = "Kafka connectivity currently does not provide sources.";
-        throw ConnectionConfigurationInvalidException.newBuilder(message)
-                .dittoHeaders(dittoHeaders)
-                .build();
+        // TODO: kafka source - Check if this validation is correct and sufficient. It is copied from AMQP 1.0 right now.
+        source.getEnforcement().ifPresent(enforcement -> {
+            validateTemplate(enforcement.getInput(), dittoHeaders, PlaceholderFactory.newHeadersPlaceholder());
+            enforcement.getFilters().forEach(filterTemplate ->
+                    validateTemplate(filterTemplate, dittoHeaders, newThingPlaceholder(), newPolicyPlaceholder(),
+                            newEntityPlaceholder(), newFeaturePlaceholder()));
+        });
+        validateHeaderMapping(source.getHeaderMapping(), dittoHeaders);
     }
 
     @Override
