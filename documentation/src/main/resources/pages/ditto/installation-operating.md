@@ -34,12 +34,12 @@ Each of Ditto's microservice has many options for configuration, e.g. timeouts, 
 
 In order to have a look at all possible configuration options and what default values they have, here are the 
 configuration files of Ditto's microservices:
-* Policies: [policies.conf](https://github.com/eclipse/ditto/blob/master/services/policies/starter/src/main/resources/policies.conf)
-* Things: [things.conf](https://github.com/eclipse/ditto/blob/master/services/things/starter/src/main/resources/things.conf)
-* Things-Search: [things-search.conf](https://github.com/eclipse/ditto/blob/master/services/thingsearch/starter/src/main/resources/things-search.conf)
-* Concierge: [concierge.conf](https://github.com/eclipse/ditto/blob/master/services/concierge/starter/src/main/resources/concierge.conf)
-* Connectivity: [connectivity.conf](https://github.com/eclipse/ditto/blob/master/services/connectivity/starter/src/main/resources/connectivity.conf)
-* Gateway: [gateway.conf](https://github.com/eclipse/ditto/blob/master/services/gateway/starter/src/main/resources/gateway.conf)
+* Policies: [policies.conf](https://github.com/eclipse/ditto/blob/master/policies/service/src/main/resources/policies.conf)
+* Things: [things.conf](https://github.com/eclipse/ditto/blob/master/things/service/src/main/resources/things.conf)
+* Things-Search: [things-search.conf](https://github.com/eclipse/ditto/blob/master/thingsearch/service/src/main/resources/things-search.conf)
+* Concierge: [concierge.conf](https://github.com/eclipse/ditto/blob/master/concierge/service/src/main/resources/concierge.conf)
+* Connectivity: [connectivity.conf](https://github.com/eclipse/ditto/blob/master/connectivity/service/src/main/resources/connectivity.conf)
+* Gateway: [gateway.conf](https://github.com/eclipse/ditto/blob/master/gateway/service/src/main/resources/gateway.conf)
 
 Whenever you find the syntax `${?UPPER_CASE_ENV_NAME}` in the configuration files, you may overwrite the default value
 by specifying that environment variable when running the container.
