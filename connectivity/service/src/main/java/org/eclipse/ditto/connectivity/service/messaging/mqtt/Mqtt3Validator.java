@@ -138,7 +138,7 @@ public final class Mqtt3Validator extends AbstractMqttValidator {
     private boolean containsOnlyAllowedTargetMappings(final HeaderMapping headerMapping,
             final DittoHeaders dittoHeaders) {
         headerMapping.getMapping().forEach((key, value) -> {
-            // only fixed set of keys are allowed (see Mqtt3Header#values())
+            // only fixed set of keys are allowed (see MqttHeader#getHeaderNames())
             checkIfKeyIsAllowed(key, dittoHeaders);
             if (Placeholders.containsAnyPlaceholder(value)) {
                 // allow any header placeholder as value
