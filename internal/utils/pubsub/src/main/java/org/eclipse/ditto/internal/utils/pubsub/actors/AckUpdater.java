@@ -190,7 +190,7 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
 
     private void tick(final Clock tick) {
         writeLocalDData();
-        final LocalAcksChanged changed = LocalAcksChanged.of(localAckLabels.export());
+        final var changed = LocalAcksChanged.of(localAckLabels.export());
         localChangeRecipients.forEach(recipient -> recipient.tell(changed, getSelf()));
         ackSizeMetric.set(changed.getSnapshot().estimateSize());
     }
@@ -219,7 +219,7 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
             failSubscribe(localLoser);
         }
 
-        final RemoteAcksChanged ddataChanged = RemoteAcksChanged.of(completeMmap);
+        final var ddataChanged = RemoteAcksChanged.of(completeMmap);
         ddataChangeRecipients.forEach(recipient -> recipient.tell(ddataChanged, getSelf()));
     }
 
@@ -310,7 +310,7 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
                 .stream()
                 .map(Grouped::toJsonString)
                 .collect(Collectors.toSet());
-        final LiteralUpdate nextUpdate = LiteralUpdate.withInserts(groupedAckLabels);
+        final var nextUpdate = LiteralUpdate.withInserts(groupedAckLabels);
         final LiteralUpdate diff = nextUpdate.diff(previousUpdate);
         previousUpdate = nextUpdate;
         return diff;

@@ -99,7 +99,7 @@ public final class AckUpdaterTest {
             underTest.tell(DeclareAcks.of(s2.ref(), null, Set.of("a2", "a3")), getRef());
             expectMsgClass(AcknowledgementLabelNotUniqueException.class);
 
-            // THEN: it is an error to declare intersecting ack labels under under a different group.
+            // THEN: it is an error to declare intersecting ack labels under a different group.
             underTest.tell(DeclareAcks.of(s1.ref(), "g2", Set.of("a2", "a3")), getRef());
             expectMsgClass(AcknowledgementLabelNotUniqueException.class);
         }};
@@ -128,7 +128,7 @@ public final class AckUpdaterTest {
             underTest.tell(DeclareAcks.of(s1.ref(), null, Set.of("a2", "a3")), getRef());
             expectMsgClass(AcknowledgementLabelNotUniqueException.class);
 
-            // THEN: it is an error to declare intersecting ack labels under under a different group.
+            // THEN: it is an error to declare intersecting ack labels under a different group.
             underTest.tell(DeclareAcks.of(s1.ref(), "g2", Set.of("a2", "a3")), getRef());
             expectMsgClass(AcknowledgementLabelNotUniqueException.class);
         }};
@@ -159,7 +159,7 @@ public final class AckUpdaterTest {
     }
 
     @Test
-    public void delclarationsInSeveralSystemsMaintainKnownRemoteDeclaredAcks() {
+    public void declarationsInSeveralSystemsMaintainKnownRemoteDeclaredAcks() {
         new TestKit(system1) {{
             final ActorRef underTest1 = system1.actorOf(AckSupervisor.props(ddata1));
             final ActorRef underTest2 = system2.actorOf(AckSupervisor.props(ddata2));
