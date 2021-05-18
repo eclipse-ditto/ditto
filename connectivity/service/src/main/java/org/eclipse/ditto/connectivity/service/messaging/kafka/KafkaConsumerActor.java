@@ -20,7 +20,13 @@ import java.util.Map;
 
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.kstream.Named;
+import org.apache.kafka.streams.processor.api.Processor;
+import org.apache.kafka.streams.processor.api.Record;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.Enforcement;
 import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
@@ -30,8 +36,6 @@ import org.eclipse.ditto.connectivity.service.messaging.BaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.things.model.ThingIdInvalidException;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -40,6 +44,9 @@ final class KafkaConsumerActor extends BaseConsumerActor {
 
     static final String ACTOR_NAME_PREFIX = "kafkaConsumer-";
     private static final Duration CLOSE_TIMEOUT = Duration.ofSeconds(10);
+    private static final String MESSAGE_TRANSFORMER = "messageTransformer";
+    private static final String ERROR_FORWARDER = "errorForwarder";
+    private static final String MESSAGE_FORWARDER = "messageForwarder";
 
     private final ThreadSafeDittoLoggingAdapter log;
     private final KafkaStreams kafkaStreams;
@@ -51,42 +58,29 @@ final class KafkaConsumerActor extends BaseConsumerActor {
             final Source source, final boolean dryRun) {
         super(connection, sourceAddress, inboundMappingProcessor, source);
         log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
+        kafkaStreams = buildKafkaStream(factory, dryRun);
+        kafkaStreams.start();
+    }
+
+    private KafkaStreams buildKafkaStream(final KafkaConnectionFactory factory, final boolean dryRun) {
         final Enforcement enforcement = source.getEnforcement().orElse(null);
         final EnforcementFilterFactory<Map<String, String>, Signal<?>> headerEnforcementFilterFactory =
                 enforcement != null
                         ? newEnforcementFilterFactory(enforcement, newHeadersPlaceholder())
                         : input -> null;
-
         final StreamsBuilder streamsBuilder = new StreamsBuilder();
         if (!dryRun) {
             // TODO: kafka source - Implement rate limiting/throttling
-            // TODO: kafka source - Implement error handling in stream
             streamsBuilder.<String, String>stream(sourceAddress)
-                    .filter((key, value) -> isValidThingId(key) && value != null)
-                    .transform(
-                            () -> new KafkaMessageToExternalMessage(source, sourceAddress,
-                                    headerEnforcementFilterFactory))
-                    .peek((thingId, externalMessage) -> inboundMonitor.success(externalMessage))
-                    .foreach((thingId, externalMessage) -> forwardToMappingActor(externalMessage,
-                            () -> {
-                                // TODO: kafka source - Implement acks
-                            },
-                            redeliver -> {
-                                // TODO: kafka source - Implement acks
-                            })
-                    );
+                    .filter((key, value) -> key != null && value != null)
+                    .process(() -> new IncomingMessageHandler(source, sourceAddress,
+                            headerEnforcementFilterFactory, inboundMonitor, MESSAGE_FORWARDER, ERROR_FORWARDER
+                    ), Named.as(MESSAGE_TRANSFORMER));
         }
-        kafkaStreams = new KafkaStreams(streamsBuilder.build(), factory.consumerStreamProperties());
-        kafkaStreams.start();
-    }
-
-    private static boolean isValidThingId(final String key) {
-        try {
-            ThingId.of(key);
-            return true;
-        } catch (final ThingIdInvalidException ex) {
-            return false;
-        }
+        final Topology topology = streamsBuilder.build();
+        topology.addProcessor(ErrorForwarder.NAME, ErrorForwarder::new, MESSAGE_TRANSFORMER);
+        topology.addProcessor(MessageForwarder.NAME, MessageForwarder::new, MESSAGE_TRANSFORMER);
+        return new KafkaStreams(topology, factory.consumerStreamProperties());
     }
 
     static Props props(final Connection connection, final KafkaConnectionFactory factory, final String sourceAddress,
@@ -129,6 +123,34 @@ final class KafkaConsumerActor extends BaseConsumerActor {
 
         private GracefulStop() {
             // intentionally empty
+        }
+
+    }
+
+    private class ErrorForwarder implements Processor<String, DittoRuntimeException, String, DittoRuntimeException> {
+
+        private static final String NAME = ERROR_FORWARDER;
+
+        @Override
+        public void process(final Record<String, DittoRuntimeException> record) {
+            forwardToMappingActor(record.value());
+        }
+
+    }
+
+    private class MessageForwarder implements Processor<String, ExternalMessage, String, ExternalMessage> {
+
+        private static final String NAME = MESSAGE_FORWARDER;
+
+        @Override
+        public void process(final Record<String, ExternalMessage> record) {
+            forwardToMappingActor(record.value(),
+                    () -> {
+                        // TODO: kafka source - Implement acks
+                    },
+                    redeliver -> {
+                        // TODO: kafka source - Implement acks
+                    });
         }
 
     }
