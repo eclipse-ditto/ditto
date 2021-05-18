@@ -55,7 +55,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
             final String sourceAddress, final ActorRef inboundMappingProcessor,
             final Source source, final boolean dryRun) {
         super(connection, sourceAddress, inboundMappingProcessor, source);
-        log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
+
         final Enforcement enforcement = source.getEnforcement().orElse(null);
         final EnforcementFilterFactory<Map<String, String>, Signal<?>> headerEnforcementFilterFactory =
                 enforcement != null
@@ -65,7 +65,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                 () -> new KafkaMessageTransformer(source, sourceAddress, headerEnforcementFilterFactory,
                         inboundMonitor);
         kafkaStream = new KafkaConsumerStream(factory, kafkaMessageTransformerFactory, dryRun);
-        kafkaStream.start();
+        log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
     }
 
     private static boolean isExternalMessage(final String key, final Object value) {
@@ -80,6 +80,17 @@ final class KafkaConsumerActor extends BaseConsumerActor {
             final ActorRef inboundMappingProcess, final Source source, final boolean dryRun) {
         return Props.create(KafkaConsumerActor.class, connection, factory, sourceAddress, inboundMappingProcess,
                 source, dryRun);
+    }
+
+    @Override
+    public void preStart() throws IllegalStateException, org.apache.kafka.streams.errors.StreamsException {
+        kafkaStream.start();
+    }
+
+    @Override
+    public void postStop() throws Exception {
+        super.postStop();
+        shutdown();
     }
 
     @Override
@@ -177,7 +188,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
             kafkaStreamsSupplier = () -> new KafkaStreams(streamsBuilder.build(), factory.consumerStreamProperties());
         }
 
-        private void start() {
+        private void start() throws IllegalStateException, org.apache.kafka.streams.errors.StreamsException {
             kafkaStreams = kafkaStreamsSupplier.get();
             kafkaStreams.start();
         }
