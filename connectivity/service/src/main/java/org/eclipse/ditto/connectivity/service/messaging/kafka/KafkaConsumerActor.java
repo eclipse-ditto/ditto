@@ -56,6 +56,8 @@ final class KafkaConsumerActor extends BaseConsumerActor {
             final Source source, final boolean dryRun) {
         super(connection, sourceAddress, inboundMappingProcessor, source);
 
+        log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
+
         final Enforcement enforcement = source.getEnforcement().orElse(null);
         final EnforcementFilterFactory<Map<String, String>, Signal<?>> headerEnforcementFilterFactory =
                 enforcement != null
@@ -65,7 +67,6 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                 () -> new KafkaMessageTransformer(source, sourceAddress, headerEnforcementFilterFactory,
                         inboundMonitor);
         kafkaStream = new KafkaConsumerStream(factory, kafkaMessageTransformerFactory, dryRun);
-        log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
     }
 
     private static boolean isExternalMessage(final String key, final Object value) {
