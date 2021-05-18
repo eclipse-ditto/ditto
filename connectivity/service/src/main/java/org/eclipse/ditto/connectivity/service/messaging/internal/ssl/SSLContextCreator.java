@@ -155,19 +155,17 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
 
     @Override
     public SSLContext usernamePassword(final UserPasswordCredentials credentials) {
-        throw new UnsupportedOperationException("Username password credentials are not supported on certificate " +
-                "credentials");
+        return withoutClientCertificate();
     }
 
     @Override
     public SSLContext sshPublicKeyAuthentication(final SshPublicKeyCredentials credentials) {
-        throw new UnsupportedOperationException("Key pair credentials are not supported on certificate " +
-                "credentials");
+        return withoutClientCertificate();
     }
 
     @Override
     public SSLContext hmac(final HmacCredentials credentials) {
-        throw new UnsupportedOperationException("HMAC is not supported on certificate credentials");
+        return withoutClientCertificate();
     }
 
     /**
