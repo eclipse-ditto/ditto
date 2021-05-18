@@ -117,14 +117,19 @@ abstract class AbstractHiveMqttClientFactory {
             final boolean allowReconnect,
             @Nullable final MqttClientConnectedListener connectedListener,
             @Nullable final MqttClientDisconnectedListener disconnectedListener,
-            final ConnectionLogger connectionLogger) {
+            final ConnectionLogger connectionLogger,
+            final int eventLoopThreads) {
 
         final URI uri = tunnelStateSupplier.get().getURI(connection);
 
         T builder = newBuilder
+                .executorConfig()
+                .nettyThreads(eventLoopThreads)
+                .applyExecutorConfig()
                 .transportConfig()
                 .applyTransportConfig()
-                .serverHost(uri.getHost()).serverPort(uri.getPort());
+                .serverHost(uri.getHost())
+                .serverPort(uri.getPort());
 
         if (allowReconnect && connection.isFailoverEnabled()) {
             builder = builder.automaticReconnectWithDefaultConfig();

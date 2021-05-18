@@ -31,6 +31,24 @@ public interface MqttConfig {
      */
     int getSourceBufferSize();
 
+
+    /**
+     * Returns the number of threads to use for the underlying event loop of the MQTT client.
+     * When configured to {@code 0}, the size is determined based on {@code the available processor cores * 2}.
+     *
+     * @return the amount of event loop threads.
+     * @since 2.0.0
+     */
+    int getEventLoopThreads();
+
+    /**
+     * Indicates whether subscriber CONN messages should set clean-session or clean-start flag to true.
+     *
+     * @return the default setting of cleanSession.
+     * @since 2.0.0
+     */
+    boolean isCleanSession();
+
     /**
      * Indicates whether the client should reconnect to enforce a redelivery for a failed acknowledgement.
      *
@@ -66,6 +84,16 @@ public interface MqttConfig {
          * The maximum number of buffered messages for each MQTT source.
          */
         SOURCE_BUFFER_SIZE("source-buffer-size", 8),
+
+        /**
+         * The number of threads to use for the underlying event loop of the MQTT client.
+         */
+        EVENT_LOOP_THREADS("event-loop-threads", 0),
+
+        /**
+         * Indicates whether subscriber CONN messages should set clean-session or clean-start flag to true.
+         */
+        CLEAN_SESSION("clean-session", false),
 
         /**
          * Indicates whether the client should reconnect to enforce a redelivery for a failed acknowledgement.

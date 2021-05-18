@@ -31,6 +31,7 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.service.config.MqttConfig;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
 import org.mockito.Mockito;
@@ -103,6 +104,7 @@ class MockHiveMqtt3ClientFactory implements HiveMqtt3ClientFactory {
     @Override
     public Mqtt3AsyncClient newClient(final Connection connection,
             final String identifier,
+            final MqttConfig mqttConfig,
             final MqttSpecificConfig mqttSpecificConfig,
             final boolean reconnect,
             final boolean applyLastWillConfig,
@@ -174,6 +176,7 @@ class MockHiveMqtt3ClientFactory implements HiveMqtt3ClientFactory {
     @Override
     public Mqtt3ClientBuilder newClientBuilder(final Connection connection,
             final String identifier,
+            final MqttConfig mqttConfig,
             final MqttSpecificConfig mqttSpecificConfig,
             final boolean allowReconnect,
             final boolean applyLastWillConfig,
@@ -181,7 +184,7 @@ class MockHiveMqtt3ClientFactory implements HiveMqtt3ClientFactory {
             @Nullable final MqttClientDisconnectedListener disconnectedListener,
             final ConnectionLogger connectionLogger) {
         final Mqtt3Client client =
-                newClient(connection, identifier, mqttSpecificConfig, allowReconnect, applyLastWillConfig,
+                newClient(connection, identifier, mqttConfig, mqttSpecificConfig, allowReconnect, applyLastWillConfig,
                         connectedListener, disconnectedListener, connectionLogger);
         final Mqtt3ClientBuilder builder = Mockito.mock(Mqtt3ClientBuilder.class);
         Mockito.doReturn(client).when(builder).build();

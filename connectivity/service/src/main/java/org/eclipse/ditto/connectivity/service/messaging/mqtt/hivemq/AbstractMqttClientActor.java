@@ -252,7 +252,8 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
             if (mqttSpecificConfig.separatePublisherClient()) {
                 final String publisherClientId = resolvePublisherClientId(connection, mqttSpecificConfig);
                 final AtomicBoolean cancelReconnect = new AtomicBoolean(false);
-                final Q createdClient = getClientFactory().newClient(connection, publisherClientId, mqttSpecificConfig,
+                final Q createdClient = getClientFactory().newClient(connection, publisherClientId, mqttConfig,
+                        mqttSpecificConfig,
                         true,
                         true, // this is the publisher client, always respect last will config
                         null, getMqttClientDisconnectedListener(cancelReconnect), connectionLogger);
@@ -292,7 +293,7 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
         final AtomicBoolean cancelReconnect = new AtomicBoolean(false);
         // apply last will config only if *no* separate publisher client is used
         final boolean applyLastWillConfig = !mqttSpecificConfig.separatePublisherClient();
-        final Q createdClient = getClientFactory().newClient(connection, mqttClientId, mqttSpecificConfig,
+        final Q createdClient = getClientFactory().newClient(connection, mqttClientId, mqttConfig, mqttSpecificConfig,
                 true,
                 applyLastWillConfig,
                 null,
@@ -323,7 +324,7 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
         final Q testClient;
         try {
             testClient =
-                    getClientFactory().newClient(connectionToBeTested, mqttClientId, testMqttSpecificConfig,
+                    getClientFactory().newClient(connectionToBeTested, mqttClientId, mqttConfig, testMqttSpecificConfig,
                             false, false, connectionLogger);
         } catch (final Exception e) {
             return CompletableFuture.completedFuture(new Status.Failure(e.getCause()));

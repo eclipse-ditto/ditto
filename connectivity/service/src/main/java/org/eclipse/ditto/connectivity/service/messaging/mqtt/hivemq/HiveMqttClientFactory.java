@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.service.config.MqttConfig;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
 
@@ -34,6 +35,7 @@ interface HiveMqttClientFactory<Q, B> {
      *
      * @param connection the connection containing the configuration
      * @param identifier the identifier of the client
+     * @param mqttConfig the system's mqttConfig
      * @param mqttSpecificConfig the specific MQTT config to apply based on Ditto config merged with connection
      * specific config
      * @param allowReconnect whether client can be configured with automatic reconnect enabled, e.g. reconnect must
@@ -46,6 +48,7 @@ interface HiveMqttClientFactory<Q, B> {
      */
     Q newClient(Connection connection,
             String identifier,
+            MqttConfig mqttConfig,
             MqttSpecificConfig mqttSpecificConfig,
             boolean allowReconnect,
             boolean applyLastWillConfig,
@@ -58,6 +61,7 @@ interface HiveMqttClientFactory<Q, B> {
      *
      * @param connection the connection containing the configuration
      * @param identifier the identifier of the client
+     * @param mqttConfig the system's mqttConfig
      * @param mqttSpecificConfig the specific MQTT config to apply based on Ditto config merged with connection
      * specific config
      * @param allowReconnect whether client can be configured with automatic reconnect enabled, e.g. reconnect must
@@ -70,6 +74,7 @@ interface HiveMqttClientFactory<Q, B> {
      */
     B newClientBuilder(Connection connection,
             String identifier,
+            MqttConfig mqttConfig,
             MqttSpecificConfig mqttSpecificConfig,
             boolean allowReconnect,
             boolean applyLastWillConfig,
@@ -82,6 +87,7 @@ interface HiveMqttClientFactory<Q, B> {
      *
      * @param connection the connection containing the configuration
      * @param identifier the identifier of the client
+     * @param mqttConfig the system's mqttConfig
      * @param mqttSpecificConfig the specific MQTT config to apply based on Ditto config merged with connection
      * specific config
      * @param allowReconnect whether client can be configured with automatic reconnect enabled
@@ -91,11 +97,12 @@ interface HiveMqttClientFactory<Q, B> {
      */
     default Q newClient(final Connection connection,
             final String identifier,
+            final MqttConfig mqttConfig,
             final MqttSpecificConfig mqttSpecificConfig,
             final boolean allowReconnect,
             final boolean applyLastWillConfig,
             final ConnectionLogger connectionLogger) {
-        return newClient(connection, identifier, mqttSpecificConfig, allowReconnect, applyLastWillConfig,
+        return newClient(connection, identifier, mqttConfig, mqttSpecificConfig, allowReconnect, applyLastWillConfig,
                 null, null, connectionLogger);
     }
 

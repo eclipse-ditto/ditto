@@ -17,6 +17,7 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.service.config.MqttConfig;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
@@ -48,6 +49,7 @@ public final class DefaultHiveMqtt5ClientFactory extends AbstractHiveMqttClientF
     @Override
     public Mqtt5AsyncClient newClient(final Connection connection,
             final String identifier,
+            final MqttConfig mqttConfig,
             final MqttSpecificConfig mqttSpecificConfig,
             final boolean allowReconnect,
             final boolean applyLastWillConfig,
@@ -55,13 +57,14 @@ public final class DefaultHiveMqtt5ClientFactory extends AbstractHiveMqttClientF
             @Nullable final MqttClientDisconnectedListener disconnectedListener,
             final ConnectionLogger connectionLogger) {
 
-        return newClientBuilder(connection, identifier, mqttSpecificConfig, allowReconnect, applyLastWillConfig,
-                connectedListener, disconnectedListener, connectionLogger).buildAsync();
+        return newClientBuilder(connection, identifier, mqttConfig, mqttSpecificConfig, allowReconnect,
+                applyLastWillConfig, connectedListener, disconnectedListener, connectionLogger).buildAsync();
     }
 
     @Override
     public Mqtt5ClientBuilder newClientBuilder(final Connection connection,
             final String identifier,
+            final MqttConfig mqttConfig,
             final MqttSpecificConfig mqttSpecificConfig,
             final boolean allowReconnect,
             final boolean applyLastWillConfig,
@@ -70,7 +73,7 @@ public final class DefaultHiveMqtt5ClientFactory extends AbstractHiveMqttClientF
             final ConnectionLogger connectionLogger) {
         final Mqtt5ClientBuilder mqtt5ClientBuilder =
                 configureClientBuilder(MqttClient.builder().useMqttVersion5(), connection, identifier, allowReconnect,
-                        connectedListener, disconnectedListener, connectionLogger);
+                        connectedListener, disconnectedListener, connectionLogger, mqttConfig.getEventLoopThreads());
         configureSimpleAuth(mqtt5ClientBuilder.simpleAuth(), connection);
         if (applyLastWillConfig) {
             configureWillPublish(mqtt5ClientBuilder, mqttSpecificConfig);

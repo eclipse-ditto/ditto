@@ -231,14 +231,20 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
 
     private void reject(final ExternalMessage externalMessage, final P publish, final boolean redeliver,
             final ActorRef parent) {
-        if (redeliver && reconnectForRedelivery) {
-            final String message = "Restarting connection for redeliveries due to unfulfilled acknowledgements.";
-            inboundAcknowledgedMonitor.exception(externalMessage, message);
+        if (reconnectForRedelivery && redeliver) {
+            inboundAcknowledgedMonitor.exception(externalMessage,
+                    "Restarting connection for redeliveries due to unfulfilled acknowledgements.");
             parent.tell(AbstractMqttClientActor.Control.RECONNECT_CONSUMER_CLIENT, getSelf());
-        } else {
-            final String message = "Unfulfilled acknowledgements are present, but redelivery is not possible.";
-            inboundAcknowledgedMonitor.exception(externalMessage, message);
+        } else if (!redeliver) {
+            // acknowledge messages for which redelivery does not make sense (e.g. 400 bad request or 403 forbidden)
+            //  as redelivering them will not solve any problem
             acknowledge(externalMessage, publish);
+            inboundAcknowledgedMonitor.exception(externalMessage, "Unfulfilled acknowledgements are " +
+                    "present, redelivery was NOT requested - therefore acknowledging the MQTT message!");
+        } else {
+            inboundAcknowledgedMonitor.exception(externalMessage, "Unfulfilled acknowledgements are " +
+                    "present, redelivery was requested - NOT acknowledging the MQTT message which should result in" +
+                    "redelivery by the MQTT broker!");
         }
     }
 
