@@ -37,9 +37,14 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMon
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 
+import scala.util.Either;
+import scala.util.Left;
+import scala.util.Right;
+
 
 @NotThreadSafe
-final class KafkaMessageTransformer implements Transformer<String, String, KeyValue<String, Object>> {
+final class KafkaMessageTransformer
+        implements Transformer<String, String, KeyValue<String, Either<ExternalMessage, DittoRuntimeException>>> {
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(KafkaMessageTransformer.class);
     private final Source source;
@@ -74,7 +79,7 @@ final class KafkaMessageTransformer implements Transformer<String, String, KeyVa
      */
     @Override
     @Nullable
-    public KeyValue<String, Object> transform(String key, String value) {
+    public KeyValue<String, Either<ExternalMessage, DittoRuntimeException>> transform(String key, String value) {
 
         final Map<String, String> messageHeaders = getHeadersFromContext();
         final String correlationId = messageHeaders
@@ -100,12 +105,12 @@ final class KafkaMessageTransformer implements Transformer<String, String, KeyVa
                     .build();
 
             inboundMonitor.success(externalMessage);
-            return KeyValue.pair(key, externalMessage);
+            return KeyValue.pair(key, new Left<>(externalMessage));
         } catch (final DittoRuntimeException e) {
             LOGGER.withCorrelationId(e)
                     .info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(),
                             e.getMessage());
-            return KeyValue.pair(key, e.setDittoHeaders(DittoHeaders.of(messageHeaders)));
+            return KeyValue.pair(key, new Right<>(e.setDittoHeaders(DittoHeaders.of(messageHeaders))));
         } catch (final Exception e) {
             inboundMonitor.exception(messageHeaders, e);
             LOGGER.withCorrelationId(correlationId)

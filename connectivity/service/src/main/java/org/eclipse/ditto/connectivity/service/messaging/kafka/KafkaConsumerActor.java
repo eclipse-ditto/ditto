@@ -22,9 +22,9 @@ import java.util.function.Supplier;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.kstream.Branched;
 import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.Named;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.signals.Signal;
@@ -41,6 +41,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapt
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import scala.util.Either;
 
 final class KafkaConsumerActor extends BaseConsumerActor {
 
@@ -69,14 +70,6 @@ final class KafkaConsumerActor extends BaseConsumerActor {
         kafkaStream = new KafkaConsumerStream(factory, kafkaMessageTransformerFactory, dryRun);
     }
 
-    private static boolean isExternalMessage(final String key, final Object value) {
-        return value instanceof ExternalMessage;
-    }
-
-    private static boolean isDittoRuntimeException(final String key, final Object value) {
-        return value instanceof DittoRuntimeException;
-    }
-
     static Props props(final Connection connection, final KafkaConnectionFactory factory, final String sourceAddress,
             final ActorRef inboundMappingProcess, final Source source, final boolean dryRun) {
         return Props.create(KafkaConsumerActor.class, connection, factory, sourceAddress, inboundMappingProcess,
@@ -84,7 +77,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
     }
 
     @Override
-    public void preStart() throws IllegalStateException, org.apache.kafka.streams.errors.StreamsException {
+    public void preStart() throws IllegalStateException, StreamsException {
         kafkaStream.start();
     }
 
@@ -149,36 +142,22 @@ final class KafkaConsumerActor extends BaseConsumerActor {
             final StreamsBuilder streamsBuilder = new StreamsBuilder();
             if (!dryRun) {
                 // TODO: kafka source - Implement rate limiting/throttling
-                final Map<String, KStream<String, Object>> branches =
+                final Map<String, KStream<String, Either<ExternalMessage, DittoRuntimeException>>> branches =
                         streamsBuilder.<String, String>stream(sourceAddress)
                                 .filter((key, value) -> key != null && value != null)
                                 .transform(kafkaMessageTransformerFactory::get, Named.as(MESSAGE_TRANSFORMER))
                                 .split(Named.as(BRANCH_PREFIX))
-                                .branch(KafkaConsumerActor::isExternalMessage, Branched.as(MESSAGE_FORWARDER))
-                                .branch(KafkaConsumerActor::isDittoRuntimeException, Branched.as(ERROR_FORWARDER))
+                                .branch(this::isExternalMessage, Branched.as(MESSAGE_FORWARDER))
+                                .branch(this::isDittoRuntimeException, Branched.as(ERROR_FORWARDER))
                                 .defaultBranch(Branched.as(MESSAGE_DROPPER));
 
                 branches.get(BRANCH_PREFIX + MESSAGE_FORWARDER)
-                        .map((KeyValueMapper<String, Object, KeyValue<String, ExternalMessage>>)
-                                (key, value) -> new KeyValue<>(key, (ExternalMessage) value))
-                        .foreach((key, value) -> {
-                            inboundMonitor.success(value);
-                            forwardToMappingActor(value,
-                                    () -> {
-                                        // TODO: kafka source - Implement acks
-                                    },
-                                    redeliver -> {
-                                        // TODO: kafka source - Implement acks
-                                    });
-                        });
+                        .map(this::extractExternalMessage)
+                        .foreach(this::forwardExternalMessage);
 
                 branches.get(BRANCH_PREFIX + ERROR_FORWARDER)
-                        .map((KeyValueMapper<String, Object, KeyValue<String, DittoRuntimeException>>)
-                                (key, value) -> new KeyValue<>(key, (DittoRuntimeException) value))
-                        .foreach((key, value) -> {
-                            inboundMonitor.failure(value.getDittoHeaders(), value);
-                            forwardToMappingActor(value);
-                        });
+                        .map(this::extractDittoRuntimeException)
+                        .foreach(this::forwardDittoRuntimeException);
 
                 branches.get(BRANCH_PREFIX + MESSAGE_DROPPER).foreach((key, value) -> inboundMonitor.exception(
                         "Got unexpected message <{0}>. This is an internal error. Please contact the service team",
@@ -189,7 +168,46 @@ final class KafkaConsumerActor extends BaseConsumerActor {
             kafkaStreamsSupplier = () -> new KafkaStreams(streamsBuilder.build(), factory.consumerStreamProperties());
         }
 
-        private void start() throws IllegalStateException, org.apache.kafka.streams.errors.StreamsException {
+        private boolean isExternalMessage(final String key,
+                final Either<ExternalMessage, DittoRuntimeException> value) {
+            return value.isLeft();
+        }
+
+        private KeyValue<String, ExternalMessage> extractExternalMessage(final String key,
+                final Either<ExternalMessage, DittoRuntimeException> value) {
+            return new KeyValue<>(key, value.left().get());
+        }
+
+        private void forwardExternalMessage(final String key, final ExternalMessage value) {
+            inboundMonitor.success(value);
+            forwardToMappingActor(value,
+                    () -> {
+                        // TODO: kafka source - Implement acks
+                    },
+                    redeliver -> {
+                        // TODO: kafka source - Implement acks
+                    });
+        }
+
+        private boolean isDittoRuntimeException(final String key,
+                final Either<ExternalMessage, DittoRuntimeException> value) {
+            return value.isRight();
+        }
+
+        private KeyValue<String, DittoRuntimeException> extractDittoRuntimeException(final String key,
+                final Either<ExternalMessage, DittoRuntimeException> value) {
+            return new KeyValue<>(key, value.right().get());
+        }
+
+        private void forwardDittoRuntimeException(final String key, final DittoRuntimeException value) {
+            inboundMonitor.failure(value.getDittoHeaders(), value);
+            forwardToMappingActor(value);
+        }
+
+        private void start() throws IllegalStateException, StreamsException {
+            if (kafkaStreams != null) {
+                stop();
+            }
             kafkaStreams = kafkaStreamsSupplier.get();
             kafkaStreams.start();
         }
