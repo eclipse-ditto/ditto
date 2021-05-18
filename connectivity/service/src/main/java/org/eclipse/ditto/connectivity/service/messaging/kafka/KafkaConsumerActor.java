@@ -17,13 +17,15 @@ import static org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory.
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.kstream.Branched;
+import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.Named;
-import org.apache.kafka.streams.processor.api.Processor;
-import org.apache.kafka.streams.processor.api.Record;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
@@ -43,13 +45,9 @@ import akka.actor.Props;
 final class KafkaConsumerActor extends BaseConsumerActor {
 
     static final String ACTOR_NAME_PREFIX = "kafkaConsumer-";
-    private static final Duration CLOSE_TIMEOUT = Duration.ofSeconds(10);
-    private static final String MESSAGE_TRANSFORMER = "messageTransformer";
-    private static final String ERROR_FORWARDER = "errorForwarder";
-    private static final String MESSAGE_FORWARDER = "messageForwarder";
 
     private final ThreadSafeDittoLoggingAdapter log;
-    private final KafkaStreams kafkaStreams;
+    private final KafkaConsumerStream kafkaStream;
 
     @SuppressWarnings("unused")
     private KafkaConsumerActor(final Connection connection,
@@ -58,29 +56,24 @@ final class KafkaConsumerActor extends BaseConsumerActor {
             final Source source, final boolean dryRun) {
         super(connection, sourceAddress, inboundMappingProcessor, source);
         log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
-        kafkaStreams = buildKafkaStream(factory, dryRun);
-        kafkaStreams.start();
-    }
-
-    private KafkaStreams buildKafkaStream(final KafkaConnectionFactory factory, final boolean dryRun) {
         final Enforcement enforcement = source.getEnforcement().orElse(null);
         final EnforcementFilterFactory<Map<String, String>, Signal<?>> headerEnforcementFilterFactory =
                 enforcement != null
                         ? newEnforcementFilterFactory(enforcement, newHeadersPlaceholder())
                         : input -> null;
-        final StreamsBuilder streamsBuilder = new StreamsBuilder();
-        if (!dryRun) {
-            // TODO: kafka source - Implement rate limiting/throttling
-            streamsBuilder.<String, String>stream(sourceAddress)
-                    .filter((key, value) -> key != null && value != null)
-                    .process(() -> new IncomingMessageHandler(source, sourceAddress,
-                            headerEnforcementFilterFactory, inboundMonitor, MESSAGE_FORWARDER, ERROR_FORWARDER
-                    ), Named.as(MESSAGE_TRANSFORMER));
-        }
-        final Topology topology = streamsBuilder.build();
-        topology.addProcessor(ErrorForwarder.NAME, ErrorForwarder::new, MESSAGE_TRANSFORMER);
-        topology.addProcessor(MessageForwarder.NAME, MessageForwarder::new, MESSAGE_TRANSFORMER);
-        return new KafkaStreams(topology, factory.consumerStreamProperties());
+        final Supplier<KafkaMessageTransformer> kafkaMessageTransformerFactory =
+                () -> new KafkaMessageTransformer(source, sourceAddress, headerEnforcementFilterFactory,
+                        inboundMonitor);
+        kafkaStream = new KafkaConsumerStream(factory, kafkaMessageTransformerFactory, dryRun);
+        kafkaStream.start();
+    }
+
+    private static boolean isExternalMessage(final String key, final Object value) {
+        return value instanceof ExternalMessage;
+    }
+
+    private static boolean isDittoRuntimeException(final String key, final Object value) {
+        return value instanceof DittoRuntimeException;
     }
 
     static Props props(final Connection connection, final KafkaConnectionFactory factory, final String sourceAddress,
@@ -108,9 +101,8 @@ final class KafkaConsumerActor extends BaseConsumerActor {
     }
 
     private void shutdown() {
-        if (kafkaStreams != null) {
-            kafkaStreams.close(CLOSE_TIMEOUT);
-            kafkaStreams.cleanUp();
+        if (kafkaStream != null) {
+            kafkaStream.stop();
         }
     }
 
@@ -127,30 +119,74 @@ final class KafkaConsumerActor extends BaseConsumerActor {
 
     }
 
-    private class ErrorForwarder implements Processor<String, DittoRuntimeException, String, DittoRuntimeException> {
+    private class KafkaConsumerStream {
 
-        private static final String NAME = ERROR_FORWARDER;
+        private static final String MESSAGE_TRANSFORMER = "messageTransformer";
+        private static final String ERROR_FORWARDER = "errorForwarder";
+        private static final String MESSAGE_FORWARDER = "messageForwarder";
+        private static final String MESSAGE_DROPPER = "messageDropper";
+        private final Duration closeTimeout = Duration.ofSeconds(10);
+        private final Supplier<KafkaStreams> kafkaStreamsSupplier;
+        private KafkaStreams kafkaStreams;
 
-        @Override
-        public void process(final Record<String, DittoRuntimeException> record) {
-            forwardToMappingActor(record.value());
+
+        private KafkaConsumerStream(final KafkaConnectionFactory factory,
+                final Supplier<KafkaMessageTransformer> kafkaMessageTransformerFactory,
+                final boolean dryRun) {
+            final StreamsBuilder streamsBuilder = new StreamsBuilder();
+            if (!dryRun) {
+                // TODO: kafka source - Implement rate limiting/throttling
+                final Map<String, KStream<String, Object>> branches =
+                        streamsBuilder.<String, String>stream(sourceAddress)
+                                .filter((key, value) -> key != null && value != null)
+                                .transform(kafkaMessageTransformerFactory::get, Named.as(MESSAGE_TRANSFORMER))
+                                .split()
+                                .branch(KafkaConsumerActor::isExternalMessage, Branched.as(MESSAGE_FORWARDER))
+                                .branch(KafkaConsumerActor::isDittoRuntimeException, Branched.as(ERROR_FORWARDER))
+                                .defaultBranch(Branched.as(MESSAGE_DROPPER));
+
+                branches.get(MESSAGE_FORWARDER)
+                        .map((KeyValueMapper<String, Object, KeyValue<String, ExternalMessage>>)
+                                (key, value) -> new KeyValue<>(key, (ExternalMessage) value))
+                        .foreach((key, value) -> {
+                            inboundMonitor.success(value);
+                            forwardToMappingActor(value,
+                                    () -> {
+                                        // TODO: kafka source - Implement acks
+                                    },
+                                    redeliver -> {
+                                        // TODO: kafka source - Implement acks
+                                    });
+                        });
+
+                branches.get(ERROR_FORWARDER)
+                        .map((KeyValueMapper<String, Object, KeyValue<String, DittoRuntimeException>>)
+                                (key, value) -> new KeyValue<>(key, (DittoRuntimeException) value))
+                        .foreach((key, value) -> {
+                            inboundMonitor.failure(value.getDittoHeaders(), value);
+                            forwardToMappingActor(value);
+                        });
+
+                branches.get(MESSAGE_DROPPER).foreach((key, value) -> inboundMonitor.exception(
+                        "Got unexpected message <{0}>. This is an internal error. Please contact the service team",
+                        value
+                ));
+
+            }
+            kafkaStreamsSupplier = () -> new KafkaStreams(streamsBuilder.build(), factory.consumerStreamProperties());
         }
 
-    }
+        private void start() {
+            kafkaStreams = kafkaStreamsSupplier.get();
+            kafkaStreams.start();
+        }
 
-    private class MessageForwarder implements Processor<String, ExternalMessage, String, ExternalMessage> {
-
-        private static final String NAME = MESSAGE_FORWARDER;
-
-        @Override
-        public void process(final Record<String, ExternalMessage> record) {
-            forwardToMappingActor(record.value(),
-                    () -> {
-                        // TODO: kafka source - Implement acks
-                    },
-                    redeliver -> {
-                        // TODO: kafka source - Implement acks
-                    });
+        private void stop() {
+            if (kafkaStreams != null) {
+                kafkaStreams.close(closeTimeout);
+                kafkaStreams.cleanUp();
+                kafkaStreams = null;
+            }
         }
 
     }
