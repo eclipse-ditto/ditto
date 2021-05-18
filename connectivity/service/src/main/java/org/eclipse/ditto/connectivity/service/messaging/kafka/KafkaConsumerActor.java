@@ -121,6 +121,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
 
     private class KafkaConsumerStream {
 
+        private static final String BRANCH_PREFIX = "TransformationResult-";
         private static final String MESSAGE_TRANSFORMER = "messageTransformer";
         private static final String ERROR_FORWARDER = "errorForwarder";
         private static final String MESSAGE_FORWARDER = "messageForwarder";
@@ -140,12 +141,12 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                         streamsBuilder.<String, String>stream(sourceAddress)
                                 .filter((key, value) -> key != null && value != null)
                                 .transform(kafkaMessageTransformerFactory::get, Named.as(MESSAGE_TRANSFORMER))
-                                .split()
+                                .split(Named.as(BRANCH_PREFIX))
                                 .branch(KafkaConsumerActor::isExternalMessage, Branched.as(MESSAGE_FORWARDER))
                                 .branch(KafkaConsumerActor::isDittoRuntimeException, Branched.as(ERROR_FORWARDER))
                                 .defaultBranch(Branched.as(MESSAGE_DROPPER));
 
-                branches.get(MESSAGE_FORWARDER)
+                branches.get(BRANCH_PREFIX + MESSAGE_FORWARDER)
                         .map((KeyValueMapper<String, Object, KeyValue<String, ExternalMessage>>)
                                 (key, value) -> new KeyValue<>(key, (ExternalMessage) value))
                         .foreach((key, value) -> {
@@ -159,7 +160,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                                     });
                         });
 
-                branches.get(ERROR_FORWARDER)
+                branches.get(BRANCH_PREFIX + ERROR_FORWARDER)
                         .map((KeyValueMapper<String, Object, KeyValue<String, DittoRuntimeException>>)
                                 (key, value) -> new KeyValue<>(key, (DittoRuntimeException) value))
                         .foreach((key, value) -> {
@@ -167,7 +168,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                             forwardToMappingActor(value);
                         });
 
-                branches.get(MESSAGE_DROPPER).foreach((key, value) -> inboundMonitor.exception(
+                branches.get(BRANCH_PREFIX + MESSAGE_DROPPER).foreach((key, value) -> inboundMonitor.exception(
                         "Got unexpected message <{0}>. This is an internal error. Please contact the service team",
                         value
                 ));
