@@ -27,10 +27,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.common.header.internals.RecordHeaders;
-import org.apache.kafka.streams.KeyValue;
-import org.apache.kafka.streams.processor.ProcessorContext;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
@@ -48,7 +47,6 @@ import scala.util.Either;
 public final class KafkaMessageTransformerTest {
 
     private KafkaMessageTransformer underTest;
-    private ProcessorContext context;
     private ConnectionMonitor inboundMonitor;
 
     @Before
@@ -66,8 +64,6 @@ public final class KafkaMessageTransformerTest {
                 newEnforcementFilterFactory(enforcement, newHeadersPlaceholder());
         inboundMonitor = mock(ConnectionMonitor.class);
         underTest = new KafkaMessageTransformer(source, sourceAddress, enforcementFilterFactory, inboundMonitor);
-        context = mock(ProcessorContext.class);
-        underTest.init(context);
     }
 
     @Test
@@ -75,14 +71,15 @@ public final class KafkaMessageTransformerTest {
         final String deviceId = "ditto:test-device";
         final RecordHeaders headers =
                 new RecordHeaders(List.of(new RecordHeader("device_id", deviceId.getBytes(StandardCharsets.UTF_8))));
-        when(context.headers()).thenReturn(headers);
-
-        final KeyValue<String, Either<ExternalMessage, DittoRuntimeException>> transformResult =
-                underTest.transform("someKey", "someValue");
+        final ConsumerRecord<Object, Object> consumerRecord = mock(ConsumerRecord.class);
+        when(consumerRecord.headers()).thenReturn(headers);
+        when(consumerRecord.key()).thenReturn("someKey");
+        when(consumerRecord.value()).thenReturn("someValue");
+        final Either<ExternalMessage, DittoRuntimeException> transformResult = underTest.transform(consumerRecord);
 
         assertThat(transformResult).isNotNull();
-        assertThat(transformResult.value.isLeft()).isTrue();
-        final ExternalMessage externalMessage = transformResult.value.left().get();
+        assertThat(transformResult.isLeft()).isTrue();
+        final ExternalMessage externalMessage = transformResult.left().get();
         assertThat(externalMessage.isTextMessage()).isTrue();
         assertThat(externalMessage.isBytesMessage()).isTrue();
         assertThat(externalMessage.getTextPayload()).contains("someValue");
@@ -93,16 +90,17 @@ public final class KafkaMessageTransformerTest {
     @Test
     public void transformWithoutDeviceIdHeaderCausesDittoRuntimeException() {
         final RecordHeaders headers = new RecordHeaders(List.of());
-        when(context.headers()).thenReturn(headers);
-
-        final KeyValue<String, Either<ExternalMessage, DittoRuntimeException>> transformResult =
-                underTest.transform("someKey", "someValue");
+        final ConsumerRecord<Object, Object> consumerRecord = mock(ConsumerRecord.class);
+        when(consumerRecord.headers()).thenReturn(headers);
+        when(consumerRecord.key()).thenReturn("someKey");
+        when(consumerRecord.value()).thenReturn("someValue");
+        final Either<ExternalMessage, DittoRuntimeException> transformResult = underTest.transform(consumerRecord);
 
         assertThat(transformResult).isNotNull();
-        assertThat(transformResult.value.isRight()).isTrue();
-        assertThat(transformResult.value.right().get()).isInstanceOf(UnresolvedPlaceholderException.class);
+        assertThat(transformResult.isRight()).isTrue();
+        assertThat(transformResult.right().get()).isInstanceOf(UnresolvedPlaceholderException.class);
         final UnresolvedPlaceholderException error =
-                (UnresolvedPlaceholderException) transformResult.value.right().get();
+                (UnresolvedPlaceholderException) transformResult.right().get();
         assertThat(error.getMessage()).contains("{{ header:device_id }}");
     }
 
@@ -111,11 +109,13 @@ public final class KafkaMessageTransformerTest {
         final String deviceId = "ditto:test-device";
         final RecordHeaders headers =
                 new RecordHeaders(List.of(new RecordHeader("device_id", deviceId.getBytes(StandardCharsets.UTF_8))));
+        final ConsumerRecord<Object, Object> consumerRecord = mock(ConsumerRecord.class);
+        when(consumerRecord.headers()).thenReturn(headers);
+        when(consumerRecord.key()).thenReturn("someKey");
+        when(consumerRecord.value()).thenReturn("someValue");
         doThrow(new IllegalStateException("Expected")).when(inboundMonitor).success(any(ExternalMessage.class));
-        when(context.headers()).thenReturn(headers);
 
-        final KeyValue<String, Either<ExternalMessage, DittoRuntimeException>> transformResult =
-                underTest.transform("someKey", "someValue");
+        final Either<ExternalMessage, DittoRuntimeException> transformResult = underTest.transform(consumerRecord);
 
         assertThat(transformResult).isNull();
     }

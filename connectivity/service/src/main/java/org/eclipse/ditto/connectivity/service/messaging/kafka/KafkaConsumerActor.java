@@ -17,15 +17,8 @@ import static org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory.
 
 import java.time.Duration;
 import java.util.Map;
-import java.util.function.Supplier;
 
-import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.KeyValue;
-import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.errors.StreamsException;
-import org.apache.kafka.streams.kstream.Branched;
-import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.Named;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
@@ -41,6 +34,12 @@ import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapt
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.kafka.Subscriptions;
+import akka.kafka.javadsl.Consumer;
+import akka.stream.Materializer;
+import akka.stream.javadsl.Flow;
+import akka.stream.javadsl.RunnableGraph;
+import akka.stream.javadsl.Sink;
 import scala.util.Either;
 
 final class KafkaConsumerActor extends BaseConsumerActor {
@@ -64,10 +63,10 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                 enforcement != null
                         ? newEnforcementFilterFactory(enforcement, newHeadersPlaceholder())
                         : input -> null;
-        final Supplier<KafkaMessageTransformer> kafkaMessageTransformerFactory =
-                () -> new KafkaMessageTransformer(source, sourceAddress, headerEnforcementFilterFactory,
-                        inboundMonitor);
-        kafkaStream = new KafkaConsumerStream(factory, kafkaMessageTransformerFactory, dryRun);
+        final KafkaMessageTransformer kafkaMessageTransformer =
+                new KafkaMessageTransformer(source, sourceAddress, headerEnforcementFilterFactory, inboundMonitor);
+        kafkaStream = new KafkaConsumerStream(factory, kafkaMessageTransformer, dryRun,
+                Materializer.createMaterializer(this::getContext));
     }
 
     static Props props(final Connection connection, final KafkaConnectionFactory factory, final String sourceAddress,
@@ -126,59 +125,40 @@ final class KafkaConsumerActor extends BaseConsumerActor {
 
     private class KafkaConsumerStream {
 
-        private static final String BRANCH_PREFIX = "TransformationResult-";
-        private static final String MESSAGE_TRANSFORMER = "messageTransformer";
-        private static final String ERROR_FORWARDER = "errorForwarder";
-        private static final String MESSAGE_FORWARDER = "messageForwarder";
-        private static final String MESSAGE_DROPPER = "messageDropper";
-        private final Duration closeTimeout = Duration.ofSeconds(10);
-        private final Supplier<KafkaStreams> kafkaStreamsSupplier;
-        private KafkaStreams kafkaStreams;
-
+        private final RunnableGraph<Consumer.Control> runnableKafkaStream;
+        private final Materializer materializer;
+        private Consumer.Control kafkaStream;
 
         private KafkaConsumerStream(final KafkaConnectionFactory factory,
-                final Supplier<KafkaMessageTransformer> kafkaMessageTransformerFactory,
-                final boolean dryRun) {
-            final StreamsBuilder streamsBuilder = new StreamsBuilder();
-            if (!dryRun) {
-                // TODO: kafka source - Implement rate limiting/throttling
-                final Map<String, KStream<String, Either<ExternalMessage, DittoRuntimeException>>> branches =
-                        streamsBuilder.<String, String>stream(sourceAddress)
-                                .filter((key, value) -> key != null && value != null)
-                                .transform(kafkaMessageTransformerFactory::get, Named.as(MESSAGE_TRANSFORMER))
-                                .split(Named.as(BRANCH_PREFIX))
-                                .branch(this::isExternalMessage, Branched.as(MESSAGE_FORWARDER))
-                                .branch(this::isDittoRuntimeException, Branched.as(ERROR_FORWARDER))
-                                .defaultBranch(Branched.as(MESSAGE_DROPPER));
+                final KafkaMessageTransformer kafkaMessageTransformer,
+                final boolean dryRun, //TODO: handle dry run
+                final Materializer materializer) {
 
-                branches.get(BRANCH_PREFIX + MESSAGE_FORWARDER)
-                        .map(this::extractExternalMessage)
-                        .foreach(this::forwardExternalMessage);
-
-                branches.get(BRANCH_PREFIX + ERROR_FORWARDER)
-                        .map(this::extractDittoRuntimeException)
-                        .foreach(this::forwardDittoRuntimeException);
-
-                branches.get(BRANCH_PREFIX + MESSAGE_DROPPER).foreach((key, value) -> inboundMonitor.exception(
-                        "Got unexpected message <{0}>. This is an internal error. Please contact the service team",
-                        value
-                ));
-
-            }
-            kafkaStreamsSupplier = () -> new KafkaStreams(streamsBuilder.build(), factory.consumerStreamProperties());
+            this.materializer = materializer;
+            runnableKafkaStream = Consumer.plainSource(null, Subscriptions.topics(
+                    sourceAddress)) //TODO: replace "null" with actual ConsumerSettings. See https://akka.io/alpakka-samples/kafka-to-websocket-clients/example.html#subscribe-to-the-kafka-topic for an example
+                    .throttle(100, Duration.ofSeconds(1)) //TODO: make this configurable
+                    .filter((consumerRecord) -> consumerRecord.value() != null)
+                    .map(kafkaMessageTransformer::transform) //TODO: ensure serialisation works correctly. The record is now of type <Object,Object> and no longer <String,String>
+                    .divertTo(this.externalMessageSink(), this::isExternalMessage)
+                    .divertTo(this.dittoRuntimeExceptionSink(), this::isDittoRuntimeException)
+                    .to(this.unexpectedMessageSink());
         }
 
-        private boolean isExternalMessage(final String key,
-                final Either<ExternalMessage, DittoRuntimeException> value) {
+        private Sink<Either<ExternalMessage, DittoRuntimeException>, ?> externalMessageSink() {
+            return Flow.fromFunction(this::extractExternalMessage)
+                    .to(Sink.foreach(this::forwardExternalMessage));
+        }
+
+        private boolean isExternalMessage(final Either<ExternalMessage, DittoRuntimeException> value) {
             return value.isLeft();
         }
 
-        private KeyValue<String, ExternalMessage> extractExternalMessage(final String key,
-                final Either<ExternalMessage, DittoRuntimeException> value) {
-            return new KeyValue<>(key, value.left().get());
+        private ExternalMessage extractExternalMessage(final Either<ExternalMessage, DittoRuntimeException> value) {
+            return value.left().get();
         }
 
-        private void forwardExternalMessage(final String key, final ExternalMessage value) {
+        private void forwardExternalMessage(final ExternalMessage value) {
             inboundMonitor.success(value);
             forwardToMappingActor(value,
                     () -> {
@@ -189,34 +169,43 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                     });
         }
 
-        private boolean isDittoRuntimeException(final String key,
-                final Either<ExternalMessage, DittoRuntimeException> value) {
+        private Sink<Either<ExternalMessage, DittoRuntimeException>, ?> dittoRuntimeExceptionSink() {
+            return Flow.fromFunction(this::extractDittoRuntimeException)
+                    .to(Sink.foreach(this::forwardDittoRuntimeException));
+        }
+
+        private boolean isDittoRuntimeException(final Either<ExternalMessage, DittoRuntimeException> value) {
             return value.isRight();
         }
 
-        private KeyValue<String, DittoRuntimeException> extractDittoRuntimeException(final String key,
+        private DittoRuntimeException extractDittoRuntimeException(
                 final Either<ExternalMessage, DittoRuntimeException> value) {
-            return new KeyValue<>(key, value.right().get());
+            return value.right().get();
         }
 
-        private void forwardDittoRuntimeException(final String key, final DittoRuntimeException value) {
+        private void forwardDittoRuntimeException(final DittoRuntimeException value) {
             inboundMonitor.failure(value.getDittoHeaders(), value);
             forwardToMappingActor(value);
         }
 
+        private Sink<Either<ExternalMessage, DittoRuntimeException>, ?> unexpectedMessageSink() {
+            return Sink.foreach(either -> inboundMonitor.exception(
+                    "Got unexpected transformation result <{0}>. This is an internal error. " +
+                            "Please contact the service team", either
+            ));
+        }
+
         private void start() throws IllegalStateException, StreamsException {
-            if (kafkaStreams != null) {
+            if (kafkaStream != null) {
                 stop();
             }
-            kafkaStreams = kafkaStreamsSupplier.get();
-            kafkaStreams.start();
+            kafkaStream = runnableKafkaStream.run(materializer);
         }
 
         private void stop() {
-            if (kafkaStreams != null) {
-                kafkaStreams.close(closeTimeout);
-                kafkaStreams.cleanUp();
-                kafkaStreams = null;
+            if (kafkaStream != null) {
+                kafkaStream.shutdown();
+                kafkaStream = null;
             }
         }
 

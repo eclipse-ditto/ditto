@@ -13,18 +13,17 @@
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.streams.KeyValue;
-import org.apache.kafka.streams.kstream.Transformer;
-import org.apache.kafka.streams.processor.ProcessorContext;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -41,18 +40,14 @@ import scala.util.Either;
 import scala.util.Left;
 import scala.util.Right;
 
-
-@NotThreadSafe
-final class KafkaMessageTransformer
-        implements Transformer<String, String, KeyValue<String, Either<ExternalMessage, DittoRuntimeException>>> {
+@Immutable
+final class KafkaMessageTransformer {
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(KafkaMessageTransformer.class);
     private final Source source;
     private final String sourceAddress;
     private final EnforcementFilterFactory<Map<String, String>, Signal<?>> headerEnforcementFilterFactory;
     private final ConnectionMonitor inboundMonitor;
-
-    private ProcessorContext context;
 
     public KafkaMessageTransformer(final Source source, final String sourceAddress,
             final EnforcementFilterFactory<Map<String, String>, Signal<?>> headerEnforcementFilterFactory,
@@ -63,25 +58,22 @@ final class KafkaMessageTransformer
         this.inboundMonitor = inboundMonitor;
     }
 
-    @Override
-    public void init(final ProcessorContext context) {
-        this.context = context;
-    }
 
     /**
-     * Takes incoming kafka messages and transforms them to an {@link ExternalMessage}.
+     * Takes incoming kafka record and transforms the value to an {@link ExternalMessage}.
      *
-     * @param key the key of the kafka record.
-     * @param value the value (the message) of the kafka record.
-     * @return A {@link KeyValue} holding a String key and a value that is either an {@link ExternalMessage} in case the
+     * @param record the kafka record.
+     * @return A value that is either an {@link ExternalMessage} in case the
      * transformation succeeded, or a {@link DittoRuntimeException} if it failed. Could also be null if an unexpected
      * Exception occurred which should result in the message being dropped as automated recovery is expected.
      */
-    @Override
     @Nullable
-    public KeyValue<String, Either<ExternalMessage, DittoRuntimeException>> transform(String key, String value) {
+    public Either<ExternalMessage, DittoRuntimeException> transform(ConsumerRecord<Object, Object> record) {
 
-        final Map<String, String> messageHeaders = getHeadersFromContext();
+        final String key = record.key().toString();
+        final String value = record.value().toString();
+        final Map<String, String> messageHeaders = StreamSupport.stream(record.headers().spliterator(), false)
+                .collect(Collectors.toMap(Header::key, header -> new String(header.value())));
         final String correlationId = messageHeaders
                 .getOrDefault(DittoHeaderDefinition.CORRELATION_ID.getKey(), UUID.randomUUID().toString());
         try {
@@ -105,31 +97,19 @@ final class KafkaMessageTransformer
                     .build();
 
             inboundMonitor.success(externalMessage);
-            return KeyValue.pair(key, new Left<>(externalMessage));
+
+            return new Left<>(externalMessage);
         } catch (final DittoRuntimeException e) {
             LOGGER.withCorrelationId(e)
                     .info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(),
                             e.getMessage());
-            return KeyValue.pair(key, new Right<>(e.setDittoHeaders(DittoHeaders.of(messageHeaders))));
+            return new Right<>(e.setDittoHeaders(DittoHeaders.of(messageHeaders)));
         } catch (final Exception e) {
             inboundMonitor.exception(messageHeaders, e);
             LOGGER.withCorrelationId(correlationId)
                     .error(String.format("Unexpected {%s}: {%s}", e.getClass().getName(), e.getMessage()), e);
             return null; //Drop message
         }
-    }
-
-    private Map<String, String> getHeadersFromContext() {
-        return Optional.ofNullable(context)
-                .map(ProcessorContext::headers)
-                .map(headers -> StreamSupport.stream(headers.spliterator(), false)
-                        .collect(Collectors.toMap(Header::key, header -> new String(header.value()))))
-                .orElseGet(Map::of);
-    }
-
-    @Override
-    public void close() {
-        this.context = null;
     }
 
 }
