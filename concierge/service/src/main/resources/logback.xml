@@ -30,6 +30,19 @@
         </filter>
     </appender>
 
+    <if condition='isDefined("LOGSTASH_SERVER")'>
+        <then>
+            <appender name="stash" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+                <destination>${LOGSTASH_SERVER}</destination>
+
+                <!-- encoder is required -->
+                <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                    <customFields>{"appname":"concierge","instance_index":"${INSTANCE_INDEX}","host_environment":"${K8S_NAMESPACE}"}</customFields>
+                </encoder>
+            </appender>
+        </then>
+    </if>
+
     <!--<logger name="akka.actor" level="DEBUG"/>-->
     <logger name="akka.management.cluster.bootstrap.contactpoint.HttpClusterBootstrapRoutes" level="WARN"/>
     <logger name="akka.management.cluster.bootstrap.internal.BootstrapCoordinator" level="WARN"/>
@@ -39,9 +52,21 @@
 
 
     <root level="${LOG_LEVEL:-INFO}">
-        <appender-ref ref="STDOUT"/>
+        <!-- logging INFO messages can be disabled by setting environment variable -->
+        <if condition='isNull("DISABLE_SYSOUT_LOG")'>
+            <then>
+                <appender-ref ref="STDOUT"/>
+            </then>
+        </if>
+
         <!-- always log ERRORs to syserr -->
         <appender-ref ref="STDERR"/>
+
+        <if condition='isDefined("LOGSTASH_SERVER")'>
+            <then>
+                <appender-ref ref="stash"/>
+            </then>
+        </if>
     </root>
 
 </configuration>
