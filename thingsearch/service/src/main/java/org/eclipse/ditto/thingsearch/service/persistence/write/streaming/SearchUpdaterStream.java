@@ -17,15 +17,13 @@ import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
+import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.PersistenceStreamConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.StreamCacheConfig;
-import org.eclipse.ditto.thingsearch.service.common.config.StreamConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.StreamStageConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
-import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
@@ -33,10 +31,10 @@ import akka.NotUsed;
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.dispatch.MessageDispatcher;
 import akka.stream.Attributes;
 import akka.stream.KillSwitch;
 import akka.stream.KillSwitches;
+import akka.stream.RestartSettings;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.RestartSink;
@@ -92,19 +90,19 @@ public final class SearchUpdaterStream {
             final MongoDatabase database,
             final BlockedNamespaces blockedNamespaces) {
 
-        final StreamConfig streamConfig = updaterConfig.getStreamConfig();
+        final var streamConfig = updaterConfig.getStreamConfig();
 
         final StreamCacheConfig cacheConfig = streamConfig.getCacheConfig();
         final String dispatcherName = cacheConfig.getDispatcherName();
-        final MessageDispatcher messageDispatcher = actorSystem.dispatchers().lookup(dispatcherName);
+        final var messageDispatcher = actorSystem.dispatchers().lookup(dispatcherName);
 
-        final EnforcementFlow enforcementFlow =
+        final var enforcementFlow =
                 EnforcementFlow.of(streamConfig, thingsShard, policiesShard, messageDispatcher);
 
-        final MongoSearchUpdaterFlow mongoSearchUpdaterFlow = MongoSearchUpdaterFlow.of(database,
+        final var mongoSearchUpdaterFlow = MongoSearchUpdaterFlow.of(database,
                 streamConfig.getPersistenceConfig());
 
-        final BulkWriteResultAckFlow bulkWriteResultAckFlow = BulkWriteResultAckFlow.of(updaterShard);
+        final var bulkWriteResultAckFlow = BulkWriteResultAckFlow.of(updaterShard);
 
         return new SearchUpdaterStream(updaterConfig, enforcementFlow, mongoSearchUpdaterFlow, bulkWriteResultAckFlow,
                 changeQueueActor, blockedNamespaces);
@@ -129,7 +127,7 @@ public final class SearchUpdaterStream {
 
     private Source<Source<AbstractWriteModel, NotUsed>, NotUsed> createRestartSource(
             final boolean shouldAcknowledge) {
-        final StreamConfig streamConfig = updaterConfig.getStreamConfig();
+        final var streamConfig = updaterConfig.getStreamConfig();
         final StreamStageConfig retrievalConfig = streamConfig.getRetrievalConfig();
 
         final Source<Source<AbstractWriteModel, NotUsed>, NotUsed> source =
@@ -139,15 +137,15 @@ public final class SearchUpdaterStream {
                                 .map(writeModelSource -> writeModelSource.via(
                                         blockNamespaceFlow(SearchUpdaterStream::namespaceOfWriteModel))));
 
-        final ExponentialBackOffConfig backOffConfig = retrievalConfig.getExponentialBackOffConfig();
-
-        return RestartSource.withBackoff(backOffConfig.getMin(), backOffConfig.getMax(),
-                backOffConfig.getRandomFactor(), () -> source);
+        final var backOffConfig = retrievalConfig.getExponentialBackOffConfig();
+        return RestartSource.withBackoff(
+                RestartSettings.create(backOffConfig.getMin(), backOffConfig.getMax(), backOffConfig.getRandomFactor()),
+                () -> source);
     }
 
     private Sink<Source<AbstractWriteModel, NotUsed>, NotUsed> createRestartSink(
             final boolean shouldAcknowledge) {
-        final StreamConfig streamConfig = updaterConfig.getStreamConfig();
+        final var streamConfig = updaterConfig.getStreamConfig();
         final PersistenceStreamConfig persistenceConfig = streamConfig.getPersistenceConfig();
 
         final int parallelism = persistenceConfig.getParallelism();
@@ -163,9 +161,9 @@ public final class SearchUpdaterStream {
                                 Attributes.logLevelError()))
                         .to(Sink.<String>ignore());
 
-        final ExponentialBackOffConfig backOffConfig = persistenceConfig.getExponentialBackOffConfig();
-
-        return RestartSink.withBackoff(backOffConfig.getMax(), backOffConfig.getMax(), backOffConfig.getRandomFactor(),
+        final var backOffConfig = persistenceConfig.getExponentialBackOffConfig();
+        return RestartSink.withBackoff(
+                RestartSettings.create(backOffConfig.getMin(), backOffConfig.getMax(), backOffConfig.getRandomFactor()),
                 () -> sink);
     }
 
