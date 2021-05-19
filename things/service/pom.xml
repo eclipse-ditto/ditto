@@ -252,6 +252,9 @@
                                         <exclude>META-INF/lmdbjava-LICENSE.txt</exclude>
                                         <exclude>META-INF/lmdbjava-THIRD-PARTY.txt</exclude>
                                         <exclude>META-INF/NOTICE</exclude>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
                                     </excludes>
                                 </filter>
                             </filters>
