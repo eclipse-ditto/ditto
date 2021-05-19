@@ -114,7 +114,6 @@ abstract class AbstractHiveMqttClientFactory {
             final T newBuilder,
             final Connection connection,
             final String identifier,
-            final boolean allowReconnect,
             @Nullable final MqttClientConnectedListener connectedListener,
             @Nullable final MqttClientDisconnectedListener disconnectedListener,
             final ConnectionLogger connectionLogger,
@@ -134,10 +133,6 @@ abstract class AbstractHiveMqttClientFactory {
                 .applyTransportConfig()
                 .serverHost(uri.getHost())
                 .serverPort(uri.getPort());
-
-        if (allowReconnect && connection.isFailoverEnabled()) {
-            builder = builder.automaticReconnectWithDefaultConfig();
-        }
 
         if (isSecuredConnection(connection.getProtocol())) {
 

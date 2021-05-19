@@ -75,6 +75,14 @@ public interface MqttConfig {
     boolean shouldUseSeparatePublisherClient();
 
     /**
+     * Returns the reconnect backoff configuration to apply when reconnecting failed MQTT connections.
+     *
+     * @return the reconnect backoff configuration to apply.
+     * @since 2.0.0
+     */
+    BackOffConfig getReconnectBackOffConfig();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code MqttConfig}.
      */

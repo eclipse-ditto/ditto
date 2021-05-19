@@ -38,8 +38,6 @@ interface HiveMqttClientFactory<Q, B> {
      * @param mqttConfig the system's mqttConfig
      * @param mqttSpecificConfig the specific MQTT config to apply based on Ditto config merged with connection
      * specific config
-     * @param allowReconnect whether client can be configured with automatic reconnect enabled, e.g. reconnect must
-     * be disabled for testing a connection
      * @param applyLastWillConfig whether to apply the last will configuration
      * @param connectedListener the connected listener passed to the created client
      * @param disconnectedListener the disconnected listener passed to the created client
@@ -50,7 +48,6 @@ interface HiveMqttClientFactory<Q, B> {
             String identifier,
             MqttConfig mqttConfig,
             MqttSpecificConfig mqttSpecificConfig,
-            boolean allowReconnect,
             boolean applyLastWillConfig,
             @Nullable MqttClientConnectedListener connectedListener,
             @Nullable MqttClientDisconnectedListener disconnectedListener,
@@ -64,8 +61,6 @@ interface HiveMqttClientFactory<Q, B> {
      * @param mqttConfig the system's mqttConfig
      * @param mqttSpecificConfig the specific MQTT config to apply based on Ditto config merged with connection
      * specific config
-     * @param allowReconnect whether client can be configured with automatic reconnect enabled, e.g. reconnect must
-     * be disabled for testing a connection
      * @param applyLastWillConfig whether to apply the last will configuration
      * @param connectedListener the connected listener passed to the created client
      * @param disconnectedListener the disconnected listener passed to the created client
@@ -76,7 +71,6 @@ interface HiveMqttClientFactory<Q, B> {
             String identifier,
             MqttConfig mqttConfig,
             MqttSpecificConfig mqttSpecificConfig,
-            boolean allowReconnect,
             boolean applyLastWillConfig,
             @Nullable MqttClientConnectedListener connectedListener,
             @Nullable MqttClientDisconnectedListener disconnectedListener,
@@ -90,7 +84,6 @@ interface HiveMqttClientFactory<Q, B> {
      * @param mqttConfig the system's mqttConfig
      * @param mqttSpecificConfig the specific MQTT config to apply based on Ditto config merged with connection
      * specific config
-     * @param allowReconnect whether client can be configured with automatic reconnect enabled
      * @param applyLastWillConfig whether to apply the last will configuration
      * @param connectionLogger the connection logger
      * @return the new client.
@@ -99,10 +92,9 @@ interface HiveMqttClientFactory<Q, B> {
             final String identifier,
             final MqttConfig mqttConfig,
             final MqttSpecificConfig mqttSpecificConfig,
-            final boolean allowReconnect,
             final boolean applyLastWillConfig,
             final ConnectionLogger connectionLogger) {
-        return newClient(connection, identifier, mqttConfig, mqttSpecificConfig, allowReconnect, applyLastWillConfig,
+        return newClient(connection, identifier, mqttConfig, mqttSpecificConfig, applyLastWillConfig,
                 null, null, connectionLogger);
     }
 

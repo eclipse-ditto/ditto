@@ -218,9 +218,7 @@ ID connects.
 Configures that the MQTT connection re-connects whenever a consumed message (via a connection source) with QoS 1 
 ("at least once") 2 ("exactly once") is processed but cannot be [acknowledged](#source-acknowledgement-handling) successfully.<br/>
 That causes that the MQTT broker will re-publish the message once the connection reconnected.   
-If configured to `false`, the MQTT message is 
-* either simply acknowledged (`PUBACK` or `PUBREC`, `PUBREL`) if redelivery was not required.
-* or simply not acknowledged if redelivery was required.
+If configured to `false`, the MQTT message is simply acknowledged (`PUBACK` or `PUBREC`, `PUBREL`).
 
 Default: `false`
 
@@ -229,7 +227,9 @@ Handle with care:
 * when set to `true` and there is also an MQTT target configured to publish messages,
   the messages to be published during the reconnection phase are lost
    * to fix that, configure `"separatePublisherClient"` also to `true` in order to publish via another MQTT connection
-* when set to `false`, MQTT messages with QoS 1 and 2 are redelivered based on the MQTT broker's strategy (e.g. how long to wait until a message is redelivered)
+* when set to `false`, MQTT messages with QoS 1 and 2 are redelivered based on the MQTT broker's strategy,
+  but may not be redelivered at all as the MQTT specification does not require unacknowledged messages to be redelivered
+  without reconnection of the client
 
 #### cleanSession
 

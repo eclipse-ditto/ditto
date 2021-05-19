@@ -52,13 +52,12 @@ public final class DefaultHiveMqtt3ClientFactory extends AbstractHiveMqttClientF
             final String identifier,
             final MqttConfig mqttConfig,
             final MqttSpecificConfig mqttSpecificConfig,
-            final boolean allowReconnect,
             final boolean applyLastWillConfig,
             @Nullable final MqttClientConnectedListener connectedListener,
             @Nullable final MqttClientDisconnectedListener disconnectedListener,
             final ConnectionLogger connectionLogger) {
 
-        return newClientBuilder(connection, identifier, mqttConfig, mqttSpecificConfig, allowReconnect,
+        return newClientBuilder(connection, identifier, mqttConfig, mqttSpecificConfig,
                 applyLastWillConfig, connectedListener, disconnectedListener, connectionLogger).buildAsync();
     }
 
@@ -67,14 +66,13 @@ public final class DefaultHiveMqtt3ClientFactory extends AbstractHiveMqttClientF
             final String identifier,
             final MqttConfig mqttConfig,
             final MqttSpecificConfig mqttSpecificConfig,
-            final boolean allowReconnect,
             final boolean applyLastWillConfig,
             @Nullable final MqttClientConnectedListener connectedListener,
             @Nullable final MqttClientDisconnectedListener disconnectedListener,
             final ConnectionLogger connectionLogger) {
 
         final Mqtt3ClientBuilder mqtt3ClientBuilder =
-                configureClientBuilder(MqttClient.builder().useMqttVersion3(), connection, identifier, allowReconnect,
+                configureClientBuilder(MqttClient.builder().useMqttVersion3(), connection, identifier,
                         connectedListener, disconnectedListener, connectionLogger, mqttConfig.getEventLoopThreads());
         configureSimpleAuth(mqtt3ClientBuilder.simpleAuth(), connection);
         if (applyLastWillConfig) {
