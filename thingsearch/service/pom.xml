@@ -60,6 +60,20 @@
             <artifactId>ditto-internal-utils-cache-loaders</artifactId>
         </dependency>
 
+        <!-- logstash appender logging -->
+        <dependency>
+            <groupId>org.codehaus.janino</groupId>
+            <artifactId>janino</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>net.logstash.logback</groupId>
+            <artifactId>logstash-logback-encoder</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+        </dependency>
+
         <!-- ### Testing ### -->
         <dependency>
             <groupId>com.typesafe.akka</groupId>
