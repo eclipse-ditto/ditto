@@ -5,8 +5,8 @@ tags: [protocol]
 permalink: protocol-specification-connections-announcement.html
 ---
 
-{% include note.html content="The *topic path* of connection announcements contains no *namespace* and *channel* 
-element. 
+{% include note.html content="The *topic path* of connection announcements contains a *_* (underscore) as *namespace* 
+and no *channel* element. 
 See the [specification](protocol-specification-connections.html#ditto-protocol-topic-structure-for-connections) for 
 details. " %}
 
