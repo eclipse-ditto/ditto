@@ -103,7 +103,7 @@ public interface MqttConfig {
         /**
          * The amount of time that a reconnect will be delayed after a failed acknowledgement.
          */
-        RECONNECT_FOR_REDELIVERY_DELAY("reconnect-for-redelivery-delay", Duration.ofSeconds(2)),
+        RECONNECT_FOR_REDELIVERY_DELAY("reconnect-for-redelivery-delay", Duration.ofSeconds(10)),
 
         /**
          * Indicates whether a separate client should be used for publishing. This could be useful when

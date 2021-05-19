@@ -122,10 +122,14 @@ abstract class AbstractHiveMqttClientFactory {
 
         final URI uri = tunnelStateSupplier.get().getURI(connection);
 
-        T builder = newBuilder
-                .executorConfig()
-                .nettyThreads(eventLoopThreads)
-                .applyExecutorConfig()
+        T builder = newBuilder;
+        if (eventLoopThreads > 0) {
+            builder = builder.executorConfig()
+                    .nettyThreads(eventLoopThreads)
+                    .applyExecutorConfig();
+        }
+
+        builder = builder
                 .transportConfig()
                 .applyTransportConfig()
                 .serverHost(uri.getHost())

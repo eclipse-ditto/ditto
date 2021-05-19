@@ -232,8 +232,8 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
     private void reject(final ExternalMessage externalMessage, final P publish, final boolean redeliver,
             final ActorRef parent) {
         if (reconnectForRedelivery && redeliver) {
-            inboundAcknowledgedMonitor.exception(externalMessage,
-                    "Restarting connection for redeliveries due to unfulfilled acknowledgements.");
+            inboundAcknowledgedMonitor.exception(externalMessage, "Unfulfilled acknowledgements are " +
+                            "present, restarting consumer client in order to get redeliveries.");
             parent.tell(AbstractMqttClientActor.Control.RECONNECT_CONSUMER_CLIENT, getSelf());
         } else if (!redeliver) {
             // acknowledge messages for which redelivery does not make sense (e.g. 400 bad request or 403 forbidden)
@@ -242,9 +242,13 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
             inboundAcknowledgedMonitor.exception(externalMessage, "Unfulfilled acknowledgements are " +
                     "present, redelivery was NOT requested - therefore acknowledging the MQTT message!");
         } else {
+            // strictly speaking one should not acknowledge message for which a redelivery was asked for, the MQTT spec
+            //  however does not define that a MQTT broker should redeliver messages if an acknowledgement was not
+            //  received - UNLESS the client reconnects - see option "reconnectForRedelivery" for getting reconnects
+            acknowledge(externalMessage, publish);
             inboundAcknowledgedMonitor.exception(externalMessage, "Unfulfilled acknowledgements are " +
-                    "present, redelivery was requested - NOT acknowledging the MQTT message which should result in" +
-                    "redelivery by the MQTT broker!");
+                    "present, redelivery was requested - however MQTT broker would not redeliver the message without " +
+                    "a reconnect from the client - therefore acknowledging the MQTT message!");
         }
     }
 

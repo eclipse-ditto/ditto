@@ -36,7 +36,6 @@ import org.eclipse.ditto.connectivity.service.messaging.BaseClientData;
 import org.eclipse.ditto.connectivity.service.messaging.internal.AbstractWithOrigin;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
@@ -165,23 +164,29 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
         }
     }
 
+    @Override
+    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectingState() {
+        if (mqttSpecificConfig.reconnectForRedelivery()) {
+            return super.inConnectingState()
+                    .eventEquals(Control.RECONNECT_CONSUMER_CLIENT, this::reconnectConsumerClient)
+                    .eventEquals(Control.DO_RECONNECT_CONSUMER_CLIENT, this::doReconnectConsumerClient);
+        } else {
+            return super.inConnectingState();
+        }
+    }
+
     private FSM.State<BaseClientState, BaseClientData> reconnectConsumerClient(final Control reconnectConsumerClient,
             final BaseClientData data) {
 
-        // Restart once in 10 seconds max
+        // Restart once in "getReconnectForRedeliveryDelayWithLowerBound()" duration max
         final Control trigger = Control.DO_RECONNECT_CONSUMER_CLIENT;
         if (!isTimerActive(trigger.name())) {
-            if (mqttSpecificConfig.separatePublisherClient()) {
-                final Duration delay = getReconnectForRedeliveryDelayWithLowerBound();
-                logger.info("Restarting consumer client in <{}> by request.", delay);
-                setTimer(trigger.name(), trigger, delay);
-            } else {
-                // fail the connection to reconnect
-                final ConnectionFailure failure =
-                        new ImmutableConnectionFailure(null, null,
-                                "Restarting connection due to unfulfilled acknowledgement requests.");
-                getSelf().tell(failure, ActorRef.noSender());
-            }
+            final Duration delay = getReconnectForRedeliveryDelayWithLowerBound();
+            logger.info("Restarting consumer client in <{}> by request.", delay);
+            startSingleTimer(trigger.name(), trigger, delay);
+        } else {
+            logger.debug("Timer <{}> is already active, not requesting restarting consumer client again",
+                    trigger.name());
         }
         return stay();
     }
@@ -200,8 +205,13 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
         safelyDisconnectClient(oldClient, CONSUMER);
         createSubscriberClientAndSubscriptionHandler(!data.getConnection().getSources().isEmpty());
         oldSubscriptionHandler.stream().forEach(getSubscriptionHandler()::handleMqttConsumer);
-        subscribeAndSendConn(false).whenComplete(
-                (result, error) -> logger.info("Consumer client restarted: result{}, error={]", result, error));
+        subscribeAndSendConn(!mqttSpecificConfig.separatePublisherClient()).whenComplete(
+                (result, error) -> {
+                    logger.info("Consumer client restarted: result={}, error={}", result, error);
+                    if (!result.isSuccess()) {
+                        getSelf().tell(result.getFailure(), getSelf());
+                    }
+                });
 
         return stay();
     }
@@ -431,8 +441,6 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
         return delayFuture
                 .thenCompose(unused -> publisherConnFuture)
                 .thenCompose(unused -> {
-                    // if there is no reconnect-redelivery, do not use a persistent session, since redelivered messages
-                    // will only arrive after
                     final boolean cleanSession = mqttSpecificConfig.cleanSession();
                     final Duration keepAlive = mqttSpecificConfig.getKeepAliveInterval().orElse(null);
                     return sendConn(mqttClient, cleanSession, keepAlive);
@@ -523,17 +531,16 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
      * @param clientToDisconnect the client to disconnect
      * @param name a name describing the client's purpose
      */
-    private CompletionStage<Void> safelyDisconnectClient(@Nullable final ClientWithCancelSwitch clientToDisconnect,
+    private void safelyDisconnectClient(@Nullable final ClientWithCancelSwitch clientToDisconnect,
             final String name) {
         if (clientToDisconnect != null) {
             try {
-                logger.debug("Disconnecting mqtt " + name + " client, ignoring any errors.");
-                return clientToDisconnect.disconnect();
+                logger.info("Disconnecting mqtt <{}> client, ignoring any errors.", name);
+                clientToDisconnect.disconnect().toCompletableFuture().join();
             } catch (final Exception e) {
                 logger.debug("Disconnecting client failed, it was probably already closed: {}", e);
             }
         }
-        return CompletableFuture.completedFuture(null);
     }
 
     private void startHiveMqConsumers(final Consumer<MqttConsumer> consumerListener) {

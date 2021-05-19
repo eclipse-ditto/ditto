@@ -95,6 +95,25 @@ For Ditto acknowledgements with mixed successful/failed [status](protocol-specif
 * If none of the aggregated [acknowledgements](basic-acknowledgements.html#acknowledgements-acks) require redelivery:
    * acknowledges the received MQTT 3.1.1 message as redelivery does not make sense
 
+In order to enable acknowledgement processing only for MQTT messages received with QoS 1/2, the following configuration
+has to be applied:  
+```json
+{
+  "addresses": [
+    "<mqtt_topic>",
+    "..."
+  ],
+  "authorizationContext": [
+    "ditto:inbound-auth-subject",
+    "..."
+  ],
+  "qos": 1,
+  "acknowledgementRequests": {
+    "includes": [],
+    "filter": "fn:filter(header:mqtt.qos,'ne','0')"
+  }
+}
+```
 
 ### Target format
 
