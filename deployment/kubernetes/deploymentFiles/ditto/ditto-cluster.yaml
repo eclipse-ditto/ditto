@@ -88,7 +88,7 @@ spec:
         ### -
         # in order to write logs into a file you can enable this by setting the following env variable
         # the log file(s) can be found in /opt/ditto directory on the host machine
-        #- name: FILE_APPENDER
+        #- name: DITTO_LOGGING_FILE_APPENDER
         #- value: true
       volumes:
         - name: ditto-log-files
@@ -187,7 +187,7 @@ spec:
         ### -
         # in order to write logs into a file you can enable this by setting the following env variable
         # the log file(s) can be found in /opt/ditto directory on the host machine
-        #- name: FILE_APPENDER
+        #- name: DITTO_LOGGING_FILE_APPENDER
         #- value: true
       volumes:
         - name: ditto-log-files
@@ -286,7 +286,7 @@ spec:
         ### -
         # in order to write logs into a file you can enable this by setting the following env variable
         # the log file(s) can be found in /opt/ditto directory on the host machine
-        #- name: FILE_APPENDER
+        #- name: DITTO_LOGGING_FILE_APPENDER
         #- value: true
       volumes:
         - name: ditto-log-files
@@ -384,7 +384,7 @@ spec:
         ### -
         # in order to write logs into a file you can enable this by setting the following env variable
         # the log file(s) can be found in /opt/ditto directory on the host machine
-        #- name: FILE_APPENDER
+        #- name: DITTO_LOGGING_FILE_APPENDER
         #- value: true
       volumes:
         - name: ditto-log-files
@@ -481,7 +481,7 @@ spec:
         #      key: mongodb-uri
         # in order to write logs into a file you can enable this by setting the following env variable
         # the log file(s) can be found in /opt/ditto directory on the host machine
-        #- name: FILE_APPENDER
+        #- name: DITTO_LOGGING_FILE_APPENDER
         #- value: true
       volumes:
         - name: ditto-log-files
@@ -572,7 +572,7 @@ spec:
           value: "-Xgcpolicy:gencon -Xgc:concurrentScavenge -XX:+IdleTuningGcOnIdle -XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
         # in order to write logs into a file you can enable this by setting the following env variable
         # the log file(s) can be found in /opt/ditto directory on the host machine
-        #- name: FILE_APPENDER
+        #- name: DITTO_LOGGING_FILE_APPENDER
         #- value: true
       volumes:
         - name: ditto-log-files
