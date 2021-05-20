@@ -74,6 +74,7 @@ public final class MqttSpecificConfig {
 
     private static Map<String, Object> toDefaultConfig(final MqttConfig mqttConfig) {
         final Map<String, Object> defaultMap = new HashMap<>();
+        defaultMap.put(CLEAN_SESSION, mqttConfig.isCleanSession());
         defaultMap.put(RECONNECT_FOR_REDELIVERY, mqttConfig.shouldReconnectForRedelivery());
         defaultMap.put(RECONNECT_FOR_REDELIVERY_DELAY, mqttConfig.getReconnectForRedeliveryDelay());
         defaultMap.put(SEPARATE_PUBLISHER_CLIENT, mqttConfig.shouldUseSeparatePublisherClient());
@@ -82,15 +83,9 @@ public final class MqttSpecificConfig {
 
     /**
      * @return whether subscriber CONN messages should set clean-session or clean-start flag to true.
-     * Default to the negation of "reconnectForRedelivery" (if reconnect for redelivery then persistent session,
-     * otherwise clean-session or clean-start.)
      */
     public boolean cleanSession() {
-        if (specificConfig.hasPath(CLEAN_SESSION)) {
-            return getSafely(() -> specificConfig.getBoolean(CLEAN_SESSION), false);
-        } else {
-            return !reconnectForRedelivery();
-        }
+        return specificConfig.getBoolean(CLEAN_SESSION);
     }
 
     /**

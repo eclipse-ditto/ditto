@@ -22,6 +22,7 @@ the following environment variables in order to configure the connection to the 
 
 * MONGO_DB_URI: Connection string to MongoDB
 * MONGO_DB_SSL_ENABLED: Enabled SSL connection to MongoDB
+* MONGO_DB_CONNECTION_MIN_POOL_SIZE: Configure MongoDB minimum connection pool size
 * MONGO_DB_CONNECTION_POOL_SIZE: Configure MongoDB connection pool size
 * MONGO_DB_READ_PREFERENCE: Configure MongoDB read preference
 * MONGO_DB_WRITE_CONCERN: Configure MongoDB write concern
@@ -162,19 +163,28 @@ ssl-config {
 
 Gathering logs for a running Ditto installation can be achieved by:
 
-* grepping log output from STDOUT/STDERR via Docker's [logging drivers](https://docs.docker.com/engine/admin/logging/overview/)
+* sending logs to STDOUT/STDERR: this is the default
+   * can be disabled by setting the environment variable `DITTO_LOGGING_DISABLE_SYSOUT_LOG`
    * Benefits: simple, works with all Docker logging drivers (e.g. "awslogs", "splunk", etc.)
 
-This option may also use an ELK stack with the right Docker logging driver.
-
+* pushing logs into ELK stack: this can be done by setting the environment variable `DITTO_LOGGING_LOGSTASH_SERVER`
+   * configure `DITTO_LOGGING_LOGSTASH_SERVER` to contain the endpoint of a logstash server
+    
+* writing logs to log files: this can be done by setting the environment variable `DITTO_LOGGING_FILE_APPENDER` to `true`
+   * configure the amount of log files, and the total amount of space used for logs files via these two environment 
+     variables:
+       * `DITTO_LOGGING_MAX_LOG_FILE_HISTORY_IN_DAYS` (default: 10) 
+       * `DITTO_LOGGING_TOTAL_LOG_FILE_SIZE` (default: 1GB)
+   * the format in which logging is done is "LogstashEncoder" format - that way the logfiles may easily be imported into
+     an ELK stack
 
 ## Monitoring
 
 In addition to logging, the Ditto images include monitoring features. Specific metrics are
-automatically gathered and published on a HTTP port. There it can be scraped by a [Prometheus](https://prometheus.io)
+automatically gathered and published on an HTTP port. There it can be scraped by a [Prometheus](https://prometheus.io)
 backend, from where the metrics can be accessed to display in dashboards (e.g. with [Grafana](https://grafana.com)).
 
-### Configuring
+### Monitoring configuration
 
 In the default configuration, each Ditto service opens a HTTP endpoint, where it provides the Prometheus metrics 
 on port `9095`. This can be changed via the environment variable `PROMETHEUS_PORT`.

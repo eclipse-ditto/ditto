@@ -2,16 +2,17 @@
 
 The Ditto Helm chart is managed at the [Eclipse IoT Packages](https://github.com/eclipse/packages/tree/master/charts/ditto) project.
 
-## Install Ditto via Helm
+## Install Ditto via Helm Chart
 
 To install the chart with the release name eclipse-ditto, run the following commands:
 
 ```shell script
 helm repo add eclipse-iot https://www.eclipse.org/packages/charts/
+helm repo update
 helm install eclipse-iot/ditto --name eclipse-ditto
 ```
 
-# Uninstall the Chart
+# Uninstall the Helm Chart
 
 To uninstall/delete the eclipse-ditto deployment:
 

@@ -40,6 +40,13 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.CharsetDeterminer;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.api.OutboundSignal;
+import org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
@@ -62,21 +69,14 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMon
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.DefaultConnectionMonitorRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionValidator;
-import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
-import org.eclipse.ditto.connectivity.api.OutboundSignal;
-import org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.internal.models.placeholders.ExpressionResolver;
 import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
+import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 
@@ -408,9 +408,10 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         if (publishTargetOptional.isPresent()) {
             final T publishTarget = publishTargetOptional.get();
             final Signal<?> outboundSource = outbound.getSource();
-            logger.info("Publishing mapped message of type <{}> to PublishTarget <{}>", outboundSource.getType(),
+            final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(outboundSource);
+            l.info("Publishing mapped message of type <{}> to PublishTarget <{}>", outboundSource.getType(),
                     publishTarget);
-            logger.debug("Publishing mapped message of type <{}> to PublishTarget <{}>: {}", outboundSource.getType(),
+            l.debug("Publishing mapped message of type <{}> to PublishTarget <{}>: {}", outboundSource.getType(),
                     publishTarget, sendingContext.getExternalMessage());
             @Nullable final Target autoAckTarget = sendingContext.getAutoAckTarget().orElse(null);
             final HeaderMapping headerMapping = genericTarget.getHeaderMapping();
@@ -424,7 +425,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             );
             // set the external message after header mapping for the result of header mapping to show up in log
             result = new Sending(sendingContext.setExternalMessage(mappedMessage), responsesFuture,
-                    connectionIdResolver, logger);
+                    connectionIdResolver, l);
         } else {
             result = new Dropped(sendingContext, "Signal dropped, target address unresolved: {0}");
         }

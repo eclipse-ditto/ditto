@@ -19,13 +19,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
@@ -35,8 +34,9 @@ import org.eclipse.ditto.internal.utils.pubsub.api.PublishSignal;
 import org.eclipse.ditto.internal.utils.pubsub.api.RemoteAcksChanged;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.DDataReader;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.ack.Grouped;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
-import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -169,9 +169,11 @@ public final class Publisher extends AbstractActor {
         final List<Pair<ActorRef, PublishSignal>> subscribers =
                 publisherIndex.assignGroupsToSubscribers(signal, hashes);
         final ThreadSafeDittoLoggingAdapter l = log.withCorrelationId(signal);
-        l.debug("Calculated hashes for signal <{}>: <{}>", signal, hashes);
-        l.info("Publishing PublishSignal to subscribers: <{}>",
-                subscribers.stream().map(Pair::first).collect(Collectors.toList()));
+        if (l.isDebugEnabled()) {
+            l.debug("Calculated hashes for signal <{}>: <{}>", signal, hashes);
+            l.debug("Publishing PublishSignal to subscribers: <{}>",
+                    subscribers.stream().map(Pair::first).collect(Collectors.toList()));
+        }
         subscribers.forEach(pair -> pair.first().tell(pair.second(), sender));
         return subscribers;
     }

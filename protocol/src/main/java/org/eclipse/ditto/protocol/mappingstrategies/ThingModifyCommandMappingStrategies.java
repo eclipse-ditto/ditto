@@ -21,10 +21,10 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableMapper;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingIdNotExplicitlySettableException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteAttribute;
@@ -175,7 +175,9 @@ final class ThingModifyCommandMappingStrategies extends AbstractThingMappingStra
 
         if (thingIdOptional.isPresent()) {
             if (!thingIdOptional.get().equals(thingIdFromTopic)) {
-                throw ThingIdNotExplicitlySettableException.forDittoProtocol().build();
+                throw ThingIdNotExplicitlySettableException.forDittoProtocol()
+                        .dittoHeaders(adaptable.getDittoHeaders())
+                        .build();
             }
         } else {
             return thing.toBuilder()

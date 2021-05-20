@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -28,6 +29,7 @@ import kamon.Kamon;
 import kamon.metric.Distribution;
 import kamon.tag.TagSet;
 import scala.collection.Seq;
+import scala.jdk.javaapi.CollectionConverters;
 
 /**
  * Kamon based implementation of {@link Histogram}.
@@ -96,7 +98,8 @@ public class KamonHistogram implements Histogram {
     @Override
     public Long[] getRecordedValues() {
         final List<Long> values = new ArrayList<>();
-        final Seq<Distribution.Bucket> buckets = getSnapshot(false).buckets();
+        final Seq<Distribution.Bucket> buckets = getSnapshot(false).map(Distribution::buckets)
+                .orElseGet(() -> CollectionConverters.asScala(Collections.<Distribution.Bucket>emptyList()).toSeq());
         buckets.foreach(bucket -> addBucketValuesToList(bucket, values));
         return values.toArray(new Long[0]);
     }
@@ -108,14 +111,14 @@ public class KamonHistogram implements Histogram {
         return values;
     }
 
-    private Distribution getSnapshot(final boolean reset) {
+    private Optional<Distribution> getSnapshot(final boolean reset) {
         final kamon.metric.Histogram histogram = getKamonInternalHistogram();
 
         if (histogram instanceof kamon.metric.Histogram.Atomic) {
-            return ((kamon.metric.Histogram.Atomic) histogram).snapshot(reset);
+            return Optional.of(((kamon.metric.Histogram.Atomic) histogram).snapshot(reset));
         }
-
-        throw new IllegalStateException("Could not get snapshot of kamon internal histogram");
+        LOGGER.warn("Could not get snapshot of kamon internal histogram");
+        return Optional.empty();
     }
 
     private kamon.metric.Histogram getKamonInternalHistogram() {

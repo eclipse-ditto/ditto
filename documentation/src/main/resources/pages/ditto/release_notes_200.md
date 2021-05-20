@@ -201,9 +201,7 @@ packages were renamed:
 New Java client instances are instantiated differently, please have a look at the  
 [migration notes](#ditto-java-client-instantiation).
 
-In addition, all APIs which returned a `CompletableFuture` were adjusted to return a `CompletionStage` instead, 
-please have a look at the  
-[migration notes](#ditto-java-client-completionstage-apis).
+In addition, all APIs which returned a `CompletableFuture` were adjusted to return a `CompletionStage` instead.
 
 #### Ditto JavaScript client
 

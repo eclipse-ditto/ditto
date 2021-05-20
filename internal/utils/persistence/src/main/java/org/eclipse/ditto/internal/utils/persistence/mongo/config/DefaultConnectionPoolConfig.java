@@ -30,11 +30,13 @@ public final class DefaultConnectionPoolConfig implements MongoDbConfig.Connecti
 
     private static final String CONFIG_PATH = "pool";
 
+    private final int minSize;
     private final int maxSize;
     private final Duration maxWaitTime;
     private final boolean jmxListenerEnabled;
 
     private DefaultConnectionPoolConfig(final ScopedConfig config) {
+        minSize = config.getInt(ConnectionPoolConfigValue.MIN_SIZE.getConfigPath());
         maxSize = config.getInt(ConnectionPoolConfigValue.MAX_SIZE.getConfigPath());
         maxWaitTime = config.getDuration(ConnectionPoolConfigValue.MAX_WAIT_TIME.getConfigPath());
         jmxListenerEnabled = config.getBoolean(ConnectionPoolConfigValue.JMX_LISTENER_ENABLED.getConfigPath());
@@ -50,6 +52,11 @@ public final class DefaultConnectionPoolConfig implements MongoDbConfig.Connecti
     public static DefaultConnectionPoolConfig of(final Config config) {
         return new DefaultConnectionPoolConfig(
                 ConfigWithFallback.newInstance(config, CONFIG_PATH, ConnectionPoolConfigValue.values()));
+    }
+
+    @Override
+    public int getMinSize() {
+        return minSize;
     }
 
     @Override
@@ -76,20 +83,22 @@ public final class DefaultConnectionPoolConfig implements MongoDbConfig.Connecti
             return false;
         }
         final DefaultConnectionPoolConfig that = (DefaultConnectionPoolConfig) o;
-        return maxSize == that.maxSize &&
+        return minSize == that.minSize &&
+                maxSize == that.maxSize &&
                 jmxListenerEnabled == that.jmxListenerEnabled &&
                 Objects.equals(maxWaitTime, that.maxWaitTime);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(maxSize, maxWaitTime, jmxListenerEnabled);
+        return Objects.hash(minSize, maxSize, maxWaitTime, jmxListenerEnabled);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "maxSize=" + maxSize +
+                "minSize=" + minSize +
+                ", maxSize=" + maxSize +
                 ", maxWaitTime=" + maxWaitTime +
                 ", jmxListenerEnabled=" + jmxListenerEnabled +
                 "]";

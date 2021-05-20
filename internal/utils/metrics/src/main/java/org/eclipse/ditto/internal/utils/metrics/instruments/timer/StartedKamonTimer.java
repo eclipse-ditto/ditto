@@ -36,14 +36,14 @@ final class StartedKamonTimer implements StartedTimer {
     private final Map<String, StartedTimer> segments;
     private final long startTimestamp;
 
-    private boolean stopped;
+    @Nullable private StoppedTimer stoppedTimer;
 
     private StartedKamonTimer(final String name, final Map<String, String> tags) {
         this.name = name;
         this.tags = new HashMap<>(tags);
         this.segments = new HashMap<>();
         this.onStopHandlers = new ArrayList<>();
-        this.stopped = false;
+        this.stoppedTimer = null;
         this.startTimestamp = System.nanoTime();
         if (!this.tags.containsKey(SEGMENT_TAG)) {tag(SEGMENT_TAG, "overall");}
     }
@@ -54,7 +54,7 @@ final class StartedKamonTimer implements StartedTimer {
 
     @Override
     public StartedTimer tags(final Map<String, String> tags) {
-        if (stopped) {
+        if (isStopped()) {
             LOGGER.warn("Tried to append multiple tags to the stopped timer with name <{}>. Tags are ineffective.",
                     name);
         } else {
@@ -76,7 +76,7 @@ final class StartedKamonTimer implements StartedTimer {
 
     @Override
     public StartedTimer tag(final String key, final String value) {
-        if (stopped) {
+        if (isStopped()) {
             LOGGER.warn(
                     "Tried to append tag <{}> with value <{}> to the stopped timer with name <{}>. Tag is ineffective.",
                     key, value, name);
@@ -90,41 +90,42 @@ final class StartedKamonTimer implements StartedTimer {
     public StoppedTimer stop() {
 
         if (isRunning()) {
-            stopped = true;
-            return StoppedKamonTimer.fromStartedTimer(this);
+            stoppedTimer = StoppedKamonTimer.fromStartedTimer(this);
+        }else {
+            LOGGER.warn("Tried to stop the already stopped timer <{}> with segment <{}>.", name, getTag(SEGMENT_TAG));
         }
-
-        throw new IllegalStateException(
-                String.format("Tried to stop the already stopped timer <%s> with segment <%s>.", name,
-                        getTag(SEGMENT_TAG)));
+        return stoppedTimer;
     }
 
     @Override
     public boolean isRunning() {
-        return !stopped;
+        return stoppedTimer == null;
+    }
+
+    private boolean isStopped() {
+        return !isRunning();
     }
 
     @Override
     public StartedTimer startNewSegment(final String segmentName) {
-        verifyRunning();
-        final StartedTimer segment = PreparedKamonTimer.newTimer(name)
-                .tags(this.tags)
-                .tag(SEGMENT_TAG, segmentName)
-                .start();
-        this.segments.put(segmentName, segment);
-        return segment;
+        if (isRunning()) {
+            final StartedTimer segment = PreparedKamonTimer.newTimer(name)
+                    .tags(this.tags)
+                    .tag(SEGMENT_TAG, segmentName)
+                    .start();
+            this.segments.put(segmentName, segment);
+            return segment;
+        } else {
+            LOGGER.warn("Tried to start a new segment <{}> on a already stopped timer <{}> with segment <{}>.",
+                    segmentName, name, getTag(SEGMENT_TAG));
+            return this;
+        }
     }
 
     @Override
     public StartedTimer onStop(final OnStopHandler onStopHandler) {
         onStopHandlers.add(onStopHandler);
         return this;
-    }
-
-    private void verifyRunning() {
-        if (!isRunning()) {
-            throw new IllegalStateException("Timer has been stopped, already.");
-        }
     }
 
     @Override
@@ -156,7 +157,7 @@ final class StartedKamonTimer implements StartedTimer {
                 ", onStopHandlers=" + onStopHandlers +
                 ", segments=" + segments +
                 ", startTimestamp=" + startTimestamp +
-                ", stopped=" + stopped +
+                ", stoppedTimer=" + stoppedTimer +
                 "]";
     }
 }

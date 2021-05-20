@@ -31,6 +31,24 @@ public interface MqttConfig {
      */
     int getSourceBufferSize();
 
+
+    /**
+     * Returns the number of threads to use for the underlying event loop of the MQTT client.
+     * When configured to {@code 0}, the size is determined based on {@code the available processor cores * 2}.
+     *
+     * @return the amount of event loop threads.
+     * @since 2.0.0
+     */
+    int getEventLoopThreads();
+
+    /**
+     * Indicates whether subscriber CONN messages should set clean-session or clean-start flag to true.
+     *
+     * @return the default setting of cleanSession.
+     * @since 2.0.0
+     */
+    boolean isCleanSession();
+
     /**
      * Indicates whether the client should reconnect to enforce a redelivery for a failed acknowledgement.
      *
@@ -57,6 +75,14 @@ public interface MqttConfig {
     boolean shouldUseSeparatePublisherClient();
 
     /**
+     * Returns the reconnect backoff configuration to apply when reconnecting failed MQTT connections.
+     *
+     * @return the reconnect backoff configuration to apply.
+     * @since 2.0.0
+     */
+    BackOffConfig getReconnectBackOffConfig();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code MqttConfig}.
      */
@@ -68,6 +94,16 @@ public interface MqttConfig {
         SOURCE_BUFFER_SIZE("source-buffer-size", 8),
 
         /**
+         * The number of threads to use for the underlying event loop of the MQTT client.
+         */
+        EVENT_LOOP_THREADS("event-loop-threads", 0),
+
+        /**
+         * Indicates whether subscriber CONN messages should set clean-session or clean-start flag to true.
+         */
+        CLEAN_SESSION("clean-session", false),
+
+        /**
          * Indicates whether the client should reconnect to enforce a redelivery for a failed acknowledgement.
          */
         RECONNECT_FOR_REDELIVERY("reconnect-for-redelivery", false),
@@ -75,7 +111,7 @@ public interface MqttConfig {
         /**
          * The amount of time that a reconnect will be delayed after a failed acknowledgement.
          */
-        RECONNECT_FOR_REDELIVERY_DELAY("reconnect-for-redelivery-delay", Duration.ofSeconds(2)),
+        RECONNECT_FOR_REDELIVERY_DELAY("reconnect-for-redelivery-delay", Duration.ofSeconds(10)),
 
         /**
          * Indicates whether a separate client should be used for publishing. This could be useful when

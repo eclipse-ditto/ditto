@@ -36,6 +36,9 @@ spec:
           limits:
             # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
             memory: "2Gi"
+        volumeMounts:
+          - name: ditto-log-files
+            mountPath: /opt/ditto
         ports:
         - name: remoting
           containerPort: 2551
@@ -76,12 +79,22 @@ spec:
           value: "-Xgcpolicy:gencon -Xgc:concurrentScavenge -XX:+IdleTuningGcOnIdle -XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
         - name: MONGO_DB_HOSTNAME
           value: "mongodb"
-# in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
-#        - name: MONGO_DB_URI
-#          valueFrom:
-#            secretKeyRef:
-#              name: mongodb
-#              key: mongodb-uri
+        # in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
+        # - name: MONGO_DB_URI
+        #  valueFrom:
+        #   secretKeyRef:
+        #      name: mongodb
+        #      key: mongodb-uri
+        ### -
+        # in order to write logs into a file you can enable this by setting the following env variable
+        # the log file(s) can be found in /opt/ditto directory on the host machine
+        #- name: DITTO_LOGGING_FILE_APPENDER
+        #- value: true
+      volumes:
+        - name: ditto-log-files
+          hostPath:
+            path: /var/log/ditto
+            type: DirectoryOrCreate
 
 ---
 
@@ -115,13 +128,16 @@ spec:
         imagePullPolicy: IfNotPresent
         args: ["java", "-jar", "starter.jar"]
         # Resource can be managed by setting the following resource config.
-        #resources:
-        #  requests:
-        #    cpu: "1"
-        #    memory: "1Gi"
-        #  limits:
-        #    # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
-        #    memory: "4Gi"
+        resources:
+          requests:
+            cpu: "1"
+            memory: "1Gi"
+          limits:
+            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            memory: "4Gi"
+        volumeMounts:
+          - name: ditto-log-files
+            mountPath: /opt/ditto
         ports:
         - name: remoting
           containerPort: 2551
@@ -162,12 +178,22 @@ spec:
           value: "-Xgcpolicy:gencon -Xgc:concurrentScavenge -XX:+IdleTuningGcOnIdle -XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
         - name: MONGO_DB_HOSTNAME
           value: "mongodb"
-# in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
-#        - name: MONGO_DB_URI
-#          valueFrom:
-#            secretKeyRef:
-#              name: mongodb
-#              key: mongodb-uri
+        # in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
+        #- name: MONGO_DB_URI
+        #  valueFrom:
+        #    secretKeyRef:
+        #      name: mongodb
+        #      key: mongodb-uri
+        ### -
+        # in order to write logs into a file you can enable this by setting the following env variable
+        # the log file(s) can be found in /opt/ditto directory on the host machine
+        #- name: DITTO_LOGGING_FILE_APPENDER
+        #- value: true
+      volumes:
+        - name: ditto-log-files
+          hostPath:
+            path: /var/log/ditto
+            type: DirectoryOrCreate
 
 ---
 
@@ -201,13 +227,16 @@ spec:
         imagePullPolicy: IfNotPresent
         args: ["java", "-jar", "starter.jar"]
         # Resource can be managed by setting the following resource config.
-        #resources:
-        #  requests:
-        #    cpu: "1"
-        #    memory: "1Gi"
-        #  limits:
-        #    # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
-        #    memory: "4Gi"
+        resources:
+          requests:
+            cpu: "1"
+            memory: "1Gi"
+          limits:
+            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            memory: "4Gi"
+        volumeMounts:
+          - name: ditto-log-files
+            mountPath: /opt/ditto
         ports:
         - name: remoting
           containerPort: 2551
@@ -248,12 +277,22 @@ spec:
           value: "-Xgcpolicy:gencon -Xgc:concurrentScavenge -XX:+IdleTuningGcOnIdle -XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
         - name: MONGO_DB_HOSTNAME
           value: "mongodb"
-# in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
-#        - name: MONGO_DB_URI
-#          valueFrom:
-#            secretKeyRef:
-#              name: mongodb
-#              key: mongodb-uri
+        # in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
+        #- name: MONGO_DB_URI
+        #  valueFrom:
+        #    secretKeyRef:
+        #      name: mongodb
+        #      key: mongodb-uri
+        ### -
+        # in order to write logs into a file you can enable this by setting the following env variable
+        # the log file(s) can be found in /opt/ditto directory on the host machine
+        #- name: DITTO_LOGGING_FILE_APPENDER
+        #- value: true
+      volumes:
+        - name: ditto-log-files
+          hostPath:
+            path: /var/log/ditto
+            type: DirectoryOrCreate
 
 ---
 
@@ -286,13 +325,16 @@ spec:
         imagePullPolicy: IfNotPresent
         args: ["java", "-jar", "starter.jar"]
         # Resource can be managed by setting the following resource config.
-        #resources:
-        #  requests:
-        #    cpu: "0.75"
-        #    memory: "512Mi"
-        #  limits:
-        #    # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
-        #    memory: "2Gi"
+        resources:
+          requests:
+            cpu: "1"
+            memory: "512Mi"
+          limits:
+            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            memory: "2Gi"
+        volumeMounts:
+          - name: ditto-log-files
+            mountPath: /opt/ditto
         ports:
         - name: remoting
           containerPort: 2551
@@ -333,12 +375,22 @@ spec:
           value: "-Xgcpolicy:gencon -Xgc:concurrentScavenge -XX:+IdleTuningGcOnIdle -XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
         - name: MONGO_DB_HOSTNAME
           value: "mongodb"
-# in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
-#        - name: MONGO_DB_URI
-#          valueFrom:
-#            secretKeyRef:
-#              name: mongodb
-#              key: mongodb-uri
+        # in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
+        #- name: MONGO_DB_URI
+        #  valueFrom:
+        #    secretKeyRef:
+        #      name: mongodb
+        #      key: mongodb-uri
+        ### -
+        # in order to write logs into a file you can enable this by setting the following env variable
+        # the log file(s) can be found in /opt/ditto directory on the host machine
+        #- name: DITTO_LOGGING_FILE_APPENDER
+        #- value: true
+      volumes:
+        - name: ditto-log-files
+          hostPath:
+            path: /var/log/ditto
+            type: DirectoryOrCreate
 
 ---
 
@@ -371,13 +423,16 @@ spec:
         imagePullPolicy: IfNotPresent
         args: ["java", "-jar", "starter.jar"]
         # Resource can be managed by setting the following resource config.
-        #resources:
-        #  requests:
-        #    cpu: "0.75"
-        #    memory: "1Gi"
-        #  limits:
-        #    # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
-        #    memory: "2Gi"
+        resources:
+          requests:
+            cpu: "1"
+            memory: "1Gi"
+          limits:
+            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            memory: "2Gi"
+        volumeMounts:
+          - name: ditto-log-files
+            mountPath: /opt/ditto
         ports:
         - name: remoting
           containerPort: 2551
@@ -418,12 +473,21 @@ spec:
           value: "-Xgcpolicy:gencon -Xgc:concurrentScavenge -XX:+IdleTuningGcOnIdle -XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
         - name: MONGO_DB_HOSTNAME
           value: "mongodb"
-# in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
-#        - name: MONGO_DB_URI
-#          valueFrom:
-#            secretKeyRef:
-#              name: mongodb
-#              key: mongodb-uri
+        # in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
+        #- name: MONGO_DB_URI
+        #  valueFrom:
+        #    secretKeyRef:
+        #      name: mongodb
+        #      key: mongodb-uri
+        # in order to write logs into a file you can enable this by setting the following env variable
+        # the log file(s) can be found in /opt/ditto directory on the host machine
+        #- name: DITTO_LOGGING_FILE_APPENDER
+        #- value: true
+      volumes:
+        - name: ditto-log-files
+          hostPath:
+            path: /var/log/ditto
+            type: DirectoryOrCreate
 
 ---
 
@@ -456,13 +520,16 @@ spec:
         imagePullPolicy: IfNotPresent
         args: ["java", "-jar", "starter.jar"]
         # Resource can be managed by setting the following resource config.
-        #resources:
-        #  requests:
-        #    cpu: "1"
-        #    memory: "512Mi"
-        #  limits:
-        #    # cpu: "{{ item.cpus }}" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
-        #    memory: "2Gi"
+        resources:
+          requests:
+            cpu: "1"
+            memory: "512Mi"
+          limits:
+            # cpu: "{{ item.cpus }}" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            memory: "2Gi"
+        volumeMounts:
+          - name: ditto-log-files
+            mountPath: /opt/ditto
         ports:
         - name: remoting
           containerPort: 2551
@@ -503,7 +570,18 @@ spec:
           value: "Europe/Berlin"
         - name: OPENJ9_JAVA_OPTIONS
           value: "-Xgcpolicy:gencon -Xgc:concurrentScavenge -XX:+IdleTuningGcOnIdle -XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
+        # in order to write logs into a file you can enable this by setting the following env variable
+        # the log file(s) can be found in /opt/ditto directory on the host machine
+        #- name: DITTO_LOGGING_FILE_APPENDER
+        #- value: true
+      volumes:
+        - name: ditto-log-files
+          hostPath:
+            path: /var/log/ditto
+            type: DirectoryOrCreate
+
 ---
+
 apiVersion: v1
 kind: Service
 metadata:

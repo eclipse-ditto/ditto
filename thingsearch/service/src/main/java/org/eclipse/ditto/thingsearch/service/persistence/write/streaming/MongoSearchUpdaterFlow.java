@@ -16,12 +16,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.bson.Document;
-import org.eclipse.ditto.thingsearch.service.common.config.PersistenceStreamConfig;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.thingsearch.service.common.config.PersistenceStreamConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
 
 import com.mongodb.MongoBulkWriteException;
 import com.mongodb.client.model.BulkWriteOptions;
@@ -32,7 +32,6 @@ import com.mongodb.reactivestreams.client.MongoDatabase;
 import akka.NotUsed;
 import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
-import akka.stream.Attributes;
 import akka.stream.FanInShape2;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
@@ -51,6 +50,11 @@ final class MongoSearchUpdaterFlow {
     private static final String TRACE_THING_BULK_UPDATE = "things_search_thing_bulkUpdate";
     private static final String COUNT_THING_BULK_UPDATES_PER_BULK = "things_search_thing_bulkUpdate_updates_per_bulk";
     private static final String UPDATE_TYPE_TAG = "update_type";
+
+    /**
+     * Config key of the dispatcher for the search updater.
+     */
+    static final String DISPATCHER_NAME = "search-updater-dispatcher";
 
     private final MongoCollection<Document> collection;
     private final MongoCollection<Document> collectionWithAcknowledgements;
@@ -71,7 +75,8 @@ final class MongoSearchUpdaterFlow {
      */
     public static MongoSearchUpdaterFlow of(final MongoDatabase database,
             final PersistenceStreamConfig persistenceConfig) {
-        return new MongoSearchUpdaterFlow(database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME), persistenceConfig);
+        return new MongoSearchUpdaterFlow(database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME),
+                persistenceConfig);
     }
 
 
@@ -96,9 +101,8 @@ final class MongoSearchUpdaterFlow {
 
         final Flow<List<AbstractWriteModel>, WriteResultAndErrors, NotUsed> writeFlow =
                 Flow.<List<AbstractWriteModel>>create()
-                        .flatMapMerge(parallelism, writeModels -> executeBulkWrite(shouldAcknowledge, writeModels))
-                        // never initiate more than "parallelism" writes against the persistence
-                        .withAttributes(Attributes.inputBuffer(parallelism, parallelism));
+                        .flatMapMerge(parallelism, writeModels ->
+                                executeBulkWrite(shouldAcknowledge, writeModels).async(DISPATCHER_NAME, parallelism));
 
         return Flow.fromGraph(assembleFlows(batchFlow, writeFlow, createStartTimerFlow(), createStopTimerFlow()));
     }
@@ -114,9 +118,9 @@ final class MongoSearchUpdaterFlow {
 
         final MongoCollection<Document> theCollection;
         if (shouldAcknowledge) {
-            theCollection = this.collection;
-        } else {
             theCollection = this.collectionWithAcknowledgements;
+        } else {
+            theCollection = this.collection;
         }
 
         return Source.fromPublisher(theCollection.bulkWrite(writeModels, new BulkWriteOptions().ordered(false)))

@@ -58,6 +58,7 @@ public final class MongoHealthChecker extends AbstractHealthCheckingActor {
         final DefaultMongoDbConfig mongoDbConfig = DefaultMongoDbConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()));
         mongoClient = MongoClientWrapper.getBuilder(mongoDbConfig)
+                .connectionPoolMinSize(0)
                 .connectionPoolMaxSize(HEALTH_CHECK_MAX_POOL_SIZE)
                 .build();
 
