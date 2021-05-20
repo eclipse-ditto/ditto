@@ -53,8 +53,8 @@
                 <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
                     <fileNamePattern>thing-search.log.%d{yyyy-MM-dd}.gz</fileNamePattern>
                     <!-- Keep 30 days' worth of history capped at 1GB total size -->
-                    <maxHistory>30</maxHistory>
-                    <totalSizeCap>1GB</totalSizeCap>
+                    <maxHistory>${MAX_LOG_FILE_HISTORY_IN_DAYS:-10}</maxHistory>
+                    <totalSizeCap>${TOTAL_LOG_FILE_SIZE:-1GB}</totalSizeCap>1GB</totalSizeCap>
                 </rollingPolicy>
                 <encoder class="net.logstash.logback.encoder.LogstashEncoder">
                     <customFields>{"appname":"thing-search","instance_index":"${INSTANCE_INDEX}"}</customFields>

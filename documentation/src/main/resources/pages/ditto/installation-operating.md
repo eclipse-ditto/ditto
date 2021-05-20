@@ -166,8 +166,13 @@ Gathering logs for a running Ditto installation can be achieved by:
 * grepping log output from STDOUT/STDERR via Docker's [logging drivers](https://docs.docker.com/engine/admin/logging/overview/)
    * Benefits: simple, works with all Docker logging drivers (e.g. "awslogs", "splunk", etc.)
 
-This option may also use an ELK stack with the right Docker logging driver.
-
+* pushing logs into ELK stack. This can be done via the environment variable `LOGSTASH_SERVER`.
+   * configure your logstash endpoint where Ditto can push the logs.
+    
+* writing logs to log files. This can be done via the environment variable `FILE_APPENDER`.
+   * configure the amonut of log files, and the total amount of space used for logs files via
+     these two environment variables `MAX_LOG_FILE_HISTORY_IN_DAYS` and `TOTAL_LOG_FILE_SIZE`
+     
 
 ## Monitoring
 
