@@ -76,12 +76,22 @@ spec:
           value: "-Xgcpolicy:gencon -Xgc:concurrentScavenge -XX:+IdleTuningGcOnIdle -XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
         - name: MONGO_DB_HOSTNAME
           value: "mongodb"
-# in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
-#        - name: MONGO_DB_URI
-#          valueFrom:
-#            secretKeyRef:
-#              name: mongodb
-#              key: mongodb-uri
+        # in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
+        # - name: MONGO_DB_URI
+        #  valueFrom:
+        #   secretKeyRef:
+        #      name: mongodb
+        #      key: mongodb-uri
+        ### -
+        # in order to write logs into a file you can enable this by setting the following env variable
+        # the log file(s) can be found in /opt/ditto directory on the host machine
+        #- name: FILE_APPENDER
+        #- value: true-
+      volumes:
+        - name: ditto-log-files
+          hostPath:
+            path: /var/log/ditto
+            type: DirectoryOrCreate
 
 ---
 
@@ -162,12 +172,23 @@ spec:
           value: "-Xgcpolicy:gencon -Xgc:concurrentScavenge -XX:+IdleTuningGcOnIdle -XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
         - name: MONGO_DB_HOSTNAME
           value: "mongodb"
-# in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
-#        - name: MONGO_DB_URI
-#          valueFrom:
-#            secretKeyRef:
-#              name: mongodb
-#              key: mongodb-uri
+        # in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
+        #- name: MONGO_DB_URI
+        #  valueFrom:
+        #    secretKeyRef:
+        #      name: mongodb
+        #      key: mongodb-uri
+        ### -
+        # in order to write logs into a file you can enable this by setting the following env variable
+        # the log file(s) can be found in /opt/ditto directory on the host machine
+        #- name: FILE_APPENDER
+        #- value: true
+      volumes:
+        - name: ditto-log-files
+          hostPath:
+            path: /var/log/ditto
+            type: DirectoryOrCreate
+
 
 ---
 
@@ -248,12 +269,22 @@ spec:
           value: "-Xgcpolicy:gencon -Xgc:concurrentScavenge -XX:+IdleTuningGcOnIdle -XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
         - name: MONGO_DB_HOSTNAME
           value: "mongodb"
-# in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
-#        - name: MONGO_DB_URI
-#          valueFrom:
-#            secretKeyRef:
-#              name: mongodb
-#              key: mongodb-uri
+        # in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
+        #- name: MONGO_DB_URI
+        #  valueFrom:
+        #    secretKeyRef:
+        #      name: mongodb
+        #      key: mongodb-uri
+        ### -
+        # in order to write logs into a file you can enable this by setting the following env variable
+        # the log file(s) can be found in /opt/ditto directory on the host machine
+        #- name: FILE_APPENDER
+        #- value: true-
+      volumes:
+        - name: ditto-log-files
+          hostPath:
+            path: /var/log/ditto
+            type: DirectoryOrCreate
 
 ---
 
@@ -333,12 +364,22 @@ spec:
           value: "-Xgcpolicy:gencon -Xgc:concurrentScavenge -XX:+IdleTuningGcOnIdle -XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
         - name: MONGO_DB_HOSTNAME
           value: "mongodb"
-# in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
-#        - name: MONGO_DB_URI
-#          valueFrom:
-#            secretKeyRef:
-#              name: mongodb
-#              key: mongodb-uri
+        # in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
+        #- name: MONGO_DB_URI
+        #  valueFrom:
+        #    secretKeyRef:
+        #      name: mongodb
+        #      key: mongodb-uri
+        ### -
+        # in order to write logs into a file you can enable this by setting the following env variable
+        # the log file(s) can be found in /opt/ditto directory on the host machine
+        #- name: FILE_APPENDER
+        #- value: true
+      volumes:
+        - name: ditto-log-files
+          hostPath:
+            path: /var/log/ditto
+            type: DirectoryOrCreate
 
 ---
 
@@ -418,12 +459,21 @@ spec:
           value: "-Xgcpolicy:gencon -Xgc:concurrentScavenge -XX:+IdleTuningGcOnIdle -XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
         - name: MONGO_DB_HOSTNAME
           value: "mongodb"
-# in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
-#        - name: MONGO_DB_URI
-#          valueFrom:
-#            secretKeyRef:
-#              name: mongodb
-#              key: mongodb-uri
+        # in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
+        #- name: MONGO_DB_URI
+        #  valueFrom:
+        #    secretKeyRef:
+        #      name: mongodb
+        #      key: mongodb-uri
+        # in order to write logs into a file you can enable this by setting the following env variable
+        # the log file(s) can be found in /opt/ditto directory on the host machine
+        #- name: FILE_APPENDER
+        #- value: true
+      volumes:
+        - name: ditto-log-files
+          hostPath:
+            path: /var/log/ditto
+            type: DirectoryOrCreate
 
 ---
 
@@ -463,6 +513,9 @@ spec:
           limits:
             # cpu: "{{ item.cpus }}" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
             memory: "2Gi"
+        volumeMounts:
+          - name: ditto-log-files
+            mountPath: /opt/ditto
         ports:
         - name: remoting
           containerPort: 2551
@@ -502,7 +555,16 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: OPENJ9_JAVA_OPTIONS
-          value: "-Xgcpolicy:gencon -Xgc:concurrentScavenge -XX:+IdleTuningGcOnIdle -XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
+         value: "-Xgcpolicy:gencon -Xgc:concurrentScavenge -XX:+IdleTuningGcOnIdle -XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s"
+        # in order to write logs into a file you can enable this by setting the following env variable
+        # the log file(s) can be found in /opt/ditto directory on the host machine
+        #- name: FILE_APPENDER
+        #- value: true
+      volumes:
+        - name: ditto-log-files
+          hostPath:
+            path: /var/log/ditto
+            type: DirectoryOrCreate
 
 ---
 
