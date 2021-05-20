@@ -122,6 +122,21 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
             <groupId>org.atteo.classindex</groupId>
             <artifactId>classindex</artifactId>
         </dependency>
+
+        <!-- logstash appender logging -->
+        <dependency>
+            <groupId>org.codehaus.janino</groupId>
+            <artifactId>janino</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>net.logstash.logback</groupId>
+            <artifactId>logstash-logback-encoder</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+        </dependency>
+
         <!-- ### Testing ### -->
         <dependency>
             <groupId>org.openjdk.jmh</groupId>
@@ -226,6 +241,9 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
                                         <exclude>META-INF/lmdbjava-LICENSE.txt</exclude>
                                         <exclude>META-INF/lmdbjava-THIRD-PARTY.txt</exclude>
                                         <exclude>META-INF/NOTICE</exclude>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
                                     </excludes>
                                 </filter>
                             </filters>
