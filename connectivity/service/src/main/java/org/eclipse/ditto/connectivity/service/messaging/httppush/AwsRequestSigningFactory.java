@@ -51,8 +51,11 @@ public final class AwsRequestSigningFactory implements RequestSigningFactory {
         final List<String> canonicalHeaders = parameters.getValue(JsonFields.CANONICAL_HEADERS)
                 .map(array -> array.stream().map(JsonValue::asString).collect(Collectors.toList()))
                 .orElse(DEFAULT_CANONICAL_HEADERS);
+        final var xAmzContentSha256 = parameters.getValue(JsonFields.X_AMZ_CONTENT_SHA256)
+                .map(AwsRequestSigning.XAmzContentSha256::forName)
+                .orElse(AwsRequestSigning.XAmzContentSha256.EXCLUDED);
         return new AwsRequestSigning(actorSystem, canonicalHeaders, region, service, accessKey, secretKey, doubleEncode,
-                TIMEOUT);
+                TIMEOUT, xAmzContentSha256);
     }
 
     /**
@@ -90,5 +93,8 @@ public final class AwsRequestSigningFactory implements RequestSigningFactory {
          */
         public static JsonFieldDefinition<JsonArray> CANONICAL_HEADERS =
                 JsonFieldDefinition.ofJsonArray("canonicalHeaders");
+
+        public static JsonFieldDefinition<String> X_AMZ_CONTENT_SHA256 =
+                JsonFieldDefinition.ofString("X_AMZ_CONTENT_SHA256");
     }
 }

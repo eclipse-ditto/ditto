@@ -17,6 +17,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -27,6 +28,7 @@ import java.util.stream.StreamSupport;
 
 import org.eclipse.ditto.base.service.UriEncoding;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.Hashes;
+import org.eclipse.ditto.json.JsonParseException;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
@@ -38,6 +40,7 @@ import akka.http.javadsl.model.Query;
 import akka.http.javadsl.model.Uri;
 import akka.http.javadsl.model.headers.HttpCredentials;
 import akka.stream.javadsl.Source;
+import akka.util.ByteString;
 
 /**
  * Signing of HTTP requests to authenticate at AWS.
@@ -48,6 +51,7 @@ final class AwsRequestSigning implements RequestSigning {
     private static final char[] LOWER_CASE_HEX_CHARS = "0123456789abcdef".toCharArray();
     private static final String CONTENT_TYPE_HEADER = "content-type";
     private static final String X_AMZ_DATE_HEADER = "x-amz-date";
+    private static final String X_AMZ_CONTENT_SHA256_HEADER = "x-amz-content-sha256";
     private static final String HOST_HEADER = "host";
     private static final DateTimeFormatter DATE_STAMP_FORMATTER =
             DateTimeFormatter.ofPattern("yyyyMMdd").withZone(ZoneId.of("Z"));
@@ -62,18 +66,21 @@ final class AwsRequestSigning implements RequestSigning {
     private final String secretKey;
     private final boolean doubleEncodeAndNormalize;
     private final Duration timeout;
+    private final XAmzContentSha256 xAmzContentSha256;
 
     AwsRequestSigning(final ActorSystem actorSystem, final List<String> canonicalHeaderNames,
             final String region, final String service, final String accessKey, final String secretKey,
-            final boolean doubleEncodeAndNormalize, final Duration timeout) {
+            final boolean doubleEncodeAndNormalize, final Duration timeout,
+            final XAmzContentSha256 xAmzContentSha256) {
         this.actorSystem = actorSystem;
-        this.canonicalHeaderNames = toDeduplicatedSortedLowerCase(canonicalHeaderNames);
+        this.canonicalHeaderNames = toDeduplicatedSortedLowerCase(canonicalHeaderNames, xAmzContentSha256);
         this.region = region;
         this.service = service;
         this.accessKey = accessKey;
         this.secretKey = secretKey;
         this.doubleEncodeAndNormalize = doubleEncodeAndNormalize;
         this.timeout = timeout;
+        this.xAmzContentSha256 = xAmzContentSha256;
     }
 
     @Override
@@ -119,31 +126,28 @@ final class AwsRequestSigning implements RequestSigning {
         final String method = strictRequest.method().name();
         final String canonicalUri = getCanonicalUri(strictRequest.getUri(), doubleEncodeAndNormalize);
         final String canonicalQuery = getCanonicalQuery(strictRequest.getUri().query());
-        final String canonicalHeaders = getCanonicalHeaders(strictRequest, canonicalHeaderNames, xAmzDate);
-        final String payloadHash = sha256(strictEntity.getData().toArray());
+        final String payloadHash = getPayloadHash(strictEntity.getData());
+        final String canonicalHeaders = getCanonicalHeaders(strictRequest, xAmzDate, payloadHash);
         return String.join("\n", method, canonicalUri, canonicalQuery, canonicalHeaders, getSignedHeaders(),
                 payloadHash);
     }
 
-    private String getSignedHeaders() {
-        return String.join(";", canonicalHeaderNames);
+    String getPayloadHash(final ByteString payload) {
+        return xAmzContentSha256 == XAmzContentSha256.UNSIGNED ? "UNSIGNED-PAYLOAD" : sha256(payload.toArray());
     }
 
-    static String sha256(final byte[] bytes) {
-        return toLowerCaseHex(Hashes.getSha256().digest(bytes));
-    }
-
-    static String getCanonicalHeaders(final HttpRequest request, final Collection<String> sortedLowerCaseHeaderKeys,
-            final Instant xAmzDate) {
-        return sortedLowerCaseHeaderKeys.stream()
+    String getCanonicalHeaders(final HttpRequest request, final Instant xAmzDate, final String payloadHash) {
+        return canonicalHeaderNames.stream()
                 .map(key -> {
                     switch (key) {
                         case HOST_HEADER:
                             return HOST_HEADER + ":" + request.getUri().host().address() + "\n";
-                        case X_AMZ_DATE_HEADER:
-                            return X_AMZ_DATE_HEADER + ":" + X_AMZ_DATE_FORMATTER.format(xAmzDate) + "\n";
                         case CONTENT_TYPE_HEADER:
                             return getContentTypeAsCanonicalHeader(request);
+                        case X_AMZ_CONTENT_SHA256_HEADER:
+                            return X_AMZ_CONTENT_SHA256_HEADER + ":" + payloadHash + "\n";
+                        case X_AMZ_DATE_HEADER:
+                            return X_AMZ_DATE_HEADER + ":" + X_AMZ_DATE_FORMATTER.format(xAmzDate) + "\n";
                         default:
                             return key + streamHeaders(request, key)
                                     .map(HttpHeader::value)
@@ -152,6 +156,14 @@ final class AwsRequestSigning implements RequestSigning {
                     }
                 })
                 .collect(Collectors.joining());
+    }
+
+    private String getSignedHeaders() {
+        return String.join(";", canonicalHeaderNames);
+    }
+
+    static String sha256(final byte[] bytes) {
+        return toLowerCaseHex(Hashes.getSha256().digest(bytes));
     }
 
     static String getCanonicalQuery(final Query query) {
@@ -212,9 +224,12 @@ final class AwsRequestSigning implements RequestSigning {
         return RequestSigning.hmacSha256(kService, "aws4_request");
     }
 
-    static Collection<String> toDeduplicatedSortedLowerCase(final List<String> strings) {
-        return strings.stream()
-                .map(String::strip)
+    static Collection<String> toDeduplicatedSortedLowerCase(final List<String> strings,
+            final XAmzContentSha256 xAmzContentSha256) {
+        final Stream<String> headers = xAmzContentSha256 == XAmzContentSha256.EXCLUDED
+                ? strings.stream()
+                : Stream.concat(strings.stream(), Stream.of(X_AMZ_CONTENT_SHA256_HEADER));
+        return headers.map(String::strip)
                 .map(String::toLowerCase)
                 .filter(s -> !s.isEmpty())
                 .sorted()
@@ -254,4 +269,15 @@ final class AwsRequestSigning implements RequestSigning {
         return builder.toString();
     }
 
+    enum XAmzContentSha256 {
+        INCLUDED,
+        EXCLUDED,
+        UNSIGNED;
+
+        static XAmzContentSha256 forName(final String name) {
+            return Arrays.stream(values()).filter(option -> option.name().equals(name)).findAny()
+                    .orElseThrow(() -> new JsonParseException("The HMAC credentials parameter 'xAmzContentSha256'" +
+                            " must have one of the following as value: 'INCLUDED', 'EXCLUDED', 'UNSIGNED'."));
+        }
+    }
 }

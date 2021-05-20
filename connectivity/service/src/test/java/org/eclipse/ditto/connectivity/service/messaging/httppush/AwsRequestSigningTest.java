@@ -16,9 +16,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import org.bouncycastle.util.encoders.Hex;
 import org.junit.After;
@@ -35,6 +35,7 @@ import akka.http.javadsl.model.Uri;
 import akka.http.javadsl.model.headers.HttpCredentials;
 import akka.stream.javadsl.Sink;
 import akka.testkit.javadsl.TestKit;
+import akka.util.ByteString;
 
 /**
  * Test cases for AWS request signing.
@@ -52,6 +53,9 @@ public final class AwsRequestSigningTest {
     private static final String SERVICE_NAME = "iam";
 
     private static final String BODY = "The quick brown fox jumped over the lazy dog";
+
+    private static final AwsRequestSigning.XAmzContentSha256 X_AMZ_CONTENT_SHA256 =
+            AwsRequestSigning.XAmzContentSha256.EXCLUDED;
 
     private final ActorSystem actorSystem = ActorSystem.create();
 
@@ -106,8 +110,8 @@ public final class AwsRequestSigningTest {
                 // can't use .addHeader because it _prepends_ the header to the list
                 .withHeaders(headesInSequence);
 
-        final Collection<String> canonicalHeaderNames = AwsRequestSigning.toDeduplicatedSortedLowerCase(
-                List.of("Host", "My-header1", "X-Amz-Date", "my-headER2", "CONTENT-TYPE", "nonexistent-header"));
+        final List<String> signedHeaders =
+                List.of("Host", "My-header1", "X-Amz-Date", "my-headER2", "CONTENT-TYPE", "nonexistent-header");
 
         final String expectedCanonicalHeaders =
                 "content-type:application/x-www-form-urlencoded; charset=UTF-8\n" +
@@ -117,11 +121,39 @@ public final class AwsRequestSigningTest {
                         "nonexistent-header:\n" +
                         "x-amz-date:20150830T123600Z\n";
 
+        final AwsRequestSigning underTest =
+                new AwsRequestSigning(actorSystem, signedHeaders, REGION_NAME, SERVICE_NAME, ACCESS_KEY,
+                        SECRET_KEY, true, Duration.ofSeconds(10), X_AMZ_CONTENT_SHA256);
         final String canonicalHeaders =
-                AwsRequestSigning.getCanonicalHeaders(request, canonicalHeaderNames,
-                        Instant.parse("2015-08-30T12:36:00Z"));
+                underTest.getCanonicalHeaders(request, Instant.parse("2015-08-30T12:36:00Z"), "UNSIGNED-PAYLOAD");
 
         assertThat(canonicalHeaders).isEqualTo(expectedCanonicalHeaders);
+    }
+
+    @Test
+    public void testXAmzContentSha256() {
+        final HttpRequest request = getSampleHttpRequest();
+
+        final Function<AwsRequestSigning.XAmzContentSha256, AwsRequestSigning> creator = xAmzContentSha256 ->
+                new AwsRequestSigning(actorSystem, List.of("host"), REGION_NAME, SERVICE_NAME, ACCESS_KEY,
+                        SECRET_KEY, true, Duration.ofSeconds(10), xAmzContentSha256);
+
+        final var included = creator.apply(AwsRequestSigning.XAmzContentSha256.INCLUDED);
+        final var excluded = creator.apply(AwsRequestSigning.XAmzContentSha256.EXCLUDED);
+        final var unsigned = creator.apply(AwsRequestSigning.XAmzContentSha256.UNSIGNED);
+
+        assertThat(included.getCanonicalHeaders(request, Instant.parse("2015-08-30T12:36:00Z"),
+                included.getPayloadHash(ByteString.emptyByteString())))
+                .isEqualTo("host:www.example.com\n" +
+                        "x-amz-content-sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\n");
+
+        assertThat(excluded.getCanonicalHeaders(request, Instant.parse("2015-08-30T12:36:00Z"),
+                excluded.getPayloadHash(ByteString.emptyByteString())))
+                .isEqualTo("host:www.example.com\n");
+
+        assertThat(unsigned.getCanonicalHeaders(request, Instant.parse("2015-08-30T12:36:00Z"),
+                unsigned.getPayloadHash(ByteString.emptyByteString())))
+                .isEqualTo("host:www.example.com\nx-amz-content-sha256:UNSIGNED-PAYLOAD\n");
     }
 
     @Test
@@ -202,7 +234,7 @@ public final class AwsRequestSigningTest {
 
     private HttpRequest signRequest(final HttpRequest originalRequest) {
         return new AwsRequestSigning(actorSystem, List.of("host", "x-amz-date"), REGION_NAME, SERVICE_NAME, ACCESS_KEY,
-                SECRET_KEY, true, Duration.ofSeconds(10))
+                SECRET_KEY, true, Duration.ofSeconds(10), X_AMZ_CONTENT_SHA256)
                 .sign(originalRequest, X_AMZ_DATE)
                 .runWith(Sink.head(), actorSystem)
                 .toCompletableFuture()
@@ -211,13 +243,13 @@ public final class AwsRequestSigningTest {
 
     private String getStringToSign(final HttpRequest httpRequest) {
         return new AwsRequestSigning(actorSystem, List.of("host", "x-amz-date"), REGION_NAME, SERVICE_NAME, ACCESS_KEY,
-                SECRET_KEY, true, Duration.ofSeconds(10))
+                SECRET_KEY, true, Duration.ofSeconds(10), X_AMZ_CONTENT_SHA256)
                 .getStringToSign(httpRequest, X_AMZ_DATE, true);
     }
 
     private String getCanonicalRequest(final HttpRequest httpRequest) {
         return new AwsRequestSigning(actorSystem, List.of("host", "x-amz-date"), REGION_NAME, SERVICE_NAME, ACCESS_KEY,
-                SECRET_KEY, true, Duration.ofSeconds(10))
+                SECRET_KEY, true, Duration.ofSeconds(10), X_AMZ_CONTENT_SHA256)
                 .getCanonicalRequest(httpRequest, X_AMZ_DATE, true);
     }
 
