@@ -176,7 +176,7 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
             final ByteBuffer payload = getPayload(message)
                     .map(ByteBuffer::asReadOnlyBuffer)
                     .orElse(ByteBufferUtils.empty());
-            final String textPayload = ByteBufferUtils.toUtf8String(payload);
+            final var textPayload = ByteBufferUtils.toUtf8String(payload);
             final String topic = getTopic(message);
             logger.debug("Received MQTT message on topic <{}>: {}", topic, textPayload);
 

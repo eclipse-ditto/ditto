@@ -196,7 +196,7 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
 
     private Duration getReconnectForRedeliveryDelayWithLowerBound() {
         final Duration configuredDelay = mqttSpecificConfig.getReconnectForDeliveryDelay();
-        final Duration lowerBound = Duration.ofSeconds(1L);
+        final var lowerBound = Duration.ofSeconds(1L);
         return lowerBound.minus(configuredDelay).isNegative() ? configuredDelay : lowerBound;
     }
 
@@ -253,7 +253,7 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
             createSubscriberClientAndSubscriptionHandler(willSubscribe);
             if (mqttSpecificConfig.separatePublisherClient()) {
                 final String publisherClientId = resolvePublisherClientId(connection, mqttSpecificConfig);
-                final AtomicBoolean cancelReconnect = new AtomicBoolean(false);
+                final var cancelReconnect = new AtomicBoolean(false);
                 final Q createdClient = getClientFactory().newClient(connection, publisherClientId, mqttConfig,
                         mqttSpecificConfig,
                         true, // this is the publisher client, always respect last will config
@@ -296,12 +296,11 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
             } else {
                 final boolean doReconnect = connection.isFailoverEnabled() && !cancelReconnect.get();
                 final long reconnectDelay = retryTimeoutStrategy.getNextTimeout().toMillis();
-                logger.info("Client with role <{}> disconnected, source: <{}> - reconnecting: <{}> with attempt no. <{}> and " +
-                                "delay <{}>ms",
-                        new Object[] {
-                                role, context.getSource(), doReconnect, retryTimeoutStrategy.getCurrentTries(),
-                                reconnectDelay
-                });
+                logger.info("Client with role <{}> disconnected, source: <{}> - reconnecting: <{}> " +
+                                "with current retries of <{}> and delay <{}>ms",
+                        new Object[]{role, context.getSource(), doReconnect, retryTimeoutStrategy.getCurrentTries(),
+                                reconnectDelay}
+                );
                 context.getReconnector()
                         .reconnect(doReconnect)
                         .delay(reconnectDelay, TimeUnit.MILLISECONDS);
@@ -311,7 +310,7 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
 
     private void createSubscriberClientAndSubscriptionHandler(final boolean willSubscribe) {
         final String mqttClientId = resolveMqttClientId(connection, mqttSpecificConfig);
-        final AtomicBoolean cancelReconnect = new AtomicBoolean(false);
+        final var cancelReconnect = new AtomicBoolean(false);
         // apply last will config only if *no* separate publisher client is used
         final boolean applyLastWillConfig = !mqttSpecificConfig.separatePublisherClient();
         final String clientRole = mqttSpecificConfig.separatePublisherClient() ? CONSUMER : CONSUMER + "+" + PUBLISHER;
@@ -433,8 +432,7 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
                 // otherwise return the connection failure directly
                 return connAckFuture;
             }
-        })
-                .exceptionally(InitializationResult::failed);
+        }).exceptionally(InitializationResult::failed);
     }
 
     private CompletableFuture<InitializationResult> sendConnAndExpectConnAck() {
@@ -621,4 +619,5 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
             return disconnectClient(mqttClient);
         }
     }
+
 }
