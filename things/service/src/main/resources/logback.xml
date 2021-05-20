@@ -54,7 +54,7 @@
                     <fileNamePattern>things.log.%d{yyyy-MM-dd}.gz</fileNamePattern>
                     <!-- Keep 30 days' worth of history capped at 1GB total size -->
                     <maxHistory>${DITTO_LOGGING_MAX_LOG_FILE_HISTORY_IN_DAYS:-10}</maxHistory>
-                    <totalSizeCap>${DITTO_LOGGING_TOTAL_LOG_FILE_SIZE:-1GB}</totalSizeCap>1GB</totalSizeCap>
+                    <totalSizeCap>${DITTO_LOGGING_TOTAL_LOG_FILE_SIZE:-1GB}</totalSizeCap>
                 </rollingPolicy>
                 <encoder class="net.logstash.logback.encoder.LogstashEncoder">
                     <customFields>{"appname":"things","instance_index":"${INSTANCE_INDEX}"}</customFields>
