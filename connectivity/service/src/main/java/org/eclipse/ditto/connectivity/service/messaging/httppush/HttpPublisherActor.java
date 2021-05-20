@@ -300,7 +300,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 escalate(error, errorDescription);
             } else {
                 final HttpResponse response = tryResponse.toEither().right().get();
-                l.debug("Sent message <{}>. Got response <{} {}>", message, response.status(), response.getHeaders());
+                l.debug("Sent message <{}> request=<{}>. Got response <{} {}>", message, request,
+                        response.status(), response.getHeaders());
 
                 toCommandResponseOrAcknowledgement(signal, autoAckTarget, response, maxTotalMessageSize, ackSizeQuota)
                         .thenAccept(resultFuture::complete)

@@ -95,6 +95,6 @@ public final class AwsRequestSigningFactory implements RequestSigningFactory {
                 JsonFieldDefinition.ofJsonArray("canonicalHeaders");
 
         public static JsonFieldDefinition<String> X_AMZ_CONTENT_SHA256 =
-                JsonFieldDefinition.ofString("X_AMZ_CONTENT_SHA256");
+                JsonFieldDefinition.ofString("xAmzContentSha256");
     }
 }
