@@ -65,9 +65,19 @@ function mapFromDittoProtocolMsgWrapper(dittoProtocolMsg) {
   let namespace = splitTopic[0];
   let name = splitTopic[1];
   let group = splitTopic[2];
-  let channel = splitTopic[3];
-  let criterion = splitTopic[4];
-  let action = splitTopic[5];
+
+  let channel;
+  let criterion;
+  let action;
+  if (group !== "things"){
+    channel = "undefined";
+    criterion = splitTopic[3];
+    action = splitTopic[4];
+  }else{
+    channel = splitTopic[3];
+    criterion = splitTopic[4];
+    action = splitTopic[5];
+  }
 
   let path = dittoProtocolMsg.path;
   let dittoHeaders = dittoProtocolMsg.headers;
