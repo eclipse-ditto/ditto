@@ -89,7 +89,7 @@ spec:
         # in order to write logs into a file you can enable this by setting the following env variable
         # the log file(s) can be found in /opt/ditto directory on the host machine
         #- name: DITTO_LOGGING_FILE_APPENDER
-        #  value: true
+        #  value: "true"
       volumes:
         - name: ditto-log-files
           hostPath:
@@ -188,7 +188,7 @@ spec:
         # in order to write logs into a file you can enable this by setting the following env variable
         # the log file(s) can be found in /opt/ditto directory on the host machine
         #- name: DITTO_LOGGING_FILE_APPENDER
-        #  value: true
+        #  value: "true"
       volumes:
         - name: ditto-log-files
           hostPath:
@@ -287,7 +287,7 @@ spec:
         # in order to write logs into a file you can enable this by setting the following env variable
         # the log file(s) can be found in /opt/ditto directory on the host machine
         #- name: DITTO_LOGGING_FILE_APPENDER
-        #  value: true
+        #  value: "true"
       volumes:
         - name: ditto-log-files
           hostPath:
@@ -385,7 +385,7 @@ spec:
         # in order to write logs into a file you can enable this by setting the following env variable
         # the log file(s) can be found in /opt/ditto directory on the host machine
         #- name: DITTO_LOGGING_FILE_APPENDER
-        #  value: true
+        #  value: "true"
       volumes:
         - name: ditto-log-files
           hostPath:
@@ -482,7 +482,7 @@ spec:
         # in order to write logs into a file you can enable this by setting the following env variable
         # the log file(s) can be found in /opt/ditto directory on the host machine
         #- name: DITTO_LOGGING_FILE_APPENDER
-        #  value: true
+        #  value: "true"
       volumes:
         - name: ditto-log-files
           hostPath:
@@ -573,7 +573,7 @@ spec:
         # in order to write logs into a file you can enable this by setting the following env variable
         # the log file(s) can be found in /opt/ditto directory on the host machine
         #- name: DITTO_LOGGING_FILE_APPENDER
-        #  value: true
+        #  value: "true"
       volumes:
         - name: ditto-log-files
           hostPath:
