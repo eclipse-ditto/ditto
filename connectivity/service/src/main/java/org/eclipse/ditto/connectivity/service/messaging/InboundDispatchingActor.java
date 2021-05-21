@@ -218,7 +218,7 @@ public final class InboundDispatchingActor extends AbstractActor
                 .flatMap(dispatchResponsesAndSearchCommands::apply)
                 .mapToInt(this::dispatchIncomingSignal)
                 .sum();
-        logger.debug("OnMapped from <{}>: ", sender, outcomes);
+        logger.debug("OnMapped from <{}>: <{}>", sender, outcomes);
         sender.tell(ResponseCollectorActor.setCount(ackRequestingSignalCount), getSelf());
     }
 
