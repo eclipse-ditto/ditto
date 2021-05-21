@@ -171,7 +171,10 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         final Flow<Pair<HttpRequest, HttpPushContext>, Pair<HttpRequest, HttpPushContext>, NotUsed> requestSigningFlow =
                 Flow.<Pair<HttpRequest, HttpPushContext>>create()
                         .flatMapConcat(pair -> requestSigning.sign(pair.first())
-                                .map(signedRequest -> Pair.create(signedRequest, pair.second())));
+                                .map(signedRequest -> {
+                                    logger.debug("SignedRequest <{}>", signedRequest);
+                                    return Pair.create(signedRequest, pair.second());
+                                }));
 
         final var httpPushFlow = factory.<HttpPushContext>createFlow(getContext().getSystem(), logger, requestTimeout);
 
@@ -300,7 +303,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 escalate(error, errorDescription);
             } else {
                 final HttpResponse response = tryResponse.toEither().right().get();
-                l.debug("Sent message <{}> request=<{}>. Got response <{} {}>", message, request,
+                l.debug("Sent message <{}>. Got response <{} {}>", message, request,
                         response.status(), response.getHeaders());
 
                 toCommandResponseOrAcknowledgement(signal, autoAckTarget, response, maxTotalMessageSize, ackSizeQuota)
