@@ -23,10 +23,17 @@ import com.typesafe.config.Config;
 public interface KafkaConfig {
 
     /**
+     * Returns the Config for consumers needed by the Kafka client.
+     *
+     * @return consumer configuration needed by the Kafka client.
+     */
+    Config getConsumerConfig();
+
+    /**
      * Returns the Config for producers needed by the Kafka client.
      *
-     * @return internal producer configuration needed by the Kafka client.
+     * @return producer configuration needed by the Kafka client.
      */
-    Config getInternalProducerConfig();
+    Config getProducerConfig();
 
 }

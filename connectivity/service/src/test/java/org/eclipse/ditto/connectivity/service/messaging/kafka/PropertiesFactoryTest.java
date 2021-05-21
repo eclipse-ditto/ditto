@@ -38,9 +38,9 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
- * Unit test for {@link ProducerPropertiesFactory}.
+ * Unit test for {@link PropertiesFactory}.
  */
-public final class ProducerPropertiesFactoryTest {
+public final class PropertiesFactoryTest {
 
     private static final String[] BOOTSTRAP_SERVERS = {
             "foo:123",
@@ -56,7 +56,7 @@ public final class ProducerPropertiesFactoryTest {
     private static KafkaConfig kafkaConfig;
     private static Connection connection;
 
-    private ProducerPropertiesFactory underTest;
+    private PropertiesFactory underTest;
 
     @BeforeClass
     public static void initTestFixture() {
@@ -83,7 +83,7 @@ public final class ProducerPropertiesFactoryTest {
 
     @Before
     public void setUp() {
-        underTest = ProducerPropertiesFactory.getInstance(connection, kafkaConfig, UUID.randomUUID().toString());
+        underTest = PropertiesFactory.newInstance(connection, kafkaConfig, UUID.randomUUID().toString());
     }
 
     @Test
@@ -95,7 +95,7 @@ public final class ProducerPropertiesFactoryTest {
 
         assertThat(servers).containsExactlyInAnyOrder(BOOTSTRAP_SERVERS);
 
-        // check flattening of client properties in kafka.producer.internal.kafka-clients
+        // check flattening of client properties in kafka.producer
         assertThat(properties).contains(
                 new AbstractMap.SimpleEntry<>("connections.max.idle.ms", 543210),
                 new AbstractMap.SimpleEntry<>("reconnect.backoff.ms", 500),

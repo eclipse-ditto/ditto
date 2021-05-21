@@ -76,13 +76,13 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
     private static final String OUTBOUND_ADDRESS = "anyTopic/keyA";
 
     private final Queue<ProducerRecord<String, String>> received = new ConcurrentLinkedQueue<>();
-    private KafkaConnectionFactory connectionFactory;
+    private KafkaProducerFactory connectionFactory;
     private Producer<String, String> mockProducer;
 
     @Override
     @SuppressWarnings("unchecked")
     protected void setupMocks(final TestProbe probe) {
-        connectionFactory = mock(KafkaConnectionFactory.class);
+        connectionFactory = mock(KafkaProducerFactory.class);
         mockProducer = mock(Producer.class);
         when(connectionFactory.newProducer()).thenReturn(mockProducer);
         when(mockProducer.send(any(), any()))
@@ -97,7 +97,7 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
     }
 
     private void setUpMocksToFailWith(final Exception exception) {
-        connectionFactory = mock(KafkaConnectionFactory.class);
+        connectionFactory = mock(KafkaProducerFactory.class);
         mockProducer = mock(Producer.class);
         when(connectionFactory.newProducer()).thenReturn(mockProducer);
         when(mockProducer.send(any(), any()))

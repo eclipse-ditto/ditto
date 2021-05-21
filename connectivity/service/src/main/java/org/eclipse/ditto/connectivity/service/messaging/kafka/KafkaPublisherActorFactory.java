@@ -39,6 +39,6 @@ public interface KafkaPublisherActorFactory extends Serializable {
      * @param clientId identifier of the client actor.
      * @return the {@code Props} to create the publisher actor.
      */
-    Props props(Connection connection, KafkaConnectionFactory factory, boolean dryRun, String clientId);
+    Props props(Connection connection, KafkaProducerFactory factory, boolean dryRun, String clientId);
 
 }

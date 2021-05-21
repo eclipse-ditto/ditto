@@ -12,22 +12,12 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
-import java.util.Properties;
-
 import org.apache.kafka.clients.producer.Producer;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
 
 /**
- * Creates Kafka sinks.
+ * Creates Kafka producers.
  */
-interface KafkaConnectionFactory {
-
-    /**
-     * Identifier of the connection.
-     *
-     * @return the ID.
-     */
-    ConnectionId connectionId();
+interface KafkaProducerFactory {
 
     /**
      * Create a producer of Kafka messages.
@@ -35,12 +25,5 @@ interface KafkaConnectionFactory {
      * @return the producer.
      */
     Producer<String, String> newProducer();
-
-    /**
-     * Returns the consumer properties to configure a Kafka stream.
-     *
-     * @return the consumer properties.
-     */
-    Properties consumerStreamProperties();
 
 }

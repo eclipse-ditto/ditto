@@ -52,7 +52,8 @@ public final class KafkaClientActor extends BaseClientActor {
 
     private final KafkaPublisherActorFactory publisherActorFactory;
     private final Set<ActorRef> pendingStatusReportsFromStreams;
-    private final KafkaConnectionFactory connectionFactory;
+    private final PropertiesFactory propertiesFactory;
+    private final KafkaProducerFactory connectionFactory;
 
     private CompletableFuture<Status.Status> testConnectionFuture = null;
     private ActorRef kafkaPublisherActor;
@@ -68,8 +69,8 @@ public final class KafkaClientActor extends BaseClientActor {
         kafkaConsumerActors = new ArrayList<>();
         final ConnectionConfig connectionConfig = connectivityConfig.getConnectionConfig();
         final KafkaConfig kafkaConfig = connectionConfig.getKafkaConfig();
-        connectionFactory =
-                DefaultKafkaConnectionFactory.getInstance(connection, kafkaConfig, getClientId(connection.getId()));
+        propertiesFactory = PropertiesFactory.newInstance(connection, kafkaConfig, getClientId(connection.getId()));
+        connectionFactory = DefaultKafkaProducerFactory.getInstance(propertiesFactory);
         this.publisherActorFactory = publisherActorFactory;
         pendingStatusReportsFromStreams = new HashSet<>();
     }
@@ -166,9 +167,9 @@ public final class KafkaClientActor extends BaseClientActor {
     }
 
     private void startKafkaPublisher(final boolean dryRun, final ConnectionId connectionId,
-            @Nullable final CharSequence correlationid) {
+            @Nullable final CharSequence correlationId) {
 
-        logger.withCorrelationId(correlationid).withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId)
+        logger.withCorrelationId(correlationId).withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId)
                 .info("Starting Kafka publisher actor.");
         // ensure no previous publisher stays in memory
         stopPublisherActor();
@@ -180,10 +181,12 @@ public final class KafkaClientActor extends BaseClientActor {
 
     private void startKafkaConsumers(final boolean dryRun, final ConnectionId connectionId,
             @Nullable final CharSequence correlationId) {
+
         logger.withCorrelationId(correlationId).withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId)
                 .info("Starting Kafka consumer actor.");
         // ensure no previous consumer stays in memory
         stopConsumerActors();
+        
         // start consumer actors
         connection().getSources().stream()
                 .flatMap(this::consumerDataFromSource)
@@ -200,7 +203,7 @@ public final class KafkaClientActor extends BaseClientActor {
 
     private void startKafkaConsumer(final ConsumerData consumerData, final boolean dryRun) {
         final Props consumerActorProps =
-                KafkaConsumerActor.props(connection(), connectionFactory, consumerData.getAddress(),
+                KafkaConsumerActor.props(connection(), propertiesFactory, consumerData.getAddress(),
                         getInboundMappingProcessorActor(), consumerData.getSource(), dryRun);
         final ActorRef consumerActor =
                 startChildActorConflictFree(consumerData.getActorNamePrefix(), consumerActorProps);

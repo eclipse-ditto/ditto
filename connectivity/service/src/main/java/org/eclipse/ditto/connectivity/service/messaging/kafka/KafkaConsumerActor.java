@@ -34,6 +34,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapt
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.kafka.ConsumerSettings;
 import akka.kafka.Subscriptions;
 import akka.kafka.javadsl.Consumer;
 import akka.stream.Materializer;
@@ -51,13 +52,14 @@ final class KafkaConsumerActor extends BaseConsumerActor {
 
     @SuppressWarnings("unused")
     private KafkaConsumerActor(final Connection connection,
-            final KafkaConnectionFactory factory,
+            final PropertiesFactory propertiesFactory,
             final String sourceAddress, final ActorRef inboundMappingProcessor,
             final Source source, final boolean dryRun) {
         super(connection, sourceAddress, inboundMappingProcessor, source);
 
         log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
 
+        final ConsumerSettings<String, String> consumerSettings = propertiesFactory.getConsumerSettings();
         final Enforcement enforcement = source.getEnforcement().orElse(null);
         final EnforcementFilterFactory<Map<String, String>, Signal<?>> headerEnforcementFilterFactory =
                 enforcement != null
@@ -65,11 +67,11 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                         : input -> null;
         final KafkaMessageTransformer kafkaMessageTransformer =
                 new KafkaMessageTransformer(source, sourceAddress, headerEnforcementFilterFactory, inboundMonitor);
-        kafkaStream = new KafkaConsumerStream(factory, kafkaMessageTransformer, dryRun,
+        kafkaStream = new KafkaConsumerStream(consumerSettings, kafkaMessageTransformer, dryRun,
                 Materializer.createMaterializer(this::getContext));
     }
 
-    static Props props(final Connection connection, final KafkaConnectionFactory factory, final String sourceAddress,
+    static Props props(final Connection connection, final PropertiesFactory factory, final String sourceAddress,
             final ActorRef inboundMappingProcess, final Source source, final boolean dryRun) {
         return Props.create(KafkaConsumerActor.class, connection, factory, sourceAddress, inboundMappingProcess,
                 source, dryRun);
@@ -129,17 +131,16 @@ final class KafkaConsumerActor extends BaseConsumerActor {
         private final Materializer materializer;
         private Consumer.Control kafkaStream;
 
-        private KafkaConsumerStream(final KafkaConnectionFactory factory,
+        private KafkaConsumerStream(final ConsumerSettings<String, String> consumerSettings,
                 final KafkaMessageTransformer kafkaMessageTransformer,
                 final boolean dryRun, //TODO: handle dry run
                 final Materializer materializer) {
 
             this.materializer = materializer;
-            runnableKafkaStream = Consumer.plainSource(null, Subscriptions.topics(
-                    sourceAddress)) //TODO: replace "null" with actual ConsumerSettings. See https://akka.io/alpakka-samples/kafka-to-websocket-clients/example.html#subscribe-to-the-kafka-topic for an example
+            runnableKafkaStream = Consumer.plainSource(consumerSettings, Subscriptions.topics(sourceAddress))
                     .throttle(100, Duration.ofSeconds(1)) //TODO: make this configurable
-                    .filter((consumerRecord) -> consumerRecord.value() != null)
-                    .map(kafkaMessageTransformer::transform) //TODO: ensure serialisation works correctly. The record is now of type <Object,Object> and no longer <String,String>
+                    .filter(consumerRecord -> consumerRecord.value() != null)
+                    .map(kafkaMessageTransformer::transform)
                     .divertTo(this.externalMessageSink(), this::isExternalMessage)
                     .divertTo(this.dittoRuntimeExceptionSink(), this::isDittoRuntimeException)
                     .to(this.unexpectedMessageSink());

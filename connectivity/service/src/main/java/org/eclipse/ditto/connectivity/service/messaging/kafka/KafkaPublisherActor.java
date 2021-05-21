@@ -63,13 +63,13 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
     static final String ACTOR_NAME = "kafkaPublisher";
 
-    private final KafkaConnectionFactory connectionFactory;
+    private final KafkaProducerFactory connectionFactory;
     private final boolean dryRun;
 
     private Producer<String, String> producer;
 
     @SuppressWarnings("unused")
-    private KafkaPublisherActor(final Connection connection, final KafkaConnectionFactory factory,
+    private KafkaPublisherActor(final Connection connection, final KafkaProducerFactory factory,
             final boolean dryRun, final String clientId) {
 
         super(connection, clientId);
@@ -89,7 +89,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
      * @param clientId identifier of the client actor.
      * @return the Akka configuration Props object.
      */
-    static Props props(final Connection connection, final KafkaConnectionFactory factory, final boolean dryRun,
+    static Props props(final Connection connection, final KafkaProducerFactory factory, final boolean dryRun,
             final String clientId) {
 
         return Props.create(KafkaPublisherActor.class, connection, factory, dryRun, clientId);

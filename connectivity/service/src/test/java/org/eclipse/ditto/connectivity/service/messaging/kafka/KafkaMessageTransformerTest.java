@@ -71,7 +71,7 @@ public final class KafkaMessageTransformerTest {
         final String deviceId = "ditto:test-device";
         final RecordHeaders headers =
                 new RecordHeaders(List.of(new RecordHeader("device_id", deviceId.getBytes(StandardCharsets.UTF_8))));
-        final ConsumerRecord<Object, Object> consumerRecord = mock(ConsumerRecord.class);
+        final ConsumerRecord<String, String> consumerRecord = mock(ConsumerRecord.class);
         when(consumerRecord.headers()).thenReturn(headers);
         when(consumerRecord.key()).thenReturn("someKey");
         when(consumerRecord.value()).thenReturn("someValue");
@@ -90,7 +90,7 @@ public final class KafkaMessageTransformerTest {
     @Test
     public void transformWithoutDeviceIdHeaderCausesDittoRuntimeException() {
         final RecordHeaders headers = new RecordHeaders(List.of());
-        final ConsumerRecord<Object, Object> consumerRecord = mock(ConsumerRecord.class);
+        final ConsumerRecord<String, String> consumerRecord = mock(ConsumerRecord.class);
         when(consumerRecord.headers()).thenReturn(headers);
         when(consumerRecord.key()).thenReturn("someKey");
         when(consumerRecord.value()).thenReturn("someValue");
@@ -109,7 +109,7 @@ public final class KafkaMessageTransformerTest {
         final String deviceId = "ditto:test-device";
         final RecordHeaders headers =
                 new RecordHeaders(List.of(new RecordHeader("device_id", deviceId.getBytes(StandardCharsets.UTF_8))));
-        final ConsumerRecord<Object, Object> consumerRecord = mock(ConsumerRecord.class);
+        final ConsumerRecord<String, String> consumerRecord = mock(ConsumerRecord.class);
         when(consumerRecord.headers()).thenReturn(headers);
         when(consumerRecord.key()).thenReturn("someKey");
         when(consumerRecord.value()).thenReturn("someValue");

@@ -28,11 +28,15 @@ import com.typesafe.config.Config;
 public final class DefaultKafkaConfig implements KafkaConfig {
 
     private static final String CONFIG_PATH = "kafka";
+    private static final String CONSUMER_PATH = "consumer";
+    private static final String PRODUCER_PATH = "producer";
 
-    private final Config internalProducerConfig;
+    private final Config consumerConfig;
+    private final Config producerConfig;
 
     private DefaultKafkaConfig(final ScopedConfig kafkaScopedConfig) {
-        internalProducerConfig = kafkaScopedConfig.getConfig("producer.internal");
+        consumerConfig = kafkaScopedConfig.getConfig(CONSUMER_PATH);
+        producerConfig = kafkaScopedConfig.getConfig(PRODUCER_PATH);
     }
 
     /**
@@ -47,8 +51,13 @@ public final class DefaultKafkaConfig implements KafkaConfig {
     }
 
     @Override
-    public Config getInternalProducerConfig() {
-        return internalProducerConfig;
+    public Config getConsumerConfig() {
+        return consumerConfig;
+    }
+
+    @Override
+    public Config getProducerConfig() {
+        return producerConfig;
     }
 
     @Override
@@ -60,18 +69,19 @@ public final class DefaultKafkaConfig implements KafkaConfig {
             return false;
         }
         final DefaultKafkaConfig that = (DefaultKafkaConfig) o;
-        return Objects.equals(internalProducerConfig, that.internalProducerConfig);
+        return Objects.equals(producerConfig, that.producerConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(internalProducerConfig);
+        return Objects.hash(producerConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "internalProducerConfig=" + internalProducerConfig +
+                "consumerConfig=" + consumerConfig +
+                "producerConfig=" + producerConfig +
                 "]";
     }
 

@@ -19,11 +19,9 @@ import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
-import javax.annotation.concurrent.NotThreadSafe;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
-import org.apache.kafka.streams.KeyValue;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -62,17 +60,18 @@ final class KafkaMessageTransformer {
     /**
      * Takes incoming kafka record and transforms the value to an {@link ExternalMessage}.
      *
-     * @param record the kafka record.
+     * @param consumerRecord the kafka record.
      * @return A value that is either an {@link ExternalMessage} in case the
      * transformation succeeded, or a {@link DittoRuntimeException} if it failed. Could also be null if an unexpected
      * Exception occurred which should result in the message being dropped as automated recovery is expected.
      */
     @Nullable
-    public Either<ExternalMessage, DittoRuntimeException> transform(ConsumerRecord<Object, Object> record) {
+    public Either<ExternalMessage, DittoRuntimeException> transform(
+            final ConsumerRecord<String, String> consumerRecord) {
 
-        final String key = record.key().toString();
-        final String value = record.value().toString();
-        final Map<String, String> messageHeaders = StreamSupport.stream(record.headers().spliterator(), false)
+        final String key = consumerRecord.key();
+        final String value = consumerRecord.value();
+        final Map<String, String> messageHeaders = StreamSupport.stream(consumerRecord.headers().spliterator(), false)
                 .collect(Collectors.toMap(Header::key, header -> new String(header.value())));
         final String correlationId = messageHeaders
                 .getOrDefault(DittoHeaderDefinition.CORRELATION_ID.getKey(), UUID.randomUUID().toString());
@@ -108,7 +107,7 @@ final class KafkaMessageTransformer {
             inboundMonitor.exception(messageHeaders, e);
             LOGGER.withCorrelationId(correlationId)
                     .error(String.format("Unexpected {%s}: {%s}", e.getClass().getName(), e.getMessage()), e);
-            return null; //Drop message
+            return null; // Drop message
         }
     }
 

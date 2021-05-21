@@ -21,61 +21,71 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.kafka.clients.CommonClientConfigs;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.service.config.KafkaConfig;
 
 import com.typesafe.config.Config;
 
-/**
- * Creates Kafka producer properties from a given {@link org.eclipse.ditto.connectivity.model.Connection}
- * configuration.
- */
-final class ProducerPropertiesFactory {
+import akka.kafka.ConsumerSettings;
 
-    /**
-     * Key of properties defined by org.apache.kafka.clients.producer.ProducerConfig inside producer internal config.
-     * Defined by a previously used Alpakka kafka client.
-     */
-    private static final String KAFKA_CLIENTS_KEY = "kafka-clients";
+/**
+ * Creates Kafka properties from a given {@link org.eclipse.ditto.connectivity.model.Connection} configuration.
+ */
+final class PropertiesFactory {
 
     private static final Collection<KafkaSpecificConfig> SPECIFIC_CONFIGS =
             List.of(KafkaAuthenticationSpecificConfig.getInstance(), KafkaBootstrapServerSpecificConfig.getInstance());
 
     private final Connection connection;
-    private final KafkaConfig kafkaConfig;
+    private final KafkaConfig config;
     private final String clientId;
 
-    private ProducerPropertiesFactory(final Connection connection, final KafkaConfig kafkaConfig,
-            final String clientId) {
+    private PropertiesFactory(final Connection connection, final KafkaConfig config, final String clientId) {
         this.connection = checkNotNull(connection, "connection");
-        this.kafkaConfig = checkNotNull(kafkaConfig, "Kafka config");
+        this.config = checkNotNull(config, "config");
         this.clientId = checkNotNull(clientId, "clientId");
     }
 
     /**
-     * Returns an instance of the ProducerSettings factory.
+     * Returns an instance of the factory.
      *
      * @param connection the Kafka connection.
-     * @param kafkaConfig the Kafka configuration settings.
+     * @param config the Kafka configuration settings.
      * @param clientId the client ID.
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    static ProducerPropertiesFactory getInstance(final Connection connection, final KafkaConfig kafkaConfig,
-            final String clientId) {
-        return new ProducerPropertiesFactory(connection, kafkaConfig, clientId);
+    static PropertiesFactory newInstance(final Connection connection, final KafkaConfig config, final String clientId) {
+        return new PropertiesFactory(connection, config, clientId);
     }
 
+    /**
+     * Returns settings for a kafka consumer.
+     *
+     * @return the settings.
+     */
+    ConsumerSettings<String, String> getConsumerSettings() {
+        return ConsumerSettings.apply(config.getConsumerConfig(), new StringDeserializer(), new StringDeserializer())
+                .withBootstrapServers(KafkaBootstrapServerSpecificConfig.getInstance().getBootstrapServers(connection))
+                .withGroupId(connection.getId().toString())
+                .withClientId(clientId);
+    }
+
+    /**
+     * Returns properties for a kafka producer.
+     *
+     * @return the properties.
+     */
     Map<String, Object> getProducerProperties() {
-        final HashMap<String, Object> producerProperties =
-                configToProperties(kafkaConfig.getInternalProducerConfig().getConfig(KAFKA_CLIENTS_KEY));
-        addMetadata(producerProperties);
+        final HashMap<String, Object> producerProperties = configToProperties(config.getProducerConfig());
+        addClientId(producerProperties);
         addSecurityProtocol(producerProperties);
         addSpecificConfig(producerProperties);
         return Collections.unmodifiableMap(producerProperties);
     }
 
-    private void addMetadata(final HashMap<String, Object> properties) {
+    private void addClientId(final HashMap<String, Object> properties) {
         properties.put(CommonClientConfigs.CLIENT_ID_CONFIG, clientId);
     }
 
@@ -133,7 +143,7 @@ final class ProducerPropertiesFactory {
     }
 
     /**
-     * Convert an unwrapped config into a flat properties map for the Kafka producer.
+     * Convert an unwrapped config into a flat properties map.
      *
      * @param unwrapped Result of {@code ConfigObject#unwrapped} containing structural maps.
      * @param prefix prefix of the config path.
