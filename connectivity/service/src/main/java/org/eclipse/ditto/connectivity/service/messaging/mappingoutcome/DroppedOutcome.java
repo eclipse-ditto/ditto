@@ -35,4 +35,12 @@ final class DroppedOutcome<T> implements MappingOutcome<T> {
             return visitor.onError(mapperId.toString(), e, null, droppedMessage);
         }
     }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() +
+                "[mapperId=" + mapperId +
+                ",externalMessage=" + droppedMessage +
+                "]";
+    }
 }
