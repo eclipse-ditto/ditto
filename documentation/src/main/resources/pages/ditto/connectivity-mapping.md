@@ -540,22 +540,24 @@ can be mapped to external messages by implementing the following JavaScript func
 ```javascript
 /**
  * Maps the passed parameters which originated from a Ditto Protocol message to an external message.
- * @param {string} namespace - The namespace of the entity in java package notation, e.g.: "org.eclipse.ditto"
- * @param {string} name - The name of the entity, e.g.: "device"
- * @param {string} channel - The channel for the signal, one of: "twin"|"live"
- * @param {string} group - The affected group/entity, one of: "things"
- * @param {string} criterion - The criterion to apply, one of: "commands"|"events"|"search"|"messages"|"errors"
- * @param {string} action - The action to perform, one of: "create"|"retrieve"|"modify"|"delete"
- * @param {string} path - The path which is affected by the message, e.g.: "/attributes"
- * @param {Object.<string, string>} dittoHeaders - The headers Object containing all Ditto Protocol header values
- * @param {*} [value] - The value to apply / which was applied (e.g. in a "modify" action)
+ * @param {string} namespace - The namespace of the entity in java package notation, e.g.: "org.eclipse.ditto". Or _ 
+ * (undescore) for connection announcements.
+ * @param {string} name - The name of the entity, e.g.: "device".
+ * @param {string} channel - The channel for the signal: "twin"|"live"|"undefined"
+ * @param {string} group - The affected group/entity: "things"|"policies"|"connections".
+ * @param {string} criterion - The criterion to apply: "commands"|"events"|"search"|"messages"|"announcement"|
+ * "errors".
+ * @param {string} action - The action to perform: "create"|"retrieve"|"modify"|"delete". Or the announcement name: 
+ * "opened"|"closed"|"subjectDeletion". Or the subject of the message.
+ * @param {string} path - The path which is affected by the message (e.g.: "/attributes"), or the destination
+ * of a message (e.g.: "inbox"|"outbox").
+ * @param {Object.<string, string>} dittoHeaders - The headers Object containing all Ditto Protocol header values.
+ * @param {*} [value] - The value to apply / which was applied (e.g. in a "modify" action).
  * @param {number} [status] - The status code that indicates the result of the command. When this field is set,
  * it indicates that the Ditto Protocol Message contains a response.
  * @param {Object} [extra] - The enriched extra fields when selected via "extraFields" option.
- * @returns {(ExternalMessage|Array<ExternalMessage>)} externalMessage -
- *  The mapped external message,
- *  an array of external messages or
- *  <code>null</code> if the message could/should not be mapped
+ * @returns {(ExternalMessage|Array<ExternalMessage>)} externalMessage - The mapped external message, an array of 
+ * external messages or <code>null</code> if the message could/should not be mapped.
  */
 function mapFromDittoProtocolMsg(
   namespace,
