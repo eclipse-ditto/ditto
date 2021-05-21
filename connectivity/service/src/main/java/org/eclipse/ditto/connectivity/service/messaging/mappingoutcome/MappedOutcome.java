@@ -14,8 +14,8 @@ package org.eclipse.ditto.connectivity.service.messaging.mappingoutcome;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.protocol.TopicPath;
 
 // private to MappingOutcome. Do NOT use directly.
 final class MappedOutcome<T> implements MappingOutcome<T> {
@@ -40,5 +40,15 @@ final class MappedOutcome<T> implements MappingOutcome<T> {
         } catch (final Exception e) {
             return visitor.onError(mapperId.toString(), e, topicPath, externalMessage);
         }
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() +
+                "[mapperId=" + mapperId +
+                ",mapped=" + mapped +
+                ",topicPath=" + topicPath +
+                ",externalMessage=" + externalMessage +
+                "]";
     }
 }

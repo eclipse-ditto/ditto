@@ -92,13 +92,14 @@ public final class ResponseCollectorActor extends AbstractActor {
     }
 
     private void onCommandResponse(final CommandResponse<?> commandResponse) {
-        log.debug("CommandResponse <{}>", commandResponse);
+        log.withCorrelationId(commandResponse).debug("CommandResponse <{}>", commandResponse);
         commandResponses.add(commandResponse);
         reportIfAllCollected();
     }
 
     private void onDittoRuntimeException(final DittoRuntimeException dittoRuntimeException) {
-        log.debug("DittoRuntimeException <{}>", dittoRuntimeException);
+        log.withCorrelationId(dittoRuntimeException)
+                .debug("DittoRuntimeException <{}>", dittoRuntimeException);
         error = dittoRuntimeException;
         reportIfAllCollected();
     }
