@@ -25,6 +25,8 @@ import org.eclipse.ditto.connectivity.service.config.TimeoutConfig;
  */
 final class DuplicationRetryTimeoutStrategy implements RetryTimeoutStrategy {
 
+    private static final Duration ZERO_MIN_DURATION_FIRST_INCREMENT = Duration.ofMillis(100);
+
     private final Duration minTimeout;
     private final Duration maxTimeout;
     private Duration currentTimeout;
@@ -54,6 +56,9 @@ final class DuplicationRetryTimeoutStrategy implements RetryTimeoutStrategy {
     public Duration getNextTimeout() {
         final Duration timeout = this.currentTimeout;
         this.increase();
+        if (timeout.isZero()) {
+            this.currentTimeout = ZERO_MIN_DURATION_FIRST_INCREMENT;
+        }
         return timeout;
     }
 

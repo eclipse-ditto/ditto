@@ -166,7 +166,7 @@ acknowledgements are only requested if the "qos" header was either not present o
       "twin-persisted",
       "receiver-connection-id:my-custom-ack"
     ],
-    "filter": "fn:filter(header:qos,'ne',0)"
+    "filter": "fn:filter(header:qos,'ne','0')"
   }
 }
 ```
