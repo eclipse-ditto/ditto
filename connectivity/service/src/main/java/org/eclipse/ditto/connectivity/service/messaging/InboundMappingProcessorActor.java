@@ -20,20 +20,20 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.internal.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.protocol.HeaderTranslator;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -82,9 +82,9 @@ public final class InboundMappingProcessorActor
         logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connection.getId());
 
-        final DefaultScopedConfig dittoScoped =
+        final var dittoScoped =
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config());
-        final DittoConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(dittoScoped);
+        final var connectivityConfig = DittoConnectivityConfig.of(dittoScoped);
         mappingConfig = connectivityConfig.getMappingConfig();
 
         this.processorPoolSize = this.determinePoolSize(processorPoolSize, mappingConfig.getMaxPoolSize());
@@ -173,7 +173,7 @@ public final class InboundMappingProcessorActor
     }
 
     private Optional<InboundMappingOutcomes> mapInboundMessage(final ExternalMessageWithSender withSender) {
-        final ExternalMessage externalMessage = withSender.externalMessage;
+        final var externalMessage = withSender.externalMessage;
         final String correlationId =
                 externalMessage.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
         logger.withCorrelationId(correlationId)
@@ -181,9 +181,11 @@ public final class InboundMappingProcessorActor
         try {
             return Optional.of(mapExternalMessageToSignal(withSender, externalMessage));
         } catch (final Exception e) {
-            final InboundMappingOutcomes outcomes =
+            final var outcomes =
                     InboundMappingOutcomes.of(withSender.externalMessage, e, withSender.sender);
             inboundDispatchingActor.tell(outcomes, withSender.sender);
+            logger.withCorrelationId(correlationId)
+                    .error("Handling exception when mapping external message: {}", e.getMessage());
             return Optional.empty();
         }
     }
