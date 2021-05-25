@@ -47,7 +47,7 @@ let Ditto = (function () {
     const topic = buildTopic(namespace, name, group, channel, criterion, action);
 
     return {
-      topic,
+      topic: topic,
       path: path,
       headers: dittoHeaders,
       value: value,
