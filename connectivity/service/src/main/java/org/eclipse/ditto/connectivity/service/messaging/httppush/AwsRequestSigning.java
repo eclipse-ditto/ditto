@@ -89,11 +89,20 @@ final class AwsRequestSigning implements RequestSigning {
                 .map(request::withEntity)
                 .map(strictRequest -> {
                     final byte[] key = getSigningKey(secretKey, timestamp);
-                    final String stringToSign = getStringToSign(strictRequest, timestamp, doubleEncodeAndNormalize);
+                    final String payloadHash = getPayloadHash(strictRequest);
+                    final String stringToSign =
+                            getStringToSign(strictRequest, timestamp, doubleEncodeAndNormalize, payloadHash);
                     final String signature = toLowerCaseHex(RequestSigning.hmacSha256(key, stringToSign));
-                    return strictRequest
-                            .addHeader(HttpHeader.parse(X_AMZ_DATE_HEADER, X_AMZ_DATE_FORMATTER.format(timestamp)))
-                            .addCredentials(renderHttpCredentials(signature, timestamp));
+                    final HttpRequest augmentedRequest;
+                    if (xAmzContentSha256 == XAmzContentSha256.EXCLUDED) {
+                        augmentedRequest = strictRequest
+                                .addHeader(HttpHeader.parse(X_AMZ_DATE_HEADER, X_AMZ_DATE_FORMATTER.format(timestamp)));
+                    } else {
+                        augmentedRequest = strictRequest
+                                .addHeader(HttpHeader.parse(X_AMZ_DATE_HEADER, X_AMZ_DATE_FORMATTER.format(timestamp)))
+                                .addHeader(HttpHeader.parse(X_AMZ_CONTENT_SHA256_HEADER, payloadHash));
+                    }
+                    return augmentedRequest.addCredentials(renderHttpCredentials(signature, timestamp));
                 });
     }
 
@@ -109,27 +118,35 @@ final class AwsRequestSigning implements RequestSigning {
         return getKSigning(getKService(getKRegion(getKDate(getKSecret(secretKey), timestamp), region), service));
     }
 
-    String getStringToSign(final HttpRequest strictRequest, final Instant xAmzDate,
-            final boolean doubleEncodeAndNormalize) {
+    // for unit tests
+    String getStringToSign(final HttpRequest strictRequest, final Instant xAmzDate) {
+        return getStringToSign(strictRequest, xAmzDate, true, getPayloadHash(strictRequest));
+    }
+
+    private String getStringToSign(final HttpRequest strictRequest, final Instant xAmzDate,
+            final boolean doubleEncodeAndNormalize, final String payloadHash) {
         return String.join("\n",
                 ALGORITHM,
                 X_AMZ_DATE_FORMATTER.format(xAmzDate),
                 getCredentialScope(xAmzDate, region, service),
-                sha256(getCanonicalRequest(strictRequest, xAmzDate, doubleEncodeAndNormalize).getBytes(
-                        StandardCharsets.UTF_8))
+                sha256(getCanonicalRequest(strictRequest, xAmzDate, doubleEncodeAndNormalize, payloadHash)
+                        .getBytes(StandardCharsets.UTF_8))
         );
     }
 
     String getCanonicalRequest(final HttpRequest strictRequest, final Instant xAmzDate,
-            final boolean doubleEncodeAndNormalize) {
-        final var strictEntity = (HttpEntity.Strict) strictRequest.entity();
+            final boolean doubleEncodeAndNormalize, final String payloadHash) {
         final String method = strictRequest.method().name();
         final String canonicalUri = getCanonicalUri(strictRequest.getUri(), doubleEncodeAndNormalize);
         final String canonicalQuery = getCanonicalQuery(strictRequest.getUri().query());
-        final String payloadHash = getPayloadHash(strictEntity.getData());
         final String canonicalHeaders = getCanonicalHeaders(strictRequest, xAmzDate, payloadHash);
         return String.join("\n", method, canonicalUri, canonicalQuery, canonicalHeaders, getSignedHeaders(),
                 payloadHash);
+    }
+
+    String getPayloadHash(final HttpRequest strictRequest) {
+        final ByteString payload = ((HttpEntity.Strict) strictRequest.entity()).getData();
+        return getPayloadHash(payload);
     }
 
     String getPayloadHash(final ByteString payload) {
@@ -275,7 +292,7 @@ final class AwsRequestSigning implements RequestSigning {
         UNSIGNED;
 
         static XAmzContentSha256 forName(final String name) {
-            return Arrays.stream(values()).filter(option -> option.name().equals(name)).findAny()
+            return Arrays.stream(values()).filter(option -> option.name().equalsIgnoreCase(name)).findAny()
                     .orElseThrow(() -> new JsonParseException("The HMAC credentials parameter 'xAmzContentSha256'" +
                             " must have one of the following as value: 'INCLUDED', 'EXCLUDED', 'UNSIGNED'."));
         }

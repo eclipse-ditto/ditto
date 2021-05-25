@@ -244,13 +244,15 @@ public final class AwsRequestSigningTest {
     private String getStringToSign(final HttpRequest httpRequest) {
         return new AwsRequestSigning(actorSystem, List.of("host", "x-amz-date"), REGION_NAME, SERVICE_NAME, ACCESS_KEY,
                 SECRET_KEY, true, Duration.ofSeconds(10), X_AMZ_CONTENT_SHA256)
-                .getStringToSign(httpRequest, X_AMZ_DATE, true);
+                .getStringToSign(httpRequest, X_AMZ_DATE);
     }
 
     private String getCanonicalRequest(final HttpRequest httpRequest) {
-        return new AwsRequestSigning(actorSystem, List.of("host", "x-amz-date"), REGION_NAME, SERVICE_NAME, ACCESS_KEY,
-                SECRET_KEY, true, Duration.ofSeconds(10), X_AMZ_CONTENT_SHA256)
-                .getCanonicalRequest(httpRequest, X_AMZ_DATE, true);
+        final AwsRequestSigning requestSigning =
+                new AwsRequestSigning(actorSystem, List.of("host", "x-amz-date"), REGION_NAME, SERVICE_NAME, ACCESS_KEY,
+                        SECRET_KEY, true, Duration.ofSeconds(10), X_AMZ_CONTENT_SHA256);
+        return requestSigning.getCanonicalRequest(httpRequest, X_AMZ_DATE, true,
+                requestSigning.getPayloadHash(httpRequest));
     }
 
     private static String getKSecret() {
