@@ -392,33 +392,54 @@ Ditto comes with a few helper functions, which makes writing the mapping scripts
 ```javascript
 /**
  * Builds a Ditto Protocol message from the passed parameters.
- * @param {string} namespace - The namespace of the entity in java package notation, e.g.: "org.eclipse.ditto"
- * @param {string} name - The name of the entity, e.g.: "device"
- * @param {string} group - The affected group/entity, one of: "things"
- * @param {string} channel - The channel for the signal, one of: "twin"|"live"
- * @param {string} criterion - The criterion to apply, one of: "commands"|"events"|"search"|"messages"|"errors"
- * @param {string} action - The action to perform, one of: "create"|"retrieve"|"modify"|"delete"
- * @param {string} path - The path which is affected by the message, e.g.: "/attributes"
- * @param {Object.<string, string>} dittoHeaders - The headers Object containing all Ditto Protocol header values
- * @param {*} [value] - The value to apply / which was applied (e.g. in a "modify" action)
+ * @param {string} namespace - The namespace of the entity in java package notation, e.g.: "org.eclipse.ditto". Or "_"
+ * (underscore) for connection announcements.
+ * @param {string} name - The name of the entity, e.g.: "device".
+ * @param {string} channel - The channel for the signal: "twin"|"live"|"none"
+ * @param {string} group - The affected group/entity: "things"|"policies"|"connections".
+ * @param {string} criterion - The criterion to apply: "commands"|"events"|"search"|"messages"|"announcements"|"errors".
+ * @param {string} action - The action to perform: "create"|"retrieve"|"modify"|"delete". Or the announcement name:
+ * "opened"|"closed"|"subjectDeletion". Or the subject of the message.
+ * @param {string} path - The path which is affected by the message (e.g.: "/attributes"), or the destination
+ * of a message (e.g.: "inbox"|"outbox").
+ * @param {Object.<string, string>} dittoHeaders - The headers Object containing all Ditto Protocol header values.
+ * @param {*} [value] - The value to apply / which was applied (e.g. in a "modify" action).
  * @param {number} [status] - The status code that indicates the result of the command. If setting a status code,
  * the Ditto Protocol Message will be interpreted as a response (e.g. content will be ignored when using 204).
  * @param {Object} [extra] - The enriched extra fields when selected via "extraFields" option.
- * @returns {DittoProtocolMessage} dittoProtocolMessage - 
- *  the mapped Ditto Protocol message or 
+ * @returns {DittoProtocolMessage} dittoProtocolMessage(s) -
+ *  The mapped Ditto Protocol message or
  *  <code>null</code> if the message could/should not be mapped
  */
-function buildDittoProtocolMsg(namespace, name, group, channel, criterion, action, 
-                               path, dittoHeaders, value, status, extra) {
+function buildDittoProtocolMsg(namespace, name, group, channel, criterion, action, path, dittoHeaders, value, status, extra) {
+    const topic = buildTopic(namespace, name, group, channel, criterion, action);
 
-  return {
-    topic: namespace + "/" + name + "/" + group + "/" + channel + "/" + criterion + "/" + action,
-    path: path,
-    headers: dittoHeaders,
-    value: value,
-    status: status,
-    extra: extra,
-  };
+    return {
+        topic,
+        path: path,
+        headers: dittoHeaders,
+        value: value,
+        status: status,
+        extra: extra,
+    };
+}
+
+/**
+ * Builds a Ditto Protocol topic from the passed parameters.
+ * @param {string} namespace - The namespace of the entity in java package notation, e.g.: "org.eclipse.ditto". Or "_"
+ * (underscore) for connection announcements.
+ * @param {string} name - The name of the entity, e.g.: "device".
+ * @param {string} channel - The channel for the signal: "twin"|"live"|"none"
+ * @param {string} group - The affected group/entity: "things"|"policies"|"connections".
+ * @param {string} criterion - The criterion to apply: "commands"|"events"|"search"|"messages"|"announcements"|"errors".
+ * @param {string} action - The action to perform: "create"|"retrieve"|"modify"|"delete". Or the announcement name:
+ * "opened"|"closed"|"subjectDeletion". Or the subject of the message.
+ * @returns {string} topic - the topic.
+ */
+function buildTopic(namespace, name, group, channel, criterion, action) {
+    const topicChannel = 'none' === channel ? '' : '/' + channel;
+
+    return namespace + "/" + name + "/" + group + topicChannel + "/" + criterion + "/" + action;
 }
 
 /**
@@ -540,12 +561,12 @@ can be mapped to external messages by implementing the following JavaScript func
 ```javascript
 /**
  * Maps the passed parameters which originated from a Ditto Protocol message to an external message.
- * @param {string} namespace - The namespace of the entity in java package notation, e.g.: "org.eclipse.ditto". Or _ 
- * (undescore) for connection announcements.
+ * @param {string} namespace - The namespace of the entity in java package notation, e.g.: "org.eclipse.ditto". Or "_" 
+ * (underscore) for connection announcements.
  * @param {string} name - The name of the entity, e.g.: "device".
- * @param {string} channel - The channel for the signal: "twin"|"live"|"undefined"
  * @param {string} group - The affected group/entity: "things"|"policies"|"connections".
- * @param {string} criterion - The criterion to apply: "commands"|"events"|"search"|"messages"|"announcement"|
+ * @param {string} channel - The channel for the signal: "twin"|"live"|"none"
+ * @param {string} criterion - The criterion to apply: "commands"|"events"|"search"|"messages"|"announcements"|
  * "errors".
  * @param {string} action - The action to perform: "create"|"retrieve"|"modify"|"delete". Or the announcement name: 
  * "opened"|"closed"|"subjectDeletion". Or the subject of the message.
