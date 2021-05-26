@@ -273,20 +273,28 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     private Stream<SendingOrDropped> sendMappedOutboundSignal(final OutboundSignal.Mapped outbound,
             final int maxPayloadBytesForSignal) {
 
-        final ExternalMessage message = outbound.getExternalMessage();
+        final var message = outbound.getExternalMessage();
         final String correlationId = message.getHeaders().get(CORRELATION_ID.getKey());
         final Signal<?> outboundSource = outbound.getSource();
         final List<Target> outboundTargets = outbound.getTargets();
 
         final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(correlationId);
-        l.debug("Publishing mapped message of type <{}> to targets <{}>", outboundSource.getType(), outboundTargets);
-
         final Optional<SendingContext> replyTargetSendingContext = getSendingContext(outbound);
 
-        final List<SendingContext> sendingContexts = replyTargetSendingContext.map(List::of)
+        final List<SendingContext> sendingContexts = replyTargetSendingContext
+                .map(sendingContext -> {
+                    l.debug("Publishing mapped message of type <{}> to replyTarget <{}>",
+                            outboundSource.getType(), sendingContext.getGenericTarget().getAddress());
+                    return List.of(sendingContext);
+                })
                 .orElseGet(() -> outboundTargets.stream()
-                        .map(target -> getSendingContextForTarget(outbound, target))
+                        .map(target -> {
+                            l.debug("Publishing mapped message of type <{}> to targets <{}>", outboundSource.getType(),
+                                    outboundTargets);
+                            return getSendingContextForTarget(outbound, target);
+                        })
                         .collect(Collectors.toList()));
+
 
         if (sendingContexts.isEmpty()) {
             // Message dropped: neither reply-target nor target is available for the message.
