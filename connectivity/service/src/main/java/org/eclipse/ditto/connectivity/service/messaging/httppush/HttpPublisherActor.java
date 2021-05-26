@@ -18,6 +18,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Map;
@@ -223,7 +224,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     private HttpRequest createRequest(final HttpPublishTarget publishTarget, final ExternalMessage message) {
         final Pair<Iterable<HttpHeader>, ContentType> headersPair = getHttpHeadersPair(message);
-        final HttpRequest requestWithoutEntity = factory.newRequest(publishTarget).addHeaders(headersPair.first());
+        final HttpRequest requestWithoutEntity = newRequestWithoutEntity(publishTarget, headersPair.first(), message);
         final ContentType contentTypeHeader = headersPair.second();
         if (contentTypeHeader != null) {
             final HttpEntity.Strict httpEntity =
@@ -236,15 +237,29 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         }
     }
 
+    private HttpRequest newRequestWithoutEntity(final HttpPublishTarget publishTarget,
+            final Iterable<HttpHeader> headers, final ExternalMessage message) {
+        final HttpRequest request = factory.newRequest(publishTarget).addHeaders(headers);
+        final String httpQuery = message.getHeaders().get(ReservedHeaders.HTTP_QUERY.name);
+        if (httpQuery != null) {
+            final Uri uriWithQuery = request.getUri().rawQueryString(httpQuery);
+            return request.withUri(uriWithQuery);
+        } else {
+            return request;
+        }
+    }
+
     private static Pair<Iterable<HttpHeader>, ContentType> getHttpHeadersPair(final ExternalMessage message) {
         final Collection<HttpHeader> headers = new ArrayList<>(message.getHeaders().size());
         ContentType contentType = null;
         for (final Map.Entry<String, String> entry : message.getHeaders().entrySet()) {
-            final HttpHeader httpHeader = HttpHeader.parse(entry.getKey(), entry.getValue());
-            if (httpHeader instanceof ContentType) {
-                contentType = (ContentType) httpHeader;
-            } else {
-                headers.add(httpHeader);
+            if (!ReservedHeaders.contains(entry.getKey())) {
+                final HttpHeader httpHeader = HttpHeader.parse(entry.getKey(), entry.getValue());
+                if (httpHeader instanceof ContentType) {
+                    contentType = (ContentType) httpHeader;
+                } else {
+                    headers.add(httpHeader);
+                }
             }
         }
         return Pair.create(headers, contentType);
@@ -597,5 +612,23 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         return requestUri.userInfo("");
     }
 
+    private enum ReservedHeaders {
+
+        HTTP_QUERY("http.query");
+
+        private final String name;
+
+        ReservedHeaders(final String name) {
+            this.name = name;
+        }
+
+        private boolean matches(final String headerName) {
+            return name.equalsIgnoreCase(headerName);
+        }
+
+        private static boolean contains(final String header) {
+            return Arrays.stream(values()).anyMatch(reservedHeader -> reservedHeader.matches(header));
+        }
+    }
 }
 

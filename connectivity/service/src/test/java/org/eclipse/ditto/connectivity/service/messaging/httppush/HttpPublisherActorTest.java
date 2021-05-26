@@ -14,6 +14,7 @@ package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZonedDateTime;
@@ -788,6 +789,48 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
                             .join();
 
             assertThat(signedRequest).isEqualTo(expectedSignedRequest);
+        }};
+    }
+
+
+    @Test
+    public void testReservedHeaders() throws Exception {
+        new TestKit(actorSystem) {{
+
+            // GIVEN: reserved headers are set
+            final Map<String, String> reservedHeaders = Map.of("http.query", "a=b&c=d&e=f");
+
+            // WHEN: publisher actor is asked to publish a message with reserved headers
+            final TestProbe probe = new TestProbe(actorSystem);
+            setupMocks(probe);
+            final Target target = decorateTarget(createTestTarget());
+            final Message<?> message = Message.newBuilder(
+                    MessageHeaders.newBuilder(MessageDirection.FROM, TestConstants.Things.THING_ID, "please-respond")
+                            .build()
+            ).build();
+            final Signal<?> source = SendThingMessage.of(TestConstants.Things.THING_ID, message, DittoHeaders.empty());
+            final OutboundSignal outboundSignal =
+                    OutboundSignalFactory.newOutboundSignal(source, Collections.singletonList(target));
+            final ExternalMessage externalMessage =
+                    ExternalMessageFactory.newExternalMessageBuilder(reservedHeaders)
+                            .withText("payload")
+                            .build();
+            final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(source);
+            final OutboundSignal.Mapped mapped =
+                    OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
+            final OutboundSignal.MultiMapped multiMapped =
+                    OutboundSignalFactory.newMultiMappedOutboundSignal(List.of(mapped), getRef());
+            final Props props = getPublisherActorProps();
+            final ActorRef publisherActor = childActorOf(props);
+            publisherCreated(this, publisherActor);
+            publisherActor.tell(multiMapped, getRef());
+
+            // THEN: reserved headers do not appear as HTTP headers
+            final HttpRequest request = received.take();
+            assertThat(request.getHeader("http.query")).isEmpty();
+
+            // THEN: reserved headers are evaluated
+            assertThat(request.getUri().queryString(StandardCharsets.UTF_8)).contains("a=b&c=d&e=f");
         }};
     }
 
