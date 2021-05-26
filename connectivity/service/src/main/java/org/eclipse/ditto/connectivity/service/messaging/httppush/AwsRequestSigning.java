@@ -231,7 +231,8 @@ final class AwsRequestSigning implements RequestSigning {
         if (segments.isEmpty()) {
             return "/";
         } else {
-            return segments.stream().collect(Collectors.joining(slash, slash, slash));
+            final String trailingString = uri.getPathString().endsWith(slash) ? slash : "";
+            return segments.stream().collect(Collectors.joining(slash, slash, trailingString));
         }
     }
 
