@@ -39,6 +39,7 @@ import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.Query;
 import akka.http.javadsl.model.Uri;
 import akka.http.javadsl.model.headers.HttpCredentials;
+import akka.japi.Pair;
 import akka.stream.javadsl.Source;
 import akka.util.ByteString;
 
@@ -102,16 +103,20 @@ final class AwsRequestSigning implements RequestSigning {
                                 .addHeader(HttpHeader.parse(X_AMZ_DATE_HEADER, X_AMZ_DATE_FORMATTER.format(timestamp)))
                                 .addHeader(HttpHeader.parse(X_AMZ_CONTENT_SHA256_HEADER, payloadHash));
                     }
-                    return augmentedRequest.addCredentials(renderHttpCredentials(signature, timestamp));
+                    final var credentials = renderHttpCredentials(signature, timestamp);
+                    return augmentedRequest.addCredentials(credentials);
                 });
     }
 
     private HttpCredentials renderHttpCredentials(final String signature, final Instant xAmzDate) {
-        return HttpCredentials.create(ALGORITHM, "", Map.of(
-                "Credential", accessKey + "/" + getCredentialScope(xAmzDate, region, service),
-                "SignedHeaders", getSignedHeaders(),
-                "Signature", signature
-        ));
+        final var authParams = List.of(
+                Pair.create("Credential", accessKey + "/" + getCredentialScope(xAmzDate, region, service)),
+                Pair.create("SignedHeaders", getSignedHeaders()),
+                Pair.create("Signature", signature)
+        );
+        // render without quoting: AWS can't handle quoted auth params (RFC-7235) as of 26.05.2021
+        final String authParamsRenderedWithoutQuotes = renderWithoutQuotes(authParams);
+        return HttpCredentials.create(ALGORITHM, authParamsRenderedWithoutQuotes);
     }
 
     private byte[] getSigningKey(final String secretKey, final Instant timestamp) {
@@ -284,6 +289,13 @@ final class AwsRequestSigning implements RequestSigning {
             builder.append(LOWER_CASE_HEX_CHARS[b & 0x0F]);
         }
         return builder.toString();
+    }
+
+    private static String renderWithoutQuotes(final List<Pair<String, String>> authParams) {
+        return authParams.stream()
+                .map(pair -> pair.first() + "=" + pair.second())
+                // space after comma is obligatory
+                .collect(Collectors.joining(", "));
     }
 
     enum XAmzContentSha256 {
