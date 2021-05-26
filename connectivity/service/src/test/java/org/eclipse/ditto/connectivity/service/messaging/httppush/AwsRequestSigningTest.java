@@ -195,15 +195,14 @@ public final class AwsRequestSigningTest {
         assertThat(getKSigning()).describedAs("kSigning")
                 .isEqualTo("f4780e2d9f65fa895f9c67b32ce1baf0b0d8a43505a000a1a9e090d414db404d");
 
-        final Map<String, String> authorizationParams = Map.of(
-                "Credential", "MyAwesomeAccessKey/20120215/us-east-1/iam/aws4_request",
-                "SignedHeaders", "host;x-amz-date",
-                "Signature", "eda3fcc970a1d0cd3a3c3b8e7c80e876eec16d3b44459ce3e48fffd8226e4dca"
-        );
+        final String authorizationParams =
+                "Credential=MyAwesomeAccessKey/20120215/us-east-1/iam/aws4_request, " +
+                "SignedHeaders=host;x-amz-date, " +
+                "Signature=eda3fcc970a1d0cd3a3c3b8e7c80e876eec16d3b44459ce3e48fffd8226e4dca";
 
         final HttpRequest expectedSignedRequest = getSampleHttpRequest()
                 .addHeader(HttpHeader.parse("x-amz-date", expectedXAmzDate))
-                .addCredentials(HttpCredentials.create("AWS4-HMAC-SHA256", "", authorizationParams));
+                .addCredentials(HttpCredentials.create("AWS4-HMAC-SHA256", authorizationParams));
         final HttpRequest signedRequest = signRequest(requestToSign);
         assertThat(signedRequest).describedAs("signedRequest").isEqualTo(expectedSignedRequest);
     }
