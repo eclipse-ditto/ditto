@@ -221,13 +221,18 @@ final class AwsRequestSigning implements RequestSigning {
 
     static String encodeAndNormalizePathSegments(final Uri uri) {
         final String slash = "/";
-        final String trailingSeparator = uri.getPathString().endsWith(slash) ? slash : "";
-        return StreamSupport.stream(uri.pathSegments().spliterator(), false)
+        final List<String> segments = StreamSupport.stream(uri.pathSegments().spliterator(), false)
                 .filter(s -> !s.isEmpty())
                 // encode path segment twice as required for all AWS services except S3
                 .map(UriEncoding::encodePathSegment)
                 .map(UriEncoding::encodePathSegment)
-                .collect(Collectors.joining(slash, slash, trailingSeparator));
+                .collect(Collectors.toList());
+
+        if (segments.isEmpty()) {
+            return "/";
+        } else {
+            return segments.stream().collect(Collectors.joining(slash, slash, slash));
+        }
     }
 
     static byte[] getKSecret(final String secretKey) {
