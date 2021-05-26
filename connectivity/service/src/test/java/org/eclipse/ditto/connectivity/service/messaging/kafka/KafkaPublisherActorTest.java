@@ -25,12 +25,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
-import org.apache.kafka.clients.producer.Callback;
-import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
@@ -39,25 +38,25 @@ import org.apache.kafka.common.errors.InvalidTopicException;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.awaitility.Awaitility;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
-import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.connectivity.model.Topic;
-import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
-import org.eclipse.ditto.connectivity.service.messaging.AbstractPublisherActorTest;
-import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
+import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
+import org.eclipse.ditto.connectivity.model.Target;
+import org.eclipse.ditto.connectivity.model.Topic;
+import org.eclipse.ditto.connectivity.service.messaging.AbstractPublisherActorTest;
+import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.junit.Test;
@@ -65,6 +64,7 @@ import org.junit.Test;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.kafka.javadsl.SendProducer;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
@@ -76,44 +76,39 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
     private static final String OUTBOUND_ADDRESS = "anyTopic/keyA";
 
     private final Queue<ProducerRecord<String, String>> received = new ConcurrentLinkedQueue<>();
-    private KafkaProducerFactory connectionFactory;
-    private Producer<String, String> mockProducer;
+    private KafkaProducerFactory producerFactory;
+    private SendProducer<String, String> mockProducer;
 
     @Override
     @SuppressWarnings("unchecked")
     protected void setupMocks(final TestProbe probe) {
-        connectionFactory = mock(KafkaProducerFactory.class);
-        mockProducer = mock(Producer.class);
-        when(connectionFactory.newProducer()).thenReturn(mockProducer);
-        when(mockProducer.send(any(), any()))
+        producerFactory = mock(KafkaProducerFactory.class);
+        mockProducer = mock(SendProducer.class);
+        when(producerFactory.newProducer()).thenReturn(mockProducer);
+        when(mockProducer.send(any(ProducerRecord.class)))
                 .thenAnswer(invocationOnMock -> {
                     final ProducerRecord<String, String> record = invocationOnMock.getArgument(0);
+                    received.add(record);
                     final RecordMetadata dummyMetadata =
                             new RecordMetadata(new TopicPartition("topic", 5), 0L, 0L, 0L, 0L, 0, 0);
-                    invocationOnMock.getArgument(1, Callback.class).onCompletion(dummyMetadata, null);
-                    received.add(record);
-                    return null;
+                    return CompletableFuture.completedFuture(dummyMetadata);
                 });
     }
 
     private void setUpMocksToFailWith(final Exception exception) {
-        connectionFactory = mock(KafkaProducerFactory.class);
-        mockProducer = mock(Producer.class);
-        when(connectionFactory.newProducer()).thenReturn(mockProducer);
-        when(mockProducer.send(any(), any()))
-                .thenAnswer(invocationOnMock -> {
-                    invocationOnMock.getArgument(1, Callback.class).onCompletion(null, exception);
-                    return null;
-                });
+        producerFactory = mock(KafkaProducerFactory.class);
+        mockProducer = mock(SendProducer.class);
+        when(producerFactory.newProducer()).thenReturn(mockProducer);
+        when(mockProducer.send(any(ProducerRecord.class))).thenReturn(CompletableFuture.failedFuture(exception));
     }
 
     @Override
     protected Props getPublisherActorProps() {
-        return KafkaPublisherActor.props(TestConstants.createConnection(), connectionFactory, false, "clientId");
+        return KafkaPublisherActor.props(TestConstants.createConnection(), producerFactory, false, "clientId");
     }
 
     protected Props getPublisherActorPropsWithDebugEnabled() {
-        return KafkaPublisherActor.props(TestConstants.createConnectionWithDebugEnabled(), connectionFactory, false,
+        return KafkaPublisherActor.props(TestConstants.createConnectionWithDebugEnabled(), producerFactory, false,
                 "clientId");
     }
 
@@ -187,8 +182,9 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
                         .topics(Topic.TWIN_EVENTS)
                         .build();
 
-                final ThingEvent<?> source = ThingDeleted.of(TestConstants.Things.THING_ID, 99L, Instant.now(), dittoHeaders,
-                        null);
+                final ThingEvent<?> source =
+                        ThingDeleted.of(TestConstants.Things.THING_ID, 99L, Instant.now(), dittoHeaders,
+                                null);
                 final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(source, List.of(target));
                 final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(Map.of())
                         .withText("payload")

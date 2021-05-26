@@ -170,21 +170,19 @@ public final class KafkaBootstrapServerSpecificConfigTest {
     }
 
     private void shouldOnlyContainDefaultBootstrapServer(final Connection connection) {
-        final HashMap<String, Object> properties = new HashMap<>();
-        bootstrapServerSpecificConfig.apply(properties, connection);
+        final Map<String, String> properties = bootstrapServerSpecificConfig.apply(connection);
         final List<String> servers = getBootstrapServers(properties);
         assertThat(servers).isEqualTo(Collections.singletonList(DEFAULT_SERVER));
     }
 
     private void shouldContainBootstrapServers(final Connection connection) {
-        final HashMap<String, Object> properties = new HashMap<>();
-        bootstrapServerSpecificConfig.apply(properties, connection);
+        final Map<String, String> properties = bootstrapServerSpecificConfig.apply(connection);
         final List<String> servers = getBootstrapServers(properties);
         assertThat(servers).containsExactlyInAnyOrder(BOOTSTRAP_SERVERS_ARRAY);
     }
 
-    private static List<String> getBootstrapServers(final HashMap<String, Object> properties) {
-        return Arrays.asList(properties.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG).toString().split(","));
+    private static List<String> getBootstrapServers(final Map<String, String> properties) {
+        return Arrays.asList(properties.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG).split(","));
     }
 
     private static Connection connectionWithBootstrapServers(@Nullable final String bootstrapServers) {

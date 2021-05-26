@@ -154,16 +154,14 @@ public final class KafkaAuthenticationSpecificConfigTest {
     }
 
     private void shouldNotContainSaslMechanism(final Connection connection) {
-        final HashMap<String, Object> properties = new HashMap<>();
-        underTest.apply(properties, connection);
+        final Map<String, String> properties = underTest.apply(connection);
 
         assertThat(properties.get(SaslConfigs.SASL_MECHANISM)).isNull();
         assertThat(properties.get(SaslConfigs.SASL_JAAS_CONFIG)).isNull();
     }
 
     private void shouldContainPlainSaslMechanism(final Connection connection) {
-        final HashMap<String, Object> properties = new HashMap<>();
-        underTest.apply(properties, connection);
+        final Map<String, String> properties = underTest.apply(connection);
 
         assertThat(properties.get(SaslConfigs.SASL_MECHANISM)).isEqualTo(KNOWN_PLAIN_SASL_MECHANISM);
         assertThat(properties.get(SaslConfigs.SASL_JAAS_CONFIG)).isEqualTo(
@@ -173,8 +171,7 @@ public final class KafkaAuthenticationSpecificConfigTest {
     }
 
     private void shouldContainScramSaslMechanism(final Connection connection, final String mechanism) {
-        final HashMap<String, Object> properties = new HashMap<>();
-        underTest.apply(properties, connection);
+        final Map<String, String> properties = underTest.apply(connection);
 
         assertThat(properties.get(SaslConfigs.SASL_MECHANISM)).isEqualTo(mechanism);
         assertThat(properties.get(SaslConfigs.SASL_JAAS_CONFIG)).isEqualTo(

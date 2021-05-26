@@ -13,6 +13,7 @@
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
 import java.text.MessageFormat;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -86,7 +87,7 @@ final class KafkaAuthenticationSpecificConfig implements KafkaSpecificConfig {
     }
 
     @Override
-    public void apply(final HashMap<String, Object> producerProperties, final Connection connection) {
+    public Map<String, String> apply(final Connection connection) {
 
         final Optional<String> username = connection.getUsername();
         final Optional<String> password = connection.getPassword();
@@ -96,9 +97,10 @@ final class KafkaAuthenticationSpecificConfig implements KafkaSpecificConfig {
             final String loginModule = getLoginModuleForSaslMechanism(saslMechanism);
             final String jaasConfig = getJaasConfig(loginModule, username.get(), password.get());
 
-            producerProperties.put(SaslConfigs.SASL_MECHANISM, saslMechanism);
-            producerProperties.put(SaslConfigs.SASL_JAAS_CONFIG, jaasConfig);
+            return Map.of(SaslConfigs.SASL_MECHANISM, saslMechanism,
+                    SaslConfigs.SASL_JAAS_CONFIG, jaasConfig);
         }
+        return Collections.emptyMap();
     }
 
     private static String getJaasConfig(final String loginModule, final String username, final String password) {

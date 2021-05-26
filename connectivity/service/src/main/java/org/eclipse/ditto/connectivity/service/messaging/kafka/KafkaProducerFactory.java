@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
-import org.apache.kafka.clients.producer.Producer;
+import akka.kafka.javadsl.SendProducer;
 
 /**
  * Creates Kafka producers.
@@ -24,6 +24,6 @@ interface KafkaProducerFactory {
      *
      * @return the producer.
      */
-    Producer<String, String> newProducer();
+    SendProducer<String, String> newProducer();
 
 }

@@ -17,42 +17,40 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.apache.kafka.clients.producer.Callback;
-import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.errors.RetriableException;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.ExceptionToAcknowledgementConverter;
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
-import org.eclipse.ditto.connectivity.api.OutboundSignal;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 
 import akka.Done;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.japi.pf.ReceiveBuilder;
+import akka.kafka.javadsl.SendProducer;
 import akka.util.ByteString;
 
 /**
@@ -63,10 +61,10 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
     static final String ACTOR_NAME = "kafkaPublisher";
 
-    private final KafkaProducerFactory connectionFactory;
+    private final KafkaProducerFactory producerFactory;
     private final boolean dryRun;
 
-    private Producer<String, String> producer;
+    private SendProducer<String, String> producer;
 
     @SuppressWarnings("unused")
     private KafkaPublisherActor(final Connection connection, final KafkaProducerFactory factory,
@@ -74,7 +72,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
         super(connection, clientId);
         this.dryRun = dryRun;
-        connectionFactory = factory;
+        producerFactory = factory;
 
         startInternalKafkaProducer();
         reportInitialConnectionState();
@@ -143,12 +141,16 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             final ExternalMessage messageWithConnectionIdHeader = message
                     .withHeader("ditto-connection-id", connection.getId().toString());
             final ProducerRecord<String, String> record = producerRecord(publishTarget, messageWithConnectionIdHeader);
-            final CompletableFuture<SendResult> resultFuture = new CompletableFuture<>();
             @Nullable final AcknowledgementLabel autoAckLabel = getAcknowledgementLabel(autoAckTarget).orElse(null);
-            final Callback callBack = new ProducerCallBack(signal, autoAckLabel, ackSizeQuota, resultFuture,
-                    this::escalateIfNotRetryable, connection);
-            producer.send(record, callBack);
-            return resultFuture;
+            final Function<RecordMetadata, SendResult> callBack =
+                    new ProducerCallBack(signal, autoAckLabel, ackSizeQuota, connection);
+            return producer.send(record)
+                    .thenApply(callBack)
+                    .whenComplete((metadata, throwable) -> {
+                        if (throwable != null) {
+                            escalateIfNotRetryable(throwable);
+                        }
+                    });
         }
     }
 
@@ -157,11 +159,11 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
      * Escalate to parent if it cannot be recovered from.
      * Called by ProducerCallBack; must be thread-safe.
      *
-     * @param exception the exception.
+     * @param throwable the exception.
      */
-    private void escalateIfNotRetryable(final Exception exception) {
-        if (!(exception instanceof RetriableException)) {
-            escalate(exception, "Got non-retriable exception");
+    private void escalateIfNotRetryable(final Throwable throwable) {
+        if (!(throwable instanceof RetriableException)) {
+            escalate(throwable, "Got non-retryable exception");
         }
     }
 
@@ -205,13 +207,12 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     private void startInternalKafkaProducer() {
         logger.info("Starting internal Kafka producer.");
         closeProducer();
-        producer = connectionFactory.newProducer();
+        producer = producerFactory.newProducer();
     }
 
     private void closeProducer() {
         if (producer != null) {
-            // Give up any buffered messages and close the producer immediately.
-            producer.close(0, TimeUnit.MILLISECONDS);
+            producer.close();
         }
     }
 
@@ -244,12 +245,10 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
     }
 
-    private static final class ProducerCallBack implements Callback {
+    private static final class ProducerCallBack implements Function<RecordMetadata, SendResult> {
 
         private final Signal<?> signal;
         private final int ackSizeQuota;
-        private final CompletableFuture<SendResult> resultFuture;
-        private final Consumer<Exception> checkException;
         private int currentQuota;
         private final Connection connection;
         @Nullable private final AcknowledgementLabel autoAckLabel;
@@ -257,36 +256,28 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         private ProducerCallBack(final Signal<?> signal,
                 @Nullable final AcknowledgementLabel autoAckLabel,
                 final int ackSizeQuota,
-                final CompletableFuture<SendResult> resultFuture,
-                final Consumer<Exception> checkException,
                 final Connection connection) {
 
             this.signal = signal;
             this.autoAckLabel = autoAckLabel;
             this.ackSizeQuota = ackSizeQuota;
-            this.resultFuture = resultFuture;
-            this.checkException = checkException;
             this.connection = connection;
         }
 
         @Override
-        public void onCompletion(final RecordMetadata metadata, final Exception exception) {
-            if (exception != null) {
-                resultFuture.completeExceptionally(exception);
-                checkException.accept(exception);
-            } else {
-                resultFuture.complete(buildResponseFromMetadata(metadata));
-            }
+        public SendResult apply(final RecordMetadata recordMetadata) {
+            return buildResponseFromMetadata(recordMetadata);
         }
+
 
         private SendResult buildResponseFromMetadata(@Nullable final RecordMetadata metadata) {
             final DittoHeaders dittoHeaders = signal.getDittoHeaders();
-            boolean verbose = isDebugEnabled() && metadata != null;
+            final boolean verbose = isDebugEnabled() && metadata != null;
             final JsonObject ackPayload = verbose ? toPayload(metadata) : null;
             final HttpStatus httpStatus = verbose ? HttpStatus.OK : HttpStatus.NO_CONTENT;
             final Optional<EntityId> entityIdOptional =
                     WithEntityId.getEntityIdOfType(EntityId.class, signal);
-            final Acknowledgement issuedAck;
+            @Nullable final Acknowledgement issuedAck;
             if (entityIdOptional.isPresent() && null != autoAckLabel) {
                 issuedAck = Acknowledgement.of(autoAckLabel,
                         entityIdOptional.get(),

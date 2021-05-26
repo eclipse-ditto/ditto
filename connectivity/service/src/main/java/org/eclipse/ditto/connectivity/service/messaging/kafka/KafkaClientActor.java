@@ -53,7 +53,7 @@ public final class KafkaClientActor extends BaseClientActor {
     private final KafkaPublisherActorFactory publisherActorFactory;
     private final Set<ActorRef> pendingStatusReportsFromStreams;
     private final PropertiesFactory propertiesFactory;
-    private final KafkaProducerFactory connectionFactory;
+    private final KafkaProducerFactory producerFactory;
 
     private CompletableFuture<Status.Status> testConnectionFuture = null;
     private ActorRef kafkaPublisherActor;
@@ -70,7 +70,8 @@ public final class KafkaClientActor extends BaseClientActor {
         final ConnectionConfig connectionConfig = connectivityConfig.getConnectionConfig();
         final KafkaConfig kafkaConfig = connectionConfig.getKafkaConfig();
         propertiesFactory = PropertiesFactory.newInstance(connection, kafkaConfig, getClientId(connection.getId()));
-        connectionFactory = DefaultKafkaProducerFactory.getInstance(propertiesFactory);
+        producerFactory = DefaultKafkaProducerFactory.getInstance(propertiesFactory.getProducerSettings(),
+                getContext().getSystem());
         this.publisherActorFactory = publisherActorFactory;
         pendingStatusReportsFromStreams = new HashSet<>();
     }
@@ -174,7 +175,7 @@ public final class KafkaClientActor extends BaseClientActor {
         // ensure no previous publisher stays in memory
         stopPublisherActor();
         final Props publisherActorProps =
-                publisherActorFactory.props(connection(), connectionFactory, dryRun, getDefaultClientId());
+                publisherActorFactory.props(connection(), producerFactory, dryRun, getDefaultClientId());
         kafkaPublisherActor = startChildActorConflictFree(publisherActorFactory.getActorName(), publisherActorProps);
         pendingStatusReportsFromStreams.add(kafkaPublisherActor);
     }

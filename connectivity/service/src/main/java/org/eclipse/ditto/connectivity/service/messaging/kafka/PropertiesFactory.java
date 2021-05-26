@@ -15,19 +15,20 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.service.config.KafkaConfig;
 
 import com.typesafe.config.Config;
 
 import akka.kafka.ConsumerSettings;
+import akka.kafka.ProducerSettings;
 
 /**
  * Creates Kafka properties from a given {@link org.eclipse.ditto.connectivity.model.Connection} configuration.
@@ -40,11 +41,13 @@ final class PropertiesFactory {
     private final Connection connection;
     private final KafkaConfig config;
     private final String clientId;
+    private final String bootstrapServers;
 
     private PropertiesFactory(final Connection connection, final KafkaConfig config, final String clientId) {
         this.connection = checkNotNull(connection, "connection");
         this.config = checkNotNull(config, "config");
         this.clientId = checkNotNull(clientId, "clientId");
+        this.bootstrapServers = KafkaBootstrapServerSpecificConfig.getInstance().getBootstrapServers(connection);
     }
 
     /**
@@ -67,39 +70,36 @@ final class PropertiesFactory {
      */
     ConsumerSettings<String, String> getConsumerSettings() {
         return ConsumerSettings.apply(config.getConsumerConfig(), new StringDeserializer(), new StringDeserializer())
-                .withBootstrapServers(KafkaBootstrapServerSpecificConfig.getInstance().getBootstrapServers(connection))
+                .withBootstrapServers(bootstrapServers)
                 .withGroupId(connection.getId().toString())
                 .withClientId(clientId);
     }
 
-    /**
-     * Returns properties for a kafka producer.
-     *
-     * @return the properties.
-     */
-    Map<String, Object> getProducerProperties() {
-        final HashMap<String, Object> producerProperties = configToProperties(config.getProducerConfig());
-        addClientId(producerProperties);
-        addSecurityProtocol(producerProperties);
-        addSpecificConfig(producerProperties);
-        return Collections.unmodifiableMap(producerProperties);
+    ProducerSettings<String, String> getProducerSettings() {
+        return ProducerSettings.apply(config.getProducerConfig(), new StringSerializer(), new StringSerializer())
+                .withBootstrapServers(bootstrapServers)
+                .withProperties(getClientIdProperties())
+                .withProperties(getSpecificConfigProperties())
+                .withProperties(getSecurityProtocolProperties());
     }
 
-    private void addClientId(final HashMap<String, Object> properties) {
-        properties.put(CommonClientConfigs.CLIENT_ID_CONFIG, clientId);
+    private Map<String, String> getClientIdProperties() {
+        return Map.of(CommonClientConfigs.CLIENT_ID_CONFIG, clientId);
     }
 
-    private void addSpecificConfig(final HashMap<String, Object> properties) {
+    private Map<String, String> getSpecificConfigProperties() {
+        final Map<String, String> properties = new HashMap<>();
         for (final KafkaSpecificConfig specificConfig : SPECIFIC_CONFIGS) {
-            specificConfig.apply(properties, connection);
+            properties.putAll(specificConfig.apply(connection));
         }
+        return properties;
     }
 
-    private void addSecurityProtocol(final HashMap<String, Object> properties) {
+    private Map<String, String> getSecurityProtocolProperties() {
         if (isConnectionAuthenticated()) {
-            addAuthenticatedSecurityProtocol(properties);
+            return addAuthenticatedSecurityProtocol();
         } else {
-            addUnauthenticatedSecurityProtocol(properties);
+            return addUnauthenticatedSecurityProtocol();
         }
     }
 
@@ -108,19 +108,19 @@ final class PropertiesFactory {
         return authenticationSpecificConfig.isApplicable(connection);
     }
 
-    private void addAuthenticatedSecurityProtocol(final HashMap<String, Object> properties) {
+    private Map<String, String> addAuthenticatedSecurityProtocol() {
         if (isConnectionSecure()) {
-            properties.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_SSL");
+            return Map.of(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_SSL");
         } else {
-            properties.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT");
+            return Map.of(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT");
         }
     }
 
-    private void addUnauthenticatedSecurityProtocol(final HashMap<String, Object> properties) {
+    private Map<String, String> addUnauthenticatedSecurityProtocol() {
         if (isConnectionSecure()) {
-            properties.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
+            return Map.of(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
         } else {
-            properties.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "PLAINTEXT");
+            return Map.of(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "PLAINTEXT");
         }
     }
 

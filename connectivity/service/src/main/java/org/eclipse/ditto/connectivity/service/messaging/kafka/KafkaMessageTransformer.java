@@ -38,6 +38,9 @@ import scala.util.Either;
 import scala.util.Left;
 import scala.util.Right;
 
+/**
+ * TODO
+ */
 @Immutable
 final class KafkaMessageTransformer {
 

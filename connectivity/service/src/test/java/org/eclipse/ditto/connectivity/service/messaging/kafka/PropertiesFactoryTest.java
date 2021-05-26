@@ -16,7 +16,6 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
 
-import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -36,6 +35,8 @@ import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import akka.kafka.ProducerSettings;
 
 /**
  * Unit test for {@link PropertiesFactory}.
@@ -88,7 +89,8 @@ public final class PropertiesFactoryTest {
 
     @Test
     public void addsBootstrapServersAndFlattensProperties() {
-        final Map<String, Object> properties = underTest.getProducerProperties();
+        final ProducerSettings<String, String> producerSettings = underTest.getProducerSettings();
+        final Map<String, Object> properties = producerSettings.getProperties();
 
         final List<String> servers =
                 Arrays.asList(properties.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG).toString().split(","));
@@ -96,11 +98,10 @@ public final class PropertiesFactoryTest {
         assertThat(servers).containsExactlyInAnyOrder(BOOTSTRAP_SERVERS);
 
         // check flattening of client properties in kafka.producer
-        assertThat(properties).contains(
-                new AbstractMap.SimpleEntry<>("connections.max.idle.ms", 543210),
-                new AbstractMap.SimpleEntry<>("reconnect.backoff.ms", 500),
-                new AbstractMap.SimpleEntry<>("reconnect.backoff.max.ms", 10000)
-        );
+        assertThat(properties)
+                .containsEntry("connections.max.idle.ms", "543210")
+                .containsEntry("reconnect.backoff.ms", "500")
+                .containsEntry("reconnect.backoff.max.ms", "10000");
     }
 
 }

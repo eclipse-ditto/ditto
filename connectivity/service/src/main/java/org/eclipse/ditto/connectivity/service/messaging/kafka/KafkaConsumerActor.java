@@ -18,7 +18,8 @@ import static org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory.
 import java.time.Duration;
 import java.util.Map;
 
-import org.apache.kafka.streams.errors.StreamsException;
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
@@ -43,6 +44,9 @@ import akka.stream.javadsl.RunnableGraph;
 import akka.stream.javadsl.Sink;
 import scala.util.Either;
 
+/**
+ * TODO
+ */
 final class KafkaConsumerActor extends BaseConsumerActor {
 
     static final String ACTOR_NAME_PREFIX = "kafkaConsumer-";
@@ -78,7 +82,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
     }
 
     @Override
-    public void preStart() throws IllegalStateException, StreamsException {
+    public void preStart() throws IllegalStateException {
         kafkaStream.start();
     }
 
@@ -125,11 +129,11 @@ final class KafkaConsumerActor extends BaseConsumerActor {
 
     }
 
-    private class KafkaConsumerStream {
+    private final class KafkaConsumerStream {
 
         private final RunnableGraph<Consumer.Control> runnableKafkaStream;
         private final Materializer materializer;
-        private Consumer.Control kafkaStream;
+        @Nullable private Consumer.Control kafkaStream;
 
         private KafkaConsumerStream(final ConsumerSettings<String, String> consumerSettings,
                 final KafkaMessageTransformer kafkaMessageTransformer,
@@ -192,11 +196,11 @@ final class KafkaConsumerActor extends BaseConsumerActor {
         private Sink<Either<ExternalMessage, DittoRuntimeException>, ?> unexpectedMessageSink() {
             return Sink.foreach(either -> inboundMonitor.exception(
                     "Got unexpected transformation result <{0}>. This is an internal error. " +
-                            "Please contact the service team", either
+                            "Please contact the service team.", either
             ));
         }
 
-        private void start() throws IllegalStateException, StreamsException {
+        private void start() throws IllegalStateException {
             if (kafkaStream != null) {
                 stop();
             }
@@ -205,6 +209,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
 
         private void stop() {
             if (kafkaStream != null) {
+                // TODO use drainAndShutdown?
                 kafkaStream.shutdown();
                 kafkaStream = null;
             }

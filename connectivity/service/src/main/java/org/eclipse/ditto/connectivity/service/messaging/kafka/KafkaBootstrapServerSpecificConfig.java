@@ -14,7 +14,7 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
 import java.text.MessageFormat;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -66,7 +66,7 @@ final class KafkaBootstrapServerSpecificConfig implements KafkaSpecificConfig {
                     mergeAdditionalBootstrapServers(bootstrapServerFromUri, additionalBootstrapServers);
         } else {
             // basically we should never end in this else-branch, since the connection should always contain bootstrap servers.
-            // so this is just a fallback is something bad happens.
+            // so this is just a fallback if something bad happens.
             LOG.warn(
                     "Kafka connection <{}> contains invalid configuration for its bootstrap servers. Either they are empty," +
                             " or don't match the pattern <host:port[,host:port]>. This should never happen as the connection should" +
@@ -99,9 +99,9 @@ final class KafkaBootstrapServerSpecificConfig implements KafkaSpecificConfig {
     }
 
     @Override
-    public void apply(final HashMap<String, Object> producerProperties, final Connection connection) {
+    public Map<String, String> apply(final Connection connection) {
         final String mergedBootstrapServers = getBootstrapServers(connection);
-        producerProperties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, mergedBootstrapServers);
+        return Map.of(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, mergedBootstrapServers);
     }
 
     private String getBootstrapServersFromSpecificConfig(final Connection connection) {
