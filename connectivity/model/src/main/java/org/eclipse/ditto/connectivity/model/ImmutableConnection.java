@@ -664,6 +664,7 @@ final class ImmutableConnection implements Connection {
         public Connection build() {
             checkSourceAndTargetAreValid();
             checkAuthorizationContextsAreValid();
+            checkConnectionAnnouncementsOnlySetIfClientCount1();
             migrateLegacyConfigurationOnTheFly();
             return new ImmutableConnection(this);
         }
@@ -766,6 +767,23 @@ final class ImmutableConnection implements Connection {
                 message.append(" are missing an authorization context.");
                 throw ConnectionConfigurationInvalidException.newBuilder(message.toString()).build();
             }
+        }
+
+        private void checkConnectionAnnouncementsOnlySetIfClientCount1() {
+            if (clientCount > 1 && containsTargetWithConnectionAnnouncementsTopic()) {
+                final String message = MessageFormat.format("Connection announcements (topic {0}) can" +
+                        " only be used with client count 1.", Topic.CONNECTION_ANNOUNCEMENTS.getName());
+                throw ConnectionConfigurationInvalidException.newBuilder(message)
+                        .build();
+            }
+        }
+
+        private boolean containsTargetWithConnectionAnnouncementsTopic() {
+            return targets.stream()
+                    .map(Target::getTopics)
+                    .flatMap(Set::stream)
+                    .map(FilteredTopic::getTopic)
+                    .anyMatch(Topic.CONNECTION_ANNOUNCEMENTS::equals);
         }
 
     }

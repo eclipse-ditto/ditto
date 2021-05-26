@@ -94,7 +94,8 @@ The only parameter necessary for retrieving a connection is the `connectionId`.
 
 ### Open connection
 
-The only parameter necessary for opening a connection is the `connectionId`.
+The only parameter necessary for opening a connection is the `connectionId`. When opening a connection a 
+[ConnectionOpenedAnnouncement](protocol-specification-connections-announcement.html) will be published.
 
 ```json
 {
@@ -111,7 +112,8 @@ The only parameter necessary for opening a connection is the `connectionId`.
 
 ### Close connection
 
-The only parameter necessary for closing a connection is the `connectionId`.
+The only parameter necessary for closing a connection is the `connectionId`. When gracefully closing a connection a
+[ConnectionClosedAnnouncement](protocol-specification-connections-announcement.html) will be published.
 
 ```json
 {

@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectivityAnnouncement;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -108,7 +109,7 @@ public final class SignalFilter {
     }
 
     private static boolean isTargetAuthorized(final Target target, final Signal<?> signal) {
-        if (signal instanceof PolicyAnnouncement) {
+        if (signal instanceof PolicyAnnouncement || signal instanceof ConnectivityAnnouncement) {
             return true;
         } else {
             final AuthorizationContext authorizationContext = target.getAuthorizationContext();
@@ -174,6 +175,9 @@ public final class SignalFilter {
     private static Optional<Topic> topicFromSignal(final Signal<?> signal) {
         if (signal instanceof PolicyAnnouncement) {
             return Optional.of(Topic.POLICY_ANNOUNCEMENTS);
+        }
+        if (signal instanceof ConnectivityAnnouncement) {
+            return Optional.of(Topic.CONNECTION_ANNOUNCEMENTS);
         }
         // check things group
         final TopicPath.Group group =

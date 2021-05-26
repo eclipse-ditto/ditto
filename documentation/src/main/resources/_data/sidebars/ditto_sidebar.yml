@@ -389,7 +389,7 @@ entries:
             output: web
 
             subfolders:
-              - title: → commands/events
+              - title: → commands/announcements
                 output: web
                 subfolderitems:
                   - title: Create/Modify
@@ -403,6 +403,18 @@ entries:
                     output: web
                   - title: Announcement
                     url: /protocol-specification-policies-announcement.html
+                    output: web
+
+          - title: Connections group
+            url: /protocol-specification-connections.html
+            output: web
+
+            subfolders:
+              - title: → announcements
+                output: web
+                subfolderitems:
+                  - title: Announcement
+                    url: /protocol-specification-connections-announcement.html
                     output: web
 
           - title: Bindings
@@ -674,6 +686,15 @@ entries:
                     output: web
                   - title: Announcement for subject deletion
                     url: /protocol-examples-policies-announcement-subjectDeletion.html
+                    output: web
+              - title: → Connections examples
+                output: web
+                subfolderitems:
+                  - title: Announcement for connection opened
+                    url: /protocol-examples-connections-announcement-opened.html
+                    output: web
+                  - title: Announcement for connection gracefully closed
+                    url: /protocol-examples-connections-announcement-closed.html
                     output: web
           - title: → Search examples
             url: /protocol-examples-search.html

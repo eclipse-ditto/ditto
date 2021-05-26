@@ -13,13 +13,16 @@
 
 package org.eclipse.ditto.connectivity.service.messaging;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -28,10 +31,19 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.Target;
+import org.eclipse.ditto.connectivity.model.Topic;
+import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectionClosedAnnouncement;
+import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectionOpenedAnnouncement;
+import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectivityAnnouncement;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
@@ -44,6 +56,9 @@ import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.Connecti
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.protocol.mapper.SignalMapperFactory;
 import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CancelSubscription;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -70,6 +85,7 @@ public final class BaseClientActorTest {
     private static final Status.Success CONNECTED_STATUS = new Status.Success(BaseClientState.CONNECTED);
     private static final Status.Success DISCONNECTED_STATUS = new Status.Success(BaseClientState.DISCONNECTED);
     private static final Duration DEFAULT_MESSAGE_TIMEOUT = Duration.ofSeconds(3);
+    private static Duration DISCONNECT_TIMEOUT;
     private static ActorSystem actorSystem;
     private static DittoConnectivityConfig connectivityConfig;
 
@@ -81,6 +97,8 @@ public final class BaseClientActorTest {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
         connectivityConfig =
                 DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
+        DISCONNECT_TIMEOUT = connectivityConfig.getClientConfig().getDisconnectAnnouncementTimeout()
+            .plus(connectivityConfig.getClientConfig().getDisconnectingMaxTimeout());
     }
 
     @AfterClass
@@ -386,12 +404,153 @@ public final class BaseClientActorTest {
         }};
     }
 
+    @Test
+    public void sendsConnectionOpenedAnnouncementAfterConnect() {
+        new TestKit(actorSystem) {{
+            final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
+            final Connection connection = createConnectionWithConnectivityAnnouncementTarget(randomConnectionId);
+            final TestProbe publisherActor = TestProbe.apply(getSystem());
+            final Props props = DummyClientActor.props(connection, getRef(), getRef(), publisherActor.ref(), delegate);
+
+            final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
+
+            whenOpeningConnection(dummyClientActor, OpenConnection.of(randomConnectionId, DittoHeaders.empty()),
+                    getRef());
+            thenExpectConnectClientCalled();
+            andConnectionSuccessful(dummyClientActor, getRef());
+            expectMsg(CONNECTED_STATUS);
+            thenExpectConnectionOpenedAnnouncement(publisherActor, randomConnectionId);
+        }};
+    }
+
+    @Test
+    public void sendsConnectionOpenedAnnouncementAfterReconnect() {
+        new TestKit(actorSystem) {{
+            final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
+            final Connection connection = createConnectionWithConnectivityAnnouncementTarget(randomConnectionId);
+            final TestProbe publisherActor = TestProbe.apply(getSystem());
+            final Props props = DummyClientActor.props(connection, getRef(), getRef(), publisherActor.ref(), delegate);
+
+            final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
+
+            whenOpeningConnection(dummyClientActor, OpenConnection.of(randomConnectionId, DittoHeaders.empty()),
+                    getRef());
+            thenExpectConnectClientCalled();
+            andConnectionSuccessful(dummyClientActor, getRef());
+            expectMsg(CONNECTED_STATUS);
+            thenExpectConnectionOpenedAnnouncement(publisherActor, randomConnectionId);
+
+            andConnectionFails(dummyClientActor, getRef());
+            // not expecting a closed announcement after connection failure, since it's not possible to send a message
+            // if a connecting is failed and thus not connected
+
+            andConnectionSuccessful(dummyClientActor, getRef());
+
+            thenExpectConnectionOpenedAnnouncement(publisherActor, randomConnectionId);
+        }};
+    }
+
+    @Test
+    public void sendsConnectionClosedAnnouncementWhenConnectionGetsClosed() {
+        new TestKit(actorSystem) {{
+            final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
+            final Connection connection = createConnectionWithConnectivityAnnouncementTarget(randomConnectionId);
+            final TestProbe publisherActor = TestProbe.apply(getSystem());
+            final Props props = DummyClientActor.props(connection, getRef(), getRef(), publisherActor.ref(), delegate);
+
+            final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
+
+            whenOpeningConnection(dummyClientActor, OpenConnection.of(randomConnectionId, DittoHeaders.empty()),
+                    getRef());
+            thenExpectConnectClientCalled();
+            andConnectionSuccessful(dummyClientActor, getRef());
+            expectMsg(CONNECTED_STATUS);
+            thenExpectConnectionOpenedAnnouncement(publisherActor, randomConnectionId);
+
+            andClosingConnection(dummyClientActor, CloseConnection.of(randomConnectionId, DittoHeaders.empty()), getRef());
+
+            thenExpectDisconnectClientNotCalledForAtLeast(
+                    connectivityConfig.getClientConfig().getConnectingMinTimeout().dividedBy(2L));
+            thenExpectConnectionClosedAnnouncement(publisherActor, randomConnectionId);
+            thenExpectDisconnectClientCalled();
+        }};
+    }
+
+    @Test
+    public void sendsConnectionClosedAnnouncementBeforeSystemShutdown() {
+        final ActorSystem closableActorSystem = ActorSystem.create("AkkaTestSystem-closableActorSystem", TestConstants.CONFIG);
+        new TestKit(closableActorSystem) {{
+            final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
+            final Connection connection = createConnectionWithConnectivityAnnouncementTarget(randomConnectionId);
+            final TestProbe publisherActor = TestProbe.apply(getSystem());
+            final Props props = DummyClientActor.props(connection, getRef(), getRef(), publisherActor.ref(), delegate);
+
+            final ActorRef dummyClientActor = watch(closableActorSystem.actorOf(props));
+
+            whenOpeningConnection(dummyClientActor, OpenConnection.of(randomConnectionId, DittoHeaders.empty()),
+                    getRef());
+            thenExpectConnectClientCalled();
+            andConnectionSuccessful(dummyClientActor, getRef());
+            expectMsg(CONNECTED_STATUS);
+            thenExpectConnectionOpenedAnnouncement(publisherActor, randomConnectionId);
+
+            getSystem().terminate();
+            thenExpectConnectionClosedAnnouncement(publisherActor, randomConnectionId);
+        }};
+
+        closableActorSystem.terminate();
+    }
+
+    private Connection createConnectionWithConnectivityAnnouncementTarget(final ConnectionId connectionId) {
+        final Target target = ConnectivityModelFactory.newTargetBuilder()
+                .address("/")
+                .topics(Collections.singleton(
+                        ConnectivityModelFactory.newFilteredTopicBuilder(Topic.CONNECTION_ANNOUNCEMENTS).build()))
+                .authorizationContext(
+                        AuthorizationContext.newInstance(DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION,
+                                AuthorizationSubject.newInstance("nginx:ditto")))
+                .build();
+        return TestConstants.createConnection(connectionId, target);
+    }
+
+    private void thenExpectConnectionOpenedAnnouncement(final TestProbe publisherActorProbe,
+            final ConnectionId connectionId) {
+        final ConnectionOpenedAnnouncement announcement =
+                ConnectionOpenedAnnouncement.of(connectionId, Instant.now(), DittoHeaders.empty());
+
+        thenExpectConnectivityAnnouncement(publisherActorProbe, announcement);
+    }
+    private void thenExpectConnectionClosedAnnouncement(final TestProbe publisherActorProbe,
+            final ConnectionId connectionId) {
+        final ConnectionClosedAnnouncement announcement =
+                ConnectionClosedAnnouncement.of(connectionId, Instant.now(), DittoHeaders.empty());
+
+        thenExpectConnectivityAnnouncement(publisherActorProbe, announcement);
+    }
+
+    private void thenExpectConnectivityAnnouncement(final TestProbe publisherActorProbe,
+            final ConnectivityAnnouncement<?> announcement) {
+        final Adaptable expectedAdaptable = SignalMapperFactory.newConnectivityAnnouncementSignalMapper()
+                .mapSignalToAdaptable(announcement, TopicPath.Channel.NONE);
+
+        final OutboundSignal.MultiMapped outboundSignal =
+                publisherActorProbe.expectMsgClass(OutboundSignal.MultiMapped.class);
+        final Adaptable sentAdaptable = outboundSignal.first().getAdaptable();
+
+        assertThat(sentAdaptable.getTopicPath()).isEqualTo(expectedAdaptable.getTopicPath());
+    }
+
     private void thenExpectConnectClientCalled() {
         thenExpectConnectClientCalledAfterTimeout(DEFAULT_MESSAGE_TIMEOUT);
     }
 
+    private void thenExpectDisconnectClientNotCalledForAtLeast(final Duration duration) {
+        verify(delegate, timeout(duration.toMillis()).times(0))
+                .doDisconnectClient(any(Connection.class), nullable(ActorRef.class));
+    }
+
     private void thenExpectDisconnectClientCalled() {
-        verify(delegate, timeout(DEFAULT_MESSAGE_TIMEOUT.toMillis())).doDisconnectClient(any(Connection.class),
+        verify(delegate, timeout(DISCONNECT_TIMEOUT.toMillis())).doDisconnectClient(any(Connection.class),
                 nullable(ActorRef.class));
     }
 
@@ -430,12 +589,15 @@ public final class BaseClientActorTest {
 
     private static void andClosingConnection(final ActorRef clientActor, final CloseConnection closeConnection,
             final ActorRef sender) {
-
         clientActor.tell(closeConnection, sender);
     }
 
     private static void andConnectionSuccessful(final ActorRef clientActor, final ActorRef origin) {
         clientActor.tell((ClientConnected) () -> Optional.of(origin), clientActor);
+    }
+
+    private static void andConnectionFails(final ActorRef clientActor, final ActorRef origin) {
+        clientActor.tell(new ImmutableConnectionFailure(null, null, null), clientActor);
     }
 
     private static void andDisconnectionSuccessful(final ActorRef clientActor, final ActorRef origin) {
@@ -502,6 +664,7 @@ public final class BaseClientActorTest {
             logger.info("cleanupResourcesForConnection");
             delegate.cleanupResourcesForConnection();
         }
+
         @Override
         protected void doConnectClient(final Connection connection, @Nullable final ActorRef origin) {
             logger.info("doConnectClient");

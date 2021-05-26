@@ -28,6 +28,8 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
 
+import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectionOpenedAnnouncement;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
@@ -614,6 +616,53 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
         assertThat((CharSequence) announcement.getEntityId()).isEqualTo(PolicyId.of("policy:id"));
         assertThat(announcement.getDeleteAt()).isEqualTo(expiry);
         assertThat(announcement.getSubjectIds()).isEqualTo(expectedSubjectIds);
+        assertThat(announcement.getDittoHeaders().getCorrelationId()).contains(correlationId);
+    }
+
+    @Test
+    public void connectionAnnouncementToAdaptable() {
+        final ConnectionId connectionId = ConnectionId.of("myConnection");
+        final Instant openedAt = Instant.now();
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
+        final ConnectionOpenedAnnouncement announcement =
+                ConnectionOpenedAnnouncement.of(connectionId, openedAt, dittoHeaders);
+
+        final Adaptable adaptable = underTest.toAdaptable(announcement);
+
+        assertThat(adaptable.getTopicPath().getPath()).isEqualTo("_/myConnection/connections/announcements/opened");
+        assertThat(adaptable.getDittoHeaders().getCorrelationId()).isEqualTo(dittoHeaders.getCorrelationId());
+        assertThat(adaptable.getPayload().getPath().isEmpty()).isTrue();
+
+        final JsonValue payload = adaptable.getPayload().getValue().orElseThrow(NoSuchElementException::new);
+        final JsonValue expectedPayload = JsonObject.newBuilder()
+                .set(ConnectionOpenedAnnouncement.JsonFields.OPENED_AT, openedAt.toString())
+                .build();
+
+        assertThat(payload).isEqualTo(expectedPayload);
+    }
+
+    @Test
+    public void connectionAnnouncementFromAdaptable() {
+        final Instant openedAt = Instant.now();
+        final String correlationId = UUID.randomUUID().toString();
+        final JsonObject json = JsonObject.of(String.format("{\n" +
+                        "  \"topic\": \"_/myConnection/connections/announcements/opened\",\n" +
+                        "  \"headers\": {\"correlation-id\": \"%s\"},\n" +
+                        "  \"path\": \"/\",\n" +
+                        "  \"value\": {\n" +
+                        "    \"openedAt\": \"%s\"\n" +
+                        "  }\n" +
+                        "}",
+                correlationId,
+                openedAt
+        ));
+
+        final Adaptable adaptable = ProtocolFactory.jsonifiableAdaptableFromJson(json);
+        final ConnectionOpenedAnnouncement announcement =
+                (ConnectionOpenedAnnouncement) underTest.fromAdaptable(adaptable);
+
+        assertThat((CharSequence) announcement.getEntityId()).isEqualTo(ConnectionId.of("myConnection"));
+        assertThat(announcement.getOpenedAt()).isEqualTo(openedAt);
         assertThat(announcement.getDittoHeaders().getCorrelationId()).contains(correlationId);
     }
 
