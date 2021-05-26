@@ -403,12 +403,12 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         final GenericTarget genericTarget = sendingContext.getGenericTarget();
         final String address = genericTarget.getAddress();
         final Optional<T> publishTargetOptional = resolveTargetAddress(resolver, address).map(this::toPublishTarget);
+        final Signal<?> outboundSource = outbound.getSource();
+        final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(outboundSource);
 
         final SendingOrDropped result;
         if (publishTargetOptional.isPresent()) {
             final T publishTarget = publishTargetOptional.get();
-            final Signal<?> outboundSource = outbound.getSource();
-            final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(outboundSource);
             l.info("Publishing mapped message of type <{}> to PublishTarget <{}>", outboundSource.getType(),
                     publishTarget);
             l.debug("Publishing mapped message of type <{}> to PublishTarget <{}>: {}", outboundSource.getType(),
@@ -427,6 +427,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             result = new Sending(sendingContext.setExternalMessage(mappedMessage), responsesFuture,
                     connectionIdResolver, l);
         } else {
+            l.debug("Signal dropped, target address unresolved: {0}", address);
             result = new Dropped(sendingContext, "Signal dropped, target address unresolved: {0}");
         }
         return result;
