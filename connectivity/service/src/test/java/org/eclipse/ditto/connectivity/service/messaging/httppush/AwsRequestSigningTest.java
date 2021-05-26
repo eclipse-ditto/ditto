@@ -17,7 +17,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 
 import org.bouncycastle.util.encoders.Hex;
@@ -75,6 +74,7 @@ public final class AwsRequestSigningTest {
                 "Order-by-Value=2&" +
                 "Order-by-Value=3&" +
                 "Order-by-Value=1&" +
+                "order-by-case-sensitivity=foo&" +
                 "Double-Encode-Equality=a=b");
 
         final String expectedCanonicalQuery = "Action=ListUsers&" +
@@ -86,7 +86,55 @@ public final class AwsRequestSigningTest {
                 "X-Amz-Algorithm=AWS4-HMAC-SHA256&" +
                 "X-Amz-Credential=AKIDEXAMPLE%2F20150830%2Fus-east-1%2Fiam%2Faws4_request&" +
                 "X-Amz-Date=20150830T123600Z&" +
-                "X-Amz-SignedHeaders=content-type%3Bhost%3Bx-amz-date";
+                "X-Amz-SignedHeaders=content-type%3Bhost%3Bx-amz-date&"+
+                "order-by-case-sensitivity=foo";
+
+        final String canonicalQuery = AwsRequestSigning.getCanonicalQuery(uri.query());
+
+        assertThat(canonicalQuery).isEqualTo(expectedCanonicalQuery);
+    }
+
+    @Test
+    public void testCanonicalQueryWithEmptyParameterList() {
+        final Uri uri = Uri.create("https://www.example.com");
+
+        final String expectedCanonicalQuery = "";
+
+        final String canonicalQuery = AwsRequestSigning.getCanonicalQuery(uri.query());
+
+        assertThat(canonicalQuery).isEqualTo(expectedCanonicalQuery);
+    }
+
+    @Test
+    public void testCanonicalQueryWithUnreservedCharacters() {
+        final Uri uri = Uri.create("https://www.example.com?" +
+                "List-of-unreserved-characters=Aa0-_.~");
+
+        final String expectedCanonicalQuery = "List-of-unreserved-characters=Aa0-_.~";
+
+        final String canonicalQuery = AwsRequestSigning.getCanonicalQuery(uri.query());
+
+        assertThat(canonicalQuery).isEqualTo(expectedCanonicalQuery);
+    }
+
+    @Test
+    public void testCanonicalQueryWithDoubleEncodingOfEqualsCharacterInParameterValue() {
+        final Uri uri = Uri.create("https://www.example.com?" +
+                "List-of-unreserved-characters==");
+
+        final String expectedCanonicalQuery = "List-of-unreserved-characters=%253D";
+
+        final String canonicalQuery = AwsRequestSigning.getCanonicalQuery(uri.query());
+
+        assertThat(canonicalQuery).isEqualTo(expectedCanonicalQuery);
+    }
+
+    @Test
+    public void testCanonicalQueryWithParameterWithoutValue() {
+        final Uri uri = Uri.create("https://www.example.com?" +
+                "parameter-without-value");
+
+        final String expectedCanonicalQuery = "parameter-without-value=";
 
         final String canonicalQuery = AwsRequestSigning.getCanonicalQuery(uri.query());
 
@@ -98,7 +146,7 @@ public final class AwsRequestSigningTest {
         // lower-case charset does not work; Akka HTTP always sends the charset in upper case.
         final ContentType contentType = ContentTypes.parse("application/x-www-form-urlencoded; charset=UTF-8");
         final RequestEntity body = HttpEntities.create(contentType, new byte[0]);
-        final List<HttpHeader> headesInSequence = List.of(
+        final List<HttpHeader> headersInSequence = List.of(
                 HttpHeader.parse("Host", "iam.amazonaws.com"),
                 HttpHeader.parse("My-header1", "    a   b   c  "),
                 HttpHeader.parse("My-Header2", "    \"a   b   c\"  "),
@@ -108,7 +156,7 @@ public final class AwsRequestSigningTest {
         final HttpRequest request = HttpRequest.GET("https://iam.amazonaws.com")
                 .withEntity(body)
                 // can't use .addHeader because it _prepends_ the header to the list
-                .withHeaders(headesInSequence);
+                .withHeaders(headersInSequence);
 
         final List<String> signedHeaders =
                 List.of("Host", "My-header1", "X-Amz-Date", "my-headER2", "CONTENT-TYPE", "nonexistent-header");
@@ -208,10 +256,59 @@ public final class AwsRequestSigningTest {
     }
 
     @Test
+    public void testRequestSignatureWithoutPayload() {
+        final HttpRequest requestToSign = getSampleHttpRequestWithoutRequestEntity();
+        final String expectedXAmzDate = "20120215T000000Z";
+        final String expectedCanonicalRequest = "POST\n" +
+                "/p/a/t/h\n" +
+                "parameter=value\n" +
+                "host:www.example.com\n" +
+                "x-amz-date:" + expectedXAmzDate + "\n" +
+                "\n" +
+                "host;x-amz-date\n" +
+                "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+        assertThat(getCanonicalRequest(requestToSign))
+                .describedAs("canonicalRequest")
+                .isEqualTo(expectedCanonicalRequest);
+
+        final String authorizationParams =
+                "Credential=MyAwesomeAccessKey/20120215/us-east-1/iam/aws4_request, " +
+                        "SignedHeaders=host;x-amz-date, " +
+                        "Signature=230756d9a8acdfa5fac97c3d598799e40735714e847111a949f25704cc52d0b5";
+
+        final HttpRequest expectedSignedRequest = getSampleHttpRequestWithoutRequestEntity()
+                .addHeader(HttpHeader.parse("x-amz-date", expectedXAmzDate))
+                .addCredentials(HttpCredentials.create("AWS4-HMAC-SHA256", authorizationParams));
+        final HttpRequest signedRequest = signRequest(requestToSign);
+        assertThat(signedRequest).describedAs("signedRequest").isEqualTo(expectedSignedRequest);
+    }
+
+    @Test
     public void testS3CanonicalUri() {
         final Uri uri = Uri.create("https://www.example.com/my-object//example//photo.user");
         assertThat(AwsRequestSigning.getCanonicalUri(uri, false))
                 .isEqualTo("/my-object//example//photo.user");
+    }
+
+    @Test
+    public void testS3CanonicalUriWithEmptyPath() {
+        final Uri uri = Uri.create("https://www.example.com");
+        assertThat(AwsRequestSigning.getCanonicalUri(uri, false))
+                .isEqualTo("/");
+    }
+
+    @Test
+    public void testS3CanonicalUriWithEmptyPathButWithSlash() {
+        final Uri uri = Uri.create("https://www.example.com/");
+        assertThat(AwsRequestSigning.getCanonicalUri(uri, false))
+                .isEqualTo("/");
+    }
+
+    @Test
+    public void testS3CanonicalUriIsNormalizedConformToRfc3986() {
+        final Uri uri = Uri.create("https://www.example.com//a/./b/../b/%63/%7bfoo%7d");
+        assertThat(AwsRequestSigning.getCanonicalUri(uri, false))
+                .isEqualTo("//a/b/c/%7Bfoo%7D");
     }
 
     @Test
@@ -221,13 +318,17 @@ public final class AwsRequestSigningTest {
                 .isEqualTo("/documents%2520and%2520settings/");
     }
 
-    private static HttpRequest getSampleHttpRequest() {
+    private static HttpRequest getSampleHttpRequestWithoutRequestEntity() {
         final var url = "https://www.example.com/p/a/t/h?parameter=value";
-        final var requestEntity =
-                HttpEntities.create(ContentTypes.TEXT_PLAIN_UTF8, BODY);
         return HttpRequest.POST(url)
                 .addHeader(HttpHeader.parse("Connection", "keep-alive"))
-                .addHeader(HttpHeader.parse("correlation-id", "qwerty"))
+                .addHeader(HttpHeader.parse("correlation-id", "qwerty"));
+    }
+
+    private static HttpRequest getSampleHttpRequest() {
+        final var requestEntity =
+                HttpEntities.create(ContentTypes.TEXT_PLAIN_UTF8, BODY);
+        return getSampleHttpRequestWithoutRequestEntity()
                 .withEntity(requestEntity);
     }
 

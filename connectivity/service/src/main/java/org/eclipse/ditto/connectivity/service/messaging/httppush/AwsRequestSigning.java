@@ -211,7 +211,12 @@ final class AwsRequestSigning implements RequestSigning {
     }
 
     static String getCanonicalUri(final Uri uri, final boolean doubleEncodeAndNormalize) {
-        return doubleEncodeAndNormalize ? encodeAndNormalizePathSegments(uri) : uri.getPathString();
+        return doubleEncodeAndNormalize ? encodeAndNormalizePathSegments(uri) : getPathStringOrSlashWhenEmpty(uri);
+    }
+
+    private static String getPathStringOrSlashWhenEmpty(final Uri uri) {
+        final String pathString = uri.getPathString();
+        return pathString.isEmpty() ? "/" : pathString;
     }
 
     static String encodeAndNormalizePathSegments(final Uri uri) {
