@@ -273,6 +273,7 @@ Target messages can be of the following type:
 * [Thing events](basic-signals-event.html)
 * [Thing live commands/responses/events](protocol-twinlive.html)
 * [Policy announcements](protocol-specification-policies-announcement.html)
+* [Connection announcements](protocol-specification-connections-announcement.html)
 
 Targets contain:
 * one address (that is interpreted differently depending on the [connection type](#connection-types), e.g. as queue, topic, etc.),
@@ -296,6 +297,7 @@ following parameters can additionally be provided when specifying the `topics` o
 | Subscribe for [Thing live commands](protocol-twinlive.html) | `_/_/things/live/commands` | &#10004; | &#10060; |
 | Subscribe for [Thing live events](protocol-twinlive.html) | `_/_/things/live/events` | &#10004; | &#10004; |
 | Subscribe for [Policy announcements](protocol-specification-policies-announcement.html) | `_/_/policies/announcements` | &#10004; | &#10060; |
+| Subscribe for [Connection announcements](protocol-specification-connections-announcement.html) | `_/_/connections/announcements` | &#10060; | &#10060; |
 
 The parameters are specified similar to HTTP query parameters, the first one separated with a `?` and all following ones
 with `&`. You need to URL-encode the filter values before using them in a configuration.
@@ -327,6 +329,7 @@ to the topic. This is supported for all topics:
 | Subscribe for [Thing live commands](protocol-twinlive.html) | `_/_/things/live/commands` | &#10004; |
 | Subscribe for [Thing live events](protocol-twinlive.html) | `_/_/things/live/events` | &#10004; |
 | Subscribe for [Policy announcements](protocol-specification-policies-announcement.html) | `_/_/policies/announcements` | &#10060; |
+| Subscribe for [Connection announcements](protocol-specification-connections-announcement.html) | `_/_/connections/announcements` | &#10060; |
 
 Example:
 ```json

@@ -324,6 +324,21 @@ public final class ImmutableConnectionTest {
     }
 
     @Test
+    public void createInstanceWithConnectionAnnouncementsAndClientCountGreater1() {
+        final ConnectionBuilder builder = ImmutableConnection.getBuilder(ID, TYPE, STATUS, URI)
+                .targets(Collections.singletonList(
+                        ConnectivityModelFactory.newTargetBuilder(TARGET1)
+                                .topics(Topic.CONNECTION_ANNOUNCEMENTS).build())
+                )
+                .clientCount(2);
+
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(builder::build)
+                .withMessageContaining(Topic.CONNECTION_ANNOUNCEMENTS.getName())
+                .withNoCause();
+    }
+
+    @Test
     public void fromJsonReturnsExpected() {
         final Connection expected = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
                 .credentials(CREDENTIALS)
@@ -426,7 +441,8 @@ public final class ImmutableConnectionTest {
 
     @Test
     public void parseUriAsExpected() {
-        final ImmutableConnection.ConnectionUri underTest = ImmutableConnection.ConnectionUri.of("amqps://foo:bar@hono.eclipse.org:5671/vhost");
+        final ImmutableConnection.ConnectionUri underTest =
+                ImmutableConnection.ConnectionUri.of("amqps://foo:bar@hono.eclipse.org:5671/vhost");
 
         assertThat(underTest.getProtocol()).isEqualTo("amqps");
         assertThat(underTest.getUserName()).contains("foo");
@@ -438,25 +454,29 @@ public final class ImmutableConnectionTest {
 
     @Test
     public void parsePasswordWithPlusSign() {
-        final ImmutableConnection.ConnectionUri underTest = ImmutableConnection.ConnectionUri.of("amqps://foo:bar+baz@hono.eclipse.org:5671/vhost");
+        final ImmutableConnection.ConnectionUri underTest =
+                ImmutableConnection.ConnectionUri.of("amqps://foo:bar+baz@hono.eclipse.org:5671/vhost");
         assertThat(underTest.getPassword()).contains("bar+baz");
     }
 
     @Test
     public void parsePasswordWithPlusSignEncoded() {
-        final ImmutableConnection.ConnectionUri underTest = ImmutableConnection.ConnectionUri.of("amqps://foo:bar%2Bbaz@hono.eclipse.org:5671/vhost");
+        final ImmutableConnection.ConnectionUri underTest =
+                ImmutableConnection.ConnectionUri.of("amqps://foo:bar%2Bbaz@hono.eclipse.org:5671/vhost");
         assertThat(underTest.getPassword()).contains("bar+baz");
     }
 
     @Test
     public void parsePasswordWithPlusSignDoubleEncoded() {
-        final ImmutableConnection.ConnectionUri underTest = ImmutableConnection.ConnectionUri.of("amqps://foo:bar%252Bbaz@hono.eclipse.org:5671/vhost");
+        final ImmutableConnection.ConnectionUri underTest =
+                ImmutableConnection.ConnectionUri.of("amqps://foo:bar%252Bbaz@hono.eclipse.org:5671/vhost");
         assertThat(underTest.getPassword()).contains("bar+baz");
     }
 
     @Test
     public void parseUriWithoutCredentials() {
-        final ImmutableConnection.ConnectionUri underTest = ImmutableConnection.ConnectionUri.of("amqps://hono.eclipse.org:5671");
+        final ImmutableConnection.ConnectionUri underTest =
+                ImmutableConnection.ConnectionUri.of("amqps://hono.eclipse.org:5671");
 
         assertThat(underTest.getUserName()).isEmpty();
         assertThat(underTest.getPassword()).isEmpty();
@@ -464,7 +484,8 @@ public final class ImmutableConnectionTest {
 
     @Test
     public void parseUriWithoutPath() {
-        final ImmutableConnection.ConnectionUri underTest = ImmutableConnection.ConnectionUri.of("amqps://foo:bar@hono.eclipse.org:5671");
+        final ImmutableConnection.ConnectionUri underTest =
+                ImmutableConnection.ConnectionUri.of("amqps://foo:bar@hono.eclipse.org:5671");
 
         assertThat(underTest.getPath()).isEmpty();
     }
@@ -485,7 +506,8 @@ public final class ImmutableConnectionTest {
      */
     @Test
     public void canParseUriWithUsernameWithoutPassword() {
-        final ImmutableConnection.ConnectionUri underTest = ImmutableConnection.ConnectionUri.of("amqps://foo:@hono.eclipse.org:5671");
+        final ImmutableConnection.ConnectionUri underTest =
+                ImmutableConnection.ConnectionUri.of("amqps://foo:@hono.eclipse.org:5671");
 
         assertThat(underTest.getUserName()).contains("foo");
         assertThat(underTest.getPassword()).contains("");
@@ -493,7 +515,8 @@ public final class ImmutableConnectionTest {
 
     @Test
     public void canParseUriWithoutUsernameWithPassword() {
-        final ImmutableConnection.ConnectionUri underTest = ImmutableConnection.ConnectionUri.of("amqps://:bar@hono.eclipse.org:5671");
+        final ImmutableConnection.ConnectionUri underTest =
+                ImmutableConnection.ConnectionUri.of("amqps://:bar@hono.eclipse.org:5671");
 
         assertThat(underTest.getUserName()).contains("");
         assertThat(underTest.getPassword()).contains("bar");

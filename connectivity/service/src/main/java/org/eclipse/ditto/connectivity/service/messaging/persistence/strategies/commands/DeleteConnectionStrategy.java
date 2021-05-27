@@ -32,7 +32,8 @@ import org.eclipse.ditto.connectivity.model.signals.events.ConnectionDeleted;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 
 /**
- * This strategy handles the {@link org.eclipse.ditto.connectivity.model.signals.commands.modify.DeleteConnection} command.
+ * This strategy handles the {@link org.eclipse.ditto.connectivity.model.signals.commands.modify.DeleteConnection}
+ * command.
  */
 final class DeleteConnectionStrategy extends AbstractConnectivityCommandStrategy<DeleteConnection> {
 
@@ -53,8 +54,11 @@ final class DeleteConnectionStrategy extends AbstractConnectivityCommandStrategy
                 DeleteConnectionResponse.of(context.getState().id(), command.getDittoHeaders());
         // Not closing the connection asynchronously; rely on client actors to cleanup all resources when stopped.
         final List<ConnectionAction> actions =
-                Arrays.asList(ConnectionAction.PERSIST_AND_APPLY_EVENT, ConnectionAction.UPDATE_SUBSCRIPTIONS, ConnectionAction.STOP_CLIENT_ACTORS,
-                        ConnectionAction.DISABLE_LOGGING, ConnectionAction.SEND_RESPONSE, ConnectionAction.BECOME_DELETED);
+                Arrays.asList(ConnectionAction.PERSIST_AND_APPLY_EVENT, ConnectionAction.UPDATE_SUBSCRIPTIONS,
+                        ConnectionAction.CLOSE_CONNECTION, ConnectionAction.STOP_CLIENT_ACTORS,
+                        ConnectionAction.DISABLE_LOGGING, ConnectionAction.SEND_RESPONSE,
+                        ConnectionAction.BECOME_DELETED);
         return newMutationResult(StagedCommand.of(command, event, response, actions), event, response);
     }
+
 }

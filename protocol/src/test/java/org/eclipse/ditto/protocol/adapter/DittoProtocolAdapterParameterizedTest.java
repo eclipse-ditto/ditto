@@ -34,12 +34,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.protocol.UnknownChannelException;
-import org.eclipse.ditto.protocol.adapter.provider.AcknowledgementAdapterProvider;
-import org.eclipse.ditto.protocol.adapter.provider.PolicyCommandAdapterProvider;
-import org.eclipse.ditto.protocol.adapter.provider.ThingCommandAdapterProvider;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
@@ -48,6 +42,13 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyComm
 import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommand;
 import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommandResponse;
+import org.eclipse.ditto.protocol.HeaderTranslator;
+import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.protocol.UnknownChannelException;
+import org.eclipse.ditto.protocol.adapter.connectivity.ConnectivityCommandAdapterProvider;
+import org.eclipse.ditto.protocol.adapter.provider.AcknowledgementAdapterProvider;
+import org.eclipse.ditto.protocol.adapter.provider.PolicyCommandAdapterProvider;
+import org.eclipse.ditto.protocol.adapter.provider.ThingCommandAdapterProvider;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThingResponse;
@@ -206,7 +207,10 @@ public final class DittoProtocolAdapterParameterizedTest {
     public void setUp() {
         final ThingCommandAdapterProvider thingCommandAdapterProvider = mock(ThingCommandAdapterProvider.class);
         final PolicyCommandAdapterProvider policyCommandAdapterProvider = mock(PolicyCommandAdapterProvider.class);
-        final AcknowledgementAdapterProvider acknowledgementAdapterProvider = mock(AcknowledgementAdapterProvider.class);
+        final AcknowledgementAdapterProvider acknowledgementAdapterProvider =
+                mock(AcknowledgementAdapterProvider.class);
+        final ConnectivityCommandAdapterProvider connectivityCommandAdapterProvider =
+                mock(ConnectivityCommandAdapterProvider.class);
 
         when(thingCommandAdapterProvider.getQueryCommandAdapter())
                 .thenReturn(thingQueryCommandAdapter);
@@ -245,7 +249,8 @@ public final class DittoProtocolAdapterParameterizedTest {
         final AdapterResolver adapterResolver = mock(AdapterResolver.class);
 
         underTest = DittoProtocolAdapter.newInstance(HeaderTranslator.empty(), thingCommandAdapterProvider,
-                policyCommandAdapterProvider, acknowledgementAdapterProvider, adapterResolver);
+                policyCommandAdapterProvider, connectivityCommandAdapterProvider, acknowledgementAdapterProvider,
+                adapterResolver);
 
         reset(thingQueryCommandAdapter);
         reset(thingQueryCommandResponseAdapter);
@@ -383,7 +388,7 @@ public final class DittoProtocolAdapterParameterizedTest {
         }
 
         private static <T extends Signal<T>> T mockSignal(Class<T> signalClass) {
-            final T mockedSignal= mock(signalClass, withSettings().name(signalClass.getSimpleName()));
+            final T mockedSignal = mock(signalClass, withSettings().name(signalClass.getSimpleName()));
             when(mockedSignal.getDittoHeaders()).thenReturn(DittoHeaders.empty());
             return mockedSignal;
         }

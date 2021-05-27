@@ -19,6 +19,7 @@ import static org.eclipse.ditto.protocol.TopicPath.Channel.TWIN;
 
 import java.util.Arrays;
 
+import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectivityAnnouncement;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -36,6 +37,8 @@ import org.eclipse.ditto.protocol.UnknownCommandResponseException;
 import org.eclipse.ditto.protocol.UnknownEventException;
 import org.eclipse.ditto.protocol.UnknownSignalException;
 import org.eclipse.ditto.protocol.adapter.acknowledgements.DefaultAcknowledgementsAdapterProvider;
+import org.eclipse.ditto.protocol.adapter.connectivity.ConnectivityCommandAdapterProvider;
+import org.eclipse.ditto.protocol.adapter.connectivity.DefaultConnectivityCommandAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.policies.DefaultPolicyCommandAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.provider.AcknowledgementAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.provider.PolicyCommandAdapterProvider;
@@ -82,6 +85,7 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     private final HeaderTranslator headerTranslator;
     private final ThingCommandAdapterProvider thingsAdapters;
     private final PolicyCommandAdapterProvider policiesAdapters;
+    private final ConnectivityCommandAdapterProvider connectivityAdapters;
     private final AcknowledgementAdapterProvider acknowledgementAdapters;
     private final AdapterResolver adapterResolver;
 
@@ -90,16 +94,20 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
         this.thingsAdapters = new DefaultThingCommandAdapterProvider(errorRegistry, headerTranslator);
         this.policiesAdapters = new DefaultPolicyCommandAdapterProvider(errorRegistry, headerTranslator);
+        this.connectivityAdapters = new DefaultConnectivityCommandAdapterProvider(headerTranslator);
         this.acknowledgementAdapters = new DefaultAcknowledgementsAdapterProvider(errorRegistry, headerTranslator);
-        this.adapterResolver = new DefaultAdapterResolver(thingsAdapters, policiesAdapters, acknowledgementAdapters);
+        this.adapterResolver = new DefaultAdapterResolver(thingsAdapters, policiesAdapters, connectivityAdapters,
+                acknowledgementAdapters);
     }
 
     private DittoProtocolAdapter(final HeaderTranslator headerTranslator,
             final ThingCommandAdapterProvider thingsAdapters, final PolicyCommandAdapterProvider policiesAdapters,
+            final ConnectivityCommandAdapterProvider connectivityAdapters,
             final AcknowledgementAdapterProvider acknowledgementAdapters, final AdapterResolver adapterResolver) {
         this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
         this.thingsAdapters = checkNotNull(thingsAdapters, "thingsAdapters");
         this.policiesAdapters = checkNotNull(policiesAdapters, "policiesAdapters");
+        this.connectivityAdapters = checkNotNull(connectivityAdapters, "connectivityAdapters");
         this.acknowledgementAdapters = checkNotNull(acknowledgementAdapters, "acknowledgementAdapters");
         this.adapterResolver = checkNotNull(adapterResolver, "adapterResolver");
     }
@@ -138,6 +146,7 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
      * @param headerTranslator translator between external and Ditto headers
      * @param thingCommandAdapterProvider command adapters for thing commands
      * @param policyCommandAdapterProvider command adapters for policy commands
+     * @param connectivityAdapters adapters for connectivity commands.
      * @param acknowledgementAdapters adapters for acknowledgements.
      * @param adapterResolver resolves the correct adapter from a command
      * @return new instance of {@link DittoProtocolAdapter}
@@ -145,10 +154,11 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     static DittoProtocolAdapter newInstance(final HeaderTranslator headerTranslator,
             final ThingCommandAdapterProvider thingCommandAdapterProvider,
             final PolicyCommandAdapterProvider policyCommandAdapterProvider,
+            final ConnectivityCommandAdapterProvider connectivityAdapters,
             final AcknowledgementAdapterProvider acknowledgementAdapters,
             final AdapterResolver adapterResolver) {
         return new DittoProtocolAdapter(headerTranslator, thingCommandAdapterProvider, policyCommandAdapterProvider,
-                acknowledgementAdapters, adapterResolver
+                connectivityAdapters, acknowledgementAdapters, adapterResolver
         );
     }
 
@@ -181,6 +191,8 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
             return toAdaptable((Event<?>) signal, channel);
         } else if (signal instanceof PolicyAnnouncement) {
             return adaptPolicyAnnouncement((PolicyAnnouncement<?>) signal);
+        } else if (signal instanceof ConnectivityAnnouncement) {
+            return adaptConnectivityAnnouncement((ConnectivityAnnouncement<?>) signal);
         }
         throw UnknownSignalException.newBuilder(signal.getName()).dittoHeaders(signal.getDittoHeaders()).build();
     }
@@ -331,6 +343,10 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
 
     private Adaptable adaptPolicyAnnouncement(final PolicyAnnouncement<?> announcement) {
         return policiesAdapters.getAnnouncementAdapter().toAdaptable(announcement);
+    }
+
+    private Adaptable adaptConnectivityAnnouncement(final ConnectivityAnnouncement<?> announcement) {
+        return connectivityAdapters.getAnnouncementAdapter().toAdaptable(announcement);
     }
 
     public Adaptable toAdaptable(final SubscriptionEvent<?> subscriptionEvent, final TopicPath.Channel channel) {

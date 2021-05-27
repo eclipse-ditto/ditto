@@ -52,6 +52,7 @@ public final class ConnectionId extends AbstractEntityId {
      * it is already an instance of ConnectionId.
      *
      * @param connectionId the connection id.
+     * @throws ConnectionIdInvalidException if the provided {@code connectionId} is of invalid format.
      * @return the connection ID.
      */
     public static ConnectionId of(final CharSequence connectionId) {

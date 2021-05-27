@@ -28,93 +28,93 @@ import org.junit.runners.Parameterized;
 public final class ImmutableTopicPathParameterizedParsingTest {
 
     private static final String NAMESPACE = "com.example";
-    private static final String ENTITY_NAME = "myId";
+    private static final String ENTITY_NAME = "myName";
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
         final Object[][] data = {
-                {"com.example/myId/things/twin/commands/modify", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
+                {"com.example/myName/things/twin/commands/modify", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
                         .things()
                         .twin()
                         .commands()
                         .modify()
                         .build()},
-                {"com.example/myId/things/twin/commands/create", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
+                {"com.example/myName/things/twin/commands/create", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
                         .things()
                         .twin()
                         .commands()
                         .create()
                         .build()},
-                {"com.example/myId/things/twin/commands/delete", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
+                {"com.example/myName/things/twin/commands/delete", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
                         .things()
                         .twin()
                         .commands()
                         .delete()
                         .build()},
-                {"com.example/myId/things/twin/commands/retrieve", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
+                {"com.example/myName/things/twin/commands/retrieve", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
                         .things()
                         .twin()
                         .commands()
                         .retrieve()
                         .build()},
-                {"com.example/myId/things/twin/commands/merge", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
+                {"com.example/myName/things/twin/commands/merge", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
                         .things()
                         .twin()
                         .commands()
                         .merge()
                         .build()},
-                {"com.example/myId/things/twin/events/created", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
+                {"com.example/myName/things/twin/events/created", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
                         .things()
                         .twin()
                         .events()
                         .created()
                         .build()},
-                {"com.example/myId/things/twin/events/modified", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
+                {"com.example/myName/things/twin/events/modified", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
                         .things()
                         .twin()
                         .events()
                         .modified()
                         .build()},
-                {"com.example/myId/things/twin/events/merged", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
+                {"com.example/myName/things/twin/events/merged", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
                         .things()
                         .twin()
                         .events()
                         .merged()
                         .build()},
-                {"com.example/myId/things/twin/events/deleted", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
+                {"com.example/myName/things/twin/events/deleted", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
                         .things()
                         .twin()
                         .events()
                         .deleted()
                         .build()},
-                {"com.example/myId/things/live/events/created", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
+                {"com.example/myName/things/live/events/created", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
                         .things()
                         .live()
                         .events()
                         .created()
                         .build()},
-                {"com.example/myId/things/live/events/modified", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
+                {"com.example/myName/things/live/events/modified", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
                         .things()
                         .live()
                         .events()
                         .modified()
                         .build()},
-                {"com.example/myId/things/live/events/merged", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
+                {"com.example/myName/things/live/events/merged", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
                         .things()
                         .live()
                         .events()
                         .merged()
                         .build()},
-                {"com.example/myId/things/live/events/deleted", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
+                {"com.example/myName/things/live/events/deleted", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
                         .things()
                         .live()
                         .events()
                         .deleted()
                         .build()},
-                {"com.example/myId/things/twin/errors",
+                {"com.example/myName/things/twin/errors",
                         ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME).things().twin().errors().build()},
 
-                {"com.example/myId/things/live/messages/subject/with/multiple/slashes",
+                {"com.example/myName/things/live/messages/subject/with/multiple/slashes",
                         ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
                                 .things()
                                 .live()
@@ -122,62 +122,66 @@ public final class ImmutableTopicPathParameterizedParsingTest {
                                 .subject("subject/with/multiple/slashes")
                                 .build()},
 
-                {"com.example/myId/things/twin/acks/",
+                {"com.example/myName/things/twin/acks/",
                         ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME).things().twin().acks().build()},
 
-                {"com.example/myId/things/twin/search/subscribe", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
+                {"com.example/myName/things/twin/search/subscribe", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
                         .things()
                         .twin()
                         .search()
                         .subscribe()
                         .build()},
-                {"com.example/myId/things/twin/search/cancel", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
+                {"com.example/myName/things/twin/search/cancel", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
                         .things()
                         .twin()
                         .search()
                         .cancel()
                         .build()},
-                {"com.example/myId/things/twin/search/request", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
+                {"com.example/myName/things/twin/search/request", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
                         .things()
                         .twin()
                         .search()
                         .request()
                         .build()},
-                {"com.example/myId/things/twin/search/complete", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
+                {"com.example/myName/things/twin/search/complete", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
                         .things()
                         .twin()
                         .search()
                         .complete()
                         .build()},
-                {"com.example/myId/things/twin/search/created", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
+                {"com.example/myName/things/twin/search/created", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
                         .things()
                         .twin()
                         .search()
                         .generated()
                         .build()},
-                {"com.example/myId/things/twin/search/failed", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
+                {"com.example/myName/things/twin/search/failed", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
                         .things()
                         .twin()
                         .search()
                         .failed()
                         .build()},
-                {"com.example/myId/things/twin/search/next", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
+                {"com.example/myName/things/twin/search/next", ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
                         .things()
                         .twin()
                         .search()
                         .hasNext()
                         .build()},
 
-                {"com.example/myId/policies/commands/modify",
+                {"com.example/myName/policies/commands/modify",
                         ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME).policies().commands().modify().build()},
-                {"com.example/myId/policies/commands/retrieve",
+                {"com.example/myName/policies/commands/retrieve",
                         ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME).policies().commands().retrieve().build()},
-                {"com.example/myId/policies/commands/create",
+                {"com.example/myName/policies/commands/create",
                         ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME).policies().commands().create().build()},
-                {"com.example/myId/policies/commands/delete",
+                {"com.example/myName/policies/commands/delete",
                         ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME).policies().commands().delete().build()},
-                {"com.example/myId/policies/errors",
-                        ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME).policies().errors().build()}
+                {"com.example/myName/policies/errors",
+                        ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME).policies().errors().build()},
+                {"com.example/myName/policies/announcements",
+                        ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME).policies().announcements().build()},
+                {"_/myName/connections/announcements",
+                        ImmutableTopicPath.newBuilder(TopicPath.ID_PLACEHOLDER, ENTITY_NAME).connections().announcements().build()}
         };
         return Arrays.asList(data);
     }

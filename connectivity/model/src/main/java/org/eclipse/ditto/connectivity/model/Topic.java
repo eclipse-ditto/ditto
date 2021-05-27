@@ -32,7 +32,14 @@ public enum Topic {
      *
      * @since 2.0.0
      */
-    POLICY_ANNOUNCEMENTS("_/_/policies/announcements", "policy-announcements");
+    POLICY_ANNOUNCEMENTS("_/_/policies/announcements", "policy-announcements"),
+
+    /**
+     * Connection target topic for connection announcements.
+     *
+     * @since 2.1.0
+     */
+    CONNECTION_ANNOUNCEMENTS("_/_/connections/announcements", "connection-announcements");
 
     private final String name;
     private final String pubSubTopic;
