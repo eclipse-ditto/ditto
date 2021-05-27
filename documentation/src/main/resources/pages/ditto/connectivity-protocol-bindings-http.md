@@ -212,3 +212,67 @@ Here is an example HTTP connection that checks the server certificate and authen
   }
 }
 ```
+
+### HMAC request signing
+
+Ditto provides an extensible framework for HMAC-based request signing authentication processes. 2 algorithms are
+available out of the box:
+
+- `aws4-hmac-sha256`: [Version 4 request signing](https://docs.aws.amazon.com/general/latest/gr/signature-version-4.html) for Amazon Web Services (AWS)
+- `az-monitor-2016-04-01`: [Version 2016-04-01 request signing](https://docs.microsoft.com/en-us/azure/azure-monitor/logs/data-collector-api#authorization) for Azure Monitor Data Collector
+
+To use a request signing algorithm for authentication, set the `credentials` field of the connection as follows.
+{%raw%}
+```json
+{
+  "connectionType": "http-push",
+  "uri": "https://...:443",
+  "credentials": {
+    "type": "hmac",
+    "algorithm": "aws4-hmac-sha256", // or: "az-monitor-2016-04-01"
+    "parameters": {
+       // parameters of the algorithm named above.
+       ...
+    }
+  },
+  ...
+}
+```
+{%endraw%}
+
+The parameters of the algorithm `aws4-hmac-sha256` are:
+- `region`: Region of the AWS endpoint.
+- `service`: Service name of the AWS endpoint.
+- `accessKey`: Access key of the signing user.
+- `secretKey`: Secret key of the signing user.
+- `doubleEncode`: Whether to double-encode and normalize path segments during request signing. Should be `false` for S3 and `true` for other services. Default to `true`.
+- `canonicalHeaders`: Array of names of headers to include in the signature. Default to `["host"]`.
+- `xAmzContentSha256`: Configuration for the header `x-amz-content-sha256`, which is mandatory for S3. Possible values are:
+  - `EXCLUDED`: Do not send the header for non-S3 services. This is the default.
+  - `INCLUDED`: Sign the payload hash as the value of the header for S3.
+  - `UNSIGNED`: Omit the payload hash in the signature for S3.
+
+The parameters of the algorithm `az-monitor-2016-04-01` are:
+- `workspaceId`: ID of the Azure Monitor workspace.
+- `sharedKey`: Primary or secondary key of the Azure Monitor workspace.
+
+Algorithm names and implementations are configured in [`connectivity.conf`](https://github.com/eclipse/ditto/blob/master/connectivity/service/src/main/resources/connectivity.conf). The default configuration provides the names
+and the implementations of the algorithms `a2s4-hmac-sha256` and `az-monitor-2016-04-01`.
+```hocon
+ditto.connectivity.connection.http-push.hmac-algorithms = {
+
+  aws4-hmac-sha256 =
+    "org.eclipse.ditto.connectivity.service.messaging.httppush.AwsRequestSigningFactory"
+
+  az-monitor-2016-04-01 =
+    "org.eclipse.ditto.connectivity.service.messaging.httppush.AzMonitorRequestSigningFactory"
+
+  // my-own-request-signing-algorithm =
+  //   "my.package.MyOwnImplementationOfRequestSigningFactory"
+}
+```
+The config object at the path `ditto.connectivity.connection.http-push.hmac-algorithms` determines what algorithms
+are available. The keys are the names of algorithms permitted in the `algorithm` field of connection credentials.
+The values are the fully qualified names of classes implementing the interface [RequestSigningFactory](https://github.com/eclipse/ditto/blob/master/connectivity/service/src/main/java/org/eclipse/ditto/connectivity/service/messaging/httppush/RequestSigningFactory.java). Users may add
+their own request signing algorithms by implementing [RequestSigningFactory](https://github.com/eclipse/ditto/blob/master/connectivity/service/src/main/java/org/eclipse/ditto/connectivity/service/messaging/httppush/RequestSigningFactory.java) and including the class names in the `hmac-algorithms`
+config.
