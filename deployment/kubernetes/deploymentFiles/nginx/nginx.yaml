@@ -30,6 +30,18 @@ spec:
       labels:
         app: nginx
     spec:
+      initContainers:
+        - name: wait-for-gateway
+          image: curlimages/curl:latest
+          args:
+            - /bin/sh
+            - -c
+            - >
+              set -x;
+              while [[ "$(curl -sL -w "%{http_code}\n" http://gateway:8080/health -o /dev/null)" != "200" ]]; do
+                echo '.'
+                sleep 15;
+              done
       containers:
       - name: nginx
         image: docker.io/nginx:1.20-alpine
