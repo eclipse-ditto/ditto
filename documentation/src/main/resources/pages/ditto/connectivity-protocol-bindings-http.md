@@ -5,7 +5,7 @@ tags: [protocol, connectivity, rql]
 permalink: connectivity-protocol-bindings-http.html
 ---
 
-Perform HTTP request (with verbs POST, PUT, PATCH) to HTTP endpoints via [targets](#target-format).
+Perform HTTP request (with verbs GET, POST, PUT, PATCH) to HTTP endpoints via [targets](#target-format).
 
 ## Specific connection configuration
 
@@ -22,6 +22,7 @@ A HTTP connection requires the protocol configuration target object to have an `
 This property has the following format: `<http_verb>:<http_path>`
 
 The supported HTTP `<http_verb>` values are:
+* GET
 * POST
 * PUT
 * PATCH
