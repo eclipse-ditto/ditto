@@ -218,6 +218,10 @@ public final class ConnectionValidator {
         connection.getSshTunnel()
                 .ifPresent(tunnel -> SshTunnelValidator.getInstance(dittoHeaders, hostValidator).validate(tunnel));
 
+        // validate credentials
+        connection.getCredentials().ifPresent(credentials ->
+                credentials.accept(CredentialsValidationVisitor.of(connection, dittoHeaders, connectivityConfig)));
+
         // protocol specific validations
         final AbstractProtocolValidator spec = specMap.get(connection.getConnectionType());
         if (spec != null) {

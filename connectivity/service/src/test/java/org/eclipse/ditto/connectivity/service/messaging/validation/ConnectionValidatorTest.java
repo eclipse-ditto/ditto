@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.Authorization;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.Certificates;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -34,12 +35,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigProvider;
-import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.mapping.NormalizedMessageMapper;
-import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpValidator;
-import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelInvalidException;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotUniqueException;
@@ -52,14 +47,23 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
+import org.eclipse.ditto.connectivity.model.HmacCredentials;
 import org.eclipse.ditto.connectivity.model.PayloadMappingDefinition;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.SourceBuilder;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
-import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigProvider;
+import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.mapping.NormalizedMessageMapper;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpValidator;
+import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpPushValidator;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -109,7 +113,7 @@ public class ConnectionValidatorTest {
     @Before
     public void before() {
         connectivityConfigProvider = Mockito.mock(ConnectivityConfigProvider.class);
-        Mockito.when(connectivityConfigProvider.getConnectivityConfig(CONNECTION_ID, DittoHeaders.empty()))
+        Mockito.when(connectivityConfigProvider.getConnectivityConfig(any(), any()))
                 .thenReturn(CONNECTIVITY_CONFIG_WITH_ENABLED_BLOCKLIST);
     }
 
@@ -517,6 +521,46 @@ public class ConnectionValidatorTest {
         rejectInvalidPayloadMappingReferenceInTarget(sourceWithInvalidMapping, emptyList());
     }
 
+    @Test
+    public void acceptHttpConnectionWithValidHmacCredentials() {
+        final Connection connection = createHttpConnection().toBuilder()
+                .credentials(HmacCredentials.of("az-monitor-2016-04-01", JsonObject.empty()))
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        underTest.validate(connection, DittoHeaders.empty(), actorSystem);
+    }
+
+    @Test
+    public void rejectConnectionWithUnknownHmacAlgorithm() {
+        final Connection connection = createHttpConnection().toBuilder()
+                .credentials(HmacCredentials.of("az-monitor-2016-04-02", JsonObject.empty()))
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class).isThrownBy(() ->
+                underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+    }
+
+    @Test
+    public void rejectConnectionWithUserinfoAndHmacCredentials() {
+        final Connection connection = createHttpConnection().toBuilder()
+                .uri("https://username:password@8.8.4.4:443")
+                .credentials(HmacCredentials.of("az-monitor-2016-04-01", JsonObject.empty()))
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class).isThrownBy(() ->
+                underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+    }
+
+    @Test
+    public void rejectNonHttpConnectionWithHmacCredentials() {
+        final Connection connection = createConnection(CONNECTION_ID).toBuilder()
+                .credentials(HmacCredentials.of("az-monitor-2016-04-01", JsonObject.empty()))
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+    }
+
     private void rejectInvalidPayloadMappingReferenceInTarget(List<Source> sources, List<Target> targets) {
         final PayloadMappingDefinition payloadMappingDefinition =
                 ConnectivityModelFactory.newPayloadMappingDefinition("status",
@@ -536,6 +580,16 @@ public class ConnectionValidatorTest {
     }
 
     private ConnectionValidator getConnectionValidator() {
-        return ConnectionValidator.of(connectivityConfigProvider, actorSystem.log(), AmqpValidator.newInstance());
+        return ConnectionValidator.of(connectivityConfigProvider, actorSystem.log(),
+                AmqpValidator.newInstance(), HttpPushValidator.newInstance());
+    }
+
+    private static Connection createHttpConnection() {
+        final Connection connection =
+                TestConstants.createConnection("https://8.8.4.4:443", ConnectionType.HTTP_PUSH);
+        return connection.toBuilder()
+                .setSources(List.of())
+                .setTargets(List.of(connection.getTargets().get(0).withAddress("GET:/")))
+                .build();
     }
 }
