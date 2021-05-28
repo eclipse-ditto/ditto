@@ -15,7 +15,6 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 import static org.eclipse.ditto.connectivity.api.EnforcementFactoryFactory.newEnforcementFilterFactory;
 import static org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 
-import java.time.Duration;
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -28,6 +27,7 @@ import org.eclipse.ditto.connectivity.model.Enforcement;
 import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.Source;
+import org.eclipse.ditto.connectivity.service.config.KafkaConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -56,7 +56,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
 
     @SuppressWarnings("unused")
     private KafkaConsumerActor(final Connection connection,
-            final PropertiesFactory propertiesFactory,
+            final KafkaConfig kafkaConfig, final PropertiesFactory propertiesFactory,
             final String sourceAddress, final ActorRef inboundMappingProcessor,
             final Source source, final boolean dryRun) {
         super(connection, sourceAddress, inboundMappingProcessor, source);
@@ -71,14 +71,15 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                         : input -> null;
         final KafkaMessageTransformer kafkaMessageTransformer =
                 new KafkaMessageTransformer(source, sourceAddress, headerEnforcementFilterFactory, inboundMonitor);
-        kafkaStream = new KafkaConsumerStream(consumerSettings, kafkaMessageTransformer, dryRun,
+        kafkaStream = new KafkaConsumerStream(kafkaConfig, consumerSettings, kafkaMessageTransformer, dryRun,
                 Materializer.createMaterializer(this::getContext));
     }
 
-    static Props props(final Connection connection, final PropertiesFactory factory, final String sourceAddress,
-            final ActorRef inboundMappingProcess, final Source source, final boolean dryRun) {
-        return Props.create(KafkaConsumerActor.class, connection, factory, sourceAddress, inboundMappingProcess,
-                source, dryRun);
+    static Props props(final Connection connection, final KafkaConfig kafkaConfig, final PropertiesFactory factory,
+            final String sourceAddress, final ActorRef inboundMappingProcess, final Source source,
+            final boolean dryRun) {
+        return Props.create(KafkaConsumerActor.class, connection, kafkaConfig, factory, sourceAddress,
+                inboundMappingProcess, source, dryRun);
     }
 
     @Override
@@ -135,14 +136,17 @@ final class KafkaConsumerActor extends BaseConsumerActor {
         private final Materializer materializer;
         @Nullable private Consumer.Control kafkaStream;
 
-        private KafkaConsumerStream(final ConsumerSettings<String, String> consumerSettings,
+        private KafkaConsumerStream(
+                final KafkaConfig kafkaConfig,
+                final ConsumerSettings<String, String> consumerSettings,
                 final KafkaMessageTransformer kafkaMessageTransformer,
                 final boolean dryRun, //TODO: handle dry run
                 final Materializer materializer) {
 
             this.materializer = materializer;
             runnableKafkaStream = Consumer.plainSource(consumerSettings, Subscriptions.topics(sourceAddress))
-                    .throttle(100, Duration.ofSeconds(1)) //TODO: make this configurable
+                    .throttle(kafkaConfig.getConsumerThrottlingConfig().getLimit(),
+                            kafkaConfig.getConsumerThrottlingConfig().getInterval())
                     .filter(consumerRecord -> consumerRecord.value() != null)
                     .map(kafkaMessageTransformer::transform)
                     .divertTo(this.externalMessageSink(), this::isExternalMessage)

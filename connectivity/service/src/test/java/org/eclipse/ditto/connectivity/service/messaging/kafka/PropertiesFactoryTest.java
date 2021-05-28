@@ -36,6 +36,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import akka.kafka.ConsumerSettings;
 import akka.kafka.ProducerSettings;
 
 /**
@@ -88,7 +89,7 @@ public final class PropertiesFactoryTest {
     }
 
     @Test
-    public void addsBootstrapServersAndFlattensProperties() {
+    public void addsBootstrapServersAndFlattensPropertiesFromProducerSettings() {
         final ProducerSettings<String, String> producerSettings = underTest.getProducerSettings();
         final Map<String, Object> properties = producerSettings.getProperties();
 
@@ -102,6 +103,24 @@ public final class PropertiesFactoryTest {
                 .containsEntry("connections.max.idle.ms", "543210")
                 .containsEntry("reconnect.backoff.ms", "500")
                 .containsEntry("reconnect.backoff.max.ms", "10000");
+    }
+
+    @Test
+    public void addsBootstrapServersAndFlattensPropertiesFromConsumerSettings() {
+
+        final ConsumerSettings<String, String> consumerSettings = underTest.getConsumerSettings();
+        final Map<String, Object> properties = consumerSettings.getProperties();
+
+        final List<String> servers =
+                Arrays.asList(properties.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG).toString().split(","));
+
+        assertThat(servers).containsExactlyInAnyOrder(BOOTSTRAP_SERVERS);
+
+        // check flattening of client properties in kafka.producer
+        assertThat(properties)
+                .containsEntry("enable.auto.commit", "true")
+                .containsEntry("retries", "0")
+                .containsEntry("request.timeout.ms", "10000");
     }
 
 }

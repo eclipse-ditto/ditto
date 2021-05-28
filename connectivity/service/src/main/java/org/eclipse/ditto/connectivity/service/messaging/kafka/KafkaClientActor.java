@@ -58,6 +58,7 @@ public final class KafkaClientActor extends BaseClientActor {
     private CompletableFuture<Status.Status> testConnectionFuture = null;
     private ActorRef kafkaPublisherActor;
     private final List<ActorRef> kafkaConsumerActors;
+    private final KafkaConfig kafkaConfig;
 
     @SuppressWarnings("unused") // used by `props` via reflection
     private KafkaClientActor(final Connection connection,
@@ -68,7 +69,7 @@ public final class KafkaClientActor extends BaseClientActor {
         super(connection, proxyActor, connectionActor);
         kafkaConsumerActors = new ArrayList<>();
         final ConnectionConfig connectionConfig = connectivityConfig.getConnectionConfig();
-        final KafkaConfig kafkaConfig = connectionConfig.getKafkaConfig();
+        kafkaConfig = connectionConfig.getKafkaConfig();
         propertiesFactory = PropertiesFactory.newInstance(connection, kafkaConfig, getClientId(connection.getId()));
         producerFactory = DefaultKafkaProducerFactory.getInstance(propertiesFactory.getProducerSettings(),
                 getContext().getSystem());
@@ -204,7 +205,7 @@ public final class KafkaClientActor extends BaseClientActor {
 
     private void startKafkaConsumer(final ConsumerData consumerData, final boolean dryRun) {
         final Props consumerActorProps =
-                KafkaConsumerActor.props(connection(), propertiesFactory, consumerData.getAddress(),
+                KafkaConsumerActor.props(connection(), kafkaConfig, propertiesFactory, consumerData.getAddress(),
                         getInboundMappingProcessorActor(), consumerData.getSource(), dryRun);
         final ActorRef consumerActor =
                 startChildActorConflictFree(consumerData.getActorNamePrefix(), consumerActorProps);

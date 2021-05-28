@@ -16,10 +16,12 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 /**
  * This class is the default implementation of {@link KafkaConfig}.
@@ -33,10 +35,14 @@ public final class DefaultKafkaConfig implements KafkaConfig {
 
     private final Config consumerConfig;
     private final Config producerConfig;
+    private final ThrottlingConfig consumerThrottlingConfig;
 
     private DefaultKafkaConfig(final ScopedConfig kafkaScopedConfig) {
         consumerConfig = kafkaScopedConfig.getConfig(CONSUMER_PATH);
         producerConfig = kafkaScopedConfig.getConfig(PRODUCER_PATH);
+        consumerThrottlingConfig = ThrottlingConfig.of(kafkaScopedConfig.hasPath(CONSUMER_PATH)
+                ? kafkaScopedConfig.getConfig(CONSUMER_PATH)
+                : ConfigFactory.empty());
     }
 
     /**
@@ -51,6 +57,11 @@ public final class DefaultKafkaConfig implements KafkaConfig {
     }
 
     @Override
+    public ThrottlingConfig getConsumerThrottlingConfig() {
+        return consumerThrottlingConfig;
+    }
+
+    @Override
     public Config getConsumerConfig() {
         return consumerConfig;
     }
@@ -62,27 +73,25 @@ public final class DefaultKafkaConfig implements KafkaConfig {
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
         final DefaultKafkaConfig that = (DefaultKafkaConfig) o;
-        return Objects.equals(producerConfig, that.producerConfig);
+        return Objects.equals(consumerConfig, that.consumerConfig) &&
+                Objects.equals(producerConfig, that.producerConfig) &&
+                Objects.equals(consumerThrottlingConfig, that.consumerThrottlingConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(producerConfig);
+        return Objects.hash(consumerConfig, producerConfig, consumerThrottlingConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "consumerConfig=" + consumerConfig +
-                "producerConfig=" + producerConfig +
+                ", producerConfig=" + producerConfig +
+                ", consumerThrottlingConfig=" + consumerThrottlingConfig +
                 "]";
     }
-
 }

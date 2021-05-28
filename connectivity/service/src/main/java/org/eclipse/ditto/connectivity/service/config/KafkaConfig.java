@@ -14,6 +14,8 @@ package org.eclipse.ditto.connectivity.service.config;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.service.config.ThrottlingConfig;
+
 import com.typesafe.config.Config;
 
 /**
@@ -21,6 +23,13 @@ import com.typesafe.config.Config;
  */
 @Immutable
 public interface KafkaConfig {
+
+    /**
+     * Returns the consumer throttling config.
+     *
+     * @return the config.
+     */
+    ThrottlingConfig getConsumerThrottlingConfig();
 
     /**
      * Returns the Config for consumers needed by the Kafka client.
