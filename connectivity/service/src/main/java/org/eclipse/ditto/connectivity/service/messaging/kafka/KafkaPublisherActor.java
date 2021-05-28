@@ -31,6 +31,7 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
@@ -179,7 +180,11 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
         return new ProducerRecord<>(publishTarget.getTopic(),
                 publishTarget.getPartition().orElse(null),
-                publishTarget.getKey().orElse(null),
+                // TODO make configurable
+                Optional.ofNullable(externalMessage.getInternalHeaders().get(DittoHeaderDefinition.ENTITY_ID.getKey()))
+                        .map(id -> id.split(":"))
+                        .map(elements -> String.join(":", elements[1], elements[2]))
+                        .orElse(publishTarget.getKey().orElse(null)),
                 payload, headers);
     }
 

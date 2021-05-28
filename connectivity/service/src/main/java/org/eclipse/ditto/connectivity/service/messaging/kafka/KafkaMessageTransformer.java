@@ -59,7 +59,6 @@ final class KafkaMessageTransformer {
         this.inboundMonitor = inboundMonitor;
     }
 
-
     /**
      * Takes incoming kafka record and transforms the value to an {@link ExternalMessage}.
      *
@@ -81,7 +80,7 @@ final class KafkaMessageTransformer {
         try {
             final DittoLogger correlationIdScopedLogger = LOGGER.withCorrelationId(correlationId);
             correlationIdScopedLogger.info(
-                    "Transforming incoming kafka message with headers <{}> for thing with ID <{}>.",
+                    "Transforming incoming kafka message with headers <{}> and record key <{}>.",
                     messageHeaders, key);
             if (correlationIdScopedLogger.isDebugEnabled()) {
                 correlationIdScopedLogger.debug(

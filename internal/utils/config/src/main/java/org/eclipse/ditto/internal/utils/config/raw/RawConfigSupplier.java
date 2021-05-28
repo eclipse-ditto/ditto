@@ -59,8 +59,6 @@ public final class RawConfigSupplier implements Supplier<Config> {
         final Config configWithFallbacks = serviceSpecificEnvironmentConfig
                 .withFallback(getServiceSpecificBaseConfig())
                 .withFallback(getCommonDittoServicesConfig())
-                .withFallback(
-                        ConfigFactory.load()) // TODO need this to resolve e.g. akka.kafka.consumer in connectivity.conf
                 .resolve();
 
         return ConfigFactory.load(configWithFallbacks);
