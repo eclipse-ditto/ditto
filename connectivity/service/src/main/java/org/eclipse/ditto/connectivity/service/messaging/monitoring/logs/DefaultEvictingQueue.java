@@ -100,7 +100,7 @@ final class DefaultEvictingQueue<E> extends AbstractQueue<E> implements Evicting
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                ", capacity=" + capacity +
+                "capacity=" + capacity +
                 ", elements=" + elements +
                 "]";
     }

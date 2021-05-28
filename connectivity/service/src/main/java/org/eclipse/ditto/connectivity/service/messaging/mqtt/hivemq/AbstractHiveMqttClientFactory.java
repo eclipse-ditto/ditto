@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq;
 
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
@@ -114,24 +113,27 @@ abstract class AbstractHiveMqttClientFactory {
             final T newBuilder,
             final Connection connection,
             final String identifier,
-            final boolean allowReconnect,
             @Nullable final MqttClientConnectedListener connectedListener,
             @Nullable final MqttClientDisconnectedListener disconnectedListener,
-            final ConnectionLogger connectionLogger) {
+            final ConnectionLogger connectionLogger,
+            final int eventLoopThreads) {
 
-        final URI uri = tunnelStateSupplier.get().getURI(connection);
+        final var uri = tunnelStateSupplier.get().getURI(connection);
 
-        T builder = newBuilder
-                .transportConfig()
-                .applyTransportConfig()
-                .serverHost(uri.getHost()).serverPort(uri.getPort());
-
-        if (allowReconnect && connection.isFailoverEnabled()) {
-            builder = builder.automaticReconnectWithDefaultConfig();
+        T builder = newBuilder;
+        if (eventLoopThreads > 0) {
+            builder = builder.executorConfig()
+                    .nettyThreads(eventLoopThreads)
+                    .applyExecutorConfig();
         }
 
-        if (isSecuredConnection(connection.getProtocol())) {
+        builder = builder
+                .transportConfig()
+                .applyTransportConfig()
+                .serverHost(uri.getHost())
+                .serverPort(uri.getPort());
 
+        if (isSecuredConnection(connection.getProtocol())) {
             // create DittoTrustManagerFactory to apply hostname verification
             // or to disable certificate check when the connection requires it
             MqttClientSslConfigBuilder sslConfigBuilder = MqttClientSslConfig.builder()
@@ -161,4 +163,5 @@ abstract class AbstractHiveMqttClientFactory {
     private static boolean isSecuredConnection(final String protocol) {
         return MQTT_SECURE_SCHEMES.contains(protocol.toLowerCase());
     }
+
 }

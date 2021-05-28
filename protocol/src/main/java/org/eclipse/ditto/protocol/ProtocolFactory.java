@@ -152,6 +152,18 @@ public final class ProtocolFactory {
     }
 
     /**
+     * Returns a new {@code TopicPathBuilder}.
+     * The namespace part of the {@code TopicPath} is set to {@link TopicPath#ID_PLACEHOLDER}.
+     *
+     * @param name the name to be set to the builder.
+     * @return the builder.
+     * @throws NullPointerException if {@code name} is {@code null}.
+     */
+    public static TopicPathBuilder newTopicPathBuilderFromName(final String name) {
+        return ImmutableTopicPath.newBuilder(TopicPath.ID_PLACEHOLDER, name);
+    }
+
+    /**
      * Returns a new {@code Payload} from the specified {@code jsonString}.
      *
      * @param jsonString the JSON string.

@@ -41,9 +41,8 @@ For an MQTT connection:
 * Source `"addresses"` are MQTT topics to subscribe to. Wildcards `+` and `#` are allowed.
 * `"authorizationContext"` may _not_ contain placeholders `{%raw%}{{ header:<header-name> }}{%endraw%}` as MQTT 3.1.1
   has no application headers.
-* The optional field `"qos"` sets the maximum Quality of Service to request when subscribing for messages. Its value
+* The required field `"qos"` sets the maximum Quality of Service to request when subscribing for messages. Its value
   can be `0` for at-most-once delivery, `1` for at-least-once delivery and `2` for exactly-once delivery.
-  The default value is `2` (exactly-once).
   Support of any Quality of Service depends on the external MQTT broker; [AWS IoT][awsiot] for example does not
   acknowledge subscriptions with `qos=2`.
 
@@ -91,11 +90,30 @@ For Ditto acknowledgements with successful [status](protocol-specification-acks.
 For Ditto acknowledgements with mixed successful/failed [status](protocol-specification-acks.html#combined-status-code):
 * If some of the aggregated [acknowledgements](basic-acknowledgements.html#acknowledgements-acks) require redelivery (e.g. based on a timeout):
    * based on the [specificConfig](#specific-configuration) [reconnectForDelivery](#reconnectforredelivery) either 
-      * closes and reconnects the MQTT connection in order to receive unACKed QoS 1/2 messages again 
-      * or simply acknowledges the received MQTT 3.1.1 message
+      * closes and reconnects the MQTT connection in order to immediately receive unACKed QoS 1/2 messages again 
+      * or simply doesn't acknowledge the received MQTT 3.1.1 message resulting in a redelivery of a QoS > 0 message by the MQTT broker
 * If none of the aggregated [acknowledgements](basic-acknowledgements.html#acknowledgements-acks) require redelivery:
    * acknowledges the received MQTT 3.1.1 message as redelivery does not make sense
 
+In order to enable acknowledgement processing only for MQTT messages received with QoS 1/2, the following configuration
+has to be applied:  
+```json
+{
+  "addresses": [
+    "<mqtt_topic>",
+    "..."
+  ],
+  "authorizationContext": [
+    "ditto:inbound-auth-subject",
+    "..."
+  ],
+  "qos": 1,
+  "acknowledgementRequests": {
+    "includes": [],
+    "filter": "fn:filter(header:mqtt.qos,'ne','0')"
+  }
+}
+```
 
 ### Target format
 
@@ -112,8 +130,6 @@ has READ permission on the thing, which is associated with a message.
 The additional field `"qos"` sets the Quality of Service with which messages are published.
 Its value can be `0` for at-most-once delivery, `1` for at-least-once delivery and `2` for exactly-once delivery.
 Support of any Quality of Service depends on the external MQTT broker.
-The default value is `0` (at-most-once).
-
 
 ```json
 {
@@ -168,9 +184,9 @@ Overall example JSON of the MQTT `"specificConfig"`:
   "uri": "tcp://test.mosquitto.org:1883",
   "specificConfig": {
     "clientId": "my-awesome-mqtt-client-id",
-    "reconnectForRedelivery": true,
+    "reconnectForRedelivery": false,
     "cleanSession": false,
-    "separatePublisherClient": true,
+    "separatePublisherClient": false,
     "publisherId": "my-awesome-mqtt-publisher-client-id",
     "reconnectForRedeliveryDelay": "5s",
     "lastWillTopic": "my/last/will/topic",
@@ -193,33 +209,36 @@ Default: not set - the ID of the Ditto [connection](basic-connections.html) is u
 
 Configures that the MQTT connection re-connects whenever a consumed message (via a connection source) with QoS 1 
 ("at least once") or 2 ("exactly once")
-is processed but cannot be [acknowledged](#source-acknowledgement-handling) successfully.<br/>
+is processed but cannot be [acknowledged](#source-acknowledgement-handling) successfully.   
 That causes that the MQTT broker will re-publish the message once the connection reconnected.   
 If configured to `false`, the MQTT message is simply acknowledged (`PUBACK` or `PUBREC`, `PUBREL`).
 
-Default: `true`
+Default: `false`
 
 Handle with care: 
 * when set to `true`, incoming QoS 0 messages are lost during the reconnection phase
 * when set to `true` and there is also an MQTT target configured to publish messages,
   the messages to be published during the reconnection phase are lost
    * to fix that, configure `"separatePublisherClient"` also to `true` in order to publish via another MQTT connection
-* when set to `false`, MQTT messages with QoS 1 and 2 could get lost (e.g. during downtime or connection issues)
+* when set to `false`, MQTT messages with QoS 1 and 2 are redelivered based on the MQTT broker's strategy, 
+  but may not be redelivered at all as the MQTT specification does not require unacknowledged messages to be redelivered
+  without reconnection of the client
 
 #### cleanSession
 
 Configure the MQTT client's `cleanSession` flag.
 
-Default: the negation of `"reconnectForRedelivery"`
+Default: `false`
 
 #### separatePublisherClient
 
-Configures whether to create a separate physical client and connection to the MQTT broker for publishing messages, or not. 
-By default (configured true), a single Ditto connection would open 2 MQTT connections/sessions: one for subscribing 
-and one for publishing. If configured to `false`, the same MQTT connection/session is used both: for subscribing to 
-messages, and for publishing messages.
+Configures whether to create a separate physical client and connection to the MQTT broker for publishing messages, or not.
+If configured to `true`, a single Ditto connection would open 2 MQTT connections/sessions: one for subscribing
+and one for publishing.  
+If configured to `false`, the same MQTT connection/session is used both: for subscribing to messages, and for publishing
+messages.
 
-Default: `true`
+Default: `false`
 
 #### publisherId
 

@@ -37,6 +37,7 @@ The Ditto model payload contains the application data, e.g. an updated sensor va
  
 * See [specification for Things](protocol-specification-things.html)
 * See [specification for Policies](protocol-specification-policies.html) 
+* See [specification for Connections](protocol-specification-connections.html) 
 
 
 ### Ditto Protocol response {#dittoProtocolResponse}

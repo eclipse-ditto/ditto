@@ -70,7 +70,7 @@ public abstract class AbstractBaseClientActorTest {
             .headerMapping(ConnectivityModelFactory.newHeaderMapping(
                     Collections.singletonMap("content-type", "application/json")
             ))
-            .topics(Topic.TWIN_EVENTS, Topic.values())
+            .topics(Topic.TWIN_EVENTS)
             .build();
 
     protected static ConnectionBuilder getHttpConnectionBuilderToLocalBinding(final boolean isSecure, final int port) {

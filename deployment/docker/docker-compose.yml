@@ -152,7 +152,7 @@ services:
     command: nginx -g 'daemon off;'
 
   nginx:
-    image: docker.io/nginx:1.19-alpine
+    image: docker.io/nginx:1.20-alpine
     volumes:
        - ./nginx.conf:/etc/nginx/nginx.conf:ro
        - ./nginx.htpasswd:/etc/nginx/nginx.htpasswd:ro

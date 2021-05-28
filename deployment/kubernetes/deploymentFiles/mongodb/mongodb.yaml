@@ -10,7 +10,9 @@ spec:
       protocol: TCP
   selector:
     service: mongodb
+
 ---
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:

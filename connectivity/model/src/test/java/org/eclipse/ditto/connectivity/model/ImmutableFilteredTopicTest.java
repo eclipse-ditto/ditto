@@ -112,6 +112,32 @@ public final class ImmutableFilteredTopicTest {
     }
 
     @Test
+    public void policyAnnouncementsOnlySupportNamespaces() {
+        final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.POLICY_ANNOUNCEMENTS)
+                .withNamespaces(NAMESPACES)
+                .withFilter(FILTER_EXAMPLE)
+                .withExtraFields(EXTRA_FIELDS)
+                .build();
+
+        assertThat(underTest.getNamespaces()).isEqualTo(NAMESPACES);
+        assertThat(underTest.getFilter()).isEmpty();
+        assertThat(underTest.getExtraFields()).isEmpty();
+    }
+
+    @Test
+    public void connectionAnnouncementsDontSupportEnhancements() {
+        final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.CONNECTION_ANNOUNCEMENTS)
+                .withNamespaces(NAMESPACES)
+                .withFilter(FILTER_EXAMPLE)
+                .withExtraFields(EXTRA_FIELDS)
+                .build();
+
+        assertThat(underTest.getNamespaces()).isEmpty();
+        assertThat(underTest.getFilter()).isEmpty();
+        assertThat(underTest.getExtraFields()).isEmpty();
+    }
+
+    @Test
     public void toStringReturnsExpected() {
         final ImmutableFilteredTopic underTest = ImmutableFilteredTopic.getBuilder(Topic.TWIN_EVENTS).build();
 

@@ -30,7 +30,40 @@
         </filter>
     </appender>
 
-    <!-- do not print INFO cluster messages of mongo driver: -->
+    <if condition='isDefined("DITTO_LOGGING_LOGSTASH_SERVER")'>
+        <then>
+            <appender name="stash" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+                <destination>${DITTO_LOGGING_LOGSTASH_SERVER}</destination>
+
+                <!-- Encoder is required -->
+                <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                    <customFields>{"appname":"policies","instance_index":"${INSTANCE_INDEX}"</customFields>
+                </encoder>
+            </appender>
+        </then>
+    </if>
+
+    <if condition='isDefined("DITTO_LOGGING_FILE_APPENDER")'>
+        <then>
+            <appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">
+                <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+                    <level>info</level>
+                </filter>
+                <file>policies.log</file>
+                <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+                    <fileNamePattern>policies.log.%d{yyyy-MM-dd}.gz</fileNamePattern>
+                    <!-- Keep 30 days' worth of history capped at 1GB total size -->
+                    <maxHistory>${DITTO_LOGGING_MAX_LOG_FILE_HISTORY_IN_DAYS:-10}</maxHistory>
+                    <totalSizeCap>${DITTO_LOGGING_TOTAL_LOG_FILE_SIZE:-1GB}</totalSizeCap>
+                </rollingPolicy>
+                <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                    <customFields>{"appname":"policies","instance_index":"${INSTANCE_INDEX}"}</customFields>
+                </encoder>
+            </appender>
+        </then>
+    </if>
+
+    <!-- Do not print INFO cluster messages of mongo driver: -->
     <logger name="org.mongodb.driver" level="WARN"/>
 
     <logger name="akka.management.cluster.bootstrap.contactpoint.HttpClusterBootstrapRoutes" level="WARN"/>
@@ -40,9 +73,27 @@
     <logger name="org.eclipse.ditto" level="${LOG_LEVEL_APPLICATION:-INFO}"/>
 
     <root level="${LOG_LEVEL:-INFO}">
-        <appender-ref ref="STDOUT"/>
-        <!-- always log ERRORs to syserr -->
+        <!-- Logging INFO messages can be disabled by setting environment variable -->
+        <if condition='isNull("DITTO_LOGGING_DISABLE_SYSOUT_LOG")'>
+            <then>
+                <appender-ref ref="STDOUT"/>
+            </then>
+        </if>
+
+        <!-- Always log ERRORs to syserr -->
         <appender-ref ref="STDERR"/>
+
+        <if condition='isDefined("DITTO_LOGGING_LOGSTASH_SERVER")'>
+            <then>
+                <appender-ref ref="stash"/>
+            </then>
+        </if>
+
+        <if condition='isDefined("DITTO_LOGGING_FILE_APPENDER")'>
+            <then>
+                <appender-ref ref="file"/>
+            </then>
+        </if>
     </root>
 
 </configuration>

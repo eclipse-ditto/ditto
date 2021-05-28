@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.protocol.mapper;
 
+import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectivityAnnouncement;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommandResponse;
@@ -102,6 +103,10 @@ public final class SignalMapperFactory {
 
     public static SignalMapper<MessageCommandResponse<?, ?>> newMessageCommandResponseSignalMapper() {
         return MessageSignalMapper.getInstance();
+    }
+
+    public static SignalMapper<ConnectivityAnnouncement<?>> newConnectivityAnnouncementSignalMapper() {
+        return new ConnectivityAnnouncementSignalMapper();
     }
 
 }

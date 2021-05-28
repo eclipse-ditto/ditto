@@ -15,10 +15,24 @@ package org.eclipse.ditto.connectivity.service.messaging.backoff;
 
 import java.time.Duration;
 
+import org.eclipse.ditto.connectivity.service.config.TimeoutConfig;
+
 /**
  * Retry timeout strategy that provides increasing timeouts for retrying to connect.
  */
-interface RetryTimeoutStrategy {
+public interface RetryTimeoutStrategy {
+
+    /**
+     * Creates a new RetryTimeoutStrategy duplicating the {@link #getNextTimeout()} until the configured max timeout
+     * of the passed {@code timeoutConfig} is reached with the formula: {@code timeout = minTimeout * 2^x}
+     *
+     * @param timeoutConfig the timeout config to apply.
+     * @return the created RetryTimeoutStrategy
+     * @since 2.0.0
+     */
+    static RetryTimeoutStrategy newDuplicationRetryTimeoutStrategy(final TimeoutConfig timeoutConfig) {
+        return DuplicationRetryTimeoutStrategy.fromConfig(timeoutConfig);
+    }
 
     /**
      * Resets the timeout and the current tries.
