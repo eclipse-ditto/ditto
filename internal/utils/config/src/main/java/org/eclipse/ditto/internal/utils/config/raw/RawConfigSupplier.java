@@ -59,6 +59,7 @@ public final class RawConfigSupplier implements Supplier<Config> {
         final Config configWithFallbacks = serviceSpecificEnvironmentConfig
                 .withFallback(getServiceSpecificBaseConfig())
                 .withFallback(getCommonDittoServicesConfig())
+                .withFallback(ConfigFactory.load()) // TODO try this on jenkins
                 .resolve();
 
         return ConfigFactory.load(configWithFallbacks);
