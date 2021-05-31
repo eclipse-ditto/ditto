@@ -235,15 +235,52 @@ public final class ImmutableTopicPathTest {
     }
 
     @Test
+    public void buildConnectivityAnnouncementTopicPath() {
+        final String namespace = "_";
+        final String connectionId = "myConnection";
+        final String announcement = "opened";
+
+        final TopicPath underTest = ImmutableTopicPath.newBuilder(namespace, connectionId)
+                .connections().announcements().name(announcement).build();
+
+        softly.assertThat(underTest.getNamespace()).as("namespace").isEqualTo(namespace);
+        softly.assertThat(underTest.getEntityName()).as("entity name").isEqualTo(connectionId);
+        softly.assertThat(underTest.getGroup()).as("group").isEqualTo(TopicPath.Group.CONNECTIONS);
+        softly.assertThat(underTest.getChannel()).as("channel").isEqualTo(TopicPath.Channel.NONE);
+        softly.assertThat(underTest.getCriterion()).as("criterion").isEqualTo(TopicPath.Criterion.ANNOUNCEMENTS);
+        softly.assertThat(underTest.getAction()).as("action").isEmpty();
+        softly.assertThat(underTest.getSearchAction()).as("search action").isEmpty();
+        softly.assertThat(underTest.getSubject()).as("subject").contains(announcement);
+        softly.assertThat(underTest.getPath()).as("path")
+                .isEqualTo(String.join(TopicPath.PATH_DELIMITER,
+                        namespace,
+                        connectionId,
+                        TopicPath.Group.CONNECTIONS.getName(),
+                        TopicPath.Criterion.ANNOUNCEMENTS.getName(),
+                        announcement));
+    }
+
+    @Test
     public void buildTopicPathWithPoliciesGroupAndLiveChannelThrowsException() {
         assertThatIllegalStateException()
                 .isThrownBy(() -> ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
                         .policies()
-                        .twin()
+                        .live()
                         .announcements()
                         .name("something-happened")
                         .build())
-                .withMessage("The policies group requires no channel.")
+                .withNoCause();
+    }
+
+    @Test
+    public void buildTopicPathWithConnectionsGroupAndLiveChannelThrowsException() {
+        assertThatIllegalStateException()
+                .isThrownBy(() -> ImmutableTopicPath.newBuilder(NAMESPACE, ENTITY_NAME)
+                        .connections()
+                        .live()
+                        .announcements()
+                        .name("opened")
+                        .build())
                 .withNoCause();
     }
 

@@ -297,26 +297,26 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     }
 
     @Test
-    public void deleteConnectionUpdatesSubscriptions() {
+    public void deleteConnectionUpdatesSubscriptionsAndClosesConnection() {
         new TestKit(actorSystem) {{
-            final TestProbe probe = TestProbe.apply(actorSystem);
+            final TestProbe clientActorMock = TestProbe.apply(actorSystem);
             final ActorRef underTest = TestConstants.createConnectionSupervisorActor(
                     connectionId, actorSystem, proxyActor,
-                    (connection, concierge, connectionActor) -> MockClientActor.props(probe.ref()),
+                    (connection, concierge, connectionActor) -> MockClientActor.props(clientActorMock.ref()),
                     pubSubMediator
             );
             watch(underTest);
 
             // create connection
             underTest.tell(createConnection, getRef());
-            probe.expectMsg(enableConnectionLogs);
-            probe.expectMsg(openConnection);
+            clientActorMock.expectMsg(enableConnectionLogs);
+            clientActorMock.expectMsg(openConnection);
             expectMsg(createConnectionResponse);
 
             // delete connection
             underTest.tell(deleteConnection, getRef());
+            clientActorMock.expectMsg(closeConnection);
             expectMsg(deleteConnectionResponse);
-            probe.expectNoMessage();
             expectTerminated(underTest);
         }};
 
@@ -383,6 +383,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
             // delete connection
             underTest.tell(deleteConnection, getRef());
+            clientActorMock.expectMsg(closeConnection);
             expectMsg(deleteConnectionResponse);
 
             // create connection again (while ConnectionActor is in deleted state)

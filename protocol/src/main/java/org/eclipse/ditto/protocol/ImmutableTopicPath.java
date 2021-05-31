@@ -251,6 +251,12 @@ final class ImmutableTopicPath implements TopicPath {
         }
 
         @Override
+        public TopicPathBuilder connections() {
+            group = Group.CONNECTIONS;
+            return this;
+        }
+
+        @Override
         public TopicPathBuilder twin() {
             channel = Channel.TWIN;
             return this;
@@ -443,8 +449,9 @@ final class ImmutableTopicPath implements TopicPath {
         }
 
         private void validateChannel() {
-            if (Group.POLICIES == group && Channel.NONE != channel) {
-                throw new IllegalStateException("The policies group requires no channel.");
+            if ((Group.POLICIES == group || Group.CONNECTIONS == group) &&
+                    Channel.NONE != channel) {
+                throw new IllegalStateException("The policies and connection groups require no channel.");
             }
         }
 
@@ -542,7 +549,7 @@ final class ImmutableTopicPath implements TopicPath {
 
         private Channel tryToGetChannelForGroup(final Group group) {
             final Channel result;
-            if (Group.POLICIES == group) {
+            if (Group.POLICIES == group || Group.CONNECTIONS == group) {
                 result = Channel.NONE;
             } else {
                 result = tryToGetChannelForName(tryToGetChannelName());

@@ -99,4 +99,15 @@ public final class MappingStrategiesFactory {
     public static MessageCommandResponseMappingStrategies getMessageCommandResponseMappingStrategies() {
         return MessageCommandResponseMappingStrategies.getInstance();
     }
+
+    /**
+     * Get the mapping strategies for {@link org.eclipse.ditto.connectivity.model.signals.announcements.ConnectivityAnnouncement}s.
+     *
+     * @return the strategies.
+     * @since 2.1.0
+     */
+    public static ConnectivityAnnouncementMappingStrategies getConnectivityAnnouncementMappingStrategies() {
+        return ConnectivityAnnouncementMappingStrategies.getInstance();
+    }
+
 }

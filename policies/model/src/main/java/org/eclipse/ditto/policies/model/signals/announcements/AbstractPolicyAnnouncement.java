@@ -72,7 +72,7 @@ public abstract class AbstractPolicyAnnouncement<T extends AbstractPolicyAnnounc
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final Predicate<JsonField> predicate) {
-        jsonObjectBuilder.set(PolicyAnnouncement.JsonFields.JSON_POLICY_ID, policyId.toString());
+        jsonObjectBuilder.set(PolicyAnnouncement.JsonFields.JSON_POLICY_ID, policyId.toString(), predicate);
         appendPolicyAnnouncementPayload(jsonObjectBuilder, predicate);
     }
 

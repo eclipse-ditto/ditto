@@ -15,9 +15,11 @@ package org.eclipse.ditto.connectivity.service.messaging.persistence;
 import static java.util.Collections.emptyList;
 import static org.eclipse.ditto.base.model.auth.AuthorizationModelFactory.newAuthContext;
 import static org.eclipse.ditto.base.model.auth.AuthorizationModelFactory.newAuthSubject;
+import static org.eclipse.ditto.connectivity.model.Topic.CONNECTION_ANNOUNCEMENTS;
 import static org.eclipse.ditto.connectivity.model.Topic.LIVE_COMMANDS;
 import static org.eclipse.ditto.connectivity.model.Topic.LIVE_EVENTS;
 import static org.eclipse.ditto.connectivity.model.Topic.LIVE_MESSAGES;
+import static org.eclipse.ditto.connectivity.model.Topic.POLICY_ANNOUNCEMENTS;
 import static org.eclipse.ditto.connectivity.model.Topic.TWIN_EVENTS;
 
 import java.time.Instant;
@@ -30,6 +32,7 @@ import java.util.Set;
 
 import org.assertj.core.api.Assertions;
 import org.assertj.core.util.Lists;
+import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectionOpenedAnnouncement;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -105,6 +108,30 @@ public final class SignalFilterTest {
                 .headerMapping(HEADER_MAPPING)
                 .topics(LIVE_EVENTS, LIVE_MESSAGES)
                 .build();
+        final Target policyAuthd = ConnectivityModelFactory.newTargetBuilder()
+                .address("policy/authorized")
+                .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, DUMMY, AUTHORIZED))
+                .headerMapping(HEADER_MAPPING)
+                .topics(POLICY_ANNOUNCEMENTS)
+                .build();
+        final Target policyUnauthd = ConnectivityModelFactory.newTargetBuilder()
+                .address("policy/unauthorized")
+                .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, UNAUTHORIZED, DUMMY))
+                .headerMapping(HEADER_MAPPING)
+                .topics(POLICY_ANNOUNCEMENTS)
+                .build();
+        final Target connectionAuthd = ConnectivityModelFactory.newTargetBuilder()
+                .address("connection/authorized")
+                .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, DUMMY, AUTHORIZED))
+                .headerMapping(HEADER_MAPPING)
+                .topics(CONNECTION_ANNOUNCEMENTS)
+                .build();
+        final Target connectionUnauthd = ConnectivityModelFactory.newTargetBuilder()
+                .address("connection/unauthorized")
+                .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, UNAUTHORIZED, DUMMY))
+                .headerMapping(HEADER_MAPPING)
+                .topics(CONNECTION_ANNOUNCEMENTS)
+                .build();
         final Target emptyContext = ConnectivityModelFactory.newTargetBuilder()
                 .address("live/unauthorized")
                 .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, UNAUTHORIZED))
@@ -152,6 +179,14 @@ public final class SignalFilterTest {
         params.add(new Object[]{LIVE_MESSAGES, readSubjects,
                 Lists.list(twinAuthd, twinUnauthd, liveAuthd, liveUnauthd),
                 Lists.list(twinAuthd, liveAuthd)});
+
+        params.add(new Object[]{POLICY_ANNOUNCEMENTS, readSubjects,
+                Lists.list(policyAuthd, policyUnauthd),
+                Lists.list(policyAuthd, policyUnauthd)});
+
+        params.add(new Object[]{CONNECTION_ANNOUNCEMENTS, readSubjects,
+                Lists.list(connectionAuthd, connectionUnauthd),
+                Lists.list(connectionAuthd, connectionUnauthd)});
 
         // subject "ditto" is not authorized to read any signal
         addAllCombinationsExpectingEmptyResult(params,
@@ -261,6 +296,8 @@ public final class SignalFilterTest {
                                 .build(), liveHeaders);
             case POLICY_ANNOUNCEMENTS:
                 return SubjectDeletionAnnouncement.of(PolicyId.of(thingId), Instant.now(), List.of(), dittoHeaders);
+            case CONNECTION_ANNOUNCEMENTS:
+                return ConnectionOpenedAnnouncement.of(CONNECTION_ID, Instant.now(), dittoHeaders);
             default:
                 throw new UnsupportedOperationException(topic + " not supported");
         }

@@ -1,3 +1,6 @@
+---
+# this is an example how to restrict resources on a global level.
+# for more information see: https://kubernetes.io/docs/concepts/policy/resource-quotas/
 apiVersion: v1
 kind: ResourceQuota
 metadata:

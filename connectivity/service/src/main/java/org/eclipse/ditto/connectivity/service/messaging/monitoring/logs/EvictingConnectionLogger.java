@@ -237,7 +237,7 @@ final class EvictingConnectionLogger implements ConnectionLogger {
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                ", category=" + category +
+                "category=" + category +
                 ", type=" + type +
                 ", successLogs=" + successLogs +
                 ", failureLogs=" + failureLogs +

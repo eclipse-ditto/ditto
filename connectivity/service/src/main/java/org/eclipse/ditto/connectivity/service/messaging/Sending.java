@@ -89,11 +89,8 @@ final class Sending implements SendingOrDropped {
                     .or(() -> ackFromNullResponse)
                     .or(() -> Optional.ofNullable(result).flatMap(SendResult::getCommandResponse));
 
+            updateSendMonitor(getSentFailure(error, ackFromNullResponse.isPresent()));
             responseOrAlternatives.ifPresent(commandResponse -> updateAckMonitor(getAckFailure(commandResponse)));
-
-            if (error != null || responseOrAlternatives.isPresent()) {
-                updateSendMonitor(getSentFailure(error, ackFromNullResponse.isPresent()));
-            }
             return responseOrAlternatives.orElse(null);
         }));
     }

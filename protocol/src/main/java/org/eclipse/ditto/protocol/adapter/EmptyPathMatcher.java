@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.protocol.adapter.things;
+package org.eclipse.ditto.protocol.adapter;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.protocol.PayloadPathMatcher;
@@ -21,14 +21,14 @@ import org.eclipse.ditto.protocol.UnknownPathException;
  * <p>
  * @since 2.0.0
  */
-final class EmptyPathMatcher implements PayloadPathMatcher {
+public final class EmptyPathMatcher implements PayloadPathMatcher {
 
     private static final EmptyPathMatcher INSTANCE = new EmptyPathMatcher();
 
     private EmptyPathMatcher() {
     }
 
-    static EmptyPathMatcher getInstance() {
+    public static EmptyPathMatcher getInstance() {
         return INSTANCE;
     }
 

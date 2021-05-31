@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.protocol.adapter.connectivity.ConnectivityCommandAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.provider.AcknowledgementAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.provider.PolicyCommandAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.provider.ThingCommandAdapterProvider;
@@ -40,10 +41,12 @@ final class DefaultAdapterResolver implements AdapterResolver {
 
     DefaultAdapterResolver(final ThingCommandAdapterProvider thingsAdapters,
             final PolicyCommandAdapterProvider policiesAdapters,
+            final ConnectivityCommandAdapterProvider connectivityAdapters,
             final AcknowledgementAdapterProvider acknowledgementAdapters) {
         final List<Adapter<?>> adapters = new ArrayList<>();
         adapters.addAll(thingsAdapters.getAdapters());
         adapters.addAll(policiesAdapters.getAdapters());
+        adapters.addAll(connectivityAdapters.getAdapters());
         adapters.addAll(acknowledgementAdapters.getAdapters());
         resolver = computeResolver(adapters);
     }

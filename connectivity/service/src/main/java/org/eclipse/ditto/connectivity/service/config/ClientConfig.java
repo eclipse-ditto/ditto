@@ -43,6 +43,21 @@ public interface ClientConfig {
     Duration getConnectingMaxTimeout();
 
     /**
+     * Max timeout (when actually disconnecting) until we're assuming disconnecting failed.
+     *
+     * @return the maximum disconnecting timeout.
+     * @see ClientConfig#getDisconnectAnnouncementTimeout()
+     */
+    Duration getDisconnectingMaxTimeout();
+
+    /**
+     * Time that will be waited between sending a disconnect announcement and actually disconnecting.
+     *
+     * @return the timeout.
+     */
+    Duration getDisconnectAnnouncementTimeout();
+
+    /**
      * Max timeout {@code SubscriptionManager} waits for search commands from {@code BaseClientActor}
      *
      * @return the maximum timeout.
@@ -107,6 +122,16 @@ public interface ClientConfig {
          * See documentation on {@link ClientConfig#getConnectingMaxTimeout()}.
          */
         CONNECTING_MAX_TIMEOUT("connecting-max-timeout", Duration.ofMinutes(60L)),
+
+        /**
+         * See documentation on {@link ClientConfig#getDisconnectingMaxTimeout()} ()}.
+         */
+        DISCONNECTING_MAX_TIMEOUT("disconnecting-max-timeout", CONNECTING_MIN_TIMEOUT.getDefaultValue()),
+
+        /**
+         * See documentation on {@link ClientConfig#getDisconnectAnnouncementTimeout()} ()} ()}.
+         */
+        DISCONNECT_ANNOUNCEMENT_TIMEOUT("disconnect-announcement-timeout", Duration.ofSeconds(3L)),
 
         /**
          * See documentation on {@link ClientConfig#getSubscriptionManagerTimeout()}.

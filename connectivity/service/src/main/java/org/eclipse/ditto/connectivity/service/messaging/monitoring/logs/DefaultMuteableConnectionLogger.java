@@ -175,7 +175,7 @@ final class DefaultMuteableConnectionLogger implements MuteableConnectionLogger 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                ", connectionId=" + connectionId +
+                "connectionId=" + connectionId +
                 ", delegate=" + delegate +
                 ", active=" + active +
                 "]";

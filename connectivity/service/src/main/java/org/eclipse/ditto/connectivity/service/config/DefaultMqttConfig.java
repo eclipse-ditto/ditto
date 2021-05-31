@@ -22,6 +22,7 @@ import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 /**
  * This class is the default implementation of {@link MqttConfig}.
@@ -30,18 +31,27 @@ import com.typesafe.config.Config;
 public final class DefaultMqttConfig implements MqttConfig {
 
     private static final String CONFIG_PATH = "mqtt";
+    private static final String RECONNECT_BACKOFF_PATH = "reconnect";
 
     private final int sourceBufferSize;
+    private final int eventLoopThreads;
+    private final boolean cleanSession;
     private final boolean reconnectForRedelivery;
     private final boolean useSeparateClientForPublisher;
     private final Duration reconnectForRedeliveryDelay;
+    private final BackOffConfig reconnectBackOffConfig;
 
     private DefaultMqttConfig(final ScopedConfig config) {
         sourceBufferSize = config.getInt(MqttConfigValue.SOURCE_BUFFER_SIZE.getConfigPath());
+        eventLoopThreads = config.getInt(MqttConfigValue.EVENT_LOOP_THREADS.getConfigPath());
+        cleanSession = config.getBoolean(MqttConfigValue.CLEAN_SESSION.getConfigPath());
         reconnectForRedelivery = config.getBoolean(MqttConfigValue.RECONNECT_FOR_REDELIVERY.getConfigPath());
         reconnectForRedeliveryDelay =
                 config.getDuration(MqttConfigValue.RECONNECT_FOR_REDELIVERY_DELAY.getConfigPath());
         useSeparateClientForPublisher = config.getBoolean(MqttConfigValue.SEPARATE_PUBLISHER_CLIENT.getConfigPath());
+        reconnectBackOffConfig = DefaultBackOffConfig.of(config.hasPath(RECONNECT_BACKOFF_PATH)
+                ? config.getConfig(RECONNECT_BACKOFF_PATH)
+                : ConfigFactory.parseString("backoff" + "={}"));
     }
 
     /**
@@ -61,6 +71,16 @@ public final class DefaultMqttConfig implements MqttConfig {
     }
 
     @Override
+    public int getEventLoopThreads() {
+        return eventLoopThreads;
+    }
+
+    @Override
+    public boolean isCleanSession() {
+        return cleanSession;
+    }
+
+    @Override
     public boolean shouldReconnectForRedelivery() {
         return reconnectForRedelivery;
     }
@@ -76,6 +96,11 @@ public final class DefaultMqttConfig implements MqttConfig {
     }
 
     @Override
+    public BackOffConfig getReconnectBackOffConfig() {
+        return reconnectBackOffConfig;
+    }
+
+    @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
@@ -85,24 +110,30 @@ public final class DefaultMqttConfig implements MqttConfig {
         }
         final DefaultMqttConfig that = (DefaultMqttConfig) o;
         return Objects.equals(sourceBufferSize, that.sourceBufferSize) &&
+                Objects.equals(eventLoopThreads, that.eventLoopThreads) &&
+                Objects.equals(cleanSession, that.cleanSession) &&
                 Objects.equals(reconnectForRedelivery, that.reconnectForRedelivery) &&
                 Objects.equals(reconnectForRedeliveryDelay, that.reconnectForRedeliveryDelay) &&
-                Objects.equals(useSeparateClientForPublisher, that.useSeparateClientForPublisher);
+                Objects.equals(useSeparateClientForPublisher, that.useSeparateClientForPublisher) &&
+                Objects.equals(reconnectBackOffConfig, that.reconnectBackOffConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(sourceBufferSize, reconnectForRedelivery, reconnectForRedeliveryDelay,
-                useSeparateClientForPublisher);
+        return Objects.hash(sourceBufferSize, eventLoopThreads, cleanSession, reconnectForRedelivery,
+                reconnectForRedeliveryDelay, useSeparateClientForPublisher, reconnectBackOffConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "sourceBufferSize=" + sourceBufferSize +
+                ", eventLoopThreads=" + eventLoopThreads +
+                ", cleanSession=" + cleanSession +
                 ", reconnectForRedelivery=" + reconnectForRedelivery +
                 ", reconnectForRedeliveryDelay=" + reconnectForRedeliveryDelay +
                 ", useSeparateClientForPublisher=" + useSeparateClientForPublisher +
+                ", reconnectBackOffConfig=" + reconnectBackOffConfig +
                 "]";
     }
 

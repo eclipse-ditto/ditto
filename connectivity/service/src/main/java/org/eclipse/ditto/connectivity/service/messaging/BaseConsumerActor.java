@@ -27,6 +27,11 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.api.ExternalMessageBuilder;
+import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
@@ -39,17 +44,12 @@ import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.DefaultConnectionMonitorRegistry;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
-import org.eclipse.ditto.connectivity.api.ExternalMessageBuilder;
-import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.tracing.TracingTags;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
@@ -116,8 +116,13 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                 .tag(TracingTags.CONNECTION_ID, connectionId.toString())
                 .tag(TracingTags.CONNECTION_TYPE, connectionType.getName())
                 .start();
-        forwardAndAwaitAck(addSourceAndReplyTarget(message))
+        // Start per-inbound-signal actor to collect acks of all thing-modify-commands mapped from incoming signal
+        final Duration collectorLifetime = acknowledgementConfig.getCollectorFallbackLifetime();
+        final ActorRef responseCollector = getContext().actorOf(ResponseCollectorActor.props(collectorLifetime));
+        forwardAndAwaitAck(addSourceAndReplyTarget(message), responseCollector)
                 .handle((output, error) -> {
+                    log().debug("Result from ResponseCollector=<{}>: output=<{}> error=<{}>",
+                            responseCollector, output, error);
                     if (output != null) {
                         final List<CommandResponse<?>> failedResponses = output.getFailedResponses();
                         if (output.allExpectedResponsesArrived() && failedResponses.isEmpty()) {
@@ -127,8 +132,8 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                             // empty failed responses indicate that SetCount was missing
                             final boolean shouldRedeliver = failedResponses.isEmpty() ||
                                     someFailedResponseRequiresRedelivery(failedResponses);
-                            log().debug("Rejecting [redeliver={}] due to failed responses <{}>",
-                                    shouldRedeliver, failedResponses);
+                            log().debug("Rejecting [redeliver={}] due to failed responses <{}>. " +
+                                    "ResponseCollector=<{}>", shouldRedeliver, failedResponses, responseCollector);
                             timer.tag(TracingTags.ACK_SUCCESS, false)
                                     .tag(TracingTags.ACK_REDELIVER, shouldRedeliver)
                                     .stop();
@@ -140,7 +145,8 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                         final DittoRuntimeException dittoRuntimeException =
                                 DittoRuntimeException.asDittoRuntimeException(error, rootCause -> {
                                     // Redeliver and pray this unexpected error goes away
-                                    log().debug("Rejecting [redeliver=true] due to error <{}>", rootCause);
+                                    log().debug("Rejecting [redeliver=true] due to error <{}>. " +
+                                            "ResponseCollector=<{}>", rootCause, responseCollector);
                                     timer.tag(TracingTags.ACK_SUCCESS, false)
                                             .tag(TracingTags.ACK_REDELIVER, true)
                                             .stop();
@@ -153,8 +159,8 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                                 settle.run();
                             } else {
                                 final var shouldRedeliver = requiresRedelivery(dittoRuntimeException.getHttpStatus());
-                                log().debug("Rejecting [redeliver={}] due to error <{}>",
-                                        shouldRedeliver, dittoRuntimeException);
+                                log().debug("Rejecting [redeliver={}] due to error <{}>. ResponseCollector=<{}>",
+                                        shouldRedeliver, dittoRuntimeException, responseCollector);
                                 timer.tag(TracingTags.ACK_SUCCESS, false)
                                         .tag(TracingTags.ACK_REDELIVER, shouldRedeliver)
                                         .stop();
@@ -165,7 +171,8 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                     return null;
                 })
                 .exceptionally(e -> {
-                    log().error(e, "Unexpected error during manual acknowledgement.");
+                    log().error(e, "Unexpected error during manual acknowledgement. ResponseCollector=<{}>",
+                            responseCollector);
                     return null;
                 });
     }
@@ -203,24 +210,25 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
         }
     }
 
-    private CompletionStage<ResponseCollectorActor.Output> forwardAndAwaitAck(final Object message) {
-        // 1. start per-inbound-signal actor to collect acks of all thing-modify-commands mapped from incoming signal
-        final Duration collectorLifetime = acknowledgementConfig.getCollectorFallbackLifetime();
+    private CompletionStage<ResponseCollectorActor.Output> forwardAndAwaitAck(final ExternalMessage message,
+            final ActorRef responseCollector) {
         final Duration askTimeout = acknowledgementConfig.getCollectorFallbackAskTimeout();
-        final ActorRef responseCollector = getContext().actorOf(ResponseCollectorActor.props(collectorLifetime));
-        // 2. forward message to mapping processor actor with response collector actor as sender
+        // Forward message to mapping processor actor with response collector actor as sender
         // message mapping processor actor will set the number of expected acks (can be 0)
         // and start the same amount of ack aggregator actors
+        log().debug("Forwarding incoming message for mapping. ResponseCollector=<{}>", responseCollector);
         inboundMappingProcessor.tell(message, responseCollector);
-        // 3. ask response collector actor to get the collected responses in a future
+        // Ask response collector actor to get the collected responses in a future
 
         return Patterns.ask(responseCollector, ResponseCollectorActor.query(), askTimeout).thenCompose(output -> {
             if (output instanceof ResponseCollectorActor.Output) {
                 return CompletableFuture.completedFuture((ResponseCollectorActor.Output) output);
             } else if (output instanceof Throwable) {
+                log().debug("Patterns.ask failed. ResponseCollector=<{}>", responseCollector);
                 return CompletableFuture.failedFuture((Throwable) output);
             } else {
-                log().error("Expect ResponseCollectorActor.Output, got: <{}>", output);
+                log().error("Expect ResponseCollectorActor.Output, got: <{}>. ResponseCollector=<{}>", output,
+                        responseCollector);
                 return CompletableFuture.failedFuture(new ClassCastException("Unexpected acknowledgement type."));
             }
         });
@@ -248,7 +256,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     }
 
     private static boolean someFailedResponseRequiresRedelivery(final Collection<CommandResponse<?>> failedResponses) {
-        return failedResponses.isEmpty() || failedResponses.stream()
+        return failedResponses.stream()
                 .flatMap(BaseConsumerActor::extractAggregatedResponses)
                 .map(CommandResponse::getHttpStatus)
                 .anyMatch(BaseConsumerActor::requiresRedelivery);
