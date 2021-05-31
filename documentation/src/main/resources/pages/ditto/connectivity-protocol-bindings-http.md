@@ -60,6 +60,12 @@ has READ permission on the thing, which is associated with a message.
 }
 ```
 
+#### Target header mapping
+HTTP 1.1 connections supports specific header mapping.
+
+The following header have a special meaning in that the values are applied directly to the published message:
+* `http.query`: sets the value of this header as query parameter
+
 #### Target acknowledgement handling
 
 For HTTP targets, whenever a message is published to the HTTP endpoint, you have two different options in order to 
