@@ -85,7 +85,7 @@ public final class ClientCertificateCredentials implements Credentials {
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "clientCertificate=" + clientCertificate +
-                ", clientKey=" + clientKey +
+                ", clientKey=***" + // clientKey omitted intentionally
                 "]";
     }
 
