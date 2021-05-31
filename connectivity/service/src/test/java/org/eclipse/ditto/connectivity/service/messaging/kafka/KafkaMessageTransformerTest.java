@@ -20,6 +20,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
+import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
+import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -64,6 +67,12 @@ public final class KafkaMessageTransformerTest {
                 newEnforcementFilterFactory(enforcement, newHeadersPlaceholder());
         inboundMonitor = mock(ConnectionMonitor.class);
         underTest = new KafkaMessageTransformer(source, sourceAddress, enforcementFilterFactory, inboundMonitor);
+    }
+
+    @Test
+    public void assertImmutability() {
+        assertInstancesOf(KafkaMessageTransformer.class, areImmutable(),
+                provided(Source.class, EnforcementFilterFactory.class, ConnectionMonitor.class).areAlsoImmutable());
     }
 
     @Test

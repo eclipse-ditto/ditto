@@ -39,18 +39,19 @@ import scala.util.Left;
 import scala.util.Right;
 
 /**
- * TODO
+ * Transforms incoming messages from Apache Kafka to {@link org.eclipse.ditto.connectivity.api.ExternalMessage}.
  */
 @Immutable
 final class KafkaMessageTransformer {
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(KafkaMessageTransformer.class);
+
     private final Source source;
     private final String sourceAddress;
     private final EnforcementFilterFactory<Map<String, String>, Signal<?>> headerEnforcementFilterFactory;
     private final ConnectionMonitor inboundMonitor;
 
-    public KafkaMessageTransformer(final Source source, final String sourceAddress,
+    KafkaMessageTransformer(final Source source, final String sourceAddress,
             final EnforcementFilterFactory<Map<String, String>, Signal<?>> headerEnforcementFilterFactory,
             final ConnectionMonitor inboundMonitor) {
         this.source = source;
@@ -79,9 +80,6 @@ final class KafkaMessageTransformer {
                 .getOrDefault(DittoHeaderDefinition.CORRELATION_ID.getKey(), UUID.randomUUID().toString());
         try {
             final DittoLogger correlationIdScopedLogger = LOGGER.withCorrelationId(correlationId);
-            correlationIdScopedLogger.info(
-                    "Transforming incoming kafka message with headers <{}> and record key <{}>.",
-                    messageHeaders, key);
             if (correlationIdScopedLogger.isDebugEnabled()) {
                 correlationIdScopedLogger.debug(
                         "Transforming incoming kafka message <{}> with headers <{}> for thing with ID <{}>.",
@@ -101,9 +99,11 @@ final class KafkaMessageTransformer {
 
             return new Left<>(externalMessage);
         } catch (final DittoRuntimeException e) {
-            LOGGER.withCorrelationId(e)
-                    .info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(),
-                            e.getMessage());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.withCorrelationId(e).debug(
+                        "Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(),
+                        e.getMessage());
+            }
             return new Right<>(e.setDittoHeaders(DittoHeaders.of(messageHeaders)));
         } catch (final Exception e) {
             inboundMonitor.exception(messageHeaders, e);
