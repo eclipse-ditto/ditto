@@ -240,6 +240,10 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
                                     <resource>ditto-service-extension.conf</resource>
                                 </transformer>
                                 <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>version.conf</resource>
+                                </transformer>
+                                <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <manifestEntries>
                                         <Main-Class>org.eclipse.ditto.connectivity.service.ConnectivityService
