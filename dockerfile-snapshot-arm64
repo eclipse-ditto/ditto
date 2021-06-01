@@ -17,7 +17,8 @@ ARG SERVICE_VERSION
 
 ENV HTTP_PORT=8080 \
     HOSTING_ENVIRONMENT=Docker \
-    DITTO_HOME=/opt/ditto
+    DITTO_HOME=/opt/ditto \
+    DITTO_LOGS=/var/log/ditto
 
 # Http port
 EXPOSE 8080
@@ -33,6 +34,8 @@ RUN set -x \
     && cd $DITTO_HOME \
     && ln -s ${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar starter.jar \
     && chown -R ditto:ditto $DITTO_HOME \
+    && cd $DITTO_LOGS \
+    && chown -R ditto:ditto $DITTO_LOGS \
     && yum remove -y wget
 
 USER ditto

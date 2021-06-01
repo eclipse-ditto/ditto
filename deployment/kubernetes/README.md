@@ -78,7 +78,7 @@ Ditto uses the `latest` tag for its images. If you want to use a different versi
 ```bash
 kubectl apply -f deployment/kubernetes/deploymentFiles/ditto/
 # Start ditto services with an alternative version e.g. 0-SNAPSHOT
-# cat deployment/kubernetes/deploymentFiles/ditto/ditto-cluster.yaml | sed s/latest/2.0.1/ | kubectl apply -f -
+# cat deployment/kubernetes/deploymentFiles/ditto/ditto-cluster.yaml | sed s/latest/0-SNAPSHOT/ | kubectl apply -f -
 ```
 
 #### Start Swagger UI
