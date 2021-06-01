@@ -34,7 +34,7 @@ public final class AzSaslRequestSigningFactory implements RequestSigningFactory 
         final String sharedKeyName = parameters.getValueOrThrow(JsonFields.SHARED_KEY_NAME);
         final String sharedKey = parameters.getValueOrThrow(JsonFields.SHARED_KEY);
         final Duration ttl = parameters.getValue(JsonFields.TTL).map(Duration::parse).orElse(DEFAULT_TTL);
-        final String endpoint = parameters.getValue(JsonFields.ENDPOINT).orElse(null);
+        final String endpoint = parameters.getValueOrThrow(JsonFields.ENDPOINT);
         return AzSaslRequestSigning.of(sharedKeyName, sharedKey, ttl, endpoint);
     }
 
@@ -54,15 +54,13 @@ public final class AzSaslRequestSigningFactory implements RequestSigningFactory 
         public static JsonFieldDefinition<String> SHARED_KEY = JsonFieldDefinition.ofString("sharedKey");
 
         /**
+         * Obligatory: Value of the field {@code sr} to include in the signature.
+         */
+        public static JsonFieldDefinition<String> ENDPOINT = JsonFieldDefinition.ofString("endpoint");
+
+        /**
          * Optional: How long should tokens remain valid after creation. Default to 15 minutes.
          */
         public static JsonFieldDefinition<String> TTL = JsonFieldDefinition.ofString("ttl");
-
-        /**
-         * Optional: Value of the field {@code sr} to include in the signature.
-         * Default to the full URI of the connection.
-         * Each Azure service may use a different value; IoT Hub uses the hostname for example.
-         */
-        public static JsonFieldDefinition<String> ENDPOINT = JsonFieldDefinition.ofString("endpoint");
     }
 }

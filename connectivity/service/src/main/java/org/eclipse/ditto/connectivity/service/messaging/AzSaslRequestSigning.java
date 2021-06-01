@@ -16,8 +16,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.base.service.UriEncoding;
 import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.service.messaging.httppush.RequestSigning;
@@ -38,10 +36,10 @@ public final class AzSaslRequestSigning implements RequestSigning {
     private final String sharedKeyName;
     private final ByteString sharedKey;
     private final Duration ttl;
-    @Nullable final String endpoint;
+    private final String endpoint;
 
     private AzSaslRequestSigning(final String sharedKeyName, final ByteString sharedKey,
-            final Duration ttl, @Nullable final String endpoint) {
+            final Duration ttl, final String endpoint) {
         this.sharedKeyName = sharedKeyName;
         this.sharedKey = sharedKey;
         this.ttl = ttl;
@@ -58,7 +56,7 @@ public final class AzSaslRequestSigning implements RequestSigning {
      * @return The signing algorithm.
      */
     public static AzSaslRequestSigning of(final String sharedKeyName, final String sharedKey,
-            final Duration ttl, @Nullable final String endpoint) {
+            final Duration ttl, final String endpoint) {
         try {
             final ByteString sharedKeyBytes = ByteString.fromArray(Base64.getDecoder().decode(sharedKey));
             return new AzSaslRequestSigning(sharedKeyName, sharedKeyBytes, ttl, endpoint);
@@ -72,8 +70,7 @@ public final class AzSaslRequestSigning implements RequestSigning {
 
     @Override
     public Source<HttpRequest, NotUsed> sign(final HttpRequest request, final Instant timestamp) {
-        final String resource = endpoint != null ? endpoint : request.getUri().toString();
-        final String token = getSasToken(resource, timestamp);
+        final String token = getSasToken(endpoint, timestamp);
         final HttpCredentials credentials = HttpCredentials.create(AUTH_SCHEME, token);
         final HttpRequest signedRequest = request.addCredentials(credentials);
         return Source.single(signedRequest);
