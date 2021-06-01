@@ -25,8 +25,8 @@ services:
        TZ: Europe/Berlin
 
   policies:
-    image: thingsdev.azurecr.io/eclipse-ditto/policies:${DITTO_VERSION:-latest}
-    mem_limit: 384m
+    image: docker.io/eclipse/ditto-policies:${DITTO_VERSION:-latest}
+    mem_limit: 512m
     networks:
       default:
         aliases:
@@ -48,8 +48,8 @@ services:
     #  - ditto_log_files:/var/log/ditto
 
   things:
-    image: thingsdev.azurecr.io/eclipse-ditto/things:${DITTO_VERSION:-latest}
-    mem_limit: 384m
+    image: docker.io/eclipse/ditto-things:${DITTO_VERSION:-latest}
+    mem_limit: 512m
     networks:
       default:
         aliases:
@@ -73,8 +73,8 @@ services:
     #  - ditto_log_files:/var/log/ditto
 
   things-search:
-    image: thingsdev.azurecr.io/eclipse-ditto/thing-search:${DITTO_VERSION:-latest}
-    mem_limit: 384m
+    image: docker.io/eclipse/ditto-things-search:${DITTO_VERSION:-latest}
+    mem_limit: 512m
     networks:
       default:
         aliases:
@@ -98,8 +98,8 @@ services:
     #  - ditto_log_files:/var/log/ditto
 
   concierge:
-    image: thingsdev.azurecr.io/eclipse-ditto/concierge:${DITTO_VERSION:-latest}
-    mem_limit: 384m
+    image: docker.io/eclipse/ditto-concierge:${DITTO_VERSION:-latest}
+    mem_limit: 512m
     networks:
       default:
         aliases:
@@ -123,8 +123,8 @@ services:
     #  - ditto_log_files:/var/log/ditto
 
   connectivity:
-    image: thingsdev.azurecr.io/eclipse-ditto/connectivity:${DITTO_VERSION:-latest}
-    mem_limit: 384m
+    image: docker.io/eclipse/ditto-connectivity:${DITTO_VERSION:-latest}
+    mem_limit: 512m
     networks:
       default:
         aliases:
@@ -149,8 +149,8 @@ services:
     #  - ditto_log_files:/var/log/ditto
 
   gateway:
-    image: thingsdev.azurecr.io/eclipse-ditto/gateway:${DITTO_VERSION:-latest}
-    mem_limit: 384m
+    image: docker.io/eclipse/ditto-gateway:${DITTO_VERSION:-latest}
+    mem_limit: 512m
     networks:
       default:
         aliases:
