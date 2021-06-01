@@ -19,9 +19,9 @@ import java.util.concurrent.CompletableFuture;
 import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.base.model.common.BinaryValidationResult;
-import org.eclipse.ditto.jwt.model.JsonWebToken;
-import org.eclipse.ditto.internal.utils.jwt.JjwtDeserializer;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationFailedException;
+import org.eclipse.ditto.internal.utils.jwt.JjwtDeserializer;
+import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,7 +71,8 @@ public final class DefaultJwtValidator implements JwtValidator {
         try {
             return validateWithPublicKey(jsonWebToken, publicKey);
         } catch (final Exception e) {
-            LOGGER.info("Failed to parse JWT!", e);
+            LOGGER.info("Failed to parse/validate JWT due to <{}> with message: <{}>", e.getClass().getSimpleName(),
+                    e.getMessage());
             return BinaryValidationResult.invalid(e);
         }
     }
