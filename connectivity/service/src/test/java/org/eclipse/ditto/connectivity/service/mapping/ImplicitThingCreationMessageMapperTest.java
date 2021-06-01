@@ -23,26 +23,29 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 
-import org.eclipse.ditto.connectivity.service.config.mapping.DefaultMappingConfig;
-import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.model.MessageMapperConfigurationInvalidException;
+import org.eclipse.ditto.connectivity.model.MessageMappingFailedException;
+import org.eclipse.ditto.connectivity.service.config.mapping.DefaultMappingConfig;
+import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.internal.models.placeholders.UnresolvedPlaceholderException;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
-import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
-import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConflictException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
@@ -68,6 +71,15 @@ public final class ImplicitThingCreationMessageMapperTest {
             .set("attributes", JsonObject.newBuilder()
                     .set("Info", JsonObject.newBuilder()
                             .set("gatewayId", "{{ header:gateway_id }}")
+                            .build())
+                    .build())
+            .build();
+
+    private static final JsonObject THING_TEMPLATE_WITH_CONDITION_ATTRIBUTE = JsonObject.newBuilder()
+            .set("thingId", "{{ header:device_id }}")
+            .set("attributes", JsonObject.newBuilder()
+                    .set("Info", JsonObject.newBuilder()
+                            .set("chosenTemplate", "{{ header:templateNo }}")
                             .build())
                     .build())
             .build();
@@ -110,6 +122,17 @@ public final class ImplicitThingCreationMessageMapperTest {
 
     public static final String GATEWAY_ID = "headerNamespace:headerGatewayId";
     public static final String DEVICE_ID = "headerNamespace:headerDeviceId";
+    private static final JsonObject CONDITIONED_THING_1 = JsonObject.newBuilder()
+            .set("thing", THING_TEMPLATE_WITH_CONDITION_ATTRIBUTE)
+            .set("condition", "fn:filter(header:templateNo, 'eq', '1')")
+            .build();
+    private static final JsonObject CONDITIONED_THING_2 = JsonObject.newBuilder()
+            .set("thing", THING_TEMPLATE_WITH_CONDITION_ATTRIBUTE)
+            .set("condition", "fn:filter(header:templateNo,'eq','2')")
+            .build();
+    private static final JsonArray CONDITIONED_THINGS = JsonArray.newBuilder()
+            .add(CONDITIONED_THING_1)
+            .add(CONDITIONED_THING_2).build();
 
     private static MappingConfig mappingConfig;
     private MessageMapper underTest;
@@ -118,6 +141,33 @@ public final class ImplicitThingCreationMessageMapperTest {
     public void setUp() {
         mappingConfig = DefaultMappingConfig.of(ConfigFactory.empty());
         underTest = new ImplicitThingCreationMessageMapper();
+    }
+
+    @Test
+    public void doForwardMappingContextWithCommandHeaderPlaceholderAndConditionedThingTemplates() {
+        IntStream.of(1, 2).forEachOrdered(templateNo -> {
+            final Map<String, String> validHeader = new HashMap<>();
+            validHeader.put(HEADER_HONO_DEVICE_ID, DEVICE_ID);
+            validHeader.put("templateNo", String.valueOf(templateNo));
+
+            underTest.configure(mappingConfig,
+                    createMapperConfigWithConditionedThings(CONDITIONED_THINGS));
+
+            final ExternalMessage externalMessage =
+                    ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
+            final List<Adaptable> mappingResult = underTest.map(externalMessage);
+
+            final Signal<?> firstMappedSignal = getFirstMappedSignal(mappingResult);
+            assertThat(firstMappedSignal).isInstanceOf(CreateThing.class);
+            final CreateThing createThing = (CreateThing) firstMappedSignal;
+
+            final Thing expectedThing = createExpectedThingForConditionTemplate(DEVICE_ID, String.valueOf(templateNo));
+            assertThat(createThing.getThing().getEntityId()).isEqualTo(expectedThing.getEntityId());
+            assertThat(createThing.getThing().getPolicyEntityId()).isEmpty();
+            assertThat(createThing.getThing().getAttributes()).isEqualTo(expectedThing.getAttributes());
+            assertThat(createThing.getDittoHeaders().isAllowPolicyLockout()).isTrue();
+            assertThat(createThing.getDittoHeaders().getIfNoneMatch()).contains(EntityTagMatchers.fromStrings("*"));
+        });
     }
 
     @Test
@@ -276,6 +326,70 @@ public final class ImplicitThingCreationMessageMapperTest {
     }
 
     @Test
+    public void throwErrorIfConditionedThingIdIsMissingInConfig() {
+        final JsonObject templateMissingThingId = JsonObject.newBuilder()
+                .set("attributes", JsonObject.newBuilder()
+                        .set("Info", JsonObject.newBuilder()
+                                .set("chosenTemplate", "{{ header:templateNo }}")
+                                .build())
+                        .build())
+                .build();
+
+        final JsonObject conditionedThingWithMissingThingId = JsonObject.newBuilder()
+                .set("thing", templateMissingThingId)
+                .set("condition", "fn:filter(header:templateNo, 'eq', '1')")
+                .build();
+        final JsonArray conditionedThingsWithMissingThingId = JsonArray.newBuilder()
+                .add(conditionedThingWithMissingThingId)
+                .build();
+
+        final MessageMapperConfiguration invalidMapperConfig =
+                createMapperConfigWithConditionedThings(conditionedThingsWithMissingThingId);
+
+        assertThatExceptionOfType(MessageMapperConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.configure(mappingConfig, invalidMapperConfig));
+    }
+
+    @Test
+    public void throwErrorIfConditionIsMissingInConfig() {
+        final JsonObject templateMissingThingId = JsonObject.newBuilder()
+                .set("attributes", JsonObject.newBuilder()
+                        .set("Info", JsonObject.newBuilder()
+                                .set("chosenTemplate", "{{ header:templateNo }}")
+                                .build())
+                        .build())
+                .build();
+
+        final JsonObject conditionedThingWithMissingThingId = JsonObject.newBuilder()
+                .set("thing", templateMissingThingId)
+                .build();
+        final JsonArray conditionedThingsWithMissingThingId = JsonArray.newBuilder()
+                .add(conditionedThingWithMissingThingId)
+                .build();
+
+        final MessageMapperConfiguration invalidMapperConfig =
+                createMapperConfigWithConditionedThings(conditionedThingsWithMissingThingId);
+        assertThatExceptionOfType(MessageMapperConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.configure(mappingConfig, invalidMapperConfig));
+    }
+
+    @Test
+    public void throwErrorIfConditionedThingIsMissingInConfig() {
+
+        final JsonObject conditionedThingWithMissingThingId = JsonObject.newBuilder()
+                .set("condition", "fn:filter(header:templateNo, 'eq', '1')")
+                .build();
+        final JsonArray conditionedThingsWithMissingThingId = JsonArray.newBuilder()
+                .add(conditionedThingWithMissingThingId)
+                .build();
+
+        final MessageMapperConfiguration invalidMapperConfig =
+                createMapperConfigWithConditionedThings(conditionedThingsWithMissingThingId);
+        assertThatExceptionOfType(MessageMapperConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.configure(mappingConfig, invalidMapperConfig));
+    }
+
+    @Test
     public void throwErrorIfHeaderForPlaceholderIsMissing() {
         underTest.configure(mappingConfig, createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS));
 
@@ -286,6 +400,17 @@ public final class ImplicitThingCreationMessageMapperTest {
                 ExternalMessageFactory.newExternalMessageBuilder(missingEntityHeader).build();
 
         assertThatExceptionOfType(UnresolvedPlaceholderException.class)
+                .isThrownBy(() -> underTest.map(externalMessage));
+    }
+
+    @Test
+    public void throwErrorIfNoneConditionMatches() {
+        underTest.configure(mappingConfig, createMapperConfigWithConditionedThings(CONDITIONED_THINGS));
+
+        final ExternalMessage externalMessage =
+                ExternalMessageFactory.newExternalMessageBuilder(new HashMap<>()).build();
+
+        assertThatExceptionOfType(MessageMappingFailedException.class)
                 .isThrownBy(() -> underTest.map(externalMessage));
     }
 
@@ -335,6 +460,14 @@ public final class ImplicitThingCreationMessageMapperTest {
                 "}");
     }
 
+    private Thing createExpectedThingForConditionTemplate(final String thingId,
+            final String chosenTemplate) {
+        return ThingsModelFactory.newThing("{" +
+                "\"thingId\":\"" + thingId + "\"," +
+                "\"attributes\":{" +
+                "\"Info\":{\"chosenTemplate\":\"" + chosenTemplate + "\"}}}");
+    }
+
     private DefaultMessageMapperConfiguration createMapperConfig(final JsonValue thingTemplate,
             final JsonValue commandHeaders) {
         final Map<String, JsonValue> options = new HashMap<>();
@@ -345,4 +478,11 @@ public final class ImplicitThingCreationMessageMapperTest {
         return DefaultMessageMapperConfiguration.of("valid", options, incomingConditions, Collections.emptyMap());
     }
 
+
+    private MessageMapperConfiguration createMapperConfigWithConditionedThings(
+            final JsonArray conditionedThingTemplate) {
+        final Map<String, JsonValue> options = new HashMap<>();
+        options.put("conditionedThingTemplates", conditionedThingTemplate);
+        return DefaultMessageMapperConfiguration.of("valid", options, Collections.emptyMap(), Collections.emptyMap());
+    }
 }

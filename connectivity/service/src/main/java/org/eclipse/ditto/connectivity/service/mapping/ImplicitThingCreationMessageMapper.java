@@ -14,10 +14,13 @@ package org.eclipse.ditto.connectivity.service.mapping;
 
 import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
+import java.text.MessageFormat;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 
@@ -30,6 +33,7 @@ import org.eclipse.ditto.base.model.signals.GlobalErrorRegistry;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.MessageMapperConfigurationInvalidException;
+import org.eclipse.ditto.connectivity.model.MessageMappingFailedException;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.internal.models.placeholders.ExpressionResolver;
 import org.eclipse.ditto.internal.models.placeholders.HeadersPlaceholder;
@@ -37,6 +41,7 @@ import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.internal.models.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
@@ -73,21 +78,55 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
     private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
     private static final String THING_TEMPLATE = "thing";
+    private static final String CONDITION = "condition";
+    private static final String CONDITIONED_THING_TEMPLATES = "conditionedThingTemplates";
+    private static final String THING_TEMPLATE_CONDITION = CONDITIONED_THING_TEMPLATES + "." + CONDITION;
+    private static final String CONDITIONED_THING_TEMPLATE = CONDITIONED_THING_TEMPLATES + "." + THING_TEMPLATE;
     private static final String ALLOW_POLICY_LOCKOUT_OPTION = "allowPolicyLockout";
     private static final String COMMAND_HEADERS = "commandHeaders";
     private static final String THING_ID = "thingId";
     private static final String THING_ID_CONFIGURATION_PROPERTY = THING_TEMPLATE + "/" + THING_ID;
     private static final String POLICY_ID = "policyId";
     private static final String POLICY_ID_CONFIGURATION_PROPERTY = THING_TEMPLATE + "/" + POLICY_ID;
+    private static final String DEFAULT_CONDITION = "fn:default('true')";
 
-    private String thingTemplate;
+
     private Map<String, String> commandHeaders;
     private boolean allowPolicyLockout;
+    private Map<String, String> conditionToThingTemplateCorrelation;
+
 
     @Override
     protected void doConfigure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
-        thingTemplate = configuration.findProperty(THING_TEMPLATE).orElseThrow(
-                () -> MessageMapperConfigurationInvalidException.newBuilder(THING_TEMPLATE).build());
+        conditionToThingTemplateCorrelation = new HashMap<>();
+
+        final Optional<JsonArray> thingTemplateWithCondition = configuration.findProperty(CONDITIONED_THING_TEMPLATES,
+                JsonValue::isArray, JsonValue::asArray);
+        if (thingTemplateWithCondition.isPresent()) {
+            final JsonArray conditionedThingTemplates = thingTemplateWithCondition.get();
+
+            conditionedThingTemplates.forEach(conditionedThingTemplate -> {
+                final String condition = conditionedThingTemplate.asObject()
+                        .getValue(CONDITION)
+                        .map(JsonValue::asString)
+                        .orElseThrow(
+                                () -> MessageMapperConfigurationInvalidException.newBuilder(THING_TEMPLATE_CONDITION)
+                                        .build());
+
+                final String thingTemplate = conditionedThingTemplate.asObject()
+                        .getValue(THING_TEMPLATE)
+                        .map(String::valueOf)
+                        .orElseThrow(
+                                () -> MessageMapperConfigurationInvalidException.newBuilder(CONDITIONED_THING_TEMPLATE)
+                                        .build());
+
+                conditionToThingTemplateCorrelation.put(condition, thingTemplate);
+            });
+        } else {
+            final String thingTemplate = configuration.findProperty(THING_TEMPLATE).orElseThrow(
+                    () -> MessageMapperConfigurationInvalidException.newBuilder(THING_TEMPLATE).build());
+            conditionToThingTemplateCorrelation.put(DEFAULT_CONDITION, thingTemplate);
+        }
 
         commandHeaders = configuration.findProperty(COMMAND_HEADERS, JsonValue::isObject, JsonValue::asObject)
                 .filter(configuredHeaders -> !configuredHeaders.isEmpty())
@@ -100,21 +139,22 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
                 })
                 .orElse(Map.of());
 
-        final JsonObject thingJson = JsonObject.of(thingTemplate);
+        conditionToThingTemplateCorrelation.values().forEach(thingTemplate -> {
+            JsonObject.of(thingTemplate).getValue(THING_ID)
+                    .map(JsonValue::asString)
+                    .ifPresentOrElse(ImplicitThingCreationMessageMapper::validateThingEntityId, () -> {
+                        throw MessageMapperConfigurationInvalidException.newBuilder(THING_ID_CONFIGURATION_PROPERTY)
+                                .build();
+                    });
 
-        thingJson.getValue(THING_ID)
-                .map(JsonValue::asString)
-                .ifPresentOrElse(ImplicitThingCreationMessageMapper::validateThingEntityId, () -> {
-                    throw MessageMapperConfigurationInvalidException.newBuilder(THING_ID_CONFIGURATION_PROPERTY)
-                            .build();
-                });
+            // PolicyId is not required in mapping config. Still needs to be valid if present.
+            JsonObject.of(thingTemplate).getValue(POLICY_ID)
+                    .map(JsonValue::asString)
+                    .ifPresent(ImplicitThingCreationMessageMapper::validatePolicyEntityId);
 
-        // PolicyId is not required in mapping config. Still needs to be valid if present.
-        thingJson.getValue(POLICY_ID)
-                .map(JsonValue::asString)
-                .ifPresent(ImplicitThingCreationMessageMapper::validatePolicyEntityId);
-
-        LOGGER.debug("Configured with Thing template: {}", thingTemplate);
+        });
+        LOGGER.debug("Configured with correlations of Thing template for conditions: {}",
+                conditionToThingTemplateCorrelation);
 
         allowPolicyLockout = configuration.findProperty(ALLOW_POLICY_LOCKOUT_OPTION).map(Boolean::valueOf).orElse(true);
     }
@@ -147,17 +187,27 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
 
     @Override
     public List<Adaptable> map(final ExternalMessage message) {
-        LOGGER.withCorrelationId(message.getInternalHeaders()).debug("Received ExternalMessage: {}", message);
-
         final Map<String, String> externalHeaders = message.getHeaders();
         final ExpressionResolver expressionResolver = getExpressionResolver(externalHeaders);
 
-        final String resolvedTemplate;
-        if (Placeholders.containsAnyPlaceholder(thingTemplate)) {
-            resolvedTemplate = applyPlaceholderReplacement(thingTemplate, expressionResolver);
-        } else {
-            resolvedTemplate = thingTemplate;
-        }
+        final String checkedCondition = conditionToThingTemplateCorrelation.keySet()
+                .stream()
+                .filter(condition -> resolveConditions(Collections.singletonList(condition),
+                        expressionResolver))
+                .findFirst()
+                .orElseThrow(() -> getMappingFailedException(
+                        "Conditions for template not matched",
+                        "Check your configured conditions and make sure all required headers are set.",
+                        message.getInternalHeaders()));
+
+        final String thingTemplate = conditionToThingTemplateCorrelation.get(checkedCondition);
+
+        LOGGER.withCorrelationId(message.getInternalHeaders()).debug("Received ExternalMessage: {}", message);
+
+        final String resolvedTemplate =
+                Placeholders.containsAnyPlaceholder(thingTemplate) ?
+                        applyPlaceholderReplacement(thingTemplate, expressionResolver) :
+                        thingTemplate;
 
         if (Placeholders.containsAnyPlaceholder(thingTemplate)) {
             commandHeaders = resolveCommandHeaders(message, commandHeaders);
@@ -177,6 +227,27 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
                 .debug("Mapped ExternalMessage to Adaptable: {}", adaptableWithModifiedHeaders);
 
         return Collections.singletonList(adaptableWithModifiedHeaders);
+    }
+
+    private MessageMappingFailedException getMappingFailedException(final String message,
+            final String description, final DittoHeaders dittoHeaders) {
+        return MessageMappingFailedException.newBuilder((String) null)
+                .message(message)
+                .description(description)
+                .dittoHeaders(dittoHeaders)
+                .build();
+    }
+
+    private boolean resolveConditions(final Collection<String> conditions, final ExpressionResolver resolver) {
+        boolean conditionBool = true;
+        final String templatePattern = "'{{' fn:default(''true'') | {0} '}}'";
+        for (final String condition : conditions) {
+            final String template = MessageFormat.format(templatePattern, condition);
+            final String resolvedCondition =
+                    PlaceholderFilter.applyOrElseDelete(template, resolver).orElse("false");
+            conditionBool &= Boolean.parseBoolean(resolvedCondition);
+        }
+        return conditionBool;
     }
 
     private static ExpressionResolver getExpressionResolver(final Map<String, String> headers) {
