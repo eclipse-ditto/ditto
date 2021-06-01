@@ -47,8 +47,8 @@ public final class AzSaslRequestSigningTest {
     @Test
     public void testToken() {
         final String sharedKey = Base64.getEncoder().encodeToString("my-awesome-shared-key".getBytes());
-        final var underTest = AzSaslRequestSigning.of("keyName", sharedKey, Duration.ZERO);
         final String resource = "resource-name.hostname.domain";
+        final var underTest = AzSaslRequestSigning.of("keyName", sharedKey, Duration.ZERO, resource);
         final Instant timestamp = Instant.ofEpochSecond(1622480838);
         final String expectedToken = "sr=resource-name.hostname.domain&" +
                 "sig=J5XH%2BFoY%2Bo0wGKh3I0m%2BsPVB6CYCFZcQRg95pImtQPA%3D&se=1622480838&skn=keyName";
@@ -59,8 +59,9 @@ public final class AzSaslRequestSigningTest {
     public void testRequestSigning() {
         final HttpRequest request = HttpRequest.POST("https://resource-name.hostname.domain")
                 .withEntity(HttpEntities.create("irrelevant payload"));
+        final String resource = "resource-name.hostname.domain";
         final String sharedKey = Base64.getEncoder().encodeToString("my-awesome-shared-key".getBytes());
-        final var underTest = AzSaslRequestSigning.of("keyName", sharedKey, Duration.ZERO);
+        final var underTest = AzSaslRequestSigning.of("keyName", sharedKey, Duration.ZERO, resource);
         final Instant timestamp = Instant.ofEpochSecond(1622480838);
 
         final String expectedToken = "sr=resource-name.hostname.domain&" +
