@@ -38,14 +38,14 @@ public final class AzSaslRequestSigning implements RequestSigning {
     private final String sharedKeyName;
     private final ByteString sharedKey;
     private final Duration ttl;
-    @Nullable final String sr;
+    @Nullable final String endpoint;
 
     private AzSaslRequestSigning(final String sharedKeyName, final ByteString sharedKey,
-            final Duration ttl, @Nullable final String sr) {
+            final Duration ttl, @Nullable final String endpoint) {
         this.sharedKeyName = sharedKeyName;
         this.sharedKey = sharedKey;
         this.ttl = ttl;
-        this.sr = sr;
+        this.endpoint = endpoint;
     }
 
     /**
@@ -54,13 +54,14 @@ public final class AzSaslRequestSigning implements RequestSigning {
      * @param sharedKeyName name of the shared key.
      * @param sharedKey value of the shared key.
      * @param ttl how long should tokens be valid after creation.
+     * @param endpoint value of the {@code sr} field in the signature. Default to the URI.
      * @return The signing algorithm.
      */
     public static AzSaslRequestSigning of(final String sharedKeyName, final String sharedKey,
-            final Duration ttl, @Nullable final String sr) {
+            final Duration ttl, @Nullable final String endpoint) {
         try {
             final ByteString sharedKeyBytes = ByteString.fromArray(Base64.getDecoder().decode(sharedKey));
-            return new AzSaslRequestSigning(sharedKeyName, sharedKeyBytes, ttl, sr);
+            return new AzSaslRequestSigning(sharedKeyName, sharedKeyBytes, ttl, endpoint);
         } catch (final IllegalArgumentException e) {
             throw MessageSendingFailedException.newBuilder()
                     .message("Failed to initiate Azure SASL signing algorithm.")
@@ -71,7 +72,7 @@ public final class AzSaslRequestSigning implements RequestSigning {
 
     @Override
     public Source<HttpRequest, NotUsed> sign(final HttpRequest request, final Instant timestamp) {
-        final String resource = sr != null ? sr : request.getUri().toString();
+        final String resource = endpoint != null ? endpoint : request.getUri().toString();
         final String token = getSasToken(resource, timestamp);
         final HttpCredentials credentials = HttpCredentials.create(AUTH_SCHEME, token);
         final HttpRequest signedRequest = request.addCredentials(credentials);
@@ -81,13 +82,13 @@ public final class AzSaslRequestSigning implements RequestSigning {
     /**
      * Get the SAS token of an Azure resource.
      *
-     * @param resource The resource, usually the hostname.
+     * @param endpoint Value of the "sr" field in the token.
      * @param timestamp Timestamp at which the token is generated.
      * @return The token.
      */
-    public String getSasToken(final String resource, final Instant timestamp) {
+    public String getSasToken(final String endpoint, final Instant timestamp) {
         final long expiry = timestamp.plus(ttl).getEpochSecond();
-        final String sr = UriEncoding.encodeAllButUnreserved(resource);
+        final String sr = UriEncoding.encodeAllButUnreserved(endpoint);
         final String stringToSign = sr + "\n" + expiry;
         final String signature = UriEncoding.encodeAllButUnreserved(
                 Base64.getEncoder().encodeToString(RequestSigning.hmacSha256(sharedKey.toArray(), stringToSign)));
