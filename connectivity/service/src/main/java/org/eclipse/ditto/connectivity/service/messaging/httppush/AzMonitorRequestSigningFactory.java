@@ -47,11 +47,11 @@ public final class AzMonitorRequestSigningFactory implements RequestSigningFacto
         /**
          * Obligatory: The Azure workspace ID of the signed requests.
          */
-        public static JsonFieldDefinition<String> WORKSPACE_ID = JsonFieldDefinition.ofString("workspaceId");
+        public static final JsonFieldDefinition<String> WORKSPACE_ID = JsonFieldDefinition.ofString("workspaceId");
 
         /**
          * Obligatory: The shared key with which to sign requests.
          */
-        public static JsonFieldDefinition<String> SHARED_KEY = JsonFieldDefinition.ofString("sharedKey");
+        public static final JsonFieldDefinition<String> SHARED_KEY = JsonFieldDefinition.ofString("sharedKey");
     }
 }

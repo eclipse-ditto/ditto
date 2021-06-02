@@ -46,21 +46,21 @@ public final class AzSaslRequestSigningFactory implements RequestSigningFactory 
         /**
          * Obligatory: The shared key name.
          */
-        public static JsonFieldDefinition<String> SHARED_KEY_NAME = JsonFieldDefinition.ofString("sharedKeyName");
+        public static final JsonFieldDefinition<String> SHARED_KEY_NAME = JsonFieldDefinition.ofString("sharedKeyName");
 
         /**
          * Obligatory: The shared key.
          */
-        public static JsonFieldDefinition<String> SHARED_KEY = JsonFieldDefinition.ofString("sharedKey");
+        public static final JsonFieldDefinition<String> SHARED_KEY = JsonFieldDefinition.ofString("sharedKey");
 
         /**
          * Obligatory: Value of the field {@code sr} to include in the signature.
          */
-        public static JsonFieldDefinition<String> ENDPOINT = JsonFieldDefinition.ofString("endpoint");
+        public static final JsonFieldDefinition<String> ENDPOINT = JsonFieldDefinition.ofString("endpoint");
 
         /**
          * Optional: How long should tokens remain valid after creation. Default to 15 minutes.
          */
-        public static JsonFieldDefinition<String> TTL = JsonFieldDefinition.ofString("ttl");
+        public static final JsonFieldDefinition<String> TTL = JsonFieldDefinition.ofString("ttl");
     }
 }

@@ -66,35 +66,35 @@ public final class AwsRequestSigningFactory implements RequestSigningFactory {
         /**
          * Obligatory: The AWS region of the signed requests.
          */
-        public static JsonFieldDefinition<String> REGION = JsonFieldDefinition.ofString("region");
+        public static final JsonFieldDefinition<String> REGION = JsonFieldDefinition.ofString("region");
 
         /**
          * Obligatory: The service for which the signed requests are intended.
          */
-        public static JsonFieldDefinition<String> SERVICE = JsonFieldDefinition.ofString("service");
+        public static final JsonFieldDefinition<String> SERVICE = JsonFieldDefinition.ofString("service");
 
         /**
          * Obligatory: Access key to sign requests with.
          */
-        public static JsonFieldDefinition<String> ACCESS_KEY = JsonFieldDefinition.ofString("accessKey");
+        public static final JsonFieldDefinition<String> ACCESS_KEY = JsonFieldDefinition.ofString("accessKey");
 
         /**
          * Obligatory: Secret key to sign requests with.
          */
-        public static JsonFieldDefinition<String> SECRET_KEY = JsonFieldDefinition.ofString("secretKey");
+        public static final JsonFieldDefinition<String> SECRET_KEY = JsonFieldDefinition.ofString("secretKey");
 
         /**
          * Optional: Whether to double-encode and normalize path segments. True by default. Set to false for S3.
          */
-        public static JsonFieldDefinition<Boolean> DOUBLE_ENCODE = JsonFieldDefinition.ofBoolean("doubleEncode");
+        public static final JsonFieldDefinition<Boolean> DOUBLE_ENCODE = JsonFieldDefinition.ofBoolean("doubleEncode");
 
         /**
          * Optional: Which headers to sign. They differ for each AWS service. By default only "host" is signed.
          */
-        public static JsonFieldDefinition<JsonArray> CANONICAL_HEADERS =
+        public static final JsonFieldDefinition<JsonArray> CANONICAL_HEADERS =
                 JsonFieldDefinition.ofJsonArray("canonicalHeaders");
 
-        public static JsonFieldDefinition<String> X_AMZ_CONTENT_SHA256 =
+        public static final JsonFieldDefinition<String> X_AMZ_CONTENT_SHA256 =
                 JsonFieldDefinition.ofString("xAmzContentSha256");
     }
 }
