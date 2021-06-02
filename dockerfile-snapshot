@@ -29,7 +29,7 @@ RUN set -x \
     && apk upgrade --update-cache \
     && apk add --no-cache tini openssl \
     && apk add --no-cache --virtual .tmp-deps wget ca-certificates shadow \
-    && groupadd --system ditto \
+    && groupadd --system --gid 1000 ditto \
     && useradd --no-log-init --system --home-dir $DITTO_HOME --shell /bin/sh --gid ditto --uid 1000 ditto \
     && cd $DITTO_HOME \
     && ln -s ${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar starter.jar \
