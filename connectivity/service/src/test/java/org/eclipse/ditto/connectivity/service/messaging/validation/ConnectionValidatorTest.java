@@ -536,8 +536,9 @@ public class ConnectionValidatorTest {
                 .credentials(HmacCredentials.of("az-monitor-2016-04-02", JsonObject.empty()))
                 .build();
         final ConnectionValidator underTest = getConnectionValidator();
-        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class).isThrownBy(() ->
-                underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem))
+                .withMessageContaining("Unsupported HMAC algorithm");
     }
 
     @Test
@@ -547,18 +548,22 @@ public class ConnectionValidatorTest {
                 .credentials(HmacCredentials.of("az-monitor-2016-04-01", JsonObject.empty()))
                 .build();
         final ConnectionValidator underTest = getConnectionValidator();
-        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class).isThrownBy(() ->
-                underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem))
+                .withMessageContaining("conflicting authentication mechanisms");
     }
 
     @Test
-    public void rejectNonHttpConnectionWithHmacCredentials() {
-        final Connection connection = createConnection(CONNECTION_ID).toBuilder()
+    public void rejectUnsupportedHmacCredentials() {
+        final Connection connection = TestConstants.createConnection(CONNECTION_ID, ConnectionType.MQTT).toBuilder()
+                .uri("tcp://8.8.4.4:8883")
                 .credentials(HmacCredentials.of("az-monitor-2016-04-01", JsonObject.empty()))
+                .setTargets(createConnection(CONNECTION_ID).getTargets())
                 .build();
         final ConnectionValidator underTest = getConnectionValidator();
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
-                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem))
+                .withMessageContaining("HMAC credentials are not supported");
     }
 
     private void rejectInvalidPayloadMappingReferenceInTarget(List<Source> sources, List<Target> targets) {
