@@ -23,8 +23,9 @@ spec:
         actorSystemName: ditto-cluster
     spec:
       securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
         fsGroup: 1000
-      restartPolicy: Always
       containers:
       - name: concierge
         image: docker.io/eclipse/ditto-concierge:latest
@@ -124,8 +125,9 @@ spec:
         actorSystemName: ditto-cluster
     spec:
       securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
         fsGroup: 1000
-      restartPolicy: Always
       containers:
       - name: connectivity
         image: docker.io/eclipse/ditto-connectivity:latest
@@ -225,8 +227,9 @@ spec:
         actorSystemName: ditto-cluster
     spec:
       securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
         fsGroup: 1000
-      restartPolicy: Always
       containers:
       - name: things
         image: docker.io/eclipse/ditto-things:latest
@@ -326,8 +329,9 @@ spec:
         actorSystemName: ditto-cluster
     spec:
       securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
         fsGroup: 1000
-      restartPolicy: Always
       containers:
       - name: things-search
         image: docker.io/eclipse/ditto-things-search:latest
@@ -427,8 +431,9 @@ spec:
         actorSystemName: ditto-cluster
     spec:
       securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
         fsGroup: 1000
-      restartPolicy: Always
       containers:
       - name: policies
         image: docker.io/eclipse/ditto-policies:latest
@@ -527,8 +532,9 @@ spec:
         actorSystemName: ditto-cluster
     spec:
       securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
         fsGroup: 1000
-      restartPolicy: Always
       containers:
       - name: gateway
         image: docker.io/eclipse/ditto-gateway:latest
