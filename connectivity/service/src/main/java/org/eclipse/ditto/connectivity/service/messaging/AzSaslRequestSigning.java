@@ -70,20 +70,38 @@ public final class AzSaslRequestSigning implements RequestSigning {
 
     @Override
     public Source<HttpRequest, NotUsed> sign(final HttpRequest request, final Instant timestamp) {
-        final String token = getSasToken(endpoint, timestamp);
+        final String token = getSasToken(timestamp);
         final HttpCredentials credentials = HttpCredentials.create(AUTH_SCHEME, token);
         final HttpRequest signedRequest = request.addCredentials(credentials);
         return Source.single(signedRequest);
     }
 
     /**
+     * Create AMQP SASL-plain "username" identifying an SAS token.
+     *
+     * @return The "username".
+     */
+    public String getAmqpUsername() {
+        return sharedKeyName + "@sas.root." + endpoint;
+    }
+
+    /**
+     * Create AMQP SASL-plain "password" containing the SAS token.
+     *
+     * @param timestamp Timestamp at which the token is generated.
+     * @return The "password".
+     */
+    public String getAmqpPassword(final Instant timestamp) {
+        return AUTH_SCHEME + " " + getSasToken(timestamp);
+    }
+
+    /**
      * Get the SAS token of an Azure resource.
      *
-     * @param endpoint Value of the "sr" field in the token.
      * @param timestamp Timestamp at which the token is generated.
      * @return The token.
      */
-    public String getSasToken(final String endpoint, final Instant timestamp) {
+    public String getSasToken(final Instant timestamp) {
         final long expiry = timestamp.plus(ttl).getEpochSecond();
         final String sr = UriEncoding.encodeAllButUnreserved(endpoint);
         final String stringToSign = sr + "\n" + expiry;

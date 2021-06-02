@@ -20,7 +20,6 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.ClientCertificateCredentials;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
-import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.CredentialsVisitor;
 import org.eclipse.ditto.connectivity.model.HmacCredentials;
 import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
@@ -68,12 +67,16 @@ final class CredentialsValidationVisitor implements CredentialsVisitor<Void> {
 
     @Override
     public Void hmac(final HmacCredentials credentials) {
-        if (connection.getConnectionType() != ConnectionType.HTTP_PUSH) {
-            throw ConnectionConfigurationInvalidException.newBuilder(
-                    "HMAC credentials are not supported for the connection type.")
-                    .description("Only http-push connections support HMAC credentials.")
-                    .dittoHeaders(dittoHeaders)
-                    .build();
+        switch (connection.getConnectionType()) {
+            case AMQP_10:
+            case HTTP_PUSH:
+                break;
+            default:
+                throw ConnectionConfigurationInvalidException.newBuilder(
+                        "HMAC credentials are not supported for the connection type.")
+                        .description("Only HTTP and AMQP 1.0 connections support HMAC credentials.")
+                        .dittoHeaders(dittoHeaders)
+                        .build();
         }
         final Uri uri = Uri.create(connection.getUri());
         if (!uri.getUserInfo().isEmpty()) {

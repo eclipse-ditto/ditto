@@ -26,6 +26,7 @@ import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.HiveMqtt5Cli
 import org.eclipse.ditto.connectivity.service.messaging.rabbitmq.RabbitMQClientActor;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 
 /**
@@ -34,18 +35,20 @@ import akka.actor.Props;
 @Immutable
 public final class DefaultClientActorPropsFactory implements ClientActorPropsFactory {
 
-    private static final DefaultClientActorPropsFactory INSTANCE = new DefaultClientActorPropsFactory();
+    private final ActorSystem actorSystem;
 
-    private DefaultClientActorPropsFactory() {
+    private DefaultClientActorPropsFactory(final ActorSystem actorSystem) {
+        this.actorSystem = actorSystem;
     }
 
     /**
      * Returns an instance of {@code DefaultClientActorPropsFactory}.
      *
+     * @param actorSystem the actor system.
      * @return the factory instance.
      */
-    public static DefaultClientActorPropsFactory getInstance() {
-        return INSTANCE;
+    public static DefaultClientActorPropsFactory getInstance(final ActorSystem actorSystem) {
+        return new DefaultClientActorPropsFactory(actorSystem);
     }
 
     @Override
@@ -59,7 +62,7 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
                 result = RabbitMQClientActor.props(connection, proxyActor, connectionActor);
                 break;
             case AMQP_10:
-                result = AmqpClientActor.props(connection, proxyActor, connectionActor);
+                result = AmqpClientActor.props(connection, proxyActor, connectionActor, actorSystem);
                 break;
             case MQTT:
                 result = HiveMqtt3ClientActor.props(connection, proxyActor, connectionActor);

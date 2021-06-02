@@ -28,21 +28,21 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.base.service.config.ServiceSpecificConfig;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
+import org.eclipse.ditto.base.service.devops.DevOpsCommandsActor;
+import org.eclipse.ditto.base.service.devops.LogbackLoggingFacade;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.config.raw.RawConfigSupplier;
-import org.eclipse.ditto.base.service.devops.DevOpsCommandsActor;
-import org.eclipse.ditto.base.service.devops.LogbackLoggingFacade;
 import org.eclipse.ditto.internal.utils.health.status.StatusSupplierActor;
 import org.eclipse.ditto.internal.utils.metrics.config.MetricsConfig;
 import org.eclipse.ditto.internal.utils.metrics.prometheus.PrometheusReporterRoute;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithMongoDbConfig;
-import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandSizeValidator;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandSizeValidator;
@@ -82,7 +82,7 @@ import kamon.prometheus.PrometheusReporter;
  * <li>{@link #startStatusSupplierActor(akka.actor.ActorSystem)},</li>
  * <li>{@link #startServiceRootActors(akka.actor.ActorSystem, org.eclipse.ditto.base.service.config.ServiceSpecificConfig)}.
  * <ol>
- * <li>{@link #getMainRootActorProps(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorRef)},</li>
+ * <li>{@link #getMainRootActorProps(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorRef, akka.actor.ActorSystem)},</li>
  * <li>{@link #startMainRootActor(akka.actor.ActorSystem, akka.actor.Props)},</li>
  * <li>{@link #getAdditionalRootActorsInformation(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorRef)} and</li>
  * <li>{@link #startAdditionalRootActors(akka.actor.ActorSystem, Iterable)}.</li>
@@ -390,7 +390,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * is overridden, the following methods will not be called automatically:</em>
      * </p>
      * <ul>
-     * <li>{@link #getMainRootActorProps(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorRef)},</li>
+     * <li>{@link #getMainRootActorProps(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorRef, akka.actor.ActorSystem)},</li>
      * <li>{@link #startMainRootActor(akka.actor.ActorSystem, akka.actor.Props)},</li>
      * <li>{@link #getAdditionalRootActorsInformation(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorRef)} and</li>
      * <li>{@link #startAdditionalRootActors(akka.actor.ActorSystem, Iterable)}.</li>
@@ -408,7 +408,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
 
             injectSystemPropertiesLimits(serviceSpecificConfig);
 
-            startMainRootActor(actorSystem, getMainRootActorProps(serviceSpecificConfig, pubSubMediator));
+            startMainRootActor(actorSystem, getMainRootActorProps(serviceSpecificConfig, pubSubMediator, actorSystem));
             startAdditionalRootActors(actorSystem, getAdditionalRootActorsInformation(serviceSpecificConfig,
                     pubSubMediator));
         });
@@ -444,9 +444,11 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      *
      * @param serviceSpecificConfig the configuration of this service.
      * @param pubSubMediator ActorRef of the distributed pub-sub-mediator.
+     * @param actorSystem Actor system where the root actor starts.
      * @return the Props.
      */
-    protected abstract Props getMainRootActorProps(C serviceSpecificConfig, ActorRef pubSubMediator);
+    protected abstract Props getMainRootActorProps(C serviceSpecificConfig, ActorRef pubSubMediator,
+            final ActorSystem actorSystem);
 
     /**
      * Starts the main root actor of this service. May be overridden to change the way of starting this service's root

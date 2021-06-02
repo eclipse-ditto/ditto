@@ -36,19 +36,22 @@ import org.apache.qpid.jms.JmsConnectionListener;
 import org.apache.qpid.jms.JmsSession;
 import org.apache.qpid.jms.message.JmsInboundMessageDispatch;
 import org.apache.qpid.jms.provider.ProviderFactory;
+import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
+import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
+import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.messaging.BaseClientActor;
+import org.eclipse.ditto.connectivity.service.messaging.BaseClientData;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.status.ConnectionFailureStatusReport;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.status.ConnectionRestoredStatusReport;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.status.ConsumerClosedStatusReport;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.status.ProducerClosedStatusReport;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.status.SessionClosedStatusReport;
-import org.eclipse.ditto.connectivity.service.messaging.BaseClientActor;
-import org.eclipse.ditto.connectivity.service.messaging.BaseClientData;
 import org.eclipse.ditto.connectivity.service.messaging.internal.AbstractWithOrigin;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
@@ -61,17 +64,15 @@ import org.eclipse.ditto.connectivity.service.messaging.internal.RecoverSession;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
-import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
-import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import akka.Done;
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.FSM;
 import akka.actor.Props;
 import akka.actor.Status;
@@ -127,7 +128,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
         this.jmsConnectionFactory =
                 ConnectionBasedJmsConnectionFactory.getInstance(AmqpSpecificConfig.toDefaultConfig(amqp10Config),
-                        this::getSshTunnelState);
+                        this::getSshTunnelState, getContext().getSystem());
         connectionListener = new StatusReportingListener(getSelf(), logger, connectionLogger);
         consumerByNamePrefix = new HashMap<>();
         recoverSessionOnSessionClosed = isRecoverSessionOnSessionClosedEnabled(connection);
@@ -160,13 +161,14 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      * @param connection the connection.
      * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectionActor the connectionPersistenceActor which created this client.
+     * @param actorSystem the actor system.
      * @return the Akka configuration Props object.
      */
     public static Props props(final Connection connection, @Nullable final ActorRef proxyActor,
-            final ActorRef connectionActor) {
+            final ActorRef connectionActor, final ActorSystem actorSystem) {
 
-        return Props.create(AmqpClientActor.class, validateConnection(connection), proxyActor, connectionActor,
-                ConfigFactory.empty());
+        return Props.create(AmqpClientActor.class, validateConnection(connection, actorSystem), proxyActor,
+                connectionActor, ConfigFactory.empty());
     }
 
     /**
@@ -176,38 +178,43 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectionActor the connectionPersistenceActor which created this client.
      * @param amqp10configOverride an override for Amqp10Config values -
+     * @param actorSystem the actor system.
      * as Typesafe {@code Config} because this one is serializable in Akka by default.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, final ActorRef proxyActor, final ActorRef connectionActor,
-            final Config amqp10configOverride) {
+    public static Props props(final Connection connection, @Nullable final ActorRef proxyActor,
+            final ActorRef connectionActor, final Config amqp10configOverride, final ActorSystem actorSystem) {
 
-        return Props.create(AmqpClientActor.class, validateConnection(connection), proxyActor, connectionActor,
-                amqp10configOverride);
+        return Props.create(AmqpClientActor.class, validateConnection(connection, actorSystem), proxyActor,
+                connectionActor, amqp10configOverride);
     }
 
     /**
      * Creates Akka configuration object for this actor.
      *
      * @param connection connection parameters.
-     * @param connectionActor the connectionPersistenceActor which created this client.
      * @param proxyActor the actor used to send signals into the ditto cluster.
+     * @param connectionActor the connectionPersistenceActor which created this client.
      * @param jmsConnectionFactory the JMS connection factory.
+     * @param actorSystem the actor system.
      * @return the Akka configuration Props object.
      */
     static Props propsForTest(final Connection connection, @Nullable final ActorRef proxyActor,
-            final ActorRef connectionActor, final JmsConnectionFactory jmsConnectionFactory) {
+            final ActorRef connectionActor, final JmsConnectionFactory jmsConnectionFactory,
+            final ActorSystem actorSystem) {
 
-        return Props.create(AmqpClientActor.class, validateConnection(connection),
+        return Props.create(AmqpClientActor.class, validateConnection(connection, actorSystem),
                 jmsConnectionFactory, proxyActor, connectionActor);
     }
 
-    private static Connection validateConnection(final Connection connection) {
+    private static Connection validateConnection(final Connection connection, final ActorSystem actorSystem) {
         try {
             final String connectionUri = ConnectionBasedJmsConnectionFactory.buildAmqpConnectionUri(connection,
                     connection.getId().toString(),
                     // fake established tunnel state for uri validation
-                    () -> SshTunnelState.from(connection).established(22222), Map.of());
+                    () -> SshTunnelState.from(connection).established(22222),
+                    Map.of(),
+                    SaslPlainCredentialsSupplier.of(actorSystem));
             ProviderFactory.create(URI.create(connectionUri));
             // it is safe to pass an empty map as default config as only default values are loaded via that config
             // of which we can be certain that they are always valid

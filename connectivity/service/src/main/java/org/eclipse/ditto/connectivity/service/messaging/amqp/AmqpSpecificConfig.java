@@ -47,12 +47,15 @@ public final class AmqpSpecificConfig {
     private final Map<String, String> amqpParameters;
     private final Map<String, String> jmsParameters;
     private final boolean failoverEnabled;
+    private final PlainCredentialsSupplier plainCredentialsSupplier;
 
     private AmqpSpecificConfig(final Map<String, String> amqpParameters, final Map<String, String> jmsParameters,
-            final boolean failoverEnabled) {
+            final boolean failoverEnabled,
+            final PlainCredentialsSupplier plainCredentialsSupplier) {
         this.amqpParameters = Collections.unmodifiableMap(new LinkedHashMap<>(amqpParameters));
         this.jmsParameters = Collections.unmodifiableMap(new LinkedHashMap<>(jmsParameters));
         this.failoverEnabled = failoverEnabled;
+        this.plainCredentialsSupplier = plainCredentialsSupplier;
     }
 
     /**
@@ -61,10 +64,12 @@ public final class AmqpSpecificConfig {
      * @param clientId the client ID.
      * @param connection the connection.
      * @param defaultConfig the default config values.
+     * @param plainCredentialsSupplier supplier of username-password credentials.
      * @return the AMQP specific config.
      */
     public static AmqpSpecificConfig withDefault(final String clientId, final Connection connection,
-            final Map<String, String> defaultConfig) {
+            final Map<String, String> defaultConfig,
+            final PlainCredentialsSupplier plainCredentialsSupplier) {
         final var amqpParameters = new LinkedHashMap<>(filterForAmqpParameters(defaultConfig));
         addSaslMechanisms(amqpParameters, connection);
         addTransportParameters(amqpParameters, connection);
@@ -72,11 +77,12 @@ public final class AmqpSpecificConfig {
 
         final var jmsParameters = new LinkedHashMap<>(filterForJmsParameters(defaultConfig));
         addParameter(jmsParameters, CLIENT_ID, clientId);
-        addCredentials(jmsParameters, connection);
+        addCredentials(jmsParameters, connection, plainCredentialsSupplier);
         addFailoverParameters(jmsParameters, connection);
         addSpecificConfigParameters(jmsParameters, connection, AmqpSpecificConfig::isPermittedJmsConfig);
 
-        return new AmqpSpecificConfig(amqpParameters, jmsParameters, connection.isFailoverEnabled());
+        return new AmqpSpecificConfig(amqpParameters, jmsParameters, connection.isFailoverEnabled(),
+                plainCredentialsSupplier);
     }
 
     /**
@@ -101,11 +107,12 @@ public final class AmqpSpecificConfig {
      * @return the rendered connection string.
      */
     public String render(final String uri) {
+        final String uriWithoutUserinfo = plainCredentialsSupplier.getUriWithoutUserinfo(uri);
         if (failoverEnabled) {
-            final String innerUri = wrapWithFailOver(joinParameters(uri, List.of(amqpParameters)));
+            final String innerUri = wrapWithFailOver(joinParameters(uriWithoutUserinfo, List.of(amqpParameters)));
             return joinParameters(innerUri, List.of(jmsParameters));
         } else {
-            return joinParameters(uri, List.of(amqpParameters, jmsParameters));
+            return joinParameters(uriWithoutUserinfo, List.of(amqpParameters, jmsParameters));
         }
     }
 
@@ -142,13 +149,13 @@ public final class AmqpSpecificConfig {
         }
     }
 
-    private static void addCredentials(final LinkedHashMap<String, String> parameters, final Connection connection) {
-        final var username = connection.getUsername();
-        final var password = connection.getPassword();
-        if (username.isPresent() && password.isPresent()) {
-            addParameter(parameters, USERNAME, username.get());
-            addParameter(parameters, PASSWORD, password.get());
-        }
+    private static void addCredentials(final LinkedHashMap<String, String> parameters, final Connection connection,
+            final PlainCredentialsSupplier plainCredentialsSupplier) {
+        final var credentialsOptional = plainCredentialsSupplier.get(connection);
+        credentialsOptional.ifPresent(credentials -> {
+            addParameter(parameters, USERNAME, credentials.getUsername());
+            addParameter(parameters, PASSWORD, credentials.getPassword());
+        });
     }
 
     private static void addTransportParameters(final LinkedHashMap<String, String> parameters,

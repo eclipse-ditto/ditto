@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 
 /**
@@ -55,7 +56,8 @@ public final class PoliciesService extends DittoService<PoliciesConfig> {
     }
 
     @Override
-    protected Props getMainRootActorProps(final PoliciesConfig policiesConfig, final ActorRef pubSubMediator) {
+    protected Props getMainRootActorProps(final PoliciesConfig policiesConfig, final ActorRef pubSubMediator,
+            final ActorSystem actorSystem) {
 
         return PoliciesRootActor.props(policiesConfig, new PolicyMongoSnapshotAdapter(), pubSubMediator);
     }

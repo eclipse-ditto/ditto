@@ -52,7 +52,9 @@ public final class AzSaslRequestSigningTest {
         final Instant timestamp = Instant.ofEpochSecond(1622480838);
         final String expectedToken = "sr=resource-name.hostname.domain&" +
                 "sig=J5XH%2BFoY%2Bo0wGKh3I0m%2BsPVB6CYCFZcQRg95pImtQPA%3D&se=1622480838&skn=keyName";
-        assertThat(underTest.getSasToken(resource, timestamp)).isEqualTo(expectedToken);
+        assertThat(underTest.getSasToken(timestamp)).isEqualTo(expectedToken);
+        assertThat(underTest.getAmqpUsername()).isEqualTo("keyName@sas.root.resource-name.hostname.domain");
+        assertThat(underTest.getAmqpPassword(timestamp)).isEqualTo("SharedAccessSignature " + expectedToken);
     }
 
     @Test

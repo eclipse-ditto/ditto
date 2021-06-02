@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 
 /**
@@ -56,7 +57,8 @@ public final class GatewayService extends DittoService<GatewayConfig> {
     }
 
     @Override
-    protected Props getMainRootActorProps(final GatewayConfig gatewayConfig, final ActorRef pubSubMediator) {
+    protected Props getMainRootActorProps(final GatewayConfig gatewayConfig, final ActorRef pubSubMediator,
+            final ActorSystem actorSystem) {
 
         return GatewayRootActor.props(gatewayConfig, pubSubMediator);
     }

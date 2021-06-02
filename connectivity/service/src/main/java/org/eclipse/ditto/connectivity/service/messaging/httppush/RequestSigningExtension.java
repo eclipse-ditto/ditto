@@ -95,6 +95,9 @@ public final class RequestSigningExtension implements Extension, CredentialsVisi
         }
     }
 
+    /**
+     * The extension ID.
+     */
     public static final class Id extends AbstractExtensionId<RequestSigningExtension> {
 
         @Override
