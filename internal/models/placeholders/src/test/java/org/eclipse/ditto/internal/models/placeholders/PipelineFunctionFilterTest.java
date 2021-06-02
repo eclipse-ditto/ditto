@@ -28,6 +28,8 @@ public final class PipelineFunctionFilterTest {
 
     private static final String KNOWN_VALUE = "some value";
     private static final PipelineElement KNOWN_INPUT = PipelineElement.resolved(KNOWN_VALUE);
+    private static final String KNOWN_BOOLEAN = "true";
+    private static final PipelineElement KNOWN_INPUT_BOOLEAN = PipelineElement.resolved(KNOWN_BOOLEAN);
 
     private final PipelineFunctionFilter underTest = new PipelineFunctionFilter();
 
@@ -178,6 +180,23 @@ public final class PipelineFunctionFilterTest {
         when(expressionResolver.resolveAsPipelineElement("header:some-header"))
                 .thenReturn(PipelineElement.resolved("*2?7"));
         assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).isEmpty();
+    }
+
+
+    @Test
+    public void existsSucceedsWithValueResolved() {
+        when(expressionResolver.resolveAsPipelineElement("header:reply-to"))
+                .thenReturn(PipelineElement.resolved("true"));
+        final String params = String.format("(%s,'%s')", "header:reply-to", "exists");
+        assertThat(underTest.apply(KNOWN_INPUT_BOOLEAN, params, expressionResolver)).contains(KNOWN_BOOLEAN);
+    }
+
+    @Test
+    public void existsFailsWithValueUnresolved() {
+        when(expressionResolver.resolveAsPipelineElement("header:reply-to"))
+                .thenReturn(PipelineElement.unresolved());
+        final String params = String.format("(%s,'%s')", "header:reply-to", "exists");
+        assertThat(underTest.apply(KNOWN_INPUT_BOOLEAN, params, expressionResolver)).isEmpty();
     }
 
     private void testPatternMatching(final String arg, final String pattern, final boolean shouldMatch) {

@@ -38,6 +38,9 @@ final class PipelineFunctionParameterResolverFactory {
     private static final ParameterResolver TRIPLE_STRING_OR_PLACEHOLDER_PARAMETER_RESOLVER =
             new ParameterResolver(3, true);
 
+    private static final ParameterResolver DOUBLE_STRING_OR_PLACEHOLDER_PARAMETER_RESOLVER =
+            new ParameterResolver(2, true);
+
 
     /**
      * Get a parameter resolver that validates for empty parameters.
@@ -90,6 +93,18 @@ final class PipelineFunctionParameterResolverFactory {
         return TRIPLE_STRING_OR_PLACEHOLDER_PARAMETER_RESOLVER;
     }
 
+    /**
+     * Get a parameter resolver that resolves 2 parameters that each could be either a string constant or a placeholder.
+     * <p>
+     * E.g.
+     * <ul>
+     * <li>("value", 'otherValue')</li>
+     * </ul>
+     */
+    static ParameterResolver forDoubleStringOrPlaceholderParameter() {
+        return DOUBLE_STRING_OR_PLACEHOLDER_PARAMETER_RESOLVER;
+    }
+
     private PipelineFunctionParameterResolverFactory() {
         throw new AssertionError();
     }
@@ -127,6 +142,9 @@ final class PipelineFunctionParameterResolverFactory {
 
         private static final String OPEN_PARENTHESIS = "\\(";
         private static final String CLOSED_PARENTHESIS = "\\)";
+
+        static final String EXISTS_FUNCTION =
+                OPEN_PARENTHESIS + ".*"+ PARAMETER_SEPARATOR + "\\s*'exists'\\s*"  + CLOSED_PARENTHESIS;
 
         private final Pattern pattern;
         private final int numberOfParameters;

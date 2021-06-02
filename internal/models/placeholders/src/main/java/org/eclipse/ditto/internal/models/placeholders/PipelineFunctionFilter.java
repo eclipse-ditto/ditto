@@ -18,6 +18,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -52,11 +54,9 @@ final class PipelineFunctionFilter implements PipelineFunction {
 
             final Optional<FilterFunction> rqlFunctionOpt =
                     FilterFunctions.fromName(parameters.get(RqlFunctionParam.NAME));
-            final boolean shouldKeepValue = rqlFunctionOpt.map(rqlFunction -> {
-                final String filterValue = parameters.get(FilterValueParam.NAME);
-                final String comparedValue = parameters.get(ComparedValueParam.NAME);
-                return rqlFunction.apply(filterValue, comparedValue);
-            }).orElse(false);
+            final boolean shouldKeepValue = rqlFunctionOpt
+                    .map(rqlFunction -> applyRqlFunction(parameters, rqlFunction))
+                    .orElse(false);
 
 
             if (shouldKeepValue) {
@@ -68,30 +68,61 @@ final class PipelineFunctionFilter implements PipelineFunction {
         });
     }
 
+    private Boolean applyRqlFunction(final Map<String, String> parameters, final FilterFunction rqlFunction) {
+        if (rqlFunction == FilterFunctions.EXISTS) {
+            final String filterValue = parameters.get(FilterValueParam.NAME);
+            return rqlFunction.apply(filterValue);
+        } else {
+            final String filterValue = parameters.get(FilterValueParam.NAME);
+            final String comparedValue = parameters.get(ComparedValueParam.NAME);
+            return rqlFunction.apply(filterValue, comparedValue);
+        }
+    }
+
     private Map<String, String> parseAndResolve(final String paramsIncludingParentheses,
             final ExpressionResolver expressionResolver) {
 
-        final List<PipelineElement> parameterElements =
-                PipelineFunctionParameterResolverFactory.forTripleStringOrPlaceholderParameter()
-                        .apply(paramsIncludingParentheses, expressionResolver, this);
-
-        final PipelineElement filterValueParamElement = parameterElements.get(0);
-        final PipelineElement rqlFunctionParamElement = parameterElements.get(1);
-        final PipelineElement comparedValueParamElement = parameterElements.get(2);
-
-        final String filterValueParam = filterValueParamElement.toOptional().orElse("");
-        final String rqlFunctionParam = rqlFunctionParamElement.toOptional().orElseThrow(() ->
-                PlaceholderFunctionSignatureInvalidException.newBuilder(paramsIncludingParentheses, this)
-                        .build());
-        final String comparedValueParam = comparedValueParamElement.toOptional().orElse("");
+        final boolean hasComparedValue = hasComparedValue(paramsIncludingParentheses);
+        final List<PipelineElement> parameterElements = getPipelineElements(paramsIncludingParentheses,
+                expressionResolver, hasComparedValue);
 
         final Map<String, String> parameters = new HashMap<>();
 
+        final PipelineElement filterValueParamElement = parameterElements.get(0);
+        final String filterValueParam = filterValueParamElement.toOptional().orElse("");
         parameters.put(FilterValueParam.NAME, filterValueParam);
+
+        final PipelineElement rqlFunctionParamElement = parameterElements.get(1);
+        final String rqlFunctionParam = rqlFunctionParamElement.toOptional().orElseThrow(() ->
+                PlaceholderFunctionSignatureInvalidException.newBuilder(paramsIncludingParentheses, this)
+                        .build());
         parameters.put(RqlFunctionParam.NAME, rqlFunctionParam);
-        parameters.put(ComparedValueParam.NAME, comparedValueParam);
+
+        if (hasComparedValue) {
+            final PipelineElement comparedValueParamElement = parameterElements.get(2);
+            final String comparedValueParam = comparedValueParamElement.toOptional().orElse("");
+            parameters.put(ComparedValueParam.NAME, comparedValueParam);
+        }
 
         return parameters;
+    }
+
+    private boolean hasComparedValue(final String paramsIncludingParentheses) {
+        final Pattern pattern =
+                Pattern.compile(PipelineFunctionParameterResolverFactory.ParameterResolver.EXISTS_FUNCTION);
+        final Matcher matcher = pattern.matcher(paramsIncludingParentheses);
+        return !matcher.matches();
+    }
+
+    private List<PipelineElement> getPipelineElements(final String paramsIncludingParentheses,
+            final ExpressionResolver expressionResolver, final boolean hasComparedValue) {
+        if (hasComparedValue) {
+            return PipelineFunctionParameterResolverFactory.forTripleStringOrPlaceholderParameter()
+                    .apply(paramsIncludingParentheses, expressionResolver, this);
+        } else {
+            return PipelineFunctionParameterResolverFactory.forDoubleStringOrPlaceholderParameter()
+                    .apply(paramsIncludingParentheses, expressionResolver, this);
+        }
     }
 
     /**
