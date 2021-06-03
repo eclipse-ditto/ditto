@@ -14,6 +14,7 @@ package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
 import java.time.Duration;
 
+import org.eclipse.ditto.base.model.common.DittoDuration;
 import org.eclipse.ditto.connectivity.model.HmacCredentials;
 import org.eclipse.ditto.connectivity.service.messaging.AzSaslRequestSigning;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -33,9 +34,13 @@ public final class AzSaslRequestSigningFactory implements RequestSigningFactory 
         final JsonObject parameters = credentials.getParameters();
         final String sharedKeyName = parameters.getValueOrThrow(JsonFields.SHARED_KEY_NAME);
         final String sharedKey = parameters.getValueOrThrow(JsonFields.SHARED_KEY);
-        final Duration ttl = parameters.getValue(JsonFields.TTL).map(Duration::parse).orElse(DEFAULT_TTL);
+        final Duration ttl = parameters.getValue(JsonFields.TTL).map(this::parseDuration).orElse(DEFAULT_TTL);
         final String endpoint = parameters.getValueOrThrow(JsonFields.ENDPOINT);
         return AzSaslRequestSigning.of(sharedKeyName, sharedKey, ttl, endpoint);
+    }
+
+    private Duration parseDuration(final String string) {
+        return DittoDuration.parseDuration(string).getDuration();
     }
 
     /**
