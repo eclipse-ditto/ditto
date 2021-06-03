@@ -33,6 +33,8 @@ public final class AzSaslRequestSigning implements RequestSigning {
 
     private static final String AUTH_SCHEME = "SharedAccessSignature";
 
+    private static final String AMQP_USERNAME_TRIM_PATTERN = "\\.azure-devices\\.net$";
+
     private final String sharedKeyName;
     private final ByteString sharedKey;
     private final Duration ttl;
@@ -82,7 +84,7 @@ public final class AzSaslRequestSigning implements RequestSigning {
      * @return The "username".
      */
     public String getAmqpUsername() {
-        return sharedKeyName + "@sas.root." + endpoint;
+        return sharedKeyName + "@sas.root." + endpoint.replaceAll(AMQP_USERNAME_TRIM_PATTERN, "");
     }
 
     /**

@@ -58,6 +58,14 @@ public final class AzSaslRequestSigningTest {
     }
 
     @Test
+    public void testAmqpUsernameTrimming() {
+        final String sharedKey = Base64.getEncoder().encodeToString("my-awesome-shared-key".getBytes());
+        final String resource = "resource-name.hostname.domain.azure-devices.net";
+        final var underTest = AzSaslRequestSigning.of("keyName", sharedKey, Duration.ZERO, resource);
+        assertThat(underTest.getAmqpUsername()).isEqualTo("keyName@sas.root.resource-name.hostname.domain");
+    }
+
+    @Test
     public void testRequestSigning() {
         final HttpRequest request = HttpRequest.POST("https://resource-name.hostname.domain")
                 .withEntity(HttpEntities.create("irrelevant payload"));
