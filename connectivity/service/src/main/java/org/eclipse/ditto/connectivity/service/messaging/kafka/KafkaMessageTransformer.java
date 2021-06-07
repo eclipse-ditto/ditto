@@ -12,10 +12,9 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -72,10 +71,11 @@ final class KafkaMessageTransformer {
     public Either<ExternalMessage, DittoRuntimeException> transform(
             final ConsumerRecord<String, String> consumerRecord) {
 
+        LOGGER.trace("Received record from kafka: {}", consumerRecord);
+
         final String key = consumerRecord.key();
         final String value = consumerRecord.value();
-        final Map<String, String> messageHeaders = StreamSupport.stream(consumerRecord.headers().spliterator(), false)
-                .collect(Collectors.toMap(Header::key, header -> new String(header.value())));
+        final Map<String, String> messageHeaders = extractMessageHeaders(consumerRecord);
         final String correlationId = messageHeaders
                 .getOrDefault(DittoHeaderDefinition.CORRELATION_ID.getKey(), UUID.randomUUID().toString());
         try {
@@ -111,6 +111,21 @@ final class KafkaMessageTransformer {
                     .error(String.format("Unexpected {%s}: {%s}", e.getClass().getName(), e.getMessage()), e);
             return null; // Drop message
         }
+
+    }
+
+    private Map<String, String> extractMessageHeaders(final ConsumerRecord<String, String> consumerRecord) {
+        final Map<String, String> messageHeaders = new HashMap<>();
+        for (final Header header : consumerRecord.headers()) {
+            if (messageHeaders.put(header.key(), new String(header.value())) != null) {
+                inboundMonitor.exception("Dropped duplicated headers in record from topic {0} at offset #{1}",
+                        consumerRecord.topic(), consumerRecord.offset());
+            }
+        }
+        if (!messageHeaders.containsKey(DittoHeaderDefinition.CORRELATION_ID.getKey())) {
+            messageHeaders.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), UUID.randomUUID().toString());
+        }
+        return messageHeaders;
     }
 
 }
