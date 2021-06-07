@@ -172,7 +172,8 @@ public final class MongoSearchUpdaterFlowTest {
             // GIVEN: MongoSearchUpdaterFlow is wrapped inside a RestartSink
 
             final MongoSearchUpdaterFlow flow = MongoSearchUpdaterFlow.of(db,
-                    DefaultPersistenceStreamConfig.of(ConfigFactory.empty()));
+                    DefaultPersistenceStreamConfig.of(ConfigFactory.empty()),
+                    SearchUpdateListener.get(actorSystem));
 
             final Sink<Source<AbstractWriteModel, NotUsed>, ?> sink =
                     flow.start(false, 1, 1).to(Sink.ignore());

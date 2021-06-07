@@ -114,7 +114,7 @@ public abstract class AbstractThingSearchPersistenceITBase {
     }
 
     private TestSearchUpdaterStream provideWritePersistence() {
-        return TestSearchUpdaterStream.of(mongoClient.getDefaultDatabase());
+        return TestSearchUpdaterStream.of(mongoClient.getDefaultDatabase(), SearchUpdateListener.get(actorSystem));
     }
 
     private static DittoMongoClient provideClientWrapper() {

@@ -85,7 +85,7 @@ public final class SearchActorIT {
             AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
                     AuthorizationSubject.newInstance("ditto:ditto"));
 
-    private static QueryParser queryParser;
+    private QueryParser queryParser;
     private static final PolicyId POLICY_ID = PolicyId.of("default", "policy");
     @ClassRule
     public static final MongoDbResource MONGO_RESOURCE = new MongoDbResource();
@@ -100,8 +100,6 @@ public final class SearchActorIT {
 
     @BeforeClass
     public static void startMongoResource() {
-        queryParser = SearchRootActor.getQueryParser(DefaultLimitsConfig.of(ConfigFactory.empty()),
-                ActorSystem.create("test-system", ConfigFactory.load("actors-test.conf")));
         mongoClient = provideClientWrapper();
         policyEnforcer = PolicyEnforcers.defaultEvaluator(createPolicy());
     }
@@ -118,7 +116,7 @@ public final class SearchActorIT {
                         "  executor = \"thread-pool-executor\"\n" +
                         "}"));
         readPersistence = provideReadPersistence();
-        writePersistence = provideWritePersistence();
+        writePersistence = provideWritePersistence(actorSystem);
         thingsCollection = mongoClient.getDefaultDatabase().getCollection(PersistenceConstants.THINGS_COLLECTION_NAME);
     }
 
@@ -129,8 +127,8 @@ public final class SearchActorIT {
         return result;
     }
 
-    private static TestSearchUpdaterStream provideWritePersistence() {
-        return TestSearchUpdaterStream.of(mongoClient.getDefaultDatabase());
+    private static TestSearchUpdaterStream provideWritePersistence(final ActorSystem system) {
+        return TestSearchUpdaterStream.of(mongoClient.getDefaultDatabase(), SearchUpdateListener.get(system));
     }
 
     private static DittoMongoClient provideClientWrapper() {

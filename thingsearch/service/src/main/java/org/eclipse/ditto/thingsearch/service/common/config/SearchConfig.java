@@ -42,6 +42,13 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
     String getQueryValidatorImplementation();
 
     /**
+     * Returns the {@code SearchUpdateListener} to be used for additional processing of search updates.
+     *
+     * @return the config.
+     */
+    String getSearchUpdateListenerImplementation();
+
+    /**
      * Returns the configuration settings for the search updating functionality.
      *
      * @return the config.
@@ -65,7 +72,15 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
          * @since 1.6.0
          */
         QUERY_CRITERIA_VALIDATOR("query-criteria-validator.implementation",
-                "org.eclipse.ditto.thingsearch.service.persistence.query.validation.DefaultQueryCriteriaValidator");
+                "org.eclipse.ditto.thingsearch.service.persistence.query.validation.DefaultQueryCriteriaValidator"),
+
+        /**
+         * The {@code SearchUpdateListener} used for additional custom processing of search updates.
+         *
+         * @since 2.1.0
+         */
+        SEARCH_UPDATE_LISTENER("search-update-listener.implementation",
+                "org.eclipse.ditto.services.thingsearch.persistence.write.streaming.DefaultSearchUpdateListener");
 
         private final String path;
         private final Object defaultValue;

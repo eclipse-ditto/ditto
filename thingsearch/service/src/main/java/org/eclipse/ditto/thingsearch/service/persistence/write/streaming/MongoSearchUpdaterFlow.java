@@ -32,6 +32,8 @@ import com.mongodb.reactivestreams.client.MongoDatabase;
 import akka.NotUsed;
 import akka.japi.pf.PFBuilder;
 import akka.stream.javadsl.Flow;
+import akka.stream.javadsl.GraphDSL;
+import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 
 /**
@@ -50,12 +52,16 @@ final class MongoSearchUpdaterFlow {
 
     private final MongoCollection<Document> collection;
     private final MongoCollection<Document> collectionWithAcknowledgements;
+    private final SearchUpdateListener searchUpdateListener;
 
     private MongoSearchUpdaterFlow(final MongoCollection<Document> collection,
-            final PersistenceStreamConfig persistenceConfig) {
+            final PersistenceStreamConfig persistenceConfig,
+            final SearchUpdateListener searchUpdateListener) {
+
         this.collection = collection;
-        this.collectionWithAcknowledgements = collection.withWriteConcern(
+        collectionWithAcknowledgements = collection.withWriteConcern(
                 persistenceConfig.getWithAcknowledgementsWriteConcern());
+        this.searchUpdateListener = searchUpdateListener;
     }
 
     /**
@@ -63,14 +69,19 @@ final class MongoSearchUpdaterFlow {
      *
      * @param database the MongoDB database.
      * @param persistenceConfig the persistence configuration for the search updater stream.
+     * @param searchUpdateListener the listener for custom processing on search updates.
      * @return the MongoSearchUpdaterFlow object.
      */
     public static MongoSearchUpdaterFlow of(final MongoDatabase database,
-            final PersistenceStreamConfig persistenceConfig) {
+            final PersistenceStreamConfig persistenceConfig,
+            final SearchUpdateListener searchUpdateListener) {
         return new MongoSearchUpdaterFlow(database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME),
                 persistenceConfig);
     }
 
+        return new MongoSearchUpdaterFlow(database.getCollection(THINGS_COLLECTION_NAME), persistenceConfig,
+                searchUpdateListener);
+    }
 
     /**
      * Create a new flow through the search persistence.
@@ -93,6 +104,7 @@ final class MongoSearchUpdaterFlow {
 
         final Flow<List<AbstractWriteModel>, WriteResultAndErrors, NotUsed> writeFlow =
                 Flow.<List<AbstractWriteModel>>create()
+                        .alsoTo(Sink.foreach(searchUpdateListener::processWriteModels))
                         .flatMapMerge(parallelism, writeModels ->
                                 executeBulkWrite(shouldAcknowledge, writeModels).async(DISPATCHER_NAME, parallelism));
 
@@ -101,6 +113,7 @@ final class MongoSearchUpdaterFlow {
 
     private Source<WriteResultAndErrors, NotUsed> executeBulkWrite(final boolean shouldAcknowledge,
             final List<AbstractWriteModel> abstractWriteModels) {
+
         final List<WriteModel<Document>> writeModels = abstractWriteModels.stream()
                 .map(writeModel -> {
                     ConsistencyLag.startS5MongoBulkWrite(writeModel.getMetadata());
@@ -110,9 +123,9 @@ final class MongoSearchUpdaterFlow {
 
         final MongoCollection<Document> theCollection;
         if (shouldAcknowledge) {
-            theCollection = this.collectionWithAcknowledgements;
+            theCollection = collectionWithAcknowledgements;
         } else {
-            theCollection = this.collection;
+            theCollection = collection;
         }
 
         final var bulkWriteTimer = startBulkWriteTimer(writeModels);

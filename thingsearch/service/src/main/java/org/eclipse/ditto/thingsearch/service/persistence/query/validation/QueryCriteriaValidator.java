@@ -29,11 +29,7 @@ import akka.actor.Extension;
 /**
  * Search Query Validator to be loaded by reflection.
  * Can be used as an extension point to use custom validation of search queries.
- * Implementations MUST have a public constructor taking the following parameters as arguments:
- * <ul>
- * <li>ActorSystem actorSystem: actor system in which this provider is loaded,</li>
- * <li>ActorRef pubSubMediator: the mediator via which system-wide communication can be done</li>
- * </ul>
+ * Implementations MUST have a public constructor taking an actorSystem as argument.
  */
 public abstract class QueryCriteriaValidator implements Extension {
 
@@ -84,4 +80,5 @@ public abstract class QueryCriteriaValidator implements Extension {
                     List.of(system));
         }
     }
+
 }

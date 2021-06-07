@@ -111,9 +111,11 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final ActorRef updaterShard =
                 shardRegionFactory.getSearchUpdaterShardRegion(numberOfShards, thingUpdaterProps, CLUSTER_ROLE);
 
+        final var searchUpdateListener = SearchUpdateListener.get(actorSystem);
         final var searchUpdaterStream =
                 SearchUpdaterStream.of(updaterConfig, actorSystem, thingsShard, policiesShard, updaterShard,
-                        changeQueueActor, dittoMongoClient.getDefaultDatabase(), blockedNamespaces);
+                        changeQueueActor, dittoMongoClient.getDefaultDatabase(), blockedNamespaces,
+                        searchUpdateListener);
         updaterStreamKillSwitch = searchUpdaterStream.start(getContext(), false);
         updaterStreamWithAcknowledgementsKillSwitch = searchUpdaterStream.start(getContext(), true);
 
