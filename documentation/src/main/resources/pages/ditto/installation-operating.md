@@ -177,6 +177,8 @@ Gathering logs for a running Ditto installation can be achieved by:
        * `DITTO_LOGGING_TOTAL_LOG_FILE_SIZE` (default: 1GB)
    * the format in which logging is done is "LogstashEncoder" format - that way the logfiles may easily be imported into
      an ELK stack
+   * when running Ditto in Kubernetes uncomment the initContainers part in the `ditto-cluster.yaml` to be able to 
+     mount log files to the host.  
 
 ## Monitoring
 
