@@ -27,7 +27,7 @@ import akka.actor.ActorSystem;
  */
 public final class AzSaslRequestSigningFactory implements RequestSigningFactory {
 
-    private final Duration DEFAULT_TTL = Duration.ofMinutes(15);
+    private final Duration DEFAULT_TTL = Duration.ofDays(7);
 
     @Override
     public RequestSigning create(final ActorSystem actorSystem, final HmacCredentials credentials) {
@@ -64,7 +64,7 @@ public final class AzSaslRequestSigningFactory implements RequestSigningFactory 
         public static final JsonFieldDefinition<String> ENDPOINT = JsonFieldDefinition.ofString("endpoint");
 
         /**
-         * Optional: How long should tokens remain valid after creation. Default to 15 minutes.
+         * Optional: How long should tokens remain valid after creation. Default to 1 week.
          */
         public static final JsonFieldDefinition<String> TTL = JsonFieldDefinition.ofString("ttl");
     }
