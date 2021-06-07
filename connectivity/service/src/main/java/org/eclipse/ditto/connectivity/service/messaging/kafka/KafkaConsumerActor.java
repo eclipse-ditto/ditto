@@ -15,10 +15,15 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 import static org.eclipse.ditto.connectivity.api.EnforcementFactoryFactory.newEnforcementFilterFactory;
 import static org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 
+import java.time.Instant;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.Headers;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
@@ -49,6 +54,8 @@ import scala.util.Either;
  */
 final class KafkaConsumerActor extends BaseConsumerActor {
 
+    private static final String TTL = "ttl";
+    private static final String CREATION_TIME = "creation-time";
     static final String ACTOR_NAME_PREFIX = "kafkaConsumer-";
 
     private final ThreadSafeDittoLoggingAdapter log;
@@ -148,6 +155,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                     .throttle(kafkaConfig.getConsumerThrottlingConfig().getLimit(),
                             kafkaConfig.getConsumerThrottlingConfig().getInterval())
                     .filter(consumerRecord -> consumerRecord.value() != null)
+                    .filter(this::isNotExpired)
                     .map(kafkaMessageTransformer::transform)
                     .divertTo(this.externalMessageSink(), this::isExternalMessage)
                     .divertTo(this.dittoRuntimeExceptionSink(), this::isDittoRuntimeException)
@@ -165,6 +173,28 @@ final class KafkaConsumerActor extends BaseConsumerActor {
 
         private ExternalMessage extractExternalMessage(final Either<ExternalMessage, DittoRuntimeException> value) {
             return value.left().get();
+        }
+
+        private boolean isNotExpired(final ConsumerRecord<String, String> consumerRecord) {
+            final Headers headers = consumerRecord.headers();
+            final long now = Instant.now().toEpochMilli();
+            try {
+                final Optional<Long> creationTimeOptional = Optional.ofNullable(headers.lastHeader(CREATION_TIME))
+                        .map(Header::value)
+                        .map(String::new)
+                        .map(Long::parseLong);
+                final Optional<Long> ttlOptional = Optional.ofNullable(headers.lastHeader(TTL))
+                        .map(Header::value)
+                        .map(String::new)
+                        .map(Long::parseLong);
+                if (creationTimeOptional.isPresent() && ttlOptional.isPresent()) {
+                    return now - creationTimeOptional.get() >= ttlOptional.get();
+                }
+                return true;
+            } catch (final Exception e) {
+                // Errors during reading/parsing headers should not cause the message to be dropped.
+                return true;
+            }
         }
 
         private void forwardExternalMessage(final ExternalMessage value) {
