@@ -180,11 +180,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
         return new ProducerRecord<>(publishTarget.getTopic(),
                 publishTarget.getPartition().orElse(null),
-                // TODO make configurable
-                Optional.ofNullable(externalMessage.getInternalHeaders().get(DittoHeaderDefinition.ENTITY_ID.getKey()))
-                        .map(id -> id.split(":"))
-                        .map(elements -> String.join(":", elements[1], elements[2]))
-                        .orElse(publishTarget.getKey().orElse(null)),
+                publishTarget.getKey().orElse(null),
                 payload, headers);
     }
 
