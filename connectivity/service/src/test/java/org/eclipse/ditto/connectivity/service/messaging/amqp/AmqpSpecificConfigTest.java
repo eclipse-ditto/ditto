@@ -15,7 +15,10 @@ package org.eclipse.ditto.connectivity.service.messaging.amqp;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
+import java.util.Optional;
 
+import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.config.DefaultAmqp10Config;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.junit.Test;
@@ -116,4 +119,21 @@ public final class AmqpSpecificConfigTest {
                 .isEqualTo("amqps://localhost:1234/?amqp.saslMechanisms=PLAIN&jms.clientID=CID" +
                         "&jms.username=username&jms.password=password");
     }
+
+    @Test
+    public void withPlainCredentials() {
+        final UserPasswordCredentials credentials = UserPasswordCredentials.newInstance("foo", "bar");
+        final PlainCredentialsSupplier plainCredentialsSupplier = connection -> Optional.of(credentials);
+        final Connection connection = TestConstants.createConnection();
+        final AmqpSpecificConfig underTest = AmqpSpecificConfig.withDefault("CID", connection, Map.of(),
+                plainCredentialsSupplier);
+        assertThat(underTest.render("amqps://localhost:1234/"))
+                .isEqualTo("failover:(amqps://localhost:1234/?amqp.saslMechanisms=PLAIN)" +
+                        "?jms.clientID=CID&jms.username=foo&jms.password=bar" +
+                        "&failover.startupMaxReconnectAttempts=5&failover.maxReconnectAttempts=-1" +
+                        "&failover.initialReconnectDelay=128&failover.reconnectDelay=128" +
+                        "&failover.maxReconnectDelay=900000&failover.reconnectBackOffMultiplier=2" +
+                        "&failover.useReconnectBackOff=true");
+    }
+
 }
