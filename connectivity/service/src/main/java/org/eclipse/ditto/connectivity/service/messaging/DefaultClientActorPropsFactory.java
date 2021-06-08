@@ -35,25 +35,21 @@ import akka.actor.Props;
 @Immutable
 public final class DefaultClientActorPropsFactory implements ClientActorPropsFactory {
 
-    private final ActorSystem actorSystem;
-
-    private DefaultClientActorPropsFactory(final ActorSystem actorSystem) {
-        this.actorSystem = actorSystem;
+    private DefaultClientActorPropsFactory() {
     }
 
     /**
      * Returns an instance of {@code DefaultClientActorPropsFactory}.
      *
-     * @param actorSystem the actor system.
      * @return the factory instance.
      */
-    public static DefaultClientActorPropsFactory getInstance(final ActorSystem actorSystem) {
-        return new DefaultClientActorPropsFactory(actorSystem);
+    public static DefaultClientActorPropsFactory getInstance() {
+        return new DefaultClientActorPropsFactory();
     }
 
     @Override
     public Props getActorPropsForType(final Connection connection, @Nullable final ActorRef proxyActor,
-            final ActorRef connectionActor) {
+            final ActorRef connectionActor, final ActorSystem actorSystem) {
         final ConnectionType connectionType = connection.getConnectionType();
 
         final Props result;

@@ -82,7 +82,7 @@ import kamon.prometheus.PrometheusReporter;
  * <li>{@link #startStatusSupplierActor(akka.actor.ActorSystem)},</li>
  * <li>{@link #startServiceRootActors(akka.actor.ActorSystem, org.eclipse.ditto.base.service.config.ServiceSpecificConfig)}.
  * <ol>
- * <li>{@link #getMainRootActorProps(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorRef, akka.actor.ActorSystem)},</li>
+ * <li>{@link #getMainRootActorProps(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorRef)},</li>
  * <li>{@link #startMainRootActor(akka.actor.ActorSystem, akka.actor.Props)},</li>
  * <li>{@link #getAdditionalRootActorsInformation(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorRef)} and</li>
  * <li>{@link #startAdditionalRootActors(akka.actor.ActorSystem, Iterable)}.</li>
@@ -390,7 +390,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * is overridden, the following methods will not be called automatically:</em>
      * </p>
      * <ul>
-     * <li>{@link #getMainRootActorProps(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorRef, akka.actor.ActorSystem)},</li>
+     * <li>{@link #getMainRootActorProps(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorRef)},</li>
      * <li>{@link #startMainRootActor(akka.actor.ActorSystem, akka.actor.Props)},</li>
      * <li>{@link #getAdditionalRootActorsInformation(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorRef)} and</li>
      * <li>{@link #startAdditionalRootActors(akka.actor.ActorSystem, Iterable)}.</li>
@@ -408,7 +408,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
 
             injectSystemPropertiesLimits(serviceSpecificConfig);
 
-            startMainRootActor(actorSystem, getMainRootActorProps(serviceSpecificConfig, pubSubMediator, actorSystem));
+            startMainRootActor(actorSystem, getMainRootActorProps(serviceSpecificConfig, pubSubMediator));
             startAdditionalRootActors(actorSystem, getAdditionalRootActorsInformation(serviceSpecificConfig,
                     pubSubMediator));
         });
@@ -444,11 +444,9 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      *
      * @param serviceSpecificConfig the configuration of this service.
      * @param pubSubMediator ActorRef of the distributed pub-sub-mediator.
-     * @param actorSystem Actor system where the root actor starts.
      * @return the Props.
      */
-    protected abstract Props getMainRootActorProps(C serviceSpecificConfig, ActorRef pubSubMediator,
-            final ActorSystem actorSystem);
+    protected abstract Props getMainRootActorProps(C serviceSpecificConfig, ActorRef pubSubMediator);
 
     /**
      * Starts the main root actor of this service. May be overridden to change the way of starting this service's root

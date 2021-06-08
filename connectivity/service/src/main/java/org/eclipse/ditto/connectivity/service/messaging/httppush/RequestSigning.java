@@ -39,7 +39,7 @@ public interface RequestSigning {
      * @param timestamp Timestamp to include in the signature.
      * @return A singleton source of the signed request.
      */
-    Source<HttpRequest, NotUsed> sign(final HttpRequest request, final Instant timestamp);
+    Source<HttpRequest, NotUsed> sign(HttpRequest request, Instant timestamp);
 
     /**
      * Sign an HTTP request at the present time.

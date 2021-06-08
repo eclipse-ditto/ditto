@@ -29,6 +29,6 @@ public interface RequestSigningFactory {
      * @param credentials the credentials.
      * @return the request signing process using the given credentials.
      */
-    RequestSigning create(final ActorSystem actorSystem, HmacCredentials credentials);
+    RequestSigning create(ActorSystem actorSystem, HmacCredentials credentials);
 
 }

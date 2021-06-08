@@ -182,8 +182,8 @@ public abstract class AbstractBaseClientActorTest {
                     .failoverEnabled(false)
                     .build();
             final ActorRef underTest = watch(actorSystem.actorOf(
-                    DefaultClientActorPropsFactory.getInstance(actorSystem)
-                            .getActorPropsForType(insecureConnection, getRef(), getRef())
+                    DefaultClientActorPropsFactory.getInstance()
+                            .getActorPropsForType(insecureConnection, getRef(), getRef(), actorSystem)
             ));
             underTest.tell(TestConnection.of(insecureConnection, DittoHeaders.empty()), getRef());
 

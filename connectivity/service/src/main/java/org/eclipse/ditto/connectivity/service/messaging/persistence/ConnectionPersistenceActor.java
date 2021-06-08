@@ -399,7 +399,8 @@ public final class ConnectionPersistenceActor
             targetConnectionStatus = ConnectivityStatus.UNKNOWN;
         }
 
-        if (alwaysAlive = (targetConnectionStatus == ConnectivityStatus.OPEN)) {
+        alwaysAlive = (targetConnectionStatus == ConnectivityStatus.OPEN);
+        if (alwaysAlive) {
             final DittoHeaders headersWithJournalTags = superEvent.getDittoHeaders().toBuilder()
                     .journalTags(journalTags())
                     .build();
@@ -924,7 +925,7 @@ public final class ConnectionPersistenceActor
     private void startClientActorsIfRequired(final int clientCount) {
         if (entity != null && clientActorRouter == null && clientCount > 0) {
             log.info("Starting ClientActor for connection <{}> with <{}> clients.", entityId, clientCount);
-            final Props props = propsFactory.getActorPropsForType(entity, proxyActor, getSelf());
+            final Props props = propsFactory.getActorPropsForType(entity, proxyActor, getSelf(), getContext().getSystem());
             final ClusterRouterPoolSettings clusterRouterPoolSettings =
                     new ClusterRouterPoolSettings(clientCount, clientActorsPerNode(clientCount), true,
                             Set.of(CLUSTER_ROLE));

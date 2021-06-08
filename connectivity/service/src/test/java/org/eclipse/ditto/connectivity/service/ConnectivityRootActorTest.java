@@ -38,7 +38,7 @@ public final class ConnectivityRootActorTest extends AbstractDittoRootActorTest 
         final ConnectivityConfig config =
                 DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(system.settings().config()));
         return ConnectivityRootActor.props(config, system.deadLetters(), UnaryOperator.identity(),
-                DefaultClientActorPropsFactory.getInstance(system));
+                DefaultClientActorPropsFactory.getInstance());
     }
 
 }

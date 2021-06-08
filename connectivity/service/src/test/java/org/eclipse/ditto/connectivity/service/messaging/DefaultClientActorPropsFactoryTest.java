@@ -48,7 +48,7 @@ public final class DefaultClientActorPropsFactoryTest extends WithMockServers {
     public void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
         serialization = SerializationExtension.get(actorSystem);
-        underTest = DefaultClientActorPropsFactory.getInstance(actorSystem);
+        underTest = DefaultClientActorPropsFactory.getInstance();
     }
 
     @After
@@ -109,14 +109,14 @@ public final class DefaultClientActorPropsFactoryTest extends WithMockServers {
 
     private void actorPropsIsSerializable(final ConnectionType connectionType) {
         final Props props = underTest.getActorPropsForType(randomConnection(connectionType), actorSystem.deadLetters(),
-                actorSystem.deadLetters());
+                actorSystem.deadLetters(), actorSystem);
         final Object objectToSerialize = wrapForSerialization(props);
         serializeAndDeserialize(objectToSerialize);
     }
 
     private void actorPropsIsSerializableAndEqualDeserializedObject(final ConnectionType connectionType) {
         final Props props = underTest.getActorPropsForType(randomConnection(connectionType), actorSystem.deadLetters(),
-                actorSystem.deadLetters());
+                actorSystem.deadLetters(), actorSystem);
         final Object objectToSerialize = wrapForSerialization(props);
         final Object deserializedObject = serializeAndDeserialize(objectToSerialize);
 
