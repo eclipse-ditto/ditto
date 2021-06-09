@@ -20,8 +20,37 @@ The common configuration for connections in [Connections > Targets](basic-connec
 as well. Following are some specifics for Apache Kafka 2.x connections:
 
 ### Source format
+For a Kafka connection source "addresses" are Kafka topics to subscribe to. Legal characters are `[a-z]`, `[A-Z]`, `[0-9]`, `.`, `_` and `-`.
 
-{% include note.html content="Connecting to Kafka and consuming from topics via sources is not yet supported by Ditto." %}
+The field `qos` sets the Quality of Service which should be applied for consuming messages from this source.
+Right now only `qos=0` is supported, which means that the offset will be committed right after ditto consumed the message from kafka, no matter if the message can be processed correctly or not.
+
+The following example shows a valid kafka source:
+```json
+{
+  "addresses": ["theAddress"],
+  "qos": 0,
+  "consumerCount": 1,
+  "authorizationContext": ["ditto:inbound-auth-subject"],
+  "enforcement": {
+    "input": "{{ header:device_id }}",
+    "filters": ["{{ entity:id }}"]
+  },
+  "headerMapping": {},
+  "payloadMapping": ["Ditto"],
+  "replyTarget": {
+    "enabled": true,
+    "address": "theReplyAddress",
+    "headerMapping": {},
+    "expectedResponseTypes": ["response", "error", "nack"]
+  },
+  "acknowledgementRequests": {
+    "includes": [],
+    "filter": "fn:filter(header:qos,\"ne\",\"0\")"
+  },
+  "declaredAcks": []
+}
+```
 
 ### Target format
 
