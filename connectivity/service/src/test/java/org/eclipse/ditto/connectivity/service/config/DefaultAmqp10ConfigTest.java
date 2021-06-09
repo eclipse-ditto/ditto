@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.config;
 
+import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -49,7 +50,8 @@ public final class DefaultAmqp10ConfigTest {
     public void assertImmutability() {
         assertInstancesOf(DefaultAmqp10Config.class,
                 areImmutable(),
-                provided(BackOffConfig.class, ThrottlingConfig.class).isAlsoImmutable());
+                provided(BackOffConfig.class, ThrottlingConfig.class).isAlsoImmutable(),
+                assumingFields("hmacAlgorithms").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test
