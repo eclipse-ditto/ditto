@@ -31,7 +31,7 @@ public interface PlainCredentialsSupplier {
      * @param connection the connection.
      * @return the optional credentials.
      */
-    Optional<UserPasswordCredentials> get(final Connection connection);
+    Optional<UserPasswordCredentials> get(Connection connection);
 
     /**
      * Remove userinfo from a connection URI.

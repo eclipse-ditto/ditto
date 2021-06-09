@@ -27,7 +27,7 @@ import akka.actor.ActorSystem;
 /**
  * Creator of the signing process {@code AWS4-HMAC-SHA256}.
  */
-public final class AwsRequestSigningFactory implements RequestSigningFactory {
+public final class AwsRequestSigningFactory implements HttpRequestSigningFactory {
 
     /**
      * Token timeout to evaluate the body of outgoing requests, which should take very little time as it does not
@@ -41,7 +41,7 @@ public final class AwsRequestSigningFactory implements RequestSigningFactory {
     private static final List<String> DEFAULT_CANONICAL_HEADERS = List.of("host");
 
     @Override
-    public RequestSigning create(final ActorSystem actorSystem, final HmacCredentials credentials) {
+    public HttpRequestSigning create(final ActorSystem actorSystem, final HmacCredentials credentials) {
         final JsonObject parameters = credentials.getParameters();
         final String region = parameters.getValueOrThrow(JsonFields.REGION);
         final String service = parameters.getValueOrThrow(JsonFields.SERVICE);
@@ -96,5 +96,9 @@ public final class AwsRequestSigningFactory implements RequestSigningFactory {
 
         public static final JsonFieldDefinition<String> X_AMZ_CONTENT_SHA256 =
                 JsonFieldDefinition.ofString("xAmzContentSha256");
+
+        private JsonFields() {
+            throw new AssertionError();
+        }
     }
 }

@@ -23,6 +23,7 @@ import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.messaging.signing.NoOpSigning;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
 import com.typesafe.config.Config;
@@ -37,15 +38,15 @@ import scala.reflect.ClassTag;
 /**
  * Actor system extension to load the configured request signing algorithms.
  */
-public final class RequestSigningExtension implements Extension, CredentialsVisitor<RequestSigning> {
+public final class HttpRequestSigningExtension implements Extension, CredentialsVisitor<HttpRequestSigning> {
 
     private static final Id ID = new Id();
 
     private final ActorSystem system;
-    private final Map<String, RequestSigningFactory> registry;
+    private final Map<String, HttpRequestSigningFactory> registry;
 
-    private RequestSigningExtension(final ActorSystem system,
-            final Map<String, RequestSigningFactory> registry) {
+    private HttpRequestSigningExtension(final ActorSystem system,
+            final Map<String, HttpRequestSigningFactory> registry) {
         this.system = system;
         this.registry = registry;
     }
@@ -56,34 +57,28 @@ public final class RequestSigningExtension implements Extension, CredentialsVisi
      * @param system the actor system.
      * @return this extension.
      */
-    public static RequestSigningExtension get(final ActorSystem system) {
+    public static HttpRequestSigningExtension get(final ActorSystem system) {
         return ID.get(system);
     }
 
-    private static RequestSigningFactory instantiate(final ExtendedActorSystem system, final String className) {
-        final ClassTag<RequestSigningFactory> tag =
-                scala.reflect.ClassTag$.MODULE$.apply(RequestSigningFactory.class);
-        return system.dynamicAccess().createInstanceFor(className, List$.MODULE$.empty(), tag).get();
+    @Override
+    public HttpRequestSigning clientCertificate(final ClientCertificateCredentials credentials) {
+        return NoOpSigning.INSTANCE;
     }
 
     @Override
-    public RequestSigning clientCertificate(final ClientCertificateCredentials credentials) {
-        return NoOpRequestSigning.INSTANCE;
+    public HttpRequestSigning usernamePassword(final UserPasswordCredentials credentials) {
+        return NoOpSigning.INSTANCE;
     }
 
     @Override
-    public RequestSigning usernamePassword(final UserPasswordCredentials credentials) {
-        return NoOpRequestSigning.INSTANCE;
+    public HttpRequestSigning sshPublicKeyAuthentication(final SshPublicKeyCredentials credentials) {
+        return NoOpSigning.INSTANCE;
     }
 
     @Override
-    public RequestSigning sshPublicKeyAuthentication(final SshPublicKeyCredentials credentials) {
-        return NoOpRequestSigning.INSTANCE;
-    }
-
-    @Override
-    public RequestSigning hmac(final HmacCredentials credentials) {
-        final RequestSigningFactory factory = registry.get(credentials.getAlgorithm());
+    public HttpRequestSigning hmac(final HmacCredentials credentials) {
+        final HttpRequestSigningFactory factory = registry.get(credentials.getAlgorithm());
         if (factory != null) {
             return factory.create(system, credentials);
         } else {
@@ -98,20 +93,26 @@ public final class RequestSigningExtension implements Extension, CredentialsVisi
     /**
      * The extension ID.
      */
-    public static final class Id extends AbstractExtensionId<RequestSigningExtension> {
+    public static final class Id extends AbstractExtensionId<HttpRequestSigningExtension> {
+
+        private static HttpRequestSigningFactory instantiate(final ExtendedActorSystem system, final String className) {
+            final ClassTag<HttpRequestSigningFactory> tag =
+                    scala.reflect.ClassTag$.MODULE$.apply(HttpRequestSigningFactory.class);
+            return system.dynamicAccess().createInstanceFor(className, List$.MODULE$.empty(), tag).get();
+        }
 
         @Override
-        public RequestSigningExtension createExtension(final ExtendedActorSystem system) {
+        public HttpRequestSigningExtension createExtension(final ExtendedActorSystem system) {
             final Config config = system.settings().config();
             final Map<String, String> hmacAlgorithms =
                     DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(config))
                             .getConnectionConfig()
                             .getHttpPushConfig()
                             .getHmacAlgorithms();
-            final Map<String, RequestSigningFactory> factoryMap = hmacAlgorithms.entrySet()
+            final Map<String, HttpRequestSigningFactory> factoryMap = hmacAlgorithms.entrySet()
                     .stream()
                     .collect(Collectors.toMap(Map.Entry::getKey, entry -> instantiate(system, entry.getValue())));
-            return new RequestSigningExtension(system, Collections.unmodifiableMap(factoryMap));
+            return new HttpRequestSigningExtension(system, Collections.unmodifiableMap(factoryMap));
         }
     }
 }

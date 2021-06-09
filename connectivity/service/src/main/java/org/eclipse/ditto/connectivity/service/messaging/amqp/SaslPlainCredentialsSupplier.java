@@ -12,14 +12,11 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.amqp;
 
-import java.time.Instant;
 import java.util.Optional;
 
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.Credentials;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
-import org.eclipse.ditto.connectivity.service.messaging.AzSaslRequestSigning;
-import org.eclipse.ditto.connectivity.service.messaging.httppush.RequestSigningExtension;
 
 import akka.actor.ActorSystem;
 
@@ -30,10 +27,10 @@ final class SaslPlainCredentialsSupplier implements PlainCredentialsSupplier {
 
     private static final PlainCredentialsSupplier FROM_URI = PlainCredentialsSupplier.fromUri();
 
-    private final RequestSigningExtension requestSigningExtension;
+    private final AmqpConnectionSigningExtension amqpConnectionSigningExtension;
 
     private SaslPlainCredentialsSupplier(final ActorSystem actorSystem) {
-        requestSigningExtension = RequestSigningExtension.get(actorSystem);
+        amqpConnectionSigningExtension = AmqpConnectionSigningExtension.get(actorSystem);
     }
 
     public static PlainCredentialsSupplier of(final ActorSystem actorSystem) {
@@ -45,13 +42,8 @@ final class SaslPlainCredentialsSupplier implements PlainCredentialsSupplier {
         final Optional<Credentials> optionalCredentials = connection.getCredentials();
         if (optionalCredentials.isPresent()) {
             final var credentials = optionalCredentials.get();
-            final var requestSigning = credentials.accept(requestSigningExtension);
-            if (requestSigning instanceof AzSaslRequestSigning) {
-                final var azSasl = (AzSaslRequestSigning) requestSigning;
-                final var username = azSasl.getAmqpUsername();
-                final var password = azSasl.getAmqpPassword(Instant.now());
-                return Optional.of(UserPasswordCredentials.newInstance(username, password));
-            }
+            final var requestSigning = credentials.accept(amqpConnectionSigningExtension);
+            return requestSigning.createSignedCredentials();
         }
         return FROM_URI.get(connection);
     }

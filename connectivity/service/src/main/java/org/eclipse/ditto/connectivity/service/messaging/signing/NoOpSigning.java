@@ -10,22 +10,27 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.service.messaging.httppush;
+package org.eclipse.ditto.connectivity.service.messaging.signing;
 
 import java.time.Instant;
+import java.util.Optional;
+
+import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
+import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpConnectionSigning;
+import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpRequestSigning;
 
 import akka.NotUsed;
 import akka.http.javadsl.model.HttpRequest;
 import akka.stream.javadsl.Source;
 
 /**
- * No-op implementation of {@code RequestSigning} for other authentication mechanisms.
+ * No-op implementation of {@link Signing} for other authentication mechanisms.
  */
-final class NoOpRequestSigning implements RequestSigning {
+public final class NoOpSigning implements HttpRequestSigning, AmqpConnectionSigning {
 
-    static final RequestSigning INSTANCE = new NoOpRequestSigning();
+    public static final NoOpSigning INSTANCE = new NoOpSigning();
 
-    private NoOpRequestSigning() {}
+    private NoOpSigning() {}
 
     @Override
     public Source<HttpRequest, NotUsed> sign(final HttpRequest request, final Instant timestamp) {
@@ -36,4 +41,10 @@ final class NoOpRequestSigning implements RequestSigning {
     public Source<HttpRequest, NotUsed> sign(final HttpRequest request) {
         return Source.single(request);
     }
+
+    @Override
+    public Optional<UserPasswordCredentials> createSignedCredentials(final Instant timestamp) {
+        return Optional.empty();
+    }
+
 }

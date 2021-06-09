@@ -13,10 +13,8 @@
 package org.eclipse.ditto.connectivity.service.config;
 
 import java.time.Duration;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -32,7 +30,7 @@ import com.typesafe.config.Config;
  * This class is the default implementation of {@link HttpPushConfig}.
  */
 @Immutable
-final class DefaultHttpPushConfig implements HttpPushConfig {
+final class DefaultHttpPushConfig implements HttpPushConfig, WithStringMapDecoding {
 
     private static final String CONFIG_PATH = "http-push";
 
@@ -48,7 +46,7 @@ final class DefaultHttpPushConfig implements HttpPushConfig {
             throw new DittoConfigError("Request timeout must be greater than 0");
         }
         httpProxyConfig = DefaultHttpProxyConfig.ofProxy(config);
-        hmacAlgorithms = asStringMap(config.getConfig(ConfigValue.HMAC_ALGORITHMS.getConfigPath()));
+        hmacAlgorithms = asStringMap(config, ConfigValue.HMAC_ALGORITHMS.getConfigPath());
     }
 
     static DefaultHttpPushConfig of(final Config config) {
@@ -105,13 +103,4 @@ final class DefaultHttpPushConfig implements HttpPushConfig {
                 "]";
     }
 
-    private static Map<String, String> asStringMap(final Config config) {
-        try {
-            final Map<String, String> map = config.root().entrySet().stream()
-                    .collect(Collectors.toMap(Map.Entry::getKey, entry -> (String) entry.getValue().unwrapped()));
-            return Collections.unmodifiableMap(map);
-        } catch (final ClassCastException e) {
-            throw new DittoConfigError("In HttpPushConfig, hmac-algorithms must be a map from string to string.");
-        }
-    }
 }

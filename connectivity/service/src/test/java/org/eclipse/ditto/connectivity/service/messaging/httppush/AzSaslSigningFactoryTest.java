@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging.httppush;
 import java.util.Base64;
 
 import org.eclipse.ditto.connectivity.model.HmacCredentials;
+import org.eclipse.ditto.connectivity.service.messaging.signing.AzSaslSigningFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.junit.After;
 import org.junit.Before;
@@ -24,9 +25,9 @@ import akka.actor.ActorSystem;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Tests {@link org.eclipse.ditto.connectivity.service.messaging.httppush.AzSaslRequestSigningFactory}.
+ * Tests {@link AzSaslSigningFactory}.
  */
-public final class AzSaslRequestSigningFactoryTest {
+public final class AzSaslSigningFactoryTest {
 
     private ActorSystem actorSystem;
 
@@ -44,14 +45,27 @@ public final class AzSaslRequestSigningFactoryTest {
 
     @Test
     public void create() {
-        final AzSaslRequestSigningFactory underTest = new AzSaslRequestSigningFactory();
-        final HmacCredentials credentials = HmacCredentials.of("az-sasl", JsonObject.newBuilder()
+        final AzSaslSigningFactory underTest = new AzSaslSigningFactory();
+        final HmacCredentials credentials = createCredentials();
+
+        underTest.create(actorSystem, credentials);
+    }
+
+    @Test
+    public void createAmqpConnectionSigning() {
+        final AzSaslSigningFactory underTest = new AzSaslSigningFactory();
+        final HmacCredentials credentials = createCredentials();
+
+        underTest.createAmqpConnectionSigning(credentials);
+    }
+
+    private HmacCredentials createCredentials() {
+        return HmacCredentials.of("az-sasl", JsonObject.newBuilder()
                 .set("sharedKeyName", "name")
                 .set("sharedKey", Base64.getEncoder().encodeToString("shared key".getBytes()))
                 .set("endpoint", "example.com")
                 .set("ttl", "15m")
                 .build());
-
-        underTest.create(actorSystem, credentials);
     }
+
 }

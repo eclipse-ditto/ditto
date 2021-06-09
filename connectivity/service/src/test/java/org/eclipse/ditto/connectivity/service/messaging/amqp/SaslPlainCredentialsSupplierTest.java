@@ -24,10 +24,10 @@ import java.util.regex.Pattern;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.HmacCredentials;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
-import org.eclipse.ditto.connectivity.service.messaging.AzSaslRequestSigning;
+import org.eclipse.ditto.connectivity.service.messaging.signing.AzSaslSigning;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.httppush.AzMonitorRequestSigningFactory;
-import org.eclipse.ditto.connectivity.service.messaging.httppush.AzSaslRequestSigningFactory;
+import org.eclipse.ditto.connectivity.service.messaging.signing.AzSaslSigningFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -62,7 +62,7 @@ public final class SaslPlainCredentialsSupplierTest {
     @Test
     public void createsCredentialsForAzSaslRequestSigning() {
         final HmacCredentials credentials = createAzSaslHmacCredentials();
-        final AzSaslRequestSigning signing = getAzSaslRequestSigning();
+        final AzSaslSigning signing = getAzSaslRequestSigning();
         final Connection connection = TestConstants.createConnection()
                 .toBuilder()
                 .credentials(credentials)
@@ -74,32 +74,14 @@ public final class SaslPlainCredentialsSupplierTest {
     }
 
     private void assertCredentialsContainCorrectSignature(final Optional<UserPasswordCredentials> credentials,
-            final AzSaslRequestSigning expectedSigning) {
+            final AzSaslSigning expectedSigning) {
         assertThat(credentials).isNotEmpty();
 
         final Instant expiry = extractExpiryFromSharedAccessSignature(credentials.get().getPassword());
         final Instant calculationTimestamp = expiry.minus(TTL);
-        final UserPasswordCredentials expectedCredentials = UserPasswordCredentials
-                .newInstance(expectedSigning.getAmqpUsername(), expectedSigning.getAmqpPassword(calculationTimestamp));
+        final Optional<UserPasswordCredentials> expectedCredentials = expectedSigning.createSignedCredentials(calculationTimestamp);
 
-        assertThat(credentials).contains(expectedCredentials);
-    }
-
-    @Test
-    public void doesNotCreateCredentialsForOrtherRequestSigningImplementation() {
-        final HmacCredentials credentials = createAzMonitorHmacCredentials();
-        final Connection connection = TestConstants.createConnection()
-                .toBuilder()
-                .uri("http://localhost:1234")
-                .credentials(credentials)
-                .build();
-        final Optional<UserPasswordCredentials> result =
-                SaslPlainCredentialsSupplier.of(actorSystem).get(connection);
-
-        assertThat(result)
-                .withFailMessage(
-                        "SaslPlainCredentialsSupplier should not provide credentials for az monitor credentials")
-                .isEmpty();
+        assertThat(credentials).isEqualTo(expectedCredentials);
     }
 
     @Test
@@ -129,10 +111,10 @@ public final class SaslPlainCredentialsSupplierTest {
 
     private HmacCredentials createAzSaslHmacCredentials() {
         final JsonObject parameters =
-                JsonObject.newBuilder().set(AzSaslRequestSigningFactory.JsonFields.SHARED_KEY_NAME, SHARED_KEY_NAME)
-                        .set(AzSaslRequestSigningFactory.JsonFields.SHARED_KEY, SHARED_KEY)
-                        .set(AzSaslRequestSigningFactory.JsonFields.TTL, TTL.getSeconds() + "s")
-                        .set(AzSaslRequestSigningFactory.JsonFields.ENDPOINT, ENDPOINT)
+                JsonObject.newBuilder().set(AzSaslSigningFactory.JsonFields.SHARED_KEY_NAME, SHARED_KEY_NAME)
+                        .set(AzSaslSigningFactory.JsonFields.SHARED_KEY, SHARED_KEY)
+                        .set(AzSaslSigningFactory.JsonFields.TTL, TTL.getSeconds() + "s")
+                        .set(AzSaslSigningFactory.JsonFields.ENDPOINT, ENDPOINT)
                         .build();
         return HmacCredentials.of("az-sasl", parameters);
     }
@@ -145,8 +127,8 @@ public final class SaslPlainCredentialsSupplierTest {
         return HmacCredentials.of("az-monitor-2016-04-01", parameters);
     }
 
-    private AzSaslRequestSigning getAzSaslRequestSigning() {
-        return AzSaslRequestSigning.of(SHARED_KEY_NAME, SHARED_KEY, TTL, ENDPOINT);
+    private AzSaslSigning getAzSaslRequestSigning() {
+        return AzSaslSigning.of(SHARED_KEY_NAME, SHARED_KEY, TTL, ENDPOINT);
     }
 
 }

@@ -10,13 +10,17 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.service.messaging.httppush;
+package org.eclipse.ditto.connectivity.service.messaging.signing;
 
 import java.time.Duration;
 
 import org.eclipse.ditto.base.model.common.DittoDuration;
 import org.eclipse.ditto.connectivity.model.HmacCredentials;
-import org.eclipse.ditto.connectivity.service.messaging.AzSaslRequestSigning;
+import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpRequestSigning;
+import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpRequestSigningFactory;
+import org.eclipse.ditto.connectivity.service.messaging.signing.AzSaslSigning;
+import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpConnectionSigning;
+import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpConnectionSigningFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 
@@ -25,18 +29,27 @@ import akka.actor.ActorSystem;
 /**
  * Creator of the signing process for Azure SASL.
  */
-public final class AzSaslRequestSigningFactory implements RequestSigningFactory {
+public final class AzSaslSigningFactory implements HttpRequestSigningFactory, AmqpConnectionSigningFactory {
 
     private static final Duration DEFAULT_TTL = Duration.ofDays(7);
 
     @Override
-    public RequestSigning create(final ActorSystem actorSystem, final HmacCredentials credentials) {
+    public HttpRequestSigning create(final ActorSystem actorSystem, final HmacCredentials credentials) {
+        return createSigning(credentials);
+    }
+
+    @Override
+    public AmqpConnectionSigning createAmqpConnectionSigning(final HmacCredentials credentials) {
+        return createSigning(credentials);
+    }
+
+    private AzSaslSigning createSigning(final HmacCredentials credentials) {
         final JsonObject parameters = credentials.getParameters();
         final String sharedKeyName = parameters.getValueOrThrow(JsonFields.SHARED_KEY_NAME);
         final String sharedKey = parameters.getValueOrThrow(JsonFields.SHARED_KEY);
         final Duration ttl = parameters.getValue(JsonFields.TTL).map(this::parseDuration).orElse(DEFAULT_TTL);
         final String endpoint = parameters.getValueOrThrow(JsonFields.ENDPOINT);
-        return AzSaslRequestSigning.of(sharedKeyName, sharedKey, ttl, endpoint);
+        return AzSaslSigning.of(sharedKeyName, sharedKey, ttl, endpoint);
     }
 
     private Duration parseDuration(final String string) {

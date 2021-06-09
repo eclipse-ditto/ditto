@@ -20,7 +20,7 @@ import akka.actor.ActorSystem;
  * Functional interface for creator of {@code RequestSigning} from {@code HmacCredentials}.
  */
 @FunctionalInterface
-public interface RequestSigningFactory {
+public interface HttpRequestSigningFactory {
 
     /**
      * Create a {@code RequestSigning} object from HMAC credentials.
@@ -29,6 +29,6 @@ public interface RequestSigningFactory {
      * @param credentials the credentials.
      * @return the request signing process using the given credentials.
      */
-    RequestSigning create(ActorSystem actorSystem, HmacCredentials credentials);
+    HttpRequestSigning create(ActorSystem actorSystem, HmacCredentials credentials);
 
 }

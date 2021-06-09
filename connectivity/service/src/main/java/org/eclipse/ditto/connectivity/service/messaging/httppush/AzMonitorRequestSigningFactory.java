@@ -23,7 +23,7 @@ import akka.actor.ActorSystem;
 /**
  * Creator of the signing process for Azure Monitor Data Collector.
  */
-public final class AzMonitorRequestSigningFactory implements RequestSigningFactory {
+public final class AzMonitorRequestSigningFactory implements HttpRequestSigningFactory {
 
     /**
      * Token timeout to evaluate the body of outgoing requests, which should take very little time as it does not
@@ -32,7 +32,7 @@ public final class AzMonitorRequestSigningFactory implements RequestSigningFacto
     private static final Duration TIMEOUT = Duration.ofSeconds(10);
 
     @Override
-    public RequestSigning create(final ActorSystem actorSystem, final HmacCredentials credentials) {
+    public HttpRequestSigning create(final ActorSystem actorSystem, final HmacCredentials credentials) {
         final JsonObject parameters = credentials.getParameters();
         final String workspaceId = parameters.getValueOrThrow(JsonFields.WORKSPACE_ID);
         final String sharedKey = parameters.getValueOrThrow(JsonFields.SHARED_KEY);
@@ -53,5 +53,10 @@ public final class AzMonitorRequestSigningFactory implements RequestSigningFacto
          * Obligatory: The shared key with which to sign requests.
          */
         public static final JsonFieldDefinition<String> SHARED_KEY = JsonFieldDefinition.ofString("sharedKey");
+
+        private JsonFields() {
+            throw new AssertionError();
+        }
+
     }
 }

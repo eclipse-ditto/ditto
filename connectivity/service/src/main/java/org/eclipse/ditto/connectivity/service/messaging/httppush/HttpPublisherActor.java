@@ -46,6 +46,7 @@ import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
+import org.eclipse.ditto.connectivity.service.messaging.signing.NoOpSigning;
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
@@ -123,7 +124,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     private final Materializer materializer;
     private final SourceQueue<Pair<HttpRequest, HttpPushContext>> sourceQueue;
     private final KillSwitch killSwitch;
-    private final RequestSigning requestSigning;
+    private final HttpRequestSigning httpRequestSigning;
 
     @SuppressWarnings("unused")
     private HttpPublisherActor(final Connection connection, final HttpPushFactory factory, final String clientId) {
@@ -146,9 +147,9 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         materialized.second()
                 .whenComplete((done, error) -> getSelf().tell(toConnectionFailure(done, error), ActorRef.noSender()));
 
-        requestSigning = connection.getCredentials()
-                .map(credentials -> credentials.accept(RequestSigningExtension.get(getContext().getSystem())))
-                .orElse(NoOpRequestSigning.INSTANCE);
+        httpRequestSigning = connection.getCredentials()
+                .map(credentials -> credentials.accept(HttpRequestSigningExtension.get(getContext().getSystem())))
+                .orElse(NoOpSigning.INSTANCE);
     }
 
     static Props props(final Connection connection, final HttpPushFactory factory, final String clientId) {
@@ -171,7 +172,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
         final Flow<Pair<HttpRequest, HttpPushContext>, Pair<HttpRequest, HttpPushContext>, NotUsed> requestSigningFlow =
                 Flow.<Pair<HttpRequest, HttpPushContext>>create()
-                        .flatMapConcat(pair -> requestSigning.sign(pair.first())
+                        .flatMapConcat(pair -> httpRequestSigning.sign(pair.first())
                                 .map(signedRequest -> {
                                     logger.debug("SignedRequest <{}>", signedRequest);
                                     return Pair.create(signedRequest, pair.second());

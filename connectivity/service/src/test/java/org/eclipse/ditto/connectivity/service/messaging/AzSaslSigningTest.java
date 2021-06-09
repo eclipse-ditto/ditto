@@ -14,12 +14,15 @@ package org.eclipse.ditto.connectivity.service.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
+import org.eclipse.ditto.connectivity.service.messaging.signing.AzSaslSigning;
 import org.junit.After;
 import org.junit.Test;
 
@@ -31,9 +34,9 @@ import akka.stream.javadsl.Sink;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Tests {@link org.eclipse.ditto.connectivity.service.messaging.AzSaslRequestSigning}.
+ * Tests {@link AzSaslSigning}.
  */
-public final class AzSaslRequestSigningTest {
+public final class AzSaslSigningTest {
 
     @Nullable private ActorSystem actorSystem;
 
@@ -45,33 +48,12 @@ public final class AzSaslRequestSigningTest {
     }
 
     @Test
-    public void testToken() {
-        final String sharedKey = Base64.getEncoder().encodeToString("my-awesome-shared-key".getBytes());
-        final String resource = "resource-name.hostname.domain";
-        final var underTest = AzSaslRequestSigning.of("keyName", sharedKey, Duration.ZERO, resource);
-        final Instant timestamp = Instant.ofEpochSecond(1622480838);
-        final String expectedToken = "sr=resource-name.hostname.domain&" +
-                "sig=J5XH%2BFoY%2Bo0wGKh3I0m%2BsPVB6CYCFZcQRg95pImtQPA%3D&se=1622480838&skn=keyName";
-        assertThat(underTest.getSasToken(timestamp)).isEqualTo(expectedToken);
-        assertThat(underTest.getAmqpUsername()).isEqualTo("keyName@sas.root.resource-name.hostname.domain");
-        assertThat(underTest.getAmqpPassword(timestamp)).isEqualTo("SharedAccessSignature " + expectedToken);
-    }
-
-    @Test
-    public void testAmqpUsernameTrimming() {
-        final String sharedKey = Base64.getEncoder().encodeToString("my-awesome-shared-key".getBytes());
-        final String resource = "resource-name.hostname.domain.azure-devices.net";
-        final var underTest = AzSaslRequestSigning.of("keyName", sharedKey, Duration.ZERO, resource);
-        assertThat(underTest.getAmqpUsername()).isEqualTo("keyName@sas.root.resource-name.hostname.domain");
-    }
-
-    @Test
-    public void testRequestSigning() {
+    public void testHttpRequestSigning() {
         final HttpRequest request = HttpRequest.POST("https://resource-name.hostname.domain")
                 .withEntity(HttpEntities.create("irrelevant payload"));
         final String resource = "resource-name.hostname.domain";
         final String sharedKey = Base64.getEncoder().encodeToString("my-awesome-shared-key".getBytes());
-        final var underTest = AzSaslRequestSigning.of("keyName", sharedKey, Duration.ZERO, resource);
+        final var underTest = AzSaslSigning.of("keyName", sharedKey, Duration.ZERO, resource);
         final Instant timestamp = Instant.ofEpochSecond(1622480838);
 
         final String expectedToken = "sr=resource-name.hostname.domain&" +
@@ -84,4 +66,29 @@ public final class AzSaslRequestSigningTest {
         assertThat(underTest.sign(request, timestamp).runWith(Sink.head(), actorSystem).toCompletableFuture().join())
                 .isEqualTo(expectedRequest);
     }
+
+    @Test
+    public void testAmqpConnectionSigning() {
+        final String sharedKeyName = "keyName";
+        final String sharedKey = Base64.getEncoder().encodeToString("my-awesome-shared-key".getBytes());
+        final String resourceWithoutAzureSuffix = "resource-name.hostname.domain";
+        final String resource = resourceWithoutAzureSuffix + ".azure-devices.net";
+
+        final var underTest = AzSaslSigning.of(sharedKeyName, sharedKey, Duration.ZERO, resource);
+        final Instant timestamp = Instant.ofEpochSecond(1622480838);
+
+        final String expectedToken = MessageFormat.format("sr={0}&sig={1}&se={2}&skn={3}",
+                resource,
+                "xlDKjMloif9wBtI21DrqLqpIqQNvgJLGLBU1SE8Sge4%3D",
+                String.valueOf(timestamp.getEpochSecond()),
+                sharedKeyName);
+        final String expectedUsername = MessageFormat.format("{0}@sas.root.{1}",
+                sharedKeyName,
+                resourceWithoutAzureSuffix);
+        final UserPasswordCredentials expectedCredentials = UserPasswordCredentials.newInstance(
+                expectedUsername, "SharedAccessSignature " + expectedToken);
+
+        assertThat(underTest.createSignedCredentials(timestamp)).contains(expectedCredentials);
+    }
+
 }

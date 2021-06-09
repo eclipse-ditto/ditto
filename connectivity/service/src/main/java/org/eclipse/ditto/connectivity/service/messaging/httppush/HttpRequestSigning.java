@@ -12,15 +12,9 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
-import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-
-import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
+import org.eclipse.ditto.connectivity.service.messaging.signing.Signing;
 
 import akka.NotUsed;
 import akka.http.javadsl.model.HttpRequest;
@@ -30,7 +24,7 @@ import akka.stream.javadsl.Source;
  * Functional interface for signing an HTTP request before sending it.
  */
 @FunctionalInterface
-public interface RequestSigning {
+public interface HttpRequestSigning extends Signing {
 
     /**
      * Sign an HTTP request.
@@ -49,27 +43,6 @@ public interface RequestSigning {
      */
     default Source<HttpRequest, NotUsed> sign(final HttpRequest request) {
         return sign(request, Instant.now());
-    }
-
-    /**
-     * Compute HMAC using SHA256 hash function.
-     *
-     * @param key the key.
-     * @param input the message.
-     * @return the HMAC.
-     */
-    static byte[] hmacSha256(final byte[] key, final String input) {
-        try {
-            final String hmacSha256 = "HmacSHA256";
-            final Mac mac = Mac.getInstance(hmacSha256);
-            mac.init(new SecretKeySpec(key, hmacSha256));
-            return mac.doFinal(input.getBytes(StandardCharsets.UTF_8));
-        } catch (final NoSuchAlgorithmException | InvalidKeyException e) {
-            throw MessageSendingFailedException.newBuilder()
-                    .message("Request signing failed.")
-                    .cause(e)
-                    .build();
-        }
     }
 
 }

@@ -20,6 +20,7 @@ import java.util.Base64;
 import java.util.Locale;
 
 import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
+import org.eclipse.ditto.connectivity.service.messaging.signing.Signing;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
@@ -34,7 +35,7 @@ import akka.util.ByteString;
 /**
  * Signing of HTTP requests to authenticate at Azure Monitor Data Collector.
  */
-final class AzMonitorRequestSigning implements RequestSigning {
+final class AzMonitorRequestSigning implements HttpRequestSigning {
 
     private static final String X_MS_DATE_HEADER = "x-ms-date";
 
@@ -73,7 +74,7 @@ final class AzMonitorRequestSigning implements RequestSigning {
                 .map(request::withEntity)
                 .map(strictRequest -> {
                     final String stringToSign = getStringToSign(strictRequest, timestamp);
-                    final byte[] signature = RequestSigning.hmacSha256(sharedKey.toArray(), stringToSign);
+                    final byte[] signature = Signing.hmacSha256(sharedKey.toArray(), stringToSign);
                     final HttpHeader xMsDate = HttpHeader.parse(X_MS_DATE_HEADER, X_MS_DATE_FORMAT.format(timestamp));
                     final HttpCredentials httpCredentials = toHttpCredentials(signature);
                     return request.addHeader(xMsDate).addCredentials(httpCredentials);

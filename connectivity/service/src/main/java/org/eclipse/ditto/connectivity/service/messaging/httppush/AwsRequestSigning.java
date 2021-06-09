@@ -27,6 +27,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.eclipse.ditto.base.service.UriEncoding;
+import org.eclipse.ditto.connectivity.service.messaging.signing.Signing;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.Hashes;
 import org.eclipse.ditto.json.JsonParseException;
 
@@ -46,7 +47,7 @@ import akka.util.ByteString;
 /**
  * Signing of HTTP requests to authenticate at AWS.
  */
-final class AwsRequestSigning implements RequestSigning {
+final class AwsRequestSigning implements HttpRequestSigning {
 
     private static final String ALGORITHM = "AWS4-HMAC-SHA256";
     private static final char[] LOWER_CASE_HEX_CHARS = "0123456789abcdef".toCharArray();
@@ -93,7 +94,7 @@ final class AwsRequestSigning implements RequestSigning {
                     final String payloadHash = getPayloadHash(strictRequest);
                     final String stringToSign =
                             getStringToSign(strictRequest, timestamp, doubleEncodeAndNormalize, payloadHash);
-                    final String signature = toLowerCaseHex(RequestSigning.hmacSha256(key, stringToSign));
+                    final String signature = toLowerCaseHex(Signing.hmacSha256(key, stringToSign));
                     final HttpRequest augmentedRequest;
                     if (xAmzContentSha256 == XAmzContentSha256.EXCLUDED) {
                         augmentedRequest = strictRequest
@@ -242,19 +243,19 @@ final class AwsRequestSigning implements RequestSigning {
 
     static byte[] getKDate(final byte[] kSecret, final Instant xAmzDate) {
         final String dateStamp = DATE_STAMP_FORMATTER.format(xAmzDate);
-        return RequestSigning.hmacSha256(kSecret, dateStamp);
+        return Signing.hmacSha256(kSecret, dateStamp);
     }
 
     static byte[] getKRegion(final byte[] kDate, final String region) {
-        return RequestSigning.hmacSha256(kDate, region);
+        return Signing.hmacSha256(kDate, region);
     }
 
     static byte[] getKService(final byte[] kRegion, final String service) {
-        return RequestSigning.hmacSha256(kRegion, service);
+        return Signing.hmacSha256(kRegion, service);
     }
 
     static byte[] getKSigning(final byte[] kService) {
-        return RequestSigning.hmacSha256(kService, "aws4_request");
+        return Signing.hmacSha256(kService, "aws4_request");
     }
 
     static Collection<String> toDeduplicatedSortedLowerCase(final List<String> strings,
