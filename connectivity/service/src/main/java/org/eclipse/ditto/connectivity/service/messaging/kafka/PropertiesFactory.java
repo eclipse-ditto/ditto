@@ -72,7 +72,7 @@ final class PropertiesFactory {
         return ConsumerSettings.apply(config.getConsumerConfig(), new StringDeserializer(), new StringDeserializer())
                 .withBootstrapServers(bootstrapServers)
                 .withGroupId(connection.getId().toString())
-                .withClientId(clientId);
+                .withClientId(clientId + "-consumer");
     }
 
     ProducerSettings<String, String> getProducerSettings() {
@@ -84,7 +84,7 @@ final class PropertiesFactory {
     }
 
     private Map<String, String> getClientIdProperties() {
-        return Map.of(CommonClientConfigs.CLIENT_ID_CONFIG, clientId);
+        return Map.of(CommonClientConfigs.CLIENT_ID_CONFIG, clientId + "-producer");
     }
 
     private Map<String, String> getSpecificConfigProperties() {
