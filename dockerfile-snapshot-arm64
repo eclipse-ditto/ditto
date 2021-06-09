@@ -23,14 +23,14 @@ ENV HTTP_PORT=8080 \
 # Http port
 EXPOSE 8080
 
-RUN mkdir -p $DITTO_HOME
-
 RUN set -x \
     && yum install -y wget ca-certificates shadow \
     && wget https://github.com/krallin/tini/releases/download/v0.19.0/tini-arm64 -O /sbin/tini \
     && chmod 755 /sbin/tini \
     && groupadd --system --gid 1000 ditto \
     && useradd --no-log-init --system --home-dir $DITTO_HOME --shell /bin/sh --gid ditto --uid 1000 ditto \
+    && mkdir -p $DITTO_HOME \
+    && mkdir -p $DITTO_LOGS \
     && cd $DITTO_HOME \
     && ln -s ${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar starter.jar \
     && chown -R ditto:ditto $DITTO_HOME \
