@@ -14,17 +14,11 @@
 package org.eclipse.ditto.connectivity.service.messaging;
 
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
-import java.time.Duration;
 import java.util.Collections;
-
-import javax.net.ssl.SSLContext;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.connectivity.model.ClientCertificateCredentials;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionBuilder;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
@@ -37,26 +31,17 @@ import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.EnableConnectionLogs;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.ResetConnectionLogs;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.ResetConnectionMetrics;
-import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionLogs;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionLogsResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetrics;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionStatus;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextCreator;
-import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.actor.Status;
-import akka.http.javadsl.Http;
-import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.model.Uri;
-import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
 import akka.testkit.javadsl.TestKit;
 
 /**
@@ -147,61 +132,6 @@ public abstract class AbstractBaseClientActorTest {
             clientActor.tell(ResetConnectionLogs.of(getConnectionId(), DittoHeaders.empty()), getRef());
 
             expectNoMessage();
-        }};
-    }
-
-    @Test
-    public void testTLSConnectionWithoutCertificateCheck() {
-        // GIVEN: server has a self-signed certificate (bind port number is random; connection port number is ignored)
-        final Connection serverConnection = getHttpConnectionBuilderToLocalBinding(true, 443).build();
-        final ClientCertificateCredentials credentials = ClientCertificateCredentials.newBuilder()
-                .clientKey(TestConstants.Certificates.CLIENT_SELF_SIGNED_KEY)
-                .clientCertificate(TestConstants.Certificates.CLIENT_SELF_SIGNED_CRT)
-                .build();
-        final ConnectionLogger connectionLogger = mock(ConnectionLogger.class);
-        final SSLContext sslContext =
-                SSLContextCreator.fromConnection(serverConnection, DittoHeaders.empty(), connectionLogger)
-                        .clientCertificate(credentials);
-        // TODO the above code is not used??? what does this test do?
-        //  check with YC
-
-        final ActorSystem actorSystem = getActorSystem();
-        final ServerBinding binding = Http.get(actorSystem)
-                .newServerAt("127.0.0.1", 0)
-                // TODO YC: use sslContext for server binding
-                .bindFlow(Flow.fromSinkAndSource(Sink.ignore(), Source.empty()))
-                .toCompletableFuture()
-                .join();
-
-        new TestKit(actorSystem) {{
-            // WHEN: the connection is tested against a client actor that really tries to connect to the local port
-            final Connection secureConnection = getConnection(true);
-            final Connection insecureConnection = secureConnection.toBuilder()
-                    .uri(Uri.create(secureConnection.getUri()).port(binding.localAddress().getPort()).toString())
-                    .validateCertificate(false)
-                    .failoverEnabled(false)
-                    .build();
-            final ActorRef underTest = watch(actorSystem.actorOf(
-                    DefaultClientActorPropsFactory.getInstance()
-                            .getActorPropsForType(insecureConnection, getRef(), getRef(), actorSystem)
-            ));
-            underTest.tell(TestConnection.of(insecureConnection, DittoHeaders.empty()), getRef());
-
-            // THEN: the test should succeed, or it should fail with a different reason than SSL validation
-            final Object response = expectMsgClass(Duration.ofSeconds(5), Object.class);
-            if (response instanceof Status.Failure) {
-                final DittoRuntimeException error =
-                        (DittoRuntimeException) getEventualCause(((Status.Failure) response).cause());
-                assertThat(error.getMessage())
-                        .describedAs("error message")
-                        .doesNotContain("unable to find valid certification path");
-                assertThat(error.getDescription().orElse(""))
-                        .describedAs("error description")
-                        .doesNotContain("unable to find valid certification path");
-            } else {
-                assertThat(response).isInstanceOf(Status.Success.class);
-            }
-            expectTerminated(underTest);
         }};
     }
 
