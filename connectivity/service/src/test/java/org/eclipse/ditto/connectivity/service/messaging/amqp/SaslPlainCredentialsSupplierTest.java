@@ -14,6 +14,7 @@
 package org.eclipse.ditto.connectivity.service.messaging.amqp;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -23,10 +24,12 @@ import java.util.regex.Pattern;
 
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.HmacCredentials;
+import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
+import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
-import org.eclipse.ditto.connectivity.service.messaging.signing.AzSaslSigning;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.httppush.AzMonitorRequestSigningFactory;
+import org.eclipse.ditto.connectivity.service.messaging.signing.AzSaslSigning;
 import org.eclipse.ditto.connectivity.service.messaging.signing.AzSaslSigningFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.junit.AfterClass;
@@ -38,6 +41,7 @@ import akka.actor.ActorSystem;
 /**
  * Unit test for {@link SaslPlainCredentialsSupplier}.
  */
+@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public final class SaslPlainCredentialsSupplierTest {
 
     private static final String SHARED_KEY_NAME = "name";
@@ -79,7 +83,8 @@ public final class SaslPlainCredentialsSupplierTest {
 
         final Instant expiry = extractExpiryFromSharedAccessSignature(credentials.get().getPassword());
         final Instant calculationTimestamp = expiry.minus(TTL);
-        final Optional<UserPasswordCredentials> expectedCredentials = expectedSigning.createSignedCredentials(calculationTimestamp);
+        final Optional<UserPasswordCredentials> expectedCredentials =
+                expectedSigning.createSignedCredentials(calculationTimestamp);
 
         assertThat(credentials).isEqualTo(expectedCredentials);
     }
@@ -98,6 +103,32 @@ public final class SaslPlainCredentialsSupplierTest {
                 .withFailMessage(
                         "SaslPlainCredentialsSupplier should not provide credentials for connection without credentials")
                 .isEmpty();
+    }
+
+    @Test
+    public void createFromUriIfCredentialTypeDoesNotMatch() {
+        final Connection connection = TestConstants.createConnection()
+                .toBuilder()
+                .uri("http://user:pass@localhost:1234")
+                .credentials(SshPublicKeyCredentials.of("user", "publicKey", "privateKey"))
+                .build();
+
+        final Optional<UserPasswordCredentials> result =
+                SaslPlainCredentialsSupplier.of(actorSystem).get(connection);
+
+        assertThat(result).contains(UserPasswordCredentials.newInstance("user", "pass"));
+    }
+
+    @Test
+    public void failForUnknownHmacAlgorithm() {
+        final Connection connection = TestConstants.createConnection()
+                .toBuilder()
+                .uri("http://localhost:1234")
+                .credentials(createAzMonitorHmacCredentials())
+                .build();
+
+        assertThatExceptionOfType(MessageSendingFailedException.class)
+                .isThrownBy(() -> SaslPlainCredentialsSupplier.of(actorSystem).get(connection));
     }
 
     private Instant extractExpiryFromSharedAccessSignature(final String password) {

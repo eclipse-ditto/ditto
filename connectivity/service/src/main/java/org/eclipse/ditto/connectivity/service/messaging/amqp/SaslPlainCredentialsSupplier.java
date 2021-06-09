@@ -43,7 +43,7 @@ final class SaslPlainCredentialsSupplier implements PlainCredentialsSupplier {
         if (optionalCredentials.isPresent()) {
             final var credentials = optionalCredentials.get();
             final var requestSigning = credentials.accept(amqpConnectionSigningExtension);
-            return requestSigning.createSignedCredentials();
+            return requestSigning.createSignedCredentials().or(() -> FROM_URI.get(connection));
         }
         return FROM_URI.get(connection);
     }
