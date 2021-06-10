@@ -19,11 +19,11 @@ import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
+import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 
 import akka.actor.AbstractActor;
@@ -164,9 +164,9 @@ public final class ResponseCollectorActor extends AbstractActor {
 
         @Override
         public String toString() {
-            return getClass().getSimpleName() +
-                    "[expectedCount=" + expectedCount +
-                    ",commandResponses=" + commandResponses +
+            return getClass().getSimpleName() + "[" +
+                    "expectedCount=" + expectedCount +
+                    ", commandResponses=" + commandResponses +
                     "]";
         }
 

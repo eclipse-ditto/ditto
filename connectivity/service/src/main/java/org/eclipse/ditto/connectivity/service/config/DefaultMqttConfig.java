@@ -31,14 +31,15 @@ import com.typesafe.config.ConfigFactory;
 public final class DefaultMqttConfig implements MqttConfig {
 
     private static final String CONFIG_PATH = "mqtt";
-    private static final String RECONNECT_BACKOFF_PATH = "reconnect";
+    private static final String RECONNECT_PATH = "reconnect";
 
     private final int sourceBufferSize;
     private final int eventLoopThreads;
     private final boolean cleanSession;
     private final boolean reconnectForRedelivery;
-    private final boolean useSeparateClientForPublisher;
     private final Duration reconnectForRedeliveryDelay;
+    private final boolean useSeparateClientForPublisher;
+    private final Duration reconnectMinTimeoutForMqttBrokerInitiatedDisconnect;
     private final BackOffConfig reconnectBackOffConfig;
 
     private DefaultMqttConfig(final ScopedConfig config) {
@@ -49,8 +50,11 @@ public final class DefaultMqttConfig implements MqttConfig {
         reconnectForRedeliveryDelay =
                 config.getDuration(MqttConfigValue.RECONNECT_FOR_REDELIVERY_DELAY.getConfigPath());
         useSeparateClientForPublisher = config.getBoolean(MqttConfigValue.SEPARATE_PUBLISHER_CLIENT.getConfigPath());
-        reconnectBackOffConfig = DefaultBackOffConfig.of(config.hasPath(RECONNECT_BACKOFF_PATH)
-                ? config.getConfig(RECONNECT_BACKOFF_PATH)
+        reconnectMinTimeoutForMqttBrokerInitiatedDisconnect =
+                config.getDuration(MqttConfigValue.RECONNECT_MIN_TIMEOUT_FOR_MQTT_BROKER_INITIATED_DISCONNECT
+                        .getConfigPath());
+        reconnectBackOffConfig = DefaultBackOffConfig.of(config.hasPath(RECONNECT_PATH)
+                ? config.getConfig(RECONNECT_PATH)
                 : ConfigFactory.parseString("backoff" + "={}"));
     }
 
@@ -96,6 +100,11 @@ public final class DefaultMqttConfig implements MqttConfig {
     }
 
     @Override
+    public Duration getReconnectMinTimeoutForMqttBrokerInitiatedDisconnect() {
+        return reconnectMinTimeoutForMqttBrokerInitiatedDisconnect;
+    }
+
+    @Override
     public BackOffConfig getReconnectBackOffConfig() {
         return reconnectBackOffConfig;
     }
@@ -115,13 +124,16 @@ public final class DefaultMqttConfig implements MqttConfig {
                 Objects.equals(reconnectForRedelivery, that.reconnectForRedelivery) &&
                 Objects.equals(reconnectForRedeliveryDelay, that.reconnectForRedeliveryDelay) &&
                 Objects.equals(useSeparateClientForPublisher, that.useSeparateClientForPublisher) &&
+                Objects.equals(reconnectMinTimeoutForMqttBrokerInitiatedDisconnect,
+                        that.reconnectMinTimeoutForMqttBrokerInitiatedDisconnect) &&
                 Objects.equals(reconnectBackOffConfig, that.reconnectBackOffConfig);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(sourceBufferSize, eventLoopThreads, cleanSession, reconnectForRedelivery,
-                reconnectForRedeliveryDelay, useSeparateClientForPublisher, reconnectBackOffConfig);
+                reconnectForRedeliveryDelay, useSeparateClientForPublisher,
+                reconnectMinTimeoutForMqttBrokerInitiatedDisconnect, reconnectBackOffConfig);
     }
 
     @Override
@@ -133,6 +145,8 @@ public final class DefaultMqttConfig implements MqttConfig {
                 ", reconnectForRedelivery=" + reconnectForRedelivery +
                 ", reconnectForRedeliveryDelay=" + reconnectForRedeliveryDelay +
                 ", useSeparateClientForPublisher=" + useSeparateClientForPublisher +
+                ", reconnectMinTimeoutForMqttBrokerInitiatedDisconnect=" +
+                reconnectMinTimeoutForMqttBrokerInitiatedDisconnect +
                 ", reconnectBackOffConfig=" + reconnectBackOffConfig +
                 "]";
     }
