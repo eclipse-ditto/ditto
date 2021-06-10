@@ -24,6 +24,8 @@ import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 
 /**
  * Functional interface for signing a request before sending it.
+ *
+ * @since 2.1.0
  */
 public interface Signing {
 

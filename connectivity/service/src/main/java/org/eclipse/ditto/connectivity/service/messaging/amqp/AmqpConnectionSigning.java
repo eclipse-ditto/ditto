@@ -20,6 +20,8 @@ import org.eclipse.ditto.connectivity.service.messaging.signing.Signing;
 
 /**
  * Functional interface for preparing signing information for AMQP connection.
+ *
+ * @since 2.1.0
  */
 @FunctionalInterface
 public interface AmqpConnectionSigning extends Signing {

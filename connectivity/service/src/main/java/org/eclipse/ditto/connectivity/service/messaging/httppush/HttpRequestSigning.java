@@ -22,6 +22,8 @@ import akka.stream.javadsl.Source;
 
 /**
  * Functional interface for signing an HTTP request before sending it.
+ *
+ * @since 2.1.0
  */
 @FunctionalInterface
 public interface HttpRequestSigning extends Signing {

@@ -81,7 +81,7 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
         final org.apache.qpid.jms.JmsConnectionFactory cf =
                 (org.apache.qpid.jms.JmsConnectionFactory) ctx.lookup(connection.getId().toString());
 
-        if (isSecuredConnection(connection) && connection.isValidateCertificates()) {
+        if (isSecuredConnection(connection)) {
             cf.setSslContext(SSLContextCreator.fromConnection(connection, null, connectionLogger)
                     .withoutClientCertificate());
         }
