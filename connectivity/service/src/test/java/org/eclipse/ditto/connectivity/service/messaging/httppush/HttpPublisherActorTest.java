@@ -792,13 +792,15 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
         }};
     }
 
-
     @Test
     public void testReservedHeaders() throws Exception {
         new TestKit(actorSystem) {{
 
             // GIVEN: reserved headers are set
-            final Map<String, String> reservedHeaders = Map.of("http.query", "a=b&c=d&e=f");
+            final Map<String, String> reservedHeaders = Map.of(
+                    "http.query", "a=b&c=d&e=f",
+                    "http.path", "my/awesome/path"
+            );
 
             // WHEN: publisher actor is asked to publish a message with reserved headers
             final TestProbe probe = new TestProbe(actorSystem);
@@ -828,9 +830,11 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             // THEN: reserved headers do not appear as HTTP headers
             final HttpRequest request = received.take();
             assertThat(request.getHeader("http.query")).isEmpty();
+            assertThat(request.getHeader("http.path")).isEmpty();
 
             // THEN: reserved headers are evaluated
             assertThat(request.getUri().queryString(StandardCharsets.UTF_8)).contains("a=b&c=d&e=f");
+            assertThat(request.getUri().getPathString()).isEqualTo("/my/awesome/path");
         }};
     }
 
