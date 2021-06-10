@@ -177,8 +177,8 @@ Gathering logs for a running Ditto installation can be achieved by:
        * `DITTO_LOGGING_TOTAL_LOG_FILE_SIZE` (default: 1GB)
    * the format in which logging is done is "LogstashEncoder" format - that way the logfiles may easily be imported into
      an ELK stack
-   * when running Ditto in Kubernetes uncomment the initContainers part in the `ditto-cluster.yaml` to be able to 
-     mount log files to the host.  
+   * when running Ditto in Kubernetes apply the `ditto-log-files.yaml` to your Kubernetes cluster in order to 
+     mount log files to the host system.
 
 ## Monitoring
 
@@ -377,7 +377,7 @@ Retrieve the configuration at the path `ditto.info` thus:
 
 `GET /devops/config?path=ditto.info`
 
-It is recommended to not omit the query parameter `path`. Otherwise the full configurations of all services are
+It is recommended to not omit the query parameter `path`. Otherwise, the full configurations of all services are
 aggregated in the response, which can become megabytes big.
 
 The path `ditto.info` points to information on service name, service instance index, JVM arguments and environment
