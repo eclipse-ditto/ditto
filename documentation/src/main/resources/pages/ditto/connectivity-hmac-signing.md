@@ -1,6 +1,6 @@
 ---
 title: HMAC request signing
-keywords: hmac, hmac-sha256, authorization, azure, aws, azure iot hub, azure service bus, azure monitor, aws version 4 signing, aws sns
+keywords: hmac, hmac-sha256, authorization, azure, aws, azure iot hub, azure service bus, azure monitor, aws version 4 signing, aws sns, signing
 tags: [connectivity]
 permalink: connectivity-hmac-signing.html
 ---
@@ -70,15 +70,17 @@ and Azure Service Bus (HTTP) [Shared Access Signatures](https://docs.microsoft.c
 
 The parameters of the algorithm `az-sasl` are:
 - `sharedKeyName`: Name of the used `sharedKey`.
-- `sharedKey`: Primary or secondary key of `sharedKeyName`. The key for Azure Service Bus will need an additional
-  `Base64` encoding to work (e.g. the primary key `theKey` should be encoded to `dGhlS2V5` and used in this format).
+- `sharedKey`: Primary or secondary key of `sharedKeyName`. The key for Azure Service Bus needs an additional
+  `Base64` encoding to work (e.g. a primary key `theKey` should be encoded to `dGhlS2V5` and used in this format).
 - `endpoint`: The endpoint which is used in the signature. For Azure IoT Hub this is expected
   to be the `resourceUri` without protocol (e.g. `myHub.azure-devices.net`, see the respective Azure documentation).
   For Azure Service Bus, this is expected to be the full URI of the resource to which access
   is claimed (e.g. `http://myNamespaces.servicebus.windows.net/myQueue`, see the respective Azue documentation)
-- `ttl` (optional): The time to live of a signature. Should only be used for AMQP connections and defines how long
-  the connection signing is valid. The broker (e.g. Azure IoT Hub) will close the connection after `ttl`, Ditto
-  will calculate a new signature and connect again.
+- `ttl` (optional): The time to live of a signature as a string in duration format. Allowed time units are "ms" (milliseconds),
+  "s" (seconds) and "m" (minutes), e.g. "10m" for ten minutes.
+  `ttl` should only be set for AMQP connections and defines how long the connection signing is valid.
+  The broker (e.g. Azure IoT Hub) will close the connection after `ttl` and Ditto will reconnect with a new signature.
+  Defaults to 7 days.
   
 
 ### Supported connection types
@@ -108,15 +110,15 @@ ditto.connectivity.connection {
       "org.eclipse.ditto.connectivity.service.messaging.signing.AzSaslSigningFactory"
 
     // my-own-request-signing-algorithm =
-    //   "my.package.MyOwnImplementationOfRequestSigningFactory"
+    //   "my.package.MyOwnImplementationOfHttpRequestSigningFactory"
   }
   amqp10.hmac-algorithms = {
 
     az-sasl =
       "org.eclipse.ditto.connectivity.service.messaging.signing.AzSaslSigningFactory"
 
-    // my-own-request-signing-algorithm =
-    //   "my.package.MyOwnImplementationOfRequestSigningFactory"
+    // my-own-connection-signing-algorithm =
+    //   "my.package.MyOwnImplementationOfAmqpConnectionSigningFactory"
   }
 }
 ```

@@ -4,7 +4,7 @@ published: true
 permalink: 2099-01-01-hmac-credentials.html
 layout: post
 author: florian_fendt
-tags: [blog, architecture, connectivity, hmac, azure, azure iot hub, azure service bus, azure monitor, aws sns, sns, aws]
+tags: [blog, architecture, connectivity, hmac, azure, azure iot hub, azure service bus, azure monitor, aws sns, sns, aws, signing, example]
 hide_sidebar: true
 sidebar: false
 toc: true
@@ -88,9 +88,9 @@ Azure IoT Hub instance:
 * The name of a (Azure IoT Hub) shared access policy, which has the `Service connect` permission. By default, there
   should be a policy named `service` which provides this permission.
 * The primary or secondary key of above policy.  
-* A device with the id `ditto:thing` (see Prerequisites).
+* A device in Azure IoT Hub with the ID `ditto:thing` (for the example this needs to be the same ID as the Thing created in prerequisites).
 
-What follows is a sample connection JSON named `Azure IoT Hub HTTP`, using hostname `my-hub.azure-devices.net` and
+What follows is a sample connection JSON for a connection named `Azure IoT Hub HTTP`, using hostname `my-hub.azure-devices.net` and
 shared access policy `service` with key `theKey`. You can set the correct values from your Azure IoT Hub subscription
 in the fields `uri`, `credentials.parameters.sharedKeyName`, `credentials.parameters.sharedKey` and
 `credentials.parameters.endpoint`.
@@ -154,12 +154,12 @@ special format which you'll see below.
 
 ## Listen for direct method on the device
 
-Your device needs to listen to the direct method you're calling. Imagine you want to call a
+Your Azure IoT Hub device needs to listen to the direct method you're calling. Imagine you want to call a
 device method `getDeviceLog` on a device. You can use the Nodejs sample [device_methods.js from azure-iot-sdk-node/device/samples](https://github.com/Azure/azure-iot-sdk-node/blob/f526f203ddc9ee32e3c92066312417d2ef6303de/device/samples/device_methods.js)
 as a starter. You'll need to set the `DEVICE_CONNECTION_STRING` environment variable to a connection string of the
 device you are using and can run the device with `npm install && node device_methods.js`.
 
-## Send a live message to the thing
+## Send a live message to the Thing
 
 To invoke the `getDeviceLog` method on the device, you should now be able to send a live message to the Thing. The message
 will be forwarded through your connection `Azure IoT Hub HTTP` to the Azure IoT Hub, which will route it to the device
@@ -185,14 +185,14 @@ send a Cloud To Device (C2D) message, on which the device listens.
 
 {% include note.html content="Instead of signing each request like in HTTP push connections, the connection itself is
 established with signed connection information. For this, the `ttl` parameter of the `az-sasl` algorithm applies 
-(see [connectivity-hmac-signing.html](connectivity-hmac-signing.html#az-sasl))."
+(see [documentation of the az-sasl algorithm](connectivity-hmac-signing.html#az-sasl))."
 %}
 
 You can use the Nodejs sample [simple_sample_device.js from azure-iot-sdk-node/device/samples](https://github.com/Azure/azure-iot-sdk-node/blob/f526f203ddc9ee32e3c92066312417d2ef6303de/device/samples/simple_sample_device.js)
 to listen on C2D messages as a device. You'll need to set the `DEVICE_CONNECTION_STRING` environment variable to a connection string of the
 device you are using and can run the device with `npm install && node simple_sample_device.js`.
 
-What follows is a sample connection JSON named `Azure IoT Hub AMPQ`, using hostname `my-hub.azure-devices.net` and
+What follows is a sample connection JSON for a connection named `Azure IoT Hub AMPQ`, using hostname `my-hub.azure-devices.net` and
 shared access policy `service` with key `theKey`. You can set the correct values from your Azure IoT Hub subscription
 in the fields `uri`, `credentials.parameters.sharedKeyName`, `credentials.parameters.sharedKey` and
 `credentials.parameters.endpoint`.
@@ -265,7 +265,7 @@ Azure IoT Hub instance:
   version `dGhlS2V5`.
 
 
-What follows is a sample connection JSON named `Azure Service Bus HTTP`, using hostname `my-bus.servicebus.windows.net` and
+What follows is a sample connection JSON for a connection named `Azure Service Bus HTTP`, using hostname `my-bus.servicebus.windows.net` and
 shared access policy `RootManageSharedAccessKey` with encoded key `dGhlS2V5` (`theKey`). You can set the correct values
 from your Azure Service Bus subscription in the fields `uri`, `credentials.parameters.sharedKeyName`,
 `credentials.parameters.sharedKey` and
@@ -320,7 +320,7 @@ You'll need to set the `SERVICEBUS_CONNECTION_STRING` environment variable to th
 shared access policy. Also, you'll need to set the `QUEUE_NAME` environment variable to the
 used queue (e.g. `my-queue`). You should be able to run the sample using `npm install && node receiveMessagesStreaming.js`.
 
-## Send a live message to the thing
+## Send a live message to the Thing
 
 To send a message to Service Bus, you can simply send a live message to a Thing. The message
 will be forwarded through your connection `Azure Service Bus HTTP` to the Azure Service Bus, from which the sample
@@ -336,6 +336,9 @@ app can read the message.
 If you didn't change the sample code you should see the message arriving there.
 
 ## Feedback?
+
+Find details on the different algorithms and their parameters at
+[Connectivity API > HMAC request signing](connectivity-hmac-signing.html).
 
 Please [get in touch](feedback.html) if you have feedback or questions regarding this new functionality.
 
