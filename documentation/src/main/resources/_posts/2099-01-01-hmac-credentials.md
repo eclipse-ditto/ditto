@@ -101,7 +101,7 @@ in the fields `uri`, `credentials.parameters.sharedKeyName`, `credentials.parame
 		"id": "60d193e3-2639-415b-af29-0e337741141d",
 		"name": "Azure IoT Hub HTTP",
 		"connectionType": "http-push",
-		"connectionStatus": "opened",
+		"connectionStatus": "open",
 		"uri": "https://my-hub.azure-devices.net:443",
 		"sources": [],
 		"targets": [{
@@ -277,7 +277,7 @@ from your Azure Service Bus subscription in the fields `uri`, `credentials.param
   "id": "adec2846-4d11-4e0a-b456-d8bfc2192fc6",
   "name": "Azure Service Bus HTTP",
   "connectionType": "http-push",
-  "connectionStatus": "closed",
+  "connectionStatus": "open",
   "uri": "https://my-bus.servicebus.windows.net:443",
   "sources": [],
   "targets": [{
