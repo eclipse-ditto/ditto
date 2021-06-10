@@ -70,7 +70,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
 
         log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
 
-        final ConsumerSettings<String, String> consumerSettings = propertiesFactory.getConsumerSettings();
+        final ConsumerSettings<String, String> consumerSettings = propertiesFactory.getConsumerSettings(dryRun);
         final Enforcement enforcement = source.getEnforcement().orElse(null);
         final EnforcementFilterFactory<Map<String, String>, Signal<?>> headerEnforcementFilterFactory =
                 enforcement != null
@@ -147,13 +147,14 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                 final KafkaConfig kafkaConfig,
                 final ConsumerSettings<String, String> consumerSettings,
                 final KafkaMessageTransformer kafkaMessageTransformer,
-                final boolean dryRun, //TODO: handle dry run
+                final boolean dryRun,
                 final Materializer materializer) {
 
             this.materializer = materializer;
             runnableKafkaStream = Consumer.plainSource(consumerSettings, Subscriptions.topics(sourceAddress))
                     .throttle(kafkaConfig.getConsumerThrottlingConfig().getLimit(),
                             kafkaConfig.getConsumerThrottlingConfig().getInterval())
+                    .filter(record -> isNotDryRun(record, dryRun))
                     .filter(consumerRecord -> consumerRecord.value() != null)
                     .filter(this::isNotExpired)
                     .map(kafkaMessageTransformer::transform)
@@ -195,6 +196,14 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                 // Errors during reading/parsing headers should not cause the message to be dropped.
                 return true;
             }
+        }
+
+        private boolean isNotDryRun(final ConsumerRecord<String, String> record, final boolean dryRun) {
+            if (dryRun && log.isDebugEnabled()) {
+                log.debug("Dropping record (key: {}, topic: {}, partition: {}, offset: {}) in dry run mode.",
+                        record.key(), record.topic(), record.partition(), record.offset());
+            }
+            return !dryRun;
         }
 
         private void forwardExternalMessage(final ExternalMessage value) {
