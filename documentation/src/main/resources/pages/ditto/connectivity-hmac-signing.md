@@ -75,9 +75,9 @@ The parameters of the algorithm `az-sasl` are:
 - `endpoint`: The endpoint which is used in the signature. For Azure IoT Hub this is expected
   to be the `resourceUri` without protocol (e.g. `myHub.azure-devices.net`, see the respective Azure documentation).
   For Azure Service Bus, this is expected to be the full URI of the resource to which access
-  is claimed (e.g. `http://myNamespaces.servicebus.windows.net/myQueue`, see the respective Azue documentation)
+  is claimed (e.g. `https://myNamespaces.servicebus.windows.net/myQueue`, see the respective Azure documentation)
 - `ttl` (optional): The time to live of a signature as a string in duration format. Allowed time units are "ms" (milliseconds),
-  "s" (seconds) and "m" (minutes), e.g. "10m" for ten minutes.
+  "s" (seconds), "m" (minutes) and "h" (hours), e.g. "10m" for ten minutes.
   `ttl` should only be set for AMQP connections and defines how long the connection signing is valid.
   The broker (e.g. Azure IoT Hub) will close the connection after `ttl` and Ditto will reconnect with a new signature.
   Defaults to 7 days.
@@ -347,5 +347,5 @@ Required parameters:
 * `<queue-name>`: The queue name to which you want to publish in your service bus instance. E.g. `my-queue`'.
 * `<shared-access-policy-name>`: The name of the (Azure Service Bus) shared access policy, which has `Send` and `Listen` permissions. E.g. `RootManageSharedAccessKey`.
 * `<base64-encoded-shared-key>`: The `Base64` encoded primary or secondary key of above policy. The signing work if you
-  encode the key with `Base64` (although it already has `Base64` encoding)`. E.g. if the primary key is `theKey`, you need to use
-  its encoded version `dGhlS2V5`
+  encode the key with `Base64` (although it already has `Base64` encoding). E.g. if the primary key is `theKey`, you need to use
+  its encoded version `dGhlS2V5`.
