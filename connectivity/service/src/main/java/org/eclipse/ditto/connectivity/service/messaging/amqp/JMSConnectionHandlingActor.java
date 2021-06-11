@@ -35,11 +35,12 @@ import org.apache.qpid.jms.JmsConnection;
 import org.apache.qpid.jms.JmsQueue;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.Source;
+import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
+import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionUnauthorizedException;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableClientDisconnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
-import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionUnauthorizedException;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -232,9 +233,11 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
     private void handleDisconnect(final AmqpClientActor.JmsDisconnect disconnect) {
         final Optional<javax.jms.Connection> connectionOpt = disconnect.getConnection();
         if (connectionOpt.isPresent()) {
-            disconnectAndTell(connectionOpt.get(), disconnect.getOrigin().orElse(null));
+            disconnectAndTell(connectionOpt.get(), disconnect.getOrigin().orElse(null),
+                    disconnect.isShutdownAfterDisconnect());
         } else {
-            final Object answer = new AmqpClientActor.JmsDisconnected(disconnect.getOrigin().orElse(null));
+            final Object answer = new ImmutableClientDisconnected(disconnect.getOrigin().orElse(null),
+                    disconnect.isShutdownAfterDisconnect());
             getSender().tell(answer, getSelf());
         }
     }
@@ -412,12 +415,13 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
         }
     }
 
-    private void disconnectAndTell(final javax.jms.Connection connection, @Nullable final ActorRef origin) {
+    private void disconnectAndTell(final javax.jms.Connection connection, @Nullable final ActorRef origin,
+            final boolean shutdownAfterDisconnect) {
         log.debug("Closing JMS connection {}", this.connection.getId());
         terminateConnection(connection);
         log.info("Connection <{}> closed.", this.connection.getId());
 
-        getSender().tell(new AmqpClientActor.JmsDisconnected(origin), getSelf());
+        getSender().tell(new ImmutableClientDisconnected(origin, shutdownAfterDisconnect), getSelf());
     }
 
 

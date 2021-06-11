@@ -124,12 +124,12 @@ public interface ClientConfig {
         CONNECTING_MAX_TIMEOUT("connecting-max-timeout", Duration.ofMinutes(60L)),
 
         /**
-         * See documentation on {@link ClientConfig#getDisconnectingMaxTimeout()} ()}.
+         * See documentation on {@link ClientConfig#getDisconnectingMaxTimeout()}.
          */
-        DISCONNECTING_MAX_TIMEOUT("disconnecting-max-timeout", CONNECTING_MIN_TIMEOUT.getDefaultValue()),
+        DISCONNECTING_MAX_TIMEOUT("disconnecting-max-timeout", Duration.ofSeconds(5L)),
 
         /**
-         * See documentation on {@link ClientConfig#getDisconnectAnnouncementTimeout()} ()} ()}.
+         * See documentation on {@link ClientConfig#getDisconnectAnnouncementTimeout()}.
          */
         DISCONNECT_ANNOUNCEMENT_TIMEOUT("disconnect-announcement-timeout", Duration.ofSeconds(3L)),
 
