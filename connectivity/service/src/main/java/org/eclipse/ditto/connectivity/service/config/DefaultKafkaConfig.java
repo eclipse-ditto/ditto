@@ -103,7 +103,8 @@ public final class DefaultKafkaConfig implements KafkaConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(consumerConfig, producerConfig, consumerThrottlingConfig);
+        return Objects.hash(consumerConfig, consumerThrottlingConfig, producerConfig, producerQueueSize,
+                producerParallelism);
     }
 
     @Override
