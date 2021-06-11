@@ -14,9 +14,11 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -31,7 +33,6 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
-import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
@@ -40,6 +41,7 @@ import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.model.Target;
+import org.eclipse.ditto.connectivity.service.config.KafkaConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.ExceptionToAcknowledgementConverter;
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
@@ -50,9 +52,24 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import akka.Done;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.japi.Pair;
+import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
-import akka.kafka.javadsl.SendProducer;
+import akka.kafka.ProducerMessage;
+import akka.kafka.ProducerSettings;
+import akka.kafka.javadsl.Producer;
+import akka.stream.KillSwitch;
+import akka.stream.KillSwitches;
+import akka.stream.Materializer;
+import akka.stream.OverflowStrategy;
+import akka.stream.QueueOfferResult;
+import akka.stream.UniqueKillSwitch;
+import akka.stream.javadsl.Keep;
+import akka.stream.javadsl.Sink;
+import akka.stream.javadsl.Source;
+import akka.stream.javadsl.SourceQueueWithComplete;
 import akka.util.ByteString;
+import scala.PartialFunction;
 
 /**
  * Responsible for publishing {@link org.eclipse.ditto.connectivity.api.ExternalMessage}s into an Kafka
@@ -62,20 +79,23 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
     static final String ACTOR_NAME = "kafkaPublisher";
 
-    private final KafkaProducerFactory producerFactory;
     private final boolean dryRun;
-
-    private SendProducer<String, String> producer;
+    private final KafkaProducerStream producerStream;
 
     @SuppressWarnings("unused")
-    private KafkaPublisherActor(final Connection connection, final KafkaProducerFactory factory,
-            final boolean dryRun, final String clientId) {
-
+    private KafkaPublisherActor(final Connection connection,
+            final KafkaConfig config,
+            final PropertiesFactory propertiesFactory,
+            final boolean dryRun,
+            final String clientId) {
         super(connection, clientId);
-        this.dryRun = dryRun;
-        producerFactory = factory;
 
-        startInternalKafkaProducer();
+        this.dryRun = dryRun;
+
+        final ProducerSettings<String, String> producerSettings = propertiesFactory.getProducerSettings();
+        final Materializer materializer = Materializer.createMaterializer(this::getContext);
+        producerStream = new KafkaProducerStream(config, producerSettings, materializer);
+
         reportInitialConnectionState();
     }
 
@@ -83,21 +103,19 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
      * Creates Akka configuration object {@link akka.actor.Props} for this {@code BasePublisherActor}.
      *
      * @param connection the connection this publisher belongs to.
-     * @param factory the factory to create Kafka connections with.
+     * @param config configuration for the kafka client.
+     * @param propertiesFactory factory to create kafka consumer settings.
      * @param dryRun whether this publisher is only created for a test or not.
      * @param clientId identifier of the client actor.
      * @return the Akka configuration Props object.
      */
-    static Props props(final Connection connection, final KafkaProducerFactory factory, final boolean dryRun,
+    static Props props(final Connection connection,
+            final KafkaConfig config,
+            final PropertiesFactory propertiesFactory,
+            final boolean dryRun,
             final String clientId) {
 
-        return Props.create(KafkaPublisherActor.class, connection, factory, dryRun, clientId);
-    }
-
-    @Override
-    public void postStop() throws Exception {
-        closeProducer();
-        super.postStop();
+        return Props.create(KafkaPublisherActor.class, connection, config, propertiesFactory, dryRun, clientId);
     }
 
     @Override
@@ -107,9 +125,10 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
     @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
-        receiveBuilder.match(OutboundSignal.Mapped.class, this::isDryRun,
-                outbound -> logger.withCorrelationId(outbound.getSource())
-                        .info("Message dropped in dry run mode: {}", outbound))
+        receiveBuilder
+                .match(OutboundSignal.Mapped.class, this::isDryRun, outbound ->
+                        logger.withCorrelationId(outbound.getSource())
+                                .info("Message dropped in dry run mode: {}", outbound))
                 .matchEquals(GracefulStop.INSTANCE, unused -> this.stopGracefully());
     }
 
@@ -131,28 +150,26 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             final int maxTotalMessageSize,
             final int ackSizeQuota) {
 
-        if (producer == null) {
-            final MessageSendingFailedException error = MessageSendingFailedException.newBuilder()
-                    .message("Kafka producer is not available.")
-                    .dittoHeaders(signal.getDittoHeaders())
-                    .build();
-            escalate(error, "Requested to send Kafka message without producer; this is a bug.");
-            return CompletableFuture.failedFuture(error);
-        } else {
-            final ExternalMessage messageWithConnectionIdHeader = message
-                    .withHeader("ditto-connection-id", connection.getId().toString());
-            final ProducerRecord<String, String> record = producerRecord(publishTarget, messageWithConnectionIdHeader);
-            @Nullable final AcknowledgementLabel autoAckLabel = getAcknowledgementLabel(autoAckTarget).orElse(null);
-            final Function<RecordMetadata, SendResult> callBack =
-                    new ProducerCallBack(signal, autoAckLabel, ackSizeQuota, connection);
-            return producer.send(record)
-                    .thenApply(callBack)
-                    .whenComplete((metadata, throwable) -> {
-                        if (throwable != null) {
-                            escalateIfNotRetryable(throwable);
-                        }
-                    });
-        }
+        @Nullable final AcknowledgementLabel autoAckLabel = getAcknowledgementLabel(autoAckTarget).orElse(null);
+        final Function<RecordMetadata, SendResult> callback =
+                new ProducerCallback(signal, autoAckLabel, ackSizeQuota, connection);
+
+        final ExternalMessage messageWithConnectionIdHeader = message
+                .withHeader("ditto-connection-id", connection.getId().toString());
+
+        return producerStream.publish(publishTarget, messageWithConnectionIdHeader)
+                .thenApply(callback)
+                .whenComplete((metadata, throwable) -> {
+                    if (throwable != null) {
+                        escalateIfNotRetryable(throwable);
+                    }
+                });
+    }
+
+    @Override
+    public void postStop() throws Exception {
+        super.postStop();
+        producerStream.shutdown();
     }
 
     /**
@@ -172,63 +189,12 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         return dryRun;
     }
 
-    private static ProducerRecord<String, String> producerRecord(final KafkaPublishTarget publishTarget,
-            final ExternalMessage externalMessage) {
-
-        final String payload = mapExternalMessagePayload(externalMessage);
-        final Iterable<Header> headers = mapExternalMessageHeaders(externalMessage);
-
-        return new ProducerRecord<>(publishTarget.getTopic(),
-                publishTarget.getPartition().orElse(null),
-                publishTarget.getKey().orElse(null),
-                payload, headers);
-    }
-
-    private static Iterable<Header> mapExternalMessageHeaders(final ExternalMessage externalMessage) {
-        return externalMessage.getHeaders()
-                .entrySet()
-                .stream()
-                .map(header -> new RecordHeader(header.getKey(), header.getValue().getBytes(StandardCharsets.UTF_8)))
-                .collect(Collectors.toList());
-    }
-
-    private static String mapExternalMessagePayload(final ExternalMessage externalMessage) {
-        if (externalMessage.isTextMessage()) {
-            return externalMessage.getTextPayload().orElse("");
-        } else if (externalMessage.isBytesMessage()) {
-            return externalMessage.getBytePayload()
-                    .map(ByteString::fromByteBuffer)
-                    .map(ByteString::utf8String)
-                    .orElse("");
-        } else {
-            return "";
-        }
-    }
-
-    private void startInternalKafkaProducer() {
-        logger.info("Starting internal Kafka producer.");
-        closeProducer();
-        producer = producerFactory.newProducer();
-    }
-
-    private void closeProducer() {
-        if (producer != null) {
-            producer.close();
-        }
-    }
-
-    private void stopInternalKafkaProducer() {
-        logger.info("Stopping internal Kafka producer.");
-        closeProducer();
-    }
-
     private void reportInitialConnectionState() {
         logger.info("Publisher ready.");
         getContext().getParent().tell(new Status.Success(Done.done()), getSelf());
     }
 
     private void stopGracefully() {
-        stopInternalKafkaProducer();
         logger.debug("Stopping myself.");
         getContext().stop(getSelf());
     }
@@ -246,7 +212,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
     }
 
-    private static final class ProducerCallBack implements Function<RecordMetadata, SendResult> {
+    private static final class ProducerCallback implements Function<RecordMetadata, SendResult> {
 
         private final Signal<?> signal;
         private final int ackSizeQuota;
@@ -254,7 +220,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         private final Connection connection;
         @Nullable private final AcknowledgementLabel autoAckLabel;
 
-        private ProducerCallBack(final Signal<?> signal,
+        private ProducerCallback(final Signal<?> signal,
                 @Nullable final AcknowledgementLabel autoAckLabel,
                 final int ackSizeQuota,
                 final Connection connection) {
@@ -340,6 +306,133 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             return exception instanceof RetriableException
                     ? HttpStatus.INTERNAL_SERVER_ERROR
                     : HttpStatus.BAD_REQUEST;
+        }
+
+    }
+
+    private final class KafkaProducerStream {
+
+        private static final String TOO_MANY_IN_FLIGHT_MESSAGE_DESCRIPTION = "This can have the following reasons:\n" +
+                "a) The Kafka consumer does not consume the messages fast enough.\n" +
+                "b) The client count of this connection is not configured high enough.";
+
+        private final SourceQueueWithComplete<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>>
+                sourceQueue;
+        private final KillSwitch killSwitch;
+
+        private KafkaProducerStream(final KafkaConfig config,
+                final ProducerSettings<String, String> settings,
+                final Materializer materializer) {
+
+            final Pair<SourceQueueWithComplete<ProducerMessage.Envelope<String, String,
+                    CompletableFuture<RecordMetadata>>>, UniqueKillSwitch> materialized =
+                    Source.<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>>queue(
+                            config.getProducerQueueSize(), OverflowStrategy.dropNew())
+                            .recover(getErrorHandler())
+                            .via(Producer.<String, String, CompletableFuture<RecordMetadata>>flexiFlow(settings))
+                            .map(this::handlePublish)
+                            .viaMat(KillSwitches.single(), Keep.both())
+                            .toMat(Sink.ignore(), Keep.left())
+                            .run(materializer);
+
+            sourceQueue = materialized.first();
+            killSwitch = materialized.second();
+        }
+
+        private PartialFunction<Throwable, ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>> getErrorHandler() {
+            return new PFBuilder<Throwable, ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>>()
+                    .matchAny(throwable -> ProducerMessage.passThrough(CompletableFuture.failedFuture(throwable)))
+                    .build();
+        }
+
+        private int handlePublish(
+                final ProducerMessage.Results<String, String, CompletableFuture<RecordMetadata>> result) {
+
+            if (result instanceof ProducerMessage.Result) {
+                final ProducerMessage.Result<String, String, CompletableFuture<RecordMetadata>> res =
+                        (ProducerMessage.Result<String, String, CompletableFuture<RecordMetadata>>) result;
+                final RecordMetadata metadata = res.metadata();
+                final CompletableFuture<RecordMetadata> resultFuture = res.passThrough();
+                resultFuture.complete(metadata);
+                return 0;
+            } else {
+                final IllegalArgumentException ex =
+                        new IllegalArgumentException("Received multiple results but expected only one!");
+                result.passThrough().completeExceptionally(ex);
+                return -1;
+            }
+        }
+
+        private CompletableFuture<RecordMetadata> publish(final KafkaPublishTarget publishTarget,
+                final ExternalMessage externalMessage) {
+            final CompletableFuture<RecordMetadata> resultFuture = new CompletableFuture<>();
+            final ProducerRecord<String, String> producerRecord = getProducerRecord(publishTarget, externalMessage);
+            final ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>> message =
+                    ProducerMessage.single(producerRecord, resultFuture);
+
+            sourceQueue.offer(message)
+                    .handle((queueOfferResult, throwable) -> handleQueueOfferResult(externalMessage, resultFuture));
+
+            return resultFuture;
+        }
+
+        private ProducerRecord<String, String> getProducerRecord(final KafkaPublishTarget publishTarget,
+                final ExternalMessage externalMessage) {
+
+            final String payload = mapExternalMessagePayload(externalMessage);
+            final Iterable<Header> headers = mapExternalMessageHeaders(externalMessage);
+
+            return new ProducerRecord<>(publishTarget.getTopic(),
+                    publishTarget.getPartition().orElse(null),
+                    publishTarget.getKey().orElse(null),
+                    payload, headers);
+        }
+
+        private Iterable<Header> mapExternalMessageHeaders(final ExternalMessage externalMessage) {
+            return externalMessage.getHeaders()
+                    .entrySet()
+                    .stream()
+                    .map(header -> new RecordHeader(header.getKey(),
+                            header.getValue().getBytes(StandardCharsets.UTF_8)))
+                    .collect(Collectors.toList());
+        }
+
+        private String mapExternalMessagePayload(final ExternalMessage externalMessage) {
+            if (externalMessage.isTextMessage()) {
+                return externalMessage.getTextPayload().orElse("");
+            } else if (externalMessage.isBytesMessage()) {
+                return externalMessage.getBytePayload()
+                        .map(ByteString::fromByteBuffer)
+                        .map(ByteString::utf8String)
+                        .orElse("");
+            } else {
+                return "";
+            }
+        }
+
+        // Async callback. Must be thread-safe.
+        private BiFunction<QueueOfferResult, Throwable, Void> handleQueueOfferResult(final ExternalMessage message,
+                final CompletableFuture<?> resultFuture) {
+
+            return (queueOfferResult, error) -> {
+                if (error != null) {
+                    final String errorDescription = "Source queue failure";
+                    logger.error(error, errorDescription);
+                    resultFuture.completeExceptionally(error);
+                    escalate(error, errorDescription);
+                } else if (Objects.equals(queueOfferResult, QueueOfferResult.dropped())) {
+                    resultFuture.completeExceptionally(MessageSendingFailedException.newBuilder()
+                            .message("Outgoing Kafka message dropped: There are too many uncommitted messages.")
+                            .description(TOO_MANY_IN_FLIGHT_MESSAGE_DESCRIPTION)
+                            .dittoHeaders(message.getInternalHeaders())
+                            .build());
+                }
+                return null;
+            };
+        }
+
+        private void shutdown() {
+            killSwitch.shutdown();
         }
 
     }

@@ -25,13 +25,6 @@ import com.typesafe.config.Config;
 public interface KafkaConfig {
 
     /**
-     * Returns the consumer throttling config.
-     *
-     * @return the config.
-     */
-    ThrottlingConfig getConsumerThrottlingConfig();
-
-    /**
      * Returns the Config for consumers needed by the Kafka client.
      *
      * @return consumer configuration needed by the Kafka client.
@@ -39,10 +32,27 @@ public interface KafkaConfig {
     Config getConsumerConfig();
 
     /**
+     * Returns the consumer throttling config.
+     *
+     * @return the config.
+     */
+    ThrottlingConfig getConsumerThrottlingConfig();
+
+    /**
      * Returns the Config for producers needed by the Kafka client.
      *
      * @return producer configuration needed by the Kafka client.
      */
     Config getProducerConfig();
+
+    /**
+     * @return number of maximum buffered messages before dropping them.
+     */
+    int getProducerQueueSize();
+
+    /**
+     * @return number of maximum parallel message publications.
+     */
+    int getProducerParallelism();
 
 }

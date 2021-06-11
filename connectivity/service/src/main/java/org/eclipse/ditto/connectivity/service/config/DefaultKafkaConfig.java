@@ -32,17 +32,25 @@ public final class DefaultKafkaConfig implements KafkaConfig {
     private static final String CONFIG_PATH = "kafka";
     private static final String CONSUMER_PATH = "consumer";
     private static final String PRODUCER_PATH = "producer";
+    private static final String PRODUCER_QUEUE_SIZE = "producer-queue-size";
+    private static final String PRODUCER_PARALLELISM = "producer-parallelism";
 
     private final Config consumerConfig;
-    private final Config producerConfig;
     private final ThrottlingConfig consumerThrottlingConfig;
+
+    private final Config producerConfig;
+    private final int producerQueueSize;
+    private final int producerParallelism;
 
     private DefaultKafkaConfig(final ScopedConfig kafkaScopedConfig) {
         consumerConfig = kafkaScopedConfig.getConfig(CONSUMER_PATH);
-        producerConfig = kafkaScopedConfig.getConfig(PRODUCER_PATH);
         consumerThrottlingConfig = ThrottlingConfig.of(kafkaScopedConfig.hasPath(CONSUMER_PATH)
                 ? kafkaScopedConfig.getConfig(CONSUMER_PATH)
                 : ConfigFactory.empty());
+
+        producerConfig = kafkaScopedConfig.getConfig(PRODUCER_PATH);
+        producerQueueSize = kafkaScopedConfig.getInt(PRODUCER_QUEUE_SIZE);
+        producerParallelism = kafkaScopedConfig.getInt(PRODUCER_PARALLELISM);
     }
 
     /**
@@ -57,13 +65,13 @@ public final class DefaultKafkaConfig implements KafkaConfig {
     }
 
     @Override
-    public ThrottlingConfig getConsumerThrottlingConfig() {
-        return consumerThrottlingConfig;
+    public Config getConsumerConfig() {
+        return consumerConfig;
     }
 
     @Override
-    public Config getConsumerConfig() {
-        return consumerConfig;
+    public ThrottlingConfig getConsumerThrottlingConfig() {
+        return consumerThrottlingConfig;
     }
 
     @Override
@@ -72,13 +80,25 @@ public final class DefaultKafkaConfig implements KafkaConfig {
     }
 
     @Override
+    public int getProducerQueueSize() {
+        return producerQueueSize;
+    }
+
+    @Override
+    public int getProducerParallelism() {
+        return producerParallelism;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         final DefaultKafkaConfig that = (DefaultKafkaConfig) o;
         return Objects.equals(consumerConfig, that.consumerConfig) &&
+                Objects.equals(consumerThrottlingConfig, that.consumerThrottlingConfig) &&
                 Objects.equals(producerConfig, that.producerConfig) &&
-                Objects.equals(consumerThrottlingConfig, that.consumerThrottlingConfig);
+                Objects.equals(producerQueueSize, that.producerQueueSize) &&
+                Objects.equals(producerParallelism, that.producerParallelism);
     }
 
     @Override
@@ -90,8 +110,10 @@ public final class DefaultKafkaConfig implements KafkaConfig {
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "consumerConfig=" + consumerConfig +
-                ", producerConfig=" + producerConfig +
                 ", consumerThrottlingConfig=" + consumerThrottlingConfig +
+                ", producerConfig=" + producerConfig +
+                ", producerQueueSize=" + producerQueueSize +
+                ", producerParallelism=" + producerParallelism +
                 "]";
     }
 }
