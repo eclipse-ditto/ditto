@@ -108,7 +108,7 @@ public final class PropertiesFactoryTest {
     @Test
     public void addsBootstrapServersAndFlattensPropertiesFromConsumerSettings() {
 
-        final ConsumerSettings<String, String> consumerSettings = underTest.getConsumerSettings();
+        final ConsumerSettings<String, String> consumerSettings = underTest.getConsumerSettings(false);
         final Map<String, Object> properties = consumerSettings.getProperties();
 
         final List<String> servers =

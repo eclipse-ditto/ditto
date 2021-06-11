@@ -80,7 +80,7 @@ public final class UserPasswordCredentials implements Credentials {
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "username=" + username +
-                ", password=" + password +
+                ", password=***" + // password omitted intentionally
                 "]";
     }
 

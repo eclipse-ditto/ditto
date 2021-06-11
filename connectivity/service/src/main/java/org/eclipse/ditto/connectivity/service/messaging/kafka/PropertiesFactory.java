@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.kafka.clients.CommonClientConfigs;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -68,11 +69,16 @@ final class PropertiesFactory {
      *
      * @return the settings.
      */
-    ConsumerSettings<String, String> getConsumerSettings() {
-        return ConsumerSettings.apply(config.getConsumerConfig(), new StringDeserializer(), new StringDeserializer())
-                .withBootstrapServers(bootstrapServers)
-                .withGroupId(connection.getId().toString())
-                .withClientId(clientId);
+    ConsumerSettings<String, String> getConsumerSettings(final boolean dryRun) {
+        final ConsumerSettings<String, String> consumerSettings =
+                ConsumerSettings.apply(config.getConsumerConfig(), new StringDeserializer(), new StringDeserializer())
+                        .withBootstrapServers(bootstrapServers)
+                        .withGroupId(connection.getId().toString())
+                        .withClientId(clientId + "-consumer");
+
+        // disable auto commit in dry run mode
+        return dryRun ? consumerSettings.withProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false") :
+                consumerSettings;
     }
 
     ProducerSettings<String, String> getProducerSettings() {
@@ -84,7 +90,7 @@ final class PropertiesFactory {
     }
 
     private Map<String, String> getClientIdProperties() {
-        return Map.of(CommonClientConfigs.CLIENT_ID_CONFIG, clientId);
+        return Map.of(CommonClientConfigs.CLIENT_ID_CONFIG, clientId + "-producer");
     }
 
     private Map<String, String> getSpecificConfigProperties() {

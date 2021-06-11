@@ -83,6 +83,14 @@ public interface MqttConfig {
     BackOffConfig getReconnectBackOffConfig();
 
     /**
+     * Returns the minimum reconnect timeout for when the MQTT broker closed the MQTT connection.
+     *
+     * @return the minimum reconnect timeout for MQTT broker initiated connection closing.
+     * @since 2.1.0
+     */
+    Duration getReconnectMinTimeoutForMqttBrokerInitiatedDisconnect();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code MqttConfig}.
      */
@@ -117,7 +125,16 @@ public interface MqttConfig {
          * Indicates whether a separate client should be used for publishing. This could be useful when
          * {@link #shouldReconnectForRedelivery()} returns true to avoid that the publisher has downtimes.
          */
-        SEPARATE_PUBLISHER_CLIENT("separate-publisher-client", false);
+        SEPARATE_PUBLISHER_CLIENT("separate-publisher-client", false),
+
+        /**
+         * The minimum reconnect timeout for when the MQTT broker closed the MQTT connection.
+         *
+         * @since 2.1.0
+         */
+        RECONNECT_MIN_TIMEOUT_FOR_MQTT_BROKER_INITIATED_DISCONNECT(
+                "reconnect.min-timeout-for-mqtt-broker-initiated-disconnect",
+                Duration.ofSeconds(1));
 
         private final String path;
         private final Object defaultValue;

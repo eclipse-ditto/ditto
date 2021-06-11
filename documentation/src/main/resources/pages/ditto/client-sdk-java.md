@@ -91,7 +91,7 @@ client.twin().create("org.eclipse.ditto:new-thing").handle((createdThing, throwa
         System.out.println("Thing could not be created due to: " + throwable.getMessage());
     }
     return client.twin().forId(thingId).putAttribute("first-updated-at", OffsetDateTime.now().toString());
-}).get(); // this will block the thread! work asynchronously whenever possible!
+}).toCompletableFuture().get(); // this will block the thread! work asynchronously whenever possible!
 ```
 
 #### Subscribe for change notifications
@@ -100,7 +100,7 @@ In order to subscribe for [events](basic-signals-event.html) emitted by Ditto af
 consumption on the `twin` channel:
 
 ```java
-client.twin().startConsumption().get();
+client.twin().startConsumption().toCompletableFuture().get(); // this will block the thread! work asynchronously whenever possible!
 System.out.println("Subscribed for Twin events");
 client.twin().registerForThingChanges("my-changes", change -> {
    if (change.getAction() == ChangeAction.CREATED) {
@@ -115,7 +115,7 @@ There is also the possibility here to apply *server side filtering* of which eve
 ```java
 client.twin().startConsumption(
    Options.Consumption.filter("gt(features/temperature/properties/value,23.0)")
-).get();
+).toCompletableFuture().get(); // this will block the thread! work asynchronously whenever possible!
 System.out.println("Subscribed for Twin events");
 client.twin().registerForFeaturePropertyChanges("my-feature-changes", "temperature", "value", change -> {
    // perform custom actions ..
@@ -130,7 +130,7 @@ enhanced with the additional extra fields:
 ```java
 client.twin().startConsumption(
    Options.Consumption.extraFields(JsonFieldSelector.newInstance("attributes/location"))
-).get();
+).toCompletableFuture().get(); // this will block the thread! work asynchronously whenever possible!
 client.twin().registerForThingChanges("my-enriched-changes", change -> {
    Optional<JsonObject> extra = change.getExtra();
    // perform custom actions, making use of the 'extra' data ..
@@ -143,7 +143,7 @@ In combination with a `filter`, the extra fields may also be used as part of suc
 client.twin().startConsumption(
    Options.Consumption.extraFields(JsonFieldSelector.newInstance("attributes/location")),
    Options.Consumption.filter("eq(attributes/location,\"kitchen\")")
-).get();
+).toCompletableFuture().get(); // this will block the thread! work asynchronously whenever possible!
 // register the callbacks...
 ```
 
@@ -153,6 +153,8 @@ client.twin().startConsumption(
 Register for receiving messages with the subject `hello.world` on any thing:
 
 ```java
+client.live().startConsumption().toCompletableFuture().get(); // this will block the thread! work asynchronously whenever possible!
+System.out.println("Subscribed for live messages/commands/events");
 client.live().registerForMessage("globalMessageHandler", "hello.world", message -> {
    System.out.println("Received Message with subject " +  message.getSubject());
    message.reply()
@@ -180,7 +182,7 @@ client.live().forId("org.eclipse.ditto:new-thing")
 Read a policy:
 ```java
 Policy retrievedPolicy = client.policies().retrieve(PolicyId.of("org.eclipse.ditto:new-policy"))
-   .get(); // this will block the thread! work asynchronously whenever possible!
+   .toCompletableFuture().get(); // this will block the thread! work asynchronously whenever possible!
 ```
 
 Create a policy:
@@ -193,7 +195,7 @@ Policy newPolicy = Policy.newBuilder(PolicyId.of("org.eclipse.ditto:new-policy")
    .build();
 
 client.policies().create(newPolicy)
-   .get(); // this will block the thread! work asynchronously whenever possible!
+   .toCompletableFuture().get(); // this will block the thread! work asynchronously whenever possible!
 ```
 
 Updating and deleting policies is also possible via the Java client API, please follow the API and the JavaDoc.
