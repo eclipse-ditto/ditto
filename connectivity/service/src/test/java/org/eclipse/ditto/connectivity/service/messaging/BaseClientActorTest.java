@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
@@ -35,6 +36,8 @@ import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.connectivity.api.BaseClientState;
+import org.eclipse.ditto.connectivity.api.InboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
@@ -44,18 +47,16 @@ import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectionClosedAnnouncement;
 import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectionOpenedAnnouncement;
 import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectivityAnnouncement;
-import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
-import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
-import org.eclipse.ditto.connectivity.api.BaseClientState;
-import org.eclipse.ditto.connectivity.api.InboundSignal;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionSignalIllegalException;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
+import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableClientDisconnected;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
+import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.mapper.SignalMapperFactory;
@@ -546,12 +547,12 @@ public final class BaseClientActorTest {
 
     private void thenExpectDisconnectClientNotCalledForAtLeast(final Duration duration) {
         verify(delegate, timeout(duration.toMillis()).times(0))
-                .doDisconnectClient(any(Connection.class), nullable(ActorRef.class));
+                .doDisconnectClient(any(Connection.class), nullable(ActorRef.class), anyBoolean());
     }
 
     private void thenExpectDisconnectClientCalled() {
         verify(delegate, timeout(DISCONNECT_TIMEOUT.toMillis())).doDisconnectClient(any(Connection.class),
-                nullable(ActorRef.class));
+                nullable(ActorRef.class), anyBoolean());
     }
 
     private void thenExpectConnectClientCalledAfterTimeout(final Duration connectingTimeout) {
@@ -601,7 +602,7 @@ public final class BaseClientActorTest {
     }
 
     private static void andDisconnectionSuccessful(final ActorRef clientActor, final ActorRef origin) {
-        clientActor.tell((ClientDisconnected) () -> Optional.of(origin), clientActor);
+        clientActor.tell(new ImmutableClientDisconnected(origin, false), clientActor);
     }
 
     private static void andConnectionNotSuccessful(final ActorRef clientActor) {
@@ -672,9 +673,10 @@ public final class BaseClientActorTest {
         }
 
         @Override
-        protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin) {
+        protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin,
+                final boolean shutdownAfterDisconnect) {
             logger.info("doDisconnectClient");
-            delegate.doDisconnectClient(connection, origin);
+            delegate.doDisconnectClient(connection, origin, false);
         }
 
         @Override

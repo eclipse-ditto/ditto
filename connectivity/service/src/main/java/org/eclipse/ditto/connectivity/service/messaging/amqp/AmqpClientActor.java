@@ -54,7 +54,6 @@ import org.eclipse.ditto.connectivity.service.messaging.amqp.status.ProducerClos
 import org.eclipse.ditto.connectivity.service.messaging.amqp.status.SessionClosedStatusReport;
 import org.eclipse.ditto.connectivity.service.messaging.internal.AbstractWithOrigin;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.CloseSession;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectClient;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
@@ -266,7 +265,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                     if (response instanceof JmsConnected) {
                         final JmsConnection connectedJmsConnection = ((JmsConnected) response).connection;
                         final JmsDisconnect jmsDisconnect = new JmsDisconnect(ActorRef.noSender(),
-                                connectedJmsConnection);
+                                connectedJmsConnection, true);
                         return Patterns.ask(getDisconnectConnectionHandler(connectionToBeTested), jmsDisconnect,
                                 clientConfig.getTestingTimeout())
                                 // replace jmsDisconnected message with original response
@@ -301,10 +300,11 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     @Override
-    protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin) {
+    protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin,
+            final boolean shutdownAfterDisconnect) {
         // delegate to child actor because the QPID JMS client is blocking until connection is opened/closed
         getDisconnectConnectionHandler(connection)
-                .tell(new JmsDisconnect(origin, jmsConnection), getSelf());
+                .tell(new JmsDisconnect(origin, jmsConnection, shutdownAfterDisconnect), getSelf());
     }
 
     @Override
@@ -631,6 +631,13 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         public String getClientId() {
             return clientId;
         }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " [" + super.toString() +
+                    ", clientId=" + clientId +
+                    "]";
+        }
     }
 
     /**
@@ -655,6 +662,14 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         Optional<javax.jms.Session> getSession() {
             return Optional.ofNullable(session);
         }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " [" + super.toString() +
+                    ", connection=" + connection +
+                    ", session=" + session +
+                    "]";
+        }
     }
 
     /**
@@ -672,6 +687,13 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         javax.jms.Session getSession() {
             return session;
         }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " [" + super.toString() +
+                    ", session=" + session +
+                    "]";
+        }
     }
 
     /**
@@ -680,14 +702,29 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     static final class JmsDisconnect extends AbstractWithOrigin implements DisconnectClient {
 
         @Nullable private final javax.jms.Connection connection;
+        private final boolean shutdownAfterDisconnect;
 
-        JmsDisconnect(@Nullable final ActorRef origin, @Nullable final javax.jms.Connection connection) {
+        JmsDisconnect(@Nullable final ActorRef origin, @Nullable final javax.jms.Connection connection,
+                final boolean shutdownAfterDisconnect) {
             super(origin);
             this.connection = connection;
+            this.shutdownAfterDisconnect = shutdownAfterDisconnect;
         }
 
         Optional<javax.jms.Connection> getConnection() {
             return Optional.ofNullable(connection);
+        }
+
+        boolean isShutdownAfterDisconnect() {
+            return shutdownAfterDisconnect;
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " [" + super.toString() +
+                    ", connection=" + connection +
+                    ", shutdownAfterDisconnect=" + shutdownAfterDisconnect +
+                    "]";
         }
     }
 
@@ -709,6 +746,15 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             this.connection = connection;
             this.session = session;
             this.consumerList = consumerList;
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " [" + super.toString() +
+                    ", connection=" + connection +
+                    ", session=" + session +
+                    ", consumerList=" + consumerList +
+                    "]";
         }
     }
 
@@ -737,17 +783,14 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         List<ConsumerData> getConsumerList() {
             return consumerList;
         }
-    }
 
-    /**
-     * Response to {@code Disconnect} message from {@link JMSConnectionHandlingActor}.
-     */
-    static class JmsDisconnected extends AbstractWithOrigin implements ClientDisconnected {
-
-        JmsDisconnected(@Nullable final ActorRef origin) {
-            super(origin);
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " [" + super.toString() +
+                    ", session=" + session +
+                    ", consumerList=" + consumerList +
+                    "]";
         }
-
     }
 
     /**
