@@ -191,7 +191,14 @@ public final class UriEncoding {
         }
     }
 
-    private static String encodeRFC3986UriComponent(final String source, final IntPredicate allowedChars) {
+    /**
+     * Encode a URI component with a custom predicate of allowed characters.
+     *
+     * @param source the string to encode.
+     * @param allowedChars what characters are not encoded.
+     * @return the encoded string.
+     */
+    public static String encodeRFC3986UriComponent(final String source, final IntPredicate allowedChars) {
         requireNonNull(source);
 
         try {
@@ -225,15 +232,22 @@ public final class UriEncoding {
 
     /**
      * Whether the given char belongs to the {@code pchar} set.
+     *
+     * @param c the char.
+     * @return whether it belongs to the {@code pchar} set.
+     * @since 2.1.0
      */
-    private static boolean isPchar(final int c) {
+    public static boolean isPchar(final int c) {
         return isUnreserved(c) || isSubDelimiter(c) || ':' == c || '@' == c;
     }
 
     /**
      * Whether the given char belongs to the {@code unreserved} set.
+     *
+     * @param c the char.
+     * @return whether it belongs to the {@code unreserved} set.
      */
-    private static boolean isUnreserved(final int c) {
+    public static boolean isUnreserved(final int c) {
         return isAlpha(c) || isDigit(c) || '-' == c || '.' == c || '_' == c || '~' == c;
     }
 

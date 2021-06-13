@@ -86,7 +86,7 @@ public final class AwsRequestSigningTest {
                 "X-Amz-Algorithm=AWS4-HMAC-SHA256&" +
                 "X-Amz-Credential=AKIDEXAMPLE%2F20150830%2Fus-east-1%2Fiam%2Faws4_request&" +
                 "X-Amz-Date=20150830T123600Z&" +
-                "X-Amz-SignedHeaders=content-type%3Bhost%3Bx-amz-date&"+
+                "X-Amz-SignedHeaders=content-type%3Bhost%3Bx-amz-date&" +
                 "order-by-case-sensitivity=foo";
 
         final String canonicalQuery = AwsRequestSigning.getCanonicalQuery(uri.query());
@@ -245,8 +245,8 @@ public final class AwsRequestSigningTest {
 
         final String authorizationParams =
                 "Credential=MyAwesomeAccessKey/20120215/us-east-1/iam/aws4_request, " +
-                "SignedHeaders=host;x-amz-date, " +
-                "Signature=eda3fcc970a1d0cd3a3c3b8e7c80e876eec16d3b44459ce3e48fffd8226e4dca";
+                        "SignedHeaders=host;x-amz-date, " +
+                        "Signature=eda3fcc970a1d0cd3a3c3b8e7c80e876eec16d3b44459ce3e48fffd8226e4dca";
 
         final HttpRequest expectedSignedRequest = getSampleHttpRequest()
                 .addHeader(HttpHeader.parse("x-amz-date", expectedXAmzDate))
@@ -305,10 +305,11 @@ public final class AwsRequestSigningTest {
     }
 
     @Test
-    public void testS3CanonicalUriIsNormalizedConformToRfc3986() {
+    public void testS3CanonicalUriIsNormalizedAndSinglyEncoded() {
+        // The path should not be normalized but it is. There is no way to prevent normalization in the URI model.
         final Uri uri = Uri.create("https://www.example.com//a/./b/../b/%63/%7bfoo%7d");
         assertThat(AwsRequestSigning.getCanonicalUri(uri, false))
-                .isEqualTo("//a/b/c/%7Bfoo%7D");
+                .isEqualTo("//a/b/c/%257Bfoo%257D");
     }
 
     @Test
@@ -316,6 +317,29 @@ public final class AwsRequestSigningTest {
         final Uri uri = Uri.create("https://www.example.com///documents%20and%20settings//////");
         assertThat(AwsRequestSigning.getCanonicalUri(uri, true))
                 .isEqualTo("/documents%2520and%2520settings/");
+    }
+
+    @Test
+    public void testS3CanonicalRequest() {
+        final HttpRequest request = getSampleHttpRequestWithoutRequestEntity()
+                .withUri(Uri.create("https://www.example.com").path("/thing:namespace:name:revision"));
+
+        final AwsRequestSigning underTest =
+                new AwsRequestSigning(actorSystem, List.of("host"), REGION_NAME, SERVICE_NAME, ACCESS_KEY,
+                        SECRET_KEY, false, Duration.ofSeconds(10), X_AMZ_CONTENT_SHA256);
+
+        final Instant instant = Instant.EPOCH;
+        final String emptyStringSha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+        final String canonicalRequest =
+                underTest.getCanonicalRequest(request, instant, false, emptyStringSha256);
+
+        assertThat(canonicalRequest).isEqualTo("POST\n" +
+                "/thing%3Anamespace%3Aname%3Arevision\n" +
+                "\n" +
+                "host:www.example.com\n" +
+                "\n" +
+                "host\n" +
+                "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
     }
 
     private static HttpRequest getSampleHttpRequestWithoutRequestEntity() {

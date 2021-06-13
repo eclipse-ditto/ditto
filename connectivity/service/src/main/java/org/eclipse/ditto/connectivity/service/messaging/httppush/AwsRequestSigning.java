@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.function.IntPredicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -47,6 +48,9 @@ import akka.util.ByteString;
  * Signing of HTTP requests to authenticate at AWS.
  */
 final class AwsRequestSigning implements RequestSigning {
+
+    private static final IntPredicate UNRESERVED_OR_SLASH =
+            ((IntPredicate) UriEncoding::isUnreserved).or(c -> c == '/');
 
     private static final String ALGORITHM = "AWS4-HMAC-SHA256";
     private static final char[] LOWER_CASE_HEX_CHARS = "0123456789abcdef".toCharArray();
@@ -216,7 +220,7 @@ final class AwsRequestSigning implements RequestSigning {
 
     private static String getPathStringOrSlashWhenEmpty(final Uri uri) {
         final String pathString = uri.getPathString();
-        return pathString.isEmpty() ? "/" : pathString;
+        return pathString.isEmpty() ? "/" : UriEncoding.encodeRFC3986UriComponent(pathString, UNRESERVED_OR_SLASH);
     }
 
     static String encodeAndNormalizePathSegments(final Uri uri) {
@@ -224,8 +228,8 @@ final class AwsRequestSigning implements RequestSigning {
         final List<String> segments = StreamSupport.stream(uri.pathSegments().spliterator(), false)
                 .filter(s -> !s.isEmpty())
                 // encode path segment twice as required for all AWS services except S3
-                .map(UriEncoding::encodePathSegment)
-                .map(UriEncoding::encodePathSegment)
+                .map(UriEncoding::encodeAllButUnreserved)
+                .map(UriEncoding::encodeAllButUnreserved)
                 .collect(Collectors.toList());
 
         if (segments.isEmpty()) {
