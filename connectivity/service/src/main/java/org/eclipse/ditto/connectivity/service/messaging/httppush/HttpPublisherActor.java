@@ -241,13 +241,21 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     private HttpRequest newRequestWithoutEntity(final HttpPublishTarget publishTarget,
             final Iterable<HttpHeader> headers, final ExternalMessage message) {
         final HttpRequest request = factory.newRequest(publishTarget).addHeaders(headers);
+        final String httpPath = message.getHeaders().get(ReservedHeaders.HTTP_PATH.name);
         final String httpQuery = message.getHeaders().get(ReservedHeaders.HTTP_QUERY.name);
-        if (httpQuery != null) {
-            final Uri uriWithQuery = request.getUri().rawQueryString(httpQuery);
-            return request.withUri(uriWithQuery);
-        } else {
-            return request;
+        return request.withUri(setPathAndQuery(request.getUri(), httpPath, httpQuery));
+    }
+
+    private static Uri setPathAndQuery(final Uri uri, @Nullable final String path, @Nullable final String query) {
+        final String slash = "/";
+        var newUri = uri;
+        if (path != null) {
+            newUri = path.startsWith(slash) ? newUri.path(path) : newUri.path(slash + path);
         }
+        if (query != null) {
+            newUri = newUri.rawQueryString(query);
+        }
+        return newUri;
     }
 
     private static Pair<Iterable<HttpHeader>, ContentType> getHttpHeadersPair(final ExternalMessage message) {
@@ -615,7 +623,9 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     private enum ReservedHeaders {
 
-        HTTP_QUERY("http.query");
+        HTTP_QUERY("http.query"),
+
+        HTTP_PATH("http.path");
 
         private final String name;
 

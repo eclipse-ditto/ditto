@@ -65,6 +65,7 @@ HTTP 1.1 connections supports specific header mapping.
 
 The following header have a special meaning in that the values are applied directly to the published message:
 * `http.query`: sets the value of this header as query parameter
+* `http.path`: sets the value of this header as the path of the HTTP request
 
 #### Target acknowledgement handling
 
