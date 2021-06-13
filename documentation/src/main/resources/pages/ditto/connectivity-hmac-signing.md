@@ -137,13 +137,240 @@ and which interface needs to be implemented.
 
 #### AWS SNS
 
+This example is an HTTP connection to [AWS SNS (Simple Notification Service)](https://aws.amazon.com/sns/) publishing
+twin events as messages to an SNS topic. Prerequisites are:
+- An IAM user with access to SNS,
+- An SNS topic,
+- A subscription on the SNS topic to receive twin events, e.g., by email.
+
+The SNS connection is shown below.
+
+{%raw%}
+```json
+{
+  "id": "00000000-0000-0000-0000-000000000000",
+  "name": "AWS SNS",
+  "connectionType": "http-push",
+  "connectionStatus": "open",
+  "uri": "https://sns.<aws-region>.amazonaws.com:443",
+  "credentials": {
+    "type": "hmac",
+    "algorithm": "aws4-hmac-sha256",
+    "parameters": {
+      "region": "<aws-region>",
+      "service": "sns",
+      "accessKey": "<aws-access-key>",
+      "secretKey": "<aws-secret-key>"
+    }
+  },
+  "sources": [],
+  "targets": [{
+      "address": "GET:/",
+      "topics": [ "_/_/things/twin/events" ],
+      "authorizationContext": [ "integration:ditto" ],
+      "headerMapping": {},
+      "payloadMapping": [ "javascript" ]
+  }],
+  "clientCount": 1,
+  "failoverEnabled": true,
+  "validateCertificates": true,
+  "processorPoolSize": 5,
+  "specificConfig": {
+    "parallelism": "1"
+  },
+  "mappingDefinitions": {
+    "javascript": {
+      "mappingEngine": "JavaScript",
+      "options": {
+        "incomingScript": "function mapToDittoProtocolMsg() {\n    return undefined;\n}",
+        "outgoingScript": "function mapFromDittoProtocolMsg(namespace,name,group,channel,criterion,action,path,dittoHeaders,value,status,extra) {\n  let textPayload = JSON.stringify(Ditto.buildDittoProtocolMsg(namespace, name, group, channel, criterion, action, path, dittoHeaders, value, status, extra));\n  let query = 'Action=Publish&Message=' + encodeURIComponent(textPayload) + '&Subject=ThingModified&TopicArn=<sns-topic-arn>';\n  let headers = {\"http.query\":query};\n  return Ditto.buildExternalMsg(headers,'',null,'text/plain');\n}\n",
+        "loadBytebufferJS": "false",
+        "loadLongJS": "false"
+      }
+    }
+  },
+  "tags": []
+}
+```
+{%endraw%}
+
+Parameters:
+- `<aws-region>`: The region of the SNS service.
+- `<aws-access-key>` The access key of the user authorized for SNS.
+- `<aws-secret-key>` The secret key of the user authorized for SNS.
+- `<sns-topic-arn>` The ARN of the SNS topic. Note that it is a part of the URI and every `:` needs to be encoded as
+`%3A`.
+
+Here is the outgoing payload mapping in a readable format.
+Since the HTTP API of SNS requires GET requests with all necessary information in
+the query parameters, the payload mapper computes the query string and sets it via
+the [special header](connectivity-protocol-bindings-http.html#target-header-mapping) `http.query`.
+It is important to set payload to `null` so that the HMAC
+signature is computed from the SHA256 hash of the empty string, which SNS expects.
+```js
+function mapFromDittoProtocolMsg(namespace,name,group,channel,criterion,
+                                 action,path,dittoHeaders,value,status,extra) {
+  let textPayload = JSON.stringify(Ditto.buildDittoProtocolMsg(namespace, name,
+      group, channel, criterion, action, path, dittoHeaders, value, status, extra));
+  let query = 'Action=Publish&Message=' + encodeURIComponent(textPayload) +
+      '&Subject=ThingModified&TopicArn=<sns-topic-arn>';
+  let headers = {"http.query":query};
+  return Ditto.buildExternalMsg(headers,'',null,'text/plain');
+}
+```
+
 #### AWS S3
+
+This example is an HTTP connection to [AWS S3 (Simple Storage Service)](https://aws.amazon.com/s3/) publishing
+twin events as objects in an S3 bucket. Prerequisites are:
+- An IAM user with access to S3,
+- An S3 bucket.
+
+The S3 connection is shown below. The credentials parameter `"xAmzContentSha256": "INCLUDED"` is necessary in order
+to include the payload hash as the value of the header `x-amz-content-sha256` mandatory for S3. In addition,
+the parameter `"doubleEncode"` must be set to `false` because S3 performs URI-encoding only once when computing
+the signature, in contrast to other AWS services where the path segments of HTTP requests are encoded twice.
+
+{%raw%}
+```json
+{
+  "id": "00000000-0000-0000-0000-000000000000",
+  "name": "AWS S3",
+  "connectionType": "http-push",
+  "connectionStatus": "open",
+  "uri": "https://<s3-bucket>.s3.eu-central-1.amazonaws.com:443",
+  "credentials": {
+    "type": "hmac",
+    "algorithm": "aws4-hmac-sha256",
+    "parameters": {
+      "region": "<aws-region>",
+      "service": "s3",
+      "accessKey": "<aws-access-key>",
+      "secretKey": "<aws-secret-key>",
+      "doubleEncode": false,
+      "canonicalHeaders": [ "host", "x-amz-date" ],
+      "xAmzContentSha256": "INCLUDED"
+    }
+  },
+  "sources": [],
+  "targets": [{
+      "address": "PUT:/",
+      "topics": [ "_/_/things/twin/events" ],
+      "authorizationContext": [ "integration:ditto" ],
+      "headerMapping": {},
+      "payloadMapping": [
+        "javascript"
+      ]
+  }],
+  "clientCount": 1,
+  "failoverEnabled": true,
+  "validateCertificates": true,
+  "processorPoolSize": 5,
+  "specificConfig": {
+    "parallelism": "1"
+  },
+  "mappingDefinitions": {
+    "javascript": {
+      "mappingEngine": "JavaScript",
+      "options": {
+        "incomingScript": "function mapToDittoProtocolMsg() {\n  return undefined;\n}\n",
+        "outgoingScript": "function mapFromDittoProtocolMsgWrapper(msg) {\n  let topic = msg['topic'].split('/').join(':');\n  let headers = {\n      'http.path': topic+':'+msg['revision']\n  };\n  let textPayload = JSON.stringify(msg);\n  let bytePayload = null;\n  let contentType = 'application/json';\n\n  return Ditto.buildExternalMsg(\n    headers,\n    textPayload,\n    bytePayload,\n    contentType\n  );\n}\n",
+        "loadBytebufferJS": "false",
+        "loadLongJS": "false"
+      }
+    }
+  },
+  "tags": []
+}
+```
+
+Parameters:
+- `<s3-bucket>`: Name of the S3 bucket.
+- `<aws-region>`: The region of the S3 service.
+- `<aws-access-key>` The access key of the user authorized for S3.
+- `<aws-secret-key>` The secret key of the user authorized for S3.
+
+In order to create a distinct object for each event,
+the payload mapper that computes the path string and sets it via
+the [special header](connectivity-protocol-bindings-http.html#target-header-mapping) `http.path`.
+The mapper overrides the function `mapFromDittoProtocolMsgWrapper` instead of the usual
+`mapFromDittoProtocolMsg` so that it has access to the revision number of twin events.
+The value of `http.path` is the name of the object, which consists of the topic of the event with `/` replaced by `:`
+followed by its revision. For example, a thing-modified event of revision 42 generates the object
+`<namespace>:<name>:things:twin:events:modified:42`.
+
+```js
+function mapFromDittoProtocolMsgWrapper(msg) {
+  let topic = msg['topic'].split('/').join(':');
+  let headers = {
+      'http.path': topic+':'+msg['revision']
+  };
+  let textPayload = JSON.stringify(msg);
+  let bytePayload = null;
+  let contentType = 'application/json';
+
+  return Ditto.buildExternalMsg(
+    headers,
+    textPayload,
+    bytePayload,
+    contentType
+  );
+}
+```
 
 #### Azure Monitor Data Collector HTTP API
 
+This example is an HTTP connection pushing twin events into
+[Azure Monitor Data Collector API](https://docs.microsoft.com/en-us/azure/azure-monitor/logs/data-collector-api).
+It requires an Azure Log Analytics Workspace.
+
+```json
+{
+  "id": "00000000-0000-0000-0000-000000000000",
+  "name": "Azure Monitor",
+  "connectionType": "http-push",
+  "connectionStatus": "open",
+  "uri": "https://<workspace-id>.ods.opinsights.azure.com:443",
+  "credentials": {
+    "type": "hmac",
+    "algorithm": "az-monitor-2016-04-01",
+    "parameters": {
+      "workspaceId": "<workspace-id>",
+      "sharedKey": "<shared-key>"
+    }
+  },
+  "sources": [],
+  "targets": [{
+      "address": "POST:/api/logs?api-version=2016-04-01",
+      "topics": [ "_/_/things/twin/events" ],
+      "authorizationContext": [ "integration:ditto" ],
+      "headerMapping": {
+        "Content-Type": "application/json",
+        "Log-Type": "TwinEvent"
+      }
+  }],
+  "clientCount": 1,
+  "failoverEnabled": true,
+  "validateCertificates": true,
+  "processorPoolSize": 5,
+  "specificConfig": {
+    "parallelism": "1"
+  },
+  "tags": []
+}
+```
+
+Parameters:
+- `<workspace-id>`: The ID of the log analytics workspace.
+- `<shared-key>`: The primary or secondary shared key of the log analytics workspace.
+
+The connection publishes all fields of all twin events under the log type `TwinEvent`. After a maximum of 30 minutes
+after the first event, Azure Monitor should have created a custom log type `TwinEvent_CL` containing a twin event
+in each row.
+
 #### Azure IoT Hub HTTP API
 
-What follows is an example of a connections which forwards live messages sent to things as direct method calls to
+What follows is an example of a connection which forwards live messages sent to things as direct method calls to
 Azure IoT Hub via HTTP. You'll receive the response of the direct method call.
 The placeholders in `<angle brackets>` need to be replaced.
 
@@ -163,8 +390,7 @@ The placeholders in `<angle brackets>` need to be replaced.
     "issuedAcknowledgementLabel": "live-response",
     "headerMapping": {},
     "payloadMapping": ["javascript"]
-  }
-  ],
+  }],
   "clientCount": 1,
   "failoverEnabled": true,
   "validateCertificates": true,
