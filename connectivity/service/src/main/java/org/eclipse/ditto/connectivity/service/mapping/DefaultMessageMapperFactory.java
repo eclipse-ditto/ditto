@@ -29,14 +29,16 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.atteo.classindex.ClassIndex;
-import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.MappingContext;
 import org.eclipse.ditto.connectivity.model.MessageMapperConfigurationFailedException;
 import org.eclipse.ditto.connectivity.model.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.model.PayloadMappingDefinition;
+import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.json.JsonObject;
 
 import akka.actor.ActorSystem;
 import akka.actor.DynamicAccess;
@@ -80,6 +82,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
     private static final Map<String, Class<?>> registeredMappers = tryToLoadPayloadMappers();
 
     private final LoggingAdapter log;
+    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(DefaultMessageMapperFactory.class);
 
     private DefaultMessageMapperFactory(final ConnectionId connectionId,
             final MappingConfig mappingConfig,
@@ -193,11 +196,20 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
                 }
 
                 Stream.of(aliases).forEach(alias -> {
-                    if (null != mappers.get(alias)) {
+                    final Class<?> mappingClass = mappers.putIfAbsent(alias, payloadMapper);
+
+                    if (null != mappingClass &&
+                            annotation.priority() == mappingClass.getAnnotation(PayloadMapper.class).priority()) {
                         throw new IllegalStateException("Mapper alias <" + alias + "> was already registered and is " +
                                 "tried to register again for " + payloadMapper.getName());
+                    } else if (annotation.priority() >
+                            mappers.get(alias).getAnnotation(PayloadMapper.class).priority()) {
+                        mappers.replace(alias, payloadMapper);
+                        //TODO: VG find root cause why could be LOGGER == null
+                        if (LOGGER != null) {
+                            LOGGER.info("Replaced mapper {} by higher priority", payloadMapper.getName());
+                        }
                     }
-                    mappers.put(alias, payloadMapper);
                 });
             }
             return mappers;

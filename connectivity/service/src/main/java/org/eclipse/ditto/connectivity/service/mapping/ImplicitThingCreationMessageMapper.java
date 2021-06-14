@@ -185,20 +185,15 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
         }
     }
 
+    public Map<String, String> getConditionToThingTemplateCorrelation() {
+        return conditionToThingTemplateCorrelation;
+    }
+
     @Override
     public List<Adaptable> map(final ExternalMessage message) {
         final Map<String, String> externalHeaders = message.getHeaders();
-        final ExpressionResolver expressionResolver = getExpressionResolver(externalHeaders);
 
-        final String checkedCondition = conditionToThingTemplateCorrelation.keySet()
-                .stream()
-                .filter(condition -> resolveConditions(Collections.singletonList(condition),
-                        expressionResolver))
-                .findFirst()
-                .orElseThrow(() -> getMappingFailedException(
-                        "Conditions for template not matched",
-                        "Check your configured conditions and make sure all required headers are set.",
-                        message.getInternalHeaders()));
+        final String checkedCondition = getCheckedCondition(message);
 
         final String thingTemplate = conditionToThingTemplateCorrelation.get(checkedCondition);
 
@@ -206,7 +201,7 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
 
         final String resolvedTemplate =
                 Placeholders.containsAnyPlaceholder(thingTemplate) ?
-                        applyPlaceholderReplacement(thingTemplate, expressionResolver) :
+                        applyPlaceholderReplacement(thingTemplate, getExpressionResolver(externalHeaders)) :
                         thingTemplate;
 
         if (Placeholders.containsAnyPlaceholder(thingTemplate)) {
@@ -227,6 +222,19 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
                 .debug("Mapped ExternalMessage to Adaptable: {}", adaptableWithModifiedHeaders);
 
         return Collections.singletonList(adaptableWithModifiedHeaders);
+    }
+
+    public String getCheckedCondition(final ExternalMessage message) {
+        final ExpressionResolver expressionResolver = getExpressionResolver(message.getHeaders());
+        return conditionToThingTemplateCorrelation.keySet()
+                .stream()
+                .filter(condition -> resolveConditions(Collections.singletonList(condition),
+                        expressionResolver))
+                .findFirst()
+                .orElseThrow(() -> getMappingFailedException(
+                        "Conditions for template not matched",
+                        "Check your configured conditions and make sure all required headers are set.",
+                        message.getInternalHeaders()));
     }
 
     private MessageMappingFailedException getMappingFailedException(final String message,
