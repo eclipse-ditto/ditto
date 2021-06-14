@@ -168,10 +168,8 @@ final class EnforcementFlow {
                                             computeWriteModel(metadataRef, responseMap.get(metadataRef.getThingId()))
                                                     .async(MongoSearchUpdaterFlow.DISPATCHER_NAME, parallelism)
                                     )
-                                    .withAttributes(Attributes.inputBuffer(1, 1))
                     );
-                })
-                .withAttributes(Attributes.inputBuffer(1, 1));
+                });
 
     }
 
