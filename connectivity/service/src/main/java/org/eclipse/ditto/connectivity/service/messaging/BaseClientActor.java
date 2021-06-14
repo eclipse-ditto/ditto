@@ -797,7 +797,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      */
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inDisconnectingState() {
         return matchEventEquals(StateTimeout(), (event, data) -> connectionTimedOut(data))
-                .eventEquals(SendDisconnectAnnouncement, (event, data) -> this.sendDisconnectAnnouncement(data))
+                .eventEquals(SEND_DISCONNECT_ANNOUNCEMENT, (event, data) -> this.sendDisconnectAnnouncement(data))
                 .event(Disconnect.class, this::disconnect)
                 .event(ConnectionFailure.class, this::connectingConnectionFailed)
                 .event(ClientDisconnected.class, this::clientDisconnected);
@@ -887,7 +887,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             final Duration disconnectAnnouncementTimeout = clientConfig.getDisconnectAnnouncementTimeout();
             timeoutUntilDisconnectCompletes =
                     clientConfig.getDisconnectingMaxTimeout().plus(disconnectAnnouncementTimeout);
-            getSelf().tell(SendDisconnectAnnouncement, sender);
+            getSelf().tell(SEND_DISCONNECT_ANNOUNCEMENT, sender);
             startSingleTimer("startDisconnect", new Disconnect(sender, shutdownAfterDisconnect),
                     disconnectAnnouncementTimeout);
         } else {
@@ -2151,7 +2151,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     }
 
-    private static final Object SendDisconnectAnnouncement = new Object();
+    private static final Object SEND_DISCONNECT_ANNOUNCEMENT = new Object();
 
     private static final class Disconnect {
 
