@@ -17,34 +17,33 @@ import akka.kafka.ProducerSettings;
 import akka.kafka.javadsl.SendProducer;
 
 /**
- * Default implementation of {@link org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaProducerFactory}.
+ * Default implementation of {@link SendProducerFactory}.
  */
-final class DefaultKafkaProducerFactory implements KafkaProducerFactory {
+final class DefaultSendProducerFactory implements SendProducerFactory {
 
     private final ProducerSettings<String, String> producerSettings;
     private final ActorSystem actorSystem;
 
-
-    private DefaultKafkaProducerFactory(final ProducerSettings<String, String> producerSettings,
+    private DefaultSendProducerFactory(final ProducerSettings<String, String> producerSettings,
             final ActorSystem actorSystem) {
         this.producerSettings = producerSettings;
         this.actorSystem = actorSystem;
     }
 
     /**
-     * Returns an instance of the default Kafka connection factory.
+     * Returns an instance of the default SendProducerFactory.
      *
      * @param producerSettings settings of the created producer.
-     * @param actorSystem the actor system.
-     * @return an Kafka connection factory.
+     * @param actorSystem the actor system
+     * @return an Kafka SendProducerFactory.
      */
-    static DefaultKafkaProducerFactory getInstance(final ProducerSettings<String, String> producerSettings,
+    static DefaultSendProducerFactory getInstance(final ProducerSettings<String, String> producerSettings,
             final ActorSystem actorSystem) {
-        return new DefaultKafkaProducerFactory(producerSettings, actorSystem);
+        return new DefaultSendProducerFactory(producerSettings, actorSystem);
     }
 
     @Override
-    public SendProducer<String, String> newProducer() {
+    public SendProducer<String, String> newSendProducer() {
         return new SendProducer<>(producerSettings, actorSystem);
     }
 

@@ -36,12 +36,12 @@ public interface KafkaPublisherActorFactory extends Serializable {
      *
      * @param connection the connection.
      * @param config the configuration of the kafka client.
-     * @param propertiesFactory a factory to create kafka producer properties.
+     * @param producerFactory a factory to create a kafka SendProducer.
      * @param dryRun if the publisher actor should be started in dry-run mode.
      * @param clientId identifier of the client actor.
      * @return the {@code Props} to create the publisher actor.
      */
-    Props props(Connection connection, KafkaConfig config, PropertiesFactory propertiesFactory, boolean dryRun,
+    Props props(Connection connection, KafkaConfig config, SendProducerFactory producerFactory, boolean dryRun,
             String clientId);
 
 }

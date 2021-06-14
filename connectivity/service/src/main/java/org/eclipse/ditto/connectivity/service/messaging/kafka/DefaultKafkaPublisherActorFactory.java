@@ -56,10 +56,10 @@ public final class DefaultKafkaPublisherActorFactory implements KafkaPublisherAc
     @Override
     public Props props(final Connection connection,
             final KafkaConfig config,
-            final PropertiesFactory propertiesFactory,
+            final SendProducerFactory sendProducerFactory,
             final boolean dryRun,
             final String clientId) {
-        return KafkaPublisherActor.props(connection, config, propertiesFactory, dryRun, clientId);
+        return KafkaPublisherActor.props(connection, config, sendProducerFactory, dryRun, clientId);
     }
 
 }

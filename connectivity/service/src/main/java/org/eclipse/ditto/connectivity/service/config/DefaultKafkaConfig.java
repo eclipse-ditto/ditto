@@ -49,8 +49,8 @@ public final class DefaultKafkaConfig implements KafkaConfig {
                 : ConfigFactory.empty());
 
         producerConfig = kafkaScopedConfig.getConfig(PRODUCER_PATH);
-        producerQueueSize = kafkaScopedConfig.getInt(PRODUCER_QUEUE_SIZE);
-        producerParallelism = kafkaScopedConfig.getInt(PRODUCER_PARALLELISM);
+        producerQueueSize = producerConfig.getInt(PRODUCER_QUEUE_SIZE);
+        producerParallelism = producerConfig.getInt(PRODUCER_PARALLELISM);
     }
 
     /**

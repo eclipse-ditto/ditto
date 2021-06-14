@@ -232,7 +232,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
                     @Override
                     public Props props(final Connection c,
                             final KafkaConfig config,
-                            final PropertiesFactory propertiesFactory,
+                            final SendProducerFactory producerFactory,
                             final boolean dryRun,
                             final String clientId) {
                         return MockKafkaPublisherActor.props(ref, status);

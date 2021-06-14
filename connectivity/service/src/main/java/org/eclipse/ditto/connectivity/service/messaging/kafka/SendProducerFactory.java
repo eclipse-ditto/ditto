@@ -15,15 +15,16 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 import akka.kafka.javadsl.SendProducer;
 
 /**
- * Creates Kafka producers.
+ * Creates Kafka {@code SendProducer}s.
  */
-interface KafkaProducerFactory {
+@FunctionalInterface
+interface SendProducerFactory {
 
     /**
      * Create a producer of Kafka messages.
      *
      * @return the producer.
      */
-    SendProducer<String, String> newProducer();
+    SendProducer<String, String> newSendProducer();
 
 }

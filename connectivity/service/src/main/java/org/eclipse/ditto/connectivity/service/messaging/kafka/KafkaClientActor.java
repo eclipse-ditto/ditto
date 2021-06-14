@@ -172,8 +172,11 @@ public final class KafkaClientActor extends BaseClientActor {
                 .info("Starting Kafka publisher actor.");
         // ensure no previous publisher stays in memory
         stopPublisherActor();
+        final DefaultSendProducerFactory producerFactory =
+                DefaultSendProducerFactory.getInstance(propertiesFactory.getProducerSettings(),
+                        getContext().getSystem());
         final Props publisherActorProps =
-                publisherActorFactory.props(connection(), kafkaConfig, propertiesFactory, dryRun, getDefaultClientId());
+                publisherActorFactory.props(connection(), kafkaConfig, producerFactory, dryRun, getDefaultClientId());
         kafkaPublisherActor = startChildActorConflictFree(publisherActorFactory.getActorName(), publisherActorProps);
         pendingStatusReportsFromStreams.add(kafkaPublisherActor);
     }

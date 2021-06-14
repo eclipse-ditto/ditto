@@ -73,5 +73,8 @@ public class DefaultKafkaConfigTest {
                 .isEqualTo(DEFAULT_PARALLELISM);
         assertThat(underTest.getProducerConfig().getDuration("close-timeout")) // from kafka-test.conf
                 .isEqualTo(DEFAULT_CLOSE_TIMEOUT);
+
+        assertThat(underTest.getProducerQueueSize()).isEqualTo(39);
+        assertThat(underTest.getProducerParallelism()).isEqualTo(3);
     }
 }
