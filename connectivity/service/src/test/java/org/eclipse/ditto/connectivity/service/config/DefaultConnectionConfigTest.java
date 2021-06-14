@@ -81,6 +81,10 @@ public final class DefaultConnectionConfigTest {
                 .as(ConnectionConfig.ConnectionConfigValue.CLIENT_ACTOR_ASK_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(10L));
 
+        softly.assertThat(underTest.getClientActorRestartsBeforeEscalation())
+                .as(ConnectionConfig.ConnectionConfigValue.CLIENT_ACTOR_RESTARTS_BEFORE_ESCALATION.getConfigPath())
+                .isEqualTo(7);
+
         softly.assertThat(underTest.getAllowedHostnames())
                 .as(ConnectionConfig.ConnectionConfigValue.ALLOWED_HOSTNAMES.getConfigPath())
                 .containsExactly("eclipse.org");
