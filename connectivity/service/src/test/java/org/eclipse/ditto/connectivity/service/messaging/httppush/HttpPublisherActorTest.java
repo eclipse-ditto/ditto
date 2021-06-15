@@ -794,27 +794,77 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
     @Test
     public void testReservedHeaders() throws Exception {
-        new TestKit(actorSystem) {{
+        // GIVEN: reserved headers are set
+        final Map<String, String> reservedHeaders = Map.of(
+                "http.query", "a=b&c=d&e=f",
+                "http.path", "my/awesome/path"
+        );
 
-            // GIVEN: reserved headers are set
-            final Map<String, String> reservedHeaders = Map.of(
-                    "http.query", "a=b&c=d&e=f",
-                    "http.path", "my/awesome/path"
-            );
+        // WHEN: publisher actor is asked to publish a message with reserved headers
+        final HttpRequest request = publishMessageWithHeaders(reservedHeaders);
+
+        // THEN: reserved headers do not appear as HTTP headers
+        assertThat(request.getHeader("http.query")).isEmpty();
+        assertThat(request.getHeader("http.path")).isEmpty();
+
+        // THEN: reserved headers are evaluated
+        assertThat(request.getUri().queryString(StandardCharsets.UTF_8)).contains("a=b&c=d&e=f");
+        assertThat(request.getUri().getPathString()).isEqualTo("/my/awesome/path");
+    }
+
+    @Test
+    public void testHttpQueryReservedHeaderWithLeadingSlash() throws Exception {
+        // GIVEN: reserved headers are set
+        final Map<String, String> reservedHeaders = Map.of(
+                "http.query", "a=b&c=d&e=f"
+        );
+
+        // WHEN: publisher actor is asked to publish a message with reserved headers
+        final HttpRequest request = publishMessageWithHeaders(reservedHeaders);
+
+        // THEN: reserved headers do not appear as HTTP headers
+        assertThat(request.getHeader("http.query")).isEmpty();
+
+        // THEN: reserved headers are evaluated
+        assertThat(request.getUri().queryString(StandardCharsets.UTF_8)).contains("a=b&c=d&e=f");
+    }
+
+    @Test
+    public void testHttpPathReservedHeaderWithLeadingSlash() throws Exception {
+        // GIVEN: reserved headers are set
+        final Map<String, String> reservedHeaders = Map.of(
+                "http.path", "/my/awesome/path"
+        );
+
+        // WHEN: publisher actor is asked to publish a message with reserved headers
+        final HttpRequest request = publishMessageWithHeaders(reservedHeaders);
+
+        // THEN: reserved headers do not appear as HTTP headers
+        assertThat(request.getHeader("http.path")).isEmpty();
+
+        // THEN: reserved headers are evaluated
+        assertThat(request.getUri().getPathString()).isEqualTo("/my/awesome/path");
+    }
+
+    private HttpRequest publishMessageWithHeaders(final Map<String, String> headers) throws InterruptedException {
+        final Container<HttpRequest> published = new Container<>();
+        new TestKit(actorSystem) {{
 
             // WHEN: publisher actor is asked to publish a message with reserved headers
             final TestProbe probe = new TestProbe(actorSystem);
             setupMocks(probe);
             final Target target = decorateTarget(createTestTarget());
             final Message<?> message = Message.newBuilder(
-                    MessageHeaders.newBuilder(MessageDirection.FROM, TestConstants.Things.THING_ID, "please-respond")
+                    MessageHeaders.newBuilder(MessageDirection.FROM, TestConstants.Things.THING_ID,
+                            "please-respond")
                             .build()
             ).build();
-            final Signal<?> source = SendThingMessage.of(TestConstants.Things.THING_ID, message, DittoHeaders.empty());
+            final Signal<?> source =
+                    SendThingMessage.of(TestConstants.Things.THING_ID, message, DittoHeaders.empty());
             final OutboundSignal outboundSignal =
                     OutboundSignalFactory.newOutboundSignal(source, Collections.singletonList(target));
             final ExternalMessage externalMessage =
-                    ExternalMessageFactory.newExternalMessageBuilder(reservedHeaders)
+                    ExternalMessageFactory.newExternalMessageBuilder(headers)
                             .withText("payload")
                             .build();
             final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(source);
@@ -828,14 +878,22 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             publisherActor.tell(multiMapped, getRef());
 
             // THEN: reserved headers do not appear as HTTP headers
-            final HttpRequest request = received.take();
-            assertThat(request.getHeader("http.query")).isEmpty();
-            assertThat(request.getHeader("http.path")).isEmpty();
-
-            // THEN: reserved headers are evaluated
-            assertThat(request.getUri().queryString(StandardCharsets.UTF_8)).contains("a=b&c=d&e=f");
-            assertThat(request.getUri().getPathString()).isEqualTo("/my/awesome/path");
+            published.setValue(received.take());
         }};
+        return published.getValue();
+    }
+
+    private static class Container<T> {
+        private T value;
+
+        private void setValue(final T value) {
+            this.value = value;
+        }
+
+        private T getValue() {
+            return value;
+        }
+
     }
 
     private OutboundSignal.MultiMapped newMultiMappedWithContentType(final Target target,
