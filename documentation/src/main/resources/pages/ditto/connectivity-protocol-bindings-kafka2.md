@@ -22,14 +22,12 @@ as well. Following are some specifics for Apache Kafka 2.x connections:
 ### Source format
 For a Kafka connection source "addresses" are Kafka topics to subscribe to. Legal characters are `[a-z]`, `[A-Z]`, `[0-9]`, `.`, `_` and `-`.
 
-The field `qos` sets the Quality of Service which should be applied for consuming messages from this source.
-Right now only `qos=0` is supported, which means that the offset will be committed right after ditto consumed the message from kafka, no matter if the message can be processed correctly or not.
+All messages are consumed in an "At-Most-Once" manner. This means that the offset will be committed after ditto consumed the message from kafka, no matter if the message can be processed correctly or not. Ditto's acknowledgement feature is right now not supported for Kafka consumers.
 
 The following example shows a valid kafka source:
 ```json
 {
   "addresses": ["theAddress"],
-  "qos": 0,
   "consumerCount": 1,
   "authorizationContext": ["ditto:inbound-auth-subject"],
   "enforcement": {
