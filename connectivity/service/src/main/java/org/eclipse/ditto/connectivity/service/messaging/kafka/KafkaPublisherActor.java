@@ -13,6 +13,7 @@
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -45,12 +46,12 @@ import org.eclipse.ditto.connectivity.service.config.KafkaConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.ExceptionToAcknowledgementConverter;
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 
 import akka.Done;
+import akka.NotUsed;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.dispatch.MessageDispatcher;
@@ -62,8 +63,9 @@ import akka.stream.KillSwitches;
 import akka.stream.Materializer;
 import akka.stream.OverflowStrategy;
 import akka.stream.QueueOfferResult;
-import akka.stream.UniqueKillSwitch;
+import akka.stream.RestartSettings;
 import akka.stream.javadsl.Keep;
+import akka.stream.javadsl.RestartSource;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.SourceQueueWithComplete;
@@ -178,7 +180,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
      * @param throwable the exception.
      */
     private void escalateIfNotRetryable(final Throwable throwable) {
-        if (!(throwable instanceof RetriableException)) {
+        if (!(throwable instanceof RetriableException || throwable.getCause() instanceof RetriableException)) {
             escalate(throwable, "Got non-retryable exception");
         }
     }
@@ -312,43 +314,38 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                 "a) The Kafka consumer does not consume the messages fast enough.\n" +
                 "b) The client count of this connection is not configured high enough.";
 
-        private final SourceQueueWithComplete<Pair<ProducerRecord<String, String>, KafkaMessageContext>>
-                sourceQueue;
+        private final SourceQueueWithComplete<Pair<ProducerRecord<String, String>, KafkaMessageContext>> sourceQueue;
         private final KillSwitch killSwitch;
 
         private KafkaProducerStream(final KafkaConfig config, final Materializer materializer,
                 final SendProducerFactory producerFactory) {
 
+            final Source<Pair<ProducerRecord<String, String>, KafkaMessageContext>, SourceQueueWithComplete<Pair<ProducerRecord<String, String>, KafkaMessageContext>>>
+                    queueSource = Source.queue(config.getProducerQueueSize(), OverflowStrategy.dropNew());
+            final Pair<SourceQueueWithComplete<Pair<ProducerRecord<String, String>, KafkaMessageContext>>, Source<Pair<ProducerRecord<String, String>, KafkaMessageContext>, NotUsed>>
+                    sourceQueuePreMat = queueSource.preMaterialize(materializer);
+
+            sourceQueue = sourceQueuePreMat.first();
+
             final SendProducer<String, String> sendProducer = producerFactory.newSendProducer();
+            // TODO make restart settings configurable
+            final RestartSettings restartSettings =
+                    RestartSettings.create(Duration.ofSeconds(1), Duration.ofSeconds(30), 0.2);
 
-
-            final Pair<Pair<SourceQueueWithComplete<Pair<ProducerRecord<String, String>, KafkaMessageContext>>, UniqueKillSwitch>, CompletionStage<Done>>
-                    mat = Source.<Pair<ProducerRecord<String, String>, KafkaMessageContext>>queue(
-                    config.getProducerQueueSize(),
-                    OverflowStrategy.dropNew())
-                    .mapAsync(1 /* temp no parallelism*/, msg -> {
-                        final ProducerRecord<String, String> record = msg.first();
-                        final KafkaMessageContext context = msg.second();
-                        return CompletableFuture.supplyAsync(() -> context.onPublishMessage(sendProducer, record),
-                                kafkaConnectionDispatcher);
-                    })
-                    .viaMat(KillSwitches.single(), Keep.both())
-                    .toMat(Sink.ignore(), Keep.both())
+            killSwitch = RestartSource.onFailuresWithBackoff(restartSettings, () -> {
+                logger.info("Creating SourceQueue");
+                return sourceQueuePreMat.second()
+                        .mapAsync(1 /* temp no parallelism*/, msg -> {
+                            final ProducerRecord<String, String> record = msg.first();
+                            final KafkaMessageContext context = msg.second();
+                            return CompletableFuture.supplyAsync(
+                                    () -> context.onPublishMessage(sendProducer, record),
+                                    kafkaConnectionDispatcher);
+                        });
+            })
+                    .viaMat(KillSwitches.single(), Keep.right())
+                    .toMat(Sink.ignore(), Keep.left())
                     .run(materializer);
-
-            sourceQueue = mat.first().first();
-            killSwitch = mat.first().second();
-
-            mat.second().whenComplete((done, t) -> {
-                if (t == null) {
-                    logger.debug("Publisher source queue done.");
-                } else {
-                    final String msg = "Error occurred in publisher source queue.";
-                    logger.debug(msg, t);
-                    getContext().parent().tell(new ImmutableConnectionFailure(getSelf(), t, msg), getSelf());
-                }
-            });
-
         }
 
         private KafkaMessageContext newKafkaMessageContext(final CompletableFuture<RecordMetadata> resultFuture) {
