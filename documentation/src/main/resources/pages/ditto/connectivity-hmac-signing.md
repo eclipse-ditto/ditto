@@ -214,8 +214,8 @@ function mapFromDittoProtocolMsg(namespace,name,group,channel,criterion,
       group, channel, criterion, action, path, dittoHeaders, value, status, extra));
   let query = 'Action=Publish&Message=' + encodeURIComponent(textPayload) +
       '&Subject=ThingModified&TopicArn=<sns-topic-arn>';
-  let headers = {"http.query":query};
-  return Ditto.buildExternalMsg(headers,'',null,'text/plain');
+  let headers = { "http.query": query };
+  return Ditto.buildExternalMsg(headers, '', null, 'text/plain');
 }
 ```
 
@@ -283,6 +283,7 @@ the signature, in contrast to other AWS services where the path segments of HTTP
   "tags": []
 }
 ```
+{%endraw%}
 
 Parameters:
 - `<s3-bucket>`: Name of the S3 bucket.
@@ -324,6 +325,7 @@ This example is an HTTP connection pushing twin events into
 [Azure Monitor Data Collector API](https://docs.microsoft.com/en-us/azure/azure-monitor/logs/data-collector-api).
 It requires an Azure Log Analytics Workspace.
 
+{%raw%}
 ```json
 {
   "id": "00000000-0000-0000-0000-000000000000",
@@ -359,6 +361,7 @@ It requires an Azure Log Analytics Workspace.
   "tags": []
 }
 ```
+{%endraw%}
 
 Parameters:
 - `<workspace-id>`: The ID of the log analytics workspace.
