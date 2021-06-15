@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.connectivity.service.messaging.persistence;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkArgument;
@@ -29,7 +28,7 @@ import scala.collection.Iterable;
  * afterwards escalates failures. This stands in contrast to the original {@link akka.actor.OneForOneStrategy}
  * which stops instead of escalating.
  */
-class OneForOneEscalateStrategy extends SupervisorStrategy {
+final class OneForOneEscalateStrategy extends SupervisorStrategy {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OneForOneEscalateStrategy.class);
 
@@ -45,6 +44,7 @@ class OneForOneEscalateStrategy extends SupervisorStrategy {
      * will escalate errors.
      *
      * @param maxRetries how often a failing child should be restarted.
+     * @throws IllegalArgumentException if the passed in {@code maxRetries} is negative.
      * @return the strategy.
      */
     static OneForOneEscalateStrategy withRetries(final int maxRetries) {
@@ -53,7 +53,7 @@ class OneForOneEscalateStrategy extends SupervisorStrategy {
     }
 
     /**
-     * Create a supervisor strategy which escalates when a child fails.
+     * Create a supervisor strategy which immediately escalates when a child fails.
      *
      * @return the strategy.
      */
@@ -76,7 +76,7 @@ class OneForOneEscalateStrategy extends SupervisorStrategy {
                 return (Directive) SupervisorStrategy.escalate();
             }
             LOGGER.info("Child failed <{}> times, which is less than the maximum allowed number of <{}> failures." +
-                    " Will restart the child.",currentRetries, maxRetries, throwable);
+                    " Will restart the child.", currentRetries, maxRetries, throwable);
             return (Directive) SupervisorStrategy.restart();
         });
     }
