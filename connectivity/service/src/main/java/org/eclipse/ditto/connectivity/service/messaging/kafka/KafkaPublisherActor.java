@@ -53,6 +53,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import akka.Done;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.dispatch.MessageDispatcher;
 import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
 import akka.kafka.javadsl.SendProducer;
@@ -75,9 +76,12 @@ import akka.util.ByteString;
 final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
     static final String ACTOR_NAME = "kafkaPublisher";
+    private static final String DISPATCHER_NAME = "kafka-connection-dispatcher";
 
     private final boolean dryRun;
     private final KafkaProducerStream producerStream;
+    private final MessageDispatcher kafkaConnectionDispatcher;
+
 
     @SuppressWarnings("unused")
     private KafkaPublisherActor(final Connection connection,
@@ -88,6 +92,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         super(connection, clientId);
         this.dryRun = dryRun;
         final Materializer materializer = Materializer.createMaterializer(this::getContext);
+        kafkaConnectionDispatcher = getContext().getSystem().dispatchers().lookup(DISPATCHER_NAME);
         producerStream = new KafkaProducerStream(config, materializer, producerFactory);
         reportInitialConnectionState();
     }
@@ -316,14 +321,16 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
             final SendProducer<String, String> sendProducer = producerFactory.newSendProducer();
 
+
             final Pair<Pair<SourceQueueWithComplete<Pair<ProducerRecord<String, String>, KafkaMessageContext>>, UniqueKillSwitch>, CompletionStage<Done>>
                     mat = Source.<Pair<ProducerRecord<String, String>, KafkaMessageContext>>queue(
                     config.getProducerQueueSize(),
                     OverflowStrategy.dropNew())
-                    .mapAsync(config.getProducerParallelism(), msg -> {
+                    .mapAsync(1 /* temp no parallelism*/, msg -> {
                         final ProducerRecord<String, String> record = msg.first();
                         final KafkaMessageContext context = msg.second();
-                        return context.onPublishMessage(sendProducer, record);
+                        return CompletableFuture.supplyAsync(() -> context.onPublishMessage(sendProducer, record),
+                                kafkaConnectionDispatcher);
                     })
                     .viaMat(KillSwitches.single(), Keep.both())
                     .toMat(Sink.ignore(), Keep.both())
