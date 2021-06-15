@@ -20,25 +20,26 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
-import org.eclipse.ditto.internal.utils.pubsub.config.PubSubConfig;
-import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
-import org.eclipse.ditto.internal.utils.pubsub.extractors.PubSubTopicExtractor;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.internal.utils.pubsub.api.LocalAcksChanged;
 import org.eclipse.ditto.internal.utils.pubsub.api.PublishSignal;
+import org.eclipse.ditto.internal.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.SubscriptionsReader;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.ack.GroupedSnapshot;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
-import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
+import org.eclipse.ditto.internal.utils.pubsub.extractors.PubSubTopicExtractor;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Terminated;
+import akka.cluster.Cluster;
 import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
 
@@ -119,7 +120,9 @@ public final class Subscriber<T extends SignalWithEntityId<?>> extends AbstractA
     }
 
     private void terminated(final Terminated terminated) {
-        if (terminated.getActor().equals(ackUpdater)) {
+        if (Cluster.get(getContext().getSystem()).isTerminated()) {
+            logger.info("This cluster instance was terminated - no action required ..");
+        } else if (terminated.getActor().equals(ackUpdater)) {
             logger.error("Notifying SubUpdater <{}> of AckUpdater termination: <{}>", subUpdater, terminated);
             if (subUpdater != null) {
                 subUpdater.tell(ActorEvent.PUBSUB_TERMINATED, getSelf());
