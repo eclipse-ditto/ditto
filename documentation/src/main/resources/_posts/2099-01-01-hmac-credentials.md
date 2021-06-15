@@ -124,9 +124,9 @@ in the fields `uri`, `credentials.parameters.sharedKeyName`, `credentials.parame
 			"javascript": {
 				"mappingEngine": "JavaScript",
 				"options": {
-					"incomingScript": "/**\n * Maps the passed parameters to a Ditto Protocol message.\n * @param {Object.<string, string>} headers - The headers Object containing all received header values\n * @param {string} [textPayload] - The String to be mapped\n * @param {ArrayBuffer} [bytePayload] - The bytes to be mapped as ArrayBuffer\n * @param {string} [contentType] - The received Content-Type, e.g. \"application/json\"\n * @returns {(DittoProtocolMessage|Array<DittoProtocolMessage>)} dittoProtocolMessage(s) -\n *  The mapped Ditto Protocol message,\n *  an array of Ditto Protocol messages or\n *  <code>null</code> if the message could/should not be mapped\n */\nfunction mapToDittoProtocolMsg(\n  headers,\n  textPayload,\n  bytePayload,\n  contentType\n) {\n\n  // ### Insert/adapt your mapping logic here.\n  // Use helper function Ditto.buildDittoProtocolMsg to build Ditto protocol message\n  // based on incoming payload.\n  // See https://www.eclipse.org/ditto/connectivity-mapping.html#helper-functions for details.\n\n  // ### example code assuming the Ditto protocol content type for incoming messages.\n  if (contentType === 'application/vnd.eclipse.ditto+json') {\n    // Message is sent as Ditto protocol text payload and can be used directly\n    return JSON.parse(textPayload);\n  } else if (contentType === 'application/octet-stream') {\n    // Message is sent as binary payload; assume Ditto protocol message (JSON).\n    try {\n      return JSON.parse(Ditto.arrayBufferToString(bytePayload));\n    } catch (e) {\n      // parsing failed (no JSON document); return null to drop the message\n      return null;\n    }\n  }\n\n  // no mapping logic matched; return null to drop the message\n  return null;\n}\n",
-					"outgoingScript": "/**\n * Maps the passed parameters which originated from a Ditto Protocol message to an external message.\n * @param {string} namespace - The namespace of the entity in java package notation, e.g.: \"org.eclipse.ditto\". Or \"_\"\n * (underscore) for connection announcements.\n * @param {string} name - The name of the entity, e.g.: \"device\".\n * @param {string} group - The affected group/entity: \"things\"|\"policies\"|\"connections\".\n * @param {string} channel - The channel for the signal: \"twin\"|\"live\"|\"none\"\n * @param {string} criterion - The criterion to apply: \"commands\"|\"events\"|\"search\"|\"messages\"|\"announcements\"|\"errors\".\n * @param {string} action - The action to perform: \"create\"|\"retrieve\"|\"modify\"|\"delete\". Or the announcement name:\n * \"opened\"|\"closed\"|\"subjectDeletion\". Or the subject of the message.\n * @param {string} path - The path which is affected by the message (e.g.: \"/attributes\"), or the destination\n * of a message (e.g.: \"inbox\"|\"outbox\").\n * @param {Object.<string, string>} dittoHeaders - The headers Object containing all Ditto Protocol header values.\n * @param {*} [value] - The value to apply / which was applied (e.g. in a \"modify\" action).\n * @param {number} [status] - The status code that indicates the result of the command. When this field is set,\n * it indicates that the Ditto Protocol Message contains a response.\n * @param {Object} [extra] - The enriched extra fields when selected via \"extraFields\" option.\n * @returns {(ExternalMessage|Array<ExternalMessage>)} externalMessage - The mapped external message, an array of\n * external messages or <code>null</code> if the message could/should not be mapped.\n */\nfunction mapFromDittoProtocolMsg(\n  namespace,\n  name,\n  group,\n  channel,\n  criterion,\n  action,\n  path,\n  dittoHeaders,\n  value,\n  status,\n  extra\n) {\n\n  let headers = dittoHeaders;\n  let textPayload = JSON.stringify(value);\n  let bytePayload = null;\n  let contentType = 'application/json';\n\n  return Ditto.buildExternalMsg(\n    headers, // The external headers Object containing header values\n    textPayload, // The external mapped String\n    bytePayload, // The external mapped byte[]\n    contentType // The returned Content-Type\n  );\n}\n",
-					"loadBytebufferJS": "false",
+                    "incomingScript": "function mapToDittoProtocolMsg(\n  headers,\n  textPayload,\n  bytePayload,\n  contentType\n) {\n\n  if (contentType === 'application/vnd.eclipse.ditto+json') {\n    return JSON.parse(textPayload);\n  } else if (contentType === 'application/octet-stream') {\n    try {\n      return JSON.parse(Ditto.arrayBufferToString(bytePayload));\n    } catch (e) {\n      return null;\n    }\n  }\n  return null;\n}\n",
+                    "outgoingScript": "function mapFromDittoProtocolMsg(\n  namespace,\n  name,\n  group,\n  channel,\n  criterion,\n  action,\n  path,\n  dittoHeaders,\n  value,\n  status,\n  extra\n) {\n\n  let headers = dittoHeaders;\n  let payload = {\n      \"methodName\": action,\n      \"responseTimeoutInSeconds\": parseInt(dittoHeaders.timeout),\n      \"payload\": value\n  };\n  let textPayload = JSON.stringify(payload);\n  let bytePayload = null;\n  let contentType = 'application/json';\n\n  return Ditto.buildExternalMsg(\n    headers, // The external headers Object containing header values\n    textPayload, // The external mapped String\n    bytePayload, // The external mapped byte[]\n    contentType // The returned Content-Type\n  );\n}\n",
+                    "loadBytebufferJS": "false",
 					"loadLongJS": "false"
 				}
 			}
@@ -148,9 +148,9 @@ in the fields `uri`, `credentials.parameters.sharedKeyName`, `credentials.parame
 This connection configuration sends live messages to the endpoint at
 {%raw%}`https://my-hub.azure-devices.net:443/twins/{{ thing:id }}/methods?api-version=2018-06-30`{%endraw%}
 and signs each request with a [Shared Access Signature](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-dev-guide-sas?tabs=node).
-The configuration also contains an outgoing JavaScript payload mapping, which extracts the value of the used ditto protocol 
-live message and sends its value as JSON message. This is needed, because direct methods in Azure IoT Hub have a
-special format which you'll see below.
+The configuration also contains an outgoing JavaScript payload mapping, which extracts the namve of the live message,
+its timeout and its payload and uses this to construct a JSON message in the required direct method format.
+You'll see that format below.
 
 ## Listen for direct method on the device
 
@@ -165,12 +165,23 @@ To invoke the `getDeviceLog` method on the device, you should now be able to sen
 will be forwarded through your connection `Azure IoT Hub HTTP` to the Azure IoT Hub, which will route it to the device
 and respond with its response.
 
-`POST` a message to `<ditto>/api/2/things/ditto:thing/inbox/messages/getDeviceLog` with content:
+`POST` a message to `<ditto>/api/2/things/ditto:thing/inbox/messages/getDeviceLog?timeout=5s` with content:
 ```json
 {
-    "methodName": "getDeviceLog",
-    "responseTimeoutInSeconds": 5,
-    "payload": "Show me the logs"
+  "service": "my-microservice",
+  "amount": 9000
+}
+```
+
+The payload mapping of the connection will turn this into a direct method:
+```json
+{
+  "methodName": "getDeviceLog",
+  "responseTimeoutInSeconds": 5,
+  "payload": {
+    "service": "my-microservice",
+    "amount": 9000
+  }
 }
 ```
 

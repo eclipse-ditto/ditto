@@ -403,7 +403,7 @@ The placeholders in `<angle brackets>` need to be replaced.
       "mappingEngine": "JavaScript",
       "options": {
         "incomingScript": "function mapToDittoProtocolMsg(\n  headers,\n  textPayload,\n  bytePayload,\n  contentType\n) {\n\n  if (contentType === 'application/vnd.eclipse.ditto+json') {\n    return JSON.parse(textPayload);\n  } else if (contentType === 'application/octet-stream') {\n    try {\n      return JSON.parse(Ditto.arrayBufferToString(bytePayload));\n    } catch (e) {\n      return null;\n    }\n  }\n  return null;\n}\n",
-        "outgoingScript": "function mapFromDittoProtocolMsg(\n  namespace,\n  name,\n  group,\n  channel,\n  criterion,\n  action,\n  path,\n  dittoHeaders,\n  value,\n  status,\n  extra\n) {\n\n  let headers = dittoHeaders;\n  let textPayload = JSON.stringify(value);\n  let bytePayload = null;\n  let contentType = 'application/json';\n\n  return Ditto.buildExternalMsg(\n    headers, // The external headers Object containing header values\n    textPayload, // The external mapped String\n    bytePayload, // The external mapped byte[]\n    contentType // The returned Content-Type\n  );\n}\n",
+        "outgoingScript": "function mapFromDittoProtocolMsg(\n  namespace,\n  name,\n  group,\n  channel,\n  criterion,\n  action,\n  path,\n  dittoHeaders,\n  value,\n  status,\n  extra\n) {\n\n  let headers = dittoHeaders;\n  let payload = {\n      \"methodName\": action,\n      \"responseTimeoutInSeconds\": parseInt(dittoHeaders.timeout),\n      \"payload\": value\n  };\n  let textPayload = JSON.stringify(payload);\n  let bytePayload = null;\n  let contentType = 'application/json';\n\n  return Ditto.buildExternalMsg(\n    headers, // The external headers Object containing header values\n    textPayload, // The external mapped String\n    bytePayload, // The external mapped byte[]\n    contentType // The returned Content-Type\n  );\n}\n",
         "loadBytebufferJS": "false",
         "loadLongJS": "false"
       }
@@ -429,38 +429,45 @@ Required parameters:
 * `<shared-access-policy-name>`: The name of the (Azure IoT Hub) shared access policy, which has the `Service connect` permission. E.g. `service`.
 * `<shared-access-key>`: The primary or secondary key of above policy. E.g. `theKey`.
 
-The `outgoingScript` provides JavaScript payload mapping which maps the outgoing ditto protocol message into a plain
-`application/json` message, which contains the value of the original ditto protocol message:
+The `outgoingScript` provides JavaScript payload mapping which maps the outgoing ditto protocol message into
+the required [direct method format](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-devguide-direct-methods#invoke-a-direct-method-from-a-back-end-app).
+I.e. it uses the live message name as `methodName`, the timeout as `responseTimeoutInSeconds` and the value as `payload`:
+
 ```javascript
 function mapFromDittoProtocolMsg(
-  namespace,
-  name,
-  group,
-  channel,
-  criterion,
-  action,
-  path,
-  dittoHeaders,
-  value,
-  status,
-  extra
+        namespace,
+        name,
+        group,
+        channel,
+        criterion,
+        action,
+        path,
+        dittoHeaders,
+        value,
+        status,
+        extra
 ) {
 
   let headers = dittoHeaders;
-  let textPayload = JSON.stringify(value);
+  let payload = {
+    "methodName": action,
+    "responseTimeoutInSeconds": parseInt(dittoHeaders.timeout),
+    "payload": value
+  };
+  let textPayload = JSON.stringify(payload);
   let bytePayload = null;
   let contentType = 'application/json';
 
   return Ditto.buildExternalMsg(
-    headers, // The external headers Object containing header values
-    textPayload, // The external mapped String
-    bytePayload, // The external mapped byte[]
-    contentType // The returned Content-Type
+    headers,
+    textPayload,
+    bytePayload,
+    contentType
   );
 }
 ```
 
-This is required since Azure IoT Hub direct methods require a [specific format](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-devguide-direct-methods#invoke-a-direct-method-from-a-back-end-app):
+This is required since Azure IoT Hub direct methods require a specific format:
 ```json
 {
     "methodName": "reboot",
@@ -472,8 +479,18 @@ This is required since Azure IoT Hub direct methods require a [specific format](
 }
 ```
 
-Send live messages to things in this format and with the above shown payload mapping, they can successfully invoke
+Send live messages to a Thing, which contain as value the expected `payload`, as live message name the expected
+`methodName` and as timeout the expected `responseTimeoutInSeconds`. Then they can successfully invoke
 the direct method on their respective devices.
+
+E.g. a live message for the above direct method would be a `POST` to
+`<ditto>/api/2/things/<thing-id>/inbox/messages/reboot?timeout=200s` with body:
+```json
+{
+    "input1": "someInput",
+    "input2": "anotherInput"
+}
+```
 
 #### Azure IoT Hub AMQP API
 
