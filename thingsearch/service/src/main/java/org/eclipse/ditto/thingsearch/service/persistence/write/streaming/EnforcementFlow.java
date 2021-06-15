@@ -51,7 +51,6 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.dispatch.MessageDispatcher;
 import akka.pattern.Patterns;
-import akka.stream.Attributes;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Source;
@@ -179,7 +178,6 @@ final class EnforcementFlow {
         return Source.fromIterator(changeMap.entrySet()::iterator)
                 .flatMapMerge(parallelism, entry -> sudoRetrieveThing(entry)
                         .async(MongoSearchUpdaterFlow.DISPATCHER_NAME, parallelism))
-                .withAttributes(Attributes.inputBuffer(1, 1))
                 .<Map<ThingId, SudoRetrieveThingResponse>>fold(new HashMap<>(), (map, response) -> {
                     map.put(getThingId(response), response);
                     return map;
