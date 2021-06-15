@@ -141,7 +141,7 @@ This example is an HTTP connection to [AWS SNS (Simple Notification Service)](ht
 twin events as messages to an SNS topic. Prerequisites are:
 - An IAM user with access to SNS,
 - An SNS topic,
-- A subscription on the SNS topic to receive twin events, e.g., by email.
+- A subscription on the SNS topic to receive twin events, e.g. by email.
 
 The SNS connection is shown below.
 
@@ -227,7 +227,7 @@ twin events as objects in an S3 bucket. Prerequisites are:
 - An S3 bucket.
 
 The S3 connection is shown below. The credentials parameter `"xAmzContentSha256": "INCLUDED"` is necessary in order
-to include the payload hash as the value of the header `x-amz-content-sha256` mandatory for S3. In addition,
+to include the payload hash as the value of the header `x-amz-content-sha256`. In addition,
 the parameter `"doubleEncode"` must be set to `false` because S3 performs URI-encoding only once when computing
 the signature, in contrast to other AWS services where the path segments of HTTP requests are encoded twice.
 
@@ -238,7 +238,7 @@ the signature, in contrast to other AWS services where the path segments of HTTP
   "name": "AWS S3",
   "connectionType": "http-push",
   "connectionStatus": "open",
-  "uri": "https://<s3-bucket>.s3.eu-central-1.amazonaws.com:443",
+  "uri": "https://<s3-bucket>.s3.<aws-region>.amazonaws.com:443",
   "credentials": {
     "type": "hmac",
     "algorithm": "aws4-hmac-sha256",
@@ -304,7 +304,7 @@ followed by its revision. For example, a thing-modified event of revision 42 gen
 function mapFromDittoProtocolMsgWrapper(msg) {
   let topic = msg['topic'].split('/').join(':');
   let headers = {
-      'http.path': topic+':'+msg['revision']
+      'http.path': topic + ':' + msg['revision']
   };
   let textPayload = JSON.stringify(msg);
   let bytePayload = null;
@@ -374,8 +374,7 @@ in each row.
 #### Azure IoT Hub HTTP API
 
 What follows is an example of a connection which forwards live messages sent to things as direct method calls to
-Azure IoT Hub via HTTP. You'll receive the response of the direct method call.
-The placeholders in `<angle brackets>` need to be replaced.
+[Azure IoT Hub](https://docs.microsoft.com/en-us/azure/iot-hub/about-iot-hub) via HTTP. You'll receive the response of the direct method call.
 
 {%raw%}
 ```json
@@ -405,7 +404,7 @@ The placeholders in `<angle brackets>` need to be replaced.
     "javascript": {
       "mappingEngine": "JavaScript",
       "options": {
-        "incomingScript": "function mapToDittoProtocolMsg(\n  headers,\n  textPayload,\n  bytePayload,\n  contentType\n) {\n\n  if (contentType === 'application/vnd.eclipse.ditto+json') {\n    return JSON.parse(textPayload);\n  } else if (contentType === 'application/octet-stream') {\n    try {\n      return JSON.parse(Ditto.arrayBufferToString(bytePayload));\n    } catch (e) {\n      return null;\n    }\n  }\n  return null;\n}\n",
+        "incomingScript": "function mapToDittoProtocolMsg() {\n  return undefined;\n}\n",
         "outgoingScript": "function mapFromDittoProtocolMsg(\n  namespace,\n  name,\n  group,\n  channel,\n  criterion,\n  action,\n  path,\n  dittoHeaders,\n  value,\n  status,\n  extra\n) {\n\n  let headers = dittoHeaders;\n  let payload = {\n      \"methodName\": action,\n      \"responseTimeoutInSeconds\": parseInt(dittoHeaders.timeout),\n      \"payload\": value\n  };\n  let textPayload = JSON.stringify(payload);\n  let bytePayload = null;\n  let contentType = 'application/json';\n\n  return Ditto.buildExternalMsg(\n    headers, // The external headers Object containing header values\n    textPayload, // The external mapped String\n    bytePayload, // The external mapped byte[]\n    contentType // The returned Content-Type\n  );\n}\n",
         "loadBytebufferJS": "false",
         "loadLongJS": "false"
@@ -426,8 +425,7 @@ The placeholders in `<angle brackets>` need to be replaced.
 ```
 {%endraw%}
 
-
-Required parameters:
+Parameters:
 * `<hostname>`: The hostname of your iot hub instance. E.g. `my-hub.azure-devices.net`.
 * `<shared-access-policy-name>`: The name of the (Azure IoT Hub) shared access policy, which has the `Service connect` permission. E.g. `service`.
 * `<shared-access-key>`: The primary or secondary key of above policy. E.g. `theKey`.
@@ -498,8 +496,7 @@ E.g. a live message for the above direct method would be a `POST` to
 #### Azure IoT Hub AMQP API
 
 What follows is an example of a connections which forwards live messages sent to things as Cloud To Device (C2D)
-messages to Azure IoT Hub via AMQP 1.0.
-The placeholders in `<angle brackets>` need to be replaced.
+messages to [Azure IoT Hub](https://docs.microsoft.com/en-us/azure/iot-hub/about-iot-hub) via AMQP 1.0.
 
 {%raw%}
 ```json
@@ -538,8 +535,7 @@ The placeholders in `<angle brackets>` need to be replaced.
 ```
 {%endraw%}
 
-
-Required parameters:
+Parameters:
 * `<hostname>`: The hostname of your iot hub instance. E.g. `my-hub.azure-devices.net`.
 * `<shared-access-policy-name>`: The name of the (Azure IoT Hub) shared access policy, which has the `Service connect` permission. E.g. `service`.
 * `<shared-access-key>`: The primary or secondary key of above policy. E.g. `theKey`.
@@ -547,8 +543,8 @@ Required parameters:
 
 #### Azure Service Bus HTTP API
 
-What follows is an example of a connection which forwards live messages sent to things to a queue in Azure Service Bus.
-The placeholders in `<angle brackets>` need to be replaced. 
+What follows is an example of a connection which forwards live messages sent to things to a queue in
+[Azure Service Bus](https://docs.microsoft.com/en-us/azure/service-bus-messaging/service-bus-messaging-overview).
 
 {%raw%}
 ```json
@@ -588,7 +584,7 @@ The placeholders in `<angle brackets>` need to be replaced.
 ```
 {%endraw%}
 
-Required parameters:
+Parameters:
 * `<hostname>`: The hostname of your service bus instance. E.g. `my-bus.servicebus.windows.net`.
 * `<queue-name>`: The queue name to which you want to publish in your service bus instance. E.g. `my-queue`'.
 * `<shared-access-policy-name>`: The name of the (Azure Service Bus) shared access policy, which has `Send` and `Listen` permissions. E.g. `RootManageSharedAccessKey`.
