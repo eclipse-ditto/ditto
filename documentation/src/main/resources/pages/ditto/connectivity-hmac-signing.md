@@ -542,7 +542,7 @@ The placeholders in `<angle brackets>` need to be replaced.
 Required parameters:
 * `<hostname>`: The hostname of your iot hub instance. E.g. `my-hub.azure-devices.net`.
 * `<shared-access-policy-name>`: The name of the (Azure IoT Hub) shared access policy, which has the `Service connect` permission. E.g. `service`.
-* `shared-access-key>`: The primary or secondary key of above policy. E.g. `theKey`.
+* `<shared-access-key>`: The primary or secondary key of above policy. E.g. `theKey`.
 
 
 #### Azure Service Bus HTTP API

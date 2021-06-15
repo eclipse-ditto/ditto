@@ -195,7 +195,7 @@
         {
           "$id": "/properties/credentials#az-monitor",
           "type": "object",
-          "title": "AZ",
+          "title": "Azure Monitor",
           "description": "HMAC credentials with which Ditto authenticates itself at Azure Monitor Data Collector over HTTP",
           "properties": {
             "type": {
@@ -235,6 +235,67 @@
                   "type": "string",
                   "title": "Shared key",
                   "description": "Primary or secondary key of the Azure Monitor workspace"
+                }
+              }
+            }
+          }
+        },
+        {
+          "$id": "/properties/credentials#az-sasl",
+          "type": "object",
+          "title": "Azure SASL",
+          "description": "HMAC credentials with which Ditto authenticates itself at Azure IoT Hub over HTTP/AMQP and Azure Service Bus over HTTP",
+          "properties": {
+            "type": {
+              "$id": "/properties/credentials/properties/type#az-sasl",
+              "type": "string",
+              "enum": [
+                "hmac"
+              ],
+              "title": "Type of credentials",
+              "description": "Type of credentials",
+              "examples": [
+                "hmac"
+              ]
+            },
+            "algorithm": {
+              "$id": "/properties/credentials/properties/algorithm#az-sasl",
+              "type": "string",
+              "title": "Algorithm",
+              "description": "Name of the HMAC signing algorithm",
+              "enum": ["az-sasl"],
+              "examples": ["az-sasl"]
+            },
+            "parameters": {
+              "$id": "/properties/credentials/properties/parameters#az-sasl",
+              "type": "object",
+              "title": "Parameters",
+              "description": "Parameters of the signing algorithm `az-sasl`",
+              "properties": {
+                "sharedKey": {
+                  "$id": "/properties/credentials/properties/parameters/sharedKey#az-sasl",
+                  "type": "string",
+                  "title": "Shared key",
+                  "description": "Primary or secondary key of the Azure IoT Hub or Azure Service Bus instance. The key for Azure Service Bus needs an additional Base64 encoding to work (e.g. a primary key 'theKey' should be encoded to 'dGhlS2V5' and used in this format)"
+                },
+                "sharedKeyName": {
+                  "$id": "/properties/credentials/properties/parameters/sharedKeyName#az-sasl",
+                  "type": "string",
+                  "title": "Shared key name",
+                  "description": "Name of the used sharedKey"
+                },
+                "endpoint": {
+                  "$id": "/properties/credentials/properties/parameters/endpoint#az-sasl",
+                  "type": "string",
+                  "title": "Endpoint",
+                  "description": "The endpoint which is used in the signature. For Azure IoT Hub this is expected to be the resourceUri without protocol (e.g. myHub.azure-devices.net). For Azure Service Bus, this is expected to be the full URI of the resource to which access is claimed (e.g. https://myNamespace.servicebus.windows.net/myQueue)."
+                },
+                "ttl": {
+                  "$id": "/properties/credentials/properties/parameters/ttl#az-sasl",
+                  "type": "string",
+                  "title": "TTL",
+                  "description": "The time to live of a signature as a string in duration format. Allowed time units are “ms” (milliseconds), “s” (seconds), “m” (minutes) and “h” (hours), e.g. “10m” for ten minutes. ttl should only be set for AMQP connections and defines how long the connection signing is valid. The broker (e.g. Azure IoT Hub) will close the connection after ttl and Ditto will reconnect with a new signature. Defaults to 7 days.",
+                  "default": "168h"
                 }
               }
             }
