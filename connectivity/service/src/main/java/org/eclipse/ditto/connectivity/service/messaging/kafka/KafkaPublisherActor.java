@@ -45,6 +45,7 @@ import org.eclipse.ditto.connectivity.service.config.KafkaConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.ExceptionToAcknowledgementConverter;
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
@@ -335,7 +336,9 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                 if (t == null) {
                     logger.debug("Publisher source queue done.");
                 } else {
-                    logger.debug("Error occurred in publisher source queue.", t);
+                    final String msg = "Error occurred in publisher source queue.";
+                    logger.debug(msg, t);
+                    getContext().parent().tell(new ImmutableConnectionFailure(getSelf(), t, msg), getSelf());
                 }
             });
 
