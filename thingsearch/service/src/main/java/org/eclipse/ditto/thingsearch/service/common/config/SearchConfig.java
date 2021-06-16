@@ -80,7 +80,7 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
          * @since 2.1.0
          */
         SEARCH_UPDATE_LISTENER("search-update-listener.implementation",
-                "org.eclipse.ditto.services.thingsearch.persistence.write.streaming.DefaultSearchUpdateListener");
+                "org.eclipse.ditto.thingsearch.service.persistence.write.streaming.DefaultSearchUpdateListener");
 
         private final String path;
         private final Object defaultValue;
