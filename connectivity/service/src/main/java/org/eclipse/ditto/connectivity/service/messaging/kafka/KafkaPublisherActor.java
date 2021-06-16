@@ -54,9 +54,9 @@ import akka.Done;
 import akka.NotUsed;
 import akka.actor.Props;
 import akka.actor.Status;
-import akka.dispatch.MessageDispatcher;
 import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
+import akka.kafka.ProducerMessage;
 import akka.kafka.javadsl.SendProducer;
 import akka.stream.KillSwitch;
 import akka.stream.KillSwitches;
@@ -78,12 +78,9 @@ import akka.util.ByteString;
 final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
     static final String ACTOR_NAME = "kafkaPublisher";
-    private static final String DISPATCHER_NAME = "kafka-connection-dispatcher";
 
     private final boolean dryRun;
     private final KafkaProducerStream producerStream;
-    private final MessageDispatcher kafkaConnectionDispatcher;
-
 
     @SuppressWarnings("unused")
     private KafkaPublisherActor(final Connection connection,
@@ -94,7 +91,6 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         super(connection, clientId);
         this.dryRun = dryRun;
         final Materializer materializer = Materializer.createMaterializer(this::getContext);
-        kafkaConnectionDispatcher = getContext().getSystem().dispatchers().lookup(DISPATCHER_NAME);
         producerStream = new KafkaProducerStream(config, materializer, producerFactory);
         reportInitialConnectionState();
     }
@@ -314,59 +310,68 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                 "a) The Kafka consumer does not consume the messages fast enough.\n" +
                 "b) The client count of this connection is not configured high enough.";
 
-        private final SourceQueueWithComplete<Pair<ProducerRecord<String, String>, KafkaMessageContext>> sourceQueue;
+        private final SourceQueueWithComplete<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>>
+                sourceQueue;
         private final KillSwitch killSwitch;
+        private final SendProducer<String, String> sendProducer;
 
         private KafkaProducerStream(final KafkaConfig config, final Materializer materializer,
                 final SendProducerFactory producerFactory) {
 
-            final Source<Pair<ProducerRecord<String, String>, KafkaMessageContext>, SourceQueueWithComplete<Pair<ProducerRecord<String, String>, KafkaMessageContext>>>
+            final Source<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>, SourceQueueWithComplete<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>>>
                     queueSource = Source.queue(config.getProducerQueueSize(), OverflowStrategy.dropNew());
-            final Pair<SourceQueueWithComplete<Pair<ProducerRecord<String, String>, KafkaMessageContext>>, Source<Pair<ProducerRecord<String, String>, KafkaMessageContext>, NotUsed>>
+            final Pair<SourceQueueWithComplete<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>>, Source<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>, NotUsed>>
                     sourceQueuePreMat = queueSource.preMaterialize(materializer);
 
             sourceQueue = sourceQueuePreMat.first();
 
-            final SendProducer<String, String> sendProducer = producerFactory.newSendProducer();
+            sendProducer = producerFactory.newSendProducer();
             // TODO make restart settings configurable
             final RestartSettings restartSettings =
                     RestartSettings.create(Duration.ofSeconds(1), Duration.ofSeconds(30), 0.2);
 
-            killSwitch = RestartSource.onFailuresWithBackoff(restartSettings, () -> {
-                logger.info("Creating SourceQueue");
-                return sourceQueuePreMat.second()
-                        .mapAsync(1 /* temp no parallelism*/, msg -> {
-                            final ProducerRecord<String, String> record = msg.first();
-                            final KafkaMessageContext context = msg.second();
-                            return CompletableFuture.supplyAsync(
-                                    () -> context.onPublishMessage(sendProducer, record),
-                                    kafkaConnectionDispatcher);
-                        });
-            })
+            killSwitch = RestartSource
+                    .onFailuresWithBackoff(restartSettings, () -> {
+                        logger.info("Creating SourceQueue");
+                        return sourceQueuePreMat.second()
+                                .map(sendProducer::sendEnvelope)
+                                .map(cs -> cs.whenComplete(this::handleSendResult));
+                    })
                     .viaMat(KillSwitches.single(), Keep.right())
                     .toMat(Sink.ignore(), Keep.left())
                     .run(materializer);
         }
 
-        private KafkaMessageContext newKafkaMessageContext(final CompletableFuture<RecordMetadata> resultFuture) {
-            return (sendProducer, record) -> sendProducer.send(record)
-                    .whenComplete((recordMetadata, exception) -> {
-                        if (exception == null) {
-                            resultFuture.complete(recordMetadata);
-                        } else {
-                            resultFuture.completeExceptionally(exception);
-                            throw new IllegalStateException(exception);
-                        }
-                    });
+        private void handleSendResult(
+                final ProducerMessage.Results<String, String, CompletableFuture<RecordMetadata>> results,
+                @Nullable final Throwable exception) {
+            if (exception == null) {
+                if (results instanceof ProducerMessage.Result) {
+                    final ProducerMessage.Result<String, String, CompletableFuture<RecordMetadata>>
+                            result =
+                            (ProducerMessage.Result<String, String, CompletableFuture<RecordMetadata>>) results;
+                    final CompletableFuture<RecordMetadata> resultFuture = result.passThrough();
+                    resultFuture.complete(result.metadata());
+                } else {
+                    // should never happen, we provide only ProducerMessage.single to the source
+                    logger.warning("Received multipart result, ignoring: {}", results);
+                    results.passThrough()
+                            .completeExceptionally(
+                                    new IllegalArgumentException("Received unexpected multipart result."));
+                }
+            } else {
+                results.passThrough().completeExceptionally(exception);
+                throw new IllegalStateException(exception);
+            }
         }
 
         private CompletableFuture<RecordMetadata> publish(final KafkaPublishTarget publishTarget,
                 final ExternalMessage externalMessage) {
             final CompletableFuture<RecordMetadata> resultFuture = new CompletableFuture<>();
             final ProducerRecord<String, String> producerRecord = getProducerRecord(publishTarget, externalMessage);
-            final Pair<ProducerRecord<String, String>, KafkaMessageContext>
-                    pair = Pair.create(producerRecord, newKafkaMessageContext(resultFuture));
-            sourceQueue.offer(pair)
+            final ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>> envelope =
+                    ProducerMessage.single(producerRecord, resultFuture);
+            sourceQueue.offer(envelope)
                     .handle((queueOfferResult, throwable) -> handleQueueOfferResult(externalMessage, resultFuture));
             return resultFuture;
         }
@@ -427,6 +432,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         }
 
         private void shutdown() {
+            sendProducer.close();
             killSwitch.shutdown();
         }
 
