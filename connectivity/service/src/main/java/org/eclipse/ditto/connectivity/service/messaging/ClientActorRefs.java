@@ -112,4 +112,13 @@ public final class ClientActorRefs {
     private static List<ActorRef> sort(final Map<ActorPath, ActorRef> refsByPath) {
         return refsByPath.values().stream().sorted(ActorRef::compareTo).collect(Collectors.toList());
     }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "refsByPath=" + refsByPath +
+                ", sortedRefs=" + sortedRefs +
+                "]";
+    }
+
 }

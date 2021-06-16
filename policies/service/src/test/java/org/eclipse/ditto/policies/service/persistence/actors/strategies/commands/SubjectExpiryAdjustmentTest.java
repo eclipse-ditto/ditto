@@ -17,17 +17,17 @@ import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectExpiry;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
-import org.eclipse.ditto.policies.service.common.config.DefaultPolicyConfig;
-import org.eclipse.ditto.policies.service.persistence.TestConstants;
-import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubject;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjectResponse;
 import org.eclipse.ditto.policies.model.signals.events.SubjectCreated;
+import org.eclipse.ditto.policies.service.common.config.DefaultPolicyConfig;
+import org.eclipse.ditto.policies.service.persistence.TestConstants;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
@@ -38,6 +38,19 @@ import com.typesafe.config.ConfigValueFactory;
  * {@link org.eclipse.ditto.policies.model.SubjectExpiry}.
  */
 public final class SubjectExpiryAdjustmentTest extends AbstractPolicyCommandStrategyTest {
+
+    @Test
+    public void roundingUpToZero() {
+        final ModifySubjectStrategy underTest = createStrategy("0");
+
+        final LocalDateTime givenExpiry = LocalDateTime.now()
+                .plusHours(1)
+                .plusMinutes(7)
+                .plusSeconds(52);
+        final LocalDateTime expectedAdjustedExpiry = givenExpiry;
+
+        doTestSubjectExpiryAdjustment(underTest, givenExpiry, expectedAdjustedExpiry);
+    }
 
     @Test
     public void roundingUpToOneSecond() {

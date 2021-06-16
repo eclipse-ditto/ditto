@@ -28,8 +28,10 @@ RUN set -x \
     && apk add --no-cache tini openssl \
     && apk add --no-cache --virtual .tmp-deps wget ca-certificates shadow \
     && mkdir -p $DITTO_HOME \
-    && groupadd --system ditto \
+    && groupadd --system --gid 1000 ditto \
     && useradd --no-log-init --system --home-dir $DITTO_HOME --shell /bin/sh --gid ditto --uid 1000 ditto \
+    && mkdir -p $DITTO_HOME \
+    && mkdir -p $DITTO_LOGS \
     && cd $DITTO_HOME \
     && wget -q --show-progress -O ${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar "${MAVEN_REPO}?r=ditto&g=org.eclipse.ditto&a=${SERVICE_STARTER}&v=${SERVICE_VERSION}&c=allinone" \
     && ln -s ${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar starter.jar \
