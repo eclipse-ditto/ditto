@@ -16,7 +16,6 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEm
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.lang.management.ManagementFactory;
-import java.lang.management.RuntimeMXBean;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.Collection;
@@ -28,25 +27,23 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.base.service.config.ServiceSpecificConfig;
-import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
+import org.eclipse.ditto.base.service.devops.DevOpsCommandsActor;
+import org.eclipse.ditto.base.service.devops.LogbackLoggingFacade;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.config.raw.RawConfigSupplier;
-import org.eclipse.ditto.base.service.devops.DevOpsCommandsActor;
-import org.eclipse.ditto.base.service.devops.LogbackLoggingFacade;
 import org.eclipse.ditto.internal.utils.health.status.StatusSupplierActor;
-import org.eclipse.ditto.internal.utils.metrics.config.MetricsConfig;
 import org.eclipse.ditto.internal.utils.metrics.prometheus.PrometheusReporterRoute;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithMongoDbConfig;
-import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandSizeValidator;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandSizeValidator;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
@@ -64,9 +61,9 @@ import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSub;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.model.Uri;
-import akka.http.javadsl.server.Route;
 import akka.management.cluster.bootstrap.ClusterBootstrap;
 import akka.management.javadsl.AkkaManagement;
+import ch.qos.logback.classic.LoggerContext;
 import kamon.Kamon;
 import kamon.prometheus.PrometheusReporter;
 
@@ -498,6 +495,9 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
         coordinatedShutdown.addTask(CoordinatedShutdown.PhaseBeforeActorSystemTerminate(),
                 "log_successful_graceful_shutdown", () -> {
             logger.info("Graceful shutdown completed.");
+            // close logback-classic logging correctly in order to flush/get the last logs:
+            final var loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
+            loggerContext.stop();
             return CompletableFuture.completedFuture(Done.getInstance());
         });
     }
