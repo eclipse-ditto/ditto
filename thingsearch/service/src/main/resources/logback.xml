@@ -49,9 +49,9 @@
                 <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
                     <level>info</level>
                 </filter>
-                <file>thing-search.log</file>
+                <file>/var/log/ditto/thing-search.log</file>
                 <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-                    <fileNamePattern>thing-search.log.%d{yyyy-MM-dd}.gz</fileNamePattern>
+                    <fileNamePattern>/var/log/ditto/thing-search.log.%d{yyyy-MM-dd}.gz</fileNamePattern>
                     <!-- Keep 30 days' worth of history capped at 1GB total size -->
                     <maxHistory>${DITTO_LOGGING_MAX_LOG_FILE_HISTORY_IN_DAYS:-10}</maxHistory>
                     <totalSizeCap>${DITTO_LOGGING_TOTAL_LOG_FILE_SIZE:-1GB}</totalSizeCap>

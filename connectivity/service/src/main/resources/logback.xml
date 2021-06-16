@@ -49,9 +49,9 @@
                 <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
                     <level>info</level>
                 </filter>
-                <file>connectivity.log</file>
+                <file>/var/log/ditto/connectivity.log</file>
                 <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-                    <fileNamePattern>connectivity.log.%d{yyyy-MM-dd}.gz</fileNamePattern>
+                    <fileNamePattern>/var/log/ditto/connectivity.log.%d{yyyy-MM-dd}.gz</fileNamePattern>
                     <maxHistory>${DITTO_LOGGING_MAX_LOG_FILE_HISTORY_IN_DAYS:-10}</maxHistory>
                     <totalSizeCap>${DITTO_LOGGING_TOTAL_LOG_FILE_SIZE:-1GB}</totalSizeCap>
                 </rollingPolicy>

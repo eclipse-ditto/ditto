@@ -113,7 +113,7 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
     public Receive createReceive() {
         final SourceQueueWithComplete<T> sourceQueue = getSourceQueue(materializer);
 
-        final ReceiveBuilder receiveBuilder = ReceiveBuilder.create();
+        final var receiveBuilder = ReceiveBuilder.create();
         preEnhancement(receiveBuilder);
         return receiveBuilder
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
@@ -141,7 +141,7 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
 
     private SourceQueueWithComplete<T> getSourceQueue(final Materializer materializer) {
         // Log stream completion and failure at level ERROR because the stream is supposed to survive forever.
-        final Attributes streamLogLevels =
+        final var streamLogLevels =
                 Attributes.logLevels(Attributes.logLevelDebug(), Attributes.logLevelError(),
                         Attributes.logLevelError());
 
@@ -200,8 +200,9 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
             enqueueSuccessCounter.increment();
         } else if (QueueOfferResult.dropped().equals(result)) {
             enqueueDroppedCounter.increment();
+            logger.error("Dropped message! - result was: {}", result);
         } else if (result instanceof QueueOfferResult.Failure) {
-            final QueueOfferResult.Failure failure = (QueueOfferResult.Failure) result;
+            final var failure = (QueueOfferResult.Failure) result;
             logger.error(failure.cause(), "Enqueue failed!");
             enqueueFailureCounter.increment();
         } else {

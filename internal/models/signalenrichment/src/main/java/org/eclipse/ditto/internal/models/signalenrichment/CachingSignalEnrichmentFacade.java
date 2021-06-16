@@ -19,25 +19,26 @@ import java.util.concurrent.Executor;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheFactory;
 import org.eclipse.ditto.internal.utils.cache.CacheKey;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
-import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.things.model.signals.events.ThingMerged;
 
 /**
  * Retrieve additional parts of things by asking an asynchronous cache.
@@ -107,7 +108,7 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
                 .addFieldDefinition(Thing.JsonFields.REVISION) // additionally always select the revision
                 .build();
 
-        final CacheKey idWithResourceType =
+        final var idWithResourceType =
                 CacheKey.of(thingId, CacheFactory.newCacheLookupContext(dittoHeaders, enhancedFieldSelector));
 
         if (concernedSignal instanceof ThingEvent && !(ProtocolAdapter.isLiveSignal(concernedSignal))) {
@@ -131,9 +132,8 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
             final CacheKey idWithResourceType,
             final ThingEvent<?> thingEvent) {
 
-        final DittoHeaders dittoHeaders = thingEvent.getDittoHeaders();
+        final var dittoHeaders = thingEvent.getDittoHeaders();
         return doCacheLookup(idWithResourceType, dittoHeaders).thenCompose(cachedJsonObject -> {
-            final JsonObjectBuilder jsonObjectBuilder = cachedJsonObject.toBuilder();
             final long cachedRevision = cachedJsonObject.getValue(Thing.JsonFields.REVISION).orElse(0L);
             if (cachedRevision == thingEvent.getRevision()) {
                 // the cache entry was not present before and just loaded
@@ -142,7 +142,7 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
                 // the cache entry was already present and the thingEvent was the next expected revision no
                 // -> we have all information necessary to calculate it without making another roundtrip
                 return handleNextExpectedThingEvent(enhancedFieldSelector, idWithResourceType, thingEvent,
-                        jsonObjectBuilder);
+                        cachedJsonObject);
             } else {
                 // the cache entry was already present, but we missed sth and need to invalidate the cache
                 // and to another cache lookup (via roundtrip)
@@ -153,8 +153,9 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
     }
 
     private CompletionStage<JsonObject> handleNextExpectedThingEvent(final JsonFieldSelector enhancedFieldSelector,
-            final CacheKey idWithResourceType, final ThingEvent<?> thingEvent,
-            final JsonObjectBuilder jsonObjectBuilder) {
+            final CacheKey idWithResourceType,
+            final ThingEvent<?> thingEvent,
+            final JsonObject cachedJsonObject) {
 
         final JsonPointer resourcePath = thingEvent.getResourcePath();
         if (Thing.JsonFields.POLICY_ID.getPointer().equals(resourcePath)) {
@@ -163,16 +164,40 @@ public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFaca
             // and to another cache lookup (via roundtrip):
             return doCacheLookup(idWithResourceType, thingEvent.getDittoHeaders());
         }
-        final Optional<JsonValue> optEntity = thingEvent.getEntity();
-        if (resourcePath.isEmpty() && optEntity.filter(JsonValue::isObject).isPresent()) {
-            optEntity.map(JsonValue::asObject).ifPresent(jsonObjectBuilder::setAll);
+
+        final JsonObjectBuilder jsonObjectBuilder;
+        if (thingEvent instanceof ThingMerged) {
+            final var thingMerged = (ThingMerged) thingEvent;
+            final JsonValue mergedValue = thingMerged.getValue();
+
+            // if the policyId was part of a "top level" merge:
+            if (resourcePath.isEmpty() && Optional.of(mergedValue)
+                    .filter(JsonValue::isObject)
+                    .map(JsonValue::asObject)
+                    .filter(obj -> obj.contains(Thing.JsonFields.POLICY_ID.getPointer()))
+                    .isPresent()) {
+                // invalidate the cache
+                extraFieldsCache.invalidate(idWithResourceType);
+                // and to another cache lookup (via roundtrip):
+                return doCacheLookup(idWithResourceType, thingEvent.getDittoHeaders());
+            }
+
+            final JsonObject mergePatch = JsonFactory.newObject(resourcePath, mergedValue);
+            final JsonObject mergedJson = JsonFactory.mergeJsonValues(mergePatch, cachedJsonObject).asObject();
+            jsonObjectBuilder = mergedJson.toBuilder();
         } else {
-            optEntity.ifPresent(entity -> jsonObjectBuilder
-                    .set(resourcePath.toString(), entity)
-            );
+            jsonObjectBuilder = cachedJsonObject.toBuilder();
+            final Optional<JsonValue> optEntity = thingEvent.getEntity();
+            if (resourcePath.isEmpty() && optEntity.filter(JsonValue::isObject).isPresent()) {
+                optEntity.map(JsonValue::asObject).ifPresent(jsonObjectBuilder::setAll);
+            } else {
+                optEntity.ifPresent(entity -> jsonObjectBuilder
+                        .set(resourcePath.toString(), entity)
+                );
+            }
         }
         jsonObjectBuilder.set(Thing.JsonFields.REVISION, thingEvent.getRevision());
-        final JsonObject enhancedJsonObject = jsonObjectBuilder.build().get(enhancedFieldSelector);
+        final var enhancedJsonObject = jsonObjectBuilder.build().get(enhancedFieldSelector);
         // update local cache with enhanced object:
         extraFieldsCache.put(idWithResourceType, enhancedJsonObject);
         return CompletableFuture.completedFuture(enhancedJsonObject);
