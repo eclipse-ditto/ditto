@@ -176,7 +176,8 @@ public final class KafkaClientActor extends BaseClientActor {
                 DefaultSendProducerFactory.getInstance(propertiesFactory.getProducerSettings(),
                         getContext().getSystem());
         final Props publisherActorProps =
-                publisherActorFactory.props(connection(), kafkaConfig, producerFactory, dryRun, getDefaultClientId());
+                publisherActorFactory.props(connection(), kafkaConfig.getProducerConfig(), producerFactory, dryRun,
+                        getDefaultClientId());
         kafkaPublisherActor = startChildActorConflictFree(publisherActorFactory.getActorName(), publisherActorProps);
         pendingStatusReportsFromStreams.add(kafkaPublisherActor);
     }
@@ -188,7 +189,7 @@ public final class KafkaClientActor extends BaseClientActor {
                 .info("Starting Kafka consumer actor.");
         // ensure no previous consumer stays in memory
         stopConsumerActors();
-        
+
         // start consumer actors
         connection().getSources().stream()
                 .flatMap(this::consumerDataFromSource)
@@ -205,8 +206,8 @@ public final class KafkaClientActor extends BaseClientActor {
 
     private void startKafkaConsumer(final ConsumerData consumerData, final boolean dryRun) {
         final Props consumerActorProps =
-                KafkaConsumerActor.props(connection(), kafkaConfig, propertiesFactory, consumerData.getAddress(),
-                        getInboundMappingProcessorActor(), consumerData.getSource(), dryRun);
+                KafkaConsumerActor.props(connection(), kafkaConfig.getConsumerConfig(), propertiesFactory,
+                        consumerData.getAddress(), getInboundMappingProcessorActor(), consumerData.getSource(), dryRun);
         final ActorRef consumerActor =
                 startChildActorConflictFree(consumerData.getActorNamePrefix(), consumerActorProps);
         kafkaConsumerActors.add(consumerActor);

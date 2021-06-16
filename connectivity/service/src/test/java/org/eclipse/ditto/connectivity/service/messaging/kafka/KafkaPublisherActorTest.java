@@ -49,7 +49,7 @@ import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.config.KafkaConfig;
+import org.eclipse.ditto.connectivity.service.config.KafkaProducerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
@@ -77,8 +77,10 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
 
     private final Queue<ProducerRecord<String, String>> published = new ConcurrentLinkedQueue<>();
 
-    private final KafkaConfig kafkaConfig =
-            DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(CONFIG)).getConnectionConfig().getKafkaConfig();
+    private final KafkaProducerConfig kafkaConfig = DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(CONFIG))
+            .getConnectionConfig()
+            .getKafkaConfig()
+            .getProducerConfig();
     private MockSendProducerFactory mockProducerFlowFactory;
 
     @Override

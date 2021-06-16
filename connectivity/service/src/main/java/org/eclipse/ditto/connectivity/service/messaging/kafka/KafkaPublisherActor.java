@@ -42,6 +42,7 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.KafkaConfig;
+import org.eclipse.ditto.connectivity.service.config.KafkaProducerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.ExceptionToAcknowledgementConverter;
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
@@ -83,7 +84,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
     @SuppressWarnings("unused")
     private KafkaPublisherActor(final Connection connection,
-            final KafkaConfig config,
+            final KafkaProducerConfig config,
             final SendProducerFactory producerFactory,
             final boolean dryRun,
             final String clientId) {
@@ -105,7 +106,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
      * @return the Akka configuration Props object.
      */
     static Props props(final Connection connection,
-            final KafkaConfig config,
+            final KafkaProducerConfig config,
             final SendProducerFactory producerFactory,
             final boolean dryRun,
             final String clientId) {
@@ -314,20 +315,20 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         private final KillSwitch killSwitch;
         private final SendProducer<String, String> sendProducer;
 
-        private KafkaProducerStream(final KafkaConfig config, final Materializer materializer,
+        private KafkaProducerStream(final KafkaProducerConfig config, final Materializer materializer,
                 final SendProducerFactory producerFactory) {
 
             final Source<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>, SourceQueueWithComplete<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>>>
-                    queueSource = Source.queue(config.getProducerQueueSize(), OverflowStrategy.dropNew());
+                    queueSource = Source.queue(config.getQueueSize(), OverflowStrategy.dropNew());
             final Pair<SourceQueueWithComplete<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>>, Source<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>, NotUsed>>
                     sourceQueuePreMat = queueSource.preMaterialize(materializer);
 
             sourceQueue = sourceQueuePreMat.first();
 
             sendProducer = producerFactory.newSendProducer();
-            final RestartSettings restartSettings = RestartSettings.create(config.getProducerMinBackoff(),
-                    config.getProducerMaxBackoff(),
-                    config.getProducerRandomFactor());
+            final RestartSettings restartSettings = RestartSettings.create(config.getMinBackoff(),
+                    config.getMaxBackoff(),
+                    config.getRandomFactor());
 
             killSwitch = RestartSource
                     .onFailuresWithBackoff(restartSettings, () -> {

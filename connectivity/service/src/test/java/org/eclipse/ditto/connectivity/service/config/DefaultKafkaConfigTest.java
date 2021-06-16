@@ -19,7 +19,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.time.Duration;
 
-import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -48,7 +47,7 @@ public class DefaultKafkaConfigTest {
     public void assertImmutability() {
         assertInstancesOf(DefaultKafkaConfig.class,
                 areImmutable(),
-                provided(Config.class, ThrottlingConfig.class).areAlsoImmutable());
+                provided(KafkaConsumerConfig.class, KafkaProducerConfig.class).areAlsoImmutable());
     }
 
     @Test
@@ -61,20 +60,23 @@ public class DefaultKafkaConfigTest {
     @Test
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultKafkaConfig underTest = DefaultKafkaConfig.of(kafkaTestConf);
-        assertThat(underTest.getConsumerThrottlingConfig().getLimit()).isEqualTo(100);
-        assertThat(underTest.getConsumerThrottlingConfig().getInterval()).isEqualTo(Duration.ofSeconds(1));
+        assertThat(underTest.getConsumerConfig().getThrottlingConfig().getLimit()).isEqualTo(100);
+        assertThat(underTest.getConsumerConfig().getThrottlingConfig().getInterval()).isEqualTo(Duration.ofSeconds(1));
 
-        assertThat(underTest.getConsumerConfig().getDuration("poll-interval")) // from akka.kafka.consumer
+        assertThat(underTest.getConsumerConfig()
+                .getAlpakkaConfig()
+                .getDuration("poll-interval")) // from akka.kafka.consumer
                 .isEqualTo(DEFAULT_POLL_INTERVAL);
-        assertThat(underTest.getConsumerConfig().getDuration("poll-timeout")) // from kafka-test.conf
+        assertThat(underTest.getConsumerConfig().getAlpakkaConfig().getDuration("poll-timeout")) // from kafka-test.conf
                 .isEqualTo(DEFAULT_POLL_TIMEOUT);
 
-        assertThat(underTest.getProducerConfig().getInt("parallelism")) // from akka.kafka.producer
+        assertThat(underTest.getProducerConfig().getParallelism()) // from akka.kafka.producer
                 .isEqualTo(DEFAULT_PARALLELISM);
-        assertThat(underTest.getProducerConfig().getDuration("close-timeout")) // from kafka-test.conf
+        assertThat(
+                underTest.getProducerConfig().getAlpakkaConfig().getDuration("close-timeout")) // from kafka-test.conf
                 .isEqualTo(DEFAULT_CLOSE_TIMEOUT);
 
-        assertThat(underTest.getProducerQueueSize()).isEqualTo(39);
-        assertThat(underTest.getProducerParallelism()).isEqualTo(3);
+        assertThat(underTest.getProducerConfig().getQueueSize()).isEqualTo(39);
+        assertThat(underTest.getProducerConfig().getParallelism()).isEqualTo(3);
     }
 }

@@ -33,6 +33,7 @@ import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.config.KafkaConfig;
+import org.eclipse.ditto.connectivity.service.config.KafkaConsumerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -63,7 +64,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
 
     @SuppressWarnings("unused")
     private KafkaConsumerActor(final Connection connection,
-            final KafkaConfig kafkaConfig, final PropertiesFactory propertiesFactory,
+            final KafkaConsumerConfig kafkaConfig, final PropertiesFactory propertiesFactory,
             final String sourceAddress, final ActorRef inboundMappingProcessor,
             final Source source, final boolean dryRun) {
         super(connection, sourceAddress, inboundMappingProcessor, source);
@@ -82,7 +83,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                 Materializer.createMaterializer(this::getContext));
     }
 
-    static Props props(final Connection connection, final KafkaConfig kafkaConfig, final PropertiesFactory factory,
+    static Props props(final Connection connection, final KafkaConsumerConfig kafkaConfig, final PropertiesFactory factory,
             final String sourceAddress, final ActorRef inboundMappingProcess, final Source source,
             final boolean dryRun) {
         return Props.create(KafkaConsumerActor.class, connection, kafkaConfig, factory, sourceAddress,
@@ -144,7 +145,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
         @Nullable private Consumer.Control kafkaStream;
 
         private KafkaConsumerStream(
-                final KafkaConfig kafkaConfig,
+                final KafkaConsumerConfig kafkaConfig,
                 final ConsumerSettings<String, String> consumerSettings,
                 final KafkaMessageTransformer kafkaMessageTransformer,
                 final boolean dryRun,
@@ -152,8 +153,8 @@ final class KafkaConsumerActor extends BaseConsumerActor {
 
             this.materializer = materializer;
             runnableKafkaStream = Consumer.plainSource(consumerSettings, Subscriptions.topics(sourceAddress))
-                    .throttle(kafkaConfig.getConsumerThrottlingConfig().getLimit(),
-                            kafkaConfig.getConsumerThrottlingConfig().getInterval())
+                    .throttle(kafkaConfig.getThrottlingConfig().getLimit(),
+                            kafkaConfig.getThrottlingConfig().getInterval())
                     .filter(record -> isNotDryRun(record, dryRun))
                     .filter(consumerRecord -> consumerRecord.value() != null)
                     .filter(this::isNotExpired)

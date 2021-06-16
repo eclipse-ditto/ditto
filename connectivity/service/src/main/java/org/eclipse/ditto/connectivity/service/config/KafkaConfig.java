@@ -12,13 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.config;
 
-import java.time.Duration;
-
 import javax.annotation.concurrent.Immutable;
-
-import org.eclipse.ditto.base.service.config.ThrottlingConfig;
-
-import com.typesafe.config.Config;
 
 /**
  * Provides configuration settings of the Kafka protocol.
@@ -27,49 +21,17 @@ import com.typesafe.config.Config;
 public interface KafkaConfig {
 
     /**
-     * Returns the Config for consumers needed by the Kafka client.
+     * Returns the configuration for Kafka consumer.
      *
-     * @return consumer configuration needed by the Kafka client.
+     * @return the configuration.
      */
-    Config getConsumerConfig();
+    KafkaConsumerConfig getConsumerConfig();
 
     /**
-     * Returns the consumer throttling config.
+     * Returns the configuration for Kafka producer.
      *
-     * @return the config.
+     * @return the configuration.
      */
-    ThrottlingConfig getConsumerThrottlingConfig();
-
-    /**
-     * Returns the Config for producers needed by the Kafka client.
-     *
-     * @return producer configuration needed by the Kafka client.
-     */
-    Config getProducerConfig();
-
-    /**
-     * @return number of maximum buffered messages before dropping them.
-     */
-    int getProducerQueueSize();
-
-    /**
-     * @return number of maximum parallel message publications.
-     */
-    int getProducerParallelism();
-
-    /**
-     * @return minimum duration before restarting the producer stream after a failure.
-     */
-    Duration getProducerMinBackoff();
-
-    /**
-     * @return maximum duration before restarting the producer stream after a failure.
-     */
-    Duration getProducerMaxBackoff();
-
-    /**
-     * @return random value to vary the restart interval.
-     */
-    double getProducerRandomFactor();
+    KafkaProducerConfig getProducerConfig();
 
 }

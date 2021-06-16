@@ -70,8 +70,9 @@ final class PropertiesFactory {
      * @return the settings.
      */
     ConsumerSettings<String, String> getConsumerSettings(final boolean dryRun) {
+        final Config alpakkaConfig = this.config.getConsumerConfig().getAlpakkaConfig();
         final ConsumerSettings<String, String> consumerSettings =
-                ConsumerSettings.apply(config.getConsumerConfig(), new StringDeserializer(), new StringDeserializer())
+                ConsumerSettings.apply(alpakkaConfig, new StringDeserializer(), new StringDeserializer())
                         .withBootstrapServers(bootstrapServers)
                         .withGroupId(connection.getId().toString())
                         .withClientId(clientId + "-consumer");
@@ -82,7 +83,8 @@ final class PropertiesFactory {
     }
 
     ProducerSettings<String, String> getProducerSettings() {
-        return ProducerSettings.apply(config.getProducerConfig(), new StringSerializer(), new StringSerializer())
+        final Config alpakkaConfig = this.config.getProducerConfig().getAlpakkaConfig();
+        return ProducerSettings.apply(alpakkaConfig, new StringSerializer(), new StringSerializer())
                 .withBootstrapServers(bootstrapServers)
                 .withProperties(getClientIdProperties())
                 .withProperties(getSpecificConfigProperties())
