@@ -10,18 +10,18 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.thingsearch.persistence.write.streaming;
+package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
 import java.util.List;
 
-import org.eclipse.ditto.services.thingsearch.persistence.write.model.AbstractWriteModel;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 
 import akka.actor.ActorSystem;
 
 /**
  * Default {@code SearchUpdateListener} for custom search update processing.
  */
-public final class DefaultSearchUpdateListener extends SearchUpdateListener{
+public final class DefaultSearchUpdateListener extends SearchUpdateListener {
 
     /**
      * Instantiate this provider. Called by reflection.

@@ -33,6 +33,7 @@ import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
 import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsSearchPersistence;
 import org.eclipse.ditto.thingsearch.service.persistence.read.query.MongoQueryBuilderFactory;
+import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchUpdateListener;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.TestSearchUpdaterStream;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;

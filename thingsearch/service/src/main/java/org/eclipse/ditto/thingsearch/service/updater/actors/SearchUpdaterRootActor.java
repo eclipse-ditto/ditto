@@ -33,6 +33,7 @@ import org.eclipse.ditto.thingsearch.service.common.util.RootSupervisorStrategyF
 import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence;
 import org.eclipse.ditto.thingsearch.service.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.ChangeQueueActor;
+import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchUpdateListener;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchUpdaterStream;
 
 import com.mongodb.event.CommandListener;

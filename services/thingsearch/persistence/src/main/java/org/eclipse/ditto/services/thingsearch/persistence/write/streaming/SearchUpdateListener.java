@@ -10,15 +10,15 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.thingsearch.persistence.write.streaming;
+package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
 import java.util.List;
 
-import org.eclipse.ditto.services.thingsearch.common.config.DittoSearchConfig;
-import org.eclipse.ditto.services.thingsearch.common.config.SearchConfig;
-import org.eclipse.ditto.services.thingsearch.persistence.write.model.AbstractWriteModel;
-import org.eclipse.ditto.services.utils.akka.AkkaClassLoader;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
+import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 
 import akka.actor.AbstractExtensionId;
 import akka.actor.ActorSystem;
