@@ -334,8 +334,10 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                     .onFailuresWithBackoff(restartSettings, () -> {
                         logger.info("Creating SourceQueue");
                         return sourceQueuePreMat.second()
-                                .map(sendProducer::sendEnvelope)
-                                .map(cs -> cs.whenComplete(this::handleSendResult));
+                                .map(envelope -> sendProducer
+                                        .sendEnvelope(envelope)
+                                        .whenComplete((results, exception) -> handleSendResult(results, exception,
+                                                envelope.passThrough())));
                     })
                     .viaMat(KillSwitches.single(), Keep.right())
                     .toMat(Sink.ignore(), Keep.left())
@@ -343,24 +345,24 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         }
 
         private void handleSendResult(
-                final ProducerMessage.Results<String, String, CompletableFuture<RecordMetadata>> results,
-                @Nullable final Throwable exception) {
+                @Nullable final ProducerMessage.Results<String, String, CompletableFuture<RecordMetadata>> results,
+                @Nullable final Throwable exception, final CompletableFuture<RecordMetadata> resultFuture) {
             if (exception == null) {
                 if (results instanceof ProducerMessage.Result) {
-                    final ProducerMessage.Result<String, String, CompletableFuture<RecordMetadata>>
-                            result =
+                    final ProducerMessage.Result<String, String, CompletableFuture<RecordMetadata>> result =
                             (ProducerMessage.Result<String, String, CompletableFuture<RecordMetadata>>) results;
-                    final CompletableFuture<RecordMetadata> resultFuture = result.passThrough();
                     resultFuture.complete(result.metadata());
                 } else {
                     // should never happen, we provide only ProducerMessage.single to the source
                     logger.warning("Received multipart result, ignoring: {}", results);
-                    results.passThrough()
+                    resultFuture
                             .completeExceptionally(
                                     new IllegalArgumentException("Received unexpected multipart result."));
                 }
             } else {
-                results.passThrough().completeExceptionally(exception);
+                logger.debug("Failed to send kafka record: [{}] {}", exception.getClass().getName(),
+                        exception.getMessage());
+                resultFuture.completeExceptionally(exception);
                 throw new IllegalStateException(exception);
             }
         }

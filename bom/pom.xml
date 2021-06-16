@@ -842,6 +842,13 @@
                 <version>${jmh.version}</version>
                 <scope>test</scope>
             </dependency>
+            <dependency>
+                <groupId>com.typesafe.akka</groupId>
+                <artifactId>akka-stream-kafka-testkit_${scala.version}</artifactId>
+                <version>${akka-stream-kafka.version}</version>
+                <scope>test</scope>
+            </dependency>
+
 
             <dependency>
                 <groupId>com.github.stefanbirkner</groupId>

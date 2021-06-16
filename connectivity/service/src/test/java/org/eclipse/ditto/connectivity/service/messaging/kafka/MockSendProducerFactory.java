@@ -13,6 +13,7 @@
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Queue;
@@ -23,9 +24,10 @@ import javax.annotation.Nullable;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
-import org.mockito.Mockito;
 
+import akka.kafka.ProducerMessage;
 import akka.kafka.javadsl.SendProducer;
+import akka.kafka.testkit.ProducerResultFactory;
 
 /**
  * Creates mock {@code SendProducer}s.
@@ -55,19 +57,22 @@ final class MockSendProducerFactory implements SendProducerFactory {
 
     @Override
     public SendProducer<String, String> newSendProducer() {
-        final SendProducer<String, String> producer = Mockito.mock(SendProducer.class);
+        final SendProducer<String, String> producer = mock(SendProducer.class);
         if (exception == null) {
-            when(producer.send(any(ProducerRecord.class)))
+            when(producer.sendEnvelope(any(ProducerMessage.Envelope.class)))
                     .thenAnswer(invocationOnMock -> {
-                        final ProducerRecord<String, String> record = invocationOnMock.getArgument(0);
+                        final ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>> envelope =
+                                invocationOnMock.getArgument(0);
                         final RecordMetadata dummyMetadata =
                                 new RecordMetadata(new TopicPartition(targetTopic, 5), 0L, 0L, 0L, 0L, 0, 0);
-                        published.offer(record);
-                        return CompletableFuture.completedFuture(dummyMetadata);
+                        final ProducerMessage.Message<String, String, CompletableFuture<RecordMetadata>> message =
+                                (ProducerMessage.Message<String, String, CompletableFuture<RecordMetadata>>) envelope;
+                        published.offer(message.record());
+                        return CompletableFuture.completedStage(ProducerResultFactory.result(dummyMetadata, message));
                     });
         } else {
-            when(producer.send(any(ProducerRecord.class)))
-                    .thenAnswer(invocationOnMock -> CompletableFuture.failedFuture(exception));
+            when(producer.sendEnvelope(any(ProducerMessage.Envelope.class)))
+                    .thenReturn(CompletableFuture.failedStage(exception));
         }
 
         return producer;
