@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.config;
 
+import java.time.Duration;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -32,8 +33,11 @@ public final class DefaultKafkaConfig implements KafkaConfig {
     private static final String CONFIG_PATH = "kafka";
     private static final String CONSUMER_PATH = "consumer";
     private static final String PRODUCER_PATH = "producer";
-    private static final String PRODUCER_QUEUE_SIZE = "producer-queue-size";
-    private static final String PRODUCER_PARALLELISM = "producer-parallelism";
+    private static final String PRODUCER_QUEUE_SIZE = "queue-size";
+    private static final String PRODUCER_PARALLELISM = "parallelism";
+    private static final String PRODUCER_MIN_BACKOFF = "min-backoff";
+    private static final String PRODUCER_MAX_BACKOFF = "max-backoff";
+    private static final String PRODUCER_RANDOM_FACTOR = "random-factor";
 
     private final Config consumerConfig;
     private final ThrottlingConfig consumerThrottlingConfig;
@@ -41,6 +45,9 @@ public final class DefaultKafkaConfig implements KafkaConfig {
     private final Config producerConfig;
     private final int producerQueueSize;
     private final int producerParallelism;
+    private final Duration producerMinBackoff;
+    private final Duration producerMaxBackoff;
+    private final double producerRandomFactor;
 
     private DefaultKafkaConfig(final ScopedConfig kafkaScopedConfig) {
         consumerConfig = kafkaScopedConfig.getConfig(CONSUMER_PATH);
@@ -51,6 +58,9 @@ public final class DefaultKafkaConfig implements KafkaConfig {
         producerConfig = kafkaScopedConfig.getConfig(PRODUCER_PATH);
         producerQueueSize = producerConfig.getInt(PRODUCER_QUEUE_SIZE);
         producerParallelism = producerConfig.getInt(PRODUCER_PARALLELISM);
+        producerMinBackoff = producerConfig.getDuration(PRODUCER_MIN_BACKOFF);
+        producerMaxBackoff = producerConfig.getDuration(PRODUCER_MAX_BACKOFF);
+        producerRandomFactor = producerConfig.getDouble(PRODUCER_RANDOM_FACTOR);
     }
 
     /**
@@ -90,6 +100,21 @@ public final class DefaultKafkaConfig implements KafkaConfig {
     }
 
     @Override
+    public Duration getProducerMinBackoff() {
+        return producerMinBackoff;
+    }
+
+    @Override
+    public Duration getProducerMaxBackoff() {
+        return producerMaxBackoff;
+    }
+
+    @Override
+    public double getProducerRandomFactor() {
+        return producerRandomFactor;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
@@ -98,13 +123,16 @@ public final class DefaultKafkaConfig implements KafkaConfig {
                 Objects.equals(consumerThrottlingConfig, that.consumerThrottlingConfig) &&
                 Objects.equals(producerConfig, that.producerConfig) &&
                 Objects.equals(producerQueueSize, that.producerQueueSize) &&
-                Objects.equals(producerParallelism, that.producerParallelism);
+                Objects.equals(producerParallelism, that.producerParallelism) &&
+                Objects.equals(producerMinBackoff, that.producerMinBackoff) &&
+                Objects.equals(producerMaxBackoff, that.producerMaxBackoff) &&
+                Objects.equals(producerRandomFactor, that.producerRandomFactor);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(consumerConfig, consumerThrottlingConfig, producerConfig, producerQueueSize,
-                producerParallelism);
+                producerParallelism, producerMinBackoff, producerMaxBackoff, producerRandomFactor);
     }
 
     @Override
@@ -115,6 +143,9 @@ public final class DefaultKafkaConfig implements KafkaConfig {
                 ", producerConfig=" + producerConfig +
                 ", producerQueueSize=" + producerQueueSize +
                 ", producerParallelism=" + producerParallelism +
+                ", producerMinBackoff=" + producerMinBackoff +
+                ", producerMaxBackoff=" + producerMaxBackoff +
+                ", producerRandomFactor=" + producerRandomFactor +
                 "]";
     }
 }

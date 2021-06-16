@@ -13,7 +13,6 @@
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -328,9 +327,9 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             sourceQueue = sourceQueuePreMat.first();
 
             final SendProducer<String, String> sendProducer = producerFactory.newSendProducer();
-            // TODO make restart settings configurable
-            final RestartSettings restartSettings =
-                    RestartSettings.create(Duration.ofSeconds(1), Duration.ofSeconds(30), 0.2);
+            final RestartSettings restartSettings = RestartSettings.create(config.getProducerMinBackoff(),
+                    config.getProducerMaxBackoff(),
+                    config.getProducerRandomFactor());
 
             killSwitch = RestartSource.onFailuresWithBackoff(restartSettings, () -> {
                 logger.info("Creating SourceQueue");

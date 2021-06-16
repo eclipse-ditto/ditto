@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.config;
 
+import java.time.Duration;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.ThrottlingConfig;
@@ -54,5 +56,20 @@ public interface KafkaConfig {
      * @return number of maximum parallel message publications.
      */
     int getProducerParallelism();
+
+    /**
+     * @return minimum duration before restarting the producer stream after a failure.
+     */
+    Duration getProducerMinBackoff();
+
+    /**
+     * @return maximum duration before restarting the producer stream after a failure.
+     */
+    Duration getProducerMaxBackoff();
+
+    /**
+     * @return random value to vary the restart interval.
+     */
+    double getProducerRandomFactor();
 
 }

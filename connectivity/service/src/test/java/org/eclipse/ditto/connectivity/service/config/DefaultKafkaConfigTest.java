@@ -36,7 +36,7 @@ public class DefaultKafkaConfigTest {
     private static final Duration DEFAULT_POLL_INTERVAL = Duration.ofMillis(50);
     private static final Duration DEFAULT_POLL_TIMEOUT = Duration.ofMillis(100);
     private static final Duration DEFAULT_CLOSE_TIMEOUT = Duration.ofSeconds(10);
-    private static final int DEFAULT_PARALLELISM = 10000;
+    private static final int DEFAULT_PARALLELISM = 3;
     private static Config kafkaTestConf;
 
     @BeforeClass
