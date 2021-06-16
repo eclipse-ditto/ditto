@@ -334,10 +334,11 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                     .onFailuresWithBackoff(restartSettings, () -> {
                         logger.info("Creating SourceQueue");
                         return sourceQueuePreMat.second()
-                                .map(envelope -> sendProducer
-                                        .sendEnvelope(envelope)
-                                        .whenComplete((results, exception) -> handleSendResult(results, exception,
-                                                envelope.passThrough())));
+                                .flatMapConcat(envelope -> Source.fromCompletionStage(
+                                        sendProducer.sendEnvelope(envelope)
+                                                .whenComplete(
+                                                        (results, exception) -> handleSendResult(results, exception,
+                                                                envelope.passThrough()))));
                     })
                     .viaMat(KillSwitches.single(), Keep.right())
                     .toMat(Sink.ignore(), Keep.left())
