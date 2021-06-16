@@ -41,7 +41,6 @@ import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.connectivity.service.config.KafkaConfig;
 import org.eclipse.ditto.connectivity.service.config.KafkaProducerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.ExceptionToAcknowledgementConverter;
@@ -310,31 +309,35 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                 "a) The Kafka consumer does not consume the messages fast enough.\n" +
                 "b) The client count of this connection is not configured high enough.";
 
-        private final SourceQueueWithComplete<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>>
-                sourceQueue;
         private final KillSwitch killSwitch;
-        private final SendProducer<String, String> sendProducer;
+
+        @Nullable
+        private SendProducer<String, String> sendProducer;
+        @Nullable
+        private SourceQueueWithComplete<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>>
+                sourceQueue;
 
         private KafkaProducerStream(final KafkaProducerConfig config, final Materializer materializer,
                 final SendProducerFactory producerFactory) {
 
-            final Source<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>, SourceQueueWithComplete<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>>>
-                    queueSource = Source.queue(config.getQueueSize(), OverflowStrategy.dropNew());
-            final Pair<SourceQueueWithComplete<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>>, Source<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>, NotUsed>>
-                    sourceQueuePreMat = queueSource.preMaterialize(materializer);
-
-            sourceQueue = sourceQueuePreMat.first();
-
-            sendProducer = producerFactory.newSendProducer();
             final RestartSettings restartSettings = RestartSettings.create(config.getMinBackoff(),
                     config.getMaxBackoff(),
                     config.getRandomFactor());
 
             killSwitch = RestartSource
                     .onFailuresWithBackoff(restartSettings, () -> {
-                        logger.info("Creating SourceQueue");
+                        if (null != sendProducer) {
+                            sendProducer.close();
+                        }
+                        sendProducer = producerFactory.newSendProducer();
+                        final Source<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>, SourceQueueWithComplete<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>>>
+                                queueSource = Source.queue(config.getQueueSize(), OverflowStrategy.dropNew());
+                        final Pair<SourceQueueWithComplete<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>>, Source<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>, NotUsed>>
+                                sourceQueuePreMat = queueSource.preMaterialize(materializer);
+
+                        sourceQueue = sourceQueuePreMat.first();
                         return sourceQueuePreMat.second()
-                                .flatMapConcat(envelope -> Source.fromCompletionStage(
+                                .flatMapConcat(envelope -> Source.completionStage(
                                         sendProducer.sendEnvelope(envelope)
                                                 .whenComplete(
                                                         (results, exception) -> handleSendResult(results, exception,
@@ -374,8 +377,14 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             final ProducerRecord<String, String> producerRecord = getProducerRecord(publishTarget, externalMessage);
             final ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>> envelope =
                     ProducerMessage.single(producerRecord, resultFuture);
-            sourceQueue.offer(envelope)
-                    .handle((queueOfferResult, throwable) -> handleQueueOfferResult(externalMessage, resultFuture));
+            if (null != sourceQueue) {
+                sourceQueue.offer(envelope)
+                        .handle((queueOfferResult, throwable) -> handleQueueOfferResult(externalMessage, resultFuture));
+            } else {
+                final IllegalStateException ex = new IllegalStateException("Publisher not initialized");
+                logger.error(ex, ex.getMessage());
+                resultFuture.completeExceptionally(ex);
+            }
             return resultFuture;
         }
 
@@ -435,7 +444,9 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         }
 
         private void shutdown() {
-            sendProducer.close();
+            if (null != sendProducer) {
+                sendProducer.close();
+            }
             killSwitch.shutdown();
         }
 
