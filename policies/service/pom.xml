@@ -102,7 +102,6 @@
         <dependency>
             <groupId>org.codehaus.janino</groupId>
             <artifactId>janino</artifactId>
-            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>net.logstash.logback</groupId>
