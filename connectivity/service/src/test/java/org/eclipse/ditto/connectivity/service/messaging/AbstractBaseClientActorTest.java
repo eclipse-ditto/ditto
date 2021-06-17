@@ -45,6 +45,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConne
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextCreator;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
+import org.junit.After;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
@@ -64,6 +65,15 @@ import akka.testkit.javadsl.TestKit;
  * Abstract unit test for classes that extend {@link BaseClientActor}.
  */
 public abstract class AbstractBaseClientActorTest {
+
+    private ServerBinding binding;
+
+    @After
+    public void closeServerBinding() {
+        if (binding != null) {
+            binding.terminate(Duration.ofSeconds(10L));
+        }
+    }
 
     public static final Target HTTP_TARGET = ConnectivityModelFactory.newTargetBuilder()
             .address("POST:/target/address")
@@ -135,7 +145,7 @@ public abstract class AbstractBaseClientActorTest {
                         .clientCertificate(credentials);
 
         final ActorSystem actorSystem = getActorSystem();
-        final ServerBinding binding = Http.get(actorSystem)
+        binding = Http.get(actorSystem)
                 .newServerAt("127.0.0.1", 0)
                 .enableHttps(HttpsConnectionContext.httpsServer(sslContext))
                 .bindFlow(Flow.fromSinkAndSource(Sink.ignore(), Source.empty()))
@@ -157,7 +167,7 @@ public abstract class AbstractBaseClientActorTest {
             underTest.tell(TestConnection.of(insecureConnection, DittoHeaders.empty()), getRef());
 
             // THEN: the test should succeed, or it should fail with a different reason than SSL validation
-            final Object response = expectMsgClass(Duration.ofSeconds(5), Object.class);
+            final Object response = expectMsgClass(Duration.ofSeconds(30), Object.class);
             if (response instanceof Status.Failure) {
                 final DittoRuntimeException error =
                         (DittoRuntimeException) getEventualCause(((Status.Failure) response).cause());
@@ -170,7 +180,7 @@ public abstract class AbstractBaseClientActorTest {
             } else {
                 assertThat(response).isInstanceOf(Status.Success.class);
             }
-            expectTerminated(underTest);
+            expectTerminated(Duration.ofSeconds(30L), underTest);
         }};
     }
 

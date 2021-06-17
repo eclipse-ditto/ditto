@@ -109,6 +109,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThingResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -142,8 +143,8 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     private static final ConnectionFailedException SESSION_EXCEPTION =
             ConnectionFailedException.newBuilder(CONNECTION_ID).build();
 
-    private static ActorSystem actorSystem;
-    private static Connection connection;
+    private ActorSystem actorSystem;
+    private Connection connection;
 
     @Mock
     private final JmsConnection mockConnection = Mockito.mock(JmsConnection.class);
@@ -160,8 +161,8 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     private TestProbe connectionActorProbe;
     private ActorRef connectionActor;
 
-    @BeforeClass
-    public static void setUp() {
+    @Before
+    public void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
         connection = TestConstants.createConnection(CONNECTION_ID)
                 .toBuilder()
@@ -171,8 +172,8 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
         DittoProtocolSub.get(actorSystem);
     }
 
-    @AfterClass
-    public static void tearDown() {
+    @After
+    public void tearDown() {
         TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS),
                 false);
     }
@@ -971,18 +972,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                         .orElse(null), Matchers.notNullValue());
     }
 
-    /**
-     * Wraps {@link Throwable} in {@link RuntimeException}.
-     */
-    private static <T> T wrapThrowable(final Retry.ThrowingSupplier<T> supplier) {
-        try {
-            return supplier.get();
-        } catch (final Throwable t) {
-            throw new RuntimeException(t);
-        }
-    }
-
-    private static Connection singleConsumerConnection() {
+    private Connection singleConsumerConnection() {
         final Source defaultSource = connection.getSources().get(0);
         return connection.toBuilder()
                 .clientCount(1)
@@ -997,4 +987,14 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                 .build();
     }
 
+    /**
+     * Wraps {@link Throwable} in {@link RuntimeException}.
+     */
+    private static <T> T wrapThrowable(final Retry.ThrowingSupplier<T> supplier) {
+        try {
+            return supplier.get();
+        } catch (final Throwable t) {
+            throw new RuntimeException(t);
+        }
+    }
 }
