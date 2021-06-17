@@ -24,11 +24,18 @@ final class ExistsFunction implements FilterFunction {
 
     @Override
     public boolean apply(final String... parameters) {
-        if (parameters.length != 1) {
-            return false;
+        if (parameters.length == 1) {
+            return apply(parameters[0], true);
+        } else if (parameters.length == 2) {
+            final String toMatch = parameters[0];
+            final boolean shouldExist = Boolean.parseBoolean(parameters[1]);
+            return apply(toMatch, shouldExist);
         }
-        final String toMatch = parameters[0];
-        return !toMatch.isEmpty();
+        return false;
+    }
+
+    private boolean apply(final String toMatch, final boolean shouldExist) {
+        return shouldExist != toMatch.isEmpty();
     }
 
 }

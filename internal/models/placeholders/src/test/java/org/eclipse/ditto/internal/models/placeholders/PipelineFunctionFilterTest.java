@@ -182,7 +182,6 @@ public final class PipelineFunctionFilterTest {
         assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).isEmpty();
     }
 
-
     @Test
     public void existsSucceedsWithValueResolved() {
         when(expressionResolver.resolveAsPipelineElement("header:reply-to"))
@@ -197,6 +196,38 @@ public final class PipelineFunctionFilterTest {
                 .thenReturn(PipelineElement.unresolved());
         final String params = String.format("(%s,'%s')", "header:reply-to", "exists");
         assertThat(underTest.apply(KNOWN_INPUT_BOOLEAN, params, expressionResolver)).isEmpty();
+    }
+
+    @Test
+    public void existsTrueSucceedsWithValueResolved() {
+        when(expressionResolver.resolveAsPipelineElement("header:reply-to"))
+                .thenReturn(PipelineElement.resolved("true"));
+        final String params = String.format("(%s,'%s','%s')", "header:reply-to", "exists", "true");
+        assertThat(underTest.apply(KNOWN_INPUT_BOOLEAN, params, expressionResolver)).contains(KNOWN_BOOLEAN);
+    }
+
+    @Test
+    public void existsTrueFailsWithValueUnresolved() {
+        when(expressionResolver.resolveAsPipelineElement("header:reply-to"))
+                .thenReturn(PipelineElement.unresolved());
+        final String params = String.format("(%s,'%s','%s')", "header:reply-to", "exists", "true");
+        assertThat(underTest.apply(KNOWN_INPUT_BOOLEAN, params, expressionResolver)).isEmpty();
+    }
+
+    @Test
+    public void existsFalseSucceedsWithValueResolved() {
+        when(expressionResolver.resolveAsPipelineElement("header:reply-to"))
+                .thenReturn(PipelineElement.resolved("true"));
+        final String params = String.format("(%s,'%s','%s')", "header:reply-to", "exists", "false");
+        assertThat(underTest.apply(KNOWN_INPUT_BOOLEAN, params, expressionResolver)).isEmpty();
+    }
+
+    @Test
+    public void existsFalseFailsWithValueUnresolved() {
+        when(expressionResolver.resolveAsPipelineElement("header:reply-to"))
+                .thenReturn(PipelineElement.unresolved());
+        final String params = String.format("(%s,'%s','%s')", "header:reply-to", "exists", "false");
+        assertThat(underTest.apply(KNOWN_INPUT_BOOLEAN, params, expressionResolver)).contains(KNOWN_BOOLEAN);
     }
 
     private void testPatternMatching(final String arg, final String pattern, final boolean shouldMatch) {
