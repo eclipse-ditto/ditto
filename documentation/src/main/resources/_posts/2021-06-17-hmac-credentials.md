@@ -1,7 +1,7 @@
 ---
 title: "Support for HMAC-SHA256 signing for connections"
 published: true
-permalink: 2099-01-01-hmac-credentials.html
+permalink: 2021-06-17-hmac-credentials.html
 layout: post
 author: florian_fendt
 tags: [blog, architecture, connectivity, hmac, azure, azure iot hub, azure service bus, azure monitor, aws sns, sns, aws, signing, example]
