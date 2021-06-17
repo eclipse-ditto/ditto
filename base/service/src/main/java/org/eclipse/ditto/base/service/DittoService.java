@@ -487,22 +487,18 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
 
     private void setUpCoordinatedShutdown(final ActorSystem actorSystem) {
         final var coordinatedShutdown = CoordinatedShutdown.get(actorSystem);
-        final var shutdownReason = coordinatedShutdown.getShutdownReason()
-                .orElse(CoordinatedShutdown.unknownReason());
 
         coordinatedShutdown.addTask(CoordinatedShutdown.PhaseBeforeServiceUnbind(),
                 "log_shutdown_initiation", () -> {
-                    logger.info("Initiated coordinated shutdown - shutdown reason - {}; " +
-                            "gracefully shutting down ...", shutdownReason);
+                    logger.info("Initiated coordinated shutdown; gracefully shutting down ...");
+                    coordinatedShutdown.getShutdownReason().ifPresent(reason ->
+                            logger.info("Shutdown reason was - <{}>", reason));
                     final CompletionStage<Done> stop = AkkaManagement.get(actorSystem).stop();
-                    stop.whenComplete((done, throwable) -> {
-                        if (null != throwable) {
-                            logger.error("Error during stop of AkkaManagement: <{}>!", throwable.getMessage(), throwable);
-                        } else {
-                            logger.info("AkkaManagement stopped!");
-                        }
+                    return stop.thenApply(done -> {
+                        logger.info("AkkaManagement stopped!");
+                        return done;
                     });
-                    return CompletableFuture.completedFuture(Done.getInstance());
+
                 });
         coordinatedShutdown.addTask(CoordinatedShutdown.PhaseActorSystemTerminate(),
                 "log_successful_graceful_shutdown", () -> {
