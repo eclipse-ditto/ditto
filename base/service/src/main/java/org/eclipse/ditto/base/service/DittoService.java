@@ -487,19 +487,31 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
 
     private void setUpCoordinatedShutdown(final ActorSystem actorSystem) {
         final var coordinatedShutdown = CoordinatedShutdown.get(actorSystem);
+        final var shutdownReason = coordinatedShutdown.getShutdownReason()
+                .orElse(CoordinatedShutdown.unknownReason());
+
         coordinatedShutdown.addTask(CoordinatedShutdown.PhaseBeforeServiceUnbind(),
                 "log_shutdown_initiation", () -> {
-            logger.info("Initiated coordinated shutdown; gracefully shutting down ...");
-            return CompletableFuture.completedFuture(Done.getInstance());
-        });
-        coordinatedShutdown.addTask(CoordinatedShutdown.PhaseBeforeActorSystemTerminate(),
+                    logger.info("Initiated coordinated shutdown - shutdown reason - {}; " +
+                            "gracefully shutting down ...", shutdownReason);
+                    final CompletionStage<Done> stop = AkkaManagement.get(actorSystem).stop();
+                    stop.whenComplete((done, throwable) -> {
+                        if (null != throwable) {
+                            logger.error("Error during stop of AkkaManagement: <{}>!", throwable.getMessage(), throwable);
+                        } else {
+                            logger.info("AkkaManagement stopped!");
+                        }
+                    });
+                    return CompletableFuture.completedFuture(Done.getInstance());
+                });
+        coordinatedShutdown.addTask(CoordinatedShutdown.PhaseActorSystemTerminate(),
                 "log_successful_graceful_shutdown", () -> {
-            logger.info("Graceful shutdown completed.");
-            // close logback-classic logging correctly in order to flush/get the last logs:
-            final var loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
-            loggerContext.stop();
-            return CompletableFuture.completedFuture(Done.getInstance());
-        });
+                    logger.info("Graceful shutdown completed.");
+                    // close logback-classic logging correctly in order to flush/get the last logs:
+                    final var loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
+                    loggerContext.stop();
+                    return CompletableFuture.completedFuture(Done.getInstance());
+                });
     }
 
     /**
