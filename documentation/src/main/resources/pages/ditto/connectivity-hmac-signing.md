@@ -432,7 +432,7 @@ Parameters:
 
 The `outgoingScript` provides JavaScript payload mapping which maps the outgoing ditto protocol message into
 the required [direct method format](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-devguide-direct-methods#invoke-a-direct-method-from-a-back-end-app).
-I.e. it uses the live message name as `methodName`, the timeout as `responseTimeoutInSeconds` and the value as `payload`:
+I.e. it uses the live message subject as `methodName`, the timeout as `responseTimeoutInSeconds` and the value as `payload`:
 
 ```javascript
 function mapFromDittoProtocolMsg(
@@ -480,7 +480,7 @@ This is required since Azure IoT Hub direct methods require a specific format:
 }
 ```
 
-Send live messages to a Thing, which contain as value the expected `payload`, as live message name the expected
+Send live messages to a Thing, which contain as value the expected `payload`, as live message subject the expected
 `methodName` and as timeout the expected `responseTimeoutInSeconds`. Then they can successfully invoke
 the direct method on their respective devices.
 

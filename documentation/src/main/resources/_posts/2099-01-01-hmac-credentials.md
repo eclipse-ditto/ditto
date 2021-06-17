@@ -148,7 +148,7 @@ in the fields `uri`, `credentials.parameters.sharedKeyName`, `credentials.parame
 This connection configuration sends live messages to the endpoint at
 {%raw%}`https://my-hub.azure-devices.net:443/twins/{{ thing:id }}/methods?api-version=2018-06-30`{%endraw%}
 and signs each request with a [Shared Access Signature](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-dev-guide-sas?tabs=node).
-The configuration also contains an outgoing JavaScript payload mapping, which extracts the namve of the live message,
+The configuration also contains an outgoing JavaScript payload mapping, which extracts the subject of the live message,
 its timeout and its payload and uses this to construct a JSON message in the required direct method format.
 You'll see that format below.
 
