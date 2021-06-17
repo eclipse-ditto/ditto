@@ -173,7 +173,7 @@ public final class MongoSearchUpdaterFlowTest {
 
             final MongoSearchUpdaterFlow flow = MongoSearchUpdaterFlow.of(db,
                     DefaultPersistenceStreamConfig.of(ConfigFactory.empty()),
-                    SearchUpdateListener.get(actorSystem));
+                    SearchUpdateMapper.get(actorSystem));
 
             final Sink<Source<AbstractWriteModel, NotUsed>, ?> sink =
                     flow.start(false, 1, 1).to(Sink.ignore());

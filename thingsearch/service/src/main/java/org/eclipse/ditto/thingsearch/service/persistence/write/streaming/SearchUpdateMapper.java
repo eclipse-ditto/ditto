@@ -26,28 +26,29 @@ import akka.actor.ExtendedActorSystem;
 import akka.actor.Extension;
 
 /**
- * Search Update Listener to be loaded by reflection.
- * Can be used as an extension point to use custom listeners for search updates.
+ * Search Update Mapper to be loaded by reflection.
+ * Can be used as an extension point to use custom map search updates.
  * Implementations MUST have a public constructor taking an actorSystem as argument.
  *
  * @since 2.1.0
  */
-public abstract class SearchUpdateListener implements Extension {
+public abstract class SearchUpdateMapper implements Extension {
 
     private static final ExtensionId EXTENSION_ID = new ExtensionId();
 
     protected final ActorSystem actorSystem;
 
-    protected SearchUpdateListener(final ActorSystem actorSystem) {
+    protected SearchUpdateMapper(final ActorSystem actorSystem) {
         this.actorSystem = actorSystem;
     }
 
     /**
      * Gets the write models of the search updates and processes them.
      * <p>
-     * May throw an exception depending on the implementation in the used {@code SearchUpdateListener}.
+     * Should not throw an exception. If a exception is thrown, the mapping is ignored.
+     * If no search update should be executed an empty list can be returned.
      */
-    public abstract void processWriteModels(final List<AbstractWriteModel> writeModels);
+    public abstract List<AbstractWriteModel> processWriteModels(final List<AbstractWriteModel> writeModels);
 
     /**
      * Load a {@code SearchUpdateListener} dynamically according to the search configuration.
@@ -55,23 +56,23 @@ public abstract class SearchUpdateListener implements Extension {
      * @param actorSystem The actor system in which to load the listener.
      * @return The listener.
      */
-    public static SearchUpdateListener get(final ActorSystem actorSystem) {
+    public static SearchUpdateMapper get(final ActorSystem actorSystem) {
         return EXTENSION_ID.get(actorSystem);
     }
 
     /**
      * ID of the actor system extension to validate the {@code SearchUpdateListener}.
      */
-    private static final class ExtensionId extends AbstractExtensionId<SearchUpdateListener> {
+    private static final class ExtensionId extends AbstractExtensionId<SearchUpdateMapper> {
 
         @Override
-        public SearchUpdateListener createExtension(final ExtendedActorSystem system) {
+        public SearchUpdateMapper createExtension(final ExtendedActorSystem system) {
             final SearchConfig searchConfig =
                     DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(
                             system.settings().config()));
 
-            return AkkaClassLoader.instantiate(system, SearchUpdateListener.class,
-                    searchConfig.getSearchUpdateListenerImplementation(),
+            return AkkaClassLoader.instantiate(system, SearchUpdateMapper.class,
+                    searchConfig.getSearchUpdateMapperImplementation(),
                     List.of(ActorSystem.class),
                     List.of(system));
         }

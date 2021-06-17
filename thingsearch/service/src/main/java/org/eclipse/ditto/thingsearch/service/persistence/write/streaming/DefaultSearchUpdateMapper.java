@@ -19,20 +19,21 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWri
 import akka.actor.ActorSystem;
 
 /**
- * Default {@code SearchUpdateListener} for custom search update processing.
+ * Default {@code SearchUpdateMapper} for custom search update processing.
  */
-public final class DefaultSearchUpdateListener extends SearchUpdateListener {
+public final class DefaultSearchUpdateMapper extends SearchUpdateMapper {
 
     /**
      * Instantiate this provider. Called by reflection.
      */
-    protected DefaultSearchUpdateListener(final ActorSystem actorSystem) {
+    protected DefaultSearchUpdateMapper(final ActorSystem actorSystem) {
         super(actorSystem);
         // Nothing to initialize.
     }
 
     @Override
-    public void processWriteModels(final List<AbstractWriteModel> writeModels) {
-        // do nothing
+    public List<AbstractWriteModel> processWriteModels(final List<AbstractWriteModel> writeModels) {
+        return writeModels;
     }
+
 }

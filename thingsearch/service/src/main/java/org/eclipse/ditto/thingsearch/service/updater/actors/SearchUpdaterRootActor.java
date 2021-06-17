@@ -33,7 +33,7 @@ import org.eclipse.ditto.thingsearch.service.common.util.RootSupervisorStrategyF
 import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence;
 import org.eclipse.ditto.thingsearch.service.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.ChangeQueueActor;
-import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchUpdateListener;
+import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchUpdateMapper;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchUpdaterStream;
 
 import com.mongodb.event.CommandListener;
@@ -112,11 +112,11 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final ActorRef updaterShard =
                 shardRegionFactory.getSearchUpdaterShardRegion(numberOfShards, thingUpdaterProps, CLUSTER_ROLE);
 
-        final var searchUpdateListener = SearchUpdateListener.get(actorSystem);
-        final var searchUpdaterStream =
+        final var searchUpdateMapper = SearchUpdateMapper.get(actorSystem);
+        final SearchUpdaterStream searchUpdaterStream =
                 SearchUpdaterStream.of(updaterConfig, actorSystem, thingsShard, policiesShard, updaterShard,
                         changeQueueActor, dittoMongoClient.getDefaultDatabase(), blockedNamespaces,
-                        searchUpdateListener);
+                        searchUpdateMapper);
         updaterStreamKillSwitch = searchUpdaterStream.start(getContext(), false);
         updaterStreamWithAcknowledgementsKillSwitch = searchUpdaterStream.start(getContext(), true);
 

@@ -59,6 +59,7 @@ import org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQue
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.query.QueryParser;
 import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsSearchPersistence;
+import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchUpdateMapper;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.TestSearchUpdaterStream;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -133,7 +134,7 @@ public final class SearchActorIT {
     }
 
     private static TestSearchUpdaterStream provideWritePersistence(final ActorSystem system) {
-        return TestSearchUpdaterStream.of(mongoClient.getDefaultDatabase(), SearchUpdateListener.get(system));
+        return TestSearchUpdaterStream.of(mongoClient.getDefaultDatabase(), SearchUpdateMapper.get(system));
     }
 
     private static DittoMongoClient provideClientWrapper() {
