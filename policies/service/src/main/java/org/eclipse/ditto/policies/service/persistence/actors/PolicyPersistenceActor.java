@@ -33,21 +33,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.policies.model.Label;
-import org.eclipse.ditto.policies.model.Policy;
-import org.eclipse.ditto.policies.model.PolicyEntry;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.model.PolicyLifecycle;
-import org.eclipse.ditto.policies.model.Subject;
-import org.eclipse.ditto.policies.model.SubjectAnnouncement;
-import org.eclipse.ditto.policies.model.SubjectExpiry;
-import org.eclipse.ditto.policies.model.SubjectId;
-import org.eclipse.ditto.policies.model.Subjects;
-import org.eclipse.ditto.policies.api.PolicyTag;
-import org.eclipse.ditto.policies.service.common.config.DittoPoliciesConfig;
-import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
-import org.eclipse.ditto.policies.service.persistence.actors.strategies.commands.PolicyCommandStrategies;
-import org.eclipse.ditto.policies.service.persistence.actors.strategies.events.PolicyEventStrategies;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
@@ -58,12 +44,26 @@ import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrateg
 import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.policies.api.PolicyTag;
+import org.eclipse.ditto.policies.model.Label;
+import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyEntry;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyLifecycle;
+import org.eclipse.ditto.policies.model.Subject;
+import org.eclipse.ditto.policies.model.SubjectAnnouncement;
+import org.eclipse.ditto.policies.model.SubjectExpiry;
+import org.eclipse.ditto.policies.model.SubjectId;
+import org.eclipse.ditto.policies.model.Subjects;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.policies.model.signals.announcements.SubjectDeletionAnnouncement;
-import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.eclipse.ditto.policies.model.signals.events.SubjectDeleted;
+import org.eclipse.ditto.policies.service.common.config.DittoPoliciesConfig;
+import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
+import org.eclipse.ditto.policies.service.persistence.actors.strategies.commands.PolicyCommandStrategies;
+import org.eclipse.ditto.policies.service.persistence.actors.strategies.events.PolicyEventStrategies;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -320,13 +320,15 @@ public final class PolicyPersistenceActor
 
     private void publishExpiryAnnouncementsByTimestamp(final Stream<Subject> relevantSubjects) {
         final Map<Instant, Set<SubjectId>> subjectIdsByExpiry = relevantSubjects.collect(GROUP_BY_EXPIRY_COLLECTOR);
-        log.info("Sending announcements for <{}>", subjectIdsByExpiry);
+        final var dittoHeaders = DittoHeaders.newBuilder()
+                .randomCorrelationId()
+                .build();
+        log.withCorrelationId(dittoHeaders)
+                .info("Sending announcements for <{}>", subjectIdsByExpiry);
         subjectIdsByExpiry.keySet().stream().sorted().forEach(deleteAt -> {
             final var subjectIds = subjectIdsByExpiry.get(deleteAt);
             final var announcement =
-                    SubjectDeletionAnnouncement.of(entityId, deleteAt, subjectIds, DittoHeaders.newBuilder()
-                            .randomCorrelationId()
-                            .build());
+                    SubjectDeletionAnnouncement.of(entityId, deleteAt, subjectIds, dittoHeaders);
             policyAnnouncementPub.publish(announcement, ActorRef.noSender());
         });
     }
@@ -424,20 +426,25 @@ public final class PolicyPersistenceActor
     private void sendPastDueAnnouncementsOfNewSubjects(@Nullable final Policy previousPolicy,
             @Nullable final Policy nextPolicy) {
 
-        final Set<Subject> previousSubjectIds =
-                streamAndFlatMapSubjects(previousPolicy, Optional::of).collect(Collectors.toSet());
-        final Stream<Subject> newSubjectsWithPastDueAnnouncements = streamAndFlatMapSubjects(nextPolicy,
-                subject -> {
-                    final var pastDue = getAnnouncementInstant(subject)
-                            .filter(instant -> !lastAnnouncement.isBefore(instant))
-                            .isPresent();
-                    if (pastDue && !previousSubjectIds.contains(subject)) {
-                        return Optional.of(subject);
-                    } else {
-                        return Optional.empty();
-                    }
-                });
-        publishExpiryAnnouncementsByTimestamp(newSubjectsWithPastDueAnnouncements);
+        // this only makes sense for previously existing policies:
+        if (null != previousPolicy &&
+                previousPolicy.getLifecycle().filter(PolicyLifecycle.DELETED::equals).isPresent()) {
+
+            final Set<Subject> previousSubjectIds =
+                    streamAndFlatMapSubjects(previousPolicy, Optional::of).collect(Collectors.toSet());
+            final Stream<Subject> newSubjectsWithPastDueAnnouncements = streamAndFlatMapSubjects(nextPolicy,
+                    subject -> {
+                        final var pastDue = getAnnouncementInstant(subject)
+                                .filter(instant -> !lastAnnouncement.isBefore(instant))
+                                .isPresent();
+                        if (pastDue && !previousSubjectIds.contains(subject)) {
+                            return Optional.of(subject);
+                        } else {
+                            return Optional.empty();
+                        }
+                    });
+            publishExpiryAnnouncementsByTimestamp(newSubjectsWithPastDueAnnouncements);
+        }
     }
 
     private static Duration truncateToOneDay(final Duration duration) {

@@ -39,6 +39,12 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
     Duration getClientActorAskTimeout();
 
     /**
+     * Returns how often the connection actor will retry starting a failing client actor. If exceeded, errors will
+     * be escalated to the supervisor, which will effectively cause the whole connection to be restarted.
+     */
+    int getClientActorRestartsBeforeEscalation();
+
+    /**
      * @return the list of allowed hostnames to which outgoing connections are allowed. This list overrides the list
      * of blocked hostnames.
      */
@@ -147,6 +153,11 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
          * The amount of time for how long the connection actor waits for response from client actors.
          */
         CLIENT_ACTOR_ASK_TIMEOUT("client-actor-ask-timeout", Duration.ofSeconds(60L)),
+
+        /**
+         * How often the connection actor will retry starting a failing client actor before escalation to the supervisor.
+         */
+        CLIENT_ACTOR_RESTARTS_BEFORE_ESCALATION("client-actor-restarts-before-escalation", 3),
 
         /**
          * Whether to start all client actors on 1 node.

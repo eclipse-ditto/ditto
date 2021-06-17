@@ -75,10 +75,17 @@ In order to use the kubernetes secret replace the variable "MONGO_DB_HOSTNAME" w
 Ditto uses the `latest` tag for its images. If you want to use a different version replace the `latest` tag in
 `deployment/kubernetes/deploymentFiles/ditto/ditto-cluster.yml` with the version you want to use.
 
+If _DITTO_LOGGING_FILE_APPENDER_ is set to 'true' then the following step have to be done.
+In order to be able to access ditto log files run the following command to initialize the hostPath.
+```bash
+kubectl apply -f deployment/kubernetes/deploymentFiles/ditto/ditto-log-files.yaml
+```
+
+Start Ditto with the predefined version or another of choice.
 ```bash
 kubectl apply -f deployment/kubernetes/deploymentFiles/ditto/
 # Start ditto services with an alternative version e.g. 0-SNAPSHOT
-# cat deployment/kubernetes/deploymentFiles/ditto/ditto-cluster.yaml | sed s/latest/2.0.1/ | kubectl apply -f -
+# cat deployment/kubernetes/deploymentFiles/ditto/ditto-cluster.yaml | sed s/latest/0-SNAPSHOT/ | kubectl apply -f -
 ```
 
 #### Start Swagger UI

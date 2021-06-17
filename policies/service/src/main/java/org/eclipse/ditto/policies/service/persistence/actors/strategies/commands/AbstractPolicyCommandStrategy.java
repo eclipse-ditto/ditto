@@ -29,6 +29,11 @@ import org.eclipse.ditto.base.model.common.DittoDuration;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.internal.utils.headers.conditional.ConditionalHeadersValidator;
+import org.eclipse.ditto.internal.utils.persistentactors.etags.AbstractConditionHeaderCheckingCommandStrategy;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
@@ -39,12 +44,6 @@ import org.eclipse.ditto.policies.model.SubjectAnnouncement;
 import org.eclipse.ditto.policies.model.SubjectExpiry;
 import org.eclipse.ditto.policies.model.SubjectExpiryInvalidException;
 import org.eclipse.ditto.policies.model.Subjects;
-import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
-import org.eclipse.ditto.internal.utils.headers.conditional.ConditionalHeadersValidator;
-import org.eclipse.ditto.internal.utils.persistentactors.etags.AbstractConditionHeaderCheckingCommandStrategy;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
-import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
-import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyEntryModificationInvalidException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyEntryNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyModificationInvalidException;
@@ -52,6 +51,7 @@ import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAcc
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.ResourceNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.SubjectNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
+import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
 /**
  * Abstract base class for {@link org.eclipse.ditto.policies.model.signals.commands.PolicyCommand} strategies.
@@ -214,6 +214,10 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
      */
     protected SubjectExpiry roundPolicySubjectExpiry(final SubjectExpiry expiry) {
         final Instant timestamp = expiry.getTimestamp();
+
+        if (policyExpiryGranularity.amount <= 0) {
+            return expiry;
+        }
 
         final Instant truncated = timestamp.truncatedTo(policyExpiryGranularity.temporalUnit);
         final Instant truncatedParent;

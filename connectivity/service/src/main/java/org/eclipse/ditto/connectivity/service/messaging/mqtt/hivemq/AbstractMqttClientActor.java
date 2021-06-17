@@ -46,6 +46,7 @@ import com.hivemq.client.mqtt.MqttClient;
 import com.hivemq.client.mqtt.MqttClientState;
 import com.hivemq.client.mqtt.lifecycle.MqttClientConnectedListener;
 import com.hivemq.client.mqtt.lifecycle.MqttClientDisconnectedListener;
+import com.hivemq.client.mqtt.lifecycle.MqttDisconnectSource;
 
 import akka.actor.ActorRef;
 import akka.actor.FSM;
@@ -295,7 +296,14 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
                 context.getReconnector().reconnect(false);
             } else {
                 final boolean doReconnect = connection.isFailoverEnabled() && !cancelReconnect.get();
-                final long reconnectDelay = retryTimeoutStrategy.getNextTimeout().toMillis();
+                final long nextTimeout = retryTimeoutStrategy.getNextTimeout().toMillis();
+                final long reconnectDelay;
+                if (context.getSource() == MqttDisconnectSource.SERVER) {
+                    reconnectDelay = Math.max(nextTimeout,
+                            mqttConfig.getReconnectMinTimeoutForMqttBrokerInitiatedDisconnect().toMillis());
+                } else {
+                    reconnectDelay = nextTimeout;
+                }
                 logger.info("Client with role <{}> disconnected, source: <{}> - reconnecting: <{}> " +
                                 "with current retries of <{}> and delay <{}>ms",
                         new Object[]{role, context.getSource(), doReconnect, retryTimeoutStrategy.getCurrentTries(),

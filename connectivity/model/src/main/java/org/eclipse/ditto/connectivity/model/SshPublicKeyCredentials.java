@@ -94,7 +94,7 @@ public final class SshPublicKeyCredentials implements Credentials {
         return getClass().getSimpleName() + " [" +
                 "username=" + username +
                 ", publicKey=" + publicKey +
-                // private key omitted intentionally
+                ", privateKey=***" + // private key omitted intentionally
                 "]";
     }
 
