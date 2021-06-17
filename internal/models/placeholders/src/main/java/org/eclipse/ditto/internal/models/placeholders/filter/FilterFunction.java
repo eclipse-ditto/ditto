@@ -29,6 +29,6 @@ public interface FilterFunction {
      * @param parameters the parameters on which the decision should be made.
      * @return true if condition succeeds, false if not.
      */
-    boolean apply(final String... parameters);
+    boolean apply(String... parameters);
 
 }
