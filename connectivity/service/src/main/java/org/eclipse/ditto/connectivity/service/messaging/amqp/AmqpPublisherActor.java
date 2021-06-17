@@ -25,7 +25,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
-import java.util.function.BiFunction;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -45,21 +45,21 @@ import org.eclipse.ditto.base.model.common.Placeholders;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
-import org.eclipse.ditto.connectivity.service.messaging.amqp.status.ProducerClosedStatusReport;
 import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
+import org.eclipse.ditto.connectivity.service.messaging.amqp.status.ProducerClosedStatusReport;
 import org.eclipse.ditto.connectivity.service.messaging.backoff.BackOffActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.base.model.signals.Signal;
 
 import akka.Done;
 import akka.actor.ActorRef;
@@ -285,7 +285,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
             final AmqpMessageContext context = newContext(signal, autoAckTarget, publishTarget, resultFuture);
             sourceQueue.offer(Pair.create(message, context))
-                    .handle(handleQueueOfferResult(message, resultFuture));
+                    .whenComplete(handleQueueOfferResult(message, resultFuture));
             return resultFuture;
         } else {
             return CompletableFuture.failedStage(getBackOffModeError(message, publishTarget.getJmsDestination()));
@@ -361,9 +361,8 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     }
 
     // Async callback. Must be thread-safe.
-    private BiFunction<QueueOfferResult, Throwable, Void> handleQueueOfferResult(final ExternalMessage message,
+    private BiConsumer<QueueOfferResult, Throwable> handleQueueOfferResult(final ExternalMessage message,
             final CompletableFuture<?> resultFuture) {
-
         return (queueOfferResult, error) -> {
             if (error != null) {
                 final String errorDescription = "Source queue failure";
@@ -378,7 +377,6 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                         .dittoHeaders(message.getInternalHeaders())
                         .build());
             }
-            return null;
         };
     }
 

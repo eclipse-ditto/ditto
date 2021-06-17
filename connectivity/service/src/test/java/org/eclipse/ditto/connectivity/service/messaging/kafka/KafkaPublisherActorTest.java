@@ -24,9 +24,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.UUID;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.DisconnectException;
@@ -46,6 +48,7 @@ import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
+import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
@@ -53,6 +56,7 @@ import org.eclipse.ditto.connectivity.service.config.KafkaProducerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.protocol.Adaptable;
@@ -81,34 +85,34 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
             .getConnectionConfig()
             .getKafkaConfig()
             .getProducerConfig();
-    private MockSendProducerFactory mockProducerFlowFactory;
+    private MockSendProducerFactory mockSendProducerFactory;
 
     @Override
     protected void setupMocks(final TestProbe notUsed) {
-        mockProducerFlowFactory = MockSendProducerFactory.getInstance(TARGET_TOPIC, published);
+        mockSendProducerFactory = MockSendProducerFactory.getInstance(TARGET_TOPIC, published);
     }
 
     private void setUpMocksToFailWith(final RuntimeException exception) {
-        mockProducerFlowFactory = MockSendProducerFactory.getInstance(TARGET_TOPIC, published, exception);
+        mockSendProducerFactory = MockSendProducerFactory.getInstance(TARGET_TOPIC, published, exception);
     }
 
     @Override
     protected Props getPublisherActorProps() {
         final Connection connection = TestConstants.createConnection();
         final String clientId = UUID.randomUUID().toString();
-        return KafkaPublisherActor.props(connection, kafkaConfig, mockProducerFlowFactory, false, clientId);
+        return KafkaPublisherActor.props(connection, kafkaConfig, mockSendProducerFactory, false, clientId);
     }
 
     protected Props getPublisherActorPropsWithDebugEnabled() {
         final Connection connectionWithDebugEnabled = TestConstants.createConnectionWithDebugEnabled();
         final String clientId = UUID.randomUUID().toString();
-        return KafkaPublisherActor.props(connectionWithDebugEnabled, kafkaConfig, mockProducerFlowFactory, false,
+        return KafkaPublisherActor.props(connectionWithDebugEnabled, kafkaConfig, mockSendProducerFactory, false,
                 clientId);
     }
 
     @Override
     protected void verifyPublishedMessage() {
-        Awaitility.await().until(() -> !published.isEmpty());
+        Awaitility.await("wait for published messages").until(() -> !published.isEmpty());
         final ProducerRecord<String, String> record = checkNotNull(published.poll());
         assertThat(published).isEmpty();
         assertThat(record).isNotNull();
@@ -150,6 +154,55 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
         assertThat(ack.getHttpStatus()).isEqualTo(HttpStatus.NO_CONTENT);
         assertThat(ack.getLabel().toString()).isEqualTo("please-verify");
         assertThat(ack.getEntity()).isEmpty();
+    }
+
+    @Test
+    public void testMessageDroppedOnQueueOverflow() {
+        new TestKit(actorSystem) {{
+
+            // use blocking producer to simulate overflowing queue
+            mockSendProducerFactory = MockSendProducerFactory.getBlockingInstance(TARGET_TOPIC, published);
+
+            final OutboundSignal.MultiMapped multiMapped =
+                    OutboundSignalFactory.newMultiMappedOutboundSignal(List.of(getMockOutboundSignal()), getRef());
+
+            final Props props = getPublisherActorProps();
+            final ActorRef publisherActor = childActorOf(props);
+
+            publisherCreated(this, publisherActor);
+
+            IntStream.range(0, kafkaConfig.getQueueSize() * 2).forEach(i -> publisherActor.tell(multiMapped, getRef()));
+
+            final ImmutableConnectionFailure failure = expectMsgClass(ImmutableConnectionFailure.class);
+            assertThat(failure.getFailure().cause()).isInstanceOf(CompletionException.class);
+            assertThat(failure.getFailure().cause().getCause()).isInstanceOf(MessageSendingFailedException.class);
+            assertThat(failure.getFailure().cause().getCause()).isInstanceOf(MessageSendingFailedException.class);
+        }};
+    }
+
+    @Test
+    public void testAllQueuedMessagesAreFinallyPublished() {
+        new TestKit(actorSystem) {{
+            // use slow start producer which blocks for the first published message
+            mockSendProducerFactory = MockSendProducerFactory.getSlowStartInstance(TARGET_TOPIC, published);
+
+            final OutboundSignal.MultiMapped multiMapped =
+                    OutboundSignalFactory.newMultiMappedOutboundSignal(List.of(getMockOutboundSignal()), getRef());
+
+            final Props props = getPublisherActorProps();
+            final ActorRef publisherActor = childActorOf(props);
+
+            publisherCreated(this, publisherActor);
+
+            // publish #messages twice the size of the queue to make sure the queue does overflow
+            IntStream.range(0, kafkaConfig.getQueueSize() * 2).forEach(i -> publisherActor.tell(multiMapped, getRef()));
+
+            //
+            fishForMessage(Duration.ofSeconds(5), "message drop", o -> o instanceof ConnectionFailure);
+
+            Awaitility.await("all queued messages are published")
+                    .until(() -> published.size() > kafkaConfig.getQueueSize());
+        }};
     }
 
     @Test

@@ -18,6 +18,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nullable;
 
@@ -37,30 +38,60 @@ final class MockSendProducerFactory implements SendProducerFactory {
     private final String targetTopic;
     private final Queue<ProducerRecord<String, String>> published;
     @Nullable private final RuntimeException exception;
+    private final boolean blocking;
+    private final AtomicBoolean wait = new AtomicBoolean();
 
     private MockSendProducerFactory(final String targetTopic, final Queue<ProducerRecord<String, String>> published,
-            @Nullable final RuntimeException exception) {
+            final boolean blocking, final boolean slow, @Nullable final RuntimeException exception) {
         this.targetTopic = targetTopic;
         this.published = published;
+        this.blocking = blocking;
+        wait.set(slow);
         this.exception = exception;
     }
 
     public static MockSendProducerFactory getInstance(
             final String targetTopic, final Queue<ProducerRecord<String, String>> published) {
-        return new MockSendProducerFactory(targetTopic, published, null);
+        return new MockSendProducerFactory(targetTopic, published, false, false, null);
     }
 
     public static MockSendProducerFactory getInstance(final String targetTopic,
             final Queue<ProducerRecord<String, String>> published, final RuntimeException exception) {
-        return new MockSendProducerFactory(targetTopic, published, exception);
+        return new MockSendProducerFactory(targetTopic, published, false, false, exception);
+    }
+
+    /**
+     * Never publishes any message, returns futures that never complete.
+     */
+    public static MockSendProducerFactory getBlockingInstance(final String targetTopic,
+            final Queue<ProducerRecord<String, String>> published) {
+        return new MockSendProducerFactory(targetTopic, published, true, false, null);
+    }
+
+    /**
+     * Blocks 1 second for the first message published. Continues to operate normally afterwards.
+     */
+    public static MockSendProducerFactory getSlowStartInstance(final String targetTopic,
+            final Queue<ProducerRecord<String, String>> published) {
+        return new MockSendProducerFactory(targetTopic, published, false, true, null);
     }
 
     @Override
     public SendProducer<String, String> newSendProducer() {
         final SendProducer<String, String> producer = mock(SendProducer.class);
-        if (exception == null) {
+        if (blocking) {
+            // always return uncompleted future
+            when(producer.sendEnvelope(any(ProducerMessage.Envelope.class)))
+                    .thenReturn(new CompletableFuture<>());
+        } else if (exception == null) {
             when(producer.sendEnvelope(any(ProducerMessage.Envelope.class)))
                     .thenAnswer(invocationOnMock -> {
+
+                        // simulate slow start producer that blocks 1 sec for the very first message published
+                        if (wait.getAndSet(false)) {
+                            Thread.sleep(1000);
+                        }
+
                         final ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>> envelope =
                                 invocationOnMock.getArgument(0);
                         final RecordMetadata dummyMetadata =

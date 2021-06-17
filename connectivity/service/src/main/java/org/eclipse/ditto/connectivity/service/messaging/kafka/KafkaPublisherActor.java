@@ -18,7 +18,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.function.BiFunction;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -63,8 +64,9 @@ import akka.stream.Materializer;
 import akka.stream.OverflowStrategy;
 import akka.stream.QueueOfferResult;
 import akka.stream.RestartSettings;
+import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
-import akka.stream.javadsl.RestartSource;
+import akka.stream.javadsl.RestartFlow;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.SourceQueueWithComplete;
@@ -91,7 +93,6 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         this.dryRun = dryRun;
         final Materializer materializer = Materializer.createMaterializer(this::getContext);
         producerStream = new KafkaProducerStream(config, materializer, producerFactory);
-        reportInitialConnectionState();
     }
 
     /**
@@ -125,6 +126,12 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                         logger.withCorrelationId(outbound.getSource())
                                 .info("Message dropped in dry run mode: {}", outbound))
                 .matchEquals(GracefulStop.INSTANCE, unused -> this.stopGracefully());
+    }
+
+    @Override
+    public void preStart() throws Exception {
+        super.preStart();
+        reportInitialConnectionState();
     }
 
     @Override
@@ -310,39 +317,36 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                 "b) The client count of this connection is not configured high enough.";
 
         private final KillSwitch killSwitch;
-
-        @Nullable
-        private SendProducer<String, String> sendProducer;
-        @Nullable
-        private SourceQueueWithComplete<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>>
+        private final SourceQueueWithComplete<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>>
                 sourceQueue;
+        private final AtomicReference<SendProducer<String, String>> sendProducer = new AtomicReference<>();
 
         private KafkaProducerStream(final KafkaProducerConfig config, final Materializer materializer,
                 final SendProducerFactory producerFactory) {
 
             final RestartSettings restartSettings = RestartSettings.create(config.getMinBackoff(),
-                    config.getMaxBackoff(),
-                    config.getRandomFactor());
+                    config.getMaxBackoff(), config.getRandomFactor());
 
-            killSwitch = RestartSource
-                    .onFailuresWithBackoff(restartSettings, () -> {
-                        if (null != sendProducer) {
-                            sendProducer.close();
-                        }
-                        sendProducer = producerFactory.newSendProducer();
-                        final Source<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>, SourceQueueWithComplete<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>>>
-                                queueSource = Source.queue(config.getQueueSize(), OverflowStrategy.dropNew());
-                        final Pair<SourceQueueWithComplete<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>>, Source<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>, NotUsed>>
-                                sourceQueuePreMat = queueSource.preMaterialize(materializer);
+            final Pair<SourceQueueWithComplete<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>>, Source<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>, NotUsed>>
+                    sourcePair =
+                    Source.<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>>
+                            queue(config.getQueueSize(), OverflowStrategy.dropNew()).preMaterialize(materializer);
 
-                        sourceQueue = sourceQueuePreMat.first();
-                        return sourceQueuePreMat.second()
+            sourceQueue = sourcePair.first();
+            killSwitch = sourcePair.second()
+                    .via(RestartFlow.onFailuresWithBackoff(restartSettings, () -> {
+                        logger.debug("Creating new kafka publish flow.");
+                        Optional.ofNullable(sendProducer.getAndSet(producerFactory.newSendProducer()))
+                                .ifPresent(SendProducer::close);
+                        return Flow.<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>>create()
                                 .flatMapConcat(envelope -> Source.completionStage(
-                                        sendProducer.sendEnvelope(envelope)
+                                        sendProducer.get()
+                                                .sendEnvelope(envelope)
                                                 .whenComplete(
-                                                        (results, exception) -> handleSendResult(results, exception,
+                                                        (results, exception) -> handleSendResult(results,
+                                                                exception,
                                                                 envelope.passThrough()))));
-                    })
+                    }))
                     .viaMat(KillSwitches.single(), Keep.right())
                     .toMat(Sink.ignore(), Keep.left())
                     .run(materializer);
@@ -367,7 +371,6 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                 logger.debug("Failed to send kafka record: [{}] {}", exception.getClass().getName(),
                         exception.getMessage());
                 resultFuture.completeExceptionally(exception);
-                throw new IllegalStateException(exception);
             }
         }
 
@@ -378,8 +381,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             final ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>> envelope =
                     ProducerMessage.single(producerRecord, resultFuture);
             if (null != sourceQueue) {
-                sourceQueue.offer(envelope)
-                        .handle((queueOfferResult, throwable) -> handleQueueOfferResult(externalMessage, resultFuture));
+                sourceQueue.offer(envelope).whenComplete(handleQueueOfferResult(externalMessage, resultFuture));
             } else {
                 final IllegalStateException ex = new IllegalStateException("Publisher not initialized");
                 logger.error(ex, ex.getMessage());
@@ -423,10 +425,13 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         }
 
         // Async callback. Must be thread-safe.
-        private BiFunction<QueueOfferResult, Throwable, Void> handleQueueOfferResult(final ExternalMessage message,
+        private BiConsumer<QueueOfferResult, Throwable> handleQueueOfferResult(final ExternalMessage message,
                 final CompletableFuture<?> resultFuture) {
 
             return (queueOfferResult, error) -> {
+
+                logger.debug("queueOfferResult {}", queueOfferResult);
+
                 if (error != null) {
                     final String errorDescription = "Source queue failure";
                     logger.error(error, errorDescription);
@@ -439,14 +444,11 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                             .dittoHeaders(message.getInternalHeaders())
                             .build());
                 }
-                return null;
             };
         }
 
         private void shutdown() {
-            if (null != sendProducer) {
-                sendProducer.close();
-            }
+            Optional.ofNullable(sendProducer.get()).ifPresent(SendProducer::close);
             killSwitch.shutdown();
         }
 
