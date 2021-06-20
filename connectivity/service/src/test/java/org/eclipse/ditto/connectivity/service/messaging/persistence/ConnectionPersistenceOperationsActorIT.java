@@ -25,9 +25,6 @@ import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.Source;
-import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory;
-import org.eclipse.ditto.connectivity.service.messaging.DefaultClientActorPropsFactory;
-import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionNotAccessibleException;
@@ -35,6 +32,9 @@ import org.eclipse.ditto.connectivity.model.signals.commands.modify.CreateConnec
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CreateConnectionResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionResponse;
+import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory;
+import org.eclipse.ditto.connectivity.service.messaging.DefaultClientActorPropsFactory;
+import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 import org.junit.Test;
 

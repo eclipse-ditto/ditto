@@ -33,4 +33,9 @@ public abstract class AbstractWithOrigin implements WithOrigin {
     public Optional<ActorRef> getOrigin() {
         return Optional.ofNullable(origin);
     }
+
+    @Override
+    public String toString() {
+        return "origin=" + origin;
+    }
 }

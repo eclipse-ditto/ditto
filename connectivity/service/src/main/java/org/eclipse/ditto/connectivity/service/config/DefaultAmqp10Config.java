@@ -13,6 +13,7 @@
 package org.eclipse.ditto.connectivity.service.config;
 
 import java.time.Duration;
+import java.util.Map;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -28,7 +29,7 @@ import com.typesafe.config.ConfigFactory;
  * This class is the default implementation of {@link Amqp10Config}.
  */
 @Immutable
-public final class DefaultAmqp10Config implements Amqp10Config {
+public final class DefaultAmqp10Config implements Amqp10Config, WithStringMapDecoding {
 
     private static final String CONFIG_PATH = "amqp10";
     private static final String CONSUMER_PATH = "consumer";
@@ -46,6 +47,7 @@ public final class DefaultAmqp10Config implements Amqp10Config {
     private final Duration globalSendTimeout;
     private final Duration globalRequestTimeout;
     private final int globalPrefetchPolicyAllCount;
+    private final Map<String, String> hmacAlgorithms;
 
     private DefaultAmqp10Config(final ScopedConfig config) {
         consumerRateLimitEnabled = config.getBoolean(Amqp10ConfigValue.CONSUMER_RATE_LIMIT_ENABLED.getConfigPath());
@@ -66,6 +68,7 @@ public final class DefaultAmqp10Config implements Amqp10Config {
         globalRequestTimeout = config.getDuration(Amqp10ConfigValue.GLOBAL_REQUEST_TIMEOUT.getConfigPath());
         globalPrefetchPolicyAllCount =
                 config.getInt(Amqp10ConfigValue.GLOBAL_PREFETCH_POLICY_ALL_COUNT.getConfigPath());
+        hmacAlgorithms = asStringMap(config, HttpPushConfig.ConfigValue.HMAC_ALGORITHMS.getConfigPath());
     }
 
     /**
@@ -140,6 +143,11 @@ public final class DefaultAmqp10Config implements Amqp10Config {
     }
 
     @Override
+    public Map<String, String> getHmacAlgorithms() {
+        return hmacAlgorithms;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -159,7 +167,8 @@ public final class DefaultAmqp10Config implements Amqp10Config {
                 Objects.equals(consumerThrottlingConfig, that.consumerThrottlingConfig) &&
                 Objects.equals(globalConnectTimeout, that.globalConnectTimeout) &&
                 Objects.equals(globalSendTimeout, that.globalSendTimeout) &&
-                Objects.equals(globalRequestTimeout, that.globalRequestTimeout);
+                Objects.equals(globalRequestTimeout, that.globalRequestTimeout) &&
+                Objects.equals(hmacAlgorithms, that.hmacAlgorithms);
     }
 
     @Override
@@ -167,7 +176,7 @@ public final class DefaultAmqp10Config implements Amqp10Config {
         return Objects.hash(consumerRateLimitEnabled, consumerMaxInFlight, consumerRedeliveryExpectationTimeout,
                 producerCacheSize, backOffConfig, consumerThrottlingConfig, maxQueueSize,
                 messagePublishingParallelism, globalConnectTimeout, globalSendTimeout, globalRequestTimeout,
-                globalPrefetchPolicyAllCount);
+                globalPrefetchPolicyAllCount, hmacAlgorithms);
     }
 
     @Override
@@ -185,6 +194,8 @@ public final class DefaultAmqp10Config implements Amqp10Config {
                 ", globalSendTimeout=" + globalSendTimeout +
                 ", globalRequestTimeout=" + globalRequestTimeout +
                 ", globalPrefetchPolicyAllCount=" + globalPrefetchPolicyAllCount +
+                ", hmacAlgorithms=" + hmacAlgorithms +
                 "]";
     }
+
 }

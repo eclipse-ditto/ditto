@@ -323,12 +323,22 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     private void closeConnectionBeforeTerminatingCluster() {
-        CoordinatedShutdown.get(getContext().getSystem())
-                .addActorTerminationTask(
-                        CoordinatedShutdown.PhaseBeforeServiceUnbind(),
-                        "closeConnection",
-                        getSelf(),
-                        Optional.of(CloseConnection.of(connectionId(), DittoHeaders.empty())));
+        if (shouldAnyTargetSendConnectionAnnouncements()) {
+            // only add clients of connections to Coordinated shutdown having connection announcements configured
+            CoordinatedShutdown.get(getContext().getSystem())
+                    .addActorTerminationTask(
+                            CoordinatedShutdown.PhaseBeforeServiceUnbind(),
+                            "closeConnectionAndShutdown",
+                            getSelf(),
+                            Optional.of(CloseConnectionAndShutdown.INSTANCE));
+        }
+    }
+
+    private boolean shouldAnyTargetSendConnectionAnnouncements() {
+        return connection().getTargets().stream()
+                .anyMatch(target -> target.getTopics().stream()
+                        .map(FilteredTopic::getTopic)
+                        .anyMatch(Topic.CONNECTION_ANNOUNCEMENTS::equals));
     }
 
     @Override
@@ -463,8 +473,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      *
      * @param connection the Connection to use for disconnecting.
      * @param origin the ActorRef which caused the DisconnectClient command.
+     * @param shutdownAfterDisconnect whether the base client actor should terminate itself after disconnection.
      */
-    protected abstract void doDisconnectClient(Connection connection, @Nullable ActorRef origin);
+    protected abstract void doDisconnectClient(Connection connection, @Nullable ActorRef origin,
+            final boolean shutdownAfterDisconnect);
 
     /**
      * Release any temporary resources allocated during a connection operation when the operation times out. Do nothing
@@ -676,7 +688,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     private void publishConnectionOpenedAnnouncement() {
-        getSelf().tell(ConnectionOpenedAnnouncement.of(connectionId(), Instant.now(), DittoHeaders.empty()), getSelf());
+        if (shouldAnyTargetSendConnectionAnnouncements()) {
+            getSelf().tell(ConnectionOpenedAnnouncement.of(connectionId(), Instant.now(), DittoHeaders.empty()),
+                    getSelf());
+        }
     }
 
     /*
@@ -708,6 +723,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inInitializedState() {
         return matchEvent(OpenConnection.class, this::openConnection)
                 .event(CloseConnection.class, this::closeConnection)
+                .event(CloseConnectionAndShutdown.class, this::closeConnectionAndShutdown)
                 .event(TestConnection.class, this::testConnection);
     }
 
@@ -733,6 +749,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .event(ClientConnected.class, this::clientConnectedInConnectingState)
                 .event(InitializationResult.class, this::handleInitializationResult)
                 .event(CloseConnection.class, this::closeConnection)
+                .event(CloseConnectionAndShutdown.class, this::closeConnectionAndShutdown)
                 .event(SshTunnelActor.TunnelStarted.class, this::tunnelStarted)
                 .eventEquals(Control.CONNECT_AFTER_TUNNEL_ESTABLISHED, this::connectAfterTunnelStarted)
                 .event(SshTunnelActor.TunnelClosed.class, this::tunnelClosed)
@@ -746,6 +763,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      */
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectedState() {
         return matchEvent(CloseConnection.class, this::closeConnection)
+                .event(CloseConnectionAndShutdown.class, this::closeConnectionAndShutdown)
                 .event(SshTunnelActor.TunnelClosed.class, this::tunnelClosed)
                 .event(OpenConnection.class, this::connectionAlreadyOpen)
                 .event(ConnectionFailure.class, this::connectedConnectionFailed);
@@ -841,17 +859,35 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return stay();
     }
 
+    private FSM.State<BaseClientState, BaseClientData> closeConnectionAndShutdown(
+            final CloseConnectionAndShutdown closeConnectionAndShutdown,
+            final BaseClientData data) {
+
+        return closeConnection(CloseConnection.of(connectionId(), DittoHeaders.empty()), data, true);
+    }
+
     private FSM.State<BaseClientState, BaseClientData> closeConnection(final CloseConnection closeConnection,
             final BaseClientData data) {
+        return closeConnection(closeConnection, data, false);
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> closeConnection(final CloseConnection closeConnection,
+            final BaseClientData data, boolean shutdownAfterDisconnect) {
 
         final ActorRef sender = getSender();
 
-        final Duration disconnectAnnouncementTimeout = clientConfig.getDisconnectAnnouncementTimeout();
-        final Duration timeoutUntilDisconnectCompletes =
-                clientConfig.getDisconnectingMaxTimeout().plus(disconnectAnnouncementTimeout);
-
-        getSelf().tell(SendDisconnectAnnouncement, sender);
-        startSingleTimer("startDisconnect", new Disconnect(sender), disconnectAnnouncementTimeout);
+        final Duration timeoutUntilDisconnectCompletes;
+        if (shouldAnyTargetSendConnectionAnnouncements()) {
+            final Duration disconnectAnnouncementTimeout = clientConfig.getDisconnectAnnouncementTimeout();
+            timeoutUntilDisconnectCompletes =
+                    clientConfig.getDisconnectingMaxTimeout().plus(disconnectAnnouncementTimeout);
+            getSelf().tell(SendDisconnectAnnouncement, sender);
+            startSingleTimer("startDisconnect", new Disconnect(sender, shutdownAfterDisconnect),
+                    disconnectAnnouncementTimeout);
+        } else {
+            timeoutUntilDisconnectCompletes = clientConfig.getDisconnectingMaxTimeout();
+            getSelf().tell(new Disconnect(sender, shutdownAfterDisconnect), sender);
+        }
 
         dittoProtocolSub.removeSubscriber(getSelf());
 
@@ -863,7 +899,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     private State<BaseClientState, BaseClientData> sendDisconnectAnnouncement(final BaseClientData data) {
-        final ConnectionClosedAnnouncement announcement =
+        final var announcement =
                 ConnectionClosedAnnouncement.of(data.getConnectionId(), Instant.now(), DittoHeaders.empty());
         // need to tell the announcement directly to the dispatching actor since the state == DISCONNECTING
         outboundDispatchingActor.tell(announcement, getSender());
@@ -871,7 +907,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     private State<BaseClientState, BaseClientData> disconnect(final Disconnect disconnect, final BaseClientData data) {
-        doDisconnectClient(connection(), disconnect.getSender());
+        doDisconnectClient(connection(), disconnect.getSender(), disconnect.shutdownAfterDisconnect());
         return stay()
                 .using(data.setConnectionStatusDetails("disconnecting connection at " + Instant.now()));
     }
@@ -880,7 +916,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             final BaseClientData data) {
 
         final ActorRef sender = getSender();
-        final DittoHeaders dittoHeaders = openConnection.getDittoHeaders();
+        final var dittoHeaders = openConnection.getDittoHeaders();
         reconnectTimeoutStrategy.reset();
         final Duration connectingTimeout = clientConfig.getConnectingMinTimeout();
 
@@ -1184,9 +1220,16 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             tellTunnelActor(SshTunnelActor.TunnelControl.STOP_TUNNEL);
             data.getSessionSenders()
                     .forEach(sender -> sender.first().tell(new Status.Success(DISCONNECTED), getSelf()));
-            return goTo(DISCONNECTED).using(data.resetSession()
+
+            final BaseClientData nextStateData = data.resetSession()
                     .setConnectionStatus(ConnectivityStatus.CLOSED)
-                    .setConnectionStatusDetails("Disconnected at " + Instant.now()));
+                    .setConnectionStatusDetails("Disconnected at " + Instant.now());
+
+            if (event.shutdownAfterDisconnected()) {
+                return stop(Normal(), nextStateData);
+            } else {
+                return goTo(DISCONNECTED).using(nextStateData);
+            }
         });
     }
 
@@ -2108,9 +2151,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         @Nullable
         private final ActorRef sender;
+        private final boolean shutdownAfterDisconnect;
 
-        private Disconnect(@Nullable final ActorRef sender) {
+        private Disconnect(@Nullable final ActorRef sender, final boolean shutdownAfterDisconnect) {
             this.sender = sender;
+            this.shutdownAfterDisconnect = shutdownAfterDisconnect;
         }
 
         @Nullable
@@ -2118,6 +2163,17 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             return sender;
         }
 
+        private boolean shutdownAfterDisconnect() {
+            return shutdownAfterDisconnect;
+        }
+    }
+
+    private static final class CloseConnectionAndShutdown {
+        private static final CloseConnectionAndShutdown INSTANCE = new CloseConnectionAndShutdown();
+
+        private CloseConnectionAndShutdown() {
+            // no-op
+        }
     }
 
 }

@@ -14,18 +14,19 @@ package org.eclipse.ditto.connectivity.service.messaging.amqp;
 
 import static org.apache.qpid.jms.provider.failover.FailoverProviderFactory.FAILOVER_OPTION_PREFIX;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.base.service.UriEncoding;
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
 
 /**
@@ -47,12 +48,15 @@ public final class AmqpSpecificConfig {
     private final Map<String, String> amqpParameters;
     private final Map<String, String> jmsParameters;
     private final boolean failoverEnabled;
+    private final PlainCredentialsSupplier plainCredentialsSupplier;
 
     private AmqpSpecificConfig(final Map<String, String> amqpParameters, final Map<String, String> jmsParameters,
-            final boolean failoverEnabled) {
+            final boolean failoverEnabled,
+            final PlainCredentialsSupplier plainCredentialsSupplier) {
         this.amqpParameters = Collections.unmodifiableMap(new LinkedHashMap<>(amqpParameters));
         this.jmsParameters = Collections.unmodifiableMap(new LinkedHashMap<>(jmsParameters));
         this.failoverEnabled = failoverEnabled;
+        this.plainCredentialsSupplier = plainCredentialsSupplier;
     }
 
     /**
@@ -61,22 +65,26 @@ public final class AmqpSpecificConfig {
      * @param clientId the client ID.
      * @param connection the connection.
      * @param defaultConfig the default config values.
+     * @param plainCredentialsSupplier supplier of username-password credentials.
      * @return the AMQP specific config.
      */
     public static AmqpSpecificConfig withDefault(final String clientId, final Connection connection,
-            final Map<String, String> defaultConfig) {
+            final Map<String, String> defaultConfig,
+            final PlainCredentialsSupplier plainCredentialsSupplier) {
         final var amqpParameters = new LinkedHashMap<>(filterForAmqpParameters(defaultConfig));
-        addSaslMechanisms(amqpParameters, connection);
+        final Optional<UserPasswordCredentials> credentialsOptional = plainCredentialsSupplier.get(connection);
+        addSaslMechanisms(amqpParameters, credentialsOptional.isPresent());
         addTransportParameters(amqpParameters, connection);
         addSpecificConfigParameters(amqpParameters, connection, AmqpSpecificConfig::isPermittedAmqpConfig);
 
         final var jmsParameters = new LinkedHashMap<>(filterForJmsParameters(defaultConfig));
         addParameter(jmsParameters, CLIENT_ID, clientId);
-        addCredentials(jmsParameters, connection);
+        credentialsOptional.ifPresent(credentials -> addCredentials(jmsParameters, credentials));
         addFailoverParameters(jmsParameters, connection);
         addSpecificConfigParameters(jmsParameters, connection, AmqpSpecificConfig::isPermittedJmsConfig);
 
-        return new AmqpSpecificConfig(amqpParameters, jmsParameters, connection.isFailoverEnabled());
+        return new AmqpSpecificConfig(amqpParameters, jmsParameters, connection.isFailoverEnabled(),
+                plainCredentialsSupplier);
     }
 
     /**
@@ -101,11 +109,12 @@ public final class AmqpSpecificConfig {
      * @return the rendered connection string.
      */
     public String render(final String uri) {
+        final String uriWithoutUserinfo = plainCredentialsSupplier.getUriWithoutUserinfo(uri);
         if (failoverEnabled) {
-            final String innerUri = wrapWithFailOver(joinParameters(uri, List.of(amqpParameters)));
+            final String innerUri = wrapWithFailOver(joinParameters(uriWithoutUserinfo, List.of(amqpParameters)));
             return joinParameters(innerUri, List.of(jmsParameters));
         } else {
-            return joinParameters(uri, List.of(amqpParameters, jmsParameters));
+            return joinParameters(uriWithoutUserinfo, List.of(amqpParameters, jmsParameters));
         }
     }
 
@@ -134,21 +143,19 @@ public final class AmqpSpecificConfig {
         });
     }
 
-    private static void addSaslMechanisms(final LinkedHashMap<String, String> parameters, final Connection connection) {
-        if (connection.getUsername().isPresent() && connection.getPassword().isPresent()) {
+    private static void addSaslMechanisms(final LinkedHashMap<String, String> parameters,
+            final boolean hasPlainCredentials) {
+        if (hasPlainCredentials) {
             addParameter(parameters, SASL_MECHANISMS, "PLAIN");
         } else {
             addParameter(parameters, SASL_MECHANISMS, "ANONYMOUS");
         }
     }
 
-    private static void addCredentials(final LinkedHashMap<String, String> parameters, final Connection connection) {
-        final var username = connection.getUsername();
-        final var password = connection.getPassword();
-        if (username.isPresent() && password.isPresent()) {
-            addParameter(parameters, USERNAME, username.get());
-            addParameter(parameters, PASSWORD, password.get());
-        }
+    private static void addCredentials(final LinkedHashMap<String, String> parameters,
+            final UserPasswordCredentials credentials) {
+        addParameter(parameters, USERNAME, credentials.getUsername());
+        addParameter(parameters, PASSWORD, credentials.getPassword());
     }
 
     private static void addTransportParameters(final LinkedHashMap<String, String> parameters,
@@ -166,7 +173,7 @@ public final class AmqpSpecificConfig {
     }
 
     private static String encode(final String string) {
-        return URLEncoder.encode(string, StandardCharsets.UTF_8);
+        return UriEncoding.encodeAllButUnreserved(string);
     }
 
     private static boolean isSecuredConnection(final Connection connection) {

@@ -19,6 +19,7 @@ import java.security.PublicKey;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.ClientCertificateCredentials;
 import org.eclipse.ditto.connectivity.model.CredentialsVisitor;
+import org.eclipse.ditto.connectivity.model.HmacCredentials;
 import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 
@@ -63,5 +64,10 @@ public final class PublicKeyAuthenticationFactory implements CredentialsVisitor<
         final PrivateKey clientPrivateKey = Keys.getPrivateKey(credentials.getPrivateKey(), exceptionMapper);
         final PublicKey clientPublicKey = Keys.getPublicKey(credentials.getPublicKey(), exceptionMapper);
         return new KeyPair(clientPublicKey, clientPrivateKey);
+    }
+
+    @Override
+    public KeyPair hmac(final HmacCredentials credentials) {
+        throw new UnsupportedOperationException("HMAC not supported");
     }
 }

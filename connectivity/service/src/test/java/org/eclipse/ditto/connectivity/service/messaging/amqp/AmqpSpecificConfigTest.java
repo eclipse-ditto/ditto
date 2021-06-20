@@ -15,7 +15,10 @@ package org.eclipse.ditto.connectivity.service.messaging.amqp;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
+import java.util.Optional;
 
+import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.config.DefaultAmqp10Config;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.junit.Test;
@@ -35,9 +38,10 @@ public final class AmqpSpecificConfigTest {
                 .uri(uri)
                 .build();
 
-        final var underTest = AmqpSpecificConfig.withDefault("CID", connection, Map.of());
+        final var underTest = AmqpSpecificConfig.withDefault("CID", connection, Map.of(),
+                PlainCredentialsSupplier.fromUri());
 
-        assertThat(underTest.render("amqps://localhost:1234/"))
+        assertThat(underTest.render(uri))
                 .isEqualTo("failover:(amqps://localhost:1234/?amqp.saslMechanisms=PLAIN)" +
                         "?jms.clientID=CID&jms.username=%25u%25s%25e%25r&jms.password=%25p%25a%25%2Bs%25s" +
                         "&failover.startupMaxReconnectAttempts=5&failover.maxReconnectAttempts=-1" +
@@ -54,9 +58,10 @@ public final class AmqpSpecificConfigTest {
                 .uri(uri)
                 .build();
 
-        final var underTest = AmqpSpecificConfig.withDefault("CID", connection, Map.of());
+        final var underTest = AmqpSpecificConfig.withDefault("CID", connection, Map.of(),
+                PlainCredentialsSupplier.fromUri());
 
-        assertThat(underTest.render("amqps://localhost:1234/"))
+        assertThat(underTest.render(uri))
                 .isEqualTo("failover:(amqps://localhost:1234/?amqp.saslMechanisms=PLAIN)" +
                         "?jms.clientID=CID&jms.username=%25u%25s%25e%25r&jms.password=%25p%25a%25%2Bs%25s" +
                         "&failover.startupMaxReconnectAttempts=5&failover.maxReconnectAttempts=-1" +
@@ -73,9 +78,10 @@ public final class AmqpSpecificConfigTest {
                 .uri(uri)
                 .build();
 
-        final var underTest = AmqpSpecificConfig.withDefault("CID", connection, Map.of());
+        final var underTest = AmqpSpecificConfig.withDefault("CID", connection, Map.of(),
+                PlainCredentialsSupplier.fromUri());
 
-        assertThat(underTest.render("amqps://localhost:1234/"))
+        assertThat(underTest.render(uri))
                 .isEqualTo("failover:(amqps://localhost:1234/?amqp.saslMechanisms=PLAIN)" +
                         "?jms.clientID=CID&jms.username=user&jms.password=pa%2Bss" +
                         "&failover.startupMaxReconnectAttempts=5&failover.maxReconnectAttempts=-1" +
@@ -90,7 +96,8 @@ public final class AmqpSpecificConfigTest {
         final var amqp10Config = DefaultAmqp10Config.of(ConfigFactory.empty());
         final var defaultConfig = AmqpSpecificConfig.toDefaultConfig(amqp10Config);
 
-        final var underTest = AmqpSpecificConfig.withDefault("CID", connection, defaultConfig);
+        final var underTest = AmqpSpecificConfig.withDefault("CID", connection, defaultConfig,
+                PlainCredentialsSupplier.fromUri());
 
         assertThat(underTest.render("amqps://localhost:1234/"))
                 .isEqualTo("failover:(amqps://localhost:1234/?amqp.saslMechanisms=PLAIN)" +
@@ -106,9 +113,27 @@ public final class AmqpSpecificConfigTest {
     @Test
     public void withoutFailover() {
         final var connection = TestConstants.createConnection().toBuilder().failoverEnabled(false).build();
-        final var underTest = AmqpSpecificConfig.withDefault("CID", connection, Map.of());
+        final var underTest = AmqpSpecificConfig.withDefault("CID", connection, Map.of(),
+                PlainCredentialsSupplier.fromUri());
         assertThat(underTest.render("amqps://localhost:1234/"))
                 .isEqualTo("amqps://localhost:1234/?amqp.saslMechanisms=PLAIN&jms.clientID=CID" +
                         "&jms.username=username&jms.password=password");
     }
+
+    @Test
+    public void withPlainCredentials() {
+        final UserPasswordCredentials credentials = UserPasswordCredentials.newInstance("foo", "bar");
+        final PlainCredentialsSupplier plainCredentialsSupplier = connection -> Optional.of(credentials);
+        final Connection connection = TestConstants.createConnection();
+        final AmqpSpecificConfig underTest = AmqpSpecificConfig.withDefault("CID", connection, Map.of(),
+                plainCredentialsSupplier);
+        assertThat(underTest.render("amqps://localhost:1234/"))
+                .isEqualTo("failover:(amqps://localhost:1234/?amqp.saslMechanisms=PLAIN)" +
+                        "?jms.clientID=CID&jms.username=foo&jms.password=bar" +
+                        "&failover.startupMaxReconnectAttempts=5&failover.maxReconnectAttempts=-1" +
+                        "&failover.initialReconnectDelay=128&failover.reconnectDelay=128" +
+                        "&failover.maxReconnectDelay=900000&failover.reconnectBackOffMultiplier=2" +
+                        "&failover.useReconnectBackOff=true");
+    }
+
 }

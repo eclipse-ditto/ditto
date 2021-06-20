@@ -13,6 +13,7 @@
 package org.eclipse.ditto.connectivity.service.config;
 
 import java.time.Duration;
+import java.util.Map;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -29,13 +30,14 @@ import com.typesafe.config.Config;
  * This class is the default implementation of {@link HttpPushConfig}.
  */
 @Immutable
-final class DefaultHttpPushConfig implements HttpPushConfig {
+final class DefaultHttpPushConfig implements HttpPushConfig, WithStringMapDecoding {
 
     private static final String CONFIG_PATH = "http-push";
 
     private final int maxQueueSize;
     private final Duration requestTimeout;
     private final HttpProxyConfig httpProxyConfig;
+    private final Map<String, String> hmacAlgorithms;
 
     private DefaultHttpPushConfig(final ScopedConfig config) {
         maxQueueSize = config.getInt(ConfigValue.MAX_QUEUE_SIZE.getConfigPath());
@@ -44,6 +46,7 @@ final class DefaultHttpPushConfig implements HttpPushConfig {
             throw new DittoConfigError("Request timeout must be greater than 0");
         }
         httpProxyConfig = DefaultHttpProxyConfig.ofProxy(config);
+        hmacAlgorithms = asStringMap(config, ConfigValue.HMAC_ALGORITHMS.getConfigPath());
     }
 
     static DefaultHttpPushConfig of(final Config config) {
@@ -66,6 +69,11 @@ final class DefaultHttpPushConfig implements HttpPushConfig {
     }
 
     @Override
+    public Map<String, String> getHmacAlgorithms() {
+        return hmacAlgorithms;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -75,19 +83,24 @@ final class DefaultHttpPushConfig implements HttpPushConfig {
         }
         final DefaultHttpPushConfig that = (DefaultHttpPushConfig) o;
         return maxQueueSize == that.maxQueueSize &&
-                Objects.equals(httpProxyConfig, that.httpProxyConfig);
+                Objects.equals(requestTimeout, that.requestTimeout) &&
+                Objects.equals(httpProxyConfig, that.httpProxyConfig) &&
+                Objects.equals(hmacAlgorithms, that.hmacAlgorithms);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(maxQueueSize, httpProxyConfig);
+        return Objects.hash(maxQueueSize, httpProxyConfig, hmacAlgorithms, requestTimeout);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "maxQueueSize=" + maxQueueSize +
+                ", requestTimeout=" + requestTimeout +
                 ", httpProxyConfig=" + httpProxyConfig +
+                ", hmacAlgorithms=" + hmacAlgorithms +
                 "]";
     }
+
 }

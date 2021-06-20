@@ -18,6 +18,7 @@ import java.util.Collections;
 import org.apache.sshd.client.session.ClientSession;
 import org.eclipse.ditto.connectivity.model.ClientCertificateCredentials;
 import org.eclipse.ditto.connectivity.model.CredentialsVisitor;
+import org.eclipse.ditto.connectivity.model.HmacCredentials;
 import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.PublicKeyAuthenticationFactory;
@@ -60,6 +61,12 @@ class ClientSessionCredentialsVisitor implements CredentialsVisitor<Void> {
         logger.debug("Setting public key identity on session.");
         final KeyPair keyPair = credentials.accept(publicKeyAuthenticationFactory);
         clientSession.setKeyIdentityProvider(session -> Collections.singleton(keyPair));
+        return null;
+    }
+
+    @Override
+    public Void hmac(final HmacCredentials credentials) {
+        // not supported
         return null;
     }
 }

@@ -33,6 +33,8 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.Connecti
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 import org.slf4j.LoggerFactory;
 
+import akka.actor.ActorSystem;
+
 /**
  * Factory for creating a {@link javax.jms.Connection} based on a {@link Connection}.
  */
@@ -46,11 +48,14 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
 
     private final Map<String, String> defaultConfig;
     private final Supplier<SshTunnelState> sshTunnelConfigSupplier;
+    private final PlainCredentialsSupplier credentialsSupplier;
 
     private ConnectionBasedJmsConnectionFactory(final Map<String, String> defaultConfig,
-            final Supplier<SshTunnelState> sshTunnelConfigSupplier) {
+            final Supplier<SshTunnelState> sshTunnelConfigSupplier,
+            final PlainCredentialsSupplier credentialsSupplier) {
         this.defaultConfig = checkNotNull(defaultConfig, "defaultConfig");
         this.sshTunnelConfigSupplier = checkNotNull(sshTunnelConfigSupplier, "sshTunnelConfigSupplier");
+        this.credentialsSupplier = credentialsSupplier;
     }
 
     /**
@@ -60,8 +65,9 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
      * @return the instance.
      */
     public static ConnectionBasedJmsConnectionFactory getInstance(final Map<String, String> defaultConfig,
-            final Supplier<SshTunnelState> sshTunnelConfigSupplier) {
-        return new ConnectionBasedJmsConnectionFactory(defaultConfig, sshTunnelConfigSupplier);
+            final Supplier<SshTunnelState> sshTunnelConfigSupplier, final ActorSystem actorSystem) {
+        final PlainCredentialsSupplier credentialsSupplier = SaslPlainCredentialsSupplier.of(actorSystem);
+        return new ConnectionBasedJmsConnectionFactory(defaultConfig, sshTunnelConfigSupplier, credentialsSupplier);
     }
 
     @Override
@@ -75,7 +81,7 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
         final org.apache.qpid.jms.JmsConnectionFactory cf =
                 (org.apache.qpid.jms.JmsConnectionFactory) ctx.lookup(connection.getId().toString());
 
-        if (isSecuredConnection(connection) && connection.isValidateCertificates()) {
+        if (isSecuredConnection(connection)) {
             cf.setSslContext(SSLContextCreator.fromConnection(connection, null, connectionLogger)
                     .withoutClientCertificate());
         }
@@ -86,13 +92,16 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
     }
 
     private String buildAmqpConnectionUri(final Connection connection, final String clientId) {
-        return buildAmqpConnectionUri(connection, clientId, sshTunnelConfigSupplier, defaultConfig);
+        return buildAmqpConnectionUri(connection, clientId, sshTunnelConfigSupplier, defaultConfig,
+                credentialsSupplier);
     }
 
     public static String buildAmqpConnectionUri(final Connection connection, final String clientId,
-            final Supplier<SshTunnelState> sshTunnelConfigSupplier, final Map<String, String> defaultConfig) {
+            final Supplier<SshTunnelState> sshTunnelConfigSupplier, final Map<String, String> defaultConfig,
+            final PlainCredentialsSupplier plainCredentialsSupplier) {
         final URI uri = sshTunnelConfigSupplier.get().getURI(connection);
-        final var amqpSpecificConfig = AmqpSpecificConfig.withDefault(clientId, connection, defaultConfig);
+        final var amqpSpecificConfig = AmqpSpecificConfig.withDefault(clientId, connection, defaultConfig,
+                plainCredentialsSupplier);
         final var connectionUri = amqpSpecificConfig.render(uri.toString());
         LOGGER.debug("[{}] URI: {}", clientId, connectionUri);
         return connectionUri;

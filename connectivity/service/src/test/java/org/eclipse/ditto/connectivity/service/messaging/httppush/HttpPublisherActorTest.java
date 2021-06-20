@@ -14,7 +14,10 @@ package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -24,38 +27,40 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.DittoConstants;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
-import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.connectivity.model.Topic;
-import org.eclipse.ditto.messages.model.Message;
-import org.eclipse.ditto.messages.model.MessageDirection;
-import org.eclipse.ditto.messages.model.MessageHeaders;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
-import org.eclipse.ditto.protocol.ProtocolFactory;
-import org.eclipse.ditto.connectivity.service.messaging.AbstractPublisherActorTest;
-import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
-import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
+import org.eclipse.ditto.connectivity.model.HmacCredentials;
+import org.eclipse.ditto.connectivity.model.Target;
+import org.eclipse.ditto.connectivity.model.Topic;
+import org.eclipse.ditto.connectivity.service.messaging.AbstractPublisherActorTest;
+import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.messages.model.Message;
+import org.eclipse.ditto.messages.model.MessageDirection;
+import org.eclipse.ditto.messages.model.MessageHeaders;
 import org.eclipse.ditto.messages.model.signals.commands.SendFeatureMessageResponse;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessageResponse;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.ProtocolFactory;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
@@ -73,6 +78,7 @@ import akka.japi.Pair;
 import akka.stream.Attributes;
 import akka.stream.SystemMaterializer;
 import akka.stream.javadsl.Flow;
+import akka.stream.javadsl.Sink;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 import akka.util.ByteString;
@@ -656,6 +662,238 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
                 .contains(HttpHeader.parse("correlation-id", TestConstants.CORRELATION_ID));
         assertThat(request.getHeader("mappedHeader2"))
                 .contains(HttpHeader.parse("mappedHeader2", "thing:id"));
+    }
+
+    @Test
+    public void testAzMonitorRequestSigning() throws Exception {
+        new TestKit(actorSystem) {{
+            // GIVEN: HTTP publisher actor configured to authenticate by HMAC request signing
+            httpPushFactory = mockHttpPushFactory("none", HttpStatus.OK, "");
+            final Target target = ConnectivityModelFactory.newTargetBuilder()
+                    .address("POST:/api/logs?api-version=2016-04-01")
+                    .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                    .topics(Topic.LIVE_MESSAGES)
+                    .build();
+
+            final HmacCredentials hmacCredentials = HmacCredentials.of("az-monitor-2016-04-01", JsonObject.newBuilder()
+                    .set("workspaceId", "xxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
+                    .set("sharedKey", "SGFsbG8gV2VsdCEgSXN0IGRhcyBhbG")
+                    .build());
+
+            final Connection connection = TestConstants.createConnection()
+                    .toBuilder()
+                    .credentials(hmacCredentials)
+                    .build();
+            final Props props = HttpPublisherActor.props(connection, httpPushFactory, "clientId");
+            final ActorRef publisherActor = childActorOf(props);
+            publisherCreated(this, publisherActor);
+
+            // WHEN: HTTP publisher sends an HTTP request
+            final Message<?> message = Message.newBuilder(
+                    MessageHeaders.newBuilder(MessageDirection.FROM, TestConstants.Things.THING_ID, "please-respond")
+                            .build()
+            ).build();
+            final Signal<?> source = SendThingMessage.of(TestConstants.Things.THING_ID, message, DittoHeaders.empty());
+            final OutboundSignal outboundSignal =
+                    OutboundSignalFactory.newOutboundSignal(source, Collections.singletonList(target));
+            final ExternalMessage externalMessage =
+                    ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
+                            .withText("payload")
+                            .build();
+            final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(source);
+            final OutboundSignal.Mapped mapped =
+                    OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
+
+            publisherActor.tell(
+                    OutboundSignalFactory.newMultiMappedOutboundSignal(Collections.singletonList(mapped), getRef()),
+                    getRef());
+
+            // THEN: The request is signed by the configured request signing process.
+            final HttpRequest signedRequest = received.take();
+            final HttpRequest unsignedRequest = signedRequest.withHeaders(List.of());
+
+            final Instant xMsDate = ZonedDateTime.parse(signedRequest.getHeader("x-ms-date").orElseThrow().value(),
+                    AzMonitorRequestSigning.X_MS_DATE_FORMAT).toInstant();
+
+            final HttpRequest expectedSignedRequest =
+                    new AzMonitorRequestSigningFactory().create(actorSystem, hmacCredentials)
+                            .sign(unsignedRequest, xMsDate)
+                            .runWith(Sink.head(), actorSystem)
+                            .toCompletableFuture()
+                            .join();
+
+            assertThat(signedRequest).isEqualTo(expectedSignedRequest);
+        }};
+    }
+
+    @Test
+    public void testAwsRequestSigning() throws Exception {
+        new TestKit(actorSystem) {{
+            // GIVEN: HTTP publisher actor configured to authenticate by HMAC request signing
+            httpPushFactory = mockHttpPushFactory("none", HttpStatus.OK, "");
+            final Target target = ConnectivityModelFactory.newTargetBuilder()
+                    .address("POST:/api/logs?api-version=2016-04-01")
+                    .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                    .topics(Topic.LIVE_MESSAGES)
+                    .build();
+
+            final HmacCredentials hmacCredentials = HmacCredentials.of("aws4-hmac-sha256", JsonObject.newBuilder()
+                    .set("region", "us-east-1")
+                    .set("service", "iam")
+                    .set("accessKey", "MyAwesomeAccessKey")
+                    .set("secretKey", "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY")
+                    .set("doubleEncode", false)
+                    .set("canonicalHeaders", JsonArray.newBuilder().add("x-amz-date", "host").build())
+                    .build());
+
+            final Connection connection = TestConstants.createConnection()
+                    .toBuilder()
+                    .credentials(hmacCredentials)
+                    .build();
+            final Props props = HttpPublisherActor.props(connection, httpPushFactory, "clientId");
+            final ActorRef publisherActor = childActorOf(props);
+            publisherCreated(this, publisherActor);
+
+            // WHEN: HTTP publisher sends an HTTP request
+            final Message<?> message = Message.newBuilder(
+                    MessageHeaders.newBuilder(MessageDirection.FROM, TestConstants.Things.THING_ID, "please-respond")
+                            .build()
+            ).build();
+            final Signal<?> source = SendThingMessage.of(TestConstants.Things.THING_ID, message, DittoHeaders.empty());
+            final OutboundSignal outboundSignal =
+                    OutboundSignalFactory.newOutboundSignal(source, Collections.singletonList(target));
+            final ExternalMessage externalMessage =
+                    ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
+                            .withText("payload")
+                            .build();
+            final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(source);
+            final OutboundSignal.Mapped mapped =
+                    OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
+
+            publisherActor.tell(
+                    OutboundSignalFactory.newMultiMappedOutboundSignal(Collections.singletonList(mapped), getRef()),
+                    getRef());
+
+            // THEN: The request is signed by the configured request signing process.
+            final HttpRequest signedRequest = received.take();
+            final HttpRequest unsignedRequest = signedRequest.withHeaders(List.of());
+
+            final Instant xAmzDate = ZonedDateTime.parse(signedRequest.getHeader("x-amz-date").orElseThrow().value(),
+                    AwsRequestSigning.X_AMZ_DATE_FORMATTER).toInstant();
+
+            final HttpRequest expectedSignedRequest =
+                    new AwsRequestSigningFactory().create(actorSystem, hmacCredentials)
+                            .sign(unsignedRequest, xAmzDate)
+                            .runWith(Sink.head(), actorSystem)
+                            .toCompletableFuture()
+                            .join();
+
+            assertThat(signedRequest).isEqualTo(expectedSignedRequest);
+        }};
+    }
+
+    @Test
+    public void testReservedHeaders() throws Exception {
+        // GIVEN: reserved headers are set
+        final Map<String, String> reservedHeaders = Map.of(
+                "http.query", "a=b&c=d&e=f",
+                "http.path", "my/awesome/path"
+        );
+
+        // WHEN: publisher actor is asked to publish a message with reserved headers
+        final HttpRequest request = publishMessageWithHeaders(reservedHeaders);
+
+        // THEN: reserved headers do not appear as HTTP headers
+        assertThat(request.getHeader("http.query")).isEmpty();
+        assertThat(request.getHeader("http.path")).isEmpty();
+
+        // THEN: reserved headers are evaluated
+        assertThat(request.getUri().queryString(StandardCharsets.UTF_8)).contains("a=b&c=d&e=f");
+        assertThat(request.getUri().getPathString()).isEqualTo("/my/awesome/path");
+    }
+
+    @Test
+    public void testHttpQueryReservedHeaderWithLeadingSlash() throws Exception {
+        // GIVEN: reserved headers are set
+        final Map<String, String> reservedHeaders = Map.of(
+                "http.query", "a=b&c=d&e=f"
+        );
+
+        // WHEN: publisher actor is asked to publish a message with reserved headers
+        final HttpRequest request = publishMessageWithHeaders(reservedHeaders);
+
+        // THEN: reserved headers do not appear as HTTP headers
+        assertThat(request.getHeader("http.query")).isEmpty();
+
+        // THEN: reserved headers are evaluated
+        assertThat(request.getUri().queryString(StandardCharsets.UTF_8)).contains("a=b&c=d&e=f");
+    }
+
+    @Test
+    public void testHttpPathReservedHeaderWithLeadingSlash() throws Exception {
+        // GIVEN: reserved headers are set
+        final Map<String, String> reservedHeaders = Map.of(
+                "http.path", "/my/awesome/path"
+        );
+
+        // WHEN: publisher actor is asked to publish a message with reserved headers
+        final HttpRequest request = publishMessageWithHeaders(reservedHeaders);
+
+        // THEN: reserved headers do not appear as HTTP headers
+        assertThat(request.getHeader("http.path")).isEmpty();
+
+        // THEN: reserved headers are evaluated
+        assertThat(request.getUri().getPathString()).isEqualTo("/my/awesome/path");
+    }
+
+    private HttpRequest publishMessageWithHeaders(final Map<String, String> headers) throws InterruptedException {
+        final Container<HttpRequest> published = new Container<>();
+        new TestKit(actorSystem) {{
+
+            // WHEN: publisher actor is asked to publish a message with reserved headers
+            final TestProbe probe = new TestProbe(actorSystem);
+            setupMocks(probe);
+            final Target target = decorateTarget(createTestTarget());
+            final Message<?> message = Message.newBuilder(
+                    MessageHeaders.newBuilder(MessageDirection.FROM, TestConstants.Things.THING_ID,
+                            "please-respond")
+                            .build()
+            ).build();
+            final Signal<?> source =
+                    SendThingMessage.of(TestConstants.Things.THING_ID, message, DittoHeaders.empty());
+            final OutboundSignal outboundSignal =
+                    OutboundSignalFactory.newOutboundSignal(source, Collections.singletonList(target));
+            final ExternalMessage externalMessage =
+                    ExternalMessageFactory.newExternalMessageBuilder(headers)
+                            .withText("payload")
+                            .build();
+            final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(source);
+            final OutboundSignal.Mapped mapped =
+                    OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
+            final OutboundSignal.MultiMapped multiMapped =
+                    OutboundSignalFactory.newMultiMappedOutboundSignal(List.of(mapped), getRef());
+            final Props props = getPublisherActorProps();
+            final ActorRef publisherActor = childActorOf(props);
+            publisherCreated(this, publisherActor);
+            publisherActor.tell(multiMapped, getRef());
+
+            // THEN: reserved headers do not appear as HTTP headers
+            published.setValue(received.take());
+        }};
+        return published.getValue();
+    }
+
+    private static class Container<T> {
+        private T value;
+
+        private void setValue(final T value) {
+            this.value = value;
+        }
+
+        private T getValue() {
+            return value;
+        }
+
     }
 
     private OutboundSignal.MultiMapped newMultiMappedWithContentType(final Target target,
