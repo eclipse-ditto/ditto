@@ -23,7 +23,6 @@ import static org.eclipse.ditto.connectivity.api.BaseClientState.TESTING;
 import static org.eclipse.ditto.connectivity.api.BaseClientState.UNKNOWN;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
@@ -538,12 +537,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * @return the escaped name.
      */
     protected static String escapeActorName(final String name) {
-        try {
-            return URLEncoder.encode(name, StandardCharsets.US_ASCII.name());
-        } catch (final UnsupportedEncodingException e) {
-            // should never happen, every JDK must support US_ASCII
-            throw new IllegalStateException(e);
-        }
+        return URLEncoder.encode(name, StandardCharsets.US_ASCII);
     }
 
     private FSM.State<BaseClientState, BaseClientData> onOtherClientActorStartup(final ActorRef otherClientActor,

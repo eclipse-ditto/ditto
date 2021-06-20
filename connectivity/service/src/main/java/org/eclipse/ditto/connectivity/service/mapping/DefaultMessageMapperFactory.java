@@ -64,6 +64,8 @@ import scala.util.Try;
 @Immutable
 public final class DefaultMessageMapperFactory implements MessageMapperFactory {
 
+    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(DefaultMessageMapperFactory.class);
+
     private final ConnectionId connectionId;
     private final MappingConfig mappingConfig;
 
@@ -82,7 +84,6 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
     private static final Map<String, Class<?>> registeredMappers = tryToLoadPayloadMappers();
 
     private final LoggingAdapter log;
-    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(DefaultMessageMapperFactory.class);
 
     private DefaultMessageMapperFactory(final ConnectionId connectionId,
             final MappingConfig mappingConfig,
@@ -205,10 +206,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
                     } else if (annotation.priority() >
                             mappers.get(alias).getAnnotation(PayloadMapper.class).priority()) {
                         mappers.replace(alias, payloadMapper);
-                        //TODO: VG find root cause why could be LOGGER == null
-                        if (LOGGER != null) {
-                            LOGGER.info("Replaced mapper {} by higher priority", payloadMapper.getName());
-                        }
+                        LOGGER.info("Replaced mapper {} by higher priority", payloadMapper.getName());
                     }
                 });
             }

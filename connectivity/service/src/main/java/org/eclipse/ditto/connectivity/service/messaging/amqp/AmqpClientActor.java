@@ -179,8 +179,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      * as Typesafe {@code Config} because this one is serializable in Akka by default.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, final ActorRef proxyActor, final ActorRef connectionActor,
-            final Config amqp10configOverride) {
+    public static Props props(final Connection connection, @Nullable final ActorRef proxyActor,
+            final ActorRef connectionActor, final Config amqp10configOverride) {
 
         return Props.create(AmqpClientActor.class, validateConnection(connection), proxyActor, connectionActor,
                 amqp10configOverride);
