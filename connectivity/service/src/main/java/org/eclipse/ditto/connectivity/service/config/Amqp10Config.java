@@ -13,6 +13,7 @@
 package org.eclipse.ditto.connectivity.service.config;
 
 import java.time.Duration;
+import java.util.Map;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -151,6 +152,11 @@ public interface Amqp10Config {
     int getGlobalPrefetchPolicyAllCount();
 
     /**
+     * @return configuration of HMAC request-signing algorithms.
+     */
+    Map<String, String> getHmacAlgorithms();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code Amqp10Config}.
      */
@@ -204,7 +210,12 @@ public interface Amqp10Config {
         /**
          * How many message producers to cache per client actor.
          */
-        GLOBAL_PREFETCH_POLICY_ALL_COUNT("global-prefetch-policy-all-count", 10);
+        GLOBAL_PREFETCH_POLICY_ALL_COUNT("global-prefetch-policy-all-count", 10),
+
+        /**
+         * HMAC request-signing algorithms.
+         */
+        HMAC_ALGORITHMS("hmac-algorithms", Map.of());
 
         private final String path;
         private final Object defaultValue;

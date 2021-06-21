@@ -30,18 +30,18 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.base.service.config.http.HttpProxyConfig;
+import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
 import org.eclipse.ditto.connectivity.service.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableClientDisconnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextCreator;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -130,8 +130,9 @@ public final class HttpPushClientActor extends BaseClientActor {
     }
 
     @Override
-    protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin) {
-        getSelf().tell((ClientDisconnected) () -> Optional.ofNullable(origin), getSelf());
+    protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin,
+            final boolean shutdownAfterDisconnect) {
+        getSelf().tell(new ImmutableClientDisconnected(origin, shutdownAfterDisconnect), getSelf());
     }
 
     @Nullable

@@ -24,7 +24,14 @@
     "connectionType": {
       "$id": "/properties/connectionType",
       "type": "string",
-      "enum": [ "amqp-091", "amqp-10", "mqtt", "mqtt-5", "kafka", "http-push" ],
+      "enum": [
+        "amqp-091",
+        "amqp-10",
+        "mqtt",
+        "mqtt-5",
+        "kafka",
+        "http-push"
+      ],
       "title": "Connection type",
       "description": "The type determining the connection's underlying transport protocol",
       "examples": [
@@ -34,7 +41,10 @@
     "connectionStatus": {
       "$id": "/properties/connectionStatus",
       "type": "string",
-      "enum": [ "open", "closed" ],
+      "enum": [
+        "open",
+        "closed"
+      ],
       "title": "Connection status",
       "description": "The persisted/desired status of the connection",
       "examples": [
@@ -61,40 +71,237 @@
       ]
     },
     "credentials": {
-      "$id": "/properties/credentials",
-      "type": "object",
-      "title": "Credentials",
-      "description": "Credentials with which Ditto authenticates itself at the connection URI",
-      "properties": {
-        "type": {
-          "$id": "/properties/credentials/properties/type",
-          "type": "string",
-          "enum": [ "client-cert" ],
-          "title": "Type of credentials",
-          "description": "Type of credentials",
-          "examples": [
-            "client-cert"
-          ]
+      "oneOf": [
+        {
+          "$id": "/properties/credentials#ClientCertificate",
+          "type": "object",
+          "title": "Client certificate",
+          "description": "Client certificate with which Ditto authenticates itself at the connection URI",
+          "properties": {
+            "type": {
+              "$id": "/properties/credentials/properties/type",
+              "type": "string",
+              "enum": [
+                "client-cert"
+              ],
+              "title": "Type of credentials",
+              "description": "Type of credentials",
+              "examples": [
+                "client-cert"
+              ]
+            },
+            "cert": {
+              "$id": "/properties/credentials/properties/cert",
+              "type": "string",
+              "title": "Client certificate for type client-cert",
+              "description": "Client certificate for type client-cert as DER in PEM-format",
+              "examples": [
+                "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----\n"
+              ]
+            },
+            "key": {
+              "$id": "/properties/credentials/properties/key",
+              "type": "string",
+              "title": "Client private key for type client-cert",
+              "description": "Unencrypted client private for type client-cert as PKCS8 in PEM-format",
+              "examples": [
+                "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+              ]
+            }
+          }
         },
-        "cert": {
-          "$id": "/properties/credentials/properties/cert",
-          "type": "string",
-          "title": "Client certificate for type client-cert",
-          "description": "Client certificate for type client-cert as DER in PEM-format",
-          "examples": [
-            "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----\n"
-          ]
+        {
+          "$id": "/properties/credentials#aws4-hmac-sha256",
+          "type": "object",
+          "title": "AWS",
+          "description": "HMAC credentials with which Ditto authenticates itself at an AWS endpoint over HTTP",
+          "properties": {
+            "type": {
+              "$id": "/properties/credentials/properties/type#aws4-hmac-sha256",
+              "type": "string",
+              "enum": [
+                "hmac"
+              ],
+              "title": "Type of credentials",
+              "description": "Type of credentials",
+              "examples": [
+                "hmac"
+              ]
+            },
+            "algorithm": {
+              "$id": "/properties/credentials/properties/algorithm#aws4-hmac-sha256",
+              "type": "string",
+              "title": "Algorithm",
+              "description": "Name of the HMAC signing algorithm",
+              "enum": ["aws4-hmac-sha256"],
+              "examples": ["aws4-hmac-sha256"]
+            },
+            "parameters": {
+              "$id": "/properties/credentials/properties/parameters#aws4-hmac-sha256",
+              "type": "object",
+              "title": "Parameters",
+              "description": "Parameters of the signing algorithm `aws4-hmac-sha256`",
+              "properties": {
+                "region": {
+                  "$id": "/properties/credentials/properties/parameters/region#aws4-hmac-sha256",
+                  "type": "string",
+                  "title": "Region",
+                  "description": "Region of the AWS endpoint"
+                },
+                "service": {
+                  "$id": "/properties/credentials/properties/parameters/service#aws4-hmac-sha256",
+                  "type": "string",
+                  "title": "Service",
+                  "description": "Service name of the AWS endpoint"
+                },
+                "accessKey": {
+                  "$id": "/properties/credentials/properties/parameters/accessKey#aws4-hmac-sha256",
+                  "type": "string",
+                  "title": "Access key",
+                  "description": "Access key of the signing user"
+                },
+                "secretKey": {
+                  "$id": "/properties/credentials/properties/parameters/secretKey#aws4-hmac-sha256",
+                  "type": "string",
+                  "title": "Secret key",
+                  "description": "Secret key of the signing user"
+                },
+                "doubleEncode": {
+                  "$id": "/properties/credentials/properties/parameters/doubleEncode#aws4-hmac-sha256",
+                  "type": "boolean",
+                  "title": "Double encode",
+                  "description": "Whether to double-encode and normalize path segments during request signing. Should be `false` for S3 and `true` for other services.",
+                  "default": true
+                },
+                "canonicalHeaders": {
+                  "$id": "/properties/credentials/properties/parameters/canonicalHeaders#aws4-hmac-sha256",
+                  "type": "array",
+                  "title": "Canonical headers",
+                  "description": "Array of names of headers to include in the signature. Default to `[\"host\"]`",
+                  "default": ["host"]
+                },
+                "xAmzContentSha256": {
+                  "$id": "/properties/credentials/properties/parameters/xAmzContentSha256#aws4-hmac-sha256",
+                  "type": "string",
+                  "enum": ["EXCLUDED", "INCLUDED", "UNSIGNED"],
+                  "title": "X-AMZ-CONTENT-SHA256",
+                  "description": "Configuration for the header `x-amz-content-sha256`, which is mandatory for S3. `EXCLUDED`: do not send the header for non-S3 services. `INCLUDED`: sign the payload hash as the value of the header for S3. `UNSIGNED`: omit the payload hash in the signature for S3.",
+                  "default": "EXCLUDED"
+                }
+              }
+            }
+          }
         },
-        "key": {
-          "$id": "/properties/credentials/properties/key",
-          "type": "string",
-          "title": "Client private key for type client-cert",
-          "description": "Unencrypted client private for type client-cert as PKCS8 in PEM-format",
-          "examples": [
-            "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-          ]
+        {
+          "$id": "/properties/credentials#az-monitor",
+          "type": "object",
+          "title": "Azure Monitor",
+          "description": "HMAC credentials with which Ditto authenticates itself at Azure Monitor Data Collector over HTTP",
+          "properties": {
+            "type": {
+              "$id": "/properties/credentials/properties/type#az-monitor",
+              "type": "string",
+              "enum": [
+                "hmac"
+              ],
+              "title": "Type of credentials",
+              "description": "Type of credentials",
+              "examples": [
+                "hmac"
+              ]
+            },
+            "algorithm": {
+              "$id": "/properties/credentials/properties/algorithm#az-monitor",
+              "type": "string",
+              "title": "Algorithm",
+              "description": "Name of the HMAC signing algorithm",
+              "enum": ["az-monitor-2016-04-01"],
+              "examples": ["az-monitor-2016-04-01"]
+            },
+            "parameters": {
+              "$id": "/properties/credentials/properties/parameters#az-monitor",
+              "type": "object",
+              "title": "Parameters",
+              "description": "Parameters of the signing algorithm `az-monitor-2016-04-01`",
+              "properties": {
+                "workspaceId": {
+                  "$id": "/properties/credentials/properties/parameters/workspaceId#az-monitor",
+                  "type": "string",
+                  "title": "Workspace ID",
+                  "description": "ID of the Azure Monitor workspace"
+                },
+                "sharedKey": {
+                  "$id": "/properties/credentials/properties/parameters/sharedKey#az-monitor",
+                  "type": "string",
+                  "title": "Shared key",
+                  "description": "Primary or secondary key of the Azure Monitor workspace"
+                }
+              }
+            }
+          }
+        },
+        {
+          "$id": "/properties/credentials#az-sasl",
+          "type": "object",
+          "title": "Azure SASL",
+          "description": "HMAC credentials with which Ditto authenticates itself at Azure IoT Hub over HTTP/AMQP and Azure Service Bus over HTTP",
+          "properties": {
+            "type": {
+              "$id": "/properties/credentials/properties/type#az-sasl",
+              "type": "string",
+              "enum": [
+                "hmac"
+              ],
+              "title": "Type of credentials",
+              "description": "Type of credentials",
+              "examples": [
+                "hmac"
+              ]
+            },
+            "algorithm": {
+              "$id": "/properties/credentials/properties/algorithm#az-sasl",
+              "type": "string",
+              "title": "Algorithm",
+              "description": "Name of the HMAC signing algorithm",
+              "enum": ["az-sasl"],
+              "examples": ["az-sasl"]
+            },
+            "parameters": {
+              "$id": "/properties/credentials/properties/parameters#az-sasl",
+              "type": "object",
+              "title": "Parameters",
+              "description": "Parameters of the signing algorithm `az-sasl`",
+              "properties": {
+                "sharedKey": {
+                  "$id": "/properties/credentials/properties/parameters/sharedKey#az-sasl",
+                  "type": "string",
+                  "title": "Shared key",
+                  "description": "Primary or secondary key of the Azure IoT Hub or Azure Service Bus instance. The key for Azure Service Bus needs an additional Base64 encoding to work (e.g. a primary key 'theKey' should be encoded to 'dGhlS2V5' and used in this format)"
+                },
+                "sharedKeyName": {
+                  "$id": "/properties/credentials/properties/parameters/sharedKeyName#az-sasl",
+                  "type": "string",
+                  "title": "Shared key name",
+                  "description": "Name of the used sharedKey"
+                },
+                "endpoint": {
+                  "$id": "/properties/credentials/properties/parameters/endpoint#az-sasl",
+                  "type": "string",
+                  "title": "Endpoint",
+                  "description": "The endpoint which is used in the signature. For Azure IoT Hub this is expected to be the resourceUri without protocol (e.g. myHub.azure-devices.net). For Azure Service Bus, this is expected to be the full URI of the resource to which access is claimed (e.g. https://myNamespace.servicebus.windows.net/myQueue)."
+                },
+                "ttl": {
+                  "$id": "/properties/credentials/properties/parameters/ttl#az-sasl",
+                  "type": "string",
+                  "title": "TTL",
+                  "description": "The time to live of a signature as a string in duration format. Allowed time units are “ms” (milliseconds), “s” (seconds), “m” (minutes) and “h” (hours), e.g. “10m” for ten minutes. ttl should only be set for AMQP connections and defines how long the connection signing is valid. The broker (e.g. Azure IoT Hub) will close the connection after ttl and Ditto will reconnect with a new signature. Defaults to 7 days.",
+                  "default": "168h"
+                }
+              }
+            }
+          }
         }
-      }
+      ]
     },
     "sources": {
       "$id": "/properties/sources",
@@ -156,7 +363,10 @@
                 "type": "string",
                 "title": "Input value of enforcement",
                 "description": "The input value of the enforcement that should identify the origin of the message (e.g. a device id). Placeholders can be used within this field depending on the connection type. E.g. for AMQP 1.0 connections you can use `{{ header:[any-header-name] }}` to resolve the value from a message header.",
-                "examples": ["{{ header:device_id }}", "{{ source:address }}"]
+                "examples": [
+                  "{{ header:device_id }}",
+                  "{{ source:address }}"
+                ]
               },
               "filters": {
                 "$id": "/properties/sources/items/properties/enforcement/filters",
@@ -254,7 +464,10 @@
                 "type": "string",
                 "title": "Reply target address",
                 "description": "The target address where responses of incoming commands from the parent source are published to. The following placeholders are allowed within the target address:\n * Thing ID: `{{ thing:id }}`\n * Thing Namespace: `{{ thing:namespace }}`\n * Thing Name: `{{ thing:name }}` (the part of the ID without the namespace)\n * Ditto protocol topic attribute: `{{ topic:[topic-placeholder-attr] }}`\n * Ditto protocol header value: `{{ header:[any-header-name] }}`\n\nIf placeholder resolution fails for a response, then the response is dropped.",
-                "examples": ["{{ header:device_id }}", "{{ source:address }}"]
+                "examples": [
+                  "{{ header:device_id }}",
+                  "{{ source:address }}"
+                ]
               },
               "headerMapping": {
                 "$id": "/properties/sources/items/properties/replyTarget/headerMapping",
@@ -395,7 +608,9 @@
       "minimum": 1,
       "maximum": "#clusterNodes",
       "examples": [
-        1,2,3
+        1,
+        2,
+        3
       ]
     },
     "failoverEnabled": {
@@ -420,7 +635,11 @@
       "default": 5,
       "minimum": 1,
       "examples": [
-        1,2,3,5,8
+        1,
+        2,
+        3,
+        5,
+        8
       ]
     },
     "specificConfig": {
@@ -578,5 +797,11 @@
     }
   },
   "additionalProperties": false,
-  "required": [ "id", "connectionType", "connectionStatus", "uri", "authorizationContext"]
+  "required": [
+    "id",
+    "connectionType",
+    "connectionStatus",
+    "uri",
+    "authorizationContext"
+  ]
 }

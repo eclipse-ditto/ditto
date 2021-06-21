@@ -32,7 +32,6 @@ public interface CredentialsVisitor<T> {
      *
      * @param credentials the username password credentials.
      * @return evaluation result.
-     *
      * @since 2.0.0
      */
     T usernamePassword(UserPasswordCredentials credentials);
@@ -42,8 +41,16 @@ public interface CredentialsVisitor<T> {
      *
      * @param credentials the SshPublicKeyAuthentication credentials.
      * @return evaluation result.
-     *
      * @since 2.0.0
      */
     T sshPublicKeyAuthentication(SshPublicKeyCredentials credentials);
+
+    /**
+     * Evaluate HMAC credentials.
+     *
+     * @param credentials The HMAC credentials.
+     * @return evaluation result.
+     * @since 2.1.0
+     */
+    T hmac(HmacCredentials credentials);
 }

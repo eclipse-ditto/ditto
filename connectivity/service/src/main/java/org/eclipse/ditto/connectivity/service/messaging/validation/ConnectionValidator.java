@@ -32,26 +32,30 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.connectivity.model.ClientCertificateCredentials;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.Credentials;
+import org.eclipse.ditto.connectivity.model.CredentialsVisitor;
+import org.eclipse.ditto.connectivity.model.HmacCredentials;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.Source;
+import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.Target;
+import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigProvider;
 import org.eclipse.ditto.connectivity.service.config.mapping.MapperLimitsConfig;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextCreator;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
-import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
-import org.eclipse.ditto.rql.parser.RqlPredicateParser;
-import org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.internal.models.placeholders.ExpressionResolver;
 import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.rql.parser.RqlPredicateParser;
+import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 
 import akka.actor.ActorSystem;
 import akka.event.LoggingAdapter;
@@ -214,6 +218,10 @@ public final class ConnectionValidator {
         connection.getSshTunnel()
                 .ifPresent(tunnel -> SshTunnelValidator.getInstance(dittoHeaders, hostValidator).validate(tunnel));
 
+        // validate credentials
+        connection.getCredentials().ifPresent(credentials ->
+                credentials.accept(CredentialsValidationVisitor.of(connection, dittoHeaders, connectivityConfig)));
+
         // protocol specific validations
         final AbstractProtocolValidator spec = specMap.get(connection.getConnectionType());
         if (spec != null) {
@@ -318,8 +326,8 @@ public final class ConnectionValidator {
                 throw emptyAddressesError(location, dittoHeaders);
             }
             target.getTopics().forEach(topic -> topic.getFilter().ifPresent(filter ->
-                // will throw an InvalidRqlExpressionException if the RQL expression was not valid:
-                queryFilterCriteriaFactory.filterCriteria(filter, dittoHeaders)
+                    // will throw an InvalidRqlExpressionException if the RQL expression was not valid:
+                    queryFilterCriteriaFactory.filterCriteria(filter, dittoHeaders)
             ));
         });
     }
@@ -359,7 +367,8 @@ public final class ConnectionValidator {
     private static void validateFormatOfCertificates(final Connection connection, final DittoHeaders dittoHeaders,
             final ConnectionLogger connectionLogger) {
         final Optional<String> trustedCertificates = connection.getTrustedCertificates();
-        final Optional<Credentials> credentials = connection.getCredentials();
+        final Optional<Credentials> credentials =
+                connection.getCredentials().filter(c -> c.accept(new IsClientCertificateCredentialsVisitor()));
         // check if there are certificates to check
         if (trustedCertificates.isPresent() || credentials.isPresent()) {
             credentials.orElseGet(ClientCertificateCredentials::empty)
@@ -374,4 +383,26 @@ public final class ConnectionValidator {
                 .build();
     }
 
+    private static final class IsClientCertificateCredentialsVisitor implements CredentialsVisitor<Boolean> {
+
+        @Override
+        public Boolean clientCertificate(final ClientCertificateCredentials credentials) {
+            return true;
+        }
+
+        @Override
+        public Boolean usernamePassword(final UserPasswordCredentials credentials) {
+            return false;
+        }
+
+        @Override
+        public Boolean sshPublicKeyAuthentication(final SshPublicKeyCredentials credentials) {
+            return false;
+        }
+
+        @Override
+        public Boolean hmac(final HmacCredentials credentials) {
+            return false;
+        }
+    }
 }

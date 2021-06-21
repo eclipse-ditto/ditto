@@ -159,6 +159,11 @@ The specific configuration properties are interpreted as
 Use these to customize and tweak your connection as needed.
 
 
+### HMAC request signing
+
+Ditto supports HMAC request signing for AMQP 1.0 connections. Find detailed information on this in
+[Connectivity API > HMAC request signing](connectivity-hmac-signing.html).
+
 
 ## Establishing connecting to an AMQP 1.0 endpoint
 

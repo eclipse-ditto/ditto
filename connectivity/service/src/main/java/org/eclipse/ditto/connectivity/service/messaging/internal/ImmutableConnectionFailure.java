@@ -75,8 +75,12 @@ public final class ImmutableConnectionFailure extends AbstractWithOrigin impleme
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) {return true;}
-        if (!(o instanceof ImmutableConnectionFailure)) {return false;}
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof ImmutableConnectionFailure)) {
+            return false;
+        }
         final ImmutableConnectionFailure that = (ImmutableConnectionFailure) o;
         return Objects.equals(cause, that.cause) &&
                 Objects.equals(description, that.description) &&
@@ -90,8 +94,8 @@ public final class ImmutableConnectionFailure extends AbstractWithOrigin impleme
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [" +
-                "cause=" + cause +
+        return getClass().getSimpleName() + " [" + super.toString() +
+                ", cause=" + cause +
                 ", description=" + description +
                 ", time=" + time +
                 "]";

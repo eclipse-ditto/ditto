@@ -13,17 +13,18 @@
 package org.eclipse.ditto.gateway.service.endpoints.utils;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.eclipse.ditto.gateway.service.endpoints.utils.UriEncoding.EncodingType.FORM_URL_ENCODED;
-import static org.eclipse.ditto.gateway.service.endpoints.utils.UriEncoding.EncodingType.RFC3986;
+import static org.eclipse.ditto.base.service.UriEncoding.EncodingType.FORM_URL_ENCODED;
+import static org.eclipse.ditto.base.service.UriEncoding.EncodingType.RFC3986;
 import static org.junit.Assert.assertEquals;
 
+import org.eclipse.ditto.base.service.UriEncoding;
 import org.junit.Test;
 
 import akka.http.javadsl.model.Uri;
 import akka.http.scaladsl.model.IllegalUriException;
 
 /**
- * Unit test for {@link UriEncoding}.
+ * Unit test for {@link org.eclipse.ditto.base.service.UriEncoding}.
  */
 public final class UriEncodingTest {
 

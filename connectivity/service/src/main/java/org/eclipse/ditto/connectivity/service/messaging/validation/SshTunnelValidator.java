@@ -19,6 +19,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.ClientCertificateCredentials;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.model.CredentialsVisitor;
+import org.eclipse.ditto.connectivity.model.HmacCredentials;
 import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.SshTunnel;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
@@ -117,6 +118,14 @@ final class SshTunnelValidator {
         public Void sshPublicKeyAuthentication(final SshPublicKeyCredentials credentials) {
             credentials.accept(PublicKeyAuthenticationFactory.getInstance(dittoHeaders));
             return null;
+        }
+
+        @Override
+        public Void hmac(final HmacCredentials credentials) {
+            throw ConnectionConfigurationInvalidException.newBuilder(
+                    "Credentials type " + HmacCredentials.TYPE + " cannot be used for an ssh tunnel.")
+                    .dittoHeaders(dittoHeaders)
+                    .build();
         }
     }
 }
