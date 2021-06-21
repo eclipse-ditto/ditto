@@ -24,38 +24,38 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.DittoConstants;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
-import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.connectivity.model.Topic;
-import org.eclipse.ditto.messages.model.Message;
-import org.eclipse.ditto.messages.model.MessageDirection;
-import org.eclipse.ditto.messages.model.MessageHeaders;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
-import org.eclipse.ditto.protocol.ProtocolFactory;
-import org.eclipse.ditto.connectivity.service.messaging.AbstractPublisherActorTest;
-import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
-import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
+import org.eclipse.ditto.connectivity.model.Target;
+import org.eclipse.ditto.connectivity.model.Topic;
+import org.eclipse.ditto.connectivity.service.messaging.AbstractPublisherActorTest;
+import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.messages.model.Message;
+import org.eclipse.ditto.messages.model.MessageDirection;
+import org.eclipse.ditto.messages.model.MessageHeaders;
 import org.eclipse.ditto.messages.model.signals.commands.SendFeatureMessageResponse;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessageResponse;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.ProtocolFactory;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
@@ -93,7 +93,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected String getOutboundAddress() {
-        return "PATCH:/the/quick/brown/fox/jumps/over/the/lazy/dog?someQuery=foo";
+        return "PATCH:/the/quick/brown/fox/jumps/over/the/lazy/dog/at?someQuery=foo&entity={{ entity:id }}";
     }
 
     @Override
@@ -125,6 +125,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
         // uri
         assertThat(request.getUri().host().address()).isEqualTo("8.8.4.4");
+        assertThat(request.getUri().query().get("entity")).contains(TestConstants.Things.THING_ID.toString());
         assertThat(request.getUri().port()).isEqualTo(12345);
 
         // headers

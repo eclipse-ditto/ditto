@@ -31,8 +31,8 @@ import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Topic;
-import org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaValidator;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaValidator;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -90,6 +90,7 @@ public final class HttpPushValidatorTest {
         final DittoHeaders emptyDittoHeaders = DittoHeaders.empty();
         underTest.validate(getConnectionWithTarget("POST:events"), emptyDittoHeaders, actorSystem);
         underTest.validate(getConnectionWithTarget("PUT:ditto/{{thing:id}}"), emptyDittoHeaders, actorSystem);
+        underTest.validate(getConnectionWithTarget("PUT:ditto/{{entity:id}}"), emptyDittoHeaders, actorSystem);
         underTest.validate(getConnectionWithTarget("PATCH:/{{thing:namespace}}/{{thing:name}}"), emptyDittoHeaders,
                 actorSystem);
         underTest.validate(getConnectionWithTarget("PATCH:/{{thing:namespace}}/{{thing:name}}/{{ feature:id }}"), emptyDittoHeaders,
