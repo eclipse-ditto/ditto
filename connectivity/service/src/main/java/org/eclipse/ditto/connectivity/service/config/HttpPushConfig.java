@@ -13,6 +13,7 @@
 package org.eclipse.ditto.connectivity.service.config;
 
 import java.time.Duration;
+import java.util.Map;
 
 import org.eclipse.ditto.base.service.config.http.HttpProxyConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
@@ -38,6 +39,11 @@ public interface HttpPushConfig {
     HttpProxyConfig getHttpProxyConfig();
 
     /**
+     * @return configuration of HMAC request-signing algorithms.
+     */
+    Map<String, String> getHmacAlgorithms();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code HttpPushConfig}.
      */
@@ -52,7 +58,12 @@ public interface HttpPushConfig {
          * Maximum time a request is allowed to wait for a response. If this time is exceeded the HTTP connection will
          * be re-opened.
          */
-        REQUEST_TIMEOUT("request-timeout", Duration.ofSeconds(60));
+        REQUEST_TIMEOUT("request-timeout", Duration.ofSeconds(60)),
+
+        /**
+         * HMAC request-signing algorithms.
+         */
+        HMAC_ALGORITHMS("hmac-algorithms", Map.of());
 
         private final String path;
         private final Object defaultValue;

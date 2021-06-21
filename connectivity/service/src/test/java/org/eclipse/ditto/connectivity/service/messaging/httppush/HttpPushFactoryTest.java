@@ -167,6 +167,11 @@ public final class HttpPushFactoryTest {
             public HttpProxyConfig getHttpProxyConfig() {
                 return getEnabledProxyConfig(binding);
             }
+
+            @Override
+            public Map<String, String> getHmacAlgorithms() {
+                return Map.of();
+            }
         }, mock(ConnectionLogger.class), SshTunnelState::disabled);
         final Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> pair =
                 newSourceSinkQueues(underTest);
@@ -193,7 +198,8 @@ public final class HttpPushFactoryTest {
         new TestKit(actorSystem) {{
             // GIVEN: An HTTP-push connection is established against localhost.
             final HttpPushFactory underTest =
-                    HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(), mock(ConnectionLogger.class), SshTunnelState::disabled);
+                    HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(), mock(ConnectionLogger.class),
+                            SshTunnelState::disabled);
             final Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> pair =
                     newSourceSinkQueues(underTest);
             final SourceQueueWithComplete<HttpRequest> sourceQueue = pair.first();

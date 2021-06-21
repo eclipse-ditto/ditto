@@ -22,7 +22,7 @@ import java.time.Duration;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.service.config.supervision.DefaultSupervisorConfig;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
-import org.eclipse.ditto.internal.models.signalenrichment.DefaultSignalEnrichmentConfig;
+import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -52,16 +52,15 @@ public final class DefaultConnectionConfigTest {
     public void assertImmutability() {
         assertInstancesOf(DefaultConnectionConfig.class,
                 areImmutable(),
-                assumingFields("allowedHostnames")
-                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
-                assumingFields("blockedHostnames")
+                assumingFields("blockedHostnames", "allowedHostnames")
                         .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
                 provided(DefaultSupervisorConfig.class,
                         SnapshotConfig.class,
-                        DefaultSignalEnrichmentConfig.class,
-                        DefaultMqttConfig.class,
-                        DefaultKafkaConfig.class,
-                        DefaultAmqp10Config.class
+                        SignalEnrichmentConfig.class,
+                        MqttConfig.class,
+                        KafkaConfig.class,
+                        Amqp10Config.class,
+                        HttpPushConfig.class
                 ).areAlsoImmutable()
         );
     }
@@ -80,6 +79,10 @@ public final class DefaultConnectionConfigTest {
         softly.assertThat(underTest.getClientActorAskTimeout())
                 .as(ConnectionConfig.ConnectionConfigValue.CLIENT_ACTOR_ASK_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(10L));
+
+        softly.assertThat(underTest.getClientActorRestartsBeforeEscalation())
+                .as(ConnectionConfig.ConnectionConfigValue.CLIENT_ACTOR_RESTARTS_BEFORE_ESCALATION.getConfigPath())
+                .isEqualTo(7);
 
         softly.assertThat(underTest.getAllowedHostnames())
                 .as(ConnectionConfig.ConnectionConfigValue.ALLOWED_HOSTNAMES.getConfigPath())

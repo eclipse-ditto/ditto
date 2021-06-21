@@ -1,0 +1,21 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ditto-logs-initiator
+  labels:
+    name: ditto-logs-initiator
+spec:
+  volumes:
+    - name: ditto-logs-directory
+      hostPath:
+        path: /var/log/ditto
+        type: DirectoryOrCreate
+  restartPolicy: OnFailure
+  containers:
+    - name: change-volume-owner
+      image: busybox
+      command: [ "sh", "-c", "chown -R 1000:1000 /var/log/ditto && echo 'changed ownership of /var/log/ditto to 1000:1000'" ]
+      volumeMounts:
+        - name: ditto-logs-directory
+          mountPath: /var/log/ditto

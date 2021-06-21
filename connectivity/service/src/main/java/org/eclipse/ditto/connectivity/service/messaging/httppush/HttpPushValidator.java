@@ -14,22 +14,22 @@ package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
 import static org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.messaging.validation.AbstractProtocolValidator;
-import org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders;
 
 import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpMethod;
@@ -42,11 +42,11 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
 
     private static final String HTTPS = "https";
     private static final String HTTP = "http";
-    private static final Collection<String> ACCEPTED_SCHEMES = Collections.unmodifiableList(Arrays.asList(HTTP, HTTPS));
+    private static final Collection<String> ACCEPTED_SCHEMES = List.of(HTTP, HTTPS);
     private static final Collection<String> SECURE_SCHEMES = Collections.singletonList(HTTPS);
 
     private static final Collection<HttpMethod> SUPPORTED_METHODS =
-            Collections.unmodifiableList(Arrays.asList(HttpMethods.PUT, HttpMethods.PATCH, HttpMethods.POST));
+            List.of(HttpMethods.PUT, HttpMethods.PATCH, HttpMethods.POST, HttpMethods.GET);
 
     private static final String SUPPORTED_METHOD_NAMES = SUPPORTED_METHODS.stream()
             .map(HttpMethod::name)

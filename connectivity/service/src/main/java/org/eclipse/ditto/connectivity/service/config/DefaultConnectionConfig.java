@@ -39,6 +39,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     private static final String CONFIG_PATH = "connection";
 
     private final Duration clientActorAskTimeout;
+    private final int clientActorRestartsBeforeEscalation;
     private final Collection<String> allowedHostnames;
     private final Collection<String> blockedHostnames;
     private final SupervisorConfig supervisorConfig;
@@ -58,6 +59,8 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
 
     private DefaultConnectionConfig(final ConfigWithFallback config) {
         clientActorAskTimeout = config.getDuration(ConnectionConfigValue.CLIENT_ACTOR_ASK_TIMEOUT.getConfigPath());
+        clientActorRestartsBeforeEscalation = config.getInt(ConnectionConfigValue.CLIENT_ACTOR_RESTARTS_BEFORE_ESCALATION
+                .getConfigPath());
         allowedHostnames = fromCommaSeparatedString(config, ConnectionConfigValue.ALLOWED_HOSTNAMES);
         blockedHostnames = fromCommaSeparatedString(config, ConnectionConfigValue.BLOCKED_HOSTNAMES);
         supervisorConfig = DefaultSupervisorConfig.of(config);
@@ -98,6 +101,11 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     @Override
     public Duration getClientActorAskTimeout() {
         return clientActorAskTimeout;
+    }
+
+    @Override
+    public int getClientActorRestartsBeforeEscalation() {
+        return clientActorRestartsBeforeEscalation;
     }
 
     @Override
@@ -190,6 +198,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
         }
         final DefaultConnectionConfig that = (DefaultConnectionConfig) o;
         return Objects.equals(clientActorAskTimeout, that.clientActorAskTimeout) &&
+                Objects.equals(clientActorRestartsBeforeEscalation, that.clientActorRestartsBeforeEscalation) &&
                 Objects.equals(allowedHostnames, that.allowedHostnames) &&
                 Objects.equals(blockedHostnames, that.blockedHostnames) &&
                 Objects.equals(supervisorConfig, that.supervisorConfig) &&
@@ -210,9 +219,9 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(clientActorAskTimeout, allowedHostnames, blockedHostnames, supervisorConfig, snapshotConfig,
-                acknowledgementConfig, maxNumberOfTargets, maxNumberOfSources,
-                activityCheckConfig, amqp10Config, amqp091Config, mqttConfig, kafkaConfig,
+        return Objects.hash(clientActorAskTimeout, clientActorRestartsBeforeEscalation, allowedHostnames,
+                blockedHostnames, supervisorConfig, snapshotConfig, acknowledgementConfig, maxNumberOfTargets,
+                maxNumberOfSources, activityCheckConfig, amqp10Config, amqp091Config, mqttConfig, kafkaConfig,
                 httpPushConfig, ackLabelDeclareInterval, priorityUpdateInterval, allClientActorsOnOneNode);
     }
 
@@ -220,6 +229,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     public String toString() {
         return "DefaultConnectionConfig{" +
                 "clientActorAskTimeout=" + clientActorAskTimeout +
+                ", clientActorRestartsBeforeEscalation=" + clientActorRestartsBeforeEscalation +
                 ", allowedHostnames=" + allowedHostnames +
                 ", blockedHostnames=" + blockedHostnames +
                 ", supervisorConfig=" + supervisorConfig +

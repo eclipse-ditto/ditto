@@ -31,6 +31,8 @@ import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.base.service.config.ServiceSpecificConfig;
 import org.eclipse.ditto.base.service.devops.DevOpsCommandsActor;
 import org.eclipse.ditto.base.service.devops.LogbackLoggingFacade;
+import org.eclipse.ditto.base.service.devops.DevOpsCommandsActor;
+import org.eclipse.ditto.base.service.devops.LogbackLoggingFacade;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;

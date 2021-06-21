@@ -30,6 +30,8 @@ import java.util.stream.Stream;
 
 import org.assertj.core.api.ThrowableAssert;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
@@ -38,16 +40,13 @@ import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
-import org.eclipse.ditto.connectivity.service.messaging.AbstractBaseClientActorTest;
-import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
-import org.eclipse.ditto.connectivity.api.BaseClientState;
-import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
+import org.eclipse.ditto.connectivity.service.messaging.AbstractBaseClientActorTest;
+import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
-import org.junit.AfterClass;
+import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -83,8 +82,8 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
 
     private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
 
-    @SuppressWarnings("NullableProblems") private static ActorSystem actorSystem;
-    private static Connection connection;
+    private ActorSystem actorSystem;
+    private Connection connection;
 
     @Mock private ConnectionFactory mockConnectionFactory;
     @Mock private ConnectionFactory failingMockConnectionFactory;
@@ -96,8 +95,8 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
     private final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory =
             (con, exHandler, connectionLogger) -> mockConnectionFactory;
 
-    @BeforeClass
-    public static void setUp() {
+    @Before
+    public void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
         connection = TestConstants.createConnection(CONNECTION_ID)
                 .toBuilder()
@@ -105,8 +104,8 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
                 .build();
     }
 
-    @AfterClass
-    public static void tearDown() {
+    @After
+    public void tearDown() {
         TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS), false);
     }
 

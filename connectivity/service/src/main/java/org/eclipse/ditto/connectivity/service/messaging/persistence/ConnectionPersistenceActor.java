@@ -116,6 +116,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
 import akka.cluster.routing.ClusterRouterPool;
 import akka.cluster.routing.ClusterRouterPoolSettings;
@@ -151,6 +152,9 @@ public final class ConnectionPersistenceActor
     public static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-snapshots";
 
     private static final Duration DEFAULT_RETRIEVE_STATUS_TIMEOUT = Duration.ofMillis(500L);
+
+    // never retry, just escalate. ConnectionSupervisorActor will handle restarting this actor
+    private static final SupervisorStrategy ESCALATE_ALWAYS_STRATEGY = OneForOneEscalateStrategy.escalateStrategy();
 
     private final ActorRef proxyActor;
     private final ClientActorPropsFactory propsFactory;
@@ -399,7 +403,8 @@ public final class ConnectionPersistenceActor
             targetConnectionStatus = ConnectivityStatus.UNKNOWN;
         }
 
-        if (alwaysAlive = (targetConnectionStatus == ConnectivityStatus.OPEN)) {
+        alwaysAlive = (targetConnectionStatus == ConnectivityStatus.OPEN);
+        if (alwaysAlive) {
             final DittoHeaders headersWithJournalTags = superEvent.getDittoHeaders().toBuilder()
                     .journalTags(journalTags())
                     .build();
@@ -921,14 +926,20 @@ public final class ConnectionPersistenceActor
         origin.tell(statusResponse, getSelf());
     }
 
+    @Override
+    public SupervisorStrategy supervisorStrategy() {
+        return ESCALATE_ALWAYS_STRATEGY;
+    }
+
     private void startClientActorsIfRequired(final int clientCount) {
         if (entity != null && clientActorRouter == null && clientCount > 0) {
             log.info("Starting ClientActor for connection <{}> with <{}> clients.", entityId, clientCount);
-            final Props props = propsFactory.getActorPropsForType(entity, proxyActor, getSelf());
+            final Props props = propsFactory.getActorPropsForType(entity, proxyActor, getSelf(), getContext().getSystem());
             final ClusterRouterPoolSettings clusterRouterPoolSettings =
                     new ClusterRouterPoolSettings(clientCount, clientActorsPerNode(clientCount), true,
                             Set.of(CLUSTER_ROLE));
-            final Pool pool = new ConsistentHashingPool(clientCount);
+            final Pool pool = new ConsistentHashingPool(clientCount)
+                    .withSupervisorStrategy(OneForOneEscalateStrategy.withRetries(config.getClientActorRestartsBeforeEscalation()));
             final Props clusterRouterPoolProps =
                     new ClusterRouterPool(pool, clusterRouterPoolSettings).props(props);
 

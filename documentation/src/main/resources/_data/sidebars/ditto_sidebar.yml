@@ -317,6 +317,9 @@ entries:
           - title: SSH tunneling
             url: /connectivity-ssh-tunneling.html
             output: web
+          - title: HMAC signing
+            url: /connectivity-hmac-signing.html
+            output: web
 
       - title: Client SDK
         output: web

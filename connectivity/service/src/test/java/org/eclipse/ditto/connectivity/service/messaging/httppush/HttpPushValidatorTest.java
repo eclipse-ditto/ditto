@@ -97,13 +97,13 @@ public final class HttpPushValidatorTest {
         underTest.validate(getConnectionWithTarget("PUT:events#{{topic:full}}"), emptyDittoHeaders, actorSystem);
         underTest.validate(getConnectionWithTarget("POST:ditto?{{header:x}}"), emptyDittoHeaders, actorSystem);
         underTest.validate(getConnectionWithTarget("POST:"), emptyDittoHeaders, actorSystem);
+        underTest.validate(getConnectionWithTarget("GET:foo"), emptyDittoHeaders, actorSystem);
     }
 
     @Test
     public void testInvalidTargetAddress() {
         verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithTarget(""));
         verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithTarget("events"));
-        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithTarget("GET:foo"));
         verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithTarget("DELETE:/bar"));
     }
 
