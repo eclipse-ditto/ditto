@@ -12,10 +12,13 @@
  */
 package org.eclipse.ditto.connectivity.service.mapping.javascript.benchmark;
 
-import org.eclipse.ditto.connectivity.service.config.mapping.DefaultMappingConfig;
-import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
-import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
+import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
+import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
+import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
 import com.typesafe.config.ConfigFactory;
 
@@ -24,12 +27,14 @@ import com.typesafe.config.ConfigFactory;
  */
 public interface MapToDittoProtocolScenario {
 
-    MappingConfig MAPPING_CONFIG =
-            DefaultMappingConfig.of(ConfigFactory.parseString("javascript {\n" +
-                    "        maxScriptSizeBytes = 50000 # 50kB\n" +
-                    "        maxScriptExecutionTime = 500ms\n" +
-                    "        maxScriptStackDepth = 10\n" +
-                    "      }"));
+    ConnectionContext CONNECTION_CONTEXT =
+            DittoConnectionContext.of(TestConstants.createConnection(), DittoConnectivityConfig.of(
+                    DefaultScopedConfig.dittoScoped(ConfigFactory.parseString("javascript {\n" +
+                            "        maxScriptSizeBytes = 50000 # 50kB\n" +
+                            "        maxScriptExecutionTime = 500ms\n" +
+                            "        maxScriptStackDepth = 10\n" +
+                            "      }").atKey("ditto.connectivity.mapping")
+                            .withFallback(ConfigFactory.load("test")))));
 
     MessageMapper getMessageMapper();
 

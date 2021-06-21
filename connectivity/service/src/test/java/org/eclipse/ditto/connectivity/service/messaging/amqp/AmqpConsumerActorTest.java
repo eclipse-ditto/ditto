@@ -13,8 +13,8 @@
 package org.eclipse.ditto.connectivity.service.messaging.amqp;
 
 import static org.assertj.core.api.Assertions.fail;
-import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.header;
+import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -39,17 +39,14 @@ import org.apache.qpid.jms.message.JmsMessageSupport;
 import org.apache.qpid.jms.provider.amqp.AmqpConnection;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
 import org.apache.qpid.proton.amqp.Symbol;
-import org.eclipse.ditto.connectivity.service.mapping.javascript.JavaScriptMessageMapperFactory;
-import org.eclipse.ditto.connectivity.service.messaging.InboundDispatchingActor;
-import org.eclipse.ditto.connectivity.service.messaging.InboundMappingProcessor;
-import org.eclipse.ditto.connectivity.service.messaging.InboundMappingProcessorActor;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.base.model.common.ResponseType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
@@ -57,13 +54,18 @@ import org.eclipse.ditto.connectivity.model.MappingContext;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.ReplyTarget;
 import org.eclipse.ditto.connectivity.model.Source;
-import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
+import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
+import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
+import org.eclipse.ditto.connectivity.service.mapping.javascript.JavaScriptMessageMapperFactory;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorTest;
+import org.eclipse.ditto.connectivity.service.messaging.InboundDispatchingActor;
+import org.eclipse.ditto.connectivity.service.messaging.InboundMappingProcessor;
+import org.eclipse.ditto.connectivity.service.messaging.InboundMappingProcessorActor;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
-import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureProperty;
 import org.junit.Test;
@@ -281,11 +283,14 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
         Mockito.when(logger.withMdcEntry(Mockito.any(CharSequence.class), Mockito.nullable(CharSequence.class)))
                 .thenReturn(logger);
         final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
-        final InboundMappingProcessor inboundMappingProcessor = InboundMappingProcessor.of(CONNECTION_ID,
-                CONNECTION.getConnectionType(),
-                ConnectivityModelFactory.newPayloadMappingDefinition(mappings),
+        final ConnectionContext connectionContext =
+                DittoConnectionContext.of(CONNECTION.toBuilder()
+                                .payloadMappingDefinition(ConnectivityModelFactory.newPayloadMappingDefinition(mappings))
+                                .build(),
+                        TestConstants.CONNECTIVITY_CONFIG);
+        final InboundMappingProcessor inboundMappingProcessor = InboundMappingProcessor.of(
+                connectionContext,
                 actorSystem,
-                TestConstants.CONNECTIVITY_CONFIG,
                 protocolAdapter,
                 logger);
         final Props inboundDispatchingActorProps = InboundDispatchingActor.props(CONNECTION,

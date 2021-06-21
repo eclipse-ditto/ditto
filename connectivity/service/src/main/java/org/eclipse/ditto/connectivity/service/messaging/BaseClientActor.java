@@ -97,6 +97,8 @@ import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigProviderF
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.MonitoringConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.MapperLimitsConfig;
+import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
+import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
@@ -168,6 +170,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private static final int SOCKET_CHECK_TIMEOUT_MS = 2000;
 
     protected final ConnectionLogger connectionLogger;
+
+    // TODO: see if needed given connection context is maintained
     protected ConnectivityConfig connectivityConfig;
     protected final ClientConfig clientConfig;
 
@@ -183,10 +187,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final Gauge clientConnectingGauge;
     private final ConnectionLoggerRegistry connectionLoggerRegistry;
     private final ConnectivityCounterRegistry connectionCounterRegistry;
-    private final ActorRef inboundMappingProcessorActor;
-    private final ActorRef outboundDispatchingActor;
-    private final ActorRef outboundMappingProcessorActor;
-    private final ActorRef subscriptionManager;
     private final ReconnectTimeoutStrategy reconnectTimeoutStrategy;
     private final SupervisorStrategy supervisorStrategy;
     private final ClientActorRefs clientActorRefs;
@@ -195,9 +195,16 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final int subscriptionIdPrefixLength;
     private final ProtocolAdapter protocolAdapter;
     private final String actorUUID;
-    private final ActorRef tunnelActor;
 
+    // TODO: make async
     private final ConnectivityConfigProvider connectivityConfigProvider;
+    private ConnectionContext connectionContext;
+
+    private final ActorRef inboundMappingProcessorActor;
+    private final ActorRef outboundDispatchingActor;
+    private final ActorRef outboundMappingProcessorActor;
+    private final ActorRef subscriptionManager;
+    private final ActorRef tunnelActor;
 
     // counter for all child actors ever started to disambiguate between them
     private int childActorCount = 0;
@@ -224,6 +231,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         clientConfig = connectivityConfig.getClientConfig();
         proxyActorSelection = getLocalActorOfSamePath(proxyActor);
         connectivityConfigProvider = ConnectivityConfigProviderFactory.getInstance(getContext().getSystem());
+        connectionContext =
+                DittoConnectionContext.of(connection, connectivityConfigProvider.getConnectivityConfig(connectionId));
 
         final ProtocolAdapterProvider protocolAdapterProvider =
                 ProtocolAdapterProvider.load(connectivityConfig.getProtocolConfig(), getContext().getSystem());
@@ -355,20 +364,17 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     @Override
     public void onConnectivityConfigModified(final ConnectivityConfig modifiedConfig) {
+        connectionContext = connectionContext.withConnectivityConfig(modifiedConfig);
         if (hasInboundMapperConfigChanged(modifiedConfig)) {
             logger.debug("Config changed for InboundMappingProcessor, recreating it.");
             final InboundMappingProcessor inboundMappingProcessor =
-                    InboundMappingProcessor.of(connection.getId(), connection.getConnectionType(),
-                            connection.getPayloadMappingDefinition(),
-                            getContext().getSystem(), modifiedConfig,
-                            protocolAdapter, logger);
+                    InboundMappingProcessor.of(connectionContext, getContext().getSystem(), protocolAdapter, logger);
             inboundMappingProcessorActor.tell(new ReplaceInboundMappingProcessor(inboundMappingProcessor), getSelf());
         }
         if (hasOutboundMapperConfigChanged(modifiedConfig)) {
             logger.debug("Config changed for OutboundMappingProcessor, recreating it.");
             final OutboundMappingProcessor outboundMappingProcessor =
-                    OutboundMappingProcessor.of(connection, getContext().getSystem(), modifiedConfig,
-                            protocolAdapter, logger);
+                    OutboundMappingProcessor.of(connectionContext, getContext().getSystem(), protocolAdapter, logger);
             outboundMappingProcessorActor.tell(new ReplaceOutboundMappingProcessor(outboundMappingProcessor),
                     getSelf());
         }
@@ -1594,18 +1600,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final ActorSystem actorSystem = getContext().getSystem();
 
         // this one throws DittoRuntimeExceptions when the mapper could not be configured
-        InboundMappingProcessor.of(connection.getId(),
-                connection.getConnectionType(),
-                connection.getPayloadMappingDefinition(),
-                actorSystem,
-                connectivityConfig,
-                protocolAdapter,
-                logger);
-        OutboundMappingProcessor.of(connection,
-                actorSystem,
-                connectivityConfig,
-                protocolAdapter,
-                logger);
+        InboundMappingProcessor.of(connectionContext, actorSystem, protocolAdapter, logger);
+        OutboundMappingProcessor.of(connectionContext, actorSystem, protocolAdapter, logger);
         return CompletableFuture.completedFuture(new Status.Success("mapping"));
     }
 
@@ -1616,11 +1612,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         try {
             ConnectivityConfig retrievedConnectivityConfig =
                     connectivityConfigProvider.getConnectivityConfig(connection.getId());
+            final var newConnectionContext = connectionContext.withConnectivityConfig(retrievedConnectivityConfig);
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
-            settings = OutboundMappingSettings.of(connection,
+            settings = OutboundMappingSettings.of(connectionContext,
                     getContext().getSystem(),
                     proxyActorSelection,
-                    retrievedConnectivityConfig,
                     protocolAdapter,
                     logger);
             outboundMappingProcessor = OutboundMappingProcessor.of(settings);
@@ -1683,11 +1679,9 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     connectivityConfigProvider.getConnectivityConfig(connection.getId());
 
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
-            inboundMappingProcessor = InboundMappingProcessor.of(connection.getId(),
-                    connection.getConnectionType(),
-                    connection.getPayloadMappingDefinition(),
+            inboundMappingProcessor = InboundMappingProcessor.of(
+                    connectionContext.withConnectivityConfig(retrievedConnectivityConfig),
                     getContext().getSystem(),
-                    retrievedConnectivityConfig,
                     protocolAdapter,
                     logger);
         } catch (final DittoRuntimeException dre) {
@@ -2169,6 +2163,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     private static final class CloseConnectionAndShutdown {
+
         private static final CloseConnectionAndShutdown INSTANCE = new CloseConnectionAndShutdown();
 
         private CloseConnectionAndShutdown() {

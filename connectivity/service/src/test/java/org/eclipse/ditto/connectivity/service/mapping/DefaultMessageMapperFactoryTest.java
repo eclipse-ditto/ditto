@@ -19,13 +19,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.MappingContext;
-import org.eclipse.ditto.connectivity.service.config.mapping.DefaultMappingConfig;
-import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.connectivity.service.mapping.test.MappingContexts;
 import org.eclipse.ditto.connectivity.service.mapping.test.MockMapper;
+import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -48,7 +46,7 @@ import akka.testkit.javadsl.TestKit;
 @RunWith(MockitoJUnitRunner.class)
 public final class DefaultMessageMapperFactoryTest {
 
-    private static MappingConfig mappingConfig;
+    private static ConnectionContext connectionContext;
     private static ActorSystem system;
 
     @Mock
@@ -60,7 +58,8 @@ public final class DefaultMessageMapperFactoryTest {
     public static void initTestFixture() {
         final Config testConfig = ConfigFactory.parseMap(
                 Collections.singletonMap("ditto.connectivity.mapping.dummy", ""));
-        mappingConfig = DefaultMappingConfig.of(testConfig.getConfig("ditto.connectivity"));
+        connectionContext =
+                DittoConnectionContext.of(TestConstants.createConnection(), TestConstants.CONNECTIVITY_CONFIG);
 
         system = ActorSystem.create("test", testConfig);
     }
@@ -73,7 +72,7 @@ public final class DefaultMessageMapperFactoryTest {
 
     @Before
     public void setUp() {
-        underTest = DefaultMessageMapperFactory.of(ConnectionId.of("connectionId"), system, mappingConfig, log);
+        underTest = DefaultMessageMapperFactory.of(connectionContext, system, log);
     }
 
     @After

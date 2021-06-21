@@ -22,7 +22,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
@@ -30,6 +29,9 @@ import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
+import org.eclipse.ditto.connectivity.api.OutboundSignal;
+import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
@@ -38,15 +40,14 @@ import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
+import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
+import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.connectivity.api.OutboundSignal;
-import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
-import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingModified;
@@ -229,7 +230,8 @@ public final class OutboundMappingProcessorActorTest {
     }
 
     private OutboundMappingProcessor getProcessor() {
-        return OutboundMappingProcessor.of(CONNECTION, actorSystem, TestConstants.CONNECTIVITY_CONFIG,
+        final var connectionContext = DittoConnectionContext.of(CONNECTION, TestConstants.CONNECTIVITY_CONFIG);
+        return OutboundMappingProcessor.of(connectionContext, actorSystem,
                 protocolAdapterProvider.getProtocolAdapter("test"),
                 AbstractMessageMappingProcessorActorTest.mockLoggingAdapter());
     }

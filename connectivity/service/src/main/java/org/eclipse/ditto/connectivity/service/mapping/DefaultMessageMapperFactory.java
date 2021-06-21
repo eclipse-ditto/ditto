@@ -29,13 +29,11 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.atteo.classindex.ClassIndex;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.MappingContext;
 import org.eclipse.ditto.connectivity.model.MessageMapperConfigurationFailedException;
 import org.eclipse.ditto.connectivity.model.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.model.PayloadMappingDefinition;
-import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -66,8 +64,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(DefaultMessageMapperFactory.class);
 
-    private final ConnectionId connectionId;
-    private final MappingConfig mappingConfig;
+    private final ConnectionContext connectionContext;
 
     /**
      * The actor system used for dynamic class instantiation.
@@ -85,14 +82,12 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
 
     private final LoggingAdapter log;
 
-    private DefaultMessageMapperFactory(final ConnectionId connectionId,
-            final MappingConfig mappingConfig,
+    private DefaultMessageMapperFactory(final ConnectionContext connectionContext,
             final ExtendedActorSystem actorSystem,
             final List<MessageMapperExtension> messageMapperExtensions,
             final LoggingAdapter log) {
 
-        this.connectionId = checkNotNull(connectionId);
-        this.mappingConfig = checkNotNull(mappingConfig, "MappingConfig");
+        this.connectionContext = checkNotNull(connectionContext, "connectionContext");
         this.actorSystem = checkNotNull(actorSystem);
         this.messageMapperExtensions = checkNotNull(messageMapperExtensions);
         this.log = checkNotNull(log);
@@ -101,22 +96,20 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
     /**
      * Creates a new factory and returns the instance
      *
-     * @param connectionId ID of the connection.
+     * @param connectionContext context of the connection for which this factory is instantiated.
      * @param actorSystem the actor system to use for mapping config + dynamicAccess.
-     * @param mappingConfig the configuration of the mapping behaviour.
      * @param log the log adapter used for debug and warning logs.
      * @return the new instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static DefaultMessageMapperFactory of(final ConnectionId connectionId,
+    public static DefaultMessageMapperFactory of(final ConnectionContext connectionContext,
             final ActorSystem actorSystem,
-            final MappingConfig mappingConfig,
             final LoggingAdapter log) {
 
         final ExtendedActorSystem extendedActorSystem = (ExtendedActorSystem) actorSystem;
         final List<MessageMapperExtension> messageMapperExtensions =
                 tryToLoadMessageMappersExtensions(extendedActorSystem);
-        return new DefaultMessageMapperFactory(connectionId, mappingConfig, extendedActorSystem,
+        return new DefaultMessageMapperFactory(connectionContext, extendedActorSystem,
                 messageMapperExtensions, log);
     }
 
@@ -246,6 +239,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
      * @return the instantiated mapper if it can be instantiated from the configured factory class.
      */
     Optional<MessageMapper> createMessageMapperInstance(final String mappingEngine) {
+        final var connectionId = connectionContext.getConnection().getId();
         if (registeredMappers.containsKey(mappingEngine)) {
             final Class<?> messageMapperClass = registeredMappers.get(mappingEngine);
             MessageMapper result = createAnyMessageMapper(messageMapperClass,
@@ -295,7 +289,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
     private Optional<MessageMapper> configureInstance(final MessageMapper mapper,
             final MessageMapperConfiguration options) {
         try {
-            mapper.configure(mappingConfig, options);
+            mapper.configure(connectionContext, options);
             return Optional.of(mapper);
         } catch (final MessageMapperConfigurationInvalidException e) {
             log.warning("Failed to apply configuration <{}> to mapper instance <{}>: {}", options, mapper,
@@ -309,8 +303,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         final DefaultMessageMapperFactory that = (DefaultMessageMapperFactory) o;
-        return Objects.equals(connectionId, that.connectionId) &&
-                Objects.equals(mappingConfig, that.mappingConfig) &&
+        return Objects.equals(connectionContext, that.connectionContext) &&
                 Objects.equals(actorSystem, that.actorSystem) &&
                 Objects.equals(messageMapperExtensions, that.messageMapperExtensions) &&
                 Objects.equals(log, that.log);
@@ -318,6 +311,6 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
 
     @Override
     public int hashCode() {
-        return Objects.hash(connectionId, mappingConfig, actorSystem, messageMapperExtensions, log);
+        return Objects.hash(connectionContext, actorSystem, messageMapperExtensions, log);
     }
 }

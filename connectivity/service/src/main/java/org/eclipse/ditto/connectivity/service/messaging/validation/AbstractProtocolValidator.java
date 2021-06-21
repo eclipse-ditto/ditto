@@ -28,14 +28,14 @@ import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigProvider;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigProviderFactory;
-import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.connectivity.service.mapping.DefaultMessageMapperFactory;
+import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
 import org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperFactory;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperRegistry;
+import org.eclipse.ditto.connectivity.service.messaging.Resolvers;
 import org.eclipse.ditto.internal.models.placeholders.Placeholder;
 import org.eclipse.ditto.internal.models.placeholders.PlaceholderFilter;
-import org.eclipse.ditto.connectivity.service.messaging.Resolvers;
 
 import akka.actor.ActorSystem;
 
@@ -147,10 +147,10 @@ public abstract class AbstractProtocolValidator {
             final DittoHeaders dittoHeaders) {
         final ConnectivityConfigProvider connectivityConfigProvider =
                 ConnectivityConfigProviderFactory.getInstance(actorSystem);
-        final MappingConfig mappingConfig =
-                connectivityConfigProvider.getConnectivityConfig(connection.getId()).getMappingConfig();
+        final var connectivityConfig = connectivityConfigProvider.getConnectivityConfig(connection.getId());
+        final var connectionContext = DittoConnectionContext.of(connection, connectivityConfig);
         final MessageMapperFactory messageMapperFactory =
-                DefaultMessageMapperFactory.of(connection.getId(), actorSystem, mappingConfig, actorSystem.log());
+                DefaultMessageMapperFactory.of(connectionContext, actorSystem, actorSystem.log());
 
         try {
             final MessageMapperRegistry messageMapperRegistry =

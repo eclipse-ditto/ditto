@@ -20,13 +20,20 @@ import java.util.UUID;
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.connectivity.model.MessageMapperConfigurationFailedException;
 import org.eclipse.ditto.connectivity.model.MessageMappingFailedException;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.DefaultMappingConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
+import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
+import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
+import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.junit.Test;
 
+import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 /**
@@ -92,14 +99,18 @@ public final class JavaScriptMessageMapperRhinoSandboxingTest {
 
     private static MessageMapper createMapper(final String maliciousStuff) {
         final MessageMapper mapper = JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
-        final MappingConfig mappingConfig =
-                DefaultMappingConfig.of(ConfigFactory.parseString("javascript {\n" +
+        final Config config =
+                ConfigFactory.parseString("ditto.connectivity.mapping.javascript {\n" +
                         "        maxScriptSizeBytes = 50000 # 50kB\n" +
                         "        maxScriptExecutionTime = 500ms\n" +
                         "        maxScriptStackDepth = 10\n" +
-                        "      }"));
+                        "      }").withFallback(ConfigFactory.load("test"));
+        final ConnectivityConfig connectivityConfig =
+                DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(config));
+        final ConnectionContext connectionContext =
+                DittoConnectionContext.of(TestConstants.createConnection(), connectivityConfig);
 
-        mapper.configure(mappingConfig,
+        mapper.configure(connectionContext,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder("malicious", Collections.emptyMap())
                         .incomingScript(getMappingWrapperScript(maliciousStuff))
