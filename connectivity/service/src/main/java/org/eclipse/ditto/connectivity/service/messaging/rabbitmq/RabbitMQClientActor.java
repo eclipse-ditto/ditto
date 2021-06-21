@@ -35,6 +35,7 @@ import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
+import org.eclipse.ditto.connectivity.service.config.ClientConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientData;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
@@ -169,6 +170,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
     @Override
     protected CompletionStage<Status.Status> doTestConnection(final TestConnection testConnectionCommand) {
+        final ClientConfig clientConfig = connectionContext.getConnectivityConfig().getClientConfig();
 
         // should be smaller than the global testing timeout to be able to send a response
         final Duration createChannelTimeout = clientConfig.getTestingTimeout().dividedBy(10L).multipliedBy(8L);
@@ -185,6 +187,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     protected void doConnectClient(final Connection connection, @Nullable final ActorRef origin) {
         final boolean consuming = isConsuming();
         final ActorRef self = getSelf();
+        final ClientConfig clientConfig = connectionContext.getConnectivityConfig().getClientConfig();
 
         // #connect() will only create the channel for the the producer, but not the consumer. We need to split the
         // connecting timeout to work for both channels before the global connecting timeout happens.

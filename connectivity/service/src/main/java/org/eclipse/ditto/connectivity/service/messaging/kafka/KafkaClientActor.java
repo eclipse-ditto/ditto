@@ -59,7 +59,7 @@ public final class KafkaClientActor extends BaseClientActor {
             final KafkaPublisherActorFactory factory) {
 
         super(connection, proxyActor, connectionActor);
-        final ConnectionConfig connectionConfig = connectivityConfig.getConnectionConfig();
+        final ConnectionConfig connectionConfig = connectionContext.getConnectivityConfig().getConnectionConfig();
         final KafkaConfig kafkaConfig = connectionConfig.getKafkaConfig();
         connectionFactory =
                 DefaultKafkaConnectionFactory.getInstance(connection, kafkaConfig, getClientId(connection.getId()));

@@ -38,4 +38,11 @@ public interface ConnectionContext {
      */
     ConnectionContext withConnectivityConfig(ConnectivityConfig modifiedConfig);
 
+    /**
+     * Create a copy of this context with a modified connection.
+     *
+     * @param modifiedConnection the modified connection.
+     * @return the new context.
+     */
+    ConnectionContext withConnection(Connection modifiedConnection);
 }

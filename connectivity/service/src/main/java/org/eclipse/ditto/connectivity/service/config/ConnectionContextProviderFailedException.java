@@ -25,13 +25,13 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
 
-@JsonParsableException(errorCode = ConnectivityConfigProviderFailedException.ERROR_CODE)
-public final class ConnectivityConfigProviderFailedException extends DittoRuntimeException {
+@JsonParsableException(errorCode = ConnectionContextProviderFailedException.ERROR_CODE)
+public final class ConnectionContextProviderFailedException extends DittoRuntimeException {
 
     public static final String ERROR_CODE = "connectivity.config.provider.failed";
     private static final String MESSAGE_TEMPLATE = "Failed to instantiate <{0}>.";
 
-    private ConnectivityConfigProviderFailedException(
+    private ConnectionContextProviderFailedException(
             final DittoHeaders dittoHeaders, @Nullable final String message,
             @Nullable final String description, @Nullable final Throwable cause,
             @Nullable final URI href) {
@@ -42,7 +42,7 @@ public final class ConnectivityConfigProviderFailedException extends DittoRuntim
         return new Builder(MessageFormat.format(MESSAGE_TEMPLATE, failedConfigProvider.getName()));
     }
 
-    public static ConnectivityConfigProviderFailedException fromJson(final JsonObject jsonObject,
+    public static ConnectionContextProviderFailedException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
@@ -59,7 +59,7 @@ public final class ConnectivityConfigProviderFailedException extends DittoRuntim
     }
 
     @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<ConnectivityConfigProviderFailedException> {
+    public static final class Builder extends DittoRuntimeExceptionBuilder<ConnectionContextProviderFailedException> {
 
         private Builder() {}
 
@@ -68,13 +68,13 @@ public final class ConnectivityConfigProviderFailedException extends DittoRuntim
         }
 
         @Override
-        protected ConnectivityConfigProviderFailedException doBuild(final DittoHeaders dittoHeaders,
+        protected ConnectionContextProviderFailedException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
 
-            return new ConnectivityConfigProviderFailedException(dittoHeaders, message, description, cause, href);
+            return new ConnectionContextProviderFailedException(dittoHeaders, message, description, cause, href);
         }
 
     }

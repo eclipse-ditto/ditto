@@ -13,6 +13,8 @@
 package org.eclipse.ditto.connectivity.service.config;
 
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.events.Event;
@@ -39,8 +41,8 @@ public class DittoConnectionContextProvider implements ConnectionContextProvider
     }
 
     @Override
-    public ConnectionContext getConnectionContext(final Connection connection, final DittoHeaders dittoHeaders) {
-        return DittoConnectionContext.of(connection, connectivityConfig);
+    public CompletionStage<ConnectionContext> getConnectionContext(final Connection connection, final DittoHeaders dittoHeaders) {
+        return CompletableFuture.completedStage(DittoConnectionContext.of(connection, connectivityConfig));
     }
 
     @Override

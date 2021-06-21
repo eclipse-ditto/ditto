@@ -54,6 +54,7 @@ import org.eclipse.ditto.connectivity.model.MappingContext;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.ReplyTarget;
 import org.eclipse.ditto.connectivity.model.Source;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
 import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
 import org.eclipse.ditto.connectivity.service.mapping.javascript.JavaScriptMessageMapperFactory;
@@ -349,9 +350,11 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
         }};
     }
 
-    private static ConsumerData consumerData(final String address, final MessageConsumer messageConsumer,
+    private ConsumerData consumerData(final String address, final MessageConsumer messageConsumer,
             final Source source) {
-        return ConsumerData.of(source, address, address + "_with_index", messageConsumer);
+        final var connectionContext =
+                DittoConnectionContext.of(CONNECTION, ConnectivityConfig.forActorSystem(actorSystem));
+        return ConsumerData.of(source, address, address + "_with_index", messageConsumer, connectionContext);
     }
 
     // JMS acknowledgement methods are package-private and impossible to mock.

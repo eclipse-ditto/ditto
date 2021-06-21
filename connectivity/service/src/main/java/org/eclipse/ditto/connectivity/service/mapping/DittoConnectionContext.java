@@ -57,6 +57,11 @@ public final class DittoConnectionContext implements ConnectionContext {
     }
 
     @Override
+    public ConnectionContext withConnection(final Connection modifiedConnection) {
+        return new DittoConnectionContext(modifiedConnection, connectivityConfig);
+    }
+
+    @Override
     public String toString() {
         return getClass().getSimpleName() +
                 "[connection=" + connection +

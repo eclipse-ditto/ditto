@@ -16,8 +16,8 @@ import static org.apache.qpid.jms.message.JmsMessageSupport.ACCEPTED;
 import static org.apache.qpid.jms.message.JmsMessageSupport.MODIFIED_FAILED;
 import static org.apache.qpid.jms.message.JmsMessageSupport.REJECTED;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 import static org.eclipse.ditto.connectivity.api.EnforcementFactoryFactory.newEnforcementFilterFactory;
+import static org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 
 import java.nio.ByteBuffer;
 import java.text.MessageFormat;
@@ -43,6 +43,10 @@ import org.apache.qpid.jms.message.JmsMessage;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.api.ExternalMessageBuilder;
+import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
@@ -53,22 +57,17 @@ import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigModifiedBehavior;
-import org.eclipse.ditto.connectivity.service.config.ConnectionContextProvider;
-import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigProviderFactory;
-import org.eclipse.ditto.connectivity.service.messaging.amqp.status.ConsumerClosedStatusReport;
+import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
 import org.eclipse.ditto.connectivity.service.messaging.BaseConsumerActor;
+import org.eclipse.ditto.connectivity.service.messaging.amqp.status.ConsumerClosedStatusReport;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
-import org.eclipse.ditto.connectivity.api.ExternalMessageBuilder;
-import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
-import org.eclipse.ditto.base.model.signals.Signal;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -112,10 +111,8 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
         log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID.toString(), connectionId);
 
-        // TODO: thread connection context through consumer data
-        final ConnectionContextProvider connectionContextProvider =
-                ConnectivityConfigProviderFactory.getInstance(getContext().getSystem());
-        connectivityConfig = connectionContextProvider.getConnectionContext(connection).getConnectivityConfig();
+        final ConnectionContext connectionContext = consumerData.getConnectionContext();
+        connectivityConfig = connectionContext.getConnectivityConfig();
         final ConnectionConfig connectionConfig = connectivityConfig.getConnectionConfig();
         final Amqp10Config amqp10Config = connectionConfig.getAmqp10Config();
         this.messageConsumer = consumerData.getMessageConsumer();

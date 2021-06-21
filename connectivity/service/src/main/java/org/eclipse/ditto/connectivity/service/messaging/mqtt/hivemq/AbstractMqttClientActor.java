@@ -85,7 +85,7 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
             final ActorRef connectionActor) {
         super(connection, proxyActor, connectionActor);
         this.connection = connection;
-        mqttConfig = connectivityConfig.getConnectionConfig().getMqttConfig();
+        mqttConfig = connectionContext.getConnectivityConfig().getConnectionConfig().getMqttConfig();
         mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection, mqttConfig);
     }
 
@@ -144,11 +144,6 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
      * @return the factory that creates new HiveMqttClients
      */
     abstract HiveMqttClientFactory<Q, ?> getClientFactory();
-
-    @Override
-    protected void doInit() {
-        // do nothing, client is created on demand
-    }
 
     @Override
     public void postStop() {

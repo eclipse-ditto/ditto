@@ -26,14 +26,14 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
 
-@JsonParsableException(errorCode = ConnectivityConfigProviderMissingException.ERROR_CODE)
-public final class ConnectivityConfigProviderMissingException extends DittoRuntimeException {
+@JsonParsableException(errorCode = ConnectionContextProviderMissingException.ERROR_CODE)
+public final class ConnectionContextProviderMissingException extends DittoRuntimeException {
 
     public static final String ERROR_CODE = "connectivity.config.provider.missing";
     private static final String MESSAGE_TEMPLATE =
-            "Failed to find a suitable ConnectivityConfigProvider implementation in candidates: <{0}>.";
+            "Failed to find a suitable ConnectionContextProvider implementation in candidates: <{0}>.";
 
-    private ConnectivityConfigProviderMissingException(
+    private ConnectionContextProviderMissingException(
             final DittoHeaders dittoHeaders, @Nullable final String message,
             @Nullable final String description, @Nullable final Throwable cause,
             @Nullable final URI href) {
@@ -44,7 +44,7 @@ public final class ConnectivityConfigProviderMissingException extends DittoRunti
         return new Builder(MessageFormat.format(MESSAGE_TEMPLATE, candidates));
     }
 
-    public static ConnectivityConfigProviderMissingException fromJson(final JsonObject jsonObject,
+    public static ConnectionContextProviderMissingException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
@@ -61,7 +61,7 @@ public final class ConnectivityConfigProviderMissingException extends DittoRunti
     }
 
     @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<ConnectivityConfigProviderMissingException> {
+    public static final class Builder extends DittoRuntimeExceptionBuilder<ConnectionContextProviderMissingException> {
 
         private Builder() { }
 
@@ -70,13 +70,13 @@ public final class ConnectivityConfigProviderMissingException extends DittoRunti
         }
 
         @Override
-        protected ConnectivityConfigProviderMissingException doBuild(final DittoHeaders dittoHeaders,
+        protected ConnectionContextProviderMissingException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
 
-            return new ConnectivityConfigProviderMissingException(dittoHeaders, message, description, cause, href);
+            return new ConnectionContextProviderMissingException(dittoHeaders, message, description, cause, href);
         }
 
     }

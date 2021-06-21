@@ -14,6 +14,7 @@
 package org.eclipse.ditto.connectivity.service.config;
 
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 
 import org.atteo.classindex.IndexSubclasses;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -37,7 +38,7 @@ public interface ConnectionContextProvider {
      * @param dittoHeaders the ditto headers for which to load the connection context.
      * @return the connectivity context
      */
-    ConnectionContext getConnectionContext(Connection connection, DittoHeaders dittoHeaders);
+    CompletionStage<ConnectionContext> getConnectionContext(Connection connection, DittoHeaders dittoHeaders);
 
     /**
      * Loads a connection context.
@@ -45,7 +46,7 @@ public interface ConnectionContextProvider {
      * @param connection the connection for which to load the connection context.
      * @return the connection context.
      */
-    default ConnectionContext getConnectionContext(Connection connection) {
+    default CompletionStage<ConnectionContext> getConnectionContext(Connection connection) {
         return getConnectionContext(connection, DittoHeaders.empty());
     }
 

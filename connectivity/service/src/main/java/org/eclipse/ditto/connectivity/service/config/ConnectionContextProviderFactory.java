@@ -37,7 +37,7 @@ import scala.util.Try;
 /**
  * Factory to instantiate new {@link ConnectionContextProvider}s.
  */
-public final class ConnectivityConfigProviderFactory implements Extension {
+public final class ConnectionContextProviderFactory implements Extension {
 
     /**
      * If this config property is {@code false} then {@code #getInstance} will throw an exception if no config
@@ -74,10 +74,10 @@ public final class ConnectivityConfigProviderFactory implements Extension {
      * @return the instance of the {@link ConnectionContextProvider}
      */
     public static ConnectionContextProvider getInstance(final ActorSystem actorSystem) {
-        return ConnectivityConfigProviderFactory.get(actorSystem).getInstance();
+        return ConnectionContextProviderFactory.get(actorSystem).getInstance();
     }
 
-    private ConnectivityConfigProviderFactory(final ActorSystem actorSystem) {
+    private ConnectionContextProviderFactory(final ActorSystem actorSystem) {
         final Config config = actorSystem.settings().config();
         final boolean loadDefaultProvider = config.getBoolean(DEFAULT_CONFIG_PROVIDER_CONFIG);
 
@@ -111,7 +111,7 @@ public final class ConnectivityConfigProviderFactory implements Extension {
         if (candidates.size() == 1) {
             return candidates.get(0);
         } else {
-            throw ConnectivityConfigProviderFactory.configProviderNotFound(candidates);
+            throw ConnectionContextProviderFactory.configProviderNotFound(candidates);
         }
     }
 
@@ -127,12 +127,12 @@ public final class ConnectivityConfigProviderFactory implements Extension {
 
     private static DittoRuntimeException configProviderNotFound(
             final List<Class<? extends ConnectionContextProvider>> candidates) {
-        return ConnectivityConfigProviderMissingException.newBuilder(candidates).build();
+        return ConnectionContextProviderMissingException.newBuilder(candidates).build();
     }
 
     private static DittoRuntimeException configProviderInstantiationFailed(final Class<?
             extends ConnectionContextProvider> c, final Exception cause) {
-        return ConnectivityConfigProviderFailedException.newBuilder(c)
+        return ConnectionContextProviderFailedException.newBuilder(c)
                 .cause(cause)
                 .build();
     }
@@ -143,21 +143,21 @@ public final class ConnectivityConfigProviderFactory implements Extension {
      * @param actorSystem The actor system in which to load the provider.
      * @return the {@code ConnectivityConfigProviderFactory}.
      */
-    public static ConnectivityConfigProviderFactory get(final ActorSystem actorSystem) {
+    public static ConnectionContextProviderFactory get(final ActorSystem actorSystem) {
         return ExtensionId.INSTANCE.get(actorSystem);
     }
 
     /**
-     * ID of the actor system extension to provide a {@link ConnectivityConfigProviderFactory}.
+     * ID of the actor system extension to provide a {@link ConnectionContextProviderFactory}.
      */
-    private static final class ExtensionId extends AbstractExtensionId<ConnectivityConfigProviderFactory> {
+    private static final class ExtensionId extends AbstractExtensionId<ConnectionContextProviderFactory> {
 
         private static final ExtensionId INSTANCE =
                 new ExtensionId();
 
         @Override
-        public ConnectivityConfigProviderFactory createExtension(final ExtendedActorSystem system) {
-            return new ConnectivityConfigProviderFactory(system);
+        public ConnectionContextProviderFactory createExtension(final ExtendedActorSystem system) {
+            return new ConnectionContextProviderFactory(system);
         }
 
     }

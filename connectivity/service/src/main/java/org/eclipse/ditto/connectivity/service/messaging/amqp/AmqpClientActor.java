@@ -43,8 +43,10 @@ import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
+import org.eclipse.ditto.connectivity.service.config.ClientConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientData;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.status.ConnectionFailureStatusReport;
@@ -255,6 +257,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     protected CompletionStage<Status.Status> doTestConnection(final TestConnection testConnectionCommand) {
         // delegate to child actor because the QPID JMS client is blocking until connection is opened/closed
         final Connection connectionToBeTested = testConnectionCommand.getConnection();
+        final ClientConfig clientConfig = connectionContext.getConnectivityConfig().getClientConfig();
         return Patterns.ask(getTestConnectionHandler(connectionToBeTested),
                 jmsConnect(getSender(), connectionToBeTested), clientConfig.getTestingTimeout())
                 // compose the disconnect because otherwise the actor hierarchy might be stopped too fast
@@ -327,9 +330,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         final CompletableFuture<Status.Status> future = new CompletableFuture<>();
         stopChildActor(amqpPublisherActor);
         if (null != jmsSession) {
-            final Props props =
-                    AmqpPublisherActor.props(connection(), jmsSession, connectivityConfig.getConnectionConfig(),
-                            getDefaultClientId());
+            final Props props = AmqpPublisherActor.props(connection(), jmsSession,
+                    connectionContext.getConnectivityConfig().getConnectionConfig(), getDefaultClientId());
             amqpPublisherActor = startChildActorConflictFree(AmqpPublisherActor.ACTOR_NAME_PREFIX, props);
             Patterns.ask(amqpPublisherActor, AmqpPublisherActor.INITIALIZE, clientAskTimeout)
                     .whenComplete((result, error) -> {
@@ -456,30 +458,32 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
     private ActorRef getTestConnectionHandler(final Connection connection) {
         if (testConnectionHandler == null) {
-            testConnectionHandler = startConnectionHandlingActor("test", connection);
+            testConnectionHandler = startConnectionHandlingActor("test", connectionContext.withConnection(connection));
         }
         return testConnectionHandler;
     }
 
     private ActorRef getConnectConnectionHandler(final Connection connection) {
         if (connectConnectionHandler == null) {
-            connectConnectionHandler = startConnectionHandlingActor("connect", connection);
+            connectConnectionHandler =
+                    startConnectionHandlingActor("connect", connectionContext.withConnection(connection));
         }
         return connectConnectionHandler;
     }
 
     private ActorRef getDisconnectConnectionHandler(final Connection connection) {
         if (disconnectConnectionHandler == null) {
-            disconnectConnectionHandler = startConnectionHandlingActor("disconnect", connection);
+            disconnectConnectionHandler =
+                    startConnectionHandlingActor("disconnect", connectionContext.withConnection(connection));
         }
         return disconnectConnectionHandler;
     }
 
-    private ActorRef startConnectionHandlingActor(final String suffix, final Connection connection) {
+    private ActorRef startConnectionHandlingActor(final String suffix, final ConnectionContext connectionContext) {
         final String namePrefix =
                 JMSConnectionHandlingActor.ACTOR_NAME_PREFIX + escapeActorName(connectionId() + "-" + suffix);
         final Props props =
-                JMSConnectionHandlingActor.propsWithOwnDispatcher(connection, this, jmsConnectionFactory,
+                JMSConnectionHandlingActor.propsWithOwnDispatcher(connectionContext, this, jmsConnectionFactory,
                         connectionLogger);
         return startChildActorConflictFree(namePrefix, props);
     }

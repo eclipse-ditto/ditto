@@ -17,6 +17,7 @@ import java.util.Objects;
 import javax.jms.MessageConsumer;
 
 import org.eclipse.ditto.connectivity.model.Source;
+import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
 
 /**
  * Wraps associated data of a JMS message consumer.
@@ -27,18 +28,22 @@ public final class ConsumerData {
     private final String address;
     private final String addressWithIndex;
     private final MessageConsumer messageConsumer;
+    private final ConnectionContext connectionContext;
 
     private ConsumerData(final Source source, final String address, final String addressWithIndex,
-            final MessageConsumer messageConsumer) {
+            final MessageConsumer messageConsumer,
+            final ConnectionContext connectionContext) {
         this.source = source;
         this.address = address;
         this.addressWithIndex = addressWithIndex;
         this.messageConsumer = messageConsumer;
+        this.connectionContext = connectionContext;
     }
 
     static ConsumerData of(final Source source, final String address, final String addressWithIndex,
-            final MessageConsumer messageConsumer) {
-        return new ConsumerData(source, address, addressWithIndex, messageConsumer);
+            final MessageConsumer messageConsumer,
+            final ConnectionContext connectionContext) {
+        return new ConsumerData(source, address, addressWithIndex, messageConsumer, connectionContext);
     }
 
     Source getSource() {
@@ -57,12 +62,16 @@ public final class ConsumerData {
         return messageConsumer;
     }
 
+    ConnectionContext getConnectionContext() {
+        return connectionContext;
+    }
+
     String getActorNamePrefix() {
         return AmqpConsumerActor.ACTOR_NAME_PREFIX + source.getIndex() + "-" + addressWithIndex;
     }
 
     ConsumerData withMessageConsumer(final MessageConsumer messageConsumer) {
-        return new ConsumerData(source, address, addressWithIndex, messageConsumer);
+        return new ConsumerData(source, address, addressWithIndex, messageConsumer, connectionContext);
     }
 
     @Override
