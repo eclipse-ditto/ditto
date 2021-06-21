@@ -429,9 +429,6 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                 final CompletableFuture<?> resultFuture) {
 
             return (queueOfferResult, error) -> {
-
-                logger.debug("queueOfferResult {}", queueOfferResult);
-
                 if (error != null) {
                     final String errorDescription = "Source queue failure";
                     logger.error(error, errorDescription);
