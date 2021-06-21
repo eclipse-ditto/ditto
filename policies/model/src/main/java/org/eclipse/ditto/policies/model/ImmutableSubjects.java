@@ -31,6 +31,8 @@ import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -39,8 +41,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 /**
  * An immutable implementation of {@link Subjects}.
@@ -119,6 +119,15 @@ final class ImmutableSubjects implements Subjects {
         final Subject existingSubject = subjects.get(subject.getId());
         if (!Objects.equals(existingSubject, subject)) {
             result = createNewSubjectsWithNewSubject(subject);
+        }
+        return result;
+    }
+
+    @Override
+    public Subjects setSubjects(final Subjects subjects) {
+        Subjects result = this;
+        for (Subject subject : subjects) {
+            result = result.setSubject(subject);
         }
         return result;
     }
